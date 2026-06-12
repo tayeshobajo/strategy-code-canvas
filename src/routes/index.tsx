@@ -17,7 +17,7 @@ import {
   Mail,
   Linkedin,
 } from "lucide-react";
-import heroImage from "@/assets/trust-tai-hero-v2.png";
+import heroAsset from "@/assets/trust-tai-hero.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 
 export const Route = createFileRoute("/")({
@@ -134,10 +134,14 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden bg-paper">
-      <div className="mx-auto grid max-w-[1600px] grid-cols-1 items-center gap-12 pb-20 pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-16 lg:pt-20">
-        <div className="relative z-10 max-w-xl px-6 lg:pl-10 lg:pr-0">
-          <h1 className="font-display text-[3.25rem] leading-[1.05] tracking-tight text-ink sm:text-[3.75rem]">
+    <section className="relative overflow-hidden">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 pb-20 pt-14 lg:grid-cols-[1.05fr_1.25fr] lg:gap-6 lg:px-10 lg:pt-20">
+        <div className="relative z-10 max-w-xl">
+          <div className="eyebrow flex items-center gap-3">
+            <span className="h-px w-6 bg-royal" /> The Roadmap
+          </div>
+          <p className="eyebrow mt-6">The Master Artifact</p>
+          <h1 className="mt-5 font-display text-[3.25rem] leading-[1.05] tracking-tight text-ink sm:text-[3.75rem]">
             We map the journey from where your business is to{" "}
             <span className="italic text-royal">where it needs to be.</span>
           </h1>
@@ -159,11 +163,15 @@ function Hero() {
           </p>
         </div>
 
-        <div className="relative order-last w-full">
+        <div className="relative">
           <img
-            src={heroImage}
-            alt="Trust Tai Business Operating Roadmap booklet on a textured stone surface"
-            className="h-[42vh] w-full object-cover object-center sm:h-[55vh] lg:h-[640px]"
+            src={heroAsset.url}
+            alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
+            className="h-full max-h-[460px] w-full rounded-sm object-cover object-right lg:max-h-none"
+            style={{
+              WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 14%, black 100%)",
+              maskImage: "linear-gradient(to right, transparent 0%, black 14%, black 100%)",
+            }}
           />
         </div>
       </div>
