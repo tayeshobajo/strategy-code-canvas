@@ -1,8 +1,11 @@
+import logoAsset from "@/assets/trust-tai-logo.png.asset.json";
+
 export function TrustTaiLogo({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-baseline font-display text-[1.75rem] leading-none tracking-tight ${className}`}>
-      <span className="uppercase">Trust&nbsp;Tai</span>
-      <sup className="ml-0.5 text-[0.5em] font-sans">®</sup>
-    </span>
+    <img
+      src={logoAsset.url}
+      alt="Trust Tai — Consultancy + AI Agency"
+      className={`h-9 w-auto sm:h-10 ${className}`}
+    />
   );
 }
