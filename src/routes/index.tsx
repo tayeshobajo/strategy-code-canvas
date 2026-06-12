@@ -260,7 +260,7 @@ function FeatureStrip() {
 function RoadmapSection() {
   return (
     <section id="roadmap" className="bg-secondary/60">
-      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[430px_1fr] lg:gap-24 lg:px-10 lg:pt-[72px] lg:pb-24 xl:gap-[96px]">
+      <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[minmax(380px,440px)_minmax(760px,1fr)] lg:gap-16 lg:px-10 lg:pt-[72px] lg:pb-24 xl:gap-[72px]">
         <div>
           <p className="eyebrow">What You Get</p>
           <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
