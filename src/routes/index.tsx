@@ -260,7 +260,7 @@ function FeatureStrip() {
 function RoadmapSection() {
   return (
     <section id="roadmap" className="bg-secondary/60">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[0.9fr_1.6fr] lg:px-10 lg:pt-[72px] lg:pb-24">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[0.8fr_1.85fr] lg:px-10 lg:pt-[72px] lg:pb-24">
         <div>
           <p className="eyebrow">What You Get</p>
           <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
@@ -300,7 +300,7 @@ function RoadmapPanel() {
   return (
     <div className="overflow-hidden rounded-lg border border-rule bg-white">
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-rule px-6 py-5">
+      <div className="flex items-center justify-between border-b border-rule px-6 py-3.5">
         <div>
           <div className="font-display text-lg text-ink">Trust Tai</div>
           <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/55">Operating Map</div>
@@ -313,18 +313,18 @@ function RoadmapPanel() {
           ].map((p) => (
             <div key={p.l}>
               <div className="font-mono uppercase tracking-[0.16em] text-royal">{p.l}</div>
-              <div className="mt-1 text-ink/60">{p.s}</div>
+              <div className="mt-0.5 text-ink/60">{p.s}</div>
             </div>
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-[164px_1fr]">
+      <div className="grid grid-cols-[148px_1fr]">
         {/* Tabs */}
-        <div className="bg-ink py-2 text-paper/70">
+        <div className="bg-ink py-1.5 text-paper/70">
           {TABS.map((t, i) => (
             <button
               key={t}
-              className={`flex w-full cursor-pointer items-center gap-2 px-4 py-[7px] text-left text-[12px] transition-colors ${
+              className={`flex w-full cursor-pointer items-center gap-2 px-3.5 py-[5px] text-left text-[11.5px] transition-colors ${
                 i === 7
                   ? "bg-royal/25 text-paper"
                   : "text-paper/55 hover:bg-white/5 hover:text-paper/80"
@@ -339,13 +339,14 @@ function RoadmapPanel() {
           ))}
         </div>
         {/* Gantt */}
-        <div className="px-8 pt-7 pb-7">
-          <div className="mb-5 flex items-end justify-between">
+        <div className="px-8 pt-5 pb-5">
+          <div className="mb-3.5 flex items-end justify-between">
             <h3 className="font-display text-xl text-ink">The Build Order</h3>
           </div>
           <BuildOrderChart statusColor={statusColor} />
 
-          <div className="mt-10 flex flex-wrap items-center justify-between gap-y-3 border-t border-rule/70 pt-5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-y-3 border-t border-rule/70 pt-3.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
+
             <div>24 Month Operating Map · 8 Quarters, Sequenced</div>
             <div className="flex items-center gap-6 whitespace-nowrap">
               {[
@@ -371,15 +372,15 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
   const rows = TAB_DATA[active].rows;
   return (
     <>
-      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">
+      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">
         Example build orders by business type
       </div>
-      <div className="mb-7 flex items-center gap-9 border-b border-rule/40 text-[12.5px]">
+      <div className="mb-5 flex items-center gap-9 border-b border-rule/40 text-[12.5px]">
         {TAB_DATA.map((t, i) => (
           <button
             key={t.label}
             onClick={() => setActive(i)}
-            className={`group relative -mb-px cursor-pointer pb-2.5 font-medium transition-colors ${
+            className={`group relative -mb-px cursor-pointer pb-2 font-medium transition-colors ${
               i === active
                 ? "text-ink"
                 : "text-ink/65 hover:text-ink"
@@ -396,7 +397,8 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-[170px_repeat(8,1fr)] gap-y-5 text-[11px] text-ink/55">
+      <div className="grid grid-cols-[170px_repeat(8,1fr)] gap-y-3.5 text-[11px] text-ink/55">
+
         <div />
         {Array.from({ length: 8 }, (_, i) => (
           <div key={i} className="text-center font-mono">Q{i + 1}</div>
@@ -410,11 +412,11 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
           />
         ))}
         {/* Intelligence Layer band */}
-        <div className="mt-4 self-center pr-3 text-[12px] font-medium text-ink/75">
+        <div className="mt-2.5 self-center pr-3 text-[12px] font-medium text-ink/75">
           Intelligence Layer
         </div>
-        <div className="relative col-span-8 mt-4 h-8">
-          <div className="absolute inset-x-0 top-1/2 h-6 -translate-y-1/2 rounded-full border border-royal-soft/25 bg-royal-soft/10" />
+        <div className="relative col-span-8 mt-2.5 h-7">
+          <div className="absolute inset-x-0 top-1/2 h-5 -translate-y-1/2 rounded-full border border-royal-soft/25 bg-royal-soft/10" />
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10.5px] tracking-normal text-ink/55">
             Continuous across every milestone
           </span>
@@ -438,13 +440,14 @@ function RoadmapRow({
       <div className="self-center pr-3 text-[12px] text-ink/80">
         <div className="font-medium">{row.name}</div>
         {recommended && (
-          <div className="mt-1.5 flex items-center gap-2 text-[10.5px] text-royal/85">
+          <div className="mt-1 flex items-center gap-2 text-[10.5px] text-royal/85">
             <span className="h-1.5 w-1.5 flex-none rounded-full bg-royal" />
             <span className="tracking-normal">Recommended start: funds the rest of the map</span>
           </div>
         )}
       </div>
-      <div className="relative col-span-8 h-7">
+      <div className="relative col-span-8 h-6">
+
         <div className="absolute inset-y-0 grid w-full grid-cols-8">
           {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className="border-l border-dashed border-rule/25 first:border-l-0" />
