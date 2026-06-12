@@ -318,38 +318,43 @@ function RoadmapPanel() {
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-[180px_1fr]">
+      <div className="grid grid-cols-[164px_1fr]">
         {/* Tabs */}
-        <div className="bg-ink py-2 text-paper/90">
+        <div className="bg-ink py-2 text-paper/70">
           {TABS.map((t, i) => (
             <button
               key={t}
-              className={`flex w-full items-center gap-2 px-4 py-[7px] text-left text-[12px] transition-colors ${
-                i === 7 ? "bg-royal/25 text-paper" : "hover:bg-white/5"
+              className={`flex w-full cursor-pointer items-center gap-2 px-4 py-[7px] text-left text-[12px] transition-colors ${
+                i === 7
+                  ? "bg-royal/25 text-paper"
+                  : "text-paper/55 hover:bg-white/5 hover:text-paper/80"
               }`}
             >
-              <CircleDot className="h-3 w-3 opacity-60" strokeWidth={1.5} />
+              <CircleDot
+                className={`h-3 w-3 ${i === 7 ? "opacity-70" : "opacity-30"}`}
+                strokeWidth={1.5}
+              />
               {t}
             </button>
           ))}
         </div>
         {/* Gantt */}
-        <div className="p-6">
-          <div className="mb-4 flex items-end justify-between">
+        <div className="px-8 pt-7 pb-7">
+          <div className="mb-5 flex items-end justify-between">
             <h3 className="font-display text-xl text-ink">The Build Order</h3>
           </div>
           <BuildOrderChart statusColor={statusColor} />
 
-          <div className="mt-7 flex flex-wrap items-center justify-between gap-y-3 border-t border-rule pt-4 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-y-3 border-t border-rule/70 pt-5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
             <div>24 Month Operating Map · 8 Quarters, Sequenced</div>
-            <div className="flex items-center gap-5 whitespace-nowrap">
+            <div className="flex items-center gap-6 whitespace-nowrap">
               {[
                 { l: "Mapped", c: "bg-royal-soft/35" },
                 { l: "In build", c: "bg-royal/80" },
                 { l: "Live", c: "bg-ink" },
               ].map((x) => (
                 <span key={x.l} className="flex items-center gap-2 whitespace-nowrap normal-case">
-                  <span className={`h-2.5 w-5 rounded-sm ${x.c}`} />
+                  <span className={`h-2.5 w-5 rounded-full ${x.c}`} />
                   <span className="tracking-normal text-ink/65">{x.l}</span>
                 </span>
               ))}
