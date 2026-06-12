@@ -239,17 +239,17 @@ function RoadmapSection() {
 
 function RoadmapPanel() {
   const statusColor: Record<Status, string> = {
-    planning: "bg-royal-soft/45",
-    progress: "bg-royal",
-    complete: "bg-ink",
+    mapped: "bg-royal-soft/35",
+    build: "bg-royal/80",
+    live: "bg-ink",
   };
   return (
-    <div className="overflow-hidden rounded-lg border border-rule bg-white shadow-[0_30px_60px_-30px_rgba(15,23,80,0.25)]">
+    <div className="overflow-hidden rounded-lg border border-rule bg-white">
       {/* Top bar */}
       <div className="flex items-center justify-between border-b border-rule px-6 py-5">
         <div>
           <div className="font-display text-lg text-ink">Trust Tai</div>
-          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/55">Business Operating Roadmap</div>
+          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/55">Operating Map</div>
         </div>
         <div className="hidden gap-10 text-[11px] sm:flex">
           {[
@@ -266,12 +266,12 @@ function RoadmapPanel() {
       </div>
       <div className="grid grid-cols-[180px_1fr]">
         {/* Tabs */}
-        <div className="bg-ink py-5 text-paper/90">
+        <div className="bg-ink py-2 text-paper/90">
           {TABS.map((t, i) => (
             <button
               key={t}
-              className={`flex w-full items-center gap-2 px-5 py-2.5 text-left text-[12.5px] transition-colors ${
-                i === 4 ? "bg-royal/25 text-paper" : "hover:bg-white/5"
+              className={`flex w-full items-center gap-2 px-4 py-[7px] text-left text-[12px] transition-colors ${
+                i === 7 ? "bg-royal/25 text-paper" : "hover:bg-white/5"
               }`}
             >
               <CircleDot className="h-3 w-3 opacity-60" strokeWidth={1.5} />
@@ -282,7 +282,7 @@ function RoadmapPanel() {
         {/* Gantt */}
         <div className="p-6">
           <div className="mb-4 flex items-end justify-between">
-            <h3 className="font-display text-xl text-ink">Initiatives & Milestones</h3>
+            <h3 className="font-display text-xl text-ink">The Build Order</h3>
           </div>
           <div className="grid grid-cols-[140px_repeat(8,1fr)] gap-y-3 text-[11px] text-ink/55">
             <div />
@@ -295,15 +295,12 @@ function RoadmapPanel() {
           </div>
 
           <div className="mt-7 flex items-center justify-between border-t border-rule pt-4 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
-            <div>
-              <div>24-Month Roadmap</div>
-              <div className="mt-1 text-ink/40">8 Quarters of Execution</div>
-            </div>
+            <div>24 Month Operating Map · 8 Quarters, Sequenced</div>
             <div className="flex items-center gap-5">
               {[
-                { l: "Planning", c: "bg-royal-soft/45" },
-                { l: "In Progress", c: "bg-royal" },
-                { l: "Complete", c: "bg-ink" },
+                { l: "Mapped", c: "bg-royal-soft/35" },
+                { l: "In build", c: "bg-royal/80" },
+                { l: "Live", c: "bg-ink" },
               ].map((x) => (
                 <span key={x.l} className="flex items-center gap-2 normal-case">
                   <span className={`h-2.5 w-5 rounded-sm ${x.c}`} />
