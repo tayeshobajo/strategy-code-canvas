@@ -212,10 +212,10 @@ function RoadmapSection() {
         <div>
           <p className="eyebrow">What You Get</p>
           <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
-            A living plan. Prioritized.<br />Measurable. Built to win.
+            A living plan. Specific.<br />Sequenced. Yours.
           </h2>
           <p className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
-            Our roadmap is both the strategy and the blueprint. It aligns your team, focuses your resources, and gives you a clear path to results.
+            The Operating Map turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.
           </p>
           <ul className="mt-7 space-y-3">
             {CHECKLIST.map((c) => (
