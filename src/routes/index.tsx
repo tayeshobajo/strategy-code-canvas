@@ -101,7 +101,7 @@ function buildRows(items: { name: string; start: number; end: number }[]): Row[]
 
 const TAB_DATA: { label: string; rows: Row[] }[] = [
   {
-    label: "A consulting firm",
+    label: "Consulting firm",
     rows: buildRows([
       { name: "Converting Website", start: 1, end: 2 },
       { name: "Connected CRM", start: 1, end: 3 },
@@ -114,7 +114,7 @@ const TAB_DATA: { label: string; rows: Row[] }[] = [
     ]),
   },
   {
-    label: "An education business",
+    label: "Education business",
     rows: buildRows([
       { name: "Converting Website", start: 1, end: 2 },
       { name: "Connected CRM", start: 1, end: 3 },
@@ -127,7 +127,7 @@ const TAB_DATA: { label: string; rows: Row[] }[] = [
     ]),
   },
   {
-    label: "A healthcare practice",
+    label: "Healthcare practice",
     rows: buildRows([
       { name: "Converting Website", start: 1, end: 2 },
       { name: "Connected CRM", start: 1, end: 3 },
