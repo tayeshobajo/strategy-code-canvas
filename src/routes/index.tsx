@@ -51,38 +51,42 @@ const FEATURES = [
 ];
 
 const CHECKLIST = [
-  "Current state diagnostic (Point A)",
-  "24-month target state (Point B)",
-  "10-year category position (Point C)",
-  "Prioritized initiatives and milestones",
-  "Success metrics and leading indicators",
-  "Risk assessment and opportunity map",
-  "Technology and systems architecture",
-  "Implementation roadmap and timeline",
-  "Investment plan and expected outcomes",
+  "Point A, documented: how the business runs today and what the drag costs",
+  "Point B, defined: the 24 month destination, in your numbers",
+  "Point C, named: the position you could own in ten years",
+  "The unbuilt asset: the compounding advantage you already hold",
+  "The build order: every milestone, sequenced, with what each unlocks",
+  "The economics: the revenue case, modeled and tracked",
+  "Who carries what, and what stays outside the build",
+  "The scoreboard: what gets measured, and when",
 ];
 
 const TABS = [
-  "Executive Summary",
-  "Current State (A)",
-  "Target State (B)",
-  "Future Position (C)",
-  "Initiatives & Milestones",
-  "Systems & Technology",
-  "Metrics & Outcomes",
-  "Investment Plan",
-  "Appendices",
+  "The Letter",
+  "The Summary",
+  "Point A",
+  "The Asset",
+  "Point C",
+  "Point B",
+  "The Gap",
+  "The Build Order",
+  "The Economics",
+  "The Recommendation",
+  "Investment",
+  "Who Carries What",
+  "Integrity",
+  "The Scoreboard",
+  "Stewardship",
 ];
 
-type Status = "planning" | "progress" | "complete";
+type Status = "mapped" | "build" | "live";
 const ROWS: { name: string; segs: { start: number; end: number; status: Status }[] }[] = [
-  { name: "Brand & Positioning", segs: [{ start: 1, end: 5, status: "progress" }] },
-  { name: "Lead Generation Engine", segs: [{ start: 1, end: 3, status: "planning" }, { start: 3, end: 6, status: "progress" }] },
-  { name: "Sales & Client Experience", segs: [{ start: 2, end: 7, status: "progress" }] },
-  { name: "Operations & Systems", segs: [{ start: 1, end: 4, status: "planning" }, { start: 4, end: 8, status: "progress" }] },
-  { name: "Technology Foundation", segs: [{ start: 2, end: 5, status: "planning" }] },
-  { name: "Team & Culture", segs: [{ start: 3, end: 6, status: "planning" }, { start: 6, end: 8, status: "progress" }] },
-  { name: "Financial Performance", segs: [{ start: 4, end: 8, status: "complete" }] },
+  { name: "Converting Website", segs: [{ start: 1, end: 1, status: "mapped" }, { start: 2, end: 3, status: "build" }, { start: 4, end: 8, status: "live" }] },
+  { name: "Lead Engine", segs: [{ start: 1, end: 1, status: "mapped" }, { start: 2, end: 4, status: "build" }, { start: 5, end: 8, status: "live" }] },
+  { name: "Client Portal", segs: [{ start: 1, end: 2, status: "mapped" }, { start: 3, end: 5, status: "build" }, { start: 6, end: 8, status: "live" }] },
+  { name: "AI Support Assistant", segs: [{ start: 1, end: 2, status: "mapped" }, { start: 3, end: 6, status: "build" }, { start: 7, end: 8, status: "live" }] },
+  { name: "Operating Dashboard", segs: [{ start: 1, end: 3, status: "mapped" }, { start: 4, end: 8, status: "build" }] },
+  { name: "Workflow Automation", segs: [{ start: 1, end: 4, status: "mapped" }, { start: 5, end: 8, status: "build" }] },
 ];
 
 const PRICING = [
