@@ -202,7 +202,7 @@ function Hero() {
 function FeatureStrip() {
   return (
     <section className="border-y border-rule/70 bg-white">
-      <div className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
+      <div className="mx-auto max-w-7xl px-6 pb-16 pt-10 lg:px-10">
         <h2 className="text-center font-display text-2xl text-ink">Built for founders who are done guessing.</h2>
         <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
