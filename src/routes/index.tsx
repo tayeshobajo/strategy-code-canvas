@@ -134,9 +134,10 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative w-full overflow-hidden bg-paper lg:min-h-[720px]">
+    <section className="relative w-full overflow-hidden bg-paper lg:min-h-[720px] lg:pb-4">
       <div className="lg:grid lg:grid-cols-[48fr_52fr]">
-        <div className="flex items-center px-6 py-14 pr-6 lg:min-h-[720px] lg:py-0 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
+        <div className="relative flex items-center px-6 py-14 pr-6 lg:min-h-[720px] lg:py-0 lg:pl-10 lg:pr-12 lg:pt-8 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
+          <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-90" aria-hidden="true" />
           <div className="relative z-10 max-w-[620px]">
             <h1 className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
               We map the journey from where your business is to{" "}
@@ -159,6 +160,22 @@ function Hero() {
               <span>A 30 minute conversation. No pitch.</span>
             </p>
           </div>
+          {/* Route-line accent: arcs from below microcopy toward the seam */}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 220 90"
+            className="pointer-events-none absolute bottom-10 right-[-1.5rem] hidden h-[80px] w-[220px] text-royal opacity-70 lg:block"
+            fill="none"
+          >
+            <path
+              d="M2 78 C 60 78, 90 60, 120 40 S 190 12, 214 8"
+              stroke="currentColor"
+              strokeWidth="1.25"
+              strokeLinecap="round"
+              strokeDasharray="1 6"
+            />
+            <circle cx="214" cy="8" r="2.5" fill="currentColor" />
+          </svg>
         </div>
 
         <div className="relative h-[420px] w-full lg:h-auto lg:min-h-[720px]">
@@ -167,11 +184,19 @@ function Hero() {
             alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
             className="absolute inset-0 h-full w-full object-cover object-right"
           />
+          {/* Feathered seam between text and image */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block" aria-hidden="true" />
+          {/* Artifact caption */}
+          <div className="pointer-events-none absolute bottom-8 left-8 hidden rounded-sm border border-ink/10 bg-paper/85 px-4 py-3 backdrop-blur-sm lg:block">
+            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-royal">The Operating Map</div>
+            <div className="mt-1 text-[12px] text-ink/70">A living plan for what to build first.</div>
+          </div>
         </div>
       </div>
     </section>
   );
 }
+
 
 
 function FeatureStrip() {
