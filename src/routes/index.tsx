@@ -134,43 +134,46 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 pb-20 pt-14 lg:grid-cols-[1.05fr_1.25fr] lg:gap-6 lg:px-10 lg:pt-20">
-        <div className="relative z-10 max-w-xl">
-          <div className="eyebrow flex items-center gap-3">
-            <span className="h-px w-6 bg-royal" /> The Roadmap
+    <section className="relative overflow-hidden bg-paper">
+      <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:items-center">
+        {/* Text column — constrained to the same gutter as the rest of the page */}
+        <div className="relative z-10 w-full bg-paper px-6 pb-12 pt-14 lg:px-10 lg:pb-24 lg:pt-24">
+          <div className="ml-auto w-full max-w-xl lg:mr-10 lg:max-w-[34rem]">
+            <h1 className="font-display text-[3.25rem] leading-[1.05] tracking-tight text-ink sm:text-[3.75rem]">
+              We map the journey from where your business is to{" "}
+              <span className="italic text-royal">where it needs to be.</span>
+            </h1>
+            <p className="mt-6 max-w-md text-[15px] leading-relaxed text-ink/70">
+              We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B) — and build the first leg toward the position you could own in a decade (Point C).
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <a href="#cta" className="group inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-medium text-paper transition-all hover:bg-ink/90">
+                Build My Map
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </a>
+              <a href="#pricing" className="inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 py-3.5 text-sm font-medium text-ink transition-colors hover:border-ink/40">
+                See what it costs
+              </a>
+            </div>
+            <p className="mt-6 flex items-start gap-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink/55">
+              <span className="mt-2 inline-block h-px w-5 bg-ink/40" />
+              <span>A 30 minute conversation. No pitch.</span>
+            </p>
           </div>
-          <p className="eyebrow mt-6">The Master Artifact</p>
-          <h1 className="mt-5 font-display text-[3.25rem] leading-[1.05] tracking-tight text-ink sm:text-[3.75rem]">
-            We map the journey from where your business is to{" "}
-            <span className="italic text-royal">where it needs to be.</span>
-          </h1>
-          <p className="mt-6 max-w-md text-[15px] leading-relaxed text-ink/70">
-            We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B) — and build the first leg toward the position you could own in a decade (Point C).
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <a href="#cta" className="group inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-medium text-paper transition-all hover:bg-ink/90">
-              Build My Map
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </a>
-            <a href="#pricing" className="inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 py-3.5 text-sm font-medium text-ink transition-colors hover:border-ink/40">
-              See what it costs
-            </a>
-          </div>
-          <p className="mt-6 flex items-start gap-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink/55">
-            <span className="mt-2 inline-block h-px w-5 bg-ink/40" />
-            <span>A 30 minute conversation. No pitch.</span>
-          </p>
         </div>
 
-        <div className="relative">
+        {/* Photo column — bleeds to right viewport edge on desktop */}
+        <div className="relative w-full overflow-hidden lg:h-[640px]">
           <img
             src={heroAsset.url}
             alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
-            className="h-full max-h-[460px] w-full rounded-sm object-cover object-right lg:max-h-none"
+            className="h-[58vh] w-full object-cover object-[60%_30%] sm:h-[64vh] lg:h-full lg:object-[55%_45%]"
             style={{
-              WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 14%, black 100%)",
-              maskImage: "linear-gradient(to right, transparent 0%, black 14%, black 100%)",
+              transform: "scale(1.18) rotate(-5deg)",
+              transformOrigin: "60% 55%",
+              filter: "drop-shadow(0 28px 32px rgba(20, 18, 14, 0.28))",
+              WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 12%, black 100%)",
+              maskImage: "linear-gradient(to right, transparent 0%, black 12%, black 100%)",
             }}
           />
         </div>
