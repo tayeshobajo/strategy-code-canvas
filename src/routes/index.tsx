@@ -226,7 +226,12 @@ function RoadmapSection() {
             ))}
           </ul>
         </div>
-        <RoadmapPanel />
+        <div>
+          <RoadmapPanel />
+          <p className="mt-4 text-[12px] italic leading-relaxed text-ink/55">
+            Your map arrives in this working shape. The order is a conversation, not a contract.
+          </p>
+        </div>
       </div>
     </section>
   );
