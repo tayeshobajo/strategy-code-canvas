@@ -134,44 +134,45 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 pb-14 pt-14 lg:grid-cols-[1fr_1.15fr] lg:gap-10 lg:px-10 lg:pb-20 lg:pt-20">
-        <div className="relative z-10 max-w-[34rem]">
-          <h1 className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
-            We map the journey from where your business is to{" "}
-            <span className="italic text-royal">where it needs to be.</span>
-          </h1>
-          <p className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
-            We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B) — and build the first leg toward the position you could own in a decade (Point C).
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
-              Build My Map
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </a>
-            <a href="#pricing" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
-              See what it costs
-            </a>
+    <section className="relative w-full overflow-hidden bg-paper lg:min-h-[720px]">
+      <div className="lg:grid lg:grid-cols-[48fr_52fr]">
+        <div className="flex items-center px-6 py-14 pr-6 lg:min-h-[720px] lg:py-0 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
+          <div className="relative z-10 max-w-[620px]">
+            <h1 className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
+              We map the journey from where your business is to{" "}
+              <span className="italic text-royal">where it needs to be.</span>
+            </h1>
+            <p className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
+              We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B) — and build the first leg toward the position you could own in a decade (Point C).
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
+                Build My Map
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </a>
+              <a href="#pricing" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
+                See what it costs
+              </a>
+            </div>
+            <p className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+              <span className="inline-block h-px w-5 bg-ink/40" />
+              <span>A 30 minute conversation. No pitch.</span>
+            </p>
           </div>
-          <p className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
-            <span className="inline-block h-px w-5 bg-ink/40" />
-            <span>A 30 minute conversation. No pitch.</span>
-          </p>
         </div>
 
-        <div className="relative lg:-ml-2">
-          <div className="overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-[0_30px_60px_-30px_rgba(15,23,42,0.25),0_8px_20px_-12px_rgba(15,23,42,0.15)]">
-            <img
-              src={heroAsset.url}
-              alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
-              className="block h-full max-h-[520px] w-full object-cover object-right"
-            />
-          </div>
+        <div className="relative h-[420px] w-full lg:h-auto lg:min-h-[720px]">
+          <img
+            src={heroAsset.url}
+            alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
+            className="absolute inset-0 h-full w-full object-cover object-right"
+          />
         </div>
       </div>
     </section>
   );
 }
+
 
 function FeatureStrip() {
   return (
