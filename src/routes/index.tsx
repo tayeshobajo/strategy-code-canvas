@@ -371,10 +371,10 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
   const rows = TAB_DATA[active].rows;
   return (
     <>
-      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">
         Example build orders by business type
       </div>
-      <div className="mb-5 flex items-center gap-7 border-b border-rule/60 text-[12.5px]">
+      <div className="mb-7 flex items-center gap-9 border-b border-rule/40 text-[12.5px]">
         {TAB_DATA.map((t, i) => (
           <button
             key={t.label}
@@ -382,7 +382,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
             className={`group relative -mb-px cursor-pointer pb-2.5 font-medium transition-colors ${
               i === active
                 ? "text-ink"
-                : "text-ink/55 hover:text-ink"
+                : "text-ink/65 hover:text-ink"
             }`}
           >
             {t.label}
@@ -396,7 +396,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-[160px_repeat(8,1fr)] gap-y-3 text-[11px] text-ink/55">
+      <div className="grid grid-cols-[170px_repeat(8,1fr)] gap-y-5 text-[11px] text-ink/55">
         <div />
         {Array.from({ length: 8 }, (_, i) => (
           <div key={i} className="text-center font-mono">Q{i + 1}</div>
@@ -410,19 +410,13 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
           />
         ))}
         {/* Intelligence Layer band */}
-        <div className="mt-3 self-center pr-3 text-[12px] font-medium text-ink/75">
+        <div className="mt-4 self-center pr-3 text-[12px] font-medium text-ink/75">
           Intelligence Layer
         </div>
-        <div className="relative col-span-8 mt-3 h-7">
-          <div
-            className="absolute inset-x-0 top-1/2 h-3.5 -translate-y-1/2 rounded-full"
-            style={{
-              background:
-                "repeating-linear-gradient(45deg, color-mix(in oklab, var(--color-royal) 18%, transparent) 0 6px, color-mix(in oklab, var(--color-royal) 8%, transparent) 6px 12px)",
-            }}
-          />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10.5px] text-ink/65">
-            continuous across every milestone
+        <div className="relative col-span-8 mt-4 h-8">
+          <div className="absolute inset-x-0 top-1/2 h-6 -translate-y-1/2 rounded-full border border-royal-soft/25 bg-royal-soft/10" />
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10.5px] tracking-normal text-ink/55">
+            Continuous across every milestone
           </span>
         </div>
       </div>
@@ -444,15 +438,16 @@ function RoadmapRow({
       <div className="self-center pr-3 text-[12px] text-ink/80">
         <div className="font-medium">{row.name}</div>
         {recommended && (
-          <span className="mt-1 inline-flex items-center rounded-sm border border-royal/30 bg-royal-soft/25 px-1.5 py-[1px] text-[9.5px] font-medium tracking-wide text-royal">
-            Recommended start · funds the rest of the map
-          </span>
+          <div className="mt-1.5 flex items-center gap-2 text-[10.5px] text-royal/85">
+            <span className="h-1.5 w-1.5 flex-none rounded-full bg-royal" />
+            <span className="tracking-normal">Recommended start: funds the rest of the map</span>
+          </div>
         )}
       </div>
-      <div className="relative col-span-8 h-6">
+      <div className="relative col-span-8 h-7">
         <div className="absolute inset-y-0 grid w-full grid-cols-8">
           {Array.from({ length: 8 }, (_, i) => (
-            <div key={i} className="border-l border-dashed border-rule/40 first:border-l-0" />
+            <div key={i} className="border-l border-dashed border-rule/25 first:border-l-0" />
           ))}
         </div>
         {row.segs.map((s, i) => {
@@ -461,7 +456,7 @@ function RoadmapRow({
           return (
             <div
               key={i}
-              className={`absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full ${statusColor[s.status]}`}
+              className={`absolute top-1/2 h-3 -translate-y-1/2 rounded-full ${statusColor[s.status]}`}
               style={{ left: `${left}%`, width: `${width}%` }}
             />
           );
