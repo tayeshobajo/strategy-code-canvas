@@ -281,7 +281,7 @@ function RoadmapSection() {
         <div>
           <RoadmapPanel />
           <p className="mt-4 text-[12px] italic leading-relaxed text-ink/55">
-            Your map arrives in this working shape. The order is a conversation, not a contract.
+            Three founders, three maps. Yours will hold your milestones, in your order. The order is a conversation, not a contract.
           </p>
         </div>
       </div>
