@@ -38,7 +38,7 @@ export const Route = createFileRoute("/")({
 const NAV = [
   { label: "The Roadmap", href: "#roadmap", active: true },
   { label: "What We Build", href: "#what" },
-  { label: "The Walks", href: "#walks" },
+  { label: "Investment", href: "#pricing" },
   { label: "About", href: "#about" },
   { label: "Insights", href: "#insights" },
 ];
@@ -125,7 +125,7 @@ function Header() {
           ))}
         </nav>
         <a href="#cta" className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[13px] font-medium text-paper transition-transform hover:scale-[1.02]">
-          Begin <ArrowRight className="h-3.5 w-3.5" />
+          Build My Map <ArrowRight className="h-3.5 w-3.5" />
         </a>
       </div>
     </header>
@@ -148,18 +148,18 @@ function Hero() {
           <p className="mt-6 max-w-md text-[15px] leading-relaxed text-ink/70">
             We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B) — and build the first leg toward the position you could own in a decade (Point C).
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href="#cta" className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-medium text-paper transition-all hover:bg-ink/90">
-              Begin the Roadmap conversation
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <a href="#cta" className="group inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-medium text-paper transition-all hover:bg-ink/90">
+              Build My Map
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
-            <a href="#what" className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 py-3.5 text-sm font-medium text-ink transition-colors hover:border-ink/40">
-              See a sample roadmap
+            <a href="#pricing" className="inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 py-3.5 text-sm font-medium text-ink transition-colors hover:border-ink/40">
+              See what it costs
             </a>
           </div>
-          <p className="mt-8 flex items-start gap-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink/55">
+          <p className="mt-6 flex items-start gap-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink/55">
             <span className="mt-2 inline-block h-px w-5 bg-ink/40" />
-            <span>No pressure on the other side.<br />A conversation, not a pitch.</span>
+            <span>A 30 minute conversation. No pitch.</span>
           </p>
         </div>
 
@@ -167,7 +167,7 @@ function Hero() {
           <img
             src={heroAsset.url}
             alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
-            className="h-full w-full rounded-sm object-cover"
+            className="h-full max-h-[460px] w-full rounded-sm object-cover object-left lg:max-h-none"
             style={{
               WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 14%, black 100%)",
               maskImage: "linear-gradient(to right, transparent 0%, black 14%, black 100%)",
