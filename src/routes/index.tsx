@@ -146,7 +146,7 @@ function Hero() {
         className="absolute inset-0 -z-10 lg:hidden"
         style={{
           background:
-            "linear-gradient(to right, hsl(var(--paper)) 0%, hsl(var(--paper) / 0.96) 70%, hsl(var(--paper) / 0) 100%)",
+            "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 96%, transparent) 70%, color-mix(in oklab, var(--paper) 0%, transparent) 100%)",
         }}
       />
       {/* Desktop wash: solid paper on the left half, photo bleeds on the right */}
@@ -155,7 +155,7 @@ function Hero() {
         className="absolute inset-0 -z-10 hidden lg:block"
         style={{
           background:
-            "linear-gradient(to right, hsl(var(--paper)) 0%, hsl(var(--paper) / 0.96) 45%, hsl(var(--paper) / 0) 70%)",
+            "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 96%, transparent) 45%, color-mix(in oklab, var(--paper) 0%, transparent) 70%)",
         }}
       />
 
