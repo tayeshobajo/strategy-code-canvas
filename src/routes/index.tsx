@@ -412,11 +412,11 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
           />
         ))}
         {/* Intelligence Layer band */}
-        <div className="mt-4 self-center pr-3 text-[12px] font-medium text-ink/75">
+        <div className="mt-2.5 self-center pr-3 text-[12px] font-medium text-ink/75">
           Intelligence Layer
         </div>
-        <div className="relative col-span-8 mt-4 h-8">
-          <div className="absolute inset-x-0 top-1/2 h-6 -translate-y-1/2 rounded-full border border-royal-soft/25 bg-royal-soft/10" />
+        <div className="relative col-span-8 mt-2.5 h-7">
+          <div className="absolute inset-x-0 top-1/2 h-5 -translate-y-1/2 rounded-full border border-royal-soft/25 bg-royal-soft/10" />
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10.5px] tracking-normal text-ink/55">
             Continuous across every milestone
           </span>
@@ -440,13 +440,14 @@ function RoadmapRow({
       <div className="self-center pr-3 text-[12px] text-ink/80">
         <div className="font-medium">{row.name}</div>
         {recommended && (
-          <div className="mt-1.5 flex items-center gap-2 text-[10.5px] text-royal/85">
+          <div className="mt-1 flex items-center gap-2 text-[10.5px] text-royal/85">
             <span className="h-1.5 w-1.5 flex-none rounded-full bg-royal" />
             <span className="tracking-normal">Recommended start: funds the rest of the map</span>
           </div>
         )}
       </div>
-      <div className="relative col-span-8 h-7">
+      <div className="relative col-span-8 h-6">
+
         <div className="absolute inset-y-0 grid w-full grid-cols-8">
           {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className="border-l border-dashed border-rule/25 first:border-l-0" />
