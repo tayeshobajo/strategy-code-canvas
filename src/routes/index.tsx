@@ -80,13 +80,64 @@ const TABS = [
 ];
 
 type Status = "mapped" | "build" | "live";
-const ROWS: { name: string; segs: { start: number; end: number; status: Status }[] }[] = [
-  { name: "Converting Website", segs: [{ start: 1, end: 1, status: "mapped" }, { start: 2, end: 3, status: "build" }, { start: 4, end: 8, status: "live" }] },
-  { name: "Lead Engine", segs: [{ start: 1, end: 1, status: "mapped" }, { start: 2, end: 4, status: "build" }, { start: 5, end: 8, status: "live" }] },
-  { name: "Client Portal", segs: [{ start: 1, end: 2, status: "mapped" }, { start: 3, end: 5, status: "build" }, { start: 6, end: 8, status: "live" }] },
-  { name: "AI Support Assistant", segs: [{ start: 1, end: 2, status: "mapped" }, { start: 3, end: 6, status: "build" }, { start: 7, end: 8, status: "live" }] },
-  { name: "Operating Dashboard", segs: [{ start: 1, end: 3, status: "mapped" }, { start: 4, end: 8, status: "build" }] },
-  { name: "Workflow Automation", segs: [{ start: 1, end: 4, status: "mapped" }, { start: 5, end: 8, status: "build" }] },
+type Row = { name: string; segs: { start: number; end: number; status: Status }[] };
+
+function buildRows(items: { name: string; start: number; end: number }[]): Row[] {
+  const last = items.length - 1;
+  return items.map((it, i) => {
+    const segs: Row["segs"] = [];
+    if (it.start > 1) segs.push({ start: 1, end: it.start - 1, status: "mapped" });
+    const stillInBuild = i >= last - 1;
+    if (stillInBuild) {
+      segs.push({ start: it.start, end: 8, status: "build" });
+    } else {
+      segs.push({ start: it.start, end: it.end, status: "build" });
+      if (it.end < 8) segs.push({ start: it.end + 1, end: 8, status: "live" });
+    }
+    return { name: it.name, segs };
+  });
+}
+
+const TAB_DATA: { label: string; rows: Row[] }[] = [
+  {
+    label: "A consulting firm",
+    rows: buildRows([
+      { name: "Converting Website", start: 1, end: 2 },
+      { name: "Connected CRM", start: 1, end: 3 },
+      { name: "Operating Dashboard", start: 2, end: 4 },
+      { name: "Lead Engine", start: 3, end: 5 },
+      { name: "Client Portal", start: 4, end: 6 },
+      { name: "AI Support Assistant", start: 5, end: 7 },
+      { name: "SEO & Content Engine", start: 5, end: 8 },
+      { name: "Workflow Automation", start: 6, end: 8 },
+    ]),
+  },
+  {
+    label: "An education business",
+    rows: buildRows([
+      { name: "Converting Website", start: 1, end: 2 },
+      { name: "Connected CRM", start: 1, end: 3 },
+      { name: "Learning Platform", start: 2, end: 5 },
+      { name: "E-commerce Store", start: 3, end: 5 },
+      { name: "Operating Dashboard", start: 4, end: 6 },
+      { name: "AI Support Assistant", start: 5, end: 7 },
+      { name: "Content Engine", start: 5, end: 8 },
+      { name: "Workflow Automation", start: 7, end: 8 },
+    ]),
+  },
+  {
+    label: "A healthcare practice",
+    rows: buildRows([
+      { name: "Converting Website", start: 1, end: 2 },
+      { name: "Connected CRM", start: 1, end: 3 },
+      { name: "Booking & Payments", start: 2, end: 4 },
+      { name: "Patient Portal", start: 3, end: 6 },
+      { name: "Operating Dashboard", start: 4, end: 6 },
+      { name: "AI Support Assistant", start: 5, end: 7 },
+      { name: "E-commerce Store", start: 6, end: 8 },
+      { name: "Workflow Automation", start: 6, end: 8 },
+    ]),
+  },
 ];
 
 const PRICING = [
