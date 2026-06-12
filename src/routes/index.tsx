@@ -163,7 +163,7 @@ function Hero() {
           </p>
         </div>
 
-        <div className="relative order-first lg:order-last">
+        <div className="relative">
           <img
             src={heroAsset.url}
             alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
