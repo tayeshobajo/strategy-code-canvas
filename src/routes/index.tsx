@@ -436,12 +436,12 @@ function RoadmapRow({
 }) {
   return (
     <>
-      <div className="self-center pr-3 text-[12px] text-ink/75">
-        <div>{row.name}</div>
+      <div className="self-center pr-3 text-[12px] text-ink/80">
+        <div className="font-medium">{row.name}</div>
         {recommended && (
-          <div className="mt-0.5 text-[10px] leading-tight text-royal/90">
-            Recommended start: funds the rest of the map
-          </div>
+          <span className="mt-1 inline-flex items-center rounded-sm border border-royal/30 bg-royal-soft/25 px-1.5 py-[1px] text-[9.5px] font-medium tracking-wide text-royal">
+            Recommended start · funds the rest of the map
+          </span>
         )}
       </div>
       <div className="relative col-span-8 h-6">
