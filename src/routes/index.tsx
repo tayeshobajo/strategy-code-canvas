@@ -51,15 +51,15 @@ const FEATURES = [
   { icon: ShieldCheck, title: "Yours to own", body: "You can carry this roadmap into the future — with or without us." },
 ];
 
-const CHECKLIST = [
-  "Point A, documented: how the business runs today and what the drag costs",
-  "Point B, defined: the 24 month destination, in your numbers",
-  "Point C, named: the position you could own in ten years",
-  "The unbuilt asset: the compounding advantage you already hold",
-  "The build order: every milestone, sequenced, with what each unlocks",
-  "The economics: the revenue case, modeled and tracked",
-  "Who carries what, and what stays outside the build",
-  "The scoreboard: what gets measured, and when",
+const CHECKLIST: { label: string; body: string }[] = [
+  { label: "Point A, documented", body: "how the business runs today and what the drag costs" },
+  { label: "Point B, defined", body: "the 24 month destination, in your numbers" },
+  { label: "Point C, named", body: "the position you could own in ten years" },
+  { label: "The unbuilt asset", body: "the compounding advantage you already hold" },
+  { label: "The build order", body: "every milestone, sequenced, with what each unlocks" },
+  { label: "The economics", body: "the revenue case, modeled and tracked" },
+  { label: "Who carries what", body: "what stays inside the build, and what stays outside it" },
+  { label: "The scoreboard", body: "what gets measured, and when" },
 ];
 
 const TABS = [
@@ -101,7 +101,7 @@ function buildRows(items: { name: string; start: number; end: number }[]): Row[]
 
 const TAB_DATA: { label: string; rows: Row[] }[] = [
   {
-    label: "A consulting firm",
+    label: "Consulting firm",
     rows: buildRows([
       { name: "Converting Website", start: 1, end: 2 },
       { name: "Connected CRM", start: 1, end: 3 },
@@ -114,7 +114,7 @@ const TAB_DATA: { label: string; rows: Row[] }[] = [
     ]),
   },
   {
-    label: "An education business",
+    label: "Education business",
     rows: buildRows([
       { name: "Converting Website", start: 1, end: 2 },
       { name: "Connected CRM", start: 1, end: 3 },
@@ -127,7 +127,7 @@ const TAB_DATA: { label: string; rows: Row[] }[] = [
     ]),
   },
   {
-    label: "A healthcare practice",
+    label: "Healthcare practice",
     rows: buildRows([
       { name: "Converting Website", start: 1, end: 2 },
       { name: "Connected CRM", start: 1, end: 3 },
@@ -269,19 +269,21 @@ function RoadmapSection() {
           <p className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
             The Operating Map turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.
           </p>
-          <ul className="mt-7 space-y-3">
+          <ul className="mt-7 space-y-2.5">
             {CHECKLIST.map((c) => (
-              <li key={c} className="flex items-start gap-3 text-[13.5px] text-ink/80">
+              <li key={c.label} className="flex items-start gap-3 text-[13.5px] leading-snug text-ink/75">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-royal" strokeWidth={1.75} />
-                {c}
+                <span>
+                  <span className="font-semibold text-ink">{c.label}:</span> {c.body}
+                </span>
               </li>
             ))}
           </ul>
         </div>
         <div>
           <RoadmapPanel />
-          <p className="mt-4 text-[12px] italic leading-relaxed text-ink/55">
-            Three founders, three maps. Yours will hold your milestones, in your order. The order is a conversation, not a contract.
+          <p className="mt-4 text-[12.5px] leading-relaxed text-ink/65">
+            Three businesses, three build orders. Yours will hold your milestones, in your order. The order is a conversation, not a contract.
           </p>
         </div>
       </div>
@@ -338,15 +340,15 @@ function RoadmapPanel() {
           </div>
           <BuildOrderChart statusColor={statusColor} />
 
-          <div className="mt-7 flex items-center justify-between border-t border-rule pt-4 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
+          <div className="mt-7 flex flex-wrap items-center justify-between gap-y-3 border-t border-rule pt-4 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
             <div>24 Month Operating Map · 8 Quarters, Sequenced</div>
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-5 whitespace-nowrap">
               {[
                 { l: "Mapped", c: "bg-royal-soft/35" },
                 { l: "In build", c: "bg-royal/80" },
                 { l: "Live", c: "bg-ink" },
               ].map((x) => (
-                <span key={x.l} className="flex items-center gap-2 normal-case">
+                <span key={x.l} className="flex items-center gap-2 whitespace-nowrap normal-case">
                   <span className={`h-2.5 w-5 rounded-sm ${x.c}`} />
                   <span className="tracking-normal text-ink/65">{x.l}</span>
                 </span>
@@ -364,17 +366,28 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
   const rows = TAB_DATA[active].rows;
   return (
     <>
-      <div className="mb-5 flex items-center gap-6 border-b border-rule/60 text-[12px]">
+      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">
+        Example build orders by business type
+      </div>
+      <div className="mb-5 flex items-center gap-7 border-b border-rule/60 text-[12.5px]">
         {TAB_DATA.map((t, i) => (
           <button
             key={t.label}
             onClick={() => setActive(i)}
-            className={`relative -mb-px pb-2 transition-colors ${
-              i === active ? "text-ink" : "text-ink/50 hover:text-ink/80"
+            className={`group relative -mb-px cursor-pointer pb-2.5 font-medium transition-colors ${
+              i === active
+                ? "text-ink"
+                : "text-ink/55 hover:text-ink"
             }`}
           >
             {t.label}
-            {i === active && <span className="absolute inset-x-0 -bottom-px h-[2px] bg-ink" />}
+            <span
+              className={`absolute inset-x-0 -bottom-px h-[2px] transition-colors ${
+                i === active
+                  ? "bg-royal"
+                  : "bg-transparent group-hover:bg-rule"
+              }`}
+            />
           </button>
         ))}
       </div>
@@ -392,19 +405,19 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
           />
         ))}
         {/* Intelligence Layer band */}
-        <div className="mt-3 self-center pr-3 text-[11px] font-mono uppercase tracking-[0.12em] text-ink/55">
+        <div className="mt-3 self-center pr-3 text-[12px] font-medium text-ink/75">
           Intelligence Layer
         </div>
-        <div className="relative col-span-8 mt-3 h-6">
+        <div className="relative col-span-8 mt-3 h-7">
           <div
-            className="absolute inset-x-0 top-1/2 h-3 -translate-y-1/2 rounded-full"
+            className="absolute inset-x-0 top-1/2 h-3.5 -translate-y-1/2 rounded-full"
             style={{
               background:
                 "repeating-linear-gradient(45deg, color-mix(in oklab, var(--color-royal) 18%, transparent) 0 6px, color-mix(in oklab, var(--color-royal) 8%, transparent) 6px 12px)",
             }}
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/55">
-            Continuous · across every milestone
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10.5px] text-ink/65">
+            continuous across every milestone
           </span>
         </div>
       </div>
@@ -423,12 +436,12 @@ function RoadmapRow({
 }) {
   return (
     <>
-      <div className="self-center pr-3 text-[12px] text-ink/75">
-        <div>{row.name}</div>
+      <div className="self-center pr-3 text-[12px] text-ink/80">
+        <div className="font-medium">{row.name}</div>
         {recommended && (
-          <div className="mt-0.5 text-[10px] leading-tight text-royal/90">
-            Recommended start: funds the rest of the map
-          </div>
+          <span className="mt-1 inline-flex items-center rounded-sm border border-royal/30 bg-royal-soft/25 px-1.5 py-[1px] text-[9.5px] font-medium tracking-wide text-royal">
+            Recommended start · funds the rest of the map
+          </span>
         )}
       </div>
       <div className="relative col-span-8 h-6">
