@@ -137,10 +137,6 @@ function Hero() {
     <section className="relative overflow-hidden">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 pb-20 pt-14 lg:grid-cols-[1.05fr_1.25fr] lg:gap-6 lg:px-10 lg:pt-20">
         <div className="relative z-10 max-w-xl">
-          <div className="eyebrow flex items-center gap-3">
-            <span className="h-px w-6 bg-royal" /> The Roadmap
-          </div>
-          <p className="eyebrow mt-6">The Master Artifact</p>
           <h1 className="mt-5 font-display text-[3.25rem] leading-[1.05] tracking-tight text-ink sm:text-[3.75rem]">
             We map the journey from where your business is to{" "}
             <span className="italic text-royal">where it needs to be.</span>
