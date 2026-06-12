@@ -51,38 +51,42 @@ const FEATURES = [
 ];
 
 const CHECKLIST = [
-  "Current state diagnostic (Point A)",
-  "24-month target state (Point B)",
-  "10-year category position (Point C)",
-  "Prioritized initiatives and milestones",
-  "Success metrics and leading indicators",
-  "Risk assessment and opportunity map",
-  "Technology and systems architecture",
-  "Implementation roadmap and timeline",
-  "Investment plan and expected outcomes",
+  "Point A, documented: how the business runs today and what the drag costs",
+  "Point B, defined: the 24 month destination, in your numbers",
+  "Point C, named: the position you could own in ten years",
+  "The unbuilt asset: the compounding advantage you already hold",
+  "The build order: every milestone, sequenced, with what each unlocks",
+  "The economics: the revenue case, modeled and tracked",
+  "Who carries what, and what stays outside the build",
+  "The scoreboard: what gets measured, and when",
 ];
 
 const TABS = [
-  "Executive Summary",
-  "Current State (A)",
-  "Target State (B)",
-  "Future Position (C)",
-  "Initiatives & Milestones",
-  "Systems & Technology",
-  "Metrics & Outcomes",
-  "Investment Plan",
-  "Appendices",
+  "The Letter",
+  "The Summary",
+  "Point A",
+  "The Asset",
+  "Point C",
+  "Point B",
+  "The Gap",
+  "The Build Order",
+  "The Economics",
+  "The Recommendation",
+  "Investment",
+  "Who Carries What",
+  "Integrity",
+  "The Scoreboard",
+  "Stewardship",
 ];
 
-type Status = "planning" | "progress" | "complete";
+type Status = "mapped" | "build" | "live";
 const ROWS: { name: string; segs: { start: number; end: number; status: Status }[] }[] = [
-  { name: "Brand & Positioning", segs: [{ start: 1, end: 5, status: "progress" }] },
-  { name: "Lead Generation Engine", segs: [{ start: 1, end: 3, status: "planning" }, { start: 3, end: 6, status: "progress" }] },
-  { name: "Sales & Client Experience", segs: [{ start: 2, end: 7, status: "progress" }] },
-  { name: "Operations & Systems", segs: [{ start: 1, end: 4, status: "planning" }, { start: 4, end: 8, status: "progress" }] },
-  { name: "Technology Foundation", segs: [{ start: 2, end: 5, status: "planning" }] },
-  { name: "Team & Culture", segs: [{ start: 3, end: 6, status: "planning" }, { start: 6, end: 8, status: "progress" }] },
-  { name: "Financial Performance", segs: [{ start: 4, end: 8, status: "complete" }] },
+  { name: "Converting Website", segs: [{ start: 1, end: 1, status: "mapped" }, { start: 2, end: 3, status: "build" }, { start: 4, end: 8, status: "live" }] },
+  { name: "Lead Engine", segs: [{ start: 1, end: 1, status: "mapped" }, { start: 2, end: 4, status: "build" }, { start: 5, end: 8, status: "live" }] },
+  { name: "Client Portal", segs: [{ start: 1, end: 2, status: "mapped" }, { start: 3, end: 5, status: "build" }, { start: 6, end: 8, status: "live" }] },
+  { name: "AI Support Assistant", segs: [{ start: 1, end: 2, status: "mapped" }, { start: 3, end: 6, status: "build" }, { start: 7, end: 8, status: "live" }] },
+  { name: "Operating Dashboard", segs: [{ start: 1, end: 3, status: "mapped" }, { start: 4, end: 8, status: "build" }] },
+  { name: "Workflow Automation", segs: [{ start: 1, end: 4, status: "mapped" }, { start: 5, end: 8, status: "build" }] },
 ];
 
 const PRICING = [
@@ -208,10 +212,10 @@ function RoadmapSection() {
         <div>
           <p className="eyebrow">What You Get</p>
           <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
-            A living plan. Prioritized.<br />Measurable. Built to win.
+            A living plan. Specific.<br />Sequenced. Yours.
           </h2>
           <p className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
-            Our roadmap is both the strategy and the blueprint. It aligns your team, focuses your resources, and gives you a clear path to results.
+            The Operating Map turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.
           </p>
           <ul className="mt-7 space-y-3">
             {CHECKLIST.map((c) => (
@@ -222,7 +226,12 @@ function RoadmapSection() {
             ))}
           </ul>
         </div>
-        <RoadmapPanel />
+        <div>
+          <RoadmapPanel />
+          <p className="mt-4 text-[12px] italic leading-relaxed text-ink/55">
+            Your map arrives in this working shape. The order is a conversation, not a contract.
+          </p>
+        </div>
       </div>
     </section>
   );
@@ -230,17 +239,17 @@ function RoadmapSection() {
 
 function RoadmapPanel() {
   const statusColor: Record<Status, string> = {
-    planning: "bg-royal-soft/45",
-    progress: "bg-royal",
-    complete: "bg-ink",
+    mapped: "bg-royal-soft/35",
+    build: "bg-royal/80",
+    live: "bg-ink",
   };
   return (
-    <div className="overflow-hidden rounded-lg border border-rule bg-white shadow-[0_30px_60px_-30px_rgba(15,23,80,0.25)]">
+    <div className="overflow-hidden rounded-lg border border-rule bg-white">
       {/* Top bar */}
       <div className="flex items-center justify-between border-b border-rule px-6 py-5">
         <div>
           <div className="font-display text-lg text-ink">Trust Tai</div>
-          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/55">Business Operating Roadmap</div>
+          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/55">Operating Map</div>
         </div>
         <div className="hidden gap-10 text-[11px] sm:flex">
           {[
@@ -257,12 +266,12 @@ function RoadmapPanel() {
       </div>
       <div className="grid grid-cols-[180px_1fr]">
         {/* Tabs */}
-        <div className="bg-ink py-5 text-paper/90">
+        <div className="bg-ink py-2 text-paper/90">
           {TABS.map((t, i) => (
             <button
               key={t}
-              className={`flex w-full items-center gap-2 px-5 py-2.5 text-left text-[12.5px] transition-colors ${
-                i === 4 ? "bg-royal/25 text-paper" : "hover:bg-white/5"
+              className={`flex w-full items-center gap-2 px-4 py-[7px] text-left text-[12px] transition-colors ${
+                i === 7 ? "bg-royal/25 text-paper" : "hover:bg-white/5"
               }`}
             >
               <CircleDot className="h-3 w-3 opacity-60" strokeWidth={1.5} />
@@ -273,7 +282,7 @@ function RoadmapPanel() {
         {/* Gantt */}
         <div className="p-6">
           <div className="mb-4 flex items-end justify-between">
-            <h3 className="font-display text-xl text-ink">Initiatives & Milestones</h3>
+            <h3 className="font-display text-xl text-ink">The Build Order</h3>
           </div>
           <div className="grid grid-cols-[140px_repeat(8,1fr)] gap-y-3 text-[11px] text-ink/55">
             <div />
@@ -286,15 +295,12 @@ function RoadmapPanel() {
           </div>
 
           <div className="mt-7 flex items-center justify-between border-t border-rule pt-4 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
-            <div>
-              <div>24-Month Roadmap</div>
-              <div className="mt-1 text-ink/40">8 Quarters of Execution</div>
-            </div>
+            <div>24 Month Operating Map · 8 Quarters, Sequenced</div>
             <div className="flex items-center gap-5">
               {[
-                { l: "Planning", c: "bg-royal-soft/45" },
-                { l: "In Progress", c: "bg-royal" },
-                { l: "Complete", c: "bg-ink" },
+                { l: "Mapped", c: "bg-royal-soft/35" },
+                { l: "In build", c: "bg-royal/80" },
+                { l: "Live", c: "bg-ink" },
               ].map((x) => (
                 <span key={x.l} className="flex items-center gap-2 normal-case">
                   <span className={`h-2.5 w-5 rounded-sm ${x.c}`} />
@@ -316,7 +322,7 @@ function RoadmapRow({ row, statusColor }: { row: typeof ROWS[number]; statusColo
       <div className="relative col-span-8 h-6">
         <div className="absolute inset-y-0 grid w-full grid-cols-8">
           {Array.from({ length: 8 }, (_, i) => (
-            <div key={i} className="border-l border-dashed border-rule first:border-l-0" />
+            <div key={i} className="border-l border-dashed border-rule/40 first:border-l-0" />
           ))}
         </div>
         {row.segs.map((s, i) => {
