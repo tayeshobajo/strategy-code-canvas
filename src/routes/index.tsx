@@ -322,7 +322,7 @@ function RoadmapRow({ row, statusColor }: { row: typeof ROWS[number]; statusColo
       <div className="relative col-span-8 h-6">
         <div className="absolute inset-y-0 grid w-full grid-cols-8">
           {Array.from({ length: 8 }, (_, i) => (
-            <div key={i} className="border-l border-dashed border-rule first:border-l-0" />
+            <div key={i} className="border-l border-dashed border-rule/40 first:border-l-0" />
           ))}
         </div>
         {row.segs.map((s, i) => {
