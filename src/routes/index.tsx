@@ -170,11 +170,6 @@ function Hero() {
           />
           {/* Feathered seam between text and image */}
           <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block" aria-hidden="true" />
-          {/* Artifact caption */}
-          <div className="pointer-events-none absolute bottom-12 left-6 hidden rounded-sm border border-ink/10 bg-paper/85 px-4 py-3 backdrop-blur-sm lg:block">
-            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-royal">The Operating Map</div>
-            <div className="mt-1 text-[12px] text-ink/70">A living plan for what to build first.</div>
-          </div>
         </div>
       </div>
     </section>
@@ -186,7 +181,7 @@ function Hero() {
 function FeatureStrip() {
   return (
     <section className="border-y border-rule/70 bg-white">
-      <div className="mx-auto max-w-7xl px-6 pb-16 pt-8 lg:px-10">
+      <div className="mx-auto max-w-7xl px-6 pb-12 pt-8 lg:px-10 lg:pb-[72px]">
         <h2 className="text-center font-display text-2xl text-ink">Built for founders who are done guessing.</h2>
         <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
@@ -209,7 +204,7 @@ function FeatureStrip() {
 function RoadmapSection() {
   return (
     <section id="roadmap" className="bg-secondary/60">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 py-24 lg:grid-cols-[0.9fr_1.6fr] lg:px-10">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[0.9fr_1.6fr] lg:px-10 lg:pt-[72px] lg:pb-24">
         <div>
           <p className="eyebrow">What You Get</p>
           <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
