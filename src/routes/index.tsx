@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -80,13 +81,64 @@ const TABS = [
 ];
 
 type Status = "mapped" | "build" | "live";
-const ROWS: { name: string; segs: { start: number; end: number; status: Status }[] }[] = [
-  { name: "Converting Website", segs: [{ start: 1, end: 1, status: "mapped" }, { start: 2, end: 3, status: "build" }, { start: 4, end: 8, status: "live" }] },
-  { name: "Lead Engine", segs: [{ start: 1, end: 1, status: "mapped" }, { start: 2, end: 4, status: "build" }, { start: 5, end: 8, status: "live" }] },
-  { name: "Client Portal", segs: [{ start: 1, end: 2, status: "mapped" }, { start: 3, end: 5, status: "build" }, { start: 6, end: 8, status: "live" }] },
-  { name: "AI Support Assistant", segs: [{ start: 1, end: 2, status: "mapped" }, { start: 3, end: 6, status: "build" }, { start: 7, end: 8, status: "live" }] },
-  { name: "Operating Dashboard", segs: [{ start: 1, end: 3, status: "mapped" }, { start: 4, end: 8, status: "build" }] },
-  { name: "Workflow Automation", segs: [{ start: 1, end: 4, status: "mapped" }, { start: 5, end: 8, status: "build" }] },
+type Row = { name: string; segs: { start: number; end: number; status: Status }[] };
+
+function buildRows(items: { name: string; start: number; end: number }[]): Row[] {
+  const last = items.length - 1;
+  return items.map((it, i) => {
+    const segs: Row["segs"] = [];
+    if (it.start > 1) segs.push({ start: 1, end: it.start - 1, status: "mapped" });
+    const stillInBuild = i >= last - 1;
+    if (stillInBuild) {
+      segs.push({ start: it.start, end: 8, status: "build" });
+    } else {
+      segs.push({ start: it.start, end: it.end, status: "build" });
+      if (it.end < 8) segs.push({ start: it.end + 1, end: 8, status: "live" });
+    }
+    return { name: it.name, segs };
+  });
+}
+
+const TAB_DATA: { label: string; rows: Row[] }[] = [
+  {
+    label: "A consulting firm",
+    rows: buildRows([
+      { name: "Converting Website", start: 1, end: 2 },
+      { name: "Connected CRM", start: 1, end: 3 },
+      { name: "Operating Dashboard", start: 2, end: 4 },
+      { name: "Lead Engine", start: 3, end: 5 },
+      { name: "Client Portal", start: 4, end: 6 },
+      { name: "AI Support Assistant", start: 5, end: 7 },
+      { name: "SEO & Content Engine", start: 5, end: 8 },
+      { name: "Workflow Automation", start: 6, end: 8 },
+    ]),
+  },
+  {
+    label: "An education business",
+    rows: buildRows([
+      { name: "Converting Website", start: 1, end: 2 },
+      { name: "Connected CRM", start: 1, end: 3 },
+      { name: "Learning Platform", start: 2, end: 5 },
+      { name: "E-commerce Store", start: 3, end: 5 },
+      { name: "Operating Dashboard", start: 4, end: 6 },
+      { name: "AI Support Assistant", start: 5, end: 7 },
+      { name: "Content Engine", start: 5, end: 8 },
+      { name: "Workflow Automation", start: 7, end: 8 },
+    ]),
+  },
+  {
+    label: "A healthcare practice",
+    rows: buildRows([
+      { name: "Converting Website", start: 1, end: 2 },
+      { name: "Connected CRM", start: 1, end: 3 },
+      { name: "Booking & Payments", start: 2, end: 4 },
+      { name: "Patient Portal", start: 3, end: 6 },
+      { name: "Operating Dashboard", start: 4, end: 6 },
+      { name: "AI Support Assistant", start: 5, end: 7 },
+      { name: "E-commerce Store", start: 6, end: 8 },
+      { name: "Workflow Automation", start: 6, end: 8 },
+    ]),
+  },
 ];
 
 const PRICING = [
@@ -229,7 +281,7 @@ function RoadmapSection() {
         <div>
           <RoadmapPanel />
           <p className="mt-4 text-[12px] italic leading-relaxed text-ink/55">
-            Your map arrives in this working shape. The order is a conversation, not a contract.
+            Three founders, three maps. Yours will hold your milestones, in your order. The order is a conversation, not a contract.
           </p>
         </div>
       </div>
@@ -284,15 +336,7 @@ function RoadmapPanel() {
           <div className="mb-4 flex items-end justify-between">
             <h3 className="font-display text-xl text-ink">The Build Order</h3>
           </div>
-          <div className="grid grid-cols-[140px_repeat(8,1fr)] gap-y-3 text-[11px] text-ink/55">
-            <div />
-            {Array.from({ length: 8 }, (_, i) => (
-              <div key={i} className="text-center font-mono">Q{i + 1}</div>
-            ))}
-            {ROWS.map((row) => (
-              <RoadmapRow key={row.name} row={row} statusColor={statusColor} />
-            ))}
-          </div>
+          <BuildOrderChart statusColor={statusColor} />
 
           <div className="mt-7 flex items-center justify-between border-t border-rule pt-4 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
             <div>24 Month Operating Map · 8 Quarters, Sequenced</div>
@@ -315,10 +359,78 @@ function RoadmapPanel() {
   );
 }
 
-function RoadmapRow({ row, statusColor }: { row: typeof ROWS[number]; statusColor: Record<Status, string> }) {
+function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> }) {
+  const [active, setActive] = useState(0);
+  const rows = TAB_DATA[active].rows;
   return (
     <>
-      <div className="self-center pr-3 text-[12px] text-ink/75">{row.name}</div>
+      <div className="mb-5 flex items-center gap-6 border-b border-rule/60 text-[12px]">
+        {TAB_DATA.map((t, i) => (
+          <button
+            key={t.label}
+            onClick={() => setActive(i)}
+            className={`relative -mb-px pb-2 transition-colors ${
+              i === active ? "text-ink" : "text-ink/50 hover:text-ink/80"
+            }`}
+          >
+            {t.label}
+            {i === active && <span className="absolute inset-x-0 -bottom-px h-[2px] bg-ink" />}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-[160px_repeat(8,1fr)] gap-y-3 text-[11px] text-ink/55">
+        <div />
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className="text-center font-mono">Q{i + 1}</div>
+        ))}
+        {rows.map((row, idx) => (
+          <RoadmapRow
+            key={row.name}
+            row={row}
+            statusColor={statusColor}
+            recommended={idx === 0}
+          />
+        ))}
+        {/* Intelligence Layer band */}
+        <div className="mt-3 self-center pr-3 text-[11px] font-mono uppercase tracking-[0.12em] text-ink/55">
+          Intelligence Layer
+        </div>
+        <div className="relative col-span-8 mt-3 h-6">
+          <div
+            className="absolute inset-x-0 top-1/2 h-3 -translate-y-1/2 rounded-full"
+            style={{
+              background:
+                "repeating-linear-gradient(45deg, color-mix(in oklab, var(--color-royal) 18%, transparent) 0 6px, color-mix(in oklab, var(--color-royal) 8%, transparent) 6px 12px)",
+            }}
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/55">
+            Continuous · across every milestone
+          </span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function RoadmapRow({
+  row,
+  statusColor,
+  recommended,
+}: {
+  row: Row;
+  statusColor: Record<Status, string>;
+  recommended?: boolean;
+}) {
+  return (
+    <>
+      <div className="self-center pr-3 text-[12px] text-ink/75">
+        <div>{row.name}</div>
+        {recommended && (
+          <div className="mt-0.5 text-[10px] leading-tight text-royal/90">
+            Recommended start: funds the rest of the map
+          </div>
+        )}
+      </div>
       <div className="relative col-span-8 h-6">
         <div className="absolute inset-y-0 grid w-full grid-cols-8">
           {Array.from({ length: 8 }, (_, i) => (
