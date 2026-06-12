@@ -51,15 +51,15 @@ const FEATURES = [
   { icon: ShieldCheck, title: "Yours to own", body: "You can carry this roadmap into the future — with or without us." },
 ];
 
-const CHECKLIST = [
-  "Point A, documented: how the business runs today and what the drag costs",
-  "Point B, defined: the 24 month destination, in your numbers",
-  "Point C, named: the position you could own in ten years",
-  "The unbuilt asset: the compounding advantage you already hold",
-  "The build order: every milestone, sequenced, with what each unlocks",
-  "The economics: the revenue case, modeled and tracked",
-  "Who carries what, and what stays outside the build",
-  "The scoreboard: what gets measured, and when",
+const CHECKLIST: { label: string; body: string }[] = [
+  { label: "Point A, documented", body: "how the business runs today and what the drag costs" },
+  { label: "Point B, defined", body: "the 24 month destination, in your numbers" },
+  { label: "Point C, named", body: "the position you could own in ten years" },
+  { label: "The unbuilt asset", body: "the compounding advantage you already hold" },
+  { label: "The build order", body: "every milestone, sequenced, with what each unlocks" },
+  { label: "The economics", body: "the revenue case, modeled and tracked" },
+  { label: "Who carries what", body: "what stays inside the build, and what stays outside it" },
+  { label: "The scoreboard", body: "what gets measured, and when" },
 ];
 
 const TABS = [
