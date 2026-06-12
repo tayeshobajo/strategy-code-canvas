@@ -269,19 +269,21 @@ function RoadmapSection() {
           <p className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
             The Operating Map turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.
           </p>
-          <ul className="mt-7 space-y-3">
+          <ul className="mt-7 space-y-2.5">
             {CHECKLIST.map((c) => (
-              <li key={c} className="flex items-start gap-3 text-[13.5px] text-ink/80">
+              <li key={c.label} className="flex items-start gap-3 text-[13.5px] leading-snug text-ink/75">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-royal" strokeWidth={1.75} />
-                {c}
+                <span>
+                  <span className="font-semibold text-ink">{c.label}:</span> {c.body}
+                </span>
               </li>
             ))}
           </ul>
         </div>
         <div>
           <RoadmapPanel />
-          <p className="mt-4 text-[12px] italic leading-relaxed text-ink/55">
-            Three founders, three maps. Yours will hold your milestones, in your order. The order is a conversation, not a contract.
+          <p className="mt-4 text-[12.5px] leading-relaxed text-ink/65">
+            Three businesses, three build orders. Yours will hold your milestones, in your order. The order is a conversation, not a contract.
           </p>
         </div>
       </div>
