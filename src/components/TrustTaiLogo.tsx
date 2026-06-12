@@ -5,7 +5,7 @@ export function TrustTaiLogo({ className = "" }: { className?: string }) {
     <img
       src={logoAsset.url}
       alt="Trust Tai — Consultancy + AI Agency"
-      className={`h-9 w-auto sm:h-10 ${className}`}
+      className={`h-6 w-auto sm:h-7 ${className}`}
     />
   );
 }
