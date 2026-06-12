@@ -125,7 +125,7 @@ function Header() {
           ))}
         </nav>
         <a href="#cta" className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[13px] font-medium text-paper transition-transform hover:scale-[1.02]">
-          Begin <ArrowRight className="h-3.5 w-3.5" />
+          Build My Map <ArrowRight className="h-3.5 w-3.5" />
         </a>
       </div>
     </header>
