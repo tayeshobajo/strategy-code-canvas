@@ -135,7 +135,7 @@ const TAB_DATA: { label: string; rows: Row[] }[] = [
       { name: "Patient Portal", start: 3, end: 6 },
       { name: "Operating Dashboard", start: 4, end: 6 },
       { name: "AI Support Assistant", start: 5, end: 7 },
-      { name: "E-commerce Store", start: 6, end: 8 },
+      { name: "Patient Education Hub", start: 6, end: 8 },
       { name: "Workflow Automation", start: 6, end: 8 },
     ]),
   },
@@ -260,7 +260,7 @@ function FeatureStrip() {
 function RoadmapSection() {
   return (
     <section id="roadmap" className="bg-secondary/60">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[0.8fr_1.85fr] lg:px-10 lg:pt-[72px] lg:pb-24">
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[430px_1fr] lg:gap-24 lg:px-10 lg:pt-[72px] lg:pb-24 xl:gap-[96px]">
         <div>
           <p className="eyebrow">What You Get</p>
           <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
@@ -375,7 +375,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
       <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">
         Example build orders by business type
       </div>
-      <div className="mb-5 flex items-center gap-9 border-b border-rule/40 text-[12.5px]">
+      <div className="mb-5 inline-flex w-auto items-center gap-9 border-b border-rule/40 pr-2 text-[12.5px]">
         {TAB_DATA.map((t, i) => (
           <button
             key={t.label}
