@@ -134,33 +134,9 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative isolate overflow-hidden min-h-[640px] lg:min-h-[760px] flex items-center">
-      <img
-        src={heroAsset.url}
-        alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
-        className="absolute inset-0 -z-20 h-full w-full object-cover object-right"
-      />
-      {/* Mobile/default wash: covers most of the width for legibility */}
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 lg:hidden"
-        style={{
-          background:
-            "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 96%, transparent) 70%, color-mix(in oklab, var(--paper) 0%, transparent) 100%)",
-        }}
-      />
-      {/* Desktop wash: solid paper on the left half, photo bleeds on the right */}
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 hidden lg:block"
-        style={{
-          background:
-            "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 96%, transparent) 45%, color-mix(in oklab, var(--paper) 0%, transparent) 70%)",
-        }}
-      />
-
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-6 py-20 lg:px-10 lg:py-28">
-        <div className="max-w-xl lg:max-w-2xl">
+    <section className="relative overflow-hidden">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 pb-20 pt-14 lg:grid-cols-[1.05fr_1.25fr] lg:gap-6 lg:px-10 lg:pt-20">
+        <div className="relative z-10 max-w-xl">
           <div className="eyebrow flex items-center gap-3">
             <span className="h-px w-6 bg-royal" /> The Roadmap
           </div>
@@ -185,6 +161,18 @@ function Hero() {
             <span className="mt-2 inline-block h-px w-5 bg-ink/40" />
             <span>A 30 minute conversation. No pitch.</span>
           </p>
+        </div>
+
+        <div className="relative">
+          <img
+            src={heroAsset.url}
+            alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
+            className="h-full max-h-[460px] w-full rounded-sm object-cover object-right lg:max-h-none"
+            style={{
+              WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 14%, black 100%)",
+              maskImage: "linear-gradient(to right, transparent 0%, black 14%, black 100%)",
+            }}
+          />
         </div>
       </div>
     </section>
