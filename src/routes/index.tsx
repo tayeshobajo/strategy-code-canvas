@@ -336,15 +336,7 @@ function RoadmapPanel() {
           <div className="mb-4 flex items-end justify-between">
             <h3 className="font-display text-xl text-ink">The Build Order</h3>
           </div>
-          <div className="grid grid-cols-[140px_repeat(8,1fr)] gap-y-3 text-[11px] text-ink/55">
-            <div />
-            {Array.from({ length: 8 }, (_, i) => (
-              <div key={i} className="text-center font-mono">Q{i + 1}</div>
-            ))}
-            {ROWS.map((row) => (
-              <RoadmapRow key={row.name} row={row} statusColor={statusColor} />
-            ))}
-          </div>
+          <BuildOrderChart statusColor={statusColor} />
 
           <div className="mt-7 flex items-center justify-between border-t border-rule pt-4 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
             <div>24 Month Operating Map · 8 Quarters, Sequenced</div>
@@ -367,10 +359,78 @@ function RoadmapPanel() {
   );
 }
 
-function RoadmapRow({ row, statusColor }: { row: typeof ROWS[number]; statusColor: Record<Status, string> }) {
+function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> }) {
+  const [active, setActive] = useState(0);
+  const rows = TAB_DATA[active].rows;
   return (
     <>
-      <div className="self-center pr-3 text-[12px] text-ink/75">{row.name}</div>
+      <div className="mb-5 flex items-center gap-6 border-b border-rule/60 text-[12px]">
+        {TAB_DATA.map((t, i) => (
+          <button
+            key={t.label}
+            onClick={() => setActive(i)}
+            className={`relative -mb-px pb-2 transition-colors ${
+              i === active ? "text-ink" : "text-ink/50 hover:text-ink/80"
+            }`}
+          >
+            {t.label}
+            {i === active && <span className="absolute inset-x-0 -bottom-px h-[2px] bg-ink" />}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-[160px_repeat(8,1fr)] gap-y-3 text-[11px] text-ink/55">
+        <div />
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className="text-center font-mono">Q{i + 1}</div>
+        ))}
+        {rows.map((row, idx) => (
+          <RoadmapRow
+            key={row.name}
+            row={row}
+            statusColor={statusColor}
+            recommended={idx === 0}
+          />
+        ))}
+        {/* Intelligence Layer band */}
+        <div className="mt-3 self-center pr-3 text-[11px] font-mono uppercase tracking-[0.12em] text-ink/55">
+          Intelligence Layer
+        </div>
+        <div className="relative col-span-8 mt-3 h-6">
+          <div
+            className="absolute inset-x-0 top-1/2 h-3 -translate-y-1/2 rounded-full"
+            style={{
+              background:
+                "repeating-linear-gradient(45deg, color-mix(in oklab, var(--color-royal) 18%, transparent) 0 6px, color-mix(in oklab, var(--color-royal) 8%, transparent) 6px 12px)",
+            }}
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/55">
+            Continuous · across every milestone
+          </span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function RoadmapRow({
+  row,
+  statusColor,
+  recommended,
+}: {
+  row: Row;
+  statusColor: Record<Status, string>;
+  recommended?: boolean;
+}) {
+  return (
+    <>
+      <div className="self-center pr-3 text-[12px] text-ink/75">
+        <div>{row.name}</div>
+        {recommended && (
+          <div className="mt-0.5 text-[10px] leading-tight text-royal/90">
+            Recommended start: funds the rest of the map
+          </div>
+        )}
+      </div>
       <div className="relative col-span-8 h-6">
         <div className="absolute inset-y-0 grid w-full grid-cols-8">
           {Array.from({ length: 8 }, (_, i) => (
