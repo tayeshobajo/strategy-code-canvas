@@ -340,15 +340,15 @@ function RoadmapPanel() {
           </div>
           <BuildOrderChart statusColor={statusColor} />
 
-          <div className="mt-7 flex items-center justify-between border-t border-rule pt-4 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
+          <div className="mt-7 flex flex-wrap items-center justify-between gap-y-3 border-t border-rule pt-4 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
             <div>24 Month Operating Map · 8 Quarters, Sequenced</div>
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-5 whitespace-nowrap">
               {[
                 { l: "Mapped", c: "bg-royal-soft/35" },
                 { l: "In build", c: "bg-royal/80" },
                 { l: "Live", c: "bg-ink" },
               ].map((x) => (
-                <span key={x.l} className="flex items-center gap-2 normal-case">
+                <span key={x.l} className="flex items-center gap-2 whitespace-nowrap normal-case">
                   <span className={`h-2.5 w-5 rounded-sm ${x.c}`} />
                   <span className="tracking-normal text-ink/65">{x.l}</span>
                 </span>
