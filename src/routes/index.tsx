@@ -167,7 +167,7 @@ function Hero() {
           <img
             src={heroAsset.url}
             alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
-            className="h-full max-h-[460px] w-full rounded-sm object-cover object-left lg:max-h-none"
+            className="h-full max-h-[460px] w-full rounded-sm object-cover object-right lg:max-h-none"
             style={{
               WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 14%, black 100%)",
               maskImage: "linear-gradient(to right, transparent 0%, black 14%, black 100%)",
