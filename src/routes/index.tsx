@@ -372,15 +372,15 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
   const rows = TAB_DATA[active].rows;
   return (
     <>
-      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">
+      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">
         Example build orders by business type
       </div>
-      <div className="mb-7 flex items-center gap-9 border-b border-rule/40 text-[12.5px]">
+      <div className="mb-5 flex items-center gap-9 border-b border-rule/40 text-[12.5px]">
         {TAB_DATA.map((t, i) => (
           <button
             key={t.label}
             onClick={() => setActive(i)}
-            className={`group relative -mb-px cursor-pointer pb-2.5 font-medium transition-colors ${
+            className={`group relative -mb-px cursor-pointer pb-2 font-medium transition-colors ${
               i === active
                 ? "text-ink"
                 : "text-ink/65 hover:text-ink"
@@ -397,7 +397,8 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-[170px_repeat(8,1fr)] gap-y-5 text-[11px] text-ink/55">
+      <div className="grid grid-cols-[170px_repeat(8,1fr)] gap-y-3.5 text-[11px] text-ink/55">
+
         <div />
         {Array.from({ length: 8 }, (_, i) => (
           <div key={i} className="text-center font-mono">Q{i + 1}</div>
