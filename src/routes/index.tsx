@@ -162,57 +162,82 @@ const WALKS = [
   },
 ];
 
-function WalkFigure({ walking }: { walking: boolean }) {
+function WalkFigure({
+  walking,
+  strideMs,
+}: {
+  walking: boolean;
+  strideMs: number;
+}) {
+  const aStyle = walking
+    ? { animation: `tt-step-a ${strideMs}ms steps(1, end) infinite` }
+    : undefined;
+  const bStyle = walking
+    ? { animation: `tt-step-b ${strideMs}ms steps(1, end) infinite` }
+    : undefined;
   return (
     <svg
       width="22"
-      height="32"
-      viewBox="0 0 24 36"
+      height="34"
+      viewBox="0 0 22 34"
       xmlns="http://www.w3.org/2000/svg"
-      fill="none"
+      fill="currentColor"
       stroke="currentColor"
-      strokeWidth="2.4"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="text-royal block"
+      className="text-royal block overflow-visible"
     >
       {/* head */}
-      <circle cx="12" cy="4" r="3" fill="currentColor" stroke="none" />
-      {/* torso */}
-      <line x1="12" y1="8" x2="12" y2="20" />
+      <circle cx="11" cy="3.5" r="3.2" stroke="none" />
+      {/* torso, tapered */}
+      <path
+        d="M8.2 7.4 L13.8 7.4 L13 19 C13 20.4 12.2 21 11 21 C9.8 21 9 20.4 9 19 Z"
+        stroke="none"
+      />
       {walking ? (
         <>
-          <g className="tt-frame-a">
-            <path d="M12 12 L16 17" />
-            <path d="M12 12 L8 17" />
-            <path d="M12 20 L16 30" />
-            <path d="M12 20 L10 26 L8 28" />
+          <g style={aStyle} fill="none" strokeWidth="3.2">
+            {/* front arm (forward swing) */}
+            <path d="M9 9 L6 16.5" />
+            {/* back arm */}
+            <path d="M13 9 L15.6 14.8" />
+            {/* front leg planted ahead */}
+            <path d="M11 20 L14.2 31.5" />
+            {/* back leg lifted/bent */}
+            <path d="M11 20 L9.2 25 L7.4 28.5" />
           </g>
-          <g className="tt-frame-b">
-            <path d="M12 12 L8 17" />
-            <path d="M12 12 L16 17" />
-            <path d="M12 20 L8 30" />
-            <path d="M12 20 L14 26 L16 28" />
+          <g style={bStyle} fill="none" strokeWidth="3.2">
+            <path d="M13 9 L16 16.5" />
+            <path d="M9 9 L6.4 14.8" />
+            <path d="M11 20 L7.8 31.5" />
+            <path d="M11 20 L12.8 25 L14.6 28.5" />
           </g>
         </>
       ) : (
-        <g>
-          <path d="M12 12 L16 17" />
-          <path d="M12 12 L8 17" />
-          <path d="M12 20 L15 30" />
-          <path d="M12 20 L9 30" />
+        <g fill="none" strokeWidth="3.2">
+          <path d="M9 9 L7.4 18" />
+          <path d="M13 9 L14.6 18" />
+          <path d="M11 20 L10 31.5" />
+          <path d="M11 20 L12 31.5" />
         </g>
       )}
     </svg>
   );
 }
 
-const STEADY_DURATION_MS = 3200;
+// Total walk durations are scaled so on-screen pixel speed is roughly constant
+// across the three routes — Fast finishes first.
+const STEADY_DURATION_MS = 5200;
+// Per-walk stride cadence: faster pace = shorter stride interval.
+const STRIDE_MS = [260, 320, 380];
 
 function AnimatedWalksChart() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [progress, setProgress] = useState<number[]>(() => WALKS.map(() => 0));
+  const [arrivedAt, setArrivedAt] = useState<(number | null)[]>(() =>
+    WALKS.map(() => null),
+  );
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -226,25 +251,44 @@ function AnimatedWalksChart() {
 
       if (reduce) {
         setProgress(WALKS.map(() => 1));
+        setArrivedAt(WALKS.map(() => performance.now()));
         return;
       }
 
       const t0 = performance.now();
       const durations = WALKS.map((w) => STEADY_DURATION_MS * (w.months / 24));
+      const arrivedLocal: (number | null)[] = WALKS.map(() => null);
 
       let raf = 0;
       const tick = (now: number) => {
         const elapsed = now - t0;
-        const next = durations.map((d) => {
+        const next = durations.map((d, i) => {
           let p = Math.min(1, elapsed / d);
-          // mild ease-out over the last 8%
-          if (p > 0.92) {
-            const k = (p - 0.92) / 0.08;
-            p = 0.92 + 0.08 * (1 - Math.pow(1 - k, 2));
+          // ease-out over the last 10%
+          if (p > 0.9) {
+            const k = (p - 0.9) / 0.1;
+            p = 0.9 + 0.1 * (1 - Math.pow(1 - k, 2));
+          }
+          if (p >= 1 && arrivedLocal[i] === null) {
+            arrivedLocal[i] = now;
           }
           return p;
         });
         setProgress(next);
+        if (arrivedLocal.some((a) => a !== null)) {
+          setArrivedAt((prev) => {
+            // only update if changed
+            let changed = false;
+            const merged = prev.map((v, i) => {
+              if (v === null && arrivedLocal[i] !== null) {
+                changed = true;
+                return arrivedLocal[i];
+              }
+              return v;
+            });
+            return changed ? merged : prev;
+          });
+        }
         if (next.some((p) => p < 1)) {
           raf = requestAnimationFrame(tick);
         }
@@ -277,19 +321,37 @@ function AnimatedWalksChart() {
       className="mt-14 rounded-lg border border-rule bg-white/40 p-6 lg:p-10"
     >
       <style>{`
-        @keyframes tt-walk-bob {
+        @keyframes tt-walk-bob-260 {
           0%, 100% { transform: translate(-50%, 0); }
           50% { transform: translate(-50%, -2px); }
+        }
+        @keyframes tt-walk-bob-320 {
+          0%, 100% { transform: translate(-50%, 0); }
+          50% { transform: translate(-50%, -2px); }
+        }
+        @keyframes tt-walk-bob-380 {
+          0%, 100% { transform: translate(-50%, 0); }
+          50% { transform: translate(-50%, -1.5px); }
         }
         @keyframes tt-marker-pulse {
           0% { transform: translate(-50%, -50%) scale(1); }
           45% { transform: translate(-50%, -50%) scale(1.35); }
           100% { transform: translate(-50%, -50%) scale(1); }
         }
-        @keyframes tt-step-a { 0%, 49.99% { opacity: 1; } 50%, 100% { opacity: 0; } }
-        @keyframes tt-step-b { 0%, 49.99% { opacity: 0; } 50%, 100% { opacity: 1; } }
-        .tt-frame-a { animation: tt-step-a 360ms steps(1, end) infinite; }
-        .tt-frame-b { animation: tt-step-b 360ms steps(1, end) infinite; }
+        @keyframes tt-ring {
+          0% { transform: translate(-50%, -50%) scale(1); opacity: 0.55; }
+          100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+        }
+        @keyframes tt-step-a { 0%, 49.999% { opacity: 1; } 50%, 100% { opacity: 0; } }
+        @keyframes tt-step-b { 0%, 49.999% { opacity: 0; } 50%, 100% { opacity: 1; } }
+        @keyframes tt-fade-in {
+          from { opacity: 0; transform: translate(-50%, 3px); }
+          to   { opacity: 1; transform: translate(-50%, 0); }
+        }
+        @keyframes tt-fade-out {
+          from { opacity: 1; }
+          to   { opacity: 0; }
+        }
       `}</style>
       <h3 className="font-display text-[1.6rem] text-ink">
         The Build. Three walks. One destination.
@@ -305,7 +367,7 @@ function AnimatedWalksChart() {
           const arrived = p >= 1;
           const walking = p > 0 && p < 1;
           const figureLeft = `${pct * p}%`;
-          const fillWidth = `${pct * p}%`;
+          const strideMs = STRIDE_MS[i];
           return (
             <div
               key={w.name}
@@ -324,19 +386,25 @@ function AnimatedWalksChart() {
 
               {/* Route + caption */}
               <div>
-                <div className="relative h-11">
-                  {/* dotted unwalked line */}
+                <div className="relative h-12">
+                  {/* dotted route — full length, uniform opacity */}
                   <div
-                    className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/35 z-0"
+                    className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/45 z-0"
                     style={{ width: `${pct}%` }}
-                  />
-                  {/* solid walked line */}
-                  <div
-                    className="absolute top-1/2 left-0 -translate-y-1/2 h-px bg-royal z-0"
-                    style={{ width: fillWidth }}
                   />
                   {/* Point A (start) */}
                   <span className="absolute top-1/2 left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-royal z-10" />
+                  {/* Point B pulse ring (one-shot on arrival) */}
+                  {arrived && (
+                    <span
+                      key={`ring-${arrivedAt[i] ?? "x"}`}
+                      className="pointer-events-none absolute top-1/2 h-3 w-3 rounded-full border border-royal/60 z-10"
+                      style={{
+                        left: `${pct}%`,
+                        animation: "tt-ring 700ms ease-out 1 forwards",
+                      }}
+                    />
+                  )}
                   {/* Point B marker */}
                   <span
                     className="absolute top-1/2 h-3 w-3 rounded-full border-2 border-royal z-20"
@@ -344,16 +412,33 @@ function AnimatedWalksChart() {
                       left: `${pct}%`,
                       backgroundColor: arrived ? "var(--royal)" : "transparent",
                       transform: "translate(-50%, -50%)",
-                      animation: arrived ? "tt-marker-pulse 450ms ease-out 1" : undefined,
+                      animation: arrived
+                        ? "tt-marker-pulse 450ms ease-out 1"
+                        : undefined,
                     }}
                   />
-                  <span
-                    className="absolute -top-4 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.1em] text-ink/70"
-                    style={{ left: `${pct}%` }}
-                  >
-                    Point B
-                  </span>
-                  {/* Walking figure */}
+                  {/* Label: POINT B → ARRIVED · MONTH N */}
+                  {arrived ? (
+                    <span
+                      key={`arr-${arrivedAt[i] ?? "x"}`}
+                      className="absolute -top-5 font-mono text-[10px] uppercase tracking-[0.12em] text-royal whitespace-nowrap"
+                      style={{
+                        left: `${pct}%`,
+                        transform: "translateX(-50%)",
+                        animation: "tt-fade-in 280ms ease-out 1 both",
+                      }}
+                    >
+                      Arrived · Month {w.months}
+                    </span>
+                  ) : (
+                    <span
+                      className="absolute -top-5 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink/55"
+                      style={{ left: `${pct}%` }}
+                    >
+                      Point B
+                    </span>
+                  )}
+                  {/* Walking figure + ground shadow */}
                   <div
                     className="absolute z-10"
                     style={{
@@ -361,11 +446,23 @@ function AnimatedWalksChart() {
                       bottom: "50%",
                       transform: "translate(-50%, 0)",
                       animation: walking
-                        ? "tt-walk-bob 360ms ease-in-out infinite"
+                        ? `tt-walk-bob-${strideMs} ${strideMs}ms ease-in-out infinite`
                         : undefined,
                     }}
                   >
-                    <WalkFigure walking={walking} />
+                    {/* ground shadow */}
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-1/2 -translate-x-1/2 rounded-full bg-royal/20"
+                      style={{
+                        bottom: "-3px",
+                        width: "14px",
+                        height: "3px",
+                        filter: "blur(0.5px)",
+                        opacity: arrived ? 0.28 : 0.18,
+                      }}
+                    />
+                    <WalkFigure walking={walking} strideMs={strideMs} />
                   </div>
                 </div>
                 <p className="mt-3 text-[12.5px] leading-relaxed text-ink/60">{w.body}</p>
@@ -385,7 +482,7 @@ function AnimatedWalksChart() {
               style={{ left: `${(m / 24) * 100}%` }}
             >
               <span className="h-1.5 w-px bg-rule" />
-              <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink/55">
+              <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink/55">
                 {m} months
               </span>
             </div>
