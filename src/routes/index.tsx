@@ -179,9 +179,9 @@ function WalkFigure({
     : undefined;
   return (
     <svg
-      width="26"
-      height="40"
-      viewBox="0 0 20 36"
+      width="24"
+      height="34"
+      viewBox="0 -2 20 34"
       xmlns="http://www.w3.org/2000/svg"
       stroke="currentColor"
       fill="currentColor"
@@ -191,51 +191,74 @@ function WalkFigure({
       className="text-royal block overflow-visible"
     >
       {/* head */}
-      <circle cx="10" cy="3.2" r="2.8" stroke="none" />
-      {/* torso */}
-      <line x1="10" y1="6.5" x2="10" y2="18.5" strokeWidth="3.4" fill="none" />
+      <circle cx="10" cy="3" r="2.4" stroke="none" />
+      {/* tapered torso (shoulders wider than waist) */}
+      <path
+        d="M8.2 6.6 L11.8 6.6 L11.3 18.2 L8.7 18.2 Z"
+        stroke="none"
+      />
+      {/* shoulder yoke */}
+      <line x1="7.6" y1="7" x2="12.4" y2="7" strokeWidth="1" fill="none" />
       {walking ? (
         <>
           <g style={aStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10 10 L6.8 16.5" strokeWidth="2.4" />
-            <path d="M10 10 L13.2 15.5" strokeWidth="2.4" />
-            <path d="M10 18 L13.4 30.5" strokeWidth="3" />
-            <path d="M10 18 L8 24 L6.2 27.5" strokeWidth="3" />
+            {/* arms counter-swing: right back, left forward */}
+            <path d="M8 7.2 L6.6 13.2 L7.4 16.4" strokeWidth="2.2" />
+            <path d="M12 7.2 L13.6 13.2 L13 16.6" strokeWidth="2.2" />
+            {/* planted right leg (straight) + foot */}
+            <path d="M10.6 18 L12.4 29.8" strokeWidth="2.8" />
+            <line x1="11.6" y1="30" x2="13.4" y2="30" strokeWidth="1.6" />
+            {/* swing left leg with knee bend + foot */}
+            <path d="M9.4 18 L8 23.8 L6.4 28.6" strokeWidth="2.8" />
+            <line x1="5.6" y1="28.8" x2="7.4" y2="28.6" strokeWidth="1.6" />
           </g>
           <g style={bStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10 10 L13.2 16.5" strokeWidth="2.4" />
-            <path d="M10 10 L6.8 15.5" strokeWidth="2.4" />
-            <path d="M10 18 L6.6 30.5" strokeWidth="3" />
-            <path d="M10 18 L12 24 L13.8 27.5" strokeWidth="3" />
+            {/* arms counter-swing: left back, right forward */}
+            <path d="M8 7.2 L6.4 13.2 L7 16.6" strokeWidth="2.2" />
+            <path d="M12 7.2 L13.4 13.2 L12.6 16.4" strokeWidth="2.2" />
+            {/* planted left leg (straight) + foot */}
+            <path d="M9.4 18 L7.6 29.8" strokeWidth="2.8" />
+            <line x1="6.6" y1="30" x2="8.4" y2="30" strokeWidth="1.6" />
+            {/* swing right leg with knee bend + foot */}
+            <path d="M10.6 18 L12 23.8 L13.6 28.6" strokeWidth="2.8" />
+            <line x1="12.6" y1="28.6" x2="14.4" y2="28.8" strokeWidth="1.6" />
           </g>
         </>
       ) : arrived ? (
         <>
-          {/* victory pose: arms up in a V, legs planted shoulder-width */}
+          {/* victory pose: arms up high in a V */}
           <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10 9.5 L5.4 3" strokeWidth="2.4" />
-            <path d="M10 9.5 L14.6 3" strokeWidth="2.4" />
-            <path d="M10 18 L8.4 30.5" strokeWidth="3" />
-            <path d="M10 18 L11.6 30.5" strokeWidth="3" />
+            <path d="M8 7.2 L4.6 1" strokeWidth="2.2" />
+            <path d="M12 7.2 L15.4 1" strokeWidth="2.2" />
+            {/* legs planted shoulder-width, straight, with foot caps */}
+            <path d="M9.4 18 L8 29.8" strokeWidth="2.8" />
+            <path d="M10.6 18 L12 29.8" strokeWidth="2.8" />
+            <line x1="7.1" y1="30" x2="8.9" y2="30" strokeWidth="1.6" />
+            <line x1="11.1" y1="30" x2="12.9" y2="30" strokeWidth="1.6" />
           </g>
+          {/* fists at hand tips */}
+          <circle cx="4.6" cy="1" r="0.9" stroke="none" />
+          <circle cx="15.4" cy="1" r="0.9" stroke="none" />
           {/* confetti */}
           <g
             stroke="none"
             style={{ animation: "tt-confetti 380ms ease-out 1 both" }}
           >
-            <circle cx="3.8" cy="1.2" r="0.9" />
-            <circle cx="10" cy="-0.6" r="0.9" />
-            <circle cx="16.2" cy="1.2" r="0.9" />
-            <circle cx="6.4" cy="-1.4" r="0.7" />
-            <circle cx="13.6" cy="-1.4" r="0.7" />
+            <circle cx="3.4" cy="-1.4" r="0.8" />
+            <circle cx="10" cy="-3" r="0.8" />
+            <circle cx="16.6" cy="-1.4" r="0.8" />
+            <circle cx="6.8" cy="-3.4" r="0.6" />
+            <circle cx="13.2" cy="-3.4" r="0.6" />
           </g>
         </>
       ) : (
         <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M10 10 L7.6 17" strokeWidth="2.4" />
-          <path d="M10 10 L12.4 17" strokeWidth="2.4" />
-          <path d="M10 18 L8.6 30.5" strokeWidth="3" />
-          <path d="M10 18 L11.4 30.5" strokeWidth="3" />
+          <path d="M8 7.2 L6.8 14.8 L7.6 17.2" strokeWidth="2.2" />
+          <path d="M12 7.2 L13.2 14.8 L12.4 17.2" strokeWidth="2.2" />
+          <path d="M9.4 18 L8.6 29.8" strokeWidth="2.8" />
+          <path d="M10.6 18 L11.4 29.8" strokeWidth="2.8" />
+          <line x1="7.7" y1="30" x2="9.5" y2="30" strokeWidth="1.6" />
+          <line x1="10.5" y1="30" x2="12.3" y2="30" strokeWidth="1.6" />
         </g>
       )}
     </svg>
