@@ -1,58 +1,52 @@
-All changes happen in `src/routes/index.tsx`. No other section is touched.
+# Animate the three walks
 
-## 1. Left column copy (`RoadmapSection`)
+Add a one-time, scroll-triggered walk animation to each of the three routes in the "What the journey costs" section of `src/routes/index.tsx`. No copy, layout, axis, or pricing changes.
 
-- Keep eyebrow `WHAT YOU GET` as-is.
-- Headline → `A living plan. Specific. Sequenced. Yours.`
-- Body → `The Operating Map turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.`
-- Replace the `CHECKLIST` constant with the eight new items in the specified order. The existing `CheckCircle2` bullet styling stays.
+## Scope
 
-## 2. Right panel header (`RoadmapPanel` top bar)
+Only the walks chart block (currently lines ~526–594 in `src/routes/index.tsx`). Everything else stays.
 
-- `Business Operating Roadmap` → `Operating Map`.
-- Trust Tai wordmark and the Point A / B / C strip unchanged.
+## Approach
 
-## 3. Sidebar (dark tabs column)
+Replace the static dotted-line + start/end dots inside the `WALKS.map(...)` row with a small self-contained `<WalkRoute />` component built right in the same file. The component owns:
 
-- Replace the `TABS` constant with the 16 new items in the listed order.
-- Set active item to `The Build Order` (index 7) instead of the current index 4.
-- Tighten item padding: `px-5 py-2.5` → `px-4 py-[7px]`, font `text-[12px]`, and remove the top `py-5` on the column so all 16 fit cleanly within the panel height. Keep the `CircleDot` glyph.
+- the dotted "unwalked" trail (low-opacity electric blue, full width to its Point B)
+- a solid electric blue overlay trail that grows from 0% → 100% of the route during the walk
+- a hollow Point B marker that fills + soft pulse-and-settle on arrival
+- the walking figure SVG positioned along the route via `left: progress%`
+- a subtle two-frame bob (translateY alternating ~1px) while moving
+- start (Point A) dot, unchanged
 
-## 4. Chart panel ("Build Order")
+### Same on-screen pixel speed
 
-- Panel title `Initiatives & Milestones` → `The Build Order`.
-- Replace the `ROWS` constant with six rows in order: Converting Website, Lead Engine, Client Portal, AI Support Assistant, Operating Dashboard, Workflow Automation.
-- New `Status` type: `"mapped" | "build" | "live"` (rename from planning/progress/complete). Each row now carries three consecutive segments that together span Q1–Q8, transitioning Mapped → In build → Live. Earlier rows reach `live` by mid-chart; later rows are still `build` at Q8 (no row ever ends in `live` past mid-chart for the last two; none are forced to "complete" semantics).
+Each route's container is measured (ref + `ResizeObserver`) to get its pixel width. The parent `WalksChart` picks the longest route's pixel width and a duration `D` (e.g. 3.2s for Steady). Each route's animation duration = `D * (routeWidthPx / steadyWidthPx)`, which equals `D * months / 24`. All three start at the same instant, so pixel speed matches and arrival order is Fast → Middle → Steady.
 
-  Suggested segmentation (start–end quarters):
-  ```
-  Converting Website   mapped 1–1  build 2–3  live 4–8
-  Lead Engine          mapped 1–1  build 2–4  live 5–8
-  Client Portal        mapped 1–2  build 3–5  live 6–8
-  AI Support Assistant mapped 1–2  build 3–6  live 7–8
-  Operating Dashboard  mapped 1–3  build 4–8
-  Workflow Automation  mapped 1–4  build 5–8
-  ```
-- Bar colors: `mapped` = `bg-royal-soft/35` (light blue), `build` = `bg-royal/80` (medium blue), `live` = `bg-ink` (dark navy). Bars sit on the same track so they read as one progression.
+### Trigger
 
-## 5. Legend
+A single `IntersectionObserver` on the chart container fires once (threshold ~0.35). Sets a `started` state which all three `<WalkRoute />` instances consume.
 
-- Replace the three legend chips with: `Mapped` (light blue), `In build` (medium blue), `Live` (dark navy). Remove the words Planning, In Progress, Complete from the file entirely.
+### Reduced motion
 
-## 6. Footer + caption
+`window.matchMedia('(prefers-reduced-motion: reduce)')` — if reduce, skip animation and render the final state: figure at Point B, solid trail at 100%, marker filled.
 
-- Footer left text becomes a single line: `24 MONTH OPERATING MAP · 8 QUARTERS, SEQUENCED` (remove the "8 Quarters of Execution" sub-line).
-- Below the panel card (still inside the right grid column), add a small caption line:
-  `Your map arrives in this working shape. The order is a conversation, not a contract.`
-  Styled as `mt-4 text-[12px] italic text-ink/55`.
+### Figure
 
-## 7. Design refinements
+Inline the provided 24×40 SVG as a small `<WalkFigure />` component, fill `#0A0F1F`. Positioned absolute, `bottom` aligned just above the route line, `translateX(-50%)` centered on the progress point. No shadow puddle. The bob is a CSS keyframe (`@keyframes walk-bob`) only applied while `started && !arrived`, paused via `animation-play-state`.
 
-- Lighten the vertical quarter gridlines: `border-dashed border-rule` → `border-dashed border-rule/40` so bars carry the eye.
-- Q1–Q8 column headers stay.
-- White panel card, overall two-column layout, and section background unchanged.
-- No status dots, percentages, or PM-dashboard affordances added.
+### Trail fill
 
-## Out of scope
+Two stacked absolutely-positioned bars at the route line's vertical center:
+1. dotted: existing `border-dashed border-royal/70` at full route width, opacity ~0.35 when not yet walked-over (kept underneath)
+2. solid: `bg-royal h-px` (1px solid line), `width: progress%`, transitions via `transition: width Xms linear` once `started`. Easing: linear for the walk; the last ~10% uses a CSS `cubic-bezier` ease-out by splitting into a tiny final tween (or simply accept linear and rely on the marker pulse for arrival emphasis — linear is fine per spec "steady near-linear").
 
-Header, hero, FeatureStrip, What We Build, Pricing, CTA band, footer — untouched.
+Simpler implementation: drive `progress` with a single `requestAnimationFrame` loop per route from 0 → 1 over its duration with a mild ease-out applied only to the last 8%. Update `left` for the figure and `width` for the solid trail in the same frame. This avoids CSS transition timing drift across three concurrent animations.
+
+### Marker arrival
+
+When `progress === 1`: swap the hollow marker (border-only) for solid `bg-royal`, and add a one-shot `animate-marker-pulse` class (scale 1 → 1.35 → 1 over ~450ms, ease-out). Figure's bob animation stops; figure stays at marker.
+
+## Files
+
+- `src/routes/index.tsx` — replace the route render inside `WALKS.map` with `<WalkRoute progress={p} arrived={a} />`; add `WalksChart` wrapper that owns the IntersectionObserver, RAF loop, and reduced-motion check; add `WalkFigure` SVG component; add small `@keyframes walk-bob` and `@keyframes marker-pulse` either inline `<style>` once at top of section or via a `style` tag in the component.
+
+No other files change. No new deps.
