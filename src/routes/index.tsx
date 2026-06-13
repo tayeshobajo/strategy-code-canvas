@@ -324,22 +324,22 @@ function AnimatedWalksChart() {
 
               {/* Route + caption */}
               <div>
-                <div className="relative h-9">
+                <div className="relative h-11">
                   {/* dotted unwalked line */}
                   <div
-                    className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/35"
+                    className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/35 z-0"
                     style={{ width: `${pct}%` }}
                   />
                   {/* solid walked line */}
                   <div
-                    className="absolute top-1/2 left-0 -translate-y-1/2 h-px bg-royal"
+                    className="absolute top-1/2 left-0 -translate-y-1/2 h-px bg-royal z-0"
                     style={{ width: fillWidth }}
                   />
                   {/* Point A (start) */}
-                  <span className="absolute top-1/2 left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-royal" />
+                  <span className="absolute top-1/2 left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-royal z-10" />
                   {/* Point B marker */}
                   <span
-                    className="absolute top-1/2 h-3 w-3 rounded-full border-2 border-royal"
+                    className="absolute top-1/2 h-3 w-3 rounded-full border-2 border-royal z-20"
                     style={{
                       left: `${pct}%`,
                       backgroundColor: arrived ? "var(--royal)" : "transparent",
@@ -354,18 +354,19 @@ function AnimatedWalksChart() {
                     Point B
                   </span>
                   {/* Walking figure */}
-                  <WalkFigure
+                  <div
+                    className="absolute z-10"
                     style={{
-                      position: "absolute",
                       left: figureLeft,
                       bottom: "50%",
                       transform: "translate(-50%, 0)",
-                      marginBottom: "1px",
                       animation: walking
-                        ? "tt-walk-bob 420ms steps(2, end) infinite"
+                        ? "tt-walk-bob 360ms ease-in-out infinite"
                         : undefined,
                     }}
-                  />
+                  >
+                    <WalkFigure walking={walking} />
+                  </div>
                 </div>
                 <p className="mt-3 text-[12.5px] leading-relaxed text-ink/60">{w.body}</p>
               </div>
