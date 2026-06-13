@@ -337,17 +337,9 @@ function AnimatedWalksChart() {
       className="mt-14 rounded-lg border border-rule bg-white/40 p-6 lg:p-10"
     >
       <style>{`
-        @keyframes tt-walk-bob-260 {
+        @keyframes tt-walk-bob {
           0%, 100% { transform: translate(-50%, 0); }
           50% { transform: translate(-50%, -2px); }
-        }
-        @keyframes tt-walk-bob-320 {
-          0%, 100% { transform: translate(-50%, 0); }
-          50% { transform: translate(-50%, -2px); }
-        }
-        @keyframes tt-walk-bob-380 {
-          0%, 100% { transform: translate(-50%, 0); }
-          50% { transform: translate(-50%, -1.5px); }
         }
         @keyframes tt-marker-pulse {
           0% { transform: translate(-50%, -50%) scale(1); }
@@ -364,9 +356,10 @@ function AnimatedWalksChart() {
           from { opacity: 0; transform: translate(-50%, 3px); }
           to   { opacity: 1; transform: translate(-50%, 0); }
         }
-        @keyframes tt-fade-out {
-          from { opacity: 1; }
-          to   { opacity: 0; }
+        @keyframes tt-confetti {
+          0%   { opacity: 0; transform: translateY(4px); }
+          60%  { opacity: 1; transform: translateY(-2px); }
+          100% { opacity: 1; transform: translateY(0); }
         }
       `}</style>
       <h3 className="font-display text-[1.6rem] text-ink">
