@@ -8,12 +8,6 @@ import {
   ShieldCheck,
   CheckCircle2,
   CircleDot,
-  Calendar,
-  Zap,
-  UserRound,
-  MapPin,
-  Mail,
-  Linkedin,
 } from "lucide-react";
 import heroAsset from "@/assets/trust-tai-hero.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
