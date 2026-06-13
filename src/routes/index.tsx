@@ -395,7 +395,7 @@ function AnimatedWalksChart() {
 
               {/* Route + caption */}
               <div>
-                <div className="relative h-14">
+                <div className="relative h-20">
                   {/* dotted route — full length, uniform opacity */}
                   <div
                     className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/45 z-0"
@@ -426,14 +426,26 @@ function AnimatedWalksChart() {
                         : undefined,
                     }}
                   />
+                  {/* Drop tick from label down toward marker */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute bg-royal/35 z-10"
+                    style={{
+                      left: `${pct}%`,
+                      top: "-22px",
+                      width: "1px",
+                      height: "10px",
+                      transform: "translateX(-50%)",
+                    }}
+                  />
                   {/* Label: POINT B → ARRIVED · MONTH N */}
                   {arrived ? (
                     <span
                       key={`arr-${arrivedAt[i] ?? "x"}`}
-                      className="absolute font-mono text-[10px] uppercase tracking-[0.12em] text-royal whitespace-nowrap"
+                      className="absolute font-mono text-[10.5px] uppercase tracking-[0.14em] text-royal whitespace-nowrap"
                       style={{
                         left: `${pct}%`,
-                        top: "-12px",
+                        top: "-38px",
                         transform: "translateX(-50%)",
                         animation: "tt-fade-in 280ms ease-out 1 both",
                       }}
@@ -442,8 +454,8 @@ function AnimatedWalksChart() {
                     </span>
                   ) : (
                     <span
-                      className="absolute font-mono text-[10px] uppercase tracking-[0.12em] text-ink/55 whitespace-nowrap"
-                      style={{ left: `${pct}%`, top: "-12px", transform: "translateX(-50%)" }}
+                      className="absolute font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink/55 whitespace-nowrap"
+                      style={{ left: `${pct}%`, top: "-38px", transform: "translateX(-50%)" }}
                     >
                       Point B
                     </span>
@@ -456,7 +468,7 @@ function AnimatedWalksChart() {
                       bottom: "calc(50% - 1px)",
                       transform: "translate(-50%, 0)",
                       animation: walking
-                        ? `tt-walk-bob-${strideMs} ${strideMs}ms ease-in-out infinite`
+                        ? `tt-walk-bob ${strideMs}ms ease-in-out infinite`
                         : undefined,
                     }}
                   >
@@ -472,7 +484,7 @@ function AnimatedWalksChart() {
                         opacity: arrived ? 0.35 : 0.22,
                       }}
                     />
-                    <WalkFigure walking={walking} strideMs={strideMs} />
+                    <WalkFigure walking={walking} arrived={arrived} strideMs={strideMs} />
                   </div>
                 </div>
                 <p className="mt-3 text-[12.5px] leading-relaxed text-ink/60">{w.body}</p>
