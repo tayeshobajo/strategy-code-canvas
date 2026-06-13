@@ -164,9 +164,11 @@ const WALKS = [
 
 function WalkFigure({
   walking,
+  arrived,
   strideMs,
 }: {
   walking: boolean;
+  arrived: boolean;
   strideMs: number;
 }) {
   const aStyle = walking
@@ -190,15 +192,13 @@ function WalkFigure({
     >
       {/* head */}
       <circle cx="10" cy="3.2" r="2.8" stroke="none" />
-      {/* torso (thick stroke reads as filled silhouette) */}
+      {/* torso */}
       <line x1="10" y1="6.5" x2="10" y2="18.5" strokeWidth="3.4" fill="none" />
       {walking ? (
         <>
           <g style={aStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
-            {/* arms */}
             <path d="M10 10 L6.8 16.5" strokeWidth="2.4" />
             <path d="M10 10 L13.2 15.5" strokeWidth="2.4" />
-            {/* legs */}
             <path d="M10 18 L13.4 30.5" strokeWidth="3" />
             <path d="M10 18 L8 24 L6.2 27.5" strokeWidth="3" />
           </g>
@@ -207,6 +207,27 @@ function WalkFigure({
             <path d="M10 10 L6.8 15.5" strokeWidth="2.4" />
             <path d="M10 18 L6.6 30.5" strokeWidth="3" />
             <path d="M10 18 L12 24 L13.8 27.5" strokeWidth="3" />
+          </g>
+        </>
+      ) : arrived ? (
+        <>
+          {/* victory pose: arms up in a V, legs planted shoulder-width */}
+          <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 9.5 L5.4 3" strokeWidth="2.4" />
+            <path d="M10 9.5 L14.6 3" strokeWidth="2.4" />
+            <path d="M10 18 L8.4 30.5" strokeWidth="3" />
+            <path d="M10 18 L11.6 30.5" strokeWidth="3" />
+          </g>
+          {/* confetti */}
+          <g
+            stroke="none"
+            style={{ animation: "tt-confetti 380ms ease-out 1 both" }}
+          >
+            <circle cx="3.8" cy="1.2" r="0.9" />
+            <circle cx="10" cy="-0.6" r="0.9" />
+            <circle cx="16.2" cy="1.2" r="0.9" />
+            <circle cx="6.4" cy="-1.4" r="0.7" />
+            <circle cx="13.6" cy="-1.4" r="0.7" />
           </g>
         </>
       ) : (
@@ -223,9 +244,9 @@ function WalkFigure({
 
 // Total walk durations are scaled so on-screen pixel speed is roughly constant
 // across the three routes — Fast finishes first.
-const STEADY_DURATION_MS = 5200;
+const STEADY_DURATION_MS = 9000;
 // Per-walk stride cadence: faster pace = shorter stride interval.
-const STRIDE_MS = [260, 320, 380];
+const STRIDE_MS = [360, 420, 480];
 
 function AnimatedWalksChart() {
   const containerRef = useRef<HTMLDivElement | null>(null);
