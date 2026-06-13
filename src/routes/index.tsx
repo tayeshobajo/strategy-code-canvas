@@ -279,13 +279,17 @@ function AnimatedWalksChart() {
       <style>{`
         @keyframes tt-walk-bob {
           0%, 100% { transform: translate(-50%, 0); }
-          50% { transform: translate(-50%, -1.5px); }
+          50% { transform: translate(-50%, -2px); }
         }
         @keyframes tt-marker-pulse {
           0% { transform: translate(-50%, -50%) scale(1); }
           45% { transform: translate(-50%, -50%) scale(1.35); }
           100% { transform: translate(-50%, -50%) scale(1); }
         }
+        @keyframes tt-step-a { 0%, 49.99% { opacity: 1; } 50%, 100% { opacity: 0; } }
+        @keyframes tt-step-b { 0%, 49.99% { opacity: 0; } 50%, 100% { opacity: 1; } }
+        .tt-frame-a { animation: tt-step-a 360ms steps(1, end) infinite; }
+        .tt-frame-b { animation: tt-step-b 360ms steps(1, end) infinite; }
       `}</style>
       <h3 className="font-display text-[1.6rem] text-ink">
         The Build. Three walks. One destination.
