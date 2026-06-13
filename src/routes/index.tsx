@@ -138,24 +138,27 @@ const TAB_DATA: { label: string; rows: Row[] }[] = [
   },
 ];
 
-const PACE_CARDS = [
+const WALKS = [
   {
-    title: "24 months",
-    price: "$2,500 per month",
-    total: "$60,000 over the walk",
-    body: "The steady walk. Systems go live as you arrive at Point B.",
-  },
-  {
-    title: "18 months",
-    price: "$4,500 per month",
-    total: "$81,000 over the walk",
-    body: "The middle pace. Six months of the systems earning before Point B.",
-  },
-  {
-    title: "12 months",
+    name: "The Fast Walk",
     price: "$7,500 per month",
     total: "$90,000 over the walk",
-    body: "The fast walk. A full year of the systems carrying the work before Point B.",
+    months: 12,
+    body: "Point B in one year. The heaviest months, the earliest arrival.",
+  },
+  {
+    name: "The Middle Walk",
+    price: "$4,500 per month",
+    total: "$81,000 over the walk",
+    months: 18,
+    body: "Point B in eighteen months.",
+  },
+  {
+    name: "The Steady Walk",
+    price: "$2,500 per month",
+    total: "$60,000 over the walk",
+    months: 24,
+    body: "Point B in two years. The walk most founders fund from operations.",
   },
 ];
 
@@ -484,74 +487,126 @@ function RoadmapRow({
 function Pricing() {
   return (
     <section id="pricing" className="bg-paper">
-      <div className="mx-auto max-w-[1200px] px-6 py-24 lg:px-10">
-        {/* Header */}
-        <div className="max-w-2xl">
-          <p className="eyebrow">Investment</p>
-          <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
-            The price is on this site.
-          </h2>
-          <p className="mt-5 max-w-lg text-[14px] leading-relaxed text-ink/70">
-            One fee for the map, credited into the build. One monthly pace for the build, chosen by you. You should not have to get on a call to learn what this costs, so you will not. The numbers are here.
-          </p>
-        </div>
+      <div className="mx-auto max-w-[1280px] px-6 py-24 lg:px-10">
+        {/* Header row: intro + Operating Map card */}
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
+          <div>
+            <p className="eyebrow">Investment</p>
+            <h2 className="mt-4 font-display text-[2.5rem] leading-[1.05] text-ink">
+              What the journey costs.
+            </h2>
+            <p className="mt-5 max-w-lg text-[14px] leading-relaxed text-ink/70">
+              You have planned budgets before. You know a number you cannot see is a number you cannot plan around. So the numbers are here: the map, the walks, the math. Take them to your accountant, your partner, your Sunday evening. The work will be here when you decide.
+            </p>
+          </div>
 
-        {/* Map card */}
-        <div className="mt-14">
-          <div className="rounded-lg border border-rule bg-white px-8 py-8 lg:px-10 lg:py-10">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-baseline lg:justify-between">
-              <div className="max-w-lg">
+          <div className="rounded-lg border border-rule bg-white p-6 lg:p-7">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+              <div className="shrink-0 overflow-hidden rounded-md border border-rule bg-secondary/40">
+                <img
+                  src={heroAsset.url}
+                  alt="The Operating Map cover"
+                  className="h-32 w-40 object-cover sm:h-36 sm:w-44"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
                 <h3 className="font-display text-xl leading-none text-ink">The Operating Map</h3>
                 <p className="mt-3 text-[13.5px] leading-relaxed text-ink/65">
-                  The diagnosis and the plan in one document. Point A, Point B, and the build order.
+                  The master plan that maps your journey from Point A to Point B to Point C.
                 </p>
-              </div>
-              <div className="flex flex-col items-start gap-2 lg:items-end">
-                <div className="font-display text-[1.65rem] leading-none text-royal">$10,000 to $25,000</div>
-                <p className="text-[12.5px] text-ink/55">One engagement. 1 to 2 weeks.</p>
-                <p className="text-[12.5px] text-ink/55">Credited into the build if we work together.</p>
+                <div className="mt-4 font-display text-[1.5rem] leading-none text-royal">$10,000 to $25,000</div>
+                <p className="mt-3 text-[12.5px] leading-relaxed text-ink/55">
+                  One engagement. 1 to 2 weeks. Credited into the build if we walk together.
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Pace heading */}
-        <div className="mt-16">
-          <h3 className="font-display text-xl text-ink">The Build. Three paces. One destination.</h3>
+        {/* Walks chart */}
+        <div className="mt-14 rounded-lg border border-rule bg-white/40 p-6 lg:p-10">
+          <h3 className="font-display text-[1.6rem] text-ink">The Build. Three walks. One destination.</h3>
           <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink/65">
-            Point B stays at 24 months at every pace. The pace decides how many of those months your systems spend live and earning.
+            Every walk reaches Point B. The pace decides when you arrive.
           </p>
-        </div>
 
-        {/* Pace cards */}
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {PACE_CARDS.map((p) => (
-            <div
-              key={p.title}
-              className="rounded-lg border border-rule bg-white px-7 py-7 transition-colors"
-            >
-              <h4 className="font-display text-lg text-ink">{p.title}</h4>
-              <div className="mt-3 font-display text-[1.65rem] leading-none text-royal">{p.price}</div>
-              <div className="mt-2 text-[12.5px] text-ink/55">{p.total}</div>
-              <p className="mt-4 text-[13px] leading-relaxed text-ink/65">{p.body}</p>
+          <div className="mt-10 space-y-10 md:space-y-8">
+            {WALKS.map((w) => {
+              const pct = (w.months / 24) * 100;
+              return (
+                <div
+                  key={w.name}
+                  className="grid grid-cols-1 gap-3 md:grid-cols-[180px_minmax(0,1fr)] md:gap-8"
+                >
+                  {/* Label rail */}
+                  <div className="md:pt-1">
+                    <div className="font-display text-[15px] text-ink">{w.name}</div>
+                    <div className="mt-1 font-display text-[1.05rem] leading-none text-royal">{w.price}</div>
+                    <div className="mt-1.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink/50">{w.total}</div>
+                  </div>
+
+                  {/* Route + caption */}
+                  <div>
+                    <div className="relative h-5">
+                      {/* dotted line */}
+                      <div
+                        className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/70"
+                        style={{ width: `${pct}%` }}
+                      />
+                      {/* start dot */}
+                      <span className="absolute top-1/2 left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-royal" />
+                      {/* end Point B marker */}
+                      <span
+                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3 w-3 rounded-full bg-royal"
+                        style={{ left: `${pct}%` }}
+                      />
+                      <span
+                        className="absolute -top-5 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.1em] text-ink/70"
+                        style={{ left: `${pct}%` }}
+                      >
+                        Point B
+                      </span>
+                    </div>
+                    <p className="mt-3 text-[12.5px] leading-relaxed text-ink/60">{w.body}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Month axis — desktop/tablet only */}
+          <div className="mt-8 hidden md:block md:pl-[212px]">
+            <div className="relative h-6 border-t border-rule">
+              {[0, 6, 12, 18, 24].map((m) => (
+                <div
+                  key={m}
+                  className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
+                  style={{ left: `${(m / 24) * 100}%` }}
+                >
+                  <span className="h-1.5 w-px bg-rule" />
+                  <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink/55">
+                    {m} months
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
 
-        {/* Honesty line */}
-        <p className="mt-8 max-w-2xl text-[12.5px] leading-relaxed text-ink/55">
-          Faster costs more in total and starts earning sooner. Your map's economics page models the tradeoff in your numbers.
+        {/* Caption */}
+        <p className="mt-6 max-w-3xl text-[12.5px] leading-relaxed text-ink/55">
+          Faster costs more in total and arrives sooner. Your map's economics section models what arriving early is worth in your numbers.
         </p>
 
-        {/* Footer line */}
+        {/* Close */}
         <div className="mt-12 border-t border-rule pt-8">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink/50">
-            Every number is on the investment page. Nothing behind a call.
+          <p className="font-display text-[1.05rem] leading-relaxed text-ink">
+            If the numbers fit, we should talk. If they do not, the work is waiting when it is.
           </p>
         </div>
 
         {/* Actions */}
-        <div className="mt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+        <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
           <a
             href="#cta"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
@@ -561,7 +616,7 @@ function Pricing() {
           </a>
           <a
             href="#cta"
-            className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-ink/75 transition-colors hover:text-ink"
+            className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-royal transition-colors hover:text-ink"
           >
             See the full Investment page <ArrowRight className="h-3.5 w-3.5" />
           </a>
