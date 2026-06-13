@@ -138,10 +138,22 @@ const TAB_DATA: { label: string; rows: Row[] }[] = [
   },
 ];
 
-const PRICING = [
-  { icon: MapIcon, title: "The Roadmap", body: "The master plan that maps your journey from A → B → C.", price: "$15,000" },
-  { icon: Hammer, title: "The Build", body: "Execution of roadmap milestones in strategic phases.", price: "$25,000+ / phase" },
-  { icon: InfinityIcon, title: "The Run", body: "Ongoing support, optimization, and growth.", price: "$5,000+ / month" },
+const PACE_CARDS = [
+  {
+    title: "24 months",
+    price: "$2,500 per month",
+    body: "The steady pace. Systems go live as you arrive at Point B.",
+  },
+  {
+    title: "18 months",
+    price: "$4,500 per month",
+    body: "The middle pace. Six months of system maturity before Point B.",
+  },
+  {
+    title: "12 months",
+    price: "$7,500 per month",
+    body: "The fast pace. A full year of the systems running before Point B.",
+  },
 ];
 
 const PROMISES = [
