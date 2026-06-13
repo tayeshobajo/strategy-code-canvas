@@ -7,9 +7,6 @@ import {
   Compass,
   ShieldCheck,
   CheckCircle2,
-  Map as MapIcon,
-  Hammer,
-  Infinity as InfinityIcon,
   CircleDot,
   Calendar,
   Zap,
@@ -141,10 +138,22 @@ const TAB_DATA: { label: string; rows: Row[] }[] = [
   },
 ];
 
-const PRICING = [
-  { icon: MapIcon, title: "The Roadmap", body: "The master plan that maps your journey from A → B → C.", price: "$15,000" },
-  { icon: Hammer, title: "The Build", body: "Execution of roadmap milestones in strategic phases.", price: "$25,000+ / phase" },
-  { icon: InfinityIcon, title: "The Run", body: "Ongoing support, optimization, and growth.", price: "$5,000+ / month" },
+const PACE_CARDS = [
+  {
+    title: "24 months",
+    price: "$2,500 per month",
+    body: "The steady pace. Systems go live as you arrive at Point B.",
+  },
+  {
+    title: "18 months",
+    price: "$4,500 per month",
+    body: "The middle pace. Six months of system maturity before Point B.",
+  },
+  {
+    title: "12 months",
+    price: "$7,500 per month",
+    body: "The fast pace. A full year of the systems running before Point B.",
+  },
 ];
 
 const PROMISES = [
@@ -471,36 +480,88 @@ function RoadmapRow({
 
 function Pricing() {
   return (
-    <section className="bg-paper">
-      <div className="mx-auto max-w-7xl px-6 py-24 lg:px-10">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[0.85fr_1.6fr]">
-          <div>
-            <p className="eyebrow">Investment</p>
-            <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">Transparent. Fair. Worth it.</h2>
-            <p className="mt-5 max-w-sm text-[14px] leading-relaxed text-ink/70">
-              Great work requires great commitment. Here's how we invest in your journey.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
-            {PRICING.map((p) => (
-              <div key={p.title}>
-                <div className="flex items-center gap-3 text-ink">
-                  <p.icon className="h-5 w-5 text-ink/80" strokeWidth={1.5} />
-                  <div className="font-display text-xl">{p.title}</div>
-                </div>
-                <p className="mt-3 text-[13px] leading-relaxed text-ink/65">{p.body}</p>
-                <div className="mt-4 font-display text-2xl text-royal">{p.price}</div>
+    <section id="pricing" className="bg-paper">
+      <div className="mx-auto max-w-[1200px] px-6 py-24 lg:px-10">
+        {/* Header */}
+        <div className="max-w-2xl">
+          <p className="eyebrow">Investment</p>
+          <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
+            The price is on this site.
+          </h2>
+          <p className="mt-5 max-w-lg text-[14px] leading-relaxed text-ink/70">
+            The Operating Map comes first. The build pace comes after. You should know the shape of the investment before a conversation begins.
+          </p>
+        </div>
+
+        {/* Map card */}
+        <div className="mt-14">
+          <div className="rounded-lg border border-rule bg-white px-8 py-8 lg:px-10 lg:py-10">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-lg">
+                <h3 className="font-display text-xl text-ink">The Operating Map</h3>
+                <p className="mt-2 text-[13.5px] leading-relaxed text-ink/65">
+                  The diagnosis and the plan in one document. Point A, Point B, and the build order.
+                </p>
               </div>
-            ))}
+              <div className="flex flex-col items-start gap-2 lg:items-end">
+                <div className="font-display text-[1.75rem] leading-none text-royal">$10,000 to $25,000</div>
+                <p className="text-[12.5px] text-ink/55">One engagement. 1 to 2 weeks.</p>
+                <p className="text-[12.5px] text-ink/55">Credited toward the first build phase if we work together.</p>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="mt-14 flex flex-col items-center justify-center gap-5 border-t border-rule pt-8 text-center sm:flex-row sm:justify-between sm:text-left">
-          <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink/55">
-            <CircleDot className="h-3.5 w-3.5 text-royal" strokeWidth={1.5} />
-            Custom scope. Clear proposals. No surprises.
+
+        {/* Pace heading */}
+        <div className="mt-16">
+          <h3 className="font-display text-xl text-ink">The Build. Three paces. One destination.</h3>
+          <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink/65">
+            Point B stays at 24 months. The pace decides how early your systems go live, get measured, and start carrying the work.
           </p>
-          <a href="#cta" className="inline-flex items-center gap-2 rounded-full border border-ink/20 px-5 py-2.5 text-[13px] font-medium text-ink transition-colors hover:border-ink/50">
-            Talk about your journey <ArrowRight className="h-3.5 w-3.5" />
+        </div>
+
+        {/* Pace cards */}
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {PACE_CARDS.map((p, i) => (
+            <div
+              key={p.title}
+              className={`rounded-lg border bg-white px-7 py-7 transition-colors ${
+                i === 1 ? "border-royal/30" : "border-rule"
+              }`}
+            >
+              <h4 className="font-display text-lg text-ink">{p.title}</h4>
+              <div className="mt-3 font-display text-[1.65rem] leading-none text-royal">{p.price}</div>
+              <p className="mt-4 text-[13px] leading-relaxed text-ink/65">{p.body}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Honesty line */}
+        <p className="mt-8 max-w-2xl text-[12.5px] leading-relaxed text-ink/55">
+          Faster costs more each month and puts the system to work sooner. Your map's economics section models the tradeoff in your numbers.
+        </p>
+
+        {/* Footer line */}
+        <div className="mt-12 border-t border-rule pt-8">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink/50">
+            Every number is on the investment page. Nothing behind a call.
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+          <a
+            href="#cta"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
+          >
+            Build My Map
+            <ArrowRight className="h-4 w-4" />
+          </a>
+          <a
+            href="#cta"
+            className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-ink/75 transition-colors hover:text-ink"
+          >
+            See the full Investment page <ArrowRight className="h-3.5 w-3.5" />
           </a>
         </div>
       </div>
