@@ -1,32 +1,46 @@
 ## Goal
 
-Two focused fixes to `WalkFigure` and its anchor in `src/routes/index.tsx`. Nothing else changes.
+Make all three walks move at the same constant linear speed with a calm, two-pose walk cycle. Arrival is a neutral standing pose. No celebration, no bounce, no easing.
 
-## 1. Plant the feet on the line
+## Changes (all in `src/routes/index.tsx`, inside `WalkFigure` + `AnimatedWalksChart`)
 
-Today the SVG is `viewBox="0 0 20 36"` but the feet end at y≈30.5, leaving ~6px of empty space below the figure. Combined with `bottom: calc(50% - 1px)` on the wrapper, the walker visibly floats above the dotted line.
+### 1. Linear, constant-speed horizontal travel
 
-Fix:
-- Tighten the viewBox so feet sit on the bottom edge: `viewBox="0 -2 20 34"` and render at `width="24" height="34"` (slight size trim to match the line scale).
-- Anchor the wrapper so the SVG's bottom edge is exactly on the route line: change `bottom: "calc(50% - 1px)"` to `bottom: "50%"` and add `marginBottom: "-1px"` so the figure overlaps the line by 1px (feet appear to stand on it, not hover).
-- Move the ground shadow to `bottom: "-1px"` so it sits flush under the feet, not floating below.
-- Keep the bob animation, but reduce amplitude slightly so the feet don't visibly lift off (`translateY(-1.2px)` instead of whatever's currently larger) — confirmed when editing the keyframe.
+- Remove the ease-out-over-last-10% block inside `tick`. Compute `p = Math.min(1, elapsed / d)` only — strictly linear.
+- Per-walk `durations` already scale by `months / 24`, which yields the same pixel-per-second speed across walks (since each route's pixel width also scales with `months / 24` of the container). Keep that. Fast (12 mo) finishes first, Steady (24 mo) last — same speed, different distances.
+- Slow the baseline so the pace feels like a walk: bump `STEADY_DURATION_MS` from 9000 → 14000.
+- Optional "tiny settle" at arrival: a one-shot 120ms `transform: translateX(0)` micro-cushion on the figure wrapper when `arrived` flips true. Implemented via a keyframe `tt-arrive-settle` (translateX from -1px → 0) running once for 120ms. No effect on horizontal position calculation.
 
-## 2. Higher-quality walking figure
+### 2. Calm two-pose walk cycle (kill the "dancing")
 
-Current figure reads as four straight sticks. Upgrade to a more refined pictogram while keeping it monochrome `text-royal`:
+- Stride cadence: replace the per-walk `STRIDE_MS = [360, 420, 480]` array with a single constant `STRIDE_MS = 500` (≈2 steps/sec) used for all figures. Same cadence across all three.
+- Keep the existing A/B frame swap via `tt-step-a` / `tt-step-b` `steps(1, end)` — this is already a clean two-pose toggle.
+- Re-author the two stride frames so ONLY legs and arms change:
+  - Frame A: left leg forward (knee bent forward), right leg back (straight, planted); right arm forward, left arm back. Arms swing from the shoulder pivot (top of arm path stays at y≈7.2, only the lower segment swings). Max forward/back arm angle ~20° from vertical — never above the shoulder yoke (y=7).
+  - Frame B: mirror of A.
+  - Remove any arm path whose endpoint has a y less than 7 (shoulder line). No raised arms.
+- Torso, head, shoulder yoke: identical in both frames — no rotation, no translation.
 
-- **Head**: slightly smaller, with a 0.6-unit gap above the shoulders (cx=10, cy=3, r=2.4).
-- **Torso**: replace the single fat line with a tapered shape — a `path` that's wider at the shoulders (3.6) and narrower at the waist (2.6), giving a subtle silhouette instead of a uniform bar.
-- **Shoulders**: add a 1px-wide horizontal "yoke" stroke at y=7 so arms hinge from a real shoulder line, not from mid-torso.
-- **Walking stride**: re-author both frames so the swing leg has a visible knee bend (two-segment path: hip → knee → foot) and the planted leg stays straight. Arms counter-swing (right arm forward when left leg forward). Stroke widths: arms 2.2, legs 2.8, with `strokeLinecap="round"` already in place.
-- **Feet**: add tiny 1.2-unit foot caps (short horizontal strokes) at the end of each leg so the figure visibly "stands" rather than ending in points.
-- **Arrived (victory) pose**: keep V-arms, but raise hands higher (to y=1 instead of y=3), add slight outward fist dots (r=0.9 circles at the hand tips), and plant legs slightly wider (8.0 / 12.0 at the feet) with foot caps. Confetti unchanged.
+### 3. Body bounce — barely perceptible
 
-## Files
+- Update `@keyframes tt-walk-bob` to a 1px rise at 50% only: `0%,100% { transform: translate(-50%, 0) } 50% { transform: translate(-50%, -1px) }`. Already close — confirm value is exactly `-1px` (not `-1.2px`).
+- Bob duration = `STRIDE_MS` so it syncs to the stride.
 
-- `src/routes/index.tsx` only — `WalkFigure` (viewBox, head, torso path, shoulder yoke, stride paths with knees, foot caps, victory pose tweaks) and the figure wrapper's `bottom` + shadow offset in `AnimatedWalksChart`.
+### 4. Arrival = neutral standing pose (no celebration)
+
+- Delete the entire `arrived` branch in `WalkFigure` that renders the V-arms, fists, and confetti.
+- When `arrived` is true (and `walking` is false), render the same neutral standing figure currently in the final `else` branch: arms at sides, legs together, feet planted. That's the arrival state.
+- Remove the `tt-confetti` keyframe from the `<style>` block (no longer referenced).
+- Keep the Point B marker fill + one-shot `tt-marker-pulse` + `tt-ring` + "Arrived · Month N" label fade-in — those are the arrival signals. Stillness of the figure is intentional.
+
+### 5. Prefers-reduced-motion
+
+- Existing reduced-motion branch already sets `progress = 1` and `arrivedAt = now` for all walks, which renders each figure standing at its marker with solid trails and no animation. Keep as-is. Verify the figure wrapper does not apply `tt-walk-bob` when `walking` is false (it already gates on `walking`) and the arrival settle keyframe is skipped under reduced motion (guard the inline `animation` on the wrapper with the same `reduce` check, or simply gate it on `walking → arrived` transition which never fires in reduced mode since `walking` is never true).
 
 ## Out of scope
 
-Route line, dotted style, label position, timing constants, copy, mobile stacking, axis — all unchanged.
+Route line, dotted style, markers, labels, axis, copy, layout, mobile stacking, colors, container styling.
+
+## Files
+
+- `src/routes/index.tsx` only.
