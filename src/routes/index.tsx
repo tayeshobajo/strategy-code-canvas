@@ -488,7 +488,8 @@ function AnimatedWalksChart() {
                     className="absolute z-10"
                     style={{
                       left: `calc(${pct * p}% - 8px)`,
-                      bottom: "calc(50% - 1px)",
+                      bottom: "50%",
+                      marginBottom: "-1px",
                       transform: "translate(-50%, 0)",
                       animation: walking
                         ? `tt-walk-bob ${strideMs}ms ease-in-out infinite`
@@ -500,7 +501,7 @@ function AnimatedWalksChart() {
                       aria-hidden="true"
                       className="absolute left-1/2 -translate-x-1/2 rounded-full bg-royal/25"
                       style={{
-                        bottom: "-2px",
+                        bottom: "-1px",
                         width: "16px",
                         height: "3px",
                         filter: "blur(0.6px)",
