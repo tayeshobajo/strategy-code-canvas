@@ -172,10 +172,13 @@ function WalkFigure({
   strideMs: number;
 }) {
   const aStyle = walking
-    ? { animation: `tt-step-a ${strideMs}ms steps(1, end) infinite` }
+    ? { animation: `tt-step-3a ${strideMs}ms steps(1, end) infinite` }
+    : undefined;
+  const midStyle = walking
+    ? { animation: `tt-step-3mid ${strideMs}ms steps(1, end) infinite` }
     : undefined;
   const bStyle = walking
-    ? { animation: `tt-step-b ${strideMs}ms steps(1, end) infinite` }
+    ? { animation: `tt-step-3b ${strideMs}ms steps(1, end) infinite` }
     : undefined;
   return (
     <svg
@@ -201,38 +204,43 @@ function WalkFigure({
       <line x1="7.6" y1="7" x2="12.4" y2="7" strokeWidth="1" fill="none" />
       {walking ? (
         <>
-          {/* Frame A: left leg forward (bent), right leg back (planted); right arm forward, left arm back */}
+          {/* Frame A: left leg forward (bent), right leg back; right arm forward, left arm back */}
           <g style={aStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
-            {/* left arm back (swings behind, stays below shoulder) */}
-            <path d="M8 7.4 L7.2 16.8" strokeWidth="2.2" />
-            {/* right arm forward (stays below shoulder) */}
-            <path d="M12 7.4 L12.8 16.8" strokeWidth="2.2" />
-            {/* right leg planted straight + foot */}
-            <path d="M10.6 18 L11 29.8" strokeWidth="2.8" />
-            <line x1="10.1" y1="30" x2="11.9" y2="30" strokeWidth="1.6" />
-            {/* left leg forward with knee bend + foot */}
-            <path d="M9.4 18 L8.4 23.8 L7.2 28.6" strokeWidth="2.8" />
-            <line x1="6.4" y1="28.8" x2="8.2" y2="28.6" strokeWidth="1.6" />
+            <path d="M8 7.4 L7.4 16.9" strokeWidth="2.2" />
+            <path d="M12 7.4 L12.6 16.9" strokeWidth="2.2" />
+            {/* right leg planted (straight, slightly back) */}
+            <path d="M10.6 18 L10.9 29.8" strokeWidth="2.8" />
+            <line x1="10.0" y1="30" x2="11.8" y2="30" strokeWidth="1.6" />
+            {/* left leg forward, subtle knee */}
+            <path d="M9.4 18 L8.6 23.8 L8.0 28.8" strokeWidth="2.8" />
+            <line x1="7.1" y1="29.0" x2="8.9" y2="28.8" strokeWidth="1.6" />
           </g>
-          {/* Frame B: mirror */}
+          {/* MID frame: legs passing, arms vertical (shown twice per cycle) */}
+          <g style={midStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 7.4 L7.9 17" strokeWidth="2.2" />
+            <path d="M12 7.4 L12.1 17" strokeWidth="2.2" />
+            <path d="M9.4 18 L9.4 29.8" strokeWidth="2.8" />
+            <path d="M10.6 18 L10.6 29.8" strokeWidth="2.8" />
+            <line x1="8.5" y1="30" x2="10.3" y2="30" strokeWidth="1.6" />
+            <line x1="9.7" y1="30" x2="11.5" y2="30" strokeWidth="1.6" />
+          </g>
+          {/* Frame B: mirror of A */}
           <g style={bStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
-            {/* left arm forward */}
-            <path d="M8 7.4 L8.8 16.8" strokeWidth="2.2" />
-            {/* right arm back */}
-            <path d="M12 7.4 L12.8 16.8" strokeWidth="2.2" />
-            {/* left leg planted straight + foot */}
-            <path d="M9.4 18 L9 29.8" strokeWidth="2.8" />
-            <line x1="8.1" y1="30" x2="9.9" y2="30" strokeWidth="1.6" />
-            {/* right leg forward with knee bend + foot */}
-            <path d="M10.6 18 L11.6 23.8 L12.8 28.6" strokeWidth="2.8" />
-            <line x1="11.8" y1="28.8" x2="13.6" y2="28.6" strokeWidth="1.6" />
+            <path d="M8 7.4 L8.6 16.9" strokeWidth="2.2" />
+            <path d="M12 7.4 L11.4 16.9" strokeWidth="2.2" />
+            {/* left leg planted (straight, slightly back) */}
+            <path d="M9.4 18 L9.1 29.8" strokeWidth="2.8" />
+            <line x1="8.2" y1="30" x2="10.0" y2="30" strokeWidth="1.6" />
+            {/* right leg forward, subtle knee */}
+            <path d="M10.6 18 L11.4 23.8 L12.0 28.8" strokeWidth="2.8" />
+            <line x1="11.1" y1="29.0" x2="12.9" y2="28.8" strokeWidth="1.6" />
           </g>
         </>
       ) : (
         /* Neutral standing pose — used for both pre-start and arrival */
         <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 7.4 L7.8 17" strokeWidth="2.2" />
-          <path d="M12 7.4 L12.2 17" strokeWidth="2.2" />
+          <path d="M8 7.4 L7.9 17" strokeWidth="2.2" />
+          <path d="M12 7.4 L12.1 17" strokeWidth="2.2" />
           <path d="M9.4 18 L9.4 29.8" strokeWidth="2.8" />
           <path d="M10.6 18 L10.6 29.8" strokeWidth="2.8" />
           <line x1="8.5" y1="30" x2="10.3" y2="30" strokeWidth="1.6" />
