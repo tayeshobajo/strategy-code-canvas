@@ -381,7 +381,7 @@ function AnimatedWalksChart() {
 
               {/* Route + caption */}
               <div>
-                <div className="relative h-12">
+                <div className="relative h-14">
                   {/* dotted route — full length, uniform opacity */}
                   <div
                     className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/45 z-0"
@@ -416,9 +416,10 @@ function AnimatedWalksChart() {
                   {arrived ? (
                     <span
                       key={`arr-${arrivedAt[i] ?? "x"}`}
-                      className="absolute -top-5 font-mono text-[10px] uppercase tracking-[0.12em] text-royal whitespace-nowrap"
+                      className="absolute font-mono text-[10px] uppercase tracking-[0.12em] text-royal whitespace-nowrap"
                       style={{
                         left: `${pct}%`,
+                        top: "-12px",
                         transform: "translateX(-50%)",
                         animation: "tt-fade-in 280ms ease-out 1 both",
                       }}
@@ -427,8 +428,8 @@ function AnimatedWalksChart() {
                     </span>
                   ) : (
                     <span
-                      className="absolute -top-5 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink/55"
-                      style={{ left: `${pct}%` }}
+                      className="absolute font-mono text-[10px] uppercase tracking-[0.12em] text-ink/55 whitespace-nowrap"
+                      style={{ left: `${pct}%`, top: "-12px", transform: "translateX(-50%)" }}
                     >
                       Point B
                     </span>
@@ -437,8 +438,8 @@ function AnimatedWalksChart() {
                   <div
                     className="absolute z-10"
                     style={{
-                      left: figureLeft,
-                      bottom: "50%",
+                      left: `calc(${pct * p}% - 8px)`,
+                      bottom: "calc(50% - 1px)",
                       transform: "translate(-50%, 0)",
                       animation: walking
                         ? `tt-walk-bob-${strideMs} ${strideMs}ms ease-in-out infinite`
@@ -448,13 +449,13 @@ function AnimatedWalksChart() {
                     {/* ground shadow */}
                     <span
                       aria-hidden="true"
-                      className="absolute left-1/2 -translate-x-1/2 rounded-full bg-royal/20"
+                      className="absolute left-1/2 -translate-x-1/2 rounded-full bg-royal/25"
                       style={{
-                        bottom: "-3px",
-                        width: "14px",
+                        bottom: "-2px",
+                        width: "16px",
                         height: "3px",
-                        filter: "blur(0.5px)",
-                        opacity: arrived ? 0.28 : 0.18,
+                        filter: "blur(0.6px)",
+                        opacity: arrived ? 0.35 : 0.22,
                       }}
                     />
                     <WalkFigure walking={walking} strideMs={strideMs} />
