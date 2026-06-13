@@ -191,7 +191,7 @@ function WalkFigure({
       {/* head */}
       <circle cx="10" cy="3.2" r="2.8" stroke="none" />
       {/* torso (thick stroke reads as filled silhouette) */}
-      <line x1="10" y1="7" x2="10" y2="18.5" strokeWidth="4.2" fill="none" />
+      <line x1="10" y1="6.5" x2="10" y2="18.5" strokeWidth="3.4" fill="none" />
       {walking ? (
         <>
           <g style={aStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
