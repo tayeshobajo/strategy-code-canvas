@@ -280,12 +280,7 @@ function AnimatedWalksChart() {
       const tick = (now: number) => {
         const elapsed = now - t0;
         const next = durations.map((d, i) => {
-          let p = Math.min(1, elapsed / d);
-          // ease-out over the last 10%
-          if (p > 0.9) {
-            const k = (p - 0.9) / 0.1;
-            p = 0.9 + 0.1 * (1 - Math.pow(1 - k, 2));
-          }
+          const p = Math.min(1, elapsed / d);
           if (p >= 1 && arrivedLocal[i] === null) {
             arrivedLocal[i] = now;
           }
