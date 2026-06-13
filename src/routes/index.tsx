@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -484,6 +484,192 @@ function RoadmapRow({
   );
 }
 
+function Walker({ className = "" }: { className?: string }) {
+  // Minimal editorial walking figure, navy
+  return (
+    <svg
+      viewBox="0 0 24 32"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="4" r="2.4" fill="currentColor" stroke="none" />
+      <path d="M12 8 L12 18" />
+      <path d="M12 12 L6 15" />
+      <path d="M12 12 L18 14" />
+      <path d="M12 18 L7 28" />
+      <path d="M12 18 L17 27" />
+    </svg>
+  );
+}
+
+function useInView<T extends Element>(opts: IntersectionObserverInit = { threshold: 0.25 }) {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setInView(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      opts,
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return { ref, inView };
+}
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, []);
+  return reduced;
+}
+
+function WalkRow({
+  walk,
+  play,
+  delay,
+  duration,
+}: {
+  walk: (typeof WALKS)[number];
+  play: boolean;
+  delay: number;
+  duration: number;
+}) {
+  const pct = (walk.months / 24) * 100;
+  const [arrived, setArrived] = useState(false);
+  const progress = play ? pct : 0;
+
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-[180px_minmax(0,1fr)] md:gap-8">
+      {/* Label rail */}
+      <div className="md:pt-1">
+        <div className="font-display text-[15px] text-ink">{walk.name}</div>
+        <div className="mt-1 font-display text-[1.05rem] leading-none text-royal">{walk.price}</div>
+        <div className="mt-1.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink/50">
+          {walk.total}
+        </div>
+      </div>
+
+      {/* Route + caption */}
+      <div>
+        <div className="relative h-8">
+          {/* faint full track */}
+          <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 border-t border-dashed border-royal/15" />
+          {/* drawn portion */}
+          <div
+            className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/75"
+            style={{
+              width: `${progress}%`,
+              transition: `width ${duration}ms cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`,
+            }}
+            onTransitionEnd={(e) => {
+              if (e.propertyName === "width" && play) setArrived(true);
+            }}
+          />
+          {/* start dot */}
+          <span className="absolute top-1/2 left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-royal" />
+          {/* end Point B marker */}
+          <span
+            className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3 w-3 rounded-full bg-ink ${
+              arrived ? "tt-pulse-once" : ""
+            }`}
+            style={{ left: `${pct}%` }}
+          />
+          <span
+            className="absolute -top-1 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.1em] text-ink/70"
+            style={{ left: `${pct}%`, transform: `translate(-50%, -100%)` }}
+          >
+            Point B
+          </span>
+          {/* walker */}
+
+          <div
+            className="pointer-events-none absolute top-1/2 -translate-y-1/2"
+            style={{
+              left: `calc(${progress}% - 18px)`,
+              transition: `left ${duration}ms cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`,
+            }}
+          >
+            <Walker className="h-6 w-5 text-ink" />
+          </div>
+        </div>
+        <p className="mt-3 text-[12.5px] leading-relaxed text-ink/60">{walk.body}</p>
+      </div>
+    </div>
+  );
+}
+
+function WalksChart() {
+  const { ref, inView } = useInView<HTMLDivElement>();
+  const reduced = usePrefersReducedMotion();
+  const play = inView; // start animation when in view
+  const durations = [1400, 1800, 2200];
+  const delays = [0, 250, 500];
+
+  return (
+    <div
+      ref={ref}
+      className="mt-14 rounded-lg border border-rule bg-white/40 p-6 lg:p-10"
+    >
+      <h3 className="font-display text-[1.6rem] text-ink">
+        The Build. Three walks. One destination.
+      </h3>
+      <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink/65">
+        Every walk reaches Point B. The pace decides when you arrive.
+      </p>
+
+      <div className="mt-10 space-y-10 md:space-y-12">
+        {WALKS.map((w, i) => (
+          <WalkRow
+            key={w.name}
+            walk={w}
+            play={play}
+            delay={reduced ? 0 : delays[i]}
+            duration={reduced ? 0 : durations[i]}
+          />
+        ))}
+      </div>
+
+      {/* Month axis — desktop/tablet only */}
+      <div className="mt-10 hidden md:block md:pl-[212px]">
+        <div className="relative h-6 border-t border-rule">
+          {[0, 6, 12, 18, 24].map((m) => (
+            <div
+              key={m}
+              className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
+              style={{ left: `${(m / 24) * 100}%` }}
+            >
+              <span className="h-1.5 w-px bg-rule" />
+              <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink/55">
+                {m} months
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Pricing() {
   return (
     <section id="pricing" className="bg-paper">
@@ -523,75 +709,8 @@ function Pricing() {
           </div>
         </div>
 
-        {/* Walks chart */}
-        <div className="mt-14 rounded-lg border border-rule bg-white/40 p-6 lg:p-10">
-          <h3 className="font-display text-[1.6rem] text-ink">The Build. Three walks. One destination.</h3>
-          <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink/65">
-            Every walk reaches Point B. The pace decides when you arrive.
-          </p>
+        <WalksChart />
 
-          <div className="mt-10 space-y-10 md:space-y-8">
-            {WALKS.map((w) => {
-              const pct = (w.months / 24) * 100;
-              return (
-                <div
-                  key={w.name}
-                  className="grid grid-cols-1 gap-3 md:grid-cols-[180px_minmax(0,1fr)] md:gap-8"
-                >
-                  {/* Label rail */}
-                  <div className="md:pt-1">
-                    <div className="font-display text-[15px] text-ink">{w.name}</div>
-                    <div className="mt-1 font-display text-[1.05rem] leading-none text-royal">{w.price}</div>
-                    <div className="mt-1.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink/50">{w.total}</div>
-                  </div>
-
-                  {/* Route + caption */}
-                  <div>
-                    <div className="relative h-5">
-                      {/* dotted line */}
-                      <div
-                        className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/70"
-                        style={{ width: `${pct}%` }}
-                      />
-                      {/* start dot */}
-                      <span className="absolute top-1/2 left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-royal" />
-                      {/* end Point B marker */}
-                      <span
-                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3 w-3 rounded-full bg-royal"
-                        style={{ left: `${pct}%` }}
-                      />
-                      <span
-                        className="absolute -top-5 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.1em] text-ink/70"
-                        style={{ left: `${pct}%` }}
-                      >
-                        Point B
-                      </span>
-                    </div>
-                    <p className="mt-3 text-[12.5px] leading-relaxed text-ink/60">{w.body}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Month axis — desktop/tablet only */}
-          <div className="mt-8 hidden md:block md:pl-[212px]">
-            <div className="relative h-6 border-t border-rule">
-              {[0, 6, 12, 18, 24].map((m) => (
-                <div
-                  key={m}
-                  className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
-                  style={{ left: `${(m / 24) * 100}%` }}
-                >
-                  <span className="h-1.5 w-px bg-rule" />
-                  <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink/55">
-                    {m} months
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* Caption */}
         <p className="mt-6 max-w-3xl text-[12.5px] leading-relaxed text-ink/55">
