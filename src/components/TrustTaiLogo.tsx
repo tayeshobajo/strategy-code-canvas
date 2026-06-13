@@ -1,4 +1,4 @@
-import logoAsset from "@/assets/trust-tai-logo.png.asset.json";
+import logoAsset from "@/assets/trust-tai-logo-white.png.asset.json";
 
 export function TrustTaiLogo({ className = "" }: { className?: string }) {
   return (
