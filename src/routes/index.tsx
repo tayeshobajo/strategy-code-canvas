@@ -342,8 +342,8 @@ function AnimatedWalksChart() {
     >
       <style>{`
         @keyframes tt-walk-bob {
-          0%, 100% { transform: translate(-50%, 0); }
-          50% { transform: translate(-50%, -1px); }
+          0%, 50%, 100% { transform: translate(-50%, 0); }
+          25%, 75%      { transform: translate(-50%, -1px); }
         }
         @keyframes tt-marker-pulse {
           0% { transform: translate(-50%, -50%) scale(1); }
@@ -354,8 +354,10 @@ function AnimatedWalksChart() {
           0% { transform: translate(-50%, -50%) scale(1); opacity: 0.55; }
           100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
         }
-        @keyframes tt-step-a { 0%, 49.999% { opacity: 1; } 50%, 100% { opacity: 0; } }
-        @keyframes tt-step-b { 0%, 49.999% { opacity: 0; } 50%, 100% { opacity: 1; } }
+        /* 3-frame cycle: A (0-25) → MID (25-50) → B (50-75) → MID (75-100) */
+        @keyframes tt-step-3a   { 0%, 24.999% { opacity: 1; } 25%, 100% { opacity: 0; } }
+        @keyframes tt-step-3mid { 0%, 24.999% { opacity: 0; } 25%, 49.999% { opacity: 1; } 50%, 74.999% { opacity: 0; } 75%, 100% { opacity: 1; } }
+        @keyframes tt-step-3b   { 0%, 49.999% { opacity: 0; } 50%, 74.999% { opacity: 1; } 75%, 100% { opacity: 0; } }
         @keyframes tt-fade-in {
           from { opacity: 0; transform: translate(-50%, 3px); }
           to   { opacity: 1; transform: translate(-50%, 0); }
