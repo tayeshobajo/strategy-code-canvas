@@ -601,10 +601,7 @@ function WalkRow({
             Point B
           </span>
           {/* walker */}
-          <Walker
-            className="absolute h-6 w-5 text-ink"
-            // position via inline style
-          />
+
           <div
             className="pointer-events-none absolute top-1/2 -translate-y-1/2"
             style={{
