@@ -243,11 +243,11 @@ function WalkFigure({
   );
 }
 
-// Total walk durations are scaled so on-screen pixel speed is roughly constant
-// across the three routes — Fast finishes first.
-const STEADY_DURATION_MS = 9000;
-// Per-walk stride cadence: faster pace = shorter stride interval.
-const STRIDE_MS = [360, 420, 480];
+// Constant pixel-per-second speed across all three walks: total duration scales
+// with route length (months/24), so Fast finishes first, Steady last.
+const STEADY_DURATION_MS = 14000;
+// Single calm cadence for all figures (~2 steps/sec).
+const STRIDE_MS = 500;
 
 function AnimatedWalksChart() {
   const containerRef = useRef<HTMLDivElement | null>(null);
