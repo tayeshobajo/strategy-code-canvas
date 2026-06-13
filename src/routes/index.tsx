@@ -510,14 +510,6 @@ function AnimatedWalksChart() {
     </div>
   );
 }
-
-
-const PROMISES = [
-  { icon: Calendar, title: "60-Minute Conversation", body: "We listen first. You talk. No sales deck." },
-  { icon: Zap, title: "Clarity You Can Use", body: "Leave with insights, even if we don't work together." },
-  { icon: UserRound, title: "Right Fit Matters", body: "We'll tell you if we're not the right partner." },
-];
-
 function Index() {
   return (
     <div className="min-h-screen bg-paper text-ink">
@@ -527,7 +519,6 @@ function Index() {
       <RoadmapSection />
       <Pricing />
       <CTABand />
-      <Footer />
     </div>
   );
 }
