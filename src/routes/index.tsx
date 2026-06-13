@@ -177,49 +177,44 @@ function WalkFigure({
     : undefined;
   return (
     <svg
-      width="22"
-      height="34"
-      viewBox="0 0 22 34"
+      width="26"
+      height="40"
+      viewBox="0 0 20 36"
       xmlns="http://www.w3.org/2000/svg"
-      fill="currentColor"
       stroke="currentColor"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       className="text-royal block overflow-visible"
     >
       {/* head */}
-      <circle cx="11" cy="3.5" r="3.2" stroke="none" />
-      {/* torso, tapered */}
-      <path
-        d="M8.2 7.4 L13.8 7.4 L13 19 C13 20.4 12.2 21 11 21 C9.8 21 9 20.4 9 19 Z"
-        stroke="none"
-      />
+      <circle cx="10" cy="3.2" r="2.8" stroke="none" />
+      {/* torso (thick stroke reads as filled silhouette) */}
+      <line x1="10" y1="7" x2="10" y2="18.5" strokeWidth="4.2" fill="none" />
       {walking ? (
         <>
-          <g style={aStyle} fill="none" strokeWidth="3.2">
-            {/* front arm (forward swing) */}
-            <path d="M9 9 L6 16.5" />
-            {/* back arm */}
-            <path d="M13 9 L15.6 14.8" />
-            {/* front leg planted ahead */}
-            <path d="M11 20 L14.2 31.5" />
-            {/* back leg lifted/bent */}
-            <path d="M11 20 L9.2 25 L7.4 28.5" />
+          <g style={aStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
+            {/* arms */}
+            <path d="M10 10 L6.8 16.5" strokeWidth="2.4" />
+            <path d="M10 10 L13.2 15.5" strokeWidth="2.4" />
+            {/* legs */}
+            <path d="M10 18 L13.4 30.5" strokeWidth="3" />
+            <path d="M10 18 L8 24 L6.2 27.5" strokeWidth="3" />
           </g>
-          <g style={bStyle} fill="none" strokeWidth="3.2">
-            <path d="M13 9 L16 16.5" />
-            <path d="M9 9 L6.4 14.8" />
-            <path d="M11 20 L7.8 31.5" />
-            <path d="M11 20 L12.8 25 L14.6 28.5" />
+          <g style={bStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 10 L13.2 16.5" strokeWidth="2.4" />
+            <path d="M10 10 L6.8 15.5" strokeWidth="2.4" />
+            <path d="M10 18 L6.6 30.5" strokeWidth="3" />
+            <path d="M10 18 L12 24 L13.8 27.5" strokeWidth="3" />
           </g>
         </>
       ) : (
-        <g fill="none" strokeWidth="3.2">
-          <path d="M9 9 L7.4 18" />
-          <path d="M13 9 L14.6 18" />
-          <path d="M11 20 L10 31.5" />
-          <path d="M11 20 L12 31.5" />
+        <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 10 L7.6 17" strokeWidth="2.4" />
+          <path d="M10 10 L12.4 17" strokeWidth="2.4" />
+          <path d="M10 18 L8.6 30.5" strokeWidth="3" />
+          <path d="M10 18 L11.4 30.5" strokeWidth="3" />
         </g>
       )}
     </svg>
