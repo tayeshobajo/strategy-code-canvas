@@ -1,52 +1,39 @@
-# Animate the three walks
+## Goal
 
-Add a one-time, scroll-triggered walk animation to each of the three routes in the "What the journey costs" section of `src/routes/index.tsx`. No copy, layout, axis, or pricing changes.
+Replace the current walking-figure SVG with a new one I draw from scratch, rendered in the section's electric blue (royal). Polish the existing walk animation so figures clearly walk along their routes and arrive at Point B together-but-ordered (Fast → Middle → Steady).
 
-## Scope
+Scope: visual + animation only in `src/routes/index.tsx`. No copy, layout, axis, or pricing changes.
 
-Only the walks chart block (currently lines ~526–594 in `src/routes/index.tsx`). Everything else stays.
+## Walking figure (new, custom)
 
-## Approach
+A compact pictogram-style walker, no photoreal anatomy:
 
-Replace the static dotted-line + start/end dots inside the `WALKS.map(...)` row with a small self-contained `<WalkRoute />` component built right in the same file. The component owns:
+- viewBox `0 0 24 36`, rendered at 22×32 on screen.
+- Fill `currentColor`; the wrapper sets `text-royal` so the figure is electric blue (matches the dotted line and price typography). No navy. No drop shadow / ground puddle.
+- Anatomy (simple geometric shapes, not the previous heavy paths):
+  - Head: `<circle cx="12" cy="4" r="3"/>`
+  - Torso: short rounded-rect from shoulders to hip
+  - One forward arm (bent), one back arm — thin rounded strokes
+  - Two legs in mid-stride: front leg planted, back leg lifted/bent
+- Two stride frames (`Frame A` = right leg forward, `Frame B` = left leg forward) implemented as two `<g>` groups inside one SVG, toggled by a CSS step animation:
+  - `@keyframes tt-walk-step { 0%,49% { opacity:1 } 50%,100% { opacity:0 } }` on Frame A, inverse on Frame B, `animation: tt-walk-step 360ms steps(1,end) infinite`.
+  - Stride animation only runs while `walking` (figure has not arrived). On arrival, force Frame A visible and pause the animation.
+- Subtle vertical bob preserved: `@keyframes tt-walk-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-1px) } }` 360ms, paused on arrival.
 
-- the dotted "unwalked" trail (low-opacity electric blue, full width to its Point B)
-- a solid electric blue overlay trail that grows from 0% → 100% of the route during the walk
-- a hollow Point B marker that fills + soft pulse-and-settle on arrival
-- the walking figure SVG positioned along the route via `left: progress%`
-- a subtle two-frame bob (translateY alternating ~1px) while moving
-- start (Point A) dot, unchanged
+## Animation refinements
 
-### Same on-screen pixel speed
+Keep the existing structure (IntersectionObserver trigger at 0.35, `requestAnimationFrame` loop, proportional durations so on-screen pixel speed matches across the three routes, ease-out on last 8%, reduced-motion shortcut). Fix the rough edges:
 
-Each route's container is measured (ref + `ResizeObserver`) to get its pixel width. The parent `WalksChart` picks the longest route's pixel width and a duration `D` (e.g. 3.2s for Steady). Each route's animation duration = `D * (routeWidthPx / steadyWidthPx)`, which equals `D * months / 24`. All three start at the same instant, so pixel speed matches and arrival order is Fast → Middle → Steady.
-
-### Trigger
-
-A single `IntersectionObserver` on the chart container fires once (threshold ~0.35). Sets a `started` state which all three `<WalkRoute />` instances consume.
-
-### Reduced motion
-
-`window.matchMedia('(prefers-reduced-motion: reduce)')` — if reduce, skip animation and render the final state: figure at Point B, solid trail at 100%, marker filled.
-
-### Figure
-
-Inline the provided 24×40 SVG as a small `<WalkFigure />` component, fill `#0A0F1F`. Positioned absolute, `bottom` aligned just above the route line, `translateX(-50%)` centered on the progress point. No shadow puddle. The bob is a CSS keyframe (`@keyframes walk-bob`) only applied while `started && !arrived`, paused via `animation-play-state`.
-
-### Trail fill
-
-Two stacked absolutely-positioned bars at the route line's vertical center:
-1. dotted: existing `border-dashed border-royal/70` at full route width, opacity ~0.35 when not yet walked-over (kept underneath)
-2. solid: `bg-royal h-px` (1px solid line), `width: progress%`, transitions via `transition: width Xms linear` once `started`. Easing: linear for the walk; the last ~10% uses a CSS `cubic-bezier` ease-out by splitting into a tiny final tween (or simply accept linear and rely on the marker pulse for arrival emphasis — linear is fine per spec "steady near-linear").
-
-Simpler implementation: drive `progress` with a single `requestAnimationFrame` loop per route from 0 → 1 over its duration with a mild ease-out applied only to the last 8%. Update `left` for the figure and `width` for the solid trail in the same frame. This avoids CSS transition timing drift across three concurrent animations.
-
-### Marker arrival
-
-When `progress === 1`: swap the hollow marker (border-only) for solid `bg-royal`, and add a one-shot `animate-marker-pulse` class (scale 1 → 1.35 → 1 over ~450ms, ease-out). Figure's bob animation stops; figure stays at marker.
+1. Figure position: anchor the figure so its **feet** sit on the route line (`bottom: 0; transform: translateX(-50%)`), not centered vertically through the line. Route row height bumped slightly to fit the 32px-tall figure cleanly.
+2. Solid walked trail (`bg-royal h-px`) renders behind the figure with `z-0`; figure is `z-10`; Point B marker `z-20` so the figure passes cleanly into the marker.
+3. Point B marker: starts hollow (`border border-royal bg-cream`), on arrival fills (`bg-royal`) and plays `tt-marker-pulse` once (scale 1 → 1.3 → 1, 450ms ease-out). Already in place — verify timing is tied to `progress === 1`, not a separate timer.
+4. On arrival, the figure: stops bobbing, stops stride toggle, stays at Point B (does not snap or disappear).
+5. Reduced motion: render final state (progress = 1, marker filled, figure at Point B, stride frame A static).
 
 ## Files
 
-- `src/routes/index.tsx` — replace the route render inside `WALKS.map` with `<WalkRoute progress={p} arrived={a} />`; add `WalksChart` wrapper that owns the IntersectionObserver, RAF loop, and reduced-motion check; add `WalkFigure` SVG component; add small `@keyframes walk-bob` and `@keyframes marker-pulse` either inline `<style>` once at top of section or via a `style` tag in the component.
+- `src/routes/index.tsx` — replace `WalkFigure` SVG + its keyframes; minor tweaks to `AnimatedWalksChart` row height, z-index, and figure anchor. No other files.
 
-No other files change. No new deps.
+## Out of scope
+
+Copy, axis, pricing, Operating Map card, button row, mobile stacking — untouched.
