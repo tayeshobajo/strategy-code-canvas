@@ -142,17 +142,20 @@ const PACE_CARDS = [
   {
     title: "24 months",
     price: "$2,500 per month",
-    body: "The steady pace. Systems go live as you arrive at Point B.",
+    total: "$60,000 over the walk",
+    body: "The steady walk. Systems go live as you arrive at Point B.",
   },
   {
     title: "18 months",
     price: "$4,500 per month",
-    body: "The middle pace. Six months of system maturity before Point B.",
+    total: "$81,000 over the walk",
+    body: "The middle pace. Six months of the systems earning before Point B.",
   },
   {
     title: "12 months",
     price: "$7,500 per month",
-    body: "The fast pace. A full year of the systems running before Point B.",
+    total: "$90,000 over the walk",
+    body: "The fast walk. A full year of the systems carrying the work before Point B.",
   },
 ];
 
@@ -489,24 +492,24 @@ function Pricing() {
             The price is on this site.
           </h2>
           <p className="mt-5 max-w-lg text-[14px] leading-relaxed text-ink/70">
-            The Operating Map comes first. The build pace comes after. You should know the shape of the investment before a conversation begins.
+            One fee for the map, credited into the build. One monthly pace for the build, chosen by you. You should not have to get on a call to learn what this costs, so you will not. The numbers are here.
           </p>
         </div>
 
         {/* Map card */}
         <div className="mt-14">
           <div className="rounded-lg border border-rule bg-white px-8 py-8 lg:px-10 lg:py-10">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-baseline lg:justify-between">
               <div className="max-w-lg">
-                <h3 className="font-display text-xl text-ink">The Operating Map</h3>
-                <p className="mt-2 text-[13.5px] leading-relaxed text-ink/65">
+                <h3 className="font-display text-xl leading-none text-ink">The Operating Map</h3>
+                <p className="mt-3 text-[13.5px] leading-relaxed text-ink/65">
                   The diagnosis and the plan in one document. Point A, Point B, and the build order.
                 </p>
               </div>
               <div className="flex flex-col items-start gap-2 lg:items-end">
-                <div className="font-display text-[1.75rem] leading-none text-royal">$10,000 to $25,000</div>
+                <div className="font-display text-[1.65rem] leading-none text-royal">$10,000 to $25,000</div>
                 <p className="text-[12.5px] text-ink/55">One engagement. 1 to 2 weeks.</p>
-                <p className="text-[12.5px] text-ink/55">Credited toward the first build phase if we work together.</p>
+                <p className="text-[12.5px] text-ink/55">Credited into the build if we work together.</p>
               </div>
             </div>
           </div>
@@ -516,21 +519,20 @@ function Pricing() {
         <div className="mt-16">
           <h3 className="font-display text-xl text-ink">The Build. Three paces. One destination.</h3>
           <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink/65">
-            Point B stays at 24 months. The pace decides how early your systems go live, get measured, and start carrying the work.
+            Point B stays at 24 months at every pace. The pace decides how many of those months your systems spend live and earning.
           </p>
         </div>
 
         {/* Pace cards */}
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {PACE_CARDS.map((p, i) => (
+          {PACE_CARDS.map((p) => (
             <div
               key={p.title}
-              className={`rounded-lg border bg-white px-7 py-7 transition-colors ${
-                i === 1 ? "border-royal/30" : "border-rule"
-              }`}
+              className="rounded-lg border border-rule bg-white px-7 py-7 transition-colors"
             >
               <h4 className="font-display text-lg text-ink">{p.title}</h4>
               <div className="mt-3 font-display text-[1.65rem] leading-none text-royal">{p.price}</div>
+              <div className="mt-2 text-[12.5px] text-ink/55">{p.total}</div>
               <p className="mt-4 text-[13px] leading-relaxed text-ink/65">{p.body}</p>
             </div>
           ))}
@@ -538,7 +540,7 @@ function Pricing() {
 
         {/* Honesty line */}
         <p className="mt-8 max-w-2xl text-[12.5px] leading-relaxed text-ink/55">
-          Faster costs more each month and puts the system to work sooner. Your map's economics section models the tradeoff in your numbers.
+          Faster costs more in total and starts earning sooner. Your map's economics page models the tradeoff in your numbers.
         </p>
 
         {/* Footer line */}
