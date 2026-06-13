@@ -162,6 +162,214 @@ const WALKS = [
   },
 ];
 
+function WalkFigure({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg
+      width="20"
+      height="34"
+      viewBox="0 0 24 40"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="#0A0F1F"
+      aria-hidden="true"
+      className={className}
+      style={style}
+    >
+      <circle cx="12" cy="5" r="4" />
+      <path d="M12 10 C13.2 10 14.1 10.9 14.1 12.1 L14.1 21 C14.1 22 13.2 22.6 12.4 22.6 L11.6 22.6 C10.8 22.6 9.9 22 9.9 21 L9.9 12.1 C9.9 10.9 10.8 10 12 10 Z" />
+      <path d="M13.4 13 C14.2 12.7 15.1 13 15.5 13.8 L17.8 18.2 C18.2 19 17.9 19.9 17.2 20.3 C16.5 20.6 15.7 20.3 15.3 19.6 L13 15.2 C12.7 14.4 12.7 13.4 13.4 13 Z" />
+      <path d="M10.6 13 C9.8 12.7 8.9 13 8.6 13.8 L6.7 17.8 C6.3 18.6 6.6 19.5 7.4 19.8 C8.1 20.1 9 19.8 9.3 19 L11 15 C11.3 14.2 11.3 13.4 10.6 13 Z" />
+      <path d="M12.8 21.5 C13.7 21.5 14.4 22.2 14.4 23.1 L15.8 31.5 C15.9 32.4 15.3 33.2 14.4 33.4 C13.5 33.5 12.7 32.9 12.5 32 L11.2 23.6 C11.1 22.5 11.7 21.5 12.8 21.5 Z" />
+      <path d="M14 32.6 L18 34.2 C18.6 34.4 18.8 35.1 18.5 35.6 C18.3 36 17.9 36.2 17.4 36.1 L13.6 35.2 Z" />
+      <path d="M10.8 21.6 C11.7 21.5 12.5 22.2 12.4 23.1 L11.6 31 C11.5 32 10.7 32.7 9.8 32.5 C9 32.4 8.4 31.6 8.5 30.7 L9 23.2 C9.1 22.3 9.8 21.6 10.8 21.6 Z" />
+      <path d="M8.8 31.4 L6 34.4 C5.6 34.8 5.6 35.4 6 35.8 C6.3 36.1 6.8 36.1 7.2 35.8 L10.4 33.2 Z" />
+    </svg>
+  );
+}
+
+const STEADY_DURATION_MS = 3200;
+
+function AnimatedWalksChart() {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [progress, setProgress] = useState<number[]>(() => WALKS.map(() => 0));
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    const start = () => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+
+      if (reduce) {
+        setProgress(WALKS.map(() => 1));
+        return;
+      }
+
+      const t0 = performance.now();
+      const durations = WALKS.map((w) => STEADY_DURATION_MS * (w.months / 24));
+
+      let raf = 0;
+      const tick = (now: number) => {
+        const elapsed = now - t0;
+        const next = durations.map((d) => {
+          let p = Math.min(1, elapsed / d);
+          // mild ease-out over the last 8%
+          if (p > 0.92) {
+            const k = (p - 0.92) / 0.08;
+            p = 0.92 + 0.08 * (1 - Math.pow(1 - k, 2));
+          }
+          return p;
+        });
+        setProgress(next);
+        if (next.some((p) => p < 1)) {
+          raf = requestAnimationFrame(tick);
+        }
+      };
+      raf = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(raf);
+    };
+
+    const el = containerRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            start();
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="mt-14 rounded-lg border border-rule bg-white/40 p-6 lg:p-10"
+    >
+      <style>{`
+        @keyframes tt-walk-bob {
+          0%, 100% { transform: translate(-50%, 0); }
+          50% { transform: translate(-50%, -1.5px); }
+        }
+        @keyframes tt-marker-pulse {
+          0% { transform: translate(-50%, -50%) scale(1); }
+          45% { transform: translate(-50%, -50%) scale(1.35); }
+          100% { transform: translate(-50%, -50%) scale(1); }
+        }
+      `}</style>
+      <h3 className="font-display text-[1.6rem] text-ink">
+        The Build. Three walks. One destination.
+      </h3>
+      <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink/65">
+        Every walk reaches Point B. The pace decides when you arrive.
+      </p>
+
+      <div className="mt-10 space-y-10 md:space-y-8">
+        {WALKS.map((w, i) => {
+          const pct = (w.months / 24) * 100;
+          const p = progress[i] ?? 0;
+          const arrived = p >= 1;
+          const walking = p > 0 && p < 1;
+          const figureLeft = `${pct * p}%`;
+          const fillWidth = `${pct * p}%`;
+          return (
+            <div
+              key={w.name}
+              className="grid grid-cols-1 gap-3 md:grid-cols-[180px_minmax(0,1fr)] md:gap-8"
+            >
+              {/* Label rail */}
+              <div className="md:pt-1">
+                <div className="font-display text-[15px] text-ink">{w.name}</div>
+                <div className="mt-1 font-display text-[1.05rem] leading-none text-royal">
+                  {w.price}
+                </div>
+                <div className="mt-1.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink/50">
+                  {w.total}
+                </div>
+              </div>
+
+              {/* Route + caption */}
+              <div>
+                <div className="relative h-9">
+                  {/* dotted unwalked line */}
+                  <div
+                    className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/35"
+                    style={{ width: `${pct}%` }}
+                  />
+                  {/* solid walked line */}
+                  <div
+                    className="absolute top-1/2 left-0 -translate-y-1/2 h-px bg-royal"
+                    style={{ width: fillWidth }}
+                  />
+                  {/* Point A (start) */}
+                  <span className="absolute top-1/2 left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-royal" />
+                  {/* Point B marker */}
+                  <span
+                    className="absolute top-1/2 h-3 w-3 rounded-full border-2 border-royal"
+                    style={{
+                      left: `${pct}%`,
+                      backgroundColor: arrived ? "var(--royal)" : "transparent",
+                      transform: "translate(-50%, -50%)",
+                      animation: arrived ? "tt-marker-pulse 450ms ease-out 1" : undefined,
+                    }}
+                  />
+                  <span
+                    className="absolute -top-4 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.1em] text-ink/70"
+                    style={{ left: `${pct}%` }}
+                  >
+                    Point B
+                  </span>
+                  {/* Walking figure */}
+                  <WalkFigure
+                    style={{
+                      position: "absolute",
+                      left: figureLeft,
+                      bottom: "50%",
+                      transform: "translate(-50%, 0)",
+                      marginBottom: "1px",
+                      animation: walking
+                        ? "tt-walk-bob 420ms steps(2, end) infinite"
+                        : undefined,
+                    }}
+                  />
+                </div>
+                <p className="mt-3 text-[12.5px] leading-relaxed text-ink/60">{w.body}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Month axis — desktop/tablet only */}
+      <div className="mt-8 hidden md:block md:pl-[212px]">
+        <div className="relative h-6 border-t border-rule">
+          {[0, 6, 12, 18, 24].map((m) => (
+            <div
+              key={m}
+              className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
+              style={{ left: `${(m / 24) * 100}%` }}
+            >
+              <span className="h-1.5 w-px bg-rule" />
+              <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink/55">
+                {m} months
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 const PROMISES = [
   { icon: Calendar, title: "60-Minute Conversation", body: "We listen first. You talk. No sales deck." },
   { icon: Zap, title: "Clarity You Can Use", body: "Leave with insights, even if we don't work together." },
