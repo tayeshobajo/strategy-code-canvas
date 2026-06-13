@@ -335,7 +335,7 @@ function AnimatedWalksChart() {
       <style>{`
         @keyframes tt-walk-bob {
           0%, 100% { transform: translate(-50%, 0); }
-          50% { transform: translate(-50%, -1.2px); }
+          50% { transform: translate(-50%, -1px); }
         }
         @keyframes tt-marker-pulse {
           0% { transform: translate(-50%, -50%) scale(1); }
@@ -351,11 +351,6 @@ function AnimatedWalksChart() {
         @keyframes tt-fade-in {
           from { opacity: 0; transform: translate(-50%, 3px); }
           to   { opacity: 1; transform: translate(-50%, 0); }
-        }
-        @keyframes tt-confetti {
-          0%   { opacity: 0; transform: translateY(4px); }
-          60%  { opacity: 1; transform: translateY(-2px); }
-          100% { opacity: 1; transform: translateY(0); }
         }
       `}</style>
       <h3 className="font-display text-[1.6rem] text-ink">
