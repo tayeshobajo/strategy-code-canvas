@@ -372,7 +372,7 @@ function AnimatedWalksChart() {
           const arrived = p >= 1;
           const walking = p > 0 && p < 1;
           const figureLeft = `${pct * p}%`;
-          const strideMs = STRIDE_MS[i];
+          const strideMs = STRIDE_MS;
           return (
             <div
               key={w.name}
