@@ -1,46 +1,46 @@
 ## Goal
 
-Make all three walks move at the same constant linear speed with a calm, two-pose walk cycle. Arrival is a neutral standing pose. No celebration, no bounce, no easing.
+Smooth the walk cycle from 2 poses to 3 (pass-through frame) and tighten swing angles. No structural changes, no new deps.
 
-## Changes (all in `src/routes/index.tsx`, inside `WalkFigure` + `AnimatedWalksChart`)
+## Changes (all in `src/routes/index.tsx`, `WalkFigure` + one keyframe)
 
-### 1. Linear, constant-speed horizontal travel
+### 1. Three-frame walk cycle
 
-- Remove the ease-out-over-last-10% block inside `tick`. Compute `p = Math.min(1, elapsed / d)` only — strictly linear.
-- Per-walk `durations` already scale by `months / 24`, which yields the same pixel-per-second speed across walks (since each route's pixel width also scales with `months / 24` of the container). Keep that. Fast (12 mo) finishes first, Steady (24 mo) last — same speed, different distances.
-- Slow the baseline so the pace feels like a walk: bump `STEADY_DURATION_MS` from 9000 → 14000.
-- Optional "tiny settle" at arrival: a one-shot 120ms `transform: translateX(0)` micro-cushion on the figure wrapper when `arrived` flips true. Implemented via a keyframe `tt-arrive-settle` (translateX from -1px → 0) running once for 120ms. No effect on horizontal position calculation.
+Replace the current 2-frame A/B opacity swap with a 3-frame cycle: A → MID → B → MID → A.
 
-### 2. Calm two-pose walk cycle (kill the "dancing")
+- Add a third `<g>` `frameMid` rendered alongside A and B.
+- Replace `tt-step-a` / `tt-step-b` keyframes with `tt-step-3a` / `tt-step-3mid` / `tt-step-3b` using `steps(1, end)`, each visible for 25% of the cycle in the order A (0-25%) → MID (25-50%) → B (50-75%) → MID (75-100%). This makes the passing frame appear twice per stride, which is what makes the walk read smoothly.
+- Each frame's animation uses the same `STRIDE_MS` duration (500ms) so cadence is unchanged.
 
-- Stride cadence: replace the per-walk `STRIDE_MS = [360, 420, 480]` array with a single constant `STRIDE_MS = 500` (≈2 steps/sec) used for all figures. Same cadence across all three.
-- Keep the existing A/B frame swap via `tt-step-a` / `tt-step-b` `steps(1, end)` — this is already a clean two-pose toggle.
-- Re-author the two stride frames so ONLY legs and arms change:
-  - Frame A: left leg forward (knee bent forward), right leg back (straight, planted); right arm forward, left arm back. Arms swing from the shoulder pivot (top of arm path stays at y≈7.2, only the lower segment swings). Max forward/back arm angle ~20° from vertical — never above the shoulder yoke (y=7).
-  - Frame B: mirror of A.
-  - Remove any arm path whose endpoint has a y less than 7 (shoulder line). No raised arms.
-- Torso, head, shoulder yoke: identical in both frames — no rotation, no translation.
+### 2. Tighter swing angles
 
-### 3. Body bounce — barely perceptible
+Reduce limb travel so the figure stops "marching":
 
-- Update `@keyframes tt-walk-bob` to a 1px rise at 50% only: `0%,100% { transform: translate(-50%, 0) } 50% { transform: translate(-50%, -1px) }`. Already close — confirm value is exactly `-1px` (not `-1.2px`).
-- Bob duration = `STRIDE_MS` so it syncs to the stride.
+- **Legs**: swing foot now lands at x≈7.2 / 12.8 (5.6px spread). Tighten to x≈8.0 / 12.0 (4px spread). Knee bend on the forward leg becomes subtler (knee at x≈8.6, foot at x≈8.0 instead of knee x≈8.4 / foot x≈7.2).
+- **Arms**: lower-end x stays close to vertical — swing arm endpoint moves from ±0.8px off vertical to ±0.6px. Arms remain strictly below shoulder yoke (y=7), unchanged.
+- **Hip pivot**: both legs in both frames originate at exactly `(9.4, 18)` and `(10.6, 18)` — no horizontal shift of the hip between frames (prevents body-shift artifact).
 
-### 4. Arrival = neutral standing pose (no celebration)
+### 3. Passing mid-frame geometry
 
-- Delete the entire `arrived` branch in `WalkFigure` that renders the V-arms, fists, and confetti.
-- When `arrived` is true (and `walking` is false), render the same neutral standing figure currently in the final `else` branch: arms at sides, legs together, feet planted. That's the arrival state.
-- Remove the `tt-confetti` keyframe from the `<style>` block (no longer referenced).
-- Keep the Point B marker fill + one-shot `tt-marker-pulse` + `tt-ring` + "Arrived · Month N" label fade-in — those are the arrival signals. Stillness of the figure is intentional.
+- Both legs nearly vertical and close: left from (9.4, 18) → (9.4, 29.8); right from (10.6, 18) → (10.6, 29.8). Feet caps centered on each.
+- Arms hang vertically: left (8, 7.4) → (7.9, 17); right (12, 7.4) → (12.1, 17).
+- This is essentially the existing neutral standing pose, reused as the pass-through frame.
 
-### 5. Prefers-reduced-motion
+### 4. Bob sync
 
-- Existing reduced-motion branch already sets `progress = 1` and `arrivedAt = now` for all walks, which renders each figure standing at its marker with solid trails and no animation. Keep as-is. Verify the figure wrapper does not apply `tt-walk-bob` when `walking` is false (it already gates on `walking`) and the arrival settle keyframe is skipped under reduced motion (guard the inline `animation` on the wrapper with the same `reduce` check, or simply gate it on `walking → arrived` transition which never fires in reduced mode since `walking` is never true).
+Body bob keyframe currently dips at 50%. With a 3-frame cycle, the body should dip on each foot-plant — twice per cycle. Update `tt-walk-bob` to dip at 25% and 75% (the mid-frame moments) and rise at 0/50/100:
+
+```
+0%, 50%, 100% { transform: translate(-50%, 0); }
+25%, 75%     { transform: translate(-50%, -1px); }
+```
+
+Same 1px amplitude, same `STRIDE_MS` duration.
 
 ## Out of scope
 
-Route line, dotted style, markers, labels, axis, copy, layout, mobile stacking, colors, container styling.
+Arrival pose (already neutral), horizontal motion (already linear), markers, labels, copy, layout, colors.
 
 ## Files
 
-- `src/routes/index.tsx` only.
+- `src/routes/index.tsx` only — `WalkFigure` frames + the three keyframes in the `<style>` block.
