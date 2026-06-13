@@ -362,7 +362,7 @@ function AnimatedWalksChart() {
       <style>{`
         @keyframes tt-walk-bob {
           0%, 100% { transform: translate(-50%, 0); }
-          50% { transform: translate(-50%, -2px); }
+          50% { transform: translate(-50%, -1.2px); }
         }
         @keyframes tt-marker-pulse {
           0% { transform: translate(-50%, -50%) scale(1); }
