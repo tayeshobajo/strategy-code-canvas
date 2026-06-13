@@ -162,26 +162,48 @@ const WALKS = [
   },
 ];
 
-function WalkFigure({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
+function WalkFigure({ walking }: { walking: boolean }) {
   return (
     <svg
-      width="26"
-      height="42"
-      viewBox="0 0 24 40"
+      width="22"
+      height="32"
+      viewBox="0 0 24 36"
       xmlns="http://www.w3.org/2000/svg"
-      fill="#0A0F1F"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
-      className={className}
-      style={style}
+      className="text-royal block"
     >
-      <circle cx="12" cy="5" r="4" />
-      <path d="M12 10 C13.2 10 14.1 10.9 14.1 12.1 L14.1 21 C14.1 22 13.2 22.6 12.4 22.6 L11.6 22.6 C10.8 22.6 9.9 22 9.9 21 L9.9 12.1 C9.9 10.9 10.8 10 12 10 Z" />
-      <path d="M13.4 13 C14.2 12.7 15.1 13 15.5 13.8 L17.8 18.2 C18.2 19 17.9 19.9 17.2 20.3 C16.5 20.6 15.7 20.3 15.3 19.6 L13 15.2 C12.7 14.4 12.7 13.4 13.4 13 Z" />
-      <path d="M10.6 13 C9.8 12.7 8.9 13 8.6 13.8 L6.7 17.8 C6.3 18.6 6.6 19.5 7.4 19.8 C8.1 20.1 9 19.8 9.3 19 L11 15 C11.3 14.2 11.3 13.4 10.6 13 Z" />
-      <path d="M12.8 21.5 C13.7 21.5 14.4 22.2 14.4 23.1 L15.8 31.5 C15.9 32.4 15.3 33.2 14.4 33.4 C13.5 33.5 12.7 32.9 12.5 32 L11.2 23.6 C11.1 22.5 11.7 21.5 12.8 21.5 Z" />
-      <path d="M14 32.6 L18 34.2 C18.6 34.4 18.8 35.1 18.5 35.6 C18.3 36 17.9 36.2 17.4 36.1 L13.6 35.2 Z" />
-      <path d="M10.8 21.6 C11.7 21.5 12.5 22.2 12.4 23.1 L11.6 31 C11.5 32 10.7 32.7 9.8 32.5 C9 32.4 8.4 31.6 8.5 30.7 L9 23.2 C9.1 22.3 9.8 21.6 10.8 21.6 Z" />
-      <path d="M8.8 31.4 L6 34.4 C5.6 34.8 5.6 35.4 6 35.8 C6.3 36.1 6.8 36.1 7.2 35.8 L10.4 33.2 Z" />
+      {/* head */}
+      <circle cx="12" cy="4" r="3" fill="currentColor" stroke="none" />
+      {/* torso */}
+      <line x1="12" y1="8" x2="12" y2="20" />
+      {walking ? (
+        <>
+          <g className="tt-frame-a">
+            <path d="M12 12 L16 17" />
+            <path d="M12 12 L8 17" />
+            <path d="M12 20 L16 30" />
+            <path d="M12 20 L10 26 L8 28" />
+          </g>
+          <g className="tt-frame-b">
+            <path d="M12 12 L8 17" />
+            <path d="M12 12 L16 17" />
+            <path d="M12 20 L8 30" />
+            <path d="M12 20 L14 26 L16 28" />
+          </g>
+        </>
+      ) : (
+        <g>
+          <path d="M12 12 L16 17" />
+          <path d="M12 12 L8 17" />
+          <path d="M12 20 L15 30" />
+          <path d="M12 20 L9 30" />
+        </g>
+      )}
     </svg>
   );
 }
