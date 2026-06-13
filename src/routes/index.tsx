@@ -201,75 +201,53 @@ function WalkFigure({
       <line x1="7.6" y1="7" x2="12.4" y2="7" strokeWidth="1" fill="none" />
       {walking ? (
         <>
+          {/* Frame A: left leg forward (bent), right leg back (planted); right arm forward, left arm back */}
           <g style={aStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
-            {/* arms counter-swing: right back, left forward */}
-            <path d="M8 7.2 L6.6 13.2 L7.4 16.4" strokeWidth="2.2" />
-            <path d="M12 7.2 L13.6 13.2 L13 16.6" strokeWidth="2.2" />
-            {/* planted right leg (straight) + foot */}
-            <path d="M10.6 18 L12.4 29.8" strokeWidth="2.8" />
-            <line x1="11.6" y1="30" x2="13.4" y2="30" strokeWidth="1.6" />
-            {/* swing left leg with knee bend + foot */}
-            <path d="M9.4 18 L8 23.8 L6.4 28.6" strokeWidth="2.8" />
-            <line x1="5.6" y1="28.8" x2="7.4" y2="28.6" strokeWidth="1.6" />
+            {/* left arm back (swings behind, stays below shoulder) */}
+            <path d="M8 7.4 L7.2 16.8" strokeWidth="2.2" />
+            {/* right arm forward (stays below shoulder) */}
+            <path d="M12 7.4 L12.8 16.8" strokeWidth="2.2" />
+            {/* right leg planted straight + foot */}
+            <path d="M10.6 18 L11 29.8" strokeWidth="2.8" />
+            <line x1="10.1" y1="30" x2="11.9" y2="30" strokeWidth="1.6" />
+            {/* left leg forward with knee bend + foot */}
+            <path d="M9.4 18 L8.4 23.8 L7.2 28.6" strokeWidth="2.8" />
+            <line x1="6.4" y1="28.8" x2="8.2" y2="28.6" strokeWidth="1.6" />
           </g>
+          {/* Frame B: mirror */}
           <g style={bStyle} fill="none" strokeLinecap="round" strokeLinejoin="round">
-            {/* arms counter-swing: left back, right forward */}
-            <path d="M8 7.2 L6.4 13.2 L7 16.6" strokeWidth="2.2" />
-            <path d="M12 7.2 L13.4 13.2 L12.6 16.4" strokeWidth="2.2" />
-            {/* planted left leg (straight) + foot */}
-            <path d="M9.4 18 L7.6 29.8" strokeWidth="2.8" />
-            <line x1="6.6" y1="30" x2="8.4" y2="30" strokeWidth="1.6" />
-            {/* swing right leg with knee bend + foot */}
-            <path d="M10.6 18 L12 23.8 L13.6 28.6" strokeWidth="2.8" />
-            <line x1="12.6" y1="28.6" x2="14.4" y2="28.8" strokeWidth="1.6" />
-          </g>
-        </>
-      ) : arrived ? (
-        <>
-          {/* victory pose: arms up high in a V */}
-          <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M8 7.2 L4.6 1" strokeWidth="2.2" />
-            <path d="M12 7.2 L15.4 1" strokeWidth="2.2" />
-            {/* legs planted shoulder-width, straight, with foot caps */}
-            <path d="M9.4 18 L8 29.8" strokeWidth="2.8" />
-            <path d="M10.6 18 L12 29.8" strokeWidth="2.8" />
-            <line x1="7.1" y1="30" x2="8.9" y2="30" strokeWidth="1.6" />
-            <line x1="11.1" y1="30" x2="12.9" y2="30" strokeWidth="1.6" />
-          </g>
-          {/* fists at hand tips */}
-          <circle cx="4.6" cy="1" r="0.9" stroke="none" />
-          <circle cx="15.4" cy="1" r="0.9" stroke="none" />
-          {/* confetti */}
-          <g
-            stroke="none"
-            style={{ animation: "tt-confetti 380ms ease-out 1 both" }}
-          >
-            <circle cx="3.4" cy="-1.4" r="0.8" />
-            <circle cx="10" cy="-3" r="0.8" />
-            <circle cx="16.6" cy="-1.4" r="0.8" />
-            <circle cx="6.8" cy="-3.4" r="0.6" />
-            <circle cx="13.2" cy="-3.4" r="0.6" />
+            {/* left arm forward */}
+            <path d="M8 7.4 L8.8 16.8" strokeWidth="2.2" />
+            {/* right arm back */}
+            <path d="M12 7.4 L12.8 16.8" strokeWidth="2.2" />
+            {/* left leg planted straight + foot */}
+            <path d="M9.4 18 L9 29.8" strokeWidth="2.8" />
+            <line x1="8.1" y1="30" x2="9.9" y2="30" strokeWidth="1.6" />
+            {/* right leg forward with knee bend + foot */}
+            <path d="M10.6 18 L11.6 23.8 L12.8 28.6" strokeWidth="2.8" />
+            <line x1="11.8" y1="28.8" x2="13.6" y2="28.6" strokeWidth="1.6" />
           </g>
         </>
       ) : (
+        /* Neutral standing pose — used for both pre-start and arrival */
         <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 7.2 L6.8 14.8 L7.6 17.2" strokeWidth="2.2" />
-          <path d="M12 7.2 L13.2 14.8 L12.4 17.2" strokeWidth="2.2" />
-          <path d="M9.4 18 L8.6 29.8" strokeWidth="2.8" />
-          <path d="M10.6 18 L11.4 29.8" strokeWidth="2.8" />
-          <line x1="7.7" y1="30" x2="9.5" y2="30" strokeWidth="1.6" />
-          <line x1="10.5" y1="30" x2="12.3" y2="30" strokeWidth="1.6" />
+          <path d="M8 7.4 L7.8 17" strokeWidth="2.2" />
+          <path d="M12 7.4 L12.2 17" strokeWidth="2.2" />
+          <path d="M9.4 18 L9.4 29.8" strokeWidth="2.8" />
+          <path d="M10.6 18 L10.6 29.8" strokeWidth="2.8" />
+          <line x1="8.5" y1="30" x2="10.3" y2="30" strokeWidth="1.6" />
+          <line x1="9.7" y1="30" x2="11.5" y2="30" strokeWidth="1.6" />
         </g>
       )}
     </svg>
   );
 }
 
-// Total walk durations are scaled so on-screen pixel speed is roughly constant
-// across the three routes — Fast finishes first.
-const STEADY_DURATION_MS = 9000;
-// Per-walk stride cadence: faster pace = shorter stride interval.
-const STRIDE_MS = [360, 420, 480];
+// Constant pixel-per-second speed across all three walks: total duration scales
+// with route length (months/24), so Fast finishes first, Steady last.
+const STEADY_DURATION_MS = 14000;
+// Single calm cadence for all figures (~2 steps/sec).
+const STRIDE_MS = 500;
 
 function AnimatedWalksChart() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -302,12 +280,7 @@ function AnimatedWalksChart() {
       const tick = (now: number) => {
         const elapsed = now - t0;
         const next = durations.map((d, i) => {
-          let p = Math.min(1, elapsed / d);
-          // ease-out over the last 10%
-          if (p > 0.9) {
-            const k = (p - 0.9) / 0.1;
-            p = 0.9 + 0.1 * (1 - Math.pow(1 - k, 2));
-          }
+          const p = Math.min(1, elapsed / d);
           if (p >= 1 && arrivedLocal[i] === null) {
             arrivedLocal[i] = now;
           }
@@ -362,7 +335,7 @@ function AnimatedWalksChart() {
       <style>{`
         @keyframes tt-walk-bob {
           0%, 100% { transform: translate(-50%, 0); }
-          50% { transform: translate(-50%, -1.2px); }
+          50% { transform: translate(-50%, -1px); }
         }
         @keyframes tt-marker-pulse {
           0% { transform: translate(-50%, -50%) scale(1); }
@@ -379,11 +352,6 @@ function AnimatedWalksChart() {
           from { opacity: 0; transform: translate(-50%, 3px); }
           to   { opacity: 1; transform: translate(-50%, 0); }
         }
-        @keyframes tt-confetti {
-          0%   { opacity: 0; transform: translateY(4px); }
-          60%  { opacity: 1; transform: translateY(-2px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
       `}</style>
       <h3 className="font-display text-[1.6rem] text-ink">
         The Build. Three walks. One destination.
@@ -399,7 +367,7 @@ function AnimatedWalksChart() {
           const arrived = p >= 1;
           const walking = p > 0 && p < 1;
           const figureLeft = `${pct * p}%`;
-          const strideMs = STRIDE_MS[i];
+          const strideMs = STRIDE_MS;
           return (
             <div
               key={w.name}
