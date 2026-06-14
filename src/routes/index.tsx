@@ -1065,7 +1065,7 @@ function CTABand() {
       <div className="border-t border-paper/10">
         <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-10 px-6 py-14 md:grid-cols-3 lg:px-10">
           <div>
-            <TrustTaiLogo className="text-paper" />
+            <TrustTaiLogo variant="white" />
             <p className="mt-3 text-[12.5px] text-paper/55">The system behind the system.</p>
           </div>
           <div>
