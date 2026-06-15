@@ -1,0 +1,667 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  ArrowRight,
+  Target,
+  GitBranch,
+  Layers3,
+  UserCircle2,
+  Mountain,
+  LayoutGrid,
+  Code2,
+  Star,
+  ShieldCheck,
+} from "lucide-react";
+import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
+import ctaBook from "@/assets/cta-book-cover-desk.png.asset.json";
+import { TrustTaiLogo } from "@/components/TrustTaiLogo";
+
+export const Route = createFileRoute("/what-we-build")({
+  head: () => ({
+    meta: [
+      { title: "What We Build — Trust Tai" },
+      { name: "description", content: "The milestones inside the map. Eight builds, one connected operating layer, sequenced by the order the business calls for." },
+      { property: "og:title", content: "What We Build — Trust Tai" },
+      { property: "og:description", content: "Eight milestones. One connected operating layer. Built for founders. Designed to compound." },
+      { property: "og:image", content: heroBook.url },
+    ],
+    links: [{ rel: "canonical", href: "/what-we-build" }],
+  }),
+  component: WhatWeBuild,
+});
+
+// ----- nav -----
+const NAV = [
+  { label: "The Map", to: "/" },
+  { label: "What We Build", to: "/what-we-build", active: true },
+  { label: "Investment", to: "/" },
+  { label: "About", to: "/" },
+  { label: "Insights", to: "/" },
+];
+
+// ----- feature row -----
+const FEATURES = [
+  {
+    icon: Target,
+    title: "Clarity over complexity",
+    body: "We cut through the noise to the work that moves the business.",
+  },
+  {
+    icon: GitBranch,
+    title: "Strategy and execution",
+    body: "One plan. Real milestones. Measurable outcomes.",
+  },
+  {
+    icon: Layers3,
+    title: "Built to compound",
+    body: "Each build strengthens the next.",
+  },
+  {
+    icon: UserCircle2,
+    title: "Yours to own",
+    body: "You own the map. We build the system that makes it real.",
+  },
+];
+
+// ----- milestones table -----
+const MILESTONES = [
+  { n: "01", name: "Converting Website", tag: null },
+  { n: "02", name: "Connected CRM", tag: null },
+  { n: "03", name: "Lead Engine", tag: null },
+  { n: "04", name: "Client Portal", tag: "Founder Bottleneck Loop™" },
+  { n: "05", name: "AI Support Assistant", tag: "The Intelligence Layer™" },
+  { n: "06", name: "Operating Dashboard", tag: "Visibility Before Scale™" },
+  { n: "07", name: "Workflow Automation", tag: "Systems Before Automation™" },
+  { n: "08", name: "Internal Tools", tag: null },
+];
+
+// ----- intelligence layer nodes -----
+const IL_LEFT = ["Converting Website", "Connected CRM", "Lead Engine", "Client Portal"];
+const IL_RIGHT = ["AI Support Assistant", "Operating Dashboard", "Workflow Automation", "Internal Tools"];
+const IL_OUTCOMES = [
+  "Clarity",
+  "Decisions",
+  "Operational leverage",
+  "Compounding position",
+];
+
+// ----- standards -----
+const STANDARDS = [
+  { n: "01", icon: Mountain, title: "Foundation", body: "Before we lay the foundation, we map the ground." },
+  { n: "02", icon: LayoutGrid, title: "Structure", body: "The architecture is decided before the first line is written." },
+  { n: "03", icon: Code2, title: "Build", body: "Authored, not assembled." },
+  { n: "04", icon: Star, title: "Refinement", body: "Nothing ships below a nine." },
+  { n: "05", icon: ShieldCheck, title: "Stewardship", body: "The system holds when no one is watching it." },
+];
+
+// =====================================================
+function WhatWeBuild() {
+  return (
+    <div className="min-h-screen bg-paper text-ink antialiased">
+      <Header />
+      <Hero />
+      <FeatureRow />
+      <MappedPath />
+      <Milestones />
+      <IntelligenceLayer />
+      <StandardsRow />
+      <BeforeAfter />
+      <BottomCTA />
+      <Footer />
+    </div>
+  );
+}
+
+// ----------- HEADER -----------
+function Header() {
+  return (
+    <header className="sticky top-0 z-40 border-b border-rule/60 bg-paper/85 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-6 px-6 sm:h-20 sm:px-10">
+        <Link to="/" className="flex items-center gap-2">
+          <TrustTaiLogo variant="dark" />
+        </Link>
+        <nav className="hidden items-center gap-9 md:flex">
+          {NAV.map((n) => (
+            <Link
+              key={n.label}
+              to={n.to}
+              className={`relative font-sans text-[13px] tracking-tight transition-colors ${
+                n.active ? "text-ink" : "text-ink/65 hover:text-ink"
+              }`}
+            >
+              {n.label}
+              {n.active && (
+                <span className="absolute -bottom-2 left-0 right-0 mx-auto h-px w-8 bg-royal" />
+              )}
+            </Link>
+          ))}
+        </nav>
+        <PrimaryButton href="#cta" className="hidden sm:inline-flex">
+          Build My Map
+        </PrimaryButton>
+      </div>
+    </header>
+  );
+}
+
+// ----------- BUTTONS -----------
+function PrimaryButton({
+  children,
+  href = "#",
+  className = "",
+}: {
+  children: React.ReactNode;
+  href?: string;
+  className?: string;
+}) {
+  return (
+    <a
+      href={href}
+      className={`group inline-flex items-center gap-2 rounded-full bg-[#0a1733] px-5 py-2.5 text-[13px] font-medium text-paper shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_8px_24px_-12px_rgba(10,23,51,0.4)] transition-all hover:bg-[#0f1f43] hover:shadow-[0_1px_0_rgba(255,255,255,0.12)_inset,0_10px_28px_-12px_rgba(10,23,51,0.5)] ${className}`}
+    >
+      <span>{children}</span>
+      <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+    </a>
+  );
+}
+
+function SecondaryButton({
+  children,
+  href = "#",
+  className = "",
+}: {
+  children: React.ReactNode;
+  href?: string;
+  className?: string;
+}) {
+  return (
+    <a
+      href={href}
+      className={`inline-flex items-center gap-2 rounded-full border border-ink/12 bg-paper px-5 py-2.5 text-[13px] font-medium text-ink transition-colors hover:border-ink/25 hover:bg-white ${className}`}
+    >
+      {children}
+    </a>
+  );
+}
+
+// ----------- HERO -----------
+function Hero() {
+  return (
+    <section className="relative">
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 pb-24 pt-16 sm:px-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-16 lg:pb-32 lg:pt-24">
+        <div className="flex flex-col justify-center">
+          <p className="eyebrow mb-6">What We Build</p>
+          <h1 className="font-display text-[44px] leading-[1.02] tracking-[-0.025em] text-ink sm:text-[56px] lg:text-[64px]">
+            The milestones
+            <br />
+            inside the map.
+          </h1>
+          <p className="mt-7 max-w-[440px] text-[15px] leading-[1.7] text-ink/70">
+            Everything we build sits inside your Operating Map, in the order the
+            business calls for it. Each milestone removes friction, sharpens
+            execution, and strengthens the position you are building toward.
+          </p>
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            <PrimaryButton href="#cta">Build My Map</PrimaryButton>
+            <SecondaryButton href="#">See the full investment page</SecondaryButton>
+          </div>
+          <p className="eyebrow mt-12 text-ink/35">
+            Built for founders. Designed to compound.
+          </p>
+        </div>
+
+        <div className="relative">
+          <img
+            src={heroBook.url}
+            alt="Open Operating Map notebook on a warm desk surface"
+            className="h-auto w-full select-none object-contain"
+            draggable={false}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ----------- FEATURE ROW -----------
+function FeatureRow() {
+  return (
+    <section className="border-t border-rule/60 bg-white">
+      <div className="mx-auto max-w-[1280px] px-6 py-24 sm:px-10 lg:py-28">
+        <h2 className="text-center font-display text-[32px] leading-tight tracking-[-0.02em] text-ink sm:text-[40px]">
+          Built by sequence, not guesswork.
+        </h2>
+        <div className="mt-16 grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-4 md:gap-x-10">
+          {FEATURES.map((f) => (
+            <div key={f.title} className="flex flex-col items-center text-center">
+              <div className="mb-6 grid size-12 place-items-center rounded-full border border-royal/25 text-royal">
+                <f.icon className="size-5" strokeWidth={1.6} />
+              </div>
+              <h3 className="font-display text-[18px] leading-tight tracking-[-0.01em] text-ink">
+                {f.title}
+              </h3>
+              <p className="mt-3 max-w-[200px] text-[13px] leading-[1.6] text-ink/65">
+                {f.body}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ----------- MAPPED PATH -----------
+function MappedPath() {
+  return (
+    <section className="bg-[oklch(0.965_0.012_255)]">
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.3fr)] lg:gap-20 lg:py-32">
+        <div>
+          <p className="eyebrow mb-5">The Walk</p>
+          <h2 className="font-display text-[34px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[40px]">
+            Every build sits on
+            <br />a mapped path.
+          </h2>
+          <p className="mt-6 max-w-[400px] text-[14px] leading-[1.75] text-ink/70">
+            Your map names three points: where the business is today, where it
+            needs to be in 24 months, and the position it could own in a decade.
+            Each phase on the path is one engagement. Each milestone is a
+            capability the business unlocks.
+          </p>
+          <a
+            href="#"
+            className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80"
+          >
+            See how the map gets built
+            <ArrowRight className="size-3.5" strokeWidth={2} />
+          </a>
+        </div>
+
+        <div className="flex items-center">
+          <PathSVG />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PathSVG() {
+  // Three labelled stops (A, B, C) and three phase points between.
+  const W = 680;
+  const H = 220;
+  const points = [
+    { x: 60, y: 90, label: "A", title: "Point A", sub: "Where you are", filled: true },
+    { x: 200, y: 90, label: "Phase 1", small: true },
+    { x: 320, y: 90, label: "Phase 2", small: true },
+    { x: 440, y: 90, label: "Phase 3", small: true },
+    { x: 560, y: 90, label: "B", title: "Point B", sub: "Where you need to be (24 months)", filled: true },
+    { x: 640, y: 90, label: "C", title: "Point C", sub: "The position you could own (10 years)", filled: true, outlined: true },
+  ];
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full max-w-[700px]" aria-hidden="true">
+      <line x1="60" y1="90" x2="640" y2="90" stroke="oklch(0.78 0.02 255)" strokeWidth="1" />
+      {points.map((p, i) => (
+        <g key={i}>
+          {p.small ? (
+            <circle cx={p.x} cy={p.y} r="5" fill="#0a1733" />
+          ) : p.outlined ? (
+            <>
+              <circle cx={p.x} cy={p.y} r="11" fill="white" stroke="var(--royal)" strokeWidth="2" />
+              <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--royal)">{p.label}</text>
+            </>
+          ) : (
+            <>
+              <circle cx={p.x} cy={p.y} r="13" fill="var(--royal)" />
+              <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="11" fontWeight="600" fill="white">{p.label}</text>
+            </>
+          )}
+          {p.title && (
+            <text x={p.x} y={p.y + 36} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--ink)">
+              {p.title}
+            </text>
+          )}
+          {p.sub && (
+            <text x={p.x} y={p.y + 52} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)">
+              {p.sub}
+            </text>
+          )}
+          {p.small && (
+            <text x={p.x} y={p.y + 22} textAnchor="middle" fontSize="10" fill="oklch(0.45 0.02 260)">
+              {p.label}
+            </text>
+          )}
+        </g>
+      ))}
+      {/* asset thread bracket */}
+      <path d={`M 80 165 Q ${W / 2 - 40} 188 ${W - 110} 165`} fill="none" stroke="oklch(0.78 0.02 255)" strokeWidth="1" />
+      <text x={W / 2 - 40} y="205" textAnchor="middle" fontSize="9" letterSpacing="2" fill="var(--royal)">
+        ASSET THREAD
+      </text>
+    </svg>
+  );
+}
+
+// ----------- MILESTONES -----------
+function Milestones() {
+  return (
+    <section className="border-t border-rule/60 bg-white">
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)] lg:gap-16 lg:py-32">
+        <div>
+          <p className="eyebrow mb-5">The Milestones</p>
+          <h2 className="font-display text-[32px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[36px]">
+            Eight milestones.
+            <br />
+            One connected
+            <br />
+            operating layer.
+          </h2>
+          <p className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-ink/70">
+            These systems work together to remove friction, raise visibility,
+            and create the capacity to lead what comes next. Your map names
+            which ones you need, when, and in what order.
+          </p>
+        </div>
+
+        <div>
+          <ul className="divide-y divide-rule/70">
+            {MILESTONES.map((m) => (
+              <li key={m.n} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-4 py-5">
+                <span className="grid size-5 place-items-center rounded-full bg-royal" aria-hidden="true">
+                  <span className="size-1.5 rounded-full bg-white" />
+                </span>
+                <div className="flex min-w-0 items-center gap-6">
+                  <span className="font-mono text-[12px] tracking-wider text-ink/45">{m.n}</span>
+                  <span className="text-[15px] font-medium text-ink">{m.name}</span>
+                </div>
+                {m.tag ? (
+                  <span className="rounded-md bg-[oklch(0.96_0.02_260)] px-3 py-1 text-[10.5px] font-medium uppercase tracking-[0.12em] text-royal">
+                    {m.tag}
+                  </span>
+                ) : (
+                  <span className="hidden h-6 w-32 rounded bg-[oklch(0.96_0.01_260)] sm:block" aria-hidden="true" />
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ----------- INTELLIGENCE LAYER -----------
+function IntelligenceLayer() {
+  return (
+    <section className="relative overflow-hidden bg-[#08122b] text-paper">
+      <div className="absolute inset-0 opacity-60">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 50% 60% at 50% 50%, rgba(80,140,255,0.18), transparent 70%)",
+          }}
+        />
+      </div>
+      <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 gap-14 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)_minmax(0,0.55fr)] lg:gap-12 lg:py-32">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#7aa6ff]">
+            The Intelligence Layer
+          </p>
+          <h2 className="mt-5 font-display text-[32px] leading-[1.1] tracking-[-0.02em] sm:text-[38px]">
+            One layer
+            <br />
+            reads all of it.
+          </h2>
+          <p className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-paper/70">
+            Every build creates signals. The intelligence layer reads across the
+            system so the business can see what comes next.
+          </p>
+        </div>
+
+        <ILDiagram />
+
+        <ul className="flex flex-col justify-center gap-5 lg:border-l lg:border-white/10 lg:pl-8">
+          {IL_OUTCOMES.map((o) => (
+            <li key={o} className="flex items-center gap-3 text-[14px]">
+              <span className="size-2 rounded-full bg-[#5b8cff] shadow-[0_0_10px_rgba(91,140,255,0.8)]" />
+              <span className="text-paper/85">{o}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function ILDiagram() {
+  const W = 560;
+  const H = 360;
+  const cx = W / 2;
+  const cy = H / 2;
+  const leftX = 90;
+  const rightX = W - 90;
+  const ys = [60, 140, 220, 300];
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full">
+      <defs>
+        <radialGradient id="core" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#6da4ff" stopOpacity="0.9" />
+          <stop offset="55%" stopColor="#2e58c8" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#0a1733" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {/* connectors */}
+      {ys.map((y, i) => (
+        <g key={`l${i}`}>
+          <path d={`M ${leftX + 60} ${y} C ${cx - 80} ${y}, ${cx - 60} ${cy}, ${cx - 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" />
+          <path d={`M ${rightX - 60} ${y} C ${cx + 80} ${y}, ${cx + 60} ${cy}, ${cx + 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" />
+        </g>
+      ))}
+      {/* glow core */}
+      <circle cx={cx} cy={cy} r="110" fill="url(#core)" />
+      <circle cx={cx} cy={cy} r="48" fill="#0a1733" stroke="#5b8cff" strokeWidth="1.5" />
+      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui">The</text>
+      <text x={cx} y={cy + 10} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui">Intelligence</text>
+      <text x={cx} y={cy + 24} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui">Layer</text>
+
+      {/* left pills */}
+      {IL_LEFT.map((label, i) => (
+        <g key={label}>
+          <rect x={leftX - 60} y={ys[i] - 15} rx="15" ry="15" width="120" height="30" fill="rgba(255,255,255,0.04)" stroke="rgba(140,180,255,0.35)" />
+          <text x={leftX} y={ys[i] + 4} textAnchor="middle" fontSize="10.5" fill="#dde7ff">{label}</text>
+        </g>
+      ))}
+      {IL_RIGHT.map((label, i) => (
+        <g key={label}>
+          <rect x={rightX - 60} y={ys[i] - 15} rx="15" ry="15" width="120" height="30" fill="rgba(255,255,255,0.04)" stroke="rgba(140,180,255,0.35)" />
+          <text x={rightX} y={ys[i] + 4} textAnchor="middle" fontSize="10.5" fill="#dde7ff">{label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+// ----------- STANDARDS ROW -----------
+function StandardsRow() {
+  return (
+    <section className="border-t border-rule/60 bg-white">
+      <div className="mx-auto max-w-[1280px] px-6 py-24 sm:px-10 lg:py-32">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,2fr)] lg:gap-16">
+          <div>
+            <p className="eyebrow mb-5">The Standard</p>
+            <h2 className="font-display text-[32px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[36px]">
+              How every
+              <br />
+              milestone gets built.
+            </h2>
+          </div>
+
+          <div className="relative">
+            {/* connector */}
+            <div className="absolute left-[10%] right-[10%] top-[26px] hidden h-px bg-rule md:block" />
+            <div className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 md:grid-cols-5">
+              {STANDARDS.map((s) => (
+                <div key={s.n} className="relative flex flex-col items-center text-center">
+                  <div className="relative z-10 mb-5 grid size-[52px] place-items-center rounded-full border border-rule bg-white">
+                    <span className="font-mono text-[11px] tracking-wider text-ink/60">{s.n}</span>
+                  </div>
+                  <s.icon className="mb-3 size-7 text-royal" strokeWidth={1.4} />
+                  <h3 className="font-display text-[16px] tracking-[-0.01em] text-ink">{s.title}</h3>
+                  <p className="mt-2 max-w-[150px] text-[12.5px] leading-[1.55] text-ink/60">{s.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ----------- BEFORE / AFTER -----------
+function BeforeAfter() {
+  return (
+    <section className="border-t border-rule/60 bg-paper">
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1.1fr)] lg:items-center lg:gap-10 lg:py-32">
+        <div>
+          <p className="eyebrow mb-5">The Order Is The Point</p>
+          <h2 className="font-display text-[30px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[34px]">
+            The right order
+            <br />
+            changes the outcome.
+          </h2>
+          <p className="mt-6 max-w-[380px] text-[14px] leading-[1.7] text-ink/70">
+            Any agency can build these. The difference is the sequence. We build
+            visibility before scale. We build systems before automation. We
+            build the foundation before the milestone that stands on it.
+          </p>
+        </div>
+
+        <ChartCard label="Before the map">
+          <ScatterChart />
+        </ChartCard>
+
+        <div className="relative">
+          <ChartCard label="After the map">
+            <TrendChart />
+          </ChartCard>
+          <div className="absolute left-[-32px] top-1/2 hidden -translate-y-1/2 lg:block">
+            <ArrowRight className="size-5 text-ink/40" strokeWidth={1.5} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ChartCard({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-md border border-rule/70 bg-white p-6">
+      <p className="mb-4 text-[12.5px] font-medium text-ink/55">{label}</p>
+      <div className="aspect-[16/9]">{children}</div>
+    </div>
+  );
+}
+
+function ScatterChart() {
+  const dots = [
+    [25, 70, 8, 0.4],
+    [70, 45, 10, 0.45],
+    [130, 80, 9, 0.4],
+    [180, 55, 11, 0.55],
+    [225, 90, 8, 0.4],
+    [275, 60, 10, 0.5],
+  ];
+  return (
+    <svg viewBox="0 0 320 140" className="h-full w-full">
+      {dots.map(([x, y, r, o], i) => (
+        <circle key={i} cx={x as number} cy={y as number} r={r as number} fill={`rgba(120,140,170,${o})`} />
+      ))}
+    </svg>
+  );
+}
+
+function TrendChart() {
+  const pts = [
+    [20, 110],
+    [70, 95],
+    [115, 80],
+    [165, 60],
+    [220, 45],
+    [275, 25],
+  ];
+  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0]} ${p[1]}`).join(" ");
+  return (
+    <svg viewBox="0 0 320 140" className="h-full w-full">
+      <path d={d} fill="none" stroke="var(--royal)" strokeWidth="1.5" />
+      {pts.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r={i === pts.length - 1 ? 7 : 5} fill="var(--royal)" />
+      ))}
+    </svg>
+  );
+}
+
+// ----------- BOTTOM CTA -----------
+function BottomCTA() {
+  return (
+    <section id="cta" className="relative overflow-hidden bg-paper">
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-10 lg:py-28">
+        <div>
+          <h2 className="font-display text-[34px] leading-[1.05] tracking-[-0.02em] text-ink sm:text-[44px]">
+            Every build
+            <br />
+            begins with the map.
+          </h2>
+          <p className="mt-6 max-w-[420px] text-[14px] leading-[1.7] text-ink/70">
+            The map says whether you need what is on this page, when, and in
+            what order. That is where every engagement starts. You own the map
+            either way.
+          </p>
+        </div>
+
+        <div className="flex flex-col items-start gap-5">
+          <PrimaryButton href="#">Build My Map</PrimaryButton>
+          <p className="max-w-[300px] text-[13px] leading-[1.65] text-ink/65">
+            A 30-minute conversation. No pitch. If the timing is right, we
+            should talk. If not, the work will be waiting when it is.
+          </p>
+        </div>
+
+        <div className="relative">
+          <img
+            src={ctaBook.url}
+            alt="Trust Tai notebook closed on a warm desk"
+            className="h-auto w-full select-none object-contain"
+            draggable={false}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ----------- FOOTER -----------
+function Footer() {
+  return (
+    <footer className="bg-[#08122b] text-paper">
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-10 px-6 py-14 sm:px-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)]">
+        <div>
+          <TrustTaiLogo variant="white" />
+        </div>
+        <ul className="flex flex-col gap-2 text-[13px] text-paper/70">
+          <li><Link to="/" className="hover:text-paper">The Map</Link></li>
+          <li><Link to="/what-we-build" className="hover:text-paper">Our Builds</Link></li>
+          <li><a href="#" className="hover:text-paper">Our Story</a></li>
+          <li><a href="#" className="hover:text-paper">Insights</a></li>
+          <li><a href="#" className="hover:text-paper">Investment</a></li>
+        </ul>
+        <div className="flex flex-col items-start justify-between gap-4 text-[12.5px] text-paper/55 md:items-end md:text-right">
+          <p>© 2025 Trust Tai. All rights reserved.</p>
+          <div className="flex gap-5">
+            <a href="#" className="hover:text-paper">Privacy Policy</a>
+            <a href="#" className="hover:text-paper">Terms of Service</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
