@@ -369,22 +369,23 @@ function Milestones() {
         </div>
 
         <div>
-          <ul className="divide-y divide-rule/70">
+          <ul className="divide-y divide-rule/60">
             {MILESTONES.map((m) => (
-              <li key={m.n} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-4 py-5">
-                <span className="grid size-5 place-items-center rounded-full bg-royal" aria-hidden="true">
-                  <span className="size-1.5 rounded-full bg-white" />
+              <li
+                key={m.n}
+                className="grid grid-cols-[20px_minmax(0,1fr)] items-start gap-x-4 gap-y-2 py-5 sm:grid-cols-[20px_28px_minmax(0,1fr)_auto] sm:items-center sm:gap-x-5"
+              >
+                <span className="mt-1.5 size-2.5 rounded-full bg-royal sm:mt-0 sm:size-3" aria-hidden="true" />
+                <span className="font-mono text-[11px] tracking-wider text-ink/40 sm:text-[12px]">
+                  {m.n}
                 </span>
-                <div className="flex min-w-0 items-center gap-6">
-                  <span className="font-mono text-[12px] tracking-wider text-ink/45">{m.n}</span>
-                  <span className="text-[15px] font-medium text-ink">{m.name}</span>
-                </div>
-                {m.tag ? (
-                  <span className="rounded-md bg-[oklch(0.96_0.02_260)] px-3 py-1 text-[10.5px] font-medium uppercase tracking-[0.12em] text-royal">
+                <span className="col-start-2 text-[15px] font-medium leading-snug text-ink sm:col-start-auto">
+                  {m.name}
+                </span>
+                {m.tag && (
+                  <span className="col-start-2 inline-flex w-fit items-center rounded-sm border border-royal/15 bg-[oklch(0.97_0.02_260)] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-royal sm:col-start-auto sm:justify-self-end">
                     {m.tag}
                   </span>
-                ) : (
-                  <span className="hidden h-6 w-32 rounded bg-[oklch(0.96_0.01_260)] sm:block" aria-hidden="true" />
                 )}
               </li>
             ))}
