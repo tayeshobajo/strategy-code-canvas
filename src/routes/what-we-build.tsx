@@ -135,9 +135,9 @@ function Header() {
             </Link>
           ))}
         </nav>
-        <PrimaryButton href="#cta" className="hidden sm:inline-flex">
-          Build My Map
-        </PrimaryButton>
+        <div className="hidden sm:block">
+          <PrimaryButton href="#cta">Build My Map</PrimaryButton>
+        </div>
       </div>
     </header>
   );
@@ -276,8 +276,10 @@ function MappedPath() {
           </a>
         </div>
 
-        <div className="flex items-center">
-          <PathSVG />
+        <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
+          <div className="min-w-[640px] sm:min-w-0">
+            <PathSVG />
+          </div>
         </div>
       </div>
     </section>
@@ -286,19 +288,19 @@ function MappedPath() {
 
 function PathSVG() {
   // Three labelled stops (A, B, C) and three phase points between.
-  const W = 680;
-  const H = 220;
+  const W = 760;
+  const H = 240;
   const points = [
     { x: 60, y: 90, label: "A", title: "Point A", sub: "Where you are", filled: true },
-    { x: 200, y: 90, label: "Phase 1", small: true },
-    { x: 320, y: 90, label: "Phase 2", small: true },
-    { x: 440, y: 90, label: "Phase 3", small: true },
-    { x: 560, y: 90, label: "B", title: "Point B", sub: "Where you need to be (24 months)", filled: true },
-    { x: 640, y: 90, label: "C", title: "Point C", sub: "The position you could own (10 years)", filled: true, outlined: true },
+    { x: 190, y: 90, label: "Phase 1", small: true },
+    { x: 310, y: 90, label: "Phase 2", small: true },
+    { x: 430, y: 90, label: "Phase 3", small: true },
+    { x: 570, y: 90, label: "B", title: "Point B", sub: "Where you need to be", sub2: "(24 months)", filled: true },
+    { x: 700, y: 90, label: "C", title: "Point C", sub: "The position you could own", sub2: "(10 years)", filled: true, outlined: true },
   ];
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full max-w-[700px]" aria-hidden="true">
-      <line x1="60" y1="90" x2="640" y2="90" stroke="oklch(0.78 0.02 255)" strokeWidth="1" />
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" aria-hidden="true">
+      <line x1="60" y1="90" x2="700" y2="90" stroke="oklch(0.82 0.02 255)" strokeWidth="1" />
       {points.map((p, i) => (
         <g key={i}>
           {p.small ? (
@@ -324,6 +326,11 @@ function PathSVG() {
               {p.sub}
             </text>
           )}
+          {("sub2" in p) && p.sub2 && (
+            <text x={p.x} y={p.y + 65} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)">
+              {p.sub2}
+            </text>
+          )}
           {p.small && (
             <text x={p.x} y={p.y + 22} textAnchor="middle" fontSize="10" fill="oklch(0.45 0.02 260)">
               {p.label}
@@ -332,8 +339,8 @@ function PathSVG() {
         </g>
       ))}
       {/* asset thread bracket */}
-      <path d={`M 80 165 Q ${W / 2 - 40} 188 ${W - 110} 165`} fill="none" stroke="oklch(0.78 0.02 255)" strokeWidth="1" />
-      <text x={W / 2 - 40} y="205" textAnchor="middle" fontSize="9" letterSpacing="2" fill="var(--royal)">
+      <path d={`M 80 180 Q ${W / 2} 200 ${W - 100} 180`} fill="none" stroke="oklch(0.82 0.02 255)" strokeWidth="1" />
+      <text x={W / 2} y="222" textAnchor="middle" fontSize="9" letterSpacing="2" fill="var(--royal)">
         ASSET THREAD
       </text>
     </svg>
@@ -362,22 +369,23 @@ function Milestones() {
         </div>
 
         <div>
-          <ul className="divide-y divide-rule/70">
+          <ul className="divide-y divide-rule/60">
             {MILESTONES.map((m) => (
-              <li key={m.n} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-4 py-5">
-                <span className="grid size-5 place-items-center rounded-full bg-royal" aria-hidden="true">
-                  <span className="size-1.5 rounded-full bg-white" />
+              <li
+                key={m.n}
+                className="grid grid-cols-[20px_minmax(0,1fr)] items-start gap-x-4 gap-y-2 py-5 sm:grid-cols-[20px_28px_minmax(0,1fr)_auto] sm:items-center sm:gap-x-5"
+              >
+                <span className="mt-1.5 size-2.5 rounded-full bg-royal sm:mt-0 sm:size-3" aria-hidden="true" />
+                <span className="font-mono text-[11px] tracking-wider text-ink/40 sm:text-[12px]">
+                  {m.n}
                 </span>
-                <div className="flex min-w-0 items-center gap-6">
-                  <span className="font-mono text-[12px] tracking-wider text-ink/45">{m.n}</span>
-                  <span className="text-[15px] font-medium text-ink">{m.name}</span>
-                </div>
-                {m.tag ? (
-                  <span className="rounded-md bg-[oklch(0.96_0.02_260)] px-3 py-1 text-[10.5px] font-medium uppercase tracking-[0.12em] text-royal">
+                <span className="col-start-2 text-[15px] font-medium leading-snug text-ink sm:col-start-auto">
+                  {m.name}
+                </span>
+                {m.tag && (
+                  <span className="col-start-2 inline-flex w-fit items-center rounded-sm border border-royal/15 bg-[oklch(0.97_0.02_260)] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-royal sm:col-start-auto sm:justify-self-end">
                     {m.tag}
                   </span>
-                ) : (
-                  <span className="hidden h-6 w-32 rounded bg-[oklch(0.96_0.01_260)] sm:block" aria-hidden="true" />
                 )}
               </li>
             ))}
@@ -417,7 +425,11 @@ function IntelligenceLayer() {
           </p>
         </div>
 
-        <ILDiagram />
+        <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
+          <div className="min-w-[560px] sm:min-w-0">
+            <ILDiagram />
+          </div>
+        </div>
 
         <ul className="flex flex-col justify-center gap-5 lg:border-l lg:border-white/10 lg:pl-8">
           {IL_OUTCOMES.map((o) => (
