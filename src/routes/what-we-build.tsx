@@ -562,7 +562,7 @@ function StandardsRow() {
             {/* dotted connector between numbered circles */}
             <div
               className="absolute left-[10%] right-[10%] top-[26px] hidden h-px md:block"
-              style={{ backgroundImage: "repeating-linear-gradient(to right, var(--royal-soft) 0 4px, transparent 4px 10px)" }}
+              style={{ backgroundImage: "repeating-linear-gradient(to right, color-mix(in oklab, var(--ink) 22%, transparent) 0 3px, transparent 3px 8px)" }}
               aria-hidden="true"
             />
             <div className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 md:grid-cols-5">
