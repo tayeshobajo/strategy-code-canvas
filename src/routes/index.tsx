@@ -514,7 +514,8 @@ function AnimatedWalksChart() {
 function Index() {
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <Header />
+      <SiteHeader />
+      <div className="h-20 sm:h-24" aria-hidden="true" />
       <Hero />
       <FeatureStrip />
       <RoadmapSection />
