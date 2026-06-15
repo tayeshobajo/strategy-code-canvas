@@ -326,6 +326,11 @@ function PathSVG() {
               {p.sub}
             </text>
           )}
+          {("sub2" in p) && p.sub2 && (
+            <text x={p.x} y={p.y + 65} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)">
+              {p.sub2}
+            </text>
+          )}
           {p.small && (
             <text x={p.x} y={p.y + 22} textAnchor="middle" fontSize="10" fill="oklch(0.45 0.02 260)">
               {p.label}
@@ -334,8 +339,8 @@ function PathSVG() {
         </g>
       ))}
       {/* asset thread bracket */}
-      <path d={`M 80 165 Q ${W / 2 - 40} 188 ${W - 110} 165`} fill="none" stroke="oklch(0.78 0.02 255)" strokeWidth="1" />
-      <text x={W / 2 - 40} y="205" textAnchor="middle" fontSize="9" letterSpacing="2" fill="var(--royal)">
+      <path d={`M 80 180 Q ${W / 2} 200 ${W - 100} 180`} fill="none" stroke="oklch(0.82 0.02 255)" strokeWidth="1" />
+      <text x={W / 2} y="222" textAnchor="middle" fontSize="9" letterSpacing="2" fill="var(--royal)">
         ASSET THREAD
       </text>
     </svg>
