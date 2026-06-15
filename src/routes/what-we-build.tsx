@@ -70,6 +70,7 @@ const IconStewardship = ({ className = "" }: IconProps) => (
 import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
 import ctaBook from "@/assets/cta-book-cover-desk.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
+import { SiteHeader } from "@/components/SiteHeader";
 
 export const Route = createFileRoute("/what-we-build")({
   head: () => ({
