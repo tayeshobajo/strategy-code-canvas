@@ -135,9 +135,9 @@ function Header() {
             </Link>
           ))}
         </nav>
-        <PrimaryButton href="#cta" className="hidden sm:inline-flex">
-          Build My Map
-        </PrimaryButton>
+        <div className="hidden sm:block">
+          <PrimaryButton href="#cta">Build My Map</PrimaryButton>
+        </div>
       </div>
     </header>
   );
