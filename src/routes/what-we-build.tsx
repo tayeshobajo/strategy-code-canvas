@@ -278,9 +278,14 @@ function FeatureRow() {
         <h2 className="text-center font-display text-[32px] leading-tight tracking-[-0.02em] text-ink sm:text-[40px]">
           Built by sequence, not guesswork.
         </h2>
-        <div className="mt-16 grid grid-cols-2 gap-y-12 md:grid-cols-4 md:divide-x md:divide-rule/60">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="flex flex-col items-center px-6 text-center">
+        <div className="mt-16 grid grid-cols-2 gap-y-12 md:grid-cols-4">
+          {FEATURES.map((f, i) => (
+            <div
+              key={f.title}
+              className={`flex flex-col items-center px-6 text-center ${
+                i > 0 ? "md:border-l md:border-ink/10" : ""
+              }`}
+            >
               <f.icon className="mb-6 h-14 w-14" />
               <h3 className="font-display text-[18px] leading-tight tracking-[-0.01em] text-ink">
                 {f.title}
