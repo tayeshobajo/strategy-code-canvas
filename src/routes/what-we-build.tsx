@@ -1,16 +1,72 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  Target,
-  GitBranch,
-  Layers3,
-  UserCircle2,
-  Mountain,
-  LayoutGrid,
-  Code2,
-  Star,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
+
+// ----- inline SVG icons (uploaded assets) -----
+type IconProps = { className?: string };
+const baseIcon = "fill-none stroke-royal";
+const IconClarity = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <circle cx="32" cy="32" r="22" />
+    <circle cx="32" cy="32" r="14" />
+    <circle cx="32" cy="32" r="6" />
+  </svg>
+);
+const IconSequence = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <path d="M14 44L26 31L37 38L50 19" />
+    <circle cx="14" cy="44" r="4" />
+    <circle cx="26" cy="31" r="4" />
+    <circle cx="37" cy="38" r="4" />
+    <circle cx="50" cy="19" r="4" />
+  </svg>
+);
+const IconCompounding = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <ellipse cx="32" cy="42" rx="20" ry="8" />
+    <ellipse cx="32" cy="32" rx="16" ry="7" />
+    <ellipse cx="32" cy="23" rx="12" ry="6" />
+  </svg>
+);
+const IconOwnership = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <circle cx="32" cy="24" r="9" />
+    <path d="M15 52c3.5-10 10-15 17-15s13.5 5 17 15" />
+    <circle cx="32" cy="32" r="24" />
+  </svg>
+);
+const IconFoundation = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <path d="M8 48h48" />
+    <path d="M12 48l14-24l10 16l8-12l8 20" />
+    <path d="M26 24l4 10" />
+  </svg>
+);
+const IconStructure = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <rect x="14" y="14" width="14" height="14" rx="2" />
+    <rect x="36" y="14" width="14" height="14" rx="2" />
+    <rect x="14" y="36" width="14" height="14" rx="2" />
+    <rect x="36" y="36" width="14" height="14" rx="2" />
+  </svg>
+);
+const IconBuild = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <path d="M25 20L14 32l11 12" />
+    <path d="M39 20l11 12l-11 12" />
+    <path d="M35 14l-6 36" />
+  </svg>
+);
+const IconRefinement = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <path d="M32 9l7 15l16 2l-12 11l3 16l-14-8l-14 8l3-16L9 26l16-2l7-15z" />
+  </svg>
+);
+const IconStewardship = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <path d="M32 8l20 8v14c0 14-8.5 22-20 26C20.5 52 12 44 12 30V16l20-8z" />
+    <path d="M24 31l6 6l12-14" />
+  </svg>
+);
 import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
 import ctaBook from "@/assets/cta-book-cover-desk.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
@@ -40,26 +96,10 @@ const NAV = [
 
 // ----- feature row -----
 const FEATURES = [
-  {
-    icon: Target,
-    title: "Clarity over complexity",
-    body: "We cut through the noise to the work that moves the business.",
-  },
-  {
-    icon: GitBranch,
-    title: "Strategy and execution",
-    body: "One plan. Real milestones. Measurable outcomes.",
-  },
-  {
-    icon: Layers3,
-    title: "Built to compound",
-    body: "Each build strengthens the next.",
-  },
-  {
-    icon: UserCircle2,
-    title: "Yours to own",
-    body: "You own the map. We build the system that makes it real.",
-  },
+  { icon: IconClarity, title: "Clarity", body: "Cut the noise." },
+  { icon: IconSequence, title: "Sequence", body: "Build in order." },
+  { icon: IconCompounding, title: "Compounding", body: "Each build strengthens the next." },
+  { icon: IconOwnership, title: "Ownership", body: "The system becomes yours." },
 ];
 
 // ----- milestones table -----
@@ -86,11 +126,11 @@ const IL_OUTCOMES = [
 
 // ----- standards -----
 const STANDARDS = [
-  { n: "01", icon: Mountain, title: "Foundation", body: "Before we lay the foundation, we map the ground." },
-  { n: "02", icon: LayoutGrid, title: "Structure", body: "The architecture is decided before the first line is written." },
-  { n: "03", icon: Code2, title: "Build", body: "Authored, not assembled." },
-  { n: "04", icon: Star, title: "Refinement", body: "Nothing ships below a nine." },
-  { n: "05", icon: ShieldCheck, title: "Stewardship", body: "The system holds when no one is watching it." },
+  { n: "01", icon: IconFoundation, title: "Foundation", body: "Before we lay the foundation, we map the ground." },
+  { n: "02", icon: IconStructure, title: "Structure", body: "The architecture is decided before the first line is written." },
+  { n: "03", icon: IconBuild, title: "Build", body: "Authored, not assembled." },
+  { n: "04", icon: IconRefinement, title: "Refinement", body: "Nothing ships below a nine." },
+  { n: "05", icon: IconStewardship, title: "Stewardship", body: "The system holds when no one is watching it." },
 ];
 
 // =====================================================
@@ -236,12 +276,10 @@ function FeatureRow() {
         <h2 className="text-center font-display text-[32px] leading-tight tracking-[-0.02em] text-ink sm:text-[40px]">
           Built by sequence, not guesswork.
         </h2>
-        <div className="mt-16 grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-4 md:gap-x-10">
+        <div className="mt-16 grid grid-cols-2 gap-y-12 md:grid-cols-4 md:divide-x md:divide-rule/60">
           {FEATURES.map((f) => (
-            <div key={f.title} className="flex flex-col items-center text-center">
-              <div className="mb-6 grid size-12 place-items-center rounded-full border border-royal/25 text-royal">
-                <f.icon className="size-5" strokeWidth={1.6} />
-              </div>
+            <div key={f.title} className="flex flex-col items-center px-6 text-center">
+              <f.icon className="mb-6 h-14 w-14" />
               <h3 className="font-display text-[18px] leading-tight tracking-[-0.01em] text-ink">
                 {f.title}
               </h3>
@@ -514,17 +552,21 @@ function StandardsRow() {
           </div>
 
           <div className="relative">
-            {/* connector */}
-            <div className="absolute left-[10%] right-[10%] top-[26px] hidden h-px bg-rule md:block" />
+            {/* dotted connector between numbered circles */}
+            <div
+              className="absolute left-[10%] right-[10%] top-[26px] hidden h-px md:block"
+              style={{ backgroundImage: "repeating-linear-gradient(to right, var(--royal-soft) 0 4px, transparent 4px 10px)" }}
+              aria-hidden="true"
+            />
             <div className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 md:grid-cols-5">
               {STANDARDS.map((s) => (
                 <div key={s.n} className="relative flex flex-col items-center text-center">
-                  <div className="relative z-10 mb-5 grid size-[52px] place-items-center rounded-full border border-rule bg-white">
-                    <span className="font-mono text-[11px] tracking-wider text-ink/60">{s.n}</span>
+                  <div className="relative z-10 mb-5 grid size-[52px] place-items-center rounded-full border border-royal/30 bg-white">
+                    <span className="font-mono text-[11px] tracking-wider text-royal">{s.n}</span>
                   </div>
-                  <s.icon className="mb-3 size-7 text-royal" strokeWidth={1.4} />
+                  <s.icon className="mb-3 h-12 w-12" />
                   <h3 className="font-display text-[16px] tracking-[-0.01em] text-ink">{s.title}</h3>
-                  <p className="mt-2 max-w-[150px] text-[12.5px] leading-[1.55] text-ink/60">{s.body}</p>
+                  <p className="mt-2 max-w-[160px] text-[12.5px] leading-[1.55] text-ink/60">{s.body}</p>
                 </div>
               ))}
             </div>
