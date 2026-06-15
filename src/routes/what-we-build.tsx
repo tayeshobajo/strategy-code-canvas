@@ -552,17 +552,21 @@ function StandardsRow() {
           </div>
 
           <div className="relative">
-            {/* connector */}
-            <div className="absolute left-[10%] right-[10%] top-[26px] hidden h-px bg-rule md:block" />
+            {/* dotted connector between numbered circles */}
+            <div
+              className="absolute left-[10%] right-[10%] top-[26px] hidden h-px md:block"
+              style={{ backgroundImage: "repeating-linear-gradient(to right, var(--royal-soft) 0 4px, transparent 4px 10px)" }}
+              aria-hidden="true"
+            />
             <div className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 md:grid-cols-5">
               {STANDARDS.map((s) => (
                 <div key={s.n} className="relative flex flex-col items-center text-center">
-                  <div className="relative z-10 mb-5 grid size-[52px] place-items-center rounded-full border border-rule bg-white">
-                    <span className="font-mono text-[11px] tracking-wider text-ink/60">{s.n}</span>
+                  <div className="relative z-10 mb-5 grid size-[52px] place-items-center rounded-full border border-royal/30 bg-white">
+                    <span className="font-mono text-[11px] tracking-wider text-royal">{s.n}</span>
                   </div>
-                  <s.icon className="mb-3 size-7 text-royal" strokeWidth={1.4} />
+                  <s.icon className="mb-3 h-12 w-12" />
                   <h3 className="font-display text-[16px] tracking-[-0.01em] text-ink">{s.title}</h3>
-                  <p className="mt-2 max-w-[150px] text-[12.5px] leading-[1.55] text-ink/60">{s.body}</p>
+                  <p className="mt-2 max-w-[160px] text-[12.5px] leading-[1.55] text-ink/60">{s.body}</p>
                 </div>
               ))}
             </div>
