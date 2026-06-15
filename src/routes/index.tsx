@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import heroAsset from "@/assets/trust-tai-hero.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
+import { SiteHeader } from "@/components/SiteHeader";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -513,7 +514,8 @@ function AnimatedWalksChart() {
 function Index() {
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <Header />
+      <SiteHeader />
+      <div className="h-20 sm:h-24" aria-hidden="true" />
       <Hero />
       <FeatureStrip />
       <RoadmapSection />
