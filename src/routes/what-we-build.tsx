@@ -96,26 +96,10 @@ const NAV = [
 
 // ----- feature row -----
 const FEATURES = [
-  {
-    icon: Target,
-    title: "Clarity over complexity",
-    body: "We cut through the noise to the work that moves the business.",
-  },
-  {
-    icon: GitBranch,
-    title: "Strategy and execution",
-    body: "One plan. Real milestones. Measurable outcomes.",
-  },
-  {
-    icon: Layers3,
-    title: "Built to compound",
-    body: "Each build strengthens the next.",
-  },
-  {
-    icon: UserCircle2,
-    title: "Yours to own",
-    body: "You own the map. We build the system that makes it real.",
-  },
+  { icon: IconClarity, title: "Clarity", body: "Cut the noise." },
+  { icon: IconSequence, title: "Sequence", body: "Build in order." },
+  { icon: IconCompounding, title: "Compounding", body: "Each build strengthens the next." },
+  { icon: IconOwnership, title: "Ownership", body: "The system becomes yours." },
 ];
 
 // ----- milestones table -----
@@ -142,11 +126,11 @@ const IL_OUTCOMES = [
 
 // ----- standards -----
 const STANDARDS = [
-  { n: "01", icon: Mountain, title: "Foundation", body: "Before we lay the foundation, we map the ground." },
-  { n: "02", icon: LayoutGrid, title: "Structure", body: "The architecture is decided before the first line is written." },
-  { n: "03", icon: Code2, title: "Build", body: "Authored, not assembled." },
-  { n: "04", icon: Star, title: "Refinement", body: "Nothing ships below a nine." },
-  { n: "05", icon: ShieldCheck, title: "Stewardship", body: "The system holds when no one is watching it." },
+  { n: "01", icon: IconFoundation, title: "Foundation", body: "Before we lay the foundation, we map the ground." },
+  { n: "02", icon: IconStructure, title: "Structure", body: "The architecture is decided before the first line is written." },
+  { n: "03", icon: IconBuild, title: "Build", body: "Authored, not assembled." },
+  { n: "04", icon: IconRefinement, title: "Refinement", body: "Nothing ships below a nine." },
+  { n: "05", icon: IconStewardship, title: "Stewardship", body: "The system holds when no one is watching it." },
 ];
 
 // =====================================================
