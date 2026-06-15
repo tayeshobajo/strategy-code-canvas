@@ -1,16 +1,72 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  Target,
-  GitBranch,
-  Layers3,
-  UserCircle2,
-  Mountain,
-  LayoutGrid,
-  Code2,
-  Star,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
+
+// ----- inline SVG icons (uploaded assets) -----
+type IconProps = { className?: string };
+const baseIcon = "fill-none stroke-royal";
+const IconClarity = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <circle cx="32" cy="32" r="22" />
+    <circle cx="32" cy="32" r="14" />
+    <circle cx="32" cy="32" r="6" />
+  </svg>
+);
+const IconSequence = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <path d="M14 44L26 31L37 38L50 19" />
+    <circle cx="14" cy="44" r="4" />
+    <circle cx="26" cy="31" r="4" />
+    <circle cx="37" cy="38" r="4" />
+    <circle cx="50" cy="19" r="4" />
+  </svg>
+);
+const IconCompounding = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <ellipse cx="32" cy="42" rx="20" ry="8" />
+    <ellipse cx="32" cy="32" rx="16" ry="7" />
+    <ellipse cx="32" cy="23" rx="12" ry="6" />
+  </svg>
+);
+const IconOwnership = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <circle cx="32" cy="24" r="9" />
+    <path d="M15 52c3.5-10 10-15 17-15s13.5 5 17 15" />
+    <circle cx="32" cy="32" r="24" />
+  </svg>
+);
+const IconFoundation = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <path d="M8 48h48" />
+    <path d="M12 48l14-24l10 16l8-12l8 20" />
+    <path d="M26 24l4 10" />
+  </svg>
+);
+const IconStructure = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <rect x="14" y="14" width="14" height="14" rx="2" />
+    <rect x="36" y="14" width="14" height="14" rx="2" />
+    <rect x="14" y="36" width="14" height="14" rx="2" />
+    <rect x="36" y="36" width="14" height="14" rx="2" />
+  </svg>
+);
+const IconBuild = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <path d="M25 20L14 32l11 12" />
+    <path d="M39 20l11 12l-11 12" />
+    <path d="M35 14l-6 36" />
+  </svg>
+);
+const IconRefinement = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <path d="M32 9l7 15l16 2l-12 11l3 16l-14-8l-14 8l3-16L9 26l16-2l7-15z" />
+  </svg>
+);
+const IconStewardship = ({ className = "" }: IconProps) => (
+  <svg viewBox="0 0 64 64" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`${baseIcon} ${className}`} aria-hidden="true">
+    <path d="M32 8l20 8v14c0 14-8.5 22-20 26C20.5 52 12 44 12 30V16l20-8z" />
+    <path d="M24 31l6 6l12-14" />
+  </svg>
+);
 import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
 import ctaBook from "@/assets/cta-book-cover-desk.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
