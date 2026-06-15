@@ -186,36 +186,42 @@ function SecondaryButton({
 // ----------- HERO -----------
 function Hero() {
   return (
-    <section className="relative">
-      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 pb-24 pt-16 sm:px-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-16 lg:pb-32 lg:pt-24">
-        <div className="flex flex-col justify-center">
-          <p className="eyebrow mb-6">What We Build</p>
-          <h1 className="font-display text-[44px] leading-[1.02] tracking-[-0.025em] text-ink sm:text-[56px] lg:text-[64px]">
-            The milestones
-            <br />
-            inside the map.
-          </h1>
-          <p className="mt-7 max-w-[440px] text-[15px] leading-[1.7] text-ink/70">
-            Everything we build sits inside your Operating Map, in the order the
-            business calls for it. Each milestone removes friction, sharpens
-            execution, and strengthens the position you are building toward.
-          </p>
-          <div className="mt-9 flex flex-wrap items-center gap-3">
-            <PrimaryButton href="#cta">Build My Map</PrimaryButton>
-            <SecondaryButton href="#">See the full investment page</SecondaryButton>
+    <section className="relative w-full overflow-hidden bg-paper">
+      <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
+        <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
+          <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
+          <div className="relative z-10 max-w-[620px]">
+            <p className="eyebrow mb-6">What We Build</p>
+            <h1 className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
+              The milestones inside{" "}
+              <span className="italic text-royal">the map.</span>
+            </h1>
+            <p className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
+              Everything we build sits inside your Operating Map, in the order the business calls for it. Each milestone removes friction, sharpens execution, and strengthens the position you are building toward.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
+                Build My Map
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </a>
+              <a href="#" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
+                See the full investment page
+              </a>
+            </div>
+            <p className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+              <span className="inline-block h-px w-5 bg-ink/40" />
+              <span>Built for founders. Designed to compound.</span>
+            </p>
           </div>
-          <p className="eyebrow mt-12 text-ink/35">
-            Built for founders. Designed to compound.
-          </p>
         </div>
 
-        <div className="relative">
+        <div className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
           <img
             src={heroBook.url}
             alt="Open Operating Map notebook on a warm desk surface"
-            className="h-auto w-full select-none object-contain"
-            draggable={false}
+            className="absolute inset-0 h-full w-full object-cover object-right"
           />
+          <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block" aria-hidden="true" />
         </div>
       </div>
     </section>
