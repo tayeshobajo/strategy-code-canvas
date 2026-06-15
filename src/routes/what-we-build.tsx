@@ -262,8 +262,21 @@ function Hero() {
             src={heroBook.url}
             alt="Open Operating Map notebook on a warm desk surface"
             className="absolute inset-0 h-full w-full object-cover object-right"
+            style={{
+              WebkitMaskImage:
+                "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.15) 6%, rgba(0,0,0,0.6) 16%, #000 28%)",
+              maskImage:
+                "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.15) 6%, rgba(0,0,0,0.6) 16%, #000 28%)",
+            }}
           />
-          <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block" aria-hidden="true" />
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[38%] lg:block"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 75%, transparent) 35%, transparent 100%)",
+            }}
+            aria-hidden="true"
+          />
         </div>
       </div>
     </section>
@@ -670,7 +683,7 @@ function TrendChart() {
 // ----------- BOTTOM CTA -----------
 function BottomCTA() {
   return (
-    <section id="cta" className="relative overflow-hidden border-t border-rule/50 bg-paper">
+    <section id="cta" className="sand-bg relative overflow-hidden">
       <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-start gap-12 px-6 py-28 sm:px-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.75fr)_minmax(0,1.3fr)] lg:gap-12 lg:py-36">
         <div>
           <h2 className="font-display text-[40px] leading-[1.02] tracking-[-0.025em] text-ink md:text-[52px] lg:text-[56px]">
