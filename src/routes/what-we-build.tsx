@@ -670,23 +670,23 @@ function TrendChart() {
 // ----------- BOTTOM CTA -----------
 function BottomCTA() {
   return (
-    <section id="cta" className="relative overflow-hidden bg-paper">
-      <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-10 lg:py-28">
+    <section id="cta" className="relative overflow-hidden border-t border-rule/50 bg-paper">
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-start gap-12 px-6 py-28 sm:px-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.75fr)_minmax(0,1.3fr)] lg:gap-12 lg:py-36">
         <div>
-          <h2 className="font-display text-[34px] leading-[1.05] tracking-[-0.02em] text-ink sm:text-[44px]">
+          <h2 className="font-display text-[40px] leading-[1.02] tracking-[-0.025em] text-ink md:text-[52px] lg:text-[56px]">
             Every build
             <br />
             begins with the map.
           </h2>
-          <p className="mt-6 max-w-[420px] text-[14px] leading-[1.7] text-ink/70">
+          <p className="mt-6 max-w-[420px] text-[15px] leading-[1.7] text-ink/80">
             The map says whether you need what is on this page, when, and in
             what order. That is where every engagement starts. You own the map
             either way.
           </p>
         </div>
 
-        <div className="flex flex-col items-start gap-5">
-          <PrimaryButton href="#">Build My Map</PrimaryButton>
+        <div className="flex flex-col items-start gap-5 lg:pt-2">
+          <PrimaryButton href="#" className="px-7 py-3.5 text-[14px]">Build My Map</PrimaryButton>
           <p className="max-w-[300px] text-[13px] leading-[1.65] text-ink/65">
             A 30-minute conversation. No pitch. If the timing is right, we
             should talk. If not, the work will be waiting when it is.
@@ -697,7 +697,7 @@ function BottomCTA() {
           <img
             src={ctaBook.url}
             alt="Trust Tai notebook closed on a warm desk"
-            className="h-auto w-full select-none object-contain"
+            className="aspect-[16/9] w-full select-none rounded-[2px] object-cover shadow-[0_30px_60px_-30px_rgba(15,23,42,0.25)]"
             draggable={false}
           />
         </div>
