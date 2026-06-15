@@ -276,8 +276,10 @@ function MappedPath() {
           </a>
         </div>
 
-        <div className="flex items-center">
-          <PathSVG />
+        <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
+          <div className="min-w-[640px] sm:min-w-0">
+            <PathSVG />
+          </div>
         </div>
       </div>
     </section>
@@ -286,19 +288,19 @@ function MappedPath() {
 
 function PathSVG() {
   // Three labelled stops (A, B, C) and three phase points between.
-  const W = 680;
-  const H = 220;
+  const W = 760;
+  const H = 240;
   const points = [
     { x: 60, y: 90, label: "A", title: "Point A", sub: "Where you are", filled: true },
-    { x: 200, y: 90, label: "Phase 1", small: true },
-    { x: 320, y: 90, label: "Phase 2", small: true },
-    { x: 440, y: 90, label: "Phase 3", small: true },
-    { x: 560, y: 90, label: "B", title: "Point B", sub: "Where you need to be (24 months)", filled: true },
-    { x: 640, y: 90, label: "C", title: "Point C", sub: "The position you could own (10 years)", filled: true, outlined: true },
+    { x: 190, y: 90, label: "Phase 1", small: true },
+    { x: 310, y: 90, label: "Phase 2", small: true },
+    { x: 430, y: 90, label: "Phase 3", small: true },
+    { x: 570, y: 90, label: "B", title: "Point B", sub: "Where you need to be", sub2: "(24 months)", filled: true },
+    { x: 700, y: 90, label: "C", title: "Point C", sub: "The position you could own", sub2: "(10 years)", filled: true, outlined: true },
   ];
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full max-w-[700px]" aria-hidden="true">
-      <line x1="60" y1="90" x2="640" y2="90" stroke="oklch(0.78 0.02 255)" strokeWidth="1" />
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" aria-hidden="true">
+      <line x1="60" y1="90" x2="700" y2="90" stroke="oklch(0.82 0.02 255)" strokeWidth="1" />
       {points.map((p, i) => (
         <g key={i}>
           {p.small ? (
