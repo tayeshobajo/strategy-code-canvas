@@ -425,7 +425,11 @@ function IntelligenceLayer() {
           </p>
         </div>
 
-        <ILDiagram />
+        <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
+          <div className="min-w-[560px] sm:min-w-0">
+            <ILDiagram />
+          </div>
+        </div>
 
         <ul className="flex flex-col justify-center gap-5 lg:border-l lg:border-white/10 lg:pl-8">
           {IL_OUTCOMES.map((o) => (
