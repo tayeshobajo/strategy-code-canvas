@@ -29,7 +29,7 @@ export const Route = createFileRoute("/")({
 
 const NAV = [
   { label: "The Roadmap", href: "#roadmap", active: true },
-  { label: "What We Build", href: "#what" },
+  { label: "What We Build", href: "/what-we-build" },
   { label: "Investment", href: "#pricing" },
   { label: "About", href: "#about" },
   { label: "Insights", href: "#insights" },
