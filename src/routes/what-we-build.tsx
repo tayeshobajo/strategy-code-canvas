@@ -138,7 +138,8 @@ const STANDARDS = [
 function WhatWeBuild() {
   return (
     <div className="min-h-screen bg-paper text-ink antialiased">
-      <Header />
+      <SiteHeader />
+      <div className="h-20 sm:h-24" aria-hidden="true" />
       <Hero />
       <FeatureRow />
       <MappedPath />
