@@ -261,19 +261,15 @@ function Hero() {
           <img
             src={heroBook.url}
             alt="Open Operating Map notebook on a warm desk surface"
-            className="absolute inset-0 h-full w-full object-cover object-right"
-            style={{
-              WebkitMaskImage:
-                "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.15) 6%, rgba(0,0,0,0.6) 16%, #000 28%)",
-              maskImage:
-                "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.15) 6%, rgba(0,0,0,0.6) 16%, #000 28%)",
-            }}
+            loading="eager"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover object-right lg:hero-photo-fade"
           />
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[38%] lg:block"
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[42%] lg:block"
             style={{
               backgroundImage:
-                "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 75%, transparent) 35%, transparent 100%)",
+                "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 80%, transparent) 30%, color-mix(in oklab, var(--paper) 40%, transparent) 60%, transparent 100%)",
             }}
             aria-hidden="true"
           />
