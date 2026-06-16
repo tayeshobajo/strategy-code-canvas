@@ -901,7 +901,7 @@ function BottomCTA() {
       style={{
         backgroundImage: `linear-gradient(to right, rgba(251,249,244,0.98) 0%, rgba(251,249,244,0.92) 38%, rgba(251,249,244,0.35) 62%, rgba(251,249,244,0.05) 100%), url(${mapSectionBg.url})`,
         backgroundSize: "cover, cover",
-        backgroundPosition: "center, center right",
+        backgroundPosition: "center, right bottom",
         backgroundRepeat: "no-repeat, no-repeat",
       }}
     >
