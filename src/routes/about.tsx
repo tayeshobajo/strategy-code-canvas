@@ -760,13 +760,16 @@ function ConstellationBG() {
       x: seeded(i) * 380,
       y: seeded(i + 9) * 260,
       r: 0.4 + seeded(i + 19) * 1.6,
-      o: 0.2 + seeded(i + 29) * 0.7,
+      oMin: 0.1 + seeded(i + 29) * 0.3,
+      oMax: 0.55 + seeded(i + 41) * 0.45,
+      dur: 3.2 + seeded(i + 53) * 4.5, // 3.2–7.7s — slower than HowWeThink
+      delay: seeded(i + 67) * 5,
     }));
   }, []);
   return (
     <svg
       viewBox="0 0 380 260"
-      className="absolute inset-y-0 left-0 h-full w-[55%] opacity-90"
+      className="pointer-events-none absolute inset-y-0 left-0 h-full w-[55%] opacity-90"
       preserveAspectRatio="xMinYMid slice"
       aria-hidden
     >
@@ -777,9 +780,71 @@ function ConstellationBG() {
         </radialGradient>
       </defs>
       {stars.map((s, i) => (
-        <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#cfe0ff" opacity={s.o} />
+        <circle
+          key={i}
+          className="twinkle-star"
+          cx={s.x}
+          cy={s.y}
+          r={s.r}
+          fill="#cfe0ff"
+          style={
+            {
+              ["--o-min" as never]: s.oMin,
+              ["--o-max" as never]: s.oMax,
+              ["--dur" as never]: `${s.dur}s`,
+              ["--d" as never]: `${s.delay}s`,
+            } as React.CSSProperties
+          }
+        />
       ))}
-      <circle cx="120" cy="150" r="38" fill="url(#star-glow)" />
+      <circle cx="120" cy="150" r="38" fill="url(#star-glow)" className="ring-breathe" />
+    </svg>
+  );
+}
+
+function PaperPlane() {
+  // arc trail from lower-left to upper-right across the CTA, looped
+  const trailD = "M40 360 C 220 260, 380 320, 540 180 S 880 60, 1100 40";
+  return (
+    <svg
+      viewBox="0 0 1200 420"
+      preserveAspectRatio="xMidYMid slice"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      aria-hidden="true"
+    >
+      <path
+        className="plane-trail"
+        d={trailD}
+        fill="none"
+        stroke="#cfe0ff"
+        strokeOpacity="0.35"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        style={{ ["--len" as never]: 1500 } as React.CSSProperties}
+      />
+      {/* paper plane glyph, drawn around origin so animateMotion + rotate=auto looks right */}
+      <g opacity="0.92">
+        <g transform="translate(-12 -8)">
+          <path
+            d="M0 8 L24 0 L16 8 L24 16 Z"
+            fill="#eaf2ff"
+            stroke="#7aa9ff"
+            strokeWidth="0.8"
+            strokeLinejoin="round"
+          />
+          <path d="M16 8 L8 8" stroke="#7aa9ff" strokeWidth="0.8" strokeLinecap="round" />
+        </g>
+        <animateMotion
+          dur="11s"
+          repeatCount="indefinite"
+          rotate="auto"
+          path={trailD}
+          keyPoints="0;1"
+          keyTimes="0;1"
+          calcMode="spline"
+          keySplines="0.4 0 0.2 1"
+        />
+      </g>
     </svg>
   );
 }
@@ -795,6 +860,7 @@ function CloseCTA() {
       }}
     >
       <ConstellationBG />
+      <PaperPlane />
       <div
         className="pointer-events-none absolute inset-y-0 right-0 w-[60%]"
         style={{
