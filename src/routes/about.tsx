@@ -8,28 +8,69 @@ import bookHero from "@/assets/hero-open-book-story.png.asset.json";
 import taiPortrait from "@/assets/tai-portrait.png.asset.json";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "About — Trust Tai" },
-      {
-        name: "description",
-        content:
-          "From websites to systems to the Roadmap. The standard, the moment, and the hand that draws it.",
+  head: () => {
+    const title = "About — Trust Tai";
+    const description =
+      "From websites to systems to the Roadmap. The standard, the moment, and the hand that draws it.";
+    const ogDescription =
+      "Care more than anyone expects you to. The standard that launched Trust Tai, and still decides every build.";
+    const orgLd = {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "Trust Tai",
+      url: "/",
+      logo: "/favicon.ico",
+      description:
+        "Trust Tai builds the Roadmap — a careful operating system for businesses that want to ship work worth trusting.",
+      founder: {
+        "@type": "Person",
+        name: "Tai",
+        jobTitle: "Founder & Conductor",
       },
-      { property: "og:title", content: "About — Trust Tai" },
-      {
-        property: "og:description",
-        content:
-          "Care more than anyone expects you to. The standard that launched Trust Tai, and still decides every build.",
+    };
+    const aboutLd = {
+      "@context": "https://schema.org",
+      "@type": "AboutPage",
+      name: title,
+      description,
+      url: "/about",
+      primaryImageOfPage: {
+        "@type": "ImageObject",
+        url: bookHero.url,
       },
-      { property: "og:image", content: bookHero.url },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: bookHero.url },
-    ],
-    links: [
-      { rel: "preload", as: "image", href: bookHero.url, fetchpriority: "high", media: "(min-width: 640px)" },
-    ],
-  }),
+      mainEntity: {
+        "@type": "Person",
+        name: "Tai",
+        jobTitle: "Founder & Conductor",
+        image: taiPortrait.url,
+        worksFor: { "@type": "Organization", name: "Trust Tai" },
+      },
+    };
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: ogDescription },
+        { property: "og:type", content: "profile" },
+        { property: "og:url", content: "/about" },
+        { property: "og:image", content: bookHero.url },
+        { property: "og:image:alt", content: "An open leather-bound notebook on a warm stone desk." },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: ogDescription },
+        { name: "twitter:image", content: bookHero.url },
+      ],
+      links: [
+        { rel: "canonical", href: "/about" },
+        { rel: "preload", as: "image", href: bookHero.url, fetchpriority: "high", media: "(min-width: 640px)" },
+      ],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(orgLd) },
+        { type: "application/ld+json", children: JSON.stringify(aboutLd) },
+      ],
+    };
+  },
   component: AboutPage,
 });
 
