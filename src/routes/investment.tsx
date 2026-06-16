@@ -134,30 +134,30 @@ function Hero() {
       id="overview"
       className="relative scroll-mt-32 border-b border-rule/60 bg-[oklch(0.95_0.018_75)]"
     >
-      <div className={`${container} relative pt-20 pb-14 sm:pt-24 sm:pb-16 lg:pt-28 lg:pb-20`}>
-        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-10">
-          <div className="lg:col-span-6">
+      <div className={`${container} relative pt-20 pb-14 sm:pt-24 sm:pb-16 lg:pt-32 lg:pb-24`}>
+        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16">
+          <div className="lg:col-span-7 xl:col-span-6">
             <div className="animate-fade-in [animation-delay:60ms] opacity-0 [animation-fill-mode:forwards]">
               <Eyebrow>Investment</Eyebrow>
             </div>
-            <h1 className="mt-5 font-display font-normal text-[40px] leading-[1.05] tracking-[-0.018em] text-ink sm:text-[52px] lg:text-[60px] animate-fade-in [animation-delay:140ms] opacity-0 [animation-fill-mode:forwards]">
+            <h1 className="mt-6 font-display font-normal text-[40px] leading-[1.08] tracking-[-0.02em] text-ink sm:text-[52px] sm:leading-[1.06] lg:text-[58px] lg:leading-[1.04] xl:text-[64px] animate-fade-in [animation-delay:140ms] opacity-0 [animation-fill-mode:forwards]">
               The price of a business<br className="hidden sm:block" /> that runs without you.
             </h1>
-            <p className="mt-6 max-w-[44ch] text-[14px] leading-[1.7] text-ink/65 animate-fade-in [animation-delay:280ms] opacity-0 [animation-fill-mode:forwards]">
+            <p className="mt-7 max-w-[46ch] text-[14.5px] leading-[1.75] text-ink/65 animate-fade-in [animation-delay:280ms] opacity-0 [animation-fill-mode:forwards]">
               Every number is on this page. The map, the build, the three walks.
               No call required to see it, because a decision this size deserves the
               whole picture before the first conversation, not after.
             </p>
-            <div className="mt-7 flex flex-wrap items-center gap-2 animate-fade-in [animation-delay:400ms] opacity-0 [animation-fill-mode:forwards]">
+            <div className="mt-8 flex flex-wrap items-center gap-3 animate-fade-in [animation-delay:400ms] opacity-0 [animation-fill-mode:forwards]">
               <PrimaryCTA />
               <GhostCTA />
             </div>
-            <p className="mt-9 max-w-[40ch] text-[12px] leading-[1.7] text-ink/50 animate-fade-in [animation-delay:520ms] opacity-0 [animation-fill-mode:forwards]">
+            <p className="mt-10 max-w-[42ch] text-[12px] leading-[1.75] text-ink/50 animate-fade-in [animation-delay:520ms] opacity-0 [animation-fill-mode:forwards]">
               A 30-minute conversation. No pitch. If the timing is right, we should talk.
               If it is not, the work is waiting when it is.
             </p>
           </div>
-          <div className="hidden lg:col-span-6 lg:block">
+          <div className="hidden lg:col-span-5 lg:block xl:col-span-6">
             <img
               src={heroDesk.url}
               alt="An open leather-bound book and a fountain pen resting on a warm wooden desk in soft natural light."
@@ -167,8 +167,8 @@ function Hero() {
               decoding="async"
               // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
               fetchpriority="high"
-              sizes="(min-width: 1024px) 50vw, 0px"
-              className="h-[460px] w-full object-cover object-center [mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.4)_6%,black_18%)]"
+              sizes="(min-width: 1280px) 50vw, (min-width: 1024px) 42vw, 0px"
+              className="h-[440px] xl:h-[480px] w-full object-cover object-center [mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.35)_5%,black_16%)]"
             />
           </div>
         </div>
