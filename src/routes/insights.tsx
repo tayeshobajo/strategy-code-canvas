@@ -216,9 +216,13 @@ function ArticleList() {
   const [query, setQuery] = React.useState("");
   const [sort, setSort] = React.useState<SortKey>("newest");
   const [visible, setVisible] = React.useState(PAGE_SIZE);
+  const [status, setStatus] = React.useState<"idle" | "loading" | "error">("idle");
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [loopDetected, setLoopDetected] = React.useState(false);
   const [transitioning, setTransitioning] = React.useState(false);
   const tabRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+  const listParentRef = React.useRef<HTMLDivElement | null>(null);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -233,44 +237,112 @@ function ArticleList() {
     }).sort((a, b) => compare(a, b, sort));
   }, [active, query, sort]);
 
-  // Smooth fade when filter/sort/query changes
+  // Deterministic guards ---------------------------------------------------
+  // Token bumps every time the filter set changes; any in-flight page load
+  // started against an older token is discarded.
+  const loadTokenRef = React.useRef(0);
+  // Maximum number of pages possible for the current filter — a hard ceiling
+  // the sentinel can never exceed regardless of how often it fires.
+  const maxPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pagesLoadedRef = React.useRef(1);
+
+  // Loop detection: count sentinel fires within a rolling window.
+  const fireTimestampsRef = React.useRef<number[]>([]);
+  const LOOP_WINDOW_MS = 1500;
+  const LOOP_THRESHOLD = 6;
+
+  // Reset on filter/sort/query change.
   React.useEffect(() => {
+    loadTokenRef.current += 1;
+    pagesLoadedRef.current = 1;
+    fireTimestampsRef.current = [];
+    setLoopDetected(false);
+    setStatus("idle");
+    setErrorMsg(null);
     setTransitioning(true);
     setVisible(PAGE_SIZE);
     const t = window.setTimeout(() => setTransitioning(false), 180);
     return () => window.clearTimeout(t);
   }, [active, query, sort]);
 
-  // Infinite scroll: load more when sentinel intersects.
-  // Keep filtered length in a ref so the observer reads the current value
-  // without being torn down and re-created on every state change.
-  const filteredLenRef = React.useRef(filtered.length);
-  React.useEffect(() => {
-    filteredLenRef.current = filtered.length;
-  }, [filtered.length]);
+  const filteredLen = filtered.length;
+  const hasMore = visible < filteredLen && !loopDetected;
 
-  const hasMore = visible < filtered.length;
+  // Page loader — async wrapper so we can surface loading + error states even
+  // though the source is in-memory. Honors the load token so stale loads from
+  // a previous filter cannot land.
+  const loadNextPage = React.useCallback(async () => {
+    if (pagesLoadedRef.current >= maxPages) return;
+    const token = loadTokenRef.current;
+    setStatus("loading");
+    setErrorMsg(null);
+    try {
+      // Yield to the browser so the loading state can paint.
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      if (token !== loadTokenRef.current) return; // filter changed mid-flight
+      pagesLoadedRef.current = Math.min(pagesLoadedRef.current + 1, maxPages);
+      setVisible((v) => Math.min(v + PAGE_SIZE, filteredLen));
+      setStatus("idle");
+    } catch (err) {
+      if (token !== loadTokenRef.current) return;
+      setErrorMsg(err instanceof Error ? err.message : "Failed to load more insights.");
+      setStatus("error");
+    }
+  }, [maxPages, filteredLen]);
 
+  // Infinite scroll observer. Disconnects the moment we hit the end-of-list
+  // ceiling, an error, or a detected fetch loop.
   React.useEffect(() => {
-    if (!hasMore) return;
+    if (!hasMore || status === "loading" || status === "error") return;
     const node = sentinelRef.current;
     if (!node || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setVisible((v) => {
-            const max = filteredLenRef.current;
-            return v >= max ? v : Math.min(v + PAGE_SIZE, max);
-          });
+        if (!entries[0]?.isIntersecting) return;
+        const now = performance.now();
+        const fires = fireTimestampsRef.current.filter((t) => now - t < LOOP_WINDOW_MS);
+        fires.push(now);
+        fireTimestampsRef.current = fires;
+        if (fires.length >= LOOP_THRESHOLD) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[insights] sentinel fired ${fires.length}× in ${LOOP_WINDOW_MS}ms — pausing infinite scroll`,
+          );
+          setLoopDetected(true);
+          io.disconnect();
+          return;
         }
+        if (pagesLoadedRef.current >= maxPages) {
+          io.disconnect();
+          return;
+        }
+        void loadNextPage();
       },
       { rootMargin: "200px 0px" },
     );
     io.observe(node);
     return () => io.disconnect();
-  }, [hasMore]);
+  }, [hasMore, status, loadNextPage, maxPages]);
 
-  const shown = filtered.slice(0, visible);
+  const shown = React.useMemo(() => filtered.slice(0, visible), [filtered, visible]);
+
+  // Virtualization — window-scrolling list with measured row heights.
+  const virtualizer = useWindowVirtualizer({
+    count: shown.length,
+    estimateSize: () => 180,
+    overscan: 4,
+    scrollMargin: listParentRef.current?.offsetTop ?? 0,
+    getItemKey: (i) => shown[i]?.slug ?? i,
+  });
+  const virtualItems = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
+  const offsetTop = listParentRef.current?.offsetTop ?? 0;
+
+  const resumeAfterLoop = () => {
+    fireTimestampsRef.current = [];
+    setLoopDetected(false);
+  };
+
 
   const onTabKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Home" && e.key !== "End") return;
