@@ -309,8 +309,17 @@ function InsightArticlePage() {
       paragraphs: [p],
     }));
 
+  const sectionIds = sections.map((s: { id: string }) => s.id);
+  const activeId = useActiveSection(sectionIds);
+
+  const handlePrint = () => {
+    if (typeof window !== "undefined") window.print();
+  };
+
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="min-h-screen bg-paper" id="article-root">
+      <PrintStyles />
+      <ReadingProgressBar />
       <SiteHeader />
       <main>
         <article aria-labelledby="article-title">
