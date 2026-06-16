@@ -33,7 +33,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return <span className="eyebrow">{children}</span>;
 }
 
-function PrimaryCTA({ children = "Build My Map" }: { children?: React.ReactNode }) {
+function PrimaryCTA({ children = "Build My Roadmap" }: { children?: React.ReactNode }) {
   return (
     <a
       href="#cta"
@@ -76,7 +76,7 @@ function Hero() {
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
-                Build My Map
+                Build My Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
               <a href="#map" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
@@ -205,7 +205,7 @@ function MapSection() {
     <section id="map" className="scroll-mt-32 bg-[oklch(0.965_0.012_255)]">
       <div className={`${container} grid grid-cols-1 gap-12 py-20 sm:py-24 lg:grid-cols-12 lg:gap-16 lg:py-32`}>
         <div className="lg:col-span-4">
-          <Eyebrow>The Map</Eyebrow>
+          <Eyebrow>The Roadmap</Eyebrow>
           <h2 className="mt-5 text-[30px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[40px]">
             It starts with the map.
           </h2>
@@ -222,7 +222,7 @@ function MapSection() {
             {/* Tier selector */}
             <div
               role="tablist"
-              aria-label="Operating Map plan options"
+              aria-label="Roadmap plan options"
               className="mx-auto flex w-full max-w-[480px] items-center gap-1 rounded-full border border-rule/60 bg-[oklch(0.97_0.012_255)] p-1 text-[12px]"
             >
               {TIERS.map((t) => {
@@ -244,7 +244,7 @@ function MapSection() {
             </div>
 
             <div className="mt-8 text-center">
-              <p className="font-display text-[22px] text-ink sm:text-[24px]">The Operating Map</p>
+              <p className="font-display text-[22px] text-ink sm:text-[24px]">The Roadmap</p>
               <p
                 key={tier.price}
                 className="mt-4 font-display text-[36px] leading-none tracking-tight text-royal sm:text-[48px] lg:text-[52px]"
@@ -563,7 +563,7 @@ function FooterCTA() {
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-2 animate-fade-in [animation-delay:340ms] opacity-0 [animation-fill-mode:forwards]">
             <a href="#" className="group inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[12.5px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]">
-              Build My Map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+              Build My Roadmap <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
             <a href="#map" className="group inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-medium text-white/80 transition-colors duration-300 hover:text-white">
               Start with the map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
@@ -584,7 +584,7 @@ function FooterCTA() {
             <p className="mt-1 text-[11px] tracking-[0.2em] text-white/45">MAP. BUILD. SCALE.</p>
           </div>
           <ul className="space-y-1.5 text-[12.5px] text-white/65">
-            <li><a href="#map" className="hover:text-white">The Map</a></li>
+            <li><a href="#map" className="hover:text-white">The Roadmap</a></li>
             <li><Link to="/what-we-build" className="hover:text-white">Our Builds</Link></li>
             <li><a href="#" className="hover:text-white">Our Story</a></li>
             <li><a href="#" className="hover:text-white">Insights</a></li>

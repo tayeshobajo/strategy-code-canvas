@@ -91,7 +91,7 @@ export const Route = createFileRoute("/what-we-build")({
 
 // ----- nav -----
 const NAV = [
-  { label: "The Map", to: "/" },
+  { label: "The Roadmap", to: "/" },
   { label: "What We Build", to: "/what-we-build", active: true },
   { label: "Investment", to: "/" },
   { label: "About", to: "/" },
@@ -275,7 +275,7 @@ function Header() {
           ))}
         </nav>
         <div className="hidden sm:block">
-          <PrimaryButton href="#cta">Build My Map</PrimaryButton>
+          <PrimaryButton href="#cta">Build My Roadmap</PrimaryButton>
         </div>
       </div>
     </header>
@@ -336,11 +336,11 @@ function Hero() {
               <span className="italic text-royal drift inline-block">the map.</span>
             </Reveal>
             <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
-              Everything we build sits inside your Operating Map, in the order the business calls for it. Each milestone removes friction, sharpens execution, and strengthens the position you are building toward.
+              Everything we build sits inside your Roadmap, in the order the business calls for it. Each milestone removes friction, sharpens execution, and strengthens the position you are building toward.
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
-                Build My Map
+                Build My Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
               <a href="#" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
@@ -357,7 +357,7 @@ function Hero() {
         <Reveal immediate variant="fade-right" delay={300} className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
           <img
             src={heroBook.url}
-            alt="Open Operating Map notebook on a warm desk surface"
+            alt="Open Roadmap notebook on a warm desk surface"
             loading="eager"
             decoding="async"
             className="absolute inset-0 h-full w-full object-cover object-right lg:hero-photo-fade"
@@ -925,7 +925,7 @@ function BottomCTA() {
           </Reveal>
           <Reveal variant="fade-up" delay={600} className="mt-[30px]">
             <PrimaryButton href="#" className="h-[54px] px-8 text-[14px]">
-              Build My Map
+              Build My Roadmap
             </PrimaryButton>
           </Reveal>
           <Reveal as="p" variant="fade-up" delay={780} className="mt-[18px] max-w-[360px] text-[14px] leading-[1.6] text-ink/65">
@@ -951,7 +951,7 @@ function Footer() {
           <TrustTaiLogo variant="white" />
         </div>
         <ul className="flex flex-col gap-2 text-[13px] text-paper/70">
-          <li><Link to="/" className="hover:text-paper">The Map</Link></li>
+          <li><Link to="/" className="hover:text-paper">The Roadmap</Link></li>
           <li><Link to="/what-we-build" className="hover:text-paper">Our Builds</Link></li>
           <li><a href="#" className="hover:text-paper">Our Story</a></li>
           <li><a href="#" className="hover:text-paper">Insights</a></li>
