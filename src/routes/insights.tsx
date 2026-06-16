@@ -88,10 +88,10 @@ function HeroPath() {
         strokeLinecap="round"
         strokeDasharray="1.75 8"
       />
-      {/* Right curling loop: sweeps up from the lower-right, hooks back left
-          under the subhead, then curls up to the paper airplane. */}
+      {/* Right curling hook: rises from the lower-right, arcs up and right,
+          hooks back-left and up, then curves out to the paper airplane. */}
       <path
-        d="M 640 320 C 800 320, 900 300, 990 250 S 1140 150, 1080 110 S 940 130, 990 175 S 1140 180, 1200 90"
+        d="M 700 305 C 850 325, 1010 325, 1120 270 C 1220 220, 1230 160, 1130 145 C 1040 132, 1030 88, 1110 82 C 1155 78, 1185 76, 1200 74"
         fill="none"
         stroke="url(#hero-path)"
         strokeWidth="1"
@@ -108,7 +108,7 @@ function HeroPath() {
         strokeDasharray="1.25 6"
       />
       <circle cx="60" cy="290" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
-      <circle cx="1070" cy="175" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
+      <circle cx="1175" cy="205" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
       {/* Paper airplane glyph */}
       <g transform="translate(1196 64) rotate(-18)">
         <path
