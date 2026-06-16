@@ -452,14 +452,15 @@ function MappedPath({ activePhase }: { activePhase: number }) {
   );
 }
 
-const PATH_POINTS = [
+type PathPoint = { x: number; y: number; label: string; title?: string; sub?: string; sub2?: string; filled?: boolean; small?: boolean; outlined?: boolean };
+const PATH_POINTS: PathPoint[] = [
   { x: 60, y: 90, label: "A", title: "Point A", sub: "Where you are", filled: true },
   { x: 190, y: 90, label: "Phase 1", small: true },
   { x: 310, y: 90, label: "Phase 2", small: true },
   { x: 430, y: 90, label: "Phase 3", small: true },
   { x: 570, y: 90, label: "B", title: "Point B", sub: "Where you need to be", sub2: "(24 months)", filled: true },
   { x: 700, y: 90, label: "C", title: "Point C", sub: "The position you could own", sub2: "(10 years)", filled: true, outlined: true },
-] as const;
+];
 
 function PathSVG({ revealed, activePhase }: { revealed: boolean; activePhase: number }) {
   const W = 760;
