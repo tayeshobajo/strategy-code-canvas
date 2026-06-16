@@ -145,29 +145,32 @@ function Hero() {
         className="pointer-events-none absolute inset-0 hidden h-full w-full object-cover object-right sm:block"
       />
       {/* Soft paper wash on the left so the text column stays readable while the warm texture still shows through. */}
-      <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-[oklch(0.95_0.018_75)] from-0% via-[oklch(0.95_0.018_75)]/85 via-30% to-transparent to-55% sm:block" />
+      <div className="pointer-events-none absolute inset-0 hidden sm:block bg-[linear-gradient(to_right,oklch(0.95_0.018_75)_0%,oklch(0.95_0.018_75/0.96)_22%,oklch(0.95_0.018_75/0.78)_38%,oklch(0.95_0.018_75/0.35)_55%,transparent_72%)]" />
       <div className={`${container} relative pt-24 pb-20 sm:pt-32 sm:pb-28 lg:pt-40 lg:pb-32`}>
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
           <div className="lg:col-span-6">
-            <Eyebrow>Investment</Eyebrow>
-            <h1 className="mt-5 text-[36px] leading-[1.05] tracking-[-0.02em] text-ink sm:text-[52px] lg:text-[64px]">
+            <div className="animate-fade-in [animation-delay:60ms] opacity-0 [animation-fill-mode:forwards]">
+              <Eyebrow>Investment</Eyebrow>
+            </div>
+            <h1 className="mt-5 font-display font-normal text-[38px] leading-[1.04] tracking-[-0.018em] text-ink sm:text-[54px] lg:text-[66px] animate-fade-in [animation-delay:140ms] opacity-0 [animation-fill-mode:forwards]">
               The price of a business<br className="hidden sm:block" /> that runs without you.
             </h1>
-            <p className="mt-7 max-w-[44ch] text-[15px] leading-relaxed text-ink/70">
+            <p className="mt-7 max-w-[44ch] text-[14.5px] leading-[1.7] text-ink/65 animate-fade-in [animation-delay:280ms] opacity-0 [animation-fill-mode:forwards]">
               Every number is on this page. The map, the build, the three walks.
               No call required to see it, because a decision this size deserves the
               whole picture before the first conversation, not after.
             </p>
-            <div className="mt-9 flex flex-wrap items-center gap-3">
+            <div className="mt-9 flex flex-wrap items-center gap-3 animate-fade-in [animation-delay:400ms] opacity-0 [animation-fill-mode:forwards]">
               <PrimaryCTA />
               <GhostCTA />
             </div>
-            <p className="mt-10 max-w-[40ch] text-[12.5px] leading-relaxed text-ink/55">
+            <p className="mt-10 max-w-[40ch] text-[12px] leading-[1.7] text-ink/50 animate-fade-in [animation-delay:520ms] opacity-0 [animation-fill-mode:forwards]">
               A 30-minute conversation. No pitch. If the timing is right, we should talk.
               If it is not, the work is waiting when it is.
             </p>
           </div>
           <div className="hidden lg:col-span-6 lg:block" />
+
         </div>
       </div>
     </section>
