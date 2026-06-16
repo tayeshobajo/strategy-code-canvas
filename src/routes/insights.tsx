@@ -477,7 +477,7 @@ function ArticleList() {
                         isLast ? "" : "border-b border-rule/70"
                       }`}
                       style={{
-                        transform: `translateY(${vi.start - offsetTop}px)`,
+                        transform: `translateY(${vi.start - virtualizer.options.scrollMargin}px)`,
                         animationDelay: `${Math.min(vi.index, 6) * 40}ms`,
                       }}
                     >
