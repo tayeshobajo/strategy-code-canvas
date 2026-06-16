@@ -757,14 +757,15 @@ function ConstellationBG() {
       const x = Math.sin(i * 7.13) * 43758.5453;
       return x - Math.floor(x);
     };
+    const round = (n: number, p = 2) => Math.round(n * 10 ** p) / 10 ** p;
     return Array.from({ length: 70 }).map((_, i) => ({
-      x: seeded(i) * 380,
-      y: seeded(i + 9) * 260,
-      r: 0.4 + seeded(i + 19) * 1.6,
-      oMin: 0.1 + seeded(i + 29) * 0.3,
-      oMax: 0.55 + seeded(i + 41) * 0.45,
-      dur: 3.2 + seeded(i + 53) * 4.5, // 3.2–7.7s — slower than HowWeThink
-      delay: seeded(i + 67) * 5,
+      x: round(seeded(i) * 380),
+      y: round(seeded(i + 9) * 260),
+      r: round(0.4 + seeded(i + 19) * 1.6),
+      oMin: round(0.1 + seeded(i + 29) * 0.3),
+      oMax: round(0.55 + seeded(i + 41) * 0.45),
+      dur: round(3.2 + seeded(i + 53) * 4.5),
+      delay: round(seeded(i + 67) * 5),
     }));
   }, []);
   return (
