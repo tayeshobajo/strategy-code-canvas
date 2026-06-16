@@ -13,6 +13,43 @@ import heroAsset from "@/assets/trust-tai-hero.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Reveal } from "@/hooks/use-reveal";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+const STATUS_LABEL: Record<Status, string> = {
+  mapped: "Mapped",
+  build: "In build",
+  live: "Live",
+};
+
+function ownerFor(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("website") || n.includes("seo") || n.includes("content")) return "Studio";
+  if (n.includes("dashboard") || n.includes("operating")) return "Ops";
+  if (n.includes("workflow") || n.includes("automation")) return "Automation";
+  if (n.includes("ai") || n.includes("assistant") || n.includes("intelligence")) return "Intelligence";
+  if (n.includes("learning") || n.includes("education")) return "Learning";
+  if (n.includes("commerce") || n.includes("payments") || n.includes("booking")) return "Commerce";
+  if (n.includes("crm") || n.includes("lead") || n.includes("portal")) return "Revenue";
+  return "Build squad";
+}
+
+function phaseFor(startQ: number): string {
+  if (startQ <= 2) return "Foundations";
+  if (startQ <= 4) return "Activation";
+  if (startQ <= 6) return "Compounding";
+  return "Scale";
+}
+
+function rowSpan(row: Row): { start: number; end: number } {
+  const start = Math.min(...row.segs.map((s) => s.start));
+  const end = Math.max(...row.segs.map((s) => s.end));
+  return { start, end };
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({
