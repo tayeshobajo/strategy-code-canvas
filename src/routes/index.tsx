@@ -622,29 +622,31 @@ function RoadmapSection() {
     <section id="roadmap" className="bg-secondary/60">
       <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[minmax(380px,440px)_minmax(760px,1fr)] lg:gap-16 lg:px-10 lg:pt-[72px] lg:pb-24 xl:gap-[72px]">
         <div>
-          <p className="eyebrow">What You Get</p>
-          <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
+          <Reveal as="p" variant="fade-up" className="eyebrow">What You Get</Reveal>
+          <Reveal as="h2" variant="rise" delay={80} className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
             A living plan. Specific.<br />Sequenced. Yours.
-          </h2>
-          <p className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={180} className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
             The Operating Map turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.
-          </p>
+          </Reveal>
           <ul className="mt-8 space-y-4">
-            {CHECKLIST.map((c) => (
-              <li key={c.label} className="flex items-start gap-3 text-[13.5px] leading-[1.65] text-ink/75">
+            {CHECKLIST.map((c, i) => (
+              <Reveal as="li" key={c.label} variant="fade-up" delay={260 + i * 60} className="flex items-start gap-3 text-[13.5px] leading-[1.65] text-ink/75">
                 <CheckCircle2 className="mt-[3px] h-[16px] w-[16px] flex-none text-royal" strokeWidth={1.75} />
                 <span>
                   <span className="font-semibold text-ink">{c.label}:</span> {c.body}
                 </span>
-              </li>
+              </Reveal>
             ))}
           </ul>
         </div>
         <div>
-          <RoadmapPanel />
-          <p className="mt-5 text-[13px] leading-relaxed text-ink/60">
+          <Reveal variant="fade-up" delay={120}>
+            <RoadmapPanel />
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={260} className="mt-5 text-[13px] leading-relaxed text-ink/60">
             Three businesses, three build orders. Yours will hold your milestones, in your order. The order is a conversation, not a contract.
-          </p>
+          </Reveal>
         </div>
       </div>
     </section>
