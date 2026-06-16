@@ -253,7 +253,7 @@ function FeaturedArgument() {
   return (
     <section className="border-t border-rule/70" aria-labelledby="featured-heading">
       <div className={`${container} grid grid-cols-1 gap-10 py-16 sm:py-20 lg:grid-cols-12 lg:gap-12`}>
-        <Reveal as="div" variant="fade-up" className="lg:col-span-7">
+        <Reveal as="div" variant="fade-up" className="lg:col-span-6">
           <p className="eyebrow">The Current Argument</p>
           <p className="mt-5 text-[13px] text-ink/55">{featured.category}</p>
           <h2
