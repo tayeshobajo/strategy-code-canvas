@@ -286,6 +286,55 @@ function ContinueArrow() {
   );
 }
 
+/* --------------------------------- Print --------------------------------- */
+
+function PrintStyles() {
+  // Print-optimized stylesheet: hide chrome (header, sidebar, progress, CTAs),
+  // restack content to a single column, swap to serif body text at a
+  // print-friendly size, and force light backgrounds + black ink.
+  return (
+    <style>{`
+      @media print {
+        @page { margin: 18mm 16mm; size: auto; }
+        html, body { background: #fff !important; color: #000 !important; }
+        header[class*="SiteHeader"], nav[aria-label="In this article"],
+        aside[aria-label="On the Roadmap"] { }
+        /* Hide site chrome and interactive bits */
+        body > header, .site-header, [data-site-header] { display: none !important; }
+        /* Hide everything explicitly marked print:hidden via Tailwind */
+        .print\\:hidden { display: none !important; }
+        /* Sidebar + related-content footer hidden for print */
+        article > div > div > aside { display: none !important; }
+        article > section[aria-labelledby="continue-heading"] { display: none !important; }
+        /* Collapse the body grid to a single column */
+        article > div > div { display: block !important; }
+        article > div > div > div { max-width: 100% !important; }
+        /* Typography */
+        body, article, article p, article li, article blockquote {
+          font-family: Georgia, "Times New Roman", Times, serif !important;
+          color: #000 !important;
+        }
+        article h1 { font-size: 24pt !important; line-height: 1.15 !important; }
+        article h2 { font-size: 15pt !important; line-height: 1.25 !important; margin-top: 18pt !important; }
+        article h3 { font-size: 13pt !important; }
+        article p, article li { font-size: 11pt !important; line-height: 1.55 !important; color: #111 !important; }
+        article blockquote { font-style: italic; border-left: 2pt solid #333; padding-left: 10pt; }
+        /* Avoid awkward breaks */
+        article h1, article h2, article h3 { break-after: avoid; page-break-after: avoid; }
+        article p, article li, article blockquote, article figure { break-inside: avoid; page-break-inside: avoid; }
+        /* Strip decorative cards/backgrounds */
+        article [class*="rounded-xl"] {
+          background: transparent !important;
+          border: 1px solid #ccc !important;
+          box-shadow: none !important;
+        }
+        /* Expand URLs after links (optional, classic print convention) */
+        article a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #444; }
+      }
+    `}</style>
+  );
+}
+
 /* --------------------------------- Page --------------------------------- */
 
 function InsightArticlePage() {
