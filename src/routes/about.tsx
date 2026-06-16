@@ -9,6 +9,50 @@ import taiPortrait from "@/assets/tai-portrait.png.asset.json";
 import trustTaiLogo from "@/assets/trust-tai-logo.png.asset.json";
 import { getRequestOrigin } from "@/lib/origin.functions";
 
+/* ---------- shared perf helpers ---------- */
+function useInViewPause<T extends HTMLElement>(rootMargin = "200px 0px") {
+  const ref = React.useRef<T | null>(null);
+  const [active, setActive] = React.useState(true);
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        // schedule state flip on the next frame so we never thrash during scroll
+        requestAnimationFrame(() => setActive(entries[0]?.isIntersecting ?? true));
+      },
+      { rootMargin, threshold: 0 },
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, [rootMargin]);
+  return { ref, paused: !active };
+}
+
+function useIsSmallViewport(breakpoint = 768) {
+  const [small, setSmall] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const update = () => setSmall(mq.matches);
+    update();
+    // rAF-throttle change handler so resize storms don't re-render mid-frame
+    let frame = 0;
+    const handler = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    };
+    mq.addEventListener?.("change", handler);
+    return () => {
+      mq.removeEventListener?.("change", handler);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [breakpoint]);
+  return small;
+}
+
+
 export const Route = createFileRoute("/about")({
   loader: async () => {
     const origin = await getRequestOrigin();
@@ -448,8 +492,11 @@ function PatternDiagram() {
 }
 
 function ThePattern() {
+  const { ref, paused } = useInViewPause<HTMLElement>();
   return (
     <section
+      ref={ref}
+      data-anim-paused={paused ? "true" : "false"}
       className="border-y border-rule/50 py-20 lg:py-24"
       style={{ background: "oklch(0.96 0.018 255)" }}
     >
@@ -649,9 +696,21 @@ function StarsField({
 }
 
 function HowWeThink() {
+  const { ref, paused } = useInViewPause<HTMLElement>();
+  const isSmall = useIsSmallViewport();
   return (
-    <section className="contour-bg relative overflow-hidden py-20 lg:py-24">
-      <StarsField count={70} width={1400} height={700} seedSalt={3} durRange={[2.8, 6]} />
+    <section
+      ref={ref}
+      data-anim-paused={paused ? "true" : "false"}
+      className="contour-bg relative overflow-hidden py-20 lg:py-24"
+    >
+      <StarsField
+        count={isSmall ? 28 : 70}
+        width={1400}
+        height={700}
+        seedSalt={3}
+        durRange={[2.8, 6]}
+      />
       <div className={`relative ${container}`}>
         <Reveal as="div" variant="fade-up" className="mx-auto max-w-[760px] text-center">
           <Eyebrow tone="paper">How We Think</Eyebrow>
@@ -752,13 +811,15 @@ function HonestFit() {
 
 /* ---------------------- CLOSE / CTA ---------------------- */
 function ConstellationBG() {
+  const isSmall = useIsSmallViewport();
+  const count = isSmall ? 30 : 70;
   const stars = React.useMemo(() => {
     const seeded = (i: number) => {
       const x = Math.sin(i * 7.13) * 43758.5453;
       return x - Math.floor(x);
     };
     const round = (n: number, p = 2) => Math.round(n * 10 ** p) / 10 ** p;
-    return Array.from({ length: 70 }).map((_, i) => ({
+    return Array.from({ length: count }).map((_, i) => ({
       x: round(seeded(i) * 380),
       y: round(seeded(i + 9) * 260),
       r: round(0.4 + seeded(i + 19) * 1.6),
@@ -767,7 +828,7 @@ function ConstellationBG() {
       dur: round(3.2 + seeded(i + 53) * 4.5),
       delay: round(seeded(i + 67) * 5),
     }));
-  }, []);
+  }, [count]);
   return (
     <svg
       viewBox="0 0 380 260"
@@ -824,17 +885,17 @@ function PaperPlane() {
         strokeLinecap="round"
         style={{ ["--len" as never]: 1500 } as React.CSSProperties}
       />
-      {/* paper plane glyph, drawn around origin so animateMotion + rotate=auto looks right */}
+      {/* paper plane glyph — nose points to +X so rotate="auto" flies forward */}
       <g opacity="0.92">
         <g transform="translate(-12 -8)">
           <path
-            d="M0 8 L24 0 L16 8 L24 16 Z"
+            d="M24 8 L0 0 L8 8 L0 16 Z"
             fill="#eaf2ff"
             stroke="#7aa9ff"
             strokeWidth="0.8"
             strokeLinejoin="round"
           />
-          <path d="M16 8 L8 8" stroke="#7aa9ff" strokeWidth="0.8" strokeLinecap="round" />
+          <path d="M8 8 L0 8" stroke="#7aa9ff" strokeWidth="0.8" strokeLinecap="round" />
         </g>
         <animateMotion
           dur="11s"
@@ -852,8 +913,11 @@ function PaperPlane() {
 }
 
 function CloseCTA() {
+  const { ref, paused } = useInViewPause<HTMLElement>();
   return (
     <section
+      ref={ref}
+      data-anim-paused={paused ? "true" : "false"}
       id="cta"
       className="relative overflow-hidden py-20 lg:py-24"
       style={{
