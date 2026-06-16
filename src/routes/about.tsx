@@ -259,14 +259,22 @@ function MiniBrowserCard() {
         <span className="h-2 w-2 rounded-full bg-rule" />
         <span className="h-2 w-2 rounded-full bg-rule" />
       </div>
-      <div className="flex h-[160px] items-center justify-center rounded-sm bg-[oklch(0.965_0.012_75)]">
-        <svg width="40" height="36" viewBox="0 0 40 36" fill="none">
+      <div className="relative flex h-[160px] flex-col items-center justify-center rounded-sm bg-[oklch(0.965_0.012_75)] px-6">
+        <p className="font-display text-[20px] leading-none tracking-wide text-ink/85">One</p>
+        <span className="mt-2 block h-px w-6 bg-royal/80" />
+        <span className="mt-4 block h-1.5 w-3/5 rounded-full bg-ink/10" />
+        <span className="mt-1.5 block h-1.5 w-2/5 rounded-full bg-ink/10" />
+        <svg className="absolute bottom-2 right-2" width="44" height="14" viewBox="0 0 44 14" fill="none" aria-hidden="true">
           <path
-            d="M20 33 L4 18 a9 9 0 1 1 16-6 a9 9 0 1 1 16 6 Z"
+            d="M2 10 C 10 2, 20 14, 30 6 S 40 4, 42 5"
             stroke="var(--royal)"
-            strokeWidth="1.4"
+            strokeWidth="1"
+            strokeDasharray="1.5 3"
+            strokeLinecap="round"
             fill="none"
+            opacity="0.7"
           />
+          <circle cx="42" cy="5" r="1.6" fill="var(--royal)" />
         </svg>
       </div>
       <div className="mt-3 space-y-1.5">
