@@ -429,6 +429,29 @@
   animation: plane-trail-draw 1800ms cubic-bezier(0.2, 0.6, 0.2, 1) 300ms forwards;
 }
 
+/* Pause heavy in-section animations when scrolled offscreen.
+   Keeps the GPU/compositor idle and stops style recalcs at 60fps targets. */
+[data-anim-paused="true"] .twinkle-star,
+[data-anim-paused="true"] .pattern-dot,
+[data-anim-paused="true"] .path-march,
+[data-anim-paused="true"] .ring-breathe,
+[data-anim-paused="true"] .plane-trail {
+  animation-play-state: paused;
+}
+[data-anim-paused="true"] .twinkle-star,
+[data-anim-paused="true"] .pattern-dot {
+  will-change: auto;
+}
+
+/* Cap reveal stagger on small screens so sections don't visually overlap
+   while scrolling fast on phones. */
+@media (max-width: 640px) {
+  [data-reveal] {
+    --reveal-delay: 0ms;
+    transition-duration: 520ms;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .twinkle-star, .pattern-dot, .path-march, .ring-breathe { animation: none !important; transform: none !important; }
   .plane-trail { stroke-dashoffset: 0 !important; animation: none !important; }
