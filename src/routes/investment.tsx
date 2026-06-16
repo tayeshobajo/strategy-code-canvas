@@ -34,16 +34,24 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 
 function PrimaryCTA({ children = "Build My Map" }: { children?: React.ReactNode }) {
   return (
-    <a href="#cta" className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-transform hover:scale-[1.02]">
-      {children} <ArrowRight className="h-3.5 w-3.5" />
+    <a
+      href="#cta"
+      className="group inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-all duration-300 ease-out hover:shadow-[0_10px_30px_-12px_rgba(10,23,51,0.5)] hover:-translate-y-[1px]"
+    >
+      {children}
+      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
     </a>
   );
 }
 
 function GhostCTA({ children = "Start with the map" }: { children?: React.ReactNode }) {
   return (
-    <a href="#map" className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-[13px] font-medium text-ink/80 transition-colors hover:text-ink">
-      {children} <ArrowRight className="h-3.5 w-3.5" />
+    <a
+      href="#map"
+      className="group inline-flex items-center gap-2 rounded-full px-4 py-3 text-[13px] font-medium text-ink/70 transition-colors duration-300 hover:text-ink"
+    >
+      {children}
+      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
     </a>
   );
 }
@@ -137,29 +145,32 @@ function Hero() {
         className="pointer-events-none absolute inset-0 hidden h-full w-full object-cover object-right sm:block"
       />
       {/* Soft paper wash on the left so the text column stays readable while the warm texture still shows through. */}
-      <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-[oklch(0.95_0.018_75)] from-0% via-[oklch(0.95_0.018_75)]/85 via-30% to-transparent to-55% sm:block" />
+      <div className="pointer-events-none absolute inset-0 hidden sm:block bg-[linear-gradient(to_right,oklch(0.95_0.018_75)_0%,oklch(0.95_0.018_75/0.96)_22%,oklch(0.95_0.018_75/0.78)_38%,oklch(0.95_0.018_75/0.35)_55%,transparent_72%)]" />
       <div className={`${container} relative pt-24 pb-20 sm:pt-32 sm:pb-28 lg:pt-40 lg:pb-32`}>
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
           <div className="lg:col-span-6">
-            <Eyebrow>Investment</Eyebrow>
-            <h1 className="mt-5 text-[36px] leading-[1.05] tracking-[-0.02em] text-ink sm:text-[52px] lg:text-[64px]">
+            <div className="animate-fade-in [animation-delay:60ms] opacity-0 [animation-fill-mode:forwards]">
+              <Eyebrow>Investment</Eyebrow>
+            </div>
+            <h1 className="mt-5 font-display font-normal text-[38px] leading-[1.04] tracking-[-0.018em] text-ink sm:text-[54px] lg:text-[66px] animate-fade-in [animation-delay:140ms] opacity-0 [animation-fill-mode:forwards]">
               The price of a business<br className="hidden sm:block" /> that runs without you.
             </h1>
-            <p className="mt-7 max-w-[44ch] text-[15px] leading-relaxed text-ink/70">
+            <p className="mt-7 max-w-[44ch] text-[14.5px] leading-[1.7] text-ink/65 animate-fade-in [animation-delay:280ms] opacity-0 [animation-fill-mode:forwards]">
               Every number is on this page. The map, the build, the three walks.
               No call required to see it, because a decision this size deserves the
               whole picture before the first conversation, not after.
             </p>
-            <div className="mt-9 flex flex-wrap items-center gap-3">
+            <div className="mt-9 flex flex-wrap items-center gap-3 animate-fade-in [animation-delay:400ms] opacity-0 [animation-fill-mode:forwards]">
               <PrimaryCTA />
               <GhostCTA />
             </div>
-            <p className="mt-10 max-w-[40ch] text-[12.5px] leading-relaxed text-ink/55">
+            <p className="mt-10 max-w-[40ch] text-[12px] leading-[1.7] text-ink/50 animate-fade-in [animation-delay:520ms] opacity-0 [animation-fill-mode:forwards]">
               A 30-minute conversation. No pitch. If the timing is right, we should talk.
               If it is not, the work is waiting when it is.
             </p>
           </div>
           <div className="hidden lg:col-span-6 lg:block" />
+
         </div>
       </div>
     </section>
@@ -605,23 +616,24 @@ function FooterCTA() {
       <div className={`${container} grid grid-cols-1 gap-10 py-20 sm:py-24 lg:grid-cols-12 lg:gap-16 lg:py-28`}>
         <div className="hidden lg:col-span-5 lg:block" />
         <div className="lg:col-span-7">
-          <h2 className="text-[30px] leading-[1.1] tracking-[-0.02em] text-white sm:text-[40px]">
+          <h2 className="font-display font-normal text-[28px] leading-[1.12] tracking-[-0.018em] text-white sm:text-[38px] lg:text-[42px] animate-fade-in [animation-delay:80ms] opacity-0 [animation-fill-mode:forwards]">
             Businesses without a map do not fail. They scatter.
           </h2>
-          <p className="mt-6 max-w-[58ch] text-[14.5px] leading-relaxed text-white/75">
+          <p className="mt-6 max-w-[58ch] text-[14px] leading-[1.75] text-white/70 animate-fade-in [animation-delay:220ms] opacity-0 [animation-fill-mode:forwards]">
             Years go into the right work in the wrong order. The cost was never the spend. The cost is the years. The first step is a 30-minute conversation. We name your number, show you the shape of the walk, and tell you honestly whether we are the ones to build your bridge. If we are not, we will say so, and point you to who is.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href="#" className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[13px] font-medium text-ink transition-transform hover:scale-[1.02]">
-              Build My Map <ArrowRight className="h-3.5 w-3.5" />
+          <div className="mt-8 flex flex-wrap items-center gap-3 animate-fade-in [animation-delay:340ms] opacity-0 [animation-fill-mode:forwards]">
+            <a href="#" className="group inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[13px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]">
+              Build My Map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
-            <a href="#map" className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-[13px] font-medium text-white/85 hover:text-white">
-              Start with the map <ArrowRight className="h-3.5 w-3.5" />
+            <a href="#map" className="group inline-flex items-center gap-2 rounded-full px-4 py-3 text-[13px] font-medium text-white/80 transition-colors duration-300 hover:text-white">
+              Start with the map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
           </div>
-          <p className="mt-8 max-w-[52ch] text-[12px] leading-relaxed text-white/55">
+          <p className="mt-8 max-w-[52ch] text-[11.5px] leading-[1.75] text-white/50 animate-fade-in [animation-delay:460ms] opacity-0 [animation-fill-mode:forwards]">
             A 30-minute conversation. No pitch. If the timing is right, we should talk. If it is not, the work is waiting when it is.
           </p>
+
         </div>
       </div>
 
