@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import * as React from "react";
 
 // ----- inline SVG icons (uploaded assets) -----
 type IconProps = { className?: string };
@@ -106,15 +107,95 @@ const FEATURES = [
 ];
 
 // ----- milestones table -----
-const MILESTONES = [
-  { n: "01", name: "Converting Website", tag: null },
-  { n: "02", name: "Connected CRM", tag: null },
-  { n: "03", name: "Lead Engine", tag: null },
-  { n: "04", name: "Client Portal", tag: "Founder Bottleneck Loop™" },
-  { n: "05", name: "AI Support Assistant", tag: "The Intelligence Layer™" },
-  { n: "06", name: "Operating Dashboard", tag: "Visibility Before Scale™" },
-  { n: "07", name: "Workflow Automation", tag: "Systems Before Automation™" },
-  { n: "08", name: "Internal Tools", tag: null },
+type Milestone = {
+  n: string;
+  name: string;
+  tag: string | null;
+  phase: number; // index into PathSVG points (0..5)
+  desc: string;
+  impact: { label: string; value: number }[];
+};
+const MILESTONES: Milestone[] = [
+  {
+    n: "01", name: "Converting Website", tag: null, phase: 1,
+    desc: "The front door that earns attention and turns it into qualified conversation. Built to convert, not impress.",
+    impact: [
+      { label: "Clarity", value: 78 },
+      { label: "Sequence", value: 55 },
+      { label: "Compounding", value: 40 },
+      { label: "Ownership", value: 62 },
+    ],
+  },
+  {
+    n: "02", name: "Connected CRM", tag: null, phase: 1,
+    desc: "A single source of truth for every relationship. The system finally knows what the founder knows.",
+    impact: [
+      { label: "Clarity", value: 84 },
+      { label: "Sequence", value: 70 },
+      { label: "Compounding", value: 58 },
+      { label: "Ownership", value: 72 },
+    ],
+  },
+  {
+    n: "03", name: "Lead Engine", tag: null, phase: 2,
+    desc: "Predictable, sequenced demand. Less hunting, more harvesting — the pipeline becomes a function, not a hope.",
+    impact: [
+      { label: "Clarity", value: 70 },
+      { label: "Sequence", value: 88 },
+      { label: "Compounding", value: 65 },
+      { label: "Ownership", value: 60 },
+    ],
+  },
+  {
+    n: "04", name: "Client Portal", tag: "Founder Bottleneck Loop™", phase: 2,
+    desc: "Where clients self-serve answers, status, and access — and where the founder stops being the routing layer.",
+    impact: [
+      { label: "Clarity", value: 76 },
+      { label: "Sequence", value: 72 },
+      { label: "Compounding", value: 78 },
+      { label: "Ownership", value: 80 },
+    ],
+  },
+  {
+    n: "05", name: "AI Support Assistant", tag: "The Intelligence Layer™", phase: 3,
+    desc: "Reads across the system, answers in context, and escalates only what needs a human. Capacity without headcount.",
+    impact: [
+      { label: "Clarity", value: 82 },
+      { label: "Sequence", value: 75 },
+      { label: "Compounding", value: 90 },
+      { label: "Ownership", value: 70 },
+    ],
+  },
+  {
+    n: "06", name: "Operating Dashboard", tag: "Visibility Before Scale™", phase: 3,
+    desc: "One screen the leadership team trusts. Decisions move from instinct to evidence without slowing down.",
+    impact: [
+      { label: "Clarity", value: 95 },
+      { label: "Sequence", value: 80 },
+      { label: "Compounding", value: 82 },
+      { label: "Ownership", value: 78 },
+    ],
+  },
+  {
+    n: "07", name: "Workflow Automation", tag: "Systems Before Automation™", phase: 4,
+    desc: "Once the work is mapped, the repeatable parts run themselves. The team is freed for judgement, not motion.",
+    impact: [
+      { label: "Clarity", value: 80 },
+      { label: "Sequence", value: 92 },
+      { label: "Compounding", value: 88 },
+      { label: "Ownership", value: 84 },
+    ],
+  },
+  {
+    n: "08", name: "Internal Tools", tag: null, phase: 4,
+    desc: "Bespoke tooling for the workflows no off-the-shelf product knows about. The compounding edge of the business.",
+    impact: [
+      { label: "Clarity", value: 86 },
+      { label: "Sequence", value: 84 },
+      { label: "Compounding", value: 96 },
+      { label: "Ownership", value: 94 },
+    ],
+  },
 ];
 
 // ----- intelligence layer nodes -----
@@ -138,19 +219,33 @@ const STANDARDS = [
 
 // =====================================================
 function WhatWeBuild() {
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const activePhase = MILESTONES[activeIndex].phase;
   return (
-    <div className="min-h-screen bg-paper text-ink antialiased">
-      <SiteHeader />
-      <div className="h-20 sm:h-24" aria-hidden="true" />
-      <Hero />
-      <FeatureRow />
-      <MappedPath />
-      <Milestones />
-      <IntelligenceLayer />
-      <StandardsRow />
-      <BeforeAfter />
-      <BottomCTA />
-      <Footer />
+    <div className="relative min-h-screen bg-paper text-ink antialiased">
+      <AmbientLayer />
+      <div className="relative z-10">
+        <SiteHeader />
+        <div className="h-20 sm:h-24" aria-hidden="true" />
+        <Hero />
+        <FeatureRow />
+        <MappedPath activePhase={activePhase} />
+        <Milestones activeIndex={activeIndex} onSelect={setActiveIndex} />
+        <IntelligenceLayer />
+        <StandardsRow />
+        <BeforeAfter />
+        <BottomCTA />
+        <Footer />
+      </div>
+    </div>
+  );
+}
+
+function AmbientLayer() {
+  return (
+    <div className="ambient-layer" aria-hidden="true">
+      <div className="ambient-gradient" />
+      <div className="ambient-dust" />
     </div>
   );
 }
@@ -319,7 +414,7 @@ function FeatureRow() {
 }
 
 // ----------- MAPPED PATH -----------
-function MappedPath() {
+function MappedPath({ activePhase }: { activePhase: number }) {
   const { ref, inView } = useReveal<HTMLDivElement>();
   return (
     <section ref={ref} className="bg-[oklch(0.965_0.012_255)]">
@@ -349,7 +444,7 @@ function MappedPath() {
 
         <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
           <div className="min-w-[640px] sm:min-w-0">
-            <PathSVG revealed={inView} />
+            <PathSVG revealed={inView} activePhase={activePhase} />
           </div>
         </div>
       </div>
@@ -357,33 +452,57 @@ function MappedPath() {
   );
 }
 
-function PathSVG({ revealed }: { revealed: boolean }) {
+type PathPoint = { x: number; y: number; label: string; title?: string; sub?: string; sub2?: string; filled?: boolean; small?: boolean; outlined?: boolean };
+const PATH_POINTS: PathPoint[] = [
+  { x: 60, y: 90, label: "A", title: "Point A", sub: "Where you are", filled: true },
+  { x: 190, y: 90, label: "Phase 1", small: true },
+  { x: 310, y: 90, label: "Phase 2", small: true },
+  { x: 430, y: 90, label: "Phase 3", small: true },
+  { x: 570, y: 90, label: "B", title: "Point B", sub: "Where you need to be", sub2: "(24 months)", filled: true },
+  { x: 700, y: 90, label: "C", title: "Point C", sub: "The position you could own", sub2: "(10 years)", filled: true, outlined: true },
+];
+
+function PathSVG({ revealed, activePhase }: { revealed: boolean; activePhase: number }) {
   const W = 760;
   const H = 240;
-  const points = [
-    { x: 60, y: 90, label: "A", title: "Point A", sub: "Where you are", filled: true },
-    { x: 190, y: 90, label: "Phase 1", small: true },
-    { x: 310, y: 90, label: "Phase 2", small: true },
-    { x: 430, y: 90, label: "Phase 3", small: true },
-    { x: 570, y: 90, label: "B", title: "Point B", sub: "Where you need to be", sub2: "(24 months)", filled: true },
-    { x: 700, y: 90, label: "C", title: "Point C", sub: "The position you could own", sub2: "(10 years)", filled: true, outlined: true },
-  ];
+  const points = PATH_POINTS;
+  const active = points[Math.min(activePhase, points.length - 1)];
+  const startX = 60;
+  // progress line: from start to active point, animated via stroke-dashoffset
+  const totalLen = 640;
+  const progressLen = Math.max(0, active.x - startX);
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className={`svg-reveal h-auto w-full ${revealed ? "is-revealed" : ""}`} aria-hidden="true">
+      {/* base line */}
       <line
         x1="60" y1="90" x2="700" y2="90"
         stroke="oklch(0.82 0.02 255)" strokeWidth="1"
         data-anim="line"
         style={{ ["--len" as never]: "640" }}
       />
+      {/* royal progress overlay that grows to active point */}
+      {revealed && (
+        <line
+          x1={startX} y1="90" x2="700" y2="90"
+          stroke="var(--royal)" strokeWidth="2" strokeLinecap="round"
+          className="path-progress"
+          style={{
+            strokeDasharray: totalLen,
+            strokeDashoffset: totalLen - progressLen,
+          }}
+        />
+      )}
       {points.map((p, i) => {
         const dotDelay = `${600 + i * 90}ms`;
         const labelDelay = `${900 + i * 90}ms`;
+        const isActive = i === activePhase;
+        const isPast = i < activePhase;
+        const dimState = revealed && !isActive && !isPast ? "dim" : "on";
         return (
-          <g key={i}>
+          <g key={i} className="path-point" data-state={dimState}>
             {p.small ? (
-              <circle cx={p.x} cy={p.y} r="5" fill="#0a1733" data-anim="dot" style={{ ["--d" as never]: dotDelay }} />
-            ) : p.outlined ? (
+              <circle cx={p.x} cy={p.y} r="5" fill={isPast || isActive ? "var(--royal)" : "#0a1733"} data-anim="dot" style={{ ["--d" as never]: dotDelay }} />
+            ) : "outlined" in p && p.outlined ? (
               <g data-anim="dot" style={{ ["--d" as never]: dotDelay, transformBox: "fill-box", transformOrigin: "center" }}>
                 <circle cx={p.x} cy={p.y} r="11" fill="white" stroke="var(--royal)" strokeWidth="2" />
                 <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--royal)">{p.label}</text>
@@ -394,22 +513,22 @@ function PathSVG({ revealed }: { revealed: boolean }) {
                 <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="11" fontWeight="600" fill="white">{p.label}</text>
               </g>
             )}
-            {p.title && (
+            {"title" in p && p.title && (
               <text x={p.x} y={p.y + 36} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--ink)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
                 {p.title}
               </text>
             )}
-            {p.sub && (
+            {"sub" in p && p.sub && (
               <text x={p.x} y={p.y + 52} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
                 {p.sub}
               </text>
             )}
-            {("sub2" in p) && p.sub2 && (
+            {"sub2" in p && p.sub2 && (
               <text x={p.x} y={p.y + 65} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
                 {p.sub2}
               </text>
             )}
-            {p.small && (
+            {"small" in p && p.small && (
               <text x={p.x} y={p.y + 22} textAnchor="middle" fontSize="10" fill="oklch(0.45 0.02 260)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
                 {p.label}
               </text>
@@ -417,6 +536,16 @@ function PathSVG({ revealed }: { revealed: boolean }) {
           </g>
         );
       })}
+      {/* Active marker pulse — slides between points */}
+      {revealed && (
+        <g
+          className="path-active-marker"
+          style={{ transform: `translate(${active.x}px, ${active.y}px)` }}
+        >
+          <circle r="18" fill="none" stroke="var(--royal)" strokeOpacity="0.35" strokeWidth="1.5" />
+          <circle r="26" fill="none" stroke="var(--royal)" strokeOpacity="0.18" strokeWidth="1" />
+        </g>
+      )}
       <path
         d={`M 80 180 Q ${W / 2} 200 ${W - 100} 180`}
         fill="none" stroke="oklch(0.82 0.02 255)" strokeWidth="1"
@@ -432,7 +561,12 @@ function PathSVG({ revealed }: { revealed: boolean }) {
 
 
 // ----------- MILESTONES -----------
-function Milestones() {
+function Milestones({ activeIndex, onSelect }: { activeIndex: number; onSelect: (i: number) => void }) {
+  const active = MILESTONES[activeIndex];
+  // re-trigger staggered detail animation on change
+  const [detailKey, setDetailKey] = React.useState(0);
+  React.useEffect(() => { setDetailKey((k) => k + 1); }, [activeIndex]);
+
   return (
     <section className="border-t border-rule/60 bg-white">
       <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)] lg:gap-16 lg:py-32">
@@ -446,39 +580,75 @@ function Milestones() {
             operating layer.
           </Reveal>
           <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-ink/70">
-            These systems work together to remove friction, raise visibility,
-            and create the capacity to lead what comes next. Your map names
-            which ones you need, when, and in what order.
+            Select a milestone to see what it unlocks, where it sits on the
+            mapped path, and how it shapes clarity, sequence, compounding,
+            and ownership.
           </Reveal>
         </div>
 
-        <div>
-          <ul className="divide-y divide-rule/60">
-            {MILESTONES.map((m, i) => (
-              <Reveal
-                as="li"
-                key={m.n}
-                variant="fade-up"
-                delay={i * 70}
-                className="grid grid-cols-[20px_minmax(0,1fr)] items-start gap-x-4 gap-y-2 py-5 sm:grid-cols-[20px_28px_minmax(0,1fr)_auto] sm:items-center sm:gap-x-5"
-              >
-                <span className="mt-1.5 size-2.5 rounded-full bg-royal sm:mt-0 sm:size-3" aria-hidden="true" />
-                <span className="font-mono text-[11px] tracking-wider text-ink/40 sm:text-[12px]">
-                  {m.n}
-                </span>
-                <span className="col-start-2 text-[15px] font-medium leading-snug text-ink sm:col-start-auto">
-                  {m.name}
-                </span>
-                {m.tag && (
-                  <span className="col-start-2 inline-flex w-fit items-center rounded-sm border border-royal/15 bg-[oklch(0.97_0.02_260)] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-royal sm:col-start-auto sm:justify-self-end">
-                    {m.tag}
-                  </span>
-                )}
-              </Reveal>
-            ))}
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
+          <ul className="divide-y divide-rule/60" role="tablist" aria-label="Milestones">
+            {MILESTONES.map((m, i) => {
+              const isActive = i === activeIndex;
+              return (
+                <Reveal
+                  as="li"
+                  key={m.n}
+                  variant="fade-up"
+                  delay={i * 60}
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => onSelect(i)}
+                    data-active={isActive ? "true" : "false"}
+                    className="ms-item grid w-full grid-cols-[20px_28px_minmax(0,1fr)_auto] items-center gap-x-4 py-5 text-left"
+                  >
+                    <span className="ms-dot inline-block size-2.5 rounded-full bg-royal" aria-hidden="true" />
+                    <span className="font-mono text-[11px] tracking-wider text-ink/40 sm:text-[12px]">{m.n}</span>
+                    <span className="text-[15px] font-medium leading-snug text-ink">{m.name}</span>
+                    {m.tag ? (
+                      <span className="hidden sm:inline-flex w-fit items-center rounded-sm border border-royal/15 bg-[oklch(0.97_0.02_260)] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-royal justify-self-end">
+                        {m.tag}
+                      </span>
+                    ) : <span />}
+                  </button>
+                </Reveal>
+              );
+            })}
           </ul>
-        </div>
 
+          <div
+            key={detailKey}
+            className="ms-detail sticky top-28 self-start rounded-md border border-rule/60 bg-[oklch(0.985_0.008_85)] p-6 sm:p-8"
+            data-state="in"
+          >
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-royal">
+              Milestone {active.n}
+              {active.tag ? <span className="ml-2 text-ink/40">· {active.tag}</span> : null}
+            </p>
+            <h3 className="mt-3 font-display text-[26px] leading-[1.15] tracking-[-0.01em] text-ink sm:text-[30px]">
+              {active.name}
+            </h3>
+            <p className="mt-4 text-[14.5px] leading-[1.7] text-ink/75">
+              {active.desc}
+            </p>
+            <div className="mt-6 space-y-3.5">
+              {active.impact.map((b) => (
+                <div key={b.label}>
+                  <div className="mb-1.5 flex items-center justify-between text-[11.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
+                    <span>{b.label}</span>
+                    <span className="tabular-nums text-ink/45">{b.value}</span>
+                  </div>
+                  <div className="ms-bar-track">
+                    <div className="ms-bar-fill" style={{ width: `${b.value}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
