@@ -74,47 +74,48 @@ function HeroPath() {
     >
       <defs>
         <linearGradient id="hero-path" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0%" stopColor="oklch(0.72 0.12 262)" stopOpacity="0.15" />
-          <stop offset="40%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.8" />
+          <stop offset="0%" stopColor="oklch(0.72 0.12 262)" stopOpacity="0.12" />
+          <stop offset="35%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.85" />
         </linearGradient>
       </defs>
-      {/* Main sweeping path: rises over a hill on the left, dips beneath the
-          subhead, then climbs off the top-right toward the paper airplane. */}
+      {/* Main sweeping path: long, eased S-curve rising from lower-left,
+          gently dipping beneath the subhead, then easing up toward the plane. */}
       <path
-        d="M -20 300 C 80 210, 160 175, 260 200 S 460 320, 640 300 S 900 220, 1060 150 S 1200 90, 1230 60"
+        d="M -30 290 C 140 230, 260 215, 380 235 S 600 305, 760 280 S 980 200, 1140 120 C 1175 100, 1200 84, 1218 72"
         fill="none"
         stroke="url(#hero-path)"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-        strokeDasharray="2 7"
-      />
-      {/* Small curling trail right behind the airplane */}
-      <path
-        d="M 1110 110 C 1140 92, 1170 78, 1190 70"
-        fill="none"
-        stroke="oklch(0.48 0.18 262 / 0.65)"
         strokeWidth="1"
         strokeLinecap="round"
-        strokeDasharray="1.5 5"
+        strokeDasharray="1.75 8"
       />
-      <circle cx="60" cy="282" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
-      <circle cx="640" cy="300" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
-      <circle cx="1060" cy="150" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
-      {/* Paper airplane glyph */}
-      <g transform="translate(1196 64) rotate(-15)">
+      {/* Eased curling trail right behind the airplane — slightly tighter dash,
+          curls from below up into the plane's tail. */}
+      <path
+        d="M 1095 128 C 1130 108, 1158 90, 1182 76"
+        fill="none"
+        stroke="oklch(0.48 0.18 262 / 0.55)"
+        strokeWidth="0.9"
+        strokeLinecap="round"
+        strokeDasharray="1.25 6"
+      />
+      <circle cx="60" cy="276" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
+      <circle cx="760" cy="280" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
+      <circle cx="1060" cy="170" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
+      {/* Paper airplane glyph — smaller, cleaner triangles */}
+      <g transform="translate(1196 64) rotate(-18)">
         <path
-          d="M 0 0 L 34 -10 L 12 8 Z"
-          fill="oklch(0.72 0.12 262 / 0.18)"
+          d="M 0 0 L 28 -8 L 10 6 Z"
+          fill="oklch(0.72 0.12 262 / 0.16)"
           stroke="oklch(0.48 0.18 262)"
-          strokeWidth="1"
+          strokeWidth="0.9"
           strokeLinejoin="round"
         />
         <path
-          d="M 12 8 L 18 18 L 22 4"
+          d="M 10 6 L 14 14 L 18 3 Z"
           fill="oklch(0.72 0.12 262 / 0.28)"
           stroke="oklch(0.48 0.18 262)"
-          strokeWidth="1"
+          strokeWidth="0.9"
           strokeLinejoin="round"
         />
       </g>
