@@ -12,6 +12,11 @@ import {
   type SortKey,
   type TabCategory,
 } from "@/lib/insights-data";
+import {
+  VIRTUALIZE_THRESHOLD,
+  shouldVirtualize,
+  logVirtualizationTransition,
+} from "@/lib/insights-virtualization";
 
 export const Route = createFileRoute("/insights")({
   head: () => {
@@ -462,10 +467,8 @@ function ArticleList() {
             <div ref={listParentRef} className="relative">
               {(() => {
                 // Virtualize only when the list is large enough to matter.
-                // Below the threshold, render in normal flow so variable row
-                // heights stay correct without measure-then-reposition flicker.
-                const VIRTUALIZE_THRESHOLD = 30;
-                const useVirtual = shown.length >= VIRTUALIZE_THRESHOLD;
+                // Threshold is configurable via VITE_INSIGHTS_VIRTUALIZE_THRESHOLD.
+                const useVirtual = shouldVirtualize(shown.length, VIRTUALIZE_THRESHOLD);
                 const items = useVirtual
                   ? virtualItems.map((vi) => ({
                       key: String(vi.key),
