@@ -326,17 +326,35 @@ function ArticleList() {
 
   const shown = React.useMemo(() => filtered.slice(0, visible), [filtered, visible]);
 
-  // Virtualization — window-scrolling list with measured row heights.
+  // Virtualization: window-scrolling list with measured row heights.
+  // Track the parent's offsetTop in state so the virtualizer's scrollMargin
+  // and the per-item transform offset always use the SAME value (a ref read
+  // during render can lag behind what the virtualizer captured, which
+  // collapses every row to translateY(0)).
+  const [parentOffset, setParentOffset] = React.useState(0);
+  React.useLayoutEffect(() => {
+    const measure = () => {
+      const el = listParentRef.current;
+      if (!el) return;
+      const next = el.getBoundingClientRect().top + window.scrollY;
+      setParentOffset((prev) => (Math.abs(prev - next) > 1 ? next : prev));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [shown.length]);
+
   const virtualizer = useWindowVirtualizer({
     count: shown.length,
-    estimateSize: () => 180,
+    // Realistic estimate for an editorial row (category + 2-line title + blurb).
+    estimateSize: () => 260,
     overscan: 4,
-    scrollMargin: listParentRef.current?.offsetTop ?? 0,
+    scrollMargin: parentOffset,
     getItemKey: (i) => shown[i]?.slug ?? i,
   });
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
-  const offsetTop = listParentRef.current?.offsetTop ?? 0;
+
 
   const resumeAfterLoop = () => {
     fireTimestampsRef.current = [];
