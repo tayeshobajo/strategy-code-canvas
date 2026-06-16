@@ -12,6 +12,11 @@ import {
   type SortKey,
   type TabCategory,
 } from "@/lib/insights-data";
+import {
+  VIRTUALIZE_THRESHOLD,
+  shouldVirtualize,
+  logVirtualizationTransition,
+} from "@/lib/insights-virtualization";
 
 export const Route = createFileRoute("/insights")({
   head: () => {
@@ -326,6 +331,16 @@ function ArticleList() {
 
   const shown = React.useMemo(() => filtered.slice(0, visible), [filtered, visible]);
 
+  // Log once when virtualization toggles on/off so the threshold can be tuned.
+  const virtPrevRef = React.useRef<boolean | null>(null);
+  React.useEffect(() => {
+    virtPrevRef.current = logVirtualizationTransition(
+      virtPrevRef.current,
+      shown.length,
+      VIRTUALIZE_THRESHOLD,
+    );
+  }, [shown.length]);
+
   // Virtualization: window-scrolling list with measured row heights.
   // Track the parent's offsetTop in state so the virtualizer's scrollMargin
   // and the per-item transform offset always use the SAME value (a ref read
@@ -462,10 +477,8 @@ function ArticleList() {
             <div ref={listParentRef} className="relative">
               {(() => {
                 // Virtualize only when the list is large enough to matter.
-                // Below the threshold, render in normal flow so variable row
-                // heights stay correct without measure-then-reposition flicker.
-                const VIRTUALIZE_THRESHOLD = 30;
-                const useVirtual = shown.length >= VIRTUALIZE_THRESHOLD;
+                // Threshold is configurable via VITE_INSIGHTS_VIRTUALIZE_THRESHOLD.
+                const useVirtual = shouldVirtualize(shown.length, VIRTUALIZE_THRESHOLD);
                 const items = useVirtual
                   ? virtualItems.map((vi) => ({
                       key: String(vi.key),
