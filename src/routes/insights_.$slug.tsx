@@ -536,37 +536,10 @@ function InsightArticlePage() {
               {/* Sidebar */}
               <aside className="lg:col-span-4 lg:col-start-9">
                 <div className="lg:sticky lg:top-28">
-                  <nav aria-label="In this article">
-                    <p className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-royal">
-                      In this article
-                    </p>
-                    <ul className="mt-4 relative space-y-1 border-l border-rule/70 pl-0">
-                      {sections.map((sec: { id: string; title: string; paragraphs: string[] }) => {
-                        const isActive = activeId === sec.id;
-                        return (
-                          <li key={sec.id} className="relative">
-                            <span
-                              aria-hidden="true"
-                              className={`absolute left-0 top-0 h-full w-[2px] -ml-px transition-all duration-300 ${
-                                isActive ? "bg-royal opacity-100" : "bg-transparent opacity-0"
-                              }`}
-                            />
-                            <a
-                              href={`#${sec.id}`}
-                              aria-current={isActive ? "location" : undefined}
-                              className={`block py-1.5 pl-4 text-[13.5px] leading-[1.5] transition-all duration-300 ${
-                                isActive
-                                  ? "text-royal font-medium translate-x-0.5"
-                                  : "text-ink/65 hover:text-royal"
-                              }`}
-                            >
-                              {sec.title}
-                            </a>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </nav>
+                  <TocNav
+                    sections={sections}
+                    activeId={activeId}
+                  />
 
                   <hr className="my-8 border-rule/70" />
 
