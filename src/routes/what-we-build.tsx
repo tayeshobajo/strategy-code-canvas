@@ -107,15 +107,95 @@ const FEATURES = [
 ];
 
 // ----- milestones table -----
-const MILESTONES = [
-  { n: "01", name: "Converting Website", tag: null },
-  { n: "02", name: "Connected CRM", tag: null },
-  { n: "03", name: "Lead Engine", tag: null },
-  { n: "04", name: "Client Portal", tag: "Founder Bottleneck Loop™" },
-  { n: "05", name: "AI Support Assistant", tag: "The Intelligence Layer™" },
-  { n: "06", name: "Operating Dashboard", tag: "Visibility Before Scale™" },
-  { n: "07", name: "Workflow Automation", tag: "Systems Before Automation™" },
-  { n: "08", name: "Internal Tools", tag: null },
+type Milestone = {
+  n: string;
+  name: string;
+  tag: string | null;
+  phase: number; // index into PathSVG points (0..5)
+  desc: string;
+  impact: { label: string; value: number }[];
+};
+const MILESTONES: Milestone[] = [
+  {
+    n: "01", name: "Converting Website", tag: null, phase: 1,
+    desc: "The front door that earns attention and turns it into qualified conversation. Built to convert, not impress.",
+    impact: [
+      { label: "Clarity", value: 78 },
+      { label: "Sequence", value: 55 },
+      { label: "Compounding", value: 40 },
+      { label: "Ownership", value: 62 },
+    ],
+  },
+  {
+    n: "02", name: "Connected CRM", tag: null, phase: 1,
+    desc: "A single source of truth for every relationship. The system finally knows what the founder knows.",
+    impact: [
+      { label: "Clarity", value: 84 },
+      { label: "Sequence", value: 70 },
+      { label: "Compounding", value: 58 },
+      { label: "Ownership", value: 72 },
+    ],
+  },
+  {
+    n: "03", name: "Lead Engine", tag: null, phase: 2,
+    desc: "Predictable, sequenced demand. Less hunting, more harvesting — the pipeline becomes a function, not a hope.",
+    impact: [
+      { label: "Clarity", value: 70 },
+      { label: "Sequence", value: 88 },
+      { label: "Compounding", value: 65 },
+      { label: "Ownership", value: 60 },
+    ],
+  },
+  {
+    n: "04", name: "Client Portal", tag: "Founder Bottleneck Loop™", phase: 2,
+    desc: "Where clients self-serve answers, status, and access — and where the founder stops being the routing layer.",
+    impact: [
+      { label: "Clarity", value: 76 },
+      { label: "Sequence", value: 72 },
+      { label: "Compounding", value: 78 },
+      { label: "Ownership", value: 80 },
+    ],
+  },
+  {
+    n: "05", name: "AI Support Assistant", tag: "The Intelligence Layer™", phase: 3,
+    desc: "Reads across the system, answers in context, and escalates only what needs a human. Capacity without headcount.",
+    impact: [
+      { label: "Clarity", value: 82 },
+      { label: "Sequence", value: 75 },
+      { label: "Compounding", value: 90 },
+      { label: "Ownership", value: 70 },
+    ],
+  },
+  {
+    n: "06", name: "Operating Dashboard", tag: "Visibility Before Scale™", phase: 3,
+    desc: "One screen the leadership team trusts. Decisions move from instinct to evidence without slowing down.",
+    impact: [
+      { label: "Clarity", value: 95 },
+      { label: "Sequence", value: 80 },
+      { label: "Compounding", value: 82 },
+      { label: "Ownership", value: 78 },
+    ],
+  },
+  {
+    n: "07", name: "Workflow Automation", tag: "Systems Before Automation™", phase: 4,
+    desc: "Once the work is mapped, the repeatable parts run themselves. The team is freed for judgement, not motion.",
+    impact: [
+      { label: "Clarity", value: 80 },
+      { label: "Sequence", value: 92 },
+      { label: "Compounding", value: 88 },
+      { label: "Ownership", value: 84 },
+    ],
+  },
+  {
+    n: "08", name: "Internal Tools", tag: null, phase: 4,
+    desc: "Bespoke tooling for the workflows no off-the-shelf product knows about. The compounding edge of the business.",
+    impact: [
+      { label: "Clarity", value: 86 },
+      { label: "Sequence", value: 84 },
+      { label: "Compounding", value: 96 },
+      { label: "Ownership", value: 94 },
+    ],
+  },
 ];
 
 // ----- intelligence layer nodes -----
