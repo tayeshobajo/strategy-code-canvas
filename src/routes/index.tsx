@@ -554,14 +554,15 @@ function Hero() {
         <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
           <div className="relative z-10 max-w-[620px]">
-            <h1 className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
+            <Reveal immediate variant="rise" delay={60} as="h1" className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
               We map the journey from where your business is to{" "}
-              <span className="italic text-royal">where it needs to be.</span>
-            </h1>
-            <p className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
+              <span className="italic text-royal drift inline-block">where it needs to be.</span>
+            </Reveal>
+            <span className="hero-hairline mt-5" aria-hidden="true" />
+            <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
               We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B) — and build the first leg toward the position you could own in a decade (Point C).
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
                 Build My Map
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -569,15 +570,15 @@ function Hero() {
               <a href="#pricing" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
                 See what it costs
               </a>
-            </div>
-            <p className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={540} as="p" className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
               <span className="inline-block h-px w-5 bg-ink/40" />
               <span>A 30 minute conversation. No pitch.</span>
-            </p>
+            </Reveal>
           </div>
         </div>
 
-        <div className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
+        <Reveal immediate variant="fade-right" delay={300} className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
           <img
             src={heroAsset.url}
             alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
@@ -585,7 +586,7 @@ function Hero() {
           />
           {/* Feathered seam between text and image */}
           <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block" aria-hidden="true" />
-        </div>
+        </Reveal>
       </div>
     </section>
   );
