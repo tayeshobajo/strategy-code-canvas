@@ -705,6 +705,7 @@ function CloseCTA() {
       />
       <div className={`relative ${container}`}>
         <Reveal as="div" variant="fade-up" className="mx-auto max-w-[680px] text-center">
+          <span className="mx-auto mb-6 block h-px w-10 bg-paper/30" />
           <h2 className="font-display text-[28px] leading-[1.2] tracking-tight text-paper sm:text-[32px] lg:text-[36px]">
             Care more than anyone expects you to.
           </h2>
@@ -720,7 +721,7 @@ function CloseCTA() {
             <PrimaryCTA variant="light">Build My Roadmap</PrimaryCTA>
           </div>
           <p className="mt-4 text-[12px] text-paper/55">
-            A 30-minute conversation. No pitch. For the timing is right and we should talk.
+            A 30-minute conversation. No pitch. If the timing is right we should talk.
           </p>
         </Reveal>
       </div>
