@@ -164,15 +164,26 @@ function MilestonePath() {
     { x: 360, y: 140, label: "Leverage", active: true },
     { x: 510, y: 55, label: "Freedom", labelRight: true },
   ] as const;
+  const pathD =
+    "M 40 230 C 110 200, 160 180, 210 165 S 320 145, 360 140 S 470 95, 510 55";
+  // Sequential traveler: Clarity → Sequence → Leverage → Freedom, then
+  // fades out and loops back to Clarity. keyPoints are the fractional
+  // positions of each stop along the path; duplicated values create the
+  // dwell on each stop so it reads as one dot at a time.
+  const dur = "7s";
+  const keyTimes  = "0;0.06;0.20;0.30;0.44;0.54;0.68;0.86;0.92;1";
+  const keyPoints = "0;0;0.33;0.33;0.66;0.66;1;1;0;0";
+  const opacities = "0;1;1;1;1;1;1;1;0;0";
   return (
     <svg
       viewBox="0 0 580 280"
-      className="h-auto w-full max-w-[560px]"
+      className="h-auto w-full"
       role="img"
       aria-label="Journey path through Clarity, Sequence, Leverage, and Freedom, currently at Leverage."
     >
       <path
-        d="M 40 230 C 110 200, 160 180, 210 165 S 320 145, 360 140 S 470 95, 510 55"
+        id="milestone-track"
+        d={pathD}
         fill="none"
         stroke="oklch(0.48 0.18 262 / 0.45)"
         strokeWidth="1"
@@ -215,6 +226,24 @@ function MilestonePath() {
           )}
         </g>
       ))}
+      <circle r="5" fill="oklch(0.48 0.18 262)" opacity="0">
+        <animate
+          attributeName="opacity"
+          dur={dur}
+          repeatCount="indefinite"
+          values={opacities}
+          keyTimes={keyTimes}
+        />
+        <animateMotion
+          dur={dur}
+          repeatCount="indefinite"
+          calcMode="linear"
+          keyPoints={keyPoints}
+          keyTimes={keyTimes}
+        >
+          <mpath href="#milestone-track" />
+        </animateMotion>
+      </circle>
     </svg>
   );
 }
@@ -224,7 +253,7 @@ function FeaturedArgument() {
   return (
     <section className="border-t border-rule/70" aria-labelledby="featured-heading">
       <div className={`${container} grid grid-cols-1 gap-10 py-16 sm:py-20 lg:grid-cols-12 lg:gap-12`}>
-        <Reveal as="div" variant="fade-up" className="lg:col-span-7">
+        <Reveal as="div" variant="fade-up" className="lg:col-span-6">
           <p className="eyebrow">The Current Argument</p>
           <p className="mt-5 text-[13px] text-ink/55">{featured.category}</p>
           <h2
@@ -247,7 +276,7 @@ function FeaturedArgument() {
             <span className="ml-1 block h-px w-9 bg-royal/60 transition-all group-hover:w-14" aria-hidden="true" />
           </Link>
         </Reveal>
-        <Reveal as="div" variant="fade" delay={120} className="flex items-end justify-end pr-2 lg:col-span-5">
+        <Reveal as="div" variant="fade" delay={120} className="flex items-stretch justify-center lg:col-span-6">
           <MilestonePath />
         </Reveal>
       </div>

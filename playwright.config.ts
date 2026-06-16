@@ -43,12 +43,24 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], viewport: { width: 768, height: 1600 } },
     },
     {
+      name: "laptop-1024",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1024, height: 1600 } },
+    },
+    {
       name: "laptop-1280",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 1600 } },
     },
     {
+      name: "desktop-1440",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 1600 } },
+    },
+    {
       name: "wide-1536",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1536, height: 1600 } },
+    },
+    {
+      name: "wide-1920",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1920, height: 1600 } },
     },
   ],
 });
