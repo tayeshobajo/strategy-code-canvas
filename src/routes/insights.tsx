@@ -441,62 +441,119 @@ function ArticleList() {
               No insights match that search yet.
             </p>
           ) : (
-            <ul className="divide-y divide-rule/70">
-              {shown.map((a, i) => (
-                <li
-                  key={a.slug}
-                  className="group animate-fade-in"
-                  style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}
-                >
-                  <Link
-                    to="/insights/$slug"
-                    params={{ slug: a.slug }}
-                    className="grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 py-7 sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
-                  >
-                    {/* Col 1: dot + category */}
-                    <div className="col-span-2 flex items-center gap-3 sm:col-span-1 sm:items-start sm:pt-[10px]">
-                      <span className="inline-block h-[7px] w-[7px] flex-none rounded-full bg-royal" aria-hidden="true" />
-                      <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/60">
-                        {a.category}
-                      </span>
-                    </div>
-                    {/* Col 2: title + blurb */}
-                    <div className="col-span-2 sm:col-span-1">
-                      <h3 className="font-display text-[20px] font-normal leading-[1.25] tracking-[-0.015em] text-ink transition-colors group-hover:text-royal sm:text-[22px]">
-                        {a.title}
-                      </h3>
-                      <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.65] text-ink/55">{a.blurb}</p>
-                    </div>
-                    {/* Col 3: meta */}
-                    <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:pt-[10px] sm:text-right">
-                      <p>{a.read.replace(" read", "").toUpperCase()} READ</p>
-                      <p>{a.date.toUpperCase()}</p>
-                    </div>
-                    {/* Col 4: arrow */}
-                    <span className="flex items-start justify-end pt-1 text-royal sm:pt-[10px]" aria-hidden="true">
-                      <svg viewBox="0 0 20 20" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1">
-                        <path d="M3 10 H16 M11 5 L16 10 L11 15" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div ref={listParentRef} className="relative">
+              <ul
+                className="relative w-full"
+                style={{ height: `${totalSize}px` }}
+              >
+                {virtualItems.map((vi) => {
+                  const a = shown[vi.index];
+                  if (!a) return null;
+                  const isLast = vi.index === shown.length - 1;
+                  return (
+                    <li
+                      key={vi.key}
+                      data-index={vi.index}
+                      ref={virtualizer.measureElement}
+                      className={`group absolute left-0 top-0 w-full animate-fade-in ${
+                        isLast ? "" : "border-b border-rule/70"
+                      }`}
+                      style={{
+                        transform: `translateY(${vi.start - offsetTop}px)`,
+                        animationDelay: `${Math.min(vi.index, 6) * 40}ms`,
+                      }}
+                    >
+                      <Link
+                        to="/insights/$slug"
+                        params={{ slug: a.slug }}
+                        className="grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 py-7 sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
+                      >
+                        {/* Col 1: dot + category */}
+                        <div className="col-span-2 flex items-center gap-3 sm:col-span-1 sm:items-start sm:pt-[10px]">
+                          <span className="inline-block h-[7px] w-[7px] flex-none rounded-full bg-royal" aria-hidden="true" />
+                          <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/60">
+                            {a.category}
+                          </span>
+                        </div>
+                        {/* Col 2: title + blurb */}
+                        <div className="col-span-2 sm:col-span-1">
+                          <h3 className="font-display text-[20px] font-normal leading-[1.25] tracking-[-0.015em] text-ink transition-colors group-hover:text-royal sm:text-[22px]">
+                            {a.title}
+                          </h3>
+                          <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.65] text-ink/55">{a.blurb}</p>
+                        </div>
+                        {/* Col 3: meta */}
+                        <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:pt-[10px] sm:text-right">
+                          <p>{a.read.replace(" read", "").toUpperCase()} READ</p>
+                          <p>{a.date.toUpperCase()}</p>
+                        </div>
+                        {/* Col 4: arrow */}
+                        <span className="flex items-start justify-end pt-1 text-royal sm:pt-[10px]" aria-hidden="true">
+                          <svg viewBox="0 0 20 20" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1">
+                            <path d="M3 10 H16 M11 5 L16 10 L11 15" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           )}
 
           {/* Sentinel + status */}
-          {hasMore && (
-            <div
-              ref={sentinelRef}
-              aria-hidden="true"
-              className="h-10"
-            />
+          {hasMore && status !== "error" && !loopDetected && (
+            <div ref={sentinelRef} aria-hidden="true" className="h-10" />
           )}
-          <p className="pb-8 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/40" aria-live="polite">
-            {hasMore
-              ? `Loading more (${shown.length} of ${filtered.length})`
-              : `${filtered.length} insight${filtered.length === 1 ? "" : "s"}`}
-          </p>
+
+          <div
+            className="pb-8 pt-2 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/50"
+            aria-live="polite"
+            role="status"
+          >
+            {status === "loading" && (
+              <span className="inline-flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-3 w-3 animate-spin rounded-full border border-royal/30 border-t-royal"
+                />
+                Loading more ({shown.length} of {filteredLen})
+              </span>
+            )}
+            {status === "error" && (
+              <span className="inline-flex flex-col items-center gap-2 text-ink/70 sm:flex-row">
+                <span className="text-rose-600">
+                  {errorMsg ?? "Something went wrong loading more insights."}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void loadNextPage()}
+                  className="rounded-full border border-royal/40 px-3 py-1 text-royal transition-colors hover:bg-royal hover:text-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-royal/40"
+                >
+                  Retry
+                </button>
+              </span>
+            )}
+            {status === "idle" && !loopDetected && (
+              <span>
+                {hasMore
+                  ? `Scroll for more (${shown.length} of ${filteredLen})`
+                  : `${filteredLen} insight${filteredLen === 1 ? "" : "s"}`}
+              </span>
+            )}
+            {loopDetected && (
+              <span className="inline-flex flex-col items-center gap-2 text-amber-700 sm:flex-row">
+                <span>Infinite scroll paused — possible fetch loop detected.</span>
+                <button
+                  type="button"
+                  onClick={resumeAfterLoop}
+                  className="rounded-full border border-amber-700/40 px-3 py-1 transition-colors hover:bg-amber-700 hover:text-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700/40"
+                >
+                  Resume
+                </button>
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </section>
