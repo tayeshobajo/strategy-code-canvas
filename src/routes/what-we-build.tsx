@@ -263,7 +263,7 @@ function Hero() {
             alt="Open Operating Map notebook on a warm desk surface"
             loading="eager"
             decoding="async"
-            className="absolute inset-0 h-full w-full object-cover object-right [transform:translateZ(0)] [backface-visibility:hidden] [will-change:mask-image] lg:[mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.08)_4%,rgba(0,0,0,0.35)_14%,rgba(0,0,0,0.75)_24%,#000_34%)] lg:[-webkit-mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.08)_4%,rgba(0,0,0,0.35)_14%,rgba(0,0,0,0.75)_24%,#000_34%)]"
+            className="absolute inset-0 h-full w-full object-cover object-right lg:hero-photo-fade"
           />
           <div
             className="pointer-events-none absolute inset-y-0 left-0 hidden w-[42%] lg:block"
