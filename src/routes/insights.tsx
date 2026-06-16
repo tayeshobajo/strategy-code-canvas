@@ -109,8 +109,17 @@ function HeroPath() {
       />
       <circle cx="60" cy="290" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
       <circle cx="1175" cy="205" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
-      {/* Paper airplane glyph */}
-      <g transform="translate(1196 64) rotate(-18)">
+      {/* Flight path the paper airplane traces in from the lower-left,
+          following the dashed trail up to its resting spot. */}
+      <path
+        id="hero-flight-path"
+        d="M -50 320 C 60 290, 130 270, 240 282 C 420 295, 560 318, 700 305 C 850 325, 1010 325, 1120 270 C 1220 220, 1230 160, 1130 145 C 1040 132, 1030 88, 1110 82 C 1155 78, 1185 76, 1196 64"
+        fill="none"
+        stroke="none"
+      />
+      {/* Paper airplane glyph — animates along the flight path on mount,
+          then freezes at the resting position in the upper-right. */}
+      <g>
         <path
           d="M 0 0 L 28 -8 L 10 6 Z"
           fill="oklch(0.72 0.12 262 / 0.16)"
@@ -125,6 +134,18 @@ function HeroPath() {
           strokeWidth="0.9"
           strokeLinejoin="round"
         />
+        <animateMotion
+          dur="3.2s"
+          begin="0.3s"
+          fill="freeze"
+          rotate="auto"
+          keyPoints="0;1"
+          keyTimes="0;1"
+          calcMode="spline"
+          keySplines="0.42 0 0.2 1"
+        >
+          <mpath href="#hero-flight-path" />
+        </animateMotion>
       </g>
     </svg>
   );
