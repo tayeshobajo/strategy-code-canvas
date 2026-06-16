@@ -139,3 +139,8 @@
   backface-visibility: hidden;
 }
 
+@keyframes cta-rule {
+  from { width: 0; }
+  to { width: 36px; }
+}
+
