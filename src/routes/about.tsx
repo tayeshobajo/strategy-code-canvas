@@ -67,7 +67,7 @@ export const Route = createFileRoute("/about")({
     const bookHeroUrl = abs(bookHero.url);
     const portraitUrl = abs(taiPortrait.url);
 
-    const title = "About — Trust Tai";
+    const title = "About | Trust Tai";
     const description =
       "From websites to systems to the Roadmap. The standard, the moment, and the hand that draws it.";
     const ogDescription =
@@ -92,7 +92,7 @@ export const Route = createFileRoute("/about")({
         height: 512,
       },
       description:
-        "Trust Tai builds the Roadmap — a careful operating system for businesses that want to ship work worth trusting.",
+        "Trust Tai builds the Roadmap, a careful operating system for businesses that want to ship work worth trusting.",
       founder: { "@id": personId },
     };
 
@@ -273,7 +273,7 @@ function Hero() {
         <Reveal immediate variant="fade-right" delay={300} className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
           <img
             src={bookHero.url}
-            alt="An open leather-bound notebook on a warm stone desk, lit by soft natural light — the standard that started Trust Tai."
+            alt="An open leather-bound notebook on a warm stone desk, lit by soft natural light. The standard that started Trust Tai."
             loading="eager"
             decoding="async"
             // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
@@ -360,8 +360,8 @@ function OneMoment() {
                 for.
               </p>
               <blockquote className="border-l-2 border-royal pl-4 text-[13.5px] text-ink/80">
-                <p className="font-medium text-ink">The right work never is a shortcut.</p>
-                <p>But once the system's right, nothing's it earns.</p>
+                <p className="font-medium text-ink">The right work is never a shortcut.</p>
+                <p>But once the system is right, nothing it earns goes to waste.</p>
               </blockquote>
             </div>
           </Reveal>
@@ -506,7 +506,7 @@ function ThePattern() {
             <Eyebrow>The Pattern</Eyebrow>
             <h2 className="mt-3 font-display text-[28px] leading-[1.15] tracking-tight text-ink sm:text-[34px] lg:text-[38px]">
               A clear, repeatable path, <br />
-              the real people become clear.
+              where the real work becomes clear.
             </h2>
             <div className="mt-6 space-y-4 text-[14px] leading-[1.8] text-ink/75">
               <p>
@@ -778,7 +778,7 @@ function HonestFit() {
             We are not the right partner for everyone.
           </h2>
           <p className="mt-4 text-[13.5px] leading-[1.8] text-ink/65">
-            Founders we partner best with — people who choose becoming over buying, because we go
+            Founders we partner best with: people who choose becoming over buying, because we go
             farther together and stay together over time.
           </p>
         </Reveal>
@@ -787,7 +787,7 @@ function HonestFit() {
           <FitCard
             icon={<Sun className="h-4 w-4" />}
             title="Treatment of Light"
-            body="We value what matters — not what's loud."
+            body="We value what matters, not what's loud."
           />
           <FitCard
             icon={<MapIcon className="h-4 w-4" />}
@@ -944,7 +944,7 @@ function CloseCTA() {
             <p>Your ambition matters, so does your partner. Done right.</p>
             <p>We map the work in 2 weeks, find what fits, and fund it.</p>
             <p>
-              If that's how you build — let's build your Roadmap. If not, that's OK; we are happy to
+              If that's how you build, let's build your Roadmap. If not, that's OK; we are happy to
               point you toward someone who is.
             </p>
           </div>

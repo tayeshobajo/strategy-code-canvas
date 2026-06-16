@@ -54,9 +54,9 @@ function rowSpan(row: Row): { start: number; end: number } {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Trust Tai — The Business Operating Roadmap" },
-      { name: "description", content: "We map the journey from where your business is today to where it needs to be — and build the first leg toward the position you could own in a decade." },
-      { property: "og:title", content: "Trust Tai — The Business Operating Roadmap" },
+      { title: "Trust Tai | The Business Operating Roadmap" },
+      { name: "description", content: "We map the journey from where your business is today to where it needs to be, and build the first leg toward the position you could own in a decade." },
+      { property: "og:title", content: "Trust Tai | The Business Operating Roadmap" },
       { property: "og:description", content: "A living plan from Point A to Point C. Built for founders who are done guessing." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "/" },
@@ -78,7 +78,7 @@ const FEATURES = [
   { icon: Target, title: "Clarity over complexity", body: "We cut through noise and map what matters." },
   { icon: Layers, title: "Strategy and execution", body: "One plan. Real milestones. Measurable outcomes." },
   { icon: Compass, title: "Built to compound", body: "Each milestone strengthens your position long term." },
-  { icon: ShieldCheck, title: "Yours to own", body: "You can carry this roadmap into the future — with or without us." },
+  { icon: ShieldCheck, title: "Yours to own", body: "You can carry this roadmap into the future, with or without us." },
 ];
 
 const CHECKLIST: { label: string; body: string }[] = [
@@ -597,7 +597,7 @@ function Hero() {
             </Reveal>
             <span className="hero-hairline mt-5" aria-hidden="true" />
             <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
-              We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B) — and build the first leg toward the position you could own in a decade (Point C).
+              We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B), and build the first leg toward the position you could own in a decade (Point C).
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
