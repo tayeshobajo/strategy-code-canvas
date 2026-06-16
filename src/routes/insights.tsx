@@ -226,23 +226,29 @@ function MilestonePath() {
           )}
         </g>
       ))}
-      <circle r="5" fill="oklch(0.48 0.18 262)" opacity="0">
+      {/* Dial-in traveler: jumps from milestone to milestone (no slide). */}
+      <circle r="5" fill="oklch(0.48 0.18 262)">
+        <animate
+          attributeName="cx"
+          dur="7s"
+          repeatCount="indefinite"
+          calcMode="discrete"
+          values="40;210;360;510;40"
+        />
+        <animate
+          attributeName="cy"
+          dur="7s"
+          repeatCount="indefinite"
+          calcMode="discrete"
+          values="230;165;140;55;230"
+        />
         <animate
           attributeName="opacity"
-          dur={dur}
+          dur="7s"
           repeatCount="indefinite"
-          values={opacities}
-          keyTimes={keyTimes}
+          values="0;1;1;1;1;0"
+          keyTimes="0;0.04;0.25;0.50;0.75;1"
         />
-        <animateMotion
-          dur={dur}
-          repeatCount="indefinite"
-          calcMode="linear"
-          keyPoints={keyPoints}
-          keyTimes={keyTimes}
-        >
-          <mpath href="#milestone-track" />
-        </animateMotion>
       </circle>
     </svg>
   );
