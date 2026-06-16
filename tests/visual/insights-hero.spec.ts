@@ -25,6 +25,15 @@ test.describe("/insights hero + rows visual regression", () => {
         caret-color: transparent !important;
       }`,
     });
+    // Freeze SMIL animations (animateMotion, animate) inside SVGs so the
+    // moving traveler dot doesn't introduce screenshot noise.
+    await page.evaluate(() => {
+      document.querySelectorAll("svg").forEach((s) => {
+        const anySvg = s as unknown as { pauseAnimations?: () => void; setCurrentTime?: (t: number) => void };
+        anySvg.pauseAnimations?.();
+        anySvg.setCurrentTime?.(0);
+      });
+    });
     // Ensure reveal-on-scroll content is mounted.
     await page.evaluate(() => window.scrollTo(0, 0));
   });
