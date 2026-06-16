@@ -492,8 +492,11 @@ function PatternDiagram() {
 }
 
 function ThePattern() {
+  const { ref, paused } = useInViewPause<HTMLElement>();
   return (
     <section
+      ref={ref}
+      data-anim-paused={paused ? "true" : "false"}
       className="border-y border-rule/50 py-20 lg:py-24"
       style={{ background: "oklch(0.96 0.018 255)" }}
     >
