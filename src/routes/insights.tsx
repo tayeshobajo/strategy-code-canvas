@@ -75,24 +75,48 @@ function HeroPath() {
       <defs>
         <linearGradient id="hero-path" x1="0" x2="1" y1="0" y2="0">
           <stop offset="0%" stopColor="oklch(0.72 0.12 262)" stopOpacity="0.15" />
-          <stop offset="40%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.85" />
+          <stop offset="40%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.8" />
         </linearGradient>
       </defs>
+      {/* Main sweeping path: rises over a hill on the left, dips beneath the
+          subhead, then climbs off the top-right toward the paper airplane. */}
       <path
-        d="M -20 320 C 120 300, 200 280, 300 296 S 520 332, 660 280 S 880 160, 1040 130 S 1180 96, 1220 70"
+        d="M -20 300 C 80 210, 160 175, 260 200 S 460 320, 640 300 S 900 220, 1060 150 S 1200 90, 1230 60"
         fill="none"
         stroke="url(#hero-path)"
         strokeWidth="1.25"
         strokeLinecap="round"
         strokeDasharray="2 7"
       />
-      <circle cx="60" cy="316" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
-      <circle cx="660" cy="280" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
-      <circle cx="1040" cy="130" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
-      <g transform="translate(1188 64) rotate(-18)">
-        <path d="M 0 0 L 28 -8 L 14 6 L 18 14 Z" fill="oklch(0.72 0.12 262 / 0.25)" stroke="oklch(0.48 0.18 262)" strokeWidth="1" strokeLinejoin="round" />
-        <path d="M 0 0 L 14 6" stroke="oklch(0.48 0.18 262)" strokeWidth="1" fill="none" />
+      {/* Small curling trail right behind the airplane */}
+      <path
+        d="M 1110 110 C 1140 92, 1170 78, 1190 70"
+        fill="none"
+        stroke="oklch(0.48 0.18 262 / 0.65)"
+        strokeWidth="1"
+        strokeLinecap="round"
+        strokeDasharray="1.5 5"
+      />
+      <circle cx="60" cy="282" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
+      <circle cx="640" cy="300" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
+      <circle cx="1060" cy="150" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
+      {/* Paper airplane glyph */}
+      <g transform="translate(1196 64) rotate(-15)">
+        <path
+          d="M 0 0 L 34 -10 L 12 8 Z"
+          fill="oklch(0.72 0.12 262 / 0.18)"
+          stroke="oklch(0.48 0.18 262)"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M 12 8 L 18 18 L 22 4"
+          fill="oklch(0.72 0.12 262 / 0.28)"
+          stroke="oklch(0.48 0.18 262)"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
       </g>
     </svg>
   );
@@ -127,20 +151,20 @@ function Hero() {
 
 function MilestonePath() {
   const stops = [
-    { x: 40, y: 220, label: "Clarity" },
-    { x: 200, y: 150, label: "Sequence" },
-    { x: 360, y: 130, label: "Leverage", active: true },
-    { x: 500, y: 50, label: "Freedom" },
-  ];
+    { x: 40, y: 230, label: "Clarity" },
+    { x: 210, y: 165, label: "Sequence" },
+    { x: 360, y: 140, label: "Leverage", active: true },
+    { x: 510, y: 55, label: "Freedom", labelRight: true },
+  ] as const;
   return (
     <svg
-      viewBox="0 0 540 280"
-      className="h-auto w-full max-w-[540px]"
+      viewBox="0 0 580 280"
+      className="h-auto w-full max-w-[560px]"
       role="img"
       aria-label="Journey path through Clarity, Sequence, Leverage, and Freedom, currently at Leverage."
     >
       <path
-        d="M 40 220 C 110 200, 150 165, 200 150 S 310 130, 360 130 S 460 90, 500 50"
+        d="M 40 230 C 110 200, 160 180, 210 165 S 320 145, 360 140 S 470 95, 510 55"
         fill="none"
         stroke="oklch(0.48 0.18 262 / 0.45)"
         strokeWidth="1"
@@ -149,16 +173,38 @@ function MilestonePath() {
       />
       {stops.map((s) => (
         <g key={s.label}>
-          {s.active && (
+          {"active" in s && s.active && (
             <>
-              <circle cx={s.x} cy={s.y} r="14" fill="none" stroke="oklch(0.48 0.18 262 / 0.35)" strokeWidth="1" className="ring-breathe" />
-              <circle cx={s.x} cy={s.y} r="9" fill="none" stroke="oklch(0.48 0.18 262 / 0.5)" strokeWidth="1" />
+              <circle cx={s.x} cy={s.y} r="13" fill="none" stroke="oklch(0.48 0.18 262 / 0.35)" strokeWidth="1" className="ring-breathe" />
+              <circle cx={s.x} cy={s.y} r="8" fill="none" stroke="oklch(0.48 0.18 262 / 0.55)" strokeWidth="1" />
             </>
           )}
-          <circle cx={s.x} cy={s.y} r={s.active ? 4 : 3} fill="oklch(0.48 0.18 262)" />
-          <text x={s.x} y={s.y + 26} textAnchor="middle" fontFamily="var(--font-mono)" fontSize="11" fill={s.active ? "oklch(0.48 0.18 262)" : "oklch(0.4 0.04 260)"} opacity={s.active ? 1 : 0.7}>
-            {s.label}
-          </text>
+          <circle cx={s.x} cy={s.y} r={"active" in s && s.active ? 4 : 3} fill="oklch(0.48 0.18 262)" />
+          {"labelRight" in s && s.labelRight ? (
+            <text
+              x={s.x + 12}
+              y={s.y + 4}
+              textAnchor="start"
+              fontFamily="var(--font-mono)"
+              fontSize="11"
+              fill="oklch(0.4 0.04 260)"
+              opacity={0.75}
+            >
+              {s.label}
+            </text>
+          ) : (
+            <text
+              x={s.x}
+              y={s.y + 22}
+              textAnchor="middle"
+              fontFamily="var(--font-mono)"
+              fontSize="11"
+              fill={"active" in s && s.active ? "oklch(0.48 0.18 262)" : "oklch(0.4 0.04 260)"}
+              opacity={"active" in s && s.active ? 1 : 0.75}
+            >
+              {s.label}
+            </text>
+          )}
         </g>
       ))}
     </svg>
@@ -508,7 +554,7 @@ function ArticleList() {
                           key={key}
                           data-index={index}
                           ref={measureRef}
-                          className={`group animate-fade-in ${
+                          className={`animate-fade-in ${
                             useVirtual
                               ? `absolute left-0 top-0 w-full ${isLast ? "" : "border-b border-rule/70"}`
                               : ""
@@ -521,15 +567,16 @@ function ArticleList() {
                           <Link
                             to="/insights/$slug"
                             params={{ slug: a.slug }}
-                            className="grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 py-7 sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
+                            className="group -mx-4 grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 rounded-sm px-4 py-7 transition-colors duration-200 hover:bg-royal/[0.04] sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
                           >
                             {/* Col 1: dot + category */}
-                            <div className="col-span-2 flex items-center gap-3 sm:col-span-1 sm:items-start sm:pt-[10px]">
+                            <div className="col-span-2 flex items-center gap-3 sm:col-span-1">
                               <span className="inline-block h-[7px] w-[7px] flex-none rounded-full bg-royal" aria-hidden="true" />
                               <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/60">
                                 {a.category}
                               </span>
                             </div>
+
                             {/* Col 2: title + blurb */}
                             <div className="col-span-2 sm:col-span-1">
                               <h3 className="font-display text-[20px] font-normal leading-[1.25] tracking-[-0.015em] text-ink transition-colors group-hover:text-royal sm:text-[22px]">
