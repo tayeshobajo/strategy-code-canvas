@@ -82,4 +82,18 @@ test.describe("/insights hero + rows visual regression", () => {
     await list.scrollIntoViewIfNeeded();
     await expect(list).toHaveScreenshot(`rows-${testInfo.project.name}.png`);
   });
+
+  test("featured argument (current argument + milestone svg) screenshot", async ({ page }, testInfo) => {
+    const section = page.locator("section[aria-labelledby='featured-heading']");
+    await section.scrollIntoViewIfNeeded();
+    // Re-pause SMIL after scroll in case any new svg mounted via reveal.
+    await page.evaluate(() => {
+      document.querySelectorAll("svg").forEach((s) => {
+        const anySvg = s as unknown as { pauseAnimations?: () => void; setCurrentTime?: (t: number) => void };
+        anySvg.pauseAnimations?.();
+        anySvg.setCurrentTime?.(0);
+      });
+    });
+    await expect(section).toHaveScreenshot(`featured-${testInfo.project.name}.png`);
+  });
 });
