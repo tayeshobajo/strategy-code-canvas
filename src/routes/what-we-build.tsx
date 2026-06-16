@@ -320,33 +320,36 @@ function FeatureRow() {
 
 // ----------- MAPPED PATH -----------
 function MappedPath() {
+  const { ref, inView } = useReveal<HTMLDivElement>();
   return (
-    <section className="bg-[oklch(0.965_0.012_255)]">
+    <section ref={ref} className="bg-[oklch(0.965_0.012_255)]">
       <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.3fr)] lg:gap-20 lg:py-32">
         <div>
-          <p className="eyebrow mb-5">The Walk</p>
-          <h2 className="font-display text-[34px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[40px]">
+          <Reveal as="p" variant="fade-up" className="eyebrow mb-5">The Walk</Reveal>
+          <Reveal as="h2" variant="rise" delay={80} className="font-display text-[34px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[40px]">
             Every build sits on
             <br />a mapped path.
-          </h2>
-          <p className="mt-6 max-w-[400px] text-[14px] leading-[1.75] text-ink/70">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[400px] text-[14px] leading-[1.75] text-ink/70">
             Your map names three points: where the business is today, where it
             needs to be in 24 months, and the position it could own in a decade.
             Each phase on the path is one engagement. Each milestone is a
             capability the business unlocks.
-          </p>
-          <a
-            href="#"
-            className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80"
-          >
-            See how the map gets built
-            <ArrowRight className="size-3.5" strokeWidth={2} />
-          </a>
+          </Reveal>
+          <Reveal variant="fade-up" delay={360}>
+            <a
+              href="#"
+              className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80"
+            >
+              See how the map gets built
+              <ArrowRight className="size-3.5" strokeWidth={2} />
+            </a>
+          </Reveal>
         </div>
 
         <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
           <div className="min-w-[640px] sm:min-w-0">
-            <PathSVG />
+            <PathSVG revealed={inView} />
           </div>
         </div>
       </div>
@@ -354,8 +357,7 @@ function MappedPath() {
   );
 }
 
-function PathSVG() {
-  // Three labelled stops (A, B, C) and three phase points between.
+function PathSVG({ revealed }: { revealed: boolean }) {
   const W = 760;
   const H = 240;
   const points = [
@@ -367,53 +369,67 @@ function PathSVG() {
     { x: 700, y: 90, label: "C", title: "Point C", sub: "The position you could own", sub2: "(10 years)", filled: true, outlined: true },
   ];
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" aria-hidden="true">
-      <line x1="60" y1="90" x2="700" y2="90" stroke="oklch(0.82 0.02 255)" strokeWidth="1" />
-      {points.map((p, i) => (
-        <g key={i}>
-          {p.small ? (
-            <circle cx={p.x} cy={p.y} r="5" fill="#0a1733" />
-          ) : p.outlined ? (
-            <>
-              <circle cx={p.x} cy={p.y} r="11" fill="white" stroke="var(--royal)" strokeWidth="2" />
-              <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--royal)">{p.label}</text>
-            </>
-          ) : (
-            <>
-              <circle cx={p.x} cy={p.y} r="13" fill="var(--royal)" />
-              <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="11" fontWeight="600" fill="white">{p.label}</text>
-            </>
-          )}
-          {p.title && (
-            <text x={p.x} y={p.y + 36} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--ink)">
-              {p.title}
-            </text>
-          )}
-          {p.sub && (
-            <text x={p.x} y={p.y + 52} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)">
-              {p.sub}
-            </text>
-          )}
-          {("sub2" in p) && p.sub2 && (
-            <text x={p.x} y={p.y + 65} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)">
-              {p.sub2}
-            </text>
-          )}
-          {p.small && (
-            <text x={p.x} y={p.y + 22} textAnchor="middle" fontSize="10" fill="oklch(0.45 0.02 260)">
-              {p.label}
-            </text>
-          )}
-        </g>
-      ))}
-      {/* asset thread bracket */}
-      <path d={`M 80 180 Q ${W / 2} 200 ${W - 100} 180`} fill="none" stroke="oklch(0.82 0.02 255)" strokeWidth="1" />
-      <text x={W / 2} y="222" textAnchor="middle" fontSize="9" letterSpacing="2" fill="var(--royal)">
+    <svg viewBox={`0 0 ${W} ${H}`} className={`svg-reveal h-auto w-full ${revealed ? "is-revealed" : ""}`} aria-hidden="true">
+      <line
+        x1="60" y1="90" x2="700" y2="90"
+        stroke="oklch(0.82 0.02 255)" strokeWidth="1"
+        data-anim="line"
+        style={{ ["--len" as never]: "640" }}
+      />
+      {points.map((p, i) => {
+        const dotDelay = `${600 + i * 90}ms`;
+        const labelDelay = `${900 + i * 90}ms`;
+        return (
+          <g key={i}>
+            {p.small ? (
+              <circle cx={p.x} cy={p.y} r="5" fill="#0a1733" data-anim="dot" style={{ ["--d" as never]: dotDelay }} />
+            ) : p.outlined ? (
+              <g data-anim="dot" style={{ ["--d" as never]: dotDelay, transformBox: "fill-box", transformOrigin: "center" }}>
+                <circle cx={p.x} cy={p.y} r="11" fill="white" stroke="var(--royal)" strokeWidth="2" />
+                <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--royal)">{p.label}</text>
+              </g>
+            ) : (
+              <g data-anim="dot" style={{ ["--d" as never]: dotDelay, transformBox: "fill-box", transformOrigin: "center" }}>
+                <circle cx={p.x} cy={p.y} r="13" fill="var(--royal)" />
+                <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="11" fontWeight="600" fill="white">{p.label}</text>
+              </g>
+            )}
+            {p.title && (
+              <text x={p.x} y={p.y + 36} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--ink)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
+                {p.title}
+              </text>
+            )}
+            {p.sub && (
+              <text x={p.x} y={p.y + 52} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
+                {p.sub}
+              </text>
+            )}
+            {("sub2" in p) && p.sub2 && (
+              <text x={p.x} y={p.y + 65} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
+                {p.sub2}
+              </text>
+            )}
+            {p.small && (
+              <text x={p.x} y={p.y + 22} textAnchor="middle" fontSize="10" fill="oklch(0.45 0.02 260)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
+                {p.label}
+              </text>
+            )}
+          </g>
+        );
+      })}
+      <path
+        d={`M 80 180 Q ${W / 2} 200 ${W - 100} 180`}
+        fill="none" stroke="oklch(0.82 0.02 255)" strokeWidth="1"
+        data-anim="line"
+        style={{ ["--len" as never]: "600", animationDelay: "1100ms" }}
+      />
+      <text x={W / 2} y="222" textAnchor="middle" fontSize="9" letterSpacing="2" fill="var(--royal)" data-anim="fade" style={{ ["--d" as never]: "1700ms" }}>
         ASSET THREAD
       </text>
     </svg>
   );
 }
+
 
 // ----------- MILESTONES -----------
 function Milestones() {
