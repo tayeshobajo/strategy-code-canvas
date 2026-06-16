@@ -410,8 +410,8 @@ function TheConductor() {
             </ul>
           </Reveal>
 
-          <Reveal as="aside" variant="fade-up" delay={200} className="lg:col-span-2">
-            <div className="rounded-md border border-rule/70 bg-white/60 p-4 text-[12.5px] leading-[1.6] text-ink/75">
+          <Reveal as="div" variant="fade-up" delay={200} className="lg:col-span-2">
+            <aside className="rounded-md border border-rule/70 bg-white/60 p-4 text-[12.5px] leading-[1.6] text-ink/75">
               <Compass className="h-4 w-4 text-royal" />
               <p className="mt-3">
                 We do the hard work so your mindset can lead the Roadmap.
