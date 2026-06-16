@@ -71,6 +71,8 @@ import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
 import ctaBg from "@/assets/cta-section-background.jpg.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Reveal, useReveal } from "@/hooks/use-reveal";
+
 
 export const Route = createFileRoute("/what-we-build")({
   head: () => ({
