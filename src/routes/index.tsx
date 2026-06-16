@@ -577,7 +577,7 @@ function Header() {
           ))}
         </nav>
         <a href="#cta" className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-paper transition-transform hover:scale-[1.02]">
-          Build My Map <ArrowRight className="h-3.5 w-3.5" />
+          Build My Roadmap <ArrowRight className="h-3.5 w-3.5" />
         </a>
       </div>
     </header>
@@ -601,7 +601,7 @@ function Hero() {
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
-                Build My Map
+                Build My Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
               <a href="#pricing" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
@@ -664,7 +664,7 @@ function RoadmapSection() {
             A living plan. Specific.<br />Sequenced. Yours.
           </Reveal>
           <Reveal as="p" variant="fade-up" delay={180} className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
-            The Operating Map turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.
+            The Roadmap turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.
           </Reveal>
           <ul className="mt-8 space-y-4">
             {CHECKLIST.map((c, i) => (
@@ -702,7 +702,7 @@ function RoadmapPanel() {
       <div className="flex items-center justify-between border-b border-rule px-6 py-3.5">
         <div>
           <div className="font-display text-lg text-ink">Trust Tai</div>
-          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/55">Operating Map</div>
+          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/55">Roadmap</div>
         </div>
         <div className="hidden gap-10 text-[11px] sm:flex">
           {[
@@ -746,7 +746,7 @@ function RoadmapPanel() {
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-y-3 border-t border-rule/70 pt-3.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
 
-            <div>24 Month Operating Map · 8 Quarters, Sequenced</div>
+            <div>24 Month Roadmap · 8 Quarters, Sequenced</div>
             <div className="flex items-center gap-6 whitespace-nowrap">
               {[
                 { l: "Mapped", c: "bg-royal-soft/35" },
@@ -931,7 +931,7 @@ function Pricing() {
   return (
     <section id="pricing" className="bg-paper">
       <div className="mx-auto max-w-[1280px] px-6 py-24 lg:px-10">
-        {/* Header row: intro + Operating Map card */}
+        {/* Header row: intro + Roadmap card */}
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
           <div>
             <Reveal as="p" variant="fade-up" className="eyebrow">Investment</Reveal>
@@ -948,12 +948,12 @@ function Pricing() {
               <div className="shrink-0 overflow-hidden rounded-md border border-rule bg-secondary/40">
                 <img
                   src={heroAsset.url}
-                  alt="The Operating Map cover"
+                  alt="The Roadmap cover"
                   className="h-32 w-40 object-cover sm:h-36 sm:w-44"
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-display text-xl leading-none text-ink">The Operating Map</h3>
+                <h3 className="font-display text-xl leading-none text-ink">The Roadmap</h3>
                 <p className="mt-3 text-[13.5px] leading-relaxed text-ink/65">
                   The master plan that maps your journey from Point A to Point B to Point C.
                 </p>
@@ -988,7 +988,7 @@ function Pricing() {
             href="#cta"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
           >
-            Build My Map
+            Build My Roadmap
             <ArrowRight className="h-4 w-4" />
           </a>
           <a
@@ -1158,7 +1158,7 @@ function CTABand() {
             href="#"
             className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-paper px-7 text-[13.5px] font-semibold text-ink shadow-[0_0_40px_-10px_oklch(0.85_0.18_252/0.55)] transition-transform hover:scale-[1.02] sm:w-auto"
           >
-            Build My Map <ArrowRight className="h-4 w-4" />
+            Build My Roadmap <ArrowRight className="h-4 w-4" />
           </a>
         </div>
       </div>
@@ -1173,7 +1173,7 @@ function CTABand() {
           <div>
             <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-paper/45">Navigation</div>
             <ul className="mt-4 space-y-2 text-[13px] text-paper/80">
-              <li><a href="#roadmap" className="hover:text-paper">The Map</a></li>
+              <li><a href="#roadmap" className="hover:text-paper">The Roadmap</a></li>
               <li><a href="#what" className="hover:text-paper">Our Builds</a></li>
               <li><a href="#about" className="hover:text-paper">Our Story</a></li>
               <li><a href="#insights" className="hover:text-paper">Insights</a></li>

@@ -101,57 +101,54 @@ function AboutPage() {
 /* ---------------------- HERO ---------------------- */
 function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-rule/60 bg-paper pt-28 lg:pt-32">
-      <div className={container}>
-        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
-          <Reveal as="div" variant="fade-up" className="lg:col-span-6 lg:pr-6">
-            <Eyebrow>The Story</Eyebrow>
-            <h1 className="mt-4 font-display text-[40px] leading-[1.05] tracking-tight text-ink sm:text-[52px] lg:text-[58px]">
-              From websites to <br className="hidden sm:inline" />
-              systems to the Roadmap.
-            </h1>
-            <span className="hero-hairline mt-6" />
-            <div className="mt-6 max-w-[52ch] space-y-4 text-[14.5px] leading-[1.75] text-ink/75">
-              <p>
-                Trust Tai launched a decade ago because Tai Shobajo had a standard, not a business plan.
-                The instinct was simple to say and hard to hold:{" "}
-                <span className="font-medium text-ink">care more than anyone expects you to.</span>
-              </p>
-              <p>
-                The first years were builds. Websites, platforms, systems, one founder at a time. Two
-                hundred and sixty-six of them across ten years, seventeen thousand hours, without a single
-                year of zero. The standard was never lowered to close a deal.
-              </p>
-            </div>
-            <div className="mt-8 flex flex-wrap items-center gap-5">
-              <PrimaryCTA>Build My Roadmap</PrimaryCTA>
-              <GhostLink to="/what-we-build">See what we've built</GhostLink>
-            </div>
-            <p className="mt-6 text-[12px] text-ink/55">
-              A 20+ year of real results. A team in the room. A partner that measures.
-            </p>
-          </Reveal>
-
-          <Reveal as="div" variant="fade" delay={120} className="relative lg:col-span-6">
-            <div className="relative overflow-hidden rounded-md">
-              <img
-                src={bookHero.url}
-                alt="Open book on a warm stone desk with the line: Care more than anyone expects you to."
-                className="block h-auto w-full"
-                loading="eager"
-              />
-              {/* soft left feather into paper */}
-              <div
-                className="pointer-events-none absolute inset-y-0 left-0 w-[26%]"
-                style={{
-                  background:
-                    "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 60%, transparent) 55%, transparent 100%)",
-                }}
-              />
-            </div>
-          </Reveal>
+    <section id="overview" className="relative w-full overflow-hidden bg-paper">
+      <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
+        <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
+          <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
+          <div className="relative z-10 max-w-[620px]">
+            <Reveal immediate variant="fade-up" delay={0} as="p" className="eyebrow mb-6">The Story</Reveal>
+            <Reveal immediate variant="rise" delay={120} as="h1" className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
+              From websites to systems to{" "}
+              <span className="italic text-royal drift inline-block">the Roadmap.</span>
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
+              Trust Tai launched a decade ago because Tai Shobajo had a standard, not a business plan. The instinct was simple to say and hard to hold: care more than anyone expects you to.
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
+                Build My Roadmap
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </a>
+              <Link to="/what-we-build" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
+                See what we've built
+              </Link>
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={540} as="p" className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+              <span className="inline-block h-px w-5 bg-ink/40" />
+              <span>A standard, a moment, and the hand that draws it.</span>
+            </Reveal>
+          </div>
         </div>
-        <div className="h-16 lg:h-24" />
+
+        <Reveal immediate variant="fade-right" delay={300} className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
+          <img
+            src={bookHero.url}
+            alt="An open leather-bound notebook on a warm stone desk, lit by soft natural light — the standard that started Trust Tai."
+            loading="eager"
+            decoding="async"
+            // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+            fetchpriority="high"
+            className="absolute inset-0 h-full w-full object-cover object-right lg:hero-photo-fade"
+          />
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[42%] lg:block"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 80%, transparent) 30%, color-mix(in oklab, var(--paper) 40%, transparent) 60%, transparent 100%)",
+            }}
+            aria-hidden="true"
+          />
+        </Reveal>
       </div>
     </section>
   );
