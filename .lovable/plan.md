@@ -1,40 +1,40 @@
-## /about styling review — section-by-section polish
+## Animate the About page
 
-Reviewed the rendered page against the source. Hero, dark "How We Think" section, and footer are all on-style. Five sections need targeted fixes; nothing structural changes.
+Pure CSS / SVG animations, scoped to `/about`. No new libraries, no copy or layout changes. All animations respect `prefers-reduced-motion` (existing global rule already disables anything `animation: none !important`).
 
-### 1. The Reality — `MiniBrowserCard`
-The card on the left reads as a placeholder: empty browser chrome with a lone heart icon floating in a beige rectangle. Tighten it so it visually represents "the anniversary site, three days, made with care":
-- Replace the centered heart with a small composed mock: a centered serif "ONE" wordmark, a thin royal hairline beneath, two faux lines of body, and a small dotted path in the corner (echoes the Roadmap motif).
-- Keep the same dimensions, border, and shadow.
-- Caption stays "Putting people first".
+### 1. The Pattern — dots converge and travel the Roadmap
+File: `src/routes/about.tsx` `PatternDiagram` + new CSS in `src/styles.css`.
 
-### 2. The Pattern — diagram labels
-`PatternDiagram` labels currently sit at y=210–238 and visually crowd the curving path on smaller widths. Fix:
-- Move the "Details & Systems / Solve real problems" label block down and left so it anchors under the scatter cluster (not under the path).
-- Raise "The Roadmap" caption a touch and add a subtle 1px royal underline so it reads as a destination label, matching the target rings.
-- Increase `viewBox` height from 240 → 260 so nothing is clipped.
+- Give each scatter particle a class `pattern-dot` with a per-dot `--i` index.
+  - Animation: gentle inward drift (toward the start of the curve `~170,150`) on a 7–10s loop, with the dot fading from 0 → its base opacity, then easing back. Stagger by `--i`.
+- The dotted curving `path` gets a `path-travel` class:
+  - Use `stroke-dasharray` / `stroke-dashoffset` to "draw" the path on reveal (one-shot, 1.6s).
+  - After the draw, run a continuous "marching ants" effect by animating `stroke-dashoffset` from 0 → `-9` on a 1.4s linear loop (matches the existing `2 7` dash so dots appear to flow along the path toward the target rings).
+- Add a small "traveler" `<circle>` that follows the path using SVG `<animateMotion>` with the same path `d`, 4.5s loop, easing in-out, ending at the rings — reinforces "moving through the Roadmap." Hidden when reduced motion.
+- Target rings: the outer ring already exists; add a slow `pulse-soft` (reuse existing keyframe) on the middle ring + glow circle so the destination breathes.
 
-### 3. The Conductor — column proportions
-The 5 / 5 / 2 grid leaves the right "side note" card ~160px wide; text wraps every 2–3 words ("We do the hard / work so your / mindset…").
-- Change grid to `lg:grid-cols-12` with portrait 5, body 4, aside 3.
-- Aside: add a top hairline, increase padding to `p-5`, tighten line-height. Move the small Compass icon inline with the first line rather than stacked above.
-- Also fix the awkward second line: "Business runs better, and character builds what lasts." (typo: "built" → "builds").
+### 2. How We Think — stars twinkle (and the CTA constellation)
+- The dark `HowWeThink` section currently uses `contour-bg` (no stars). Add a non-intrusive `<StarsField>` SVG layer absolutely positioned behind the content (low opacity, `pointer-events-none`, `aria-hidden`) so it does not affect layout or contrast of the principle cards.
+  - 40–50 seeded stars sized 0.5–1.6px with class `twinkle-star` and a per-star `--d` delay + `--dur` (2.4s–5.5s).
+  - Keyframe `star-twinkle`: opacity 0.25 ↔ 1, scale 0.9 ↔ 1.15, alternating infinite.
+- The existing `ConstellationBG` in `CloseCTA` also gets the `twinkle-star` class on each star + the glow circle pulses slowly. Same keyframe, longer durations so the two sections feel related but not identical.
 
-### 4. The Commitment — `FitCard` icons
-Icons don't match titles:
-- "Treatment of Light" → use `Sun` (lucide) instead of `Gauge`.
-- "Discipline Without a Map" → keep `MapIcon` (reads correctly as the discipline of the map).
-- "Price Alone" → swap `Tag` for `Scale` (value over price reads better than a price tag).
-- Add `transition-shadow` and a subtle hover lift to match the dark principle cards' interaction register.
+### 3. Close / CTA — paper plane flying
+- Add a `<PaperPlane />` SVG (small, ~28px) inside `CloseCTA`, absolutely positioned, behind the text, above the constellation layer.
+- A faint dotted royal/paper trail path (similar to the Pattern curve) arcs from lower-left up and across to upper-right, exiting offscreen.
+- The plane uses SVG `<animateMotion>` along that path with `rotate="auto"` so it tilts with the curve. Duration 9s, loops, with a small pause at the end (use `keyTimes`/`keySplines` or restart after delay via `begin="0s;plane.end+1.2s"`).
+- Trail draws in once on reveal (stroke-dashoffset), then stays. Plane and trail both `pointer-events-none` and `aria-hidden`.
+- Hidden under reduced motion.
 
-### 5. Close / CTA — micro-polish
-- Final line reads "For the timing is right and we should talk." — change "For" → "If" (typo).
-- Add 1px paper/15 hairline above the headline to echo the hero's accent rule and tie the section to the rest of the page.
+### 4. Light ambient touches (already partially present, keep minimal)
+- The hero `drift` on "the Roadmap." italic stays as-is.
+- No new animations on Hero, The Reality, The Conductor, Honest Fit — those sections rely on the existing `Reveal` scroll-in and should stay calm.
+
+### Implementation surface
+- `src/routes/about.tsx`: extend `PatternDiagram`, `ConstellationBG`, `HowWeThink`, `CloseCTA`. Add `StarsField` and `PaperPlane` helper components in the same file.
+- `src/styles.css`: add keyframes `star-twinkle`, `path-march`, `pattern-converge`, `plane-trail-draw`; add a `prefers-reduced-motion` short-circuit for each.
 
 ### Out of scope
-- No copy rewrites beyond the two typos called out (Conductor aside, CTA footnote).
-- No changes to Hero, How We Think, or Footer.
-- No changes to JSON-LD, head tags, or routing.
-
-### Files touched
-- `src/routes/about.tsx` only.
+- No JS-driven animation libraries.
+- No changes to copy, layout, colors, or the Roadmap panel on `/`.
+- No changes to `Hero`, `OneMoment`, `TheConductor`, `HonestFit` aside from leaving their reveals intact.
