@@ -149,7 +149,7 @@ function Hero() {
             Not trends. Positions. Read three and you will know how we think.
           </p>
         </Reveal>
-        <div className="mt-16 sm:mt-20 lg:mt-24" />
+        <div className="mt-20 sm:mt-28 lg:mt-32" />
       </div>
     </section>
   );
