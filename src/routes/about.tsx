@@ -599,8 +599,8 @@ function FitCard({
   body: string;
 }) {
   return (
-    <div className="rounded-md border border-rule/70 bg-white/60 p-6">
-      <div className="flex h-9 w-9 items-center justify-center rounded-sm border border-royal/30 text-royal">
+    <div className="group rounded-md border border-rule/70 bg-white/60 p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-royal/30 hover:shadow-[0_18px_40px_-28px_rgba(10,23,51,0.25)]">
+      <div className="flex h-9 w-9 items-center justify-center rounded-sm border border-royal/30 text-royal transition-colors group-hover:border-royal/60">
         {icon}
       </div>
       <h3 className="mt-4 font-display text-[18px] leading-snug text-ink">{title}</h3>
