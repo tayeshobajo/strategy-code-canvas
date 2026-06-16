@@ -609,34 +609,36 @@ function FooterCTA() {
       id="cta"
       className="relative scroll-mt-32 overflow-hidden bg-[oklch(0.14_0.05_265)] text-white"
       style={{
-        backgroundImage: `linear-gradient(to left, oklch(0.14 0.05 265) 0%, oklch(0.14 0.05 265 / 0.88) 45%, oklch(0.14 0.05 265 / 0.55) 80%, oklch(0.14 0.05 265 / 0.35) 100%), url(${starscapeImg.url})`,
+        backgroundImage: `linear-gradient(to right, oklch(0.14 0.05 265 / 0.25) 0%, oklch(0.14 0.05 265 / 0.85) 40%, oklch(0.14 0.05 265) 58%, oklch(0.14 0.05 265) 100%), url(${starscapeImg.url})`,
         backgroundSize: "cover",
         backgroundPosition: "left center",
+        backgroundRepeat: "no-repeat",
       }}
     >
-      <div className={`${container} grid grid-cols-1 gap-10 py-20 sm:py-24 lg:grid-cols-12 lg:gap-16 lg:py-28`}>
+      <div className={`${container} grid grid-cols-1 gap-10 py-16 sm:py-20 lg:grid-cols-12 lg:gap-12 lg:py-20`}>
         <div className="hidden lg:col-span-5 lg:block" />
         <div className="lg:col-span-7">
-          <h2 className="font-display font-normal text-[28px] leading-[1.12] tracking-[-0.018em] text-white sm:text-[38px] lg:text-[42px] animate-fade-in [animation-delay:80ms] opacity-0 [animation-fill-mode:forwards]">
+          <h2 className="font-display font-normal text-[28px] leading-[1.15] tracking-[-0.018em] text-white sm:text-[36px] lg:text-[40px] animate-fade-in [animation-delay:80ms] opacity-0 [animation-fill-mode:forwards]">
             Businesses without a map do not fail. They scatter.
           </h2>
-          <p className="mt-6 max-w-[58ch] text-[14px] leading-[1.75] text-white/70 animate-fade-in [animation-delay:220ms] opacity-0 [animation-fill-mode:forwards]">
+          <p className="mt-5 max-w-[60ch] text-[13.5px] leading-[1.7] text-white/70 animate-fade-in [animation-delay:220ms] opacity-0 [animation-fill-mode:forwards]">
             Years go into the right work in the wrong order. The cost was never the spend. The cost is the years. The first step is a 30-minute conversation. We name your number, show you the shape of the walk, and tell you honestly whether we are the ones to build your bridge. If we are not, we will say so, and point you to who is.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3 animate-fade-in [animation-delay:340ms] opacity-0 [animation-fill-mode:forwards]">
-            <a href="#" className="group inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[13px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]">
+          <div className="mt-7 flex flex-wrap items-center gap-2 animate-fade-in [animation-delay:340ms] opacity-0 [animation-fill-mode:forwards]">
+            <a href="#" className="group inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[12.5px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]">
               Build My Map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
-            <a href="#map" className="group inline-flex items-center gap-2 rounded-full px-4 py-3 text-[13px] font-medium text-white/80 transition-colors duration-300 hover:text-white">
+            <a href="#map" className="group inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-medium text-white/80 transition-colors duration-300 hover:text-white">
               Start with the map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
           </div>
-          <p className="mt-8 max-w-[52ch] text-[11.5px] leading-[1.75] text-white/50 animate-fade-in [animation-delay:460ms] opacity-0 [animation-fill-mode:forwards]">
+          <p className="mt-6 max-w-[52ch] text-[11.5px] leading-[1.75] text-white/50 animate-fade-in [animation-delay:460ms] opacity-0 [animation-fill-mode:forwards]">
             A 30-minute conversation. No pitch. If the timing is right, we should talk. If it is not, the work is waiting when it is.
           </p>
 
         </div>
       </div>
+
 
       <footer className="border-t border-white/10">
         <div className={`${container} grid grid-cols-1 gap-8 py-10 sm:grid-cols-3`}>
