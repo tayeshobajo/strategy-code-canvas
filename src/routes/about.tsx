@@ -343,7 +343,7 @@ function PatternDiagram() {
     }));
   }, []);
   return (
-    <svg viewBox="0 0 620 240" className="h-auto w-full">
+    <svg viewBox="0 0 620 260" className="h-auto w-full">
       <defs>
         <radialGradient id="ring-glow" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="var(--royal)" stopOpacity="0.35" />
@@ -382,19 +382,19 @@ function PatternDiagram() {
       <circle cx="560" cy="90" r="10" fill="none" stroke="var(--royal)" strokeWidth="1.2" opacity="0.8" />
       <circle cx="560" cy="90" r="4.5" fill="var(--royal)" />
 
-      <text x="175" y="210" fontFamily="Inter, sans-serif" fontSize="11" fill="oklch(0.4 0.04 260)">
+      <text x="60" y="232" fontFamily="Inter, sans-serif" fontSize="11" fill="oklch(0.4 0.04 260)">
         Details
       </text>
-      <text x="175" y="224" fontFamily="Inter, sans-serif" fontSize="11" fill="oklch(0.4 0.04 260)">
+      <text x="60" y="246" fontFamily="Inter, sans-serif" fontSize="11" fill="oklch(0.4 0.04 260)">
         &amp; Systems
       </text>
-      <text x="175" y="238" fontFamily="Inter, sans-serif" fontSize="10.5" fill="oklch(0.5 0.03 260)">
+      <text x="120" y="246" fontFamily="Inter, sans-serif" fontSize="10.5" fill="oklch(0.5 0.03 260)">
         Solve real problems
       </text>
 
       <text
         x="560"
-        y="135"
+        y="128"
         textAnchor="middle"
         fontFamily="Inter, sans-serif"
         fontSize="11"
@@ -402,6 +402,7 @@ function PatternDiagram() {
       >
         The Roadmap
       </text>
+      <line x1="540" y1="134" x2="580" y2="134" stroke="var(--royal)" strokeWidth="1" opacity="0.6" />
     </svg>
   );
 }
