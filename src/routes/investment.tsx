@@ -100,7 +100,14 @@ function Hero() {
             fetchpriority="high"
             className="absolute inset-0 h-full w-full object-cover object-right lg:hero-photo-fade"
           />
-          <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block" aria-hidden="true" />
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[42%] lg:block"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 80%, transparent) 30%, color-mix(in oklab, var(--paper) 40%, transparent) 60%, transparent 100%)",
+            }}
+            aria-hidden="true"
+          />
         </Reveal>
       </div>
     </section>
