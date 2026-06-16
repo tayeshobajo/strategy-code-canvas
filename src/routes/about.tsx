@@ -811,13 +811,15 @@ function HonestFit() {
 
 /* ---------------------- CLOSE / CTA ---------------------- */
 function ConstellationBG() {
+  const isSmall = useIsSmallViewport();
+  const count = isSmall ? 30 : 70;
   const stars = React.useMemo(() => {
     const seeded = (i: number) => {
       const x = Math.sin(i * 7.13) * 43758.5453;
       return x - Math.floor(x);
     };
     const round = (n: number, p = 2) => Math.round(n * 10 ** p) / 10 ** p;
-    return Array.from({ length: 70 }).map((_, i) => ({
+    return Array.from({ length: count }).map((_, i) => ({
       x: round(seeded(i) * 380),
       y: round(seeded(i + 9) * 260),
       r: round(0.4 + seeded(i + 19) * 1.6),
