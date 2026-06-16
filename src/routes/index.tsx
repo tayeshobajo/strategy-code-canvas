@@ -770,7 +770,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
   const [active, setActive] = useState(0);
   const rows = TAB_DATA[active].rows;
   return (
-    <>
+    <TooltipProvider delayDuration={120} skipDelayDuration={200}>
       <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">
         Example build orders by business type
       </div>
