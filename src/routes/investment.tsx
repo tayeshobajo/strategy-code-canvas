@@ -597,9 +597,9 @@ function FooterCTA() {
       id="cta"
       className="relative scroll-mt-32 overflow-hidden bg-[oklch(0.14_0.05_265)] text-white"
       style={{
-        backgroundImage: `linear-gradient(to right, oklch(0.14 0.05 265) 0%, oklch(0.14 0.05 265 / 0.85) 45%, oklch(0.14 0.05 265 / 0.55) 100%), url(${starscapeImg.url})`,
+        backgroundImage: `linear-gradient(to left, oklch(0.14 0.05 265) 0%, oklch(0.14 0.05 265 / 0.88) 45%, oklch(0.14 0.05 265 / 0.55) 80%, oklch(0.14 0.05 265 / 0.35) 100%), url(${starscapeImg.url})`,
         backgroundSize: "cover",
-        backgroundPosition: "center",
+        backgroundPosition: "left center",
       }}
     >
       <div className={`${container} grid grid-cols-1 gap-10 py-20 sm:py-24 lg:grid-cols-12 lg:gap-16 lg:py-28`}>
