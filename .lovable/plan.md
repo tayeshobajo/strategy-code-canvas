@@ -1,43 +1,95 @@
-# Hero photo feather + Sand CTA background
+# Bring the What We Build page alive
 
-Two scoped CSS/markup updates in `src/routes/what-we-build.tsx` and one token addition in `src/styles.css`. No copy, asset, or layout changes.
+Quiet, editorial motion that fires as each section scrolls into view. No new libraries — pure CSS keyframes + a tiny IntersectionObserver hook. Respects `prefers-reduced-motion`.
 
-## 1. Hero photo: feathered left edge
+## 1. Shared infrastructure
 
-Current `Hero()` has a 24-wide left-edge gradient overlay (`from-paper to-transparent`). The seam still reads as a hard photo edge because:
-- The gradient is too narrow (`w-24`) and only `to-transparent` (no mid-stop).
-- The image keeps its own crisp boundary even where the overlay fades.
+**New hook `src/hooks/use-reveal.ts`**
+- `useReveal<T extends Element>(options?)` — returns a ref and an `inView` boolean. Uses `IntersectionObserver` with `threshold: 0.15`, `rootMargin: "0px 0px -10% 0px"`, fires once then disconnects.
+- Reads `window.matchMedia('(prefers-reduced-motion: reduce)')` — if reduced, returns `inView: true` immediately so content is visible without motion.
 
-Changes inside `Hero()` (lines 260-267):
-- Apply a `mask-image` directly to the `<img>` so the photo itself fades on its left edge:
-  `style={{ WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.15) 6%, rgba(0,0,0,0.6) 16%, #000 28%)", maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.15) 6%, rgba(0,0,0,0.6) 16%, #000 28%)" }}`
-- Widen + soften the paper-color overlay above the image so the photo's warm tones blend into `--paper` rather than meeting a hard edge: change `w-24 bg-gradient-to-r from-paper to-transparent` to `w-[38%] bg-[linear-gradient(to_right,var(--paper)_0%,color-mix(in_oklab,var(--paper)_75%,transparent)_35%,transparent_100%)]`.
-- Keep `lg:block` so the feather only applies on the two-column desktop layout.
+**New `Reveal` component (in the same file)**
+- Wraps children, applies a `data-revealed` attribute on the wrapper when in view. Optional `delay` prop (ms) sets `style={{ '--reveal-delay': ... }}`.
+- Variants via prop: `"fade"` (default), `"fade-up"`, `"fade-right"`, `"rise"` (slightly larger translateY for headlines).
 
-## 2. CTA section: full-width sand background with subtle texture
+**New CSS in `src/styles.css`**
+- `[data-reveal]` initial state: `opacity:0; transform:translateY(14px); transition: opacity 700ms cubic-bezier(.2,.6,.2,1) var(--reveal-delay,0ms), transform 700ms cubic-bezier(.2,.6,.2,1) var(--reveal-delay,0ms);`
+- `[data-reveal][data-revealed="true"]`: `opacity:1; transform:none;`
+- Variant overrides for `fade-right` (translateX), `rise` (translateY 24px).
+- New keyframes used by section-specific motion below:
+  - `@keyframes draw-line { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }`
+  - `@keyframes pulse-soft { 0%,100% { opacity:.55 } 50% { opacity:1 } }`
+  - `@keyframes drift-y { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }`
+- `@media (prefers-reduced-motion: reduce) { [data-reveal]{transition:none; opacity:1; transform:none } * { animation: none !important } }`
 
-Current `BottomCTA()` uses `bg-paper` (off-white). The reference is a warmer sand tone with faint contour/paper texture and soft top-left light wash.
+## 2. Per-section motion (`src/routes/what-we-build.tsx`)
 
-Changes:
+### Hero
+- Page-load (not scroll, since it's above the fold): wrap eyebrow, headline, body, button row, footnote in `Reveal` with staggered delays `0, 120, 240, 360, 480 ms`. Variant `rise` on the headline.
+- Hero photo: add `data-reveal` with `fade-right` variant + 300ms delay so the image eases in from the right edge as the mask reveals.
+- Subtle continuous "breathing" on the headline italic word `the map.`: 6s `drift-y` infinite, only above `prefers-reduced-motion: no-preference`.
 
-a. Add a sand token + texture utility in `src/styles.css` (after the existing `hero-texture` utility):
+### Feature Row (4 icons)
+- Section heading: `Reveal rise`.
+- Each of the four feature cards: `Reveal fade-up` with staggered delay `i * 90ms` (0/90/180/270).
+- Icon stroke draw-in: give each inline SVG a `stroke-dasharray` of e.g. 200 and animate `stroke-dashoffset` from 200→0 over 900ms when the parent reveals (via `[data-revealed="true"] svg path, ... circle, ... rect` selector + the `draw-line` keyframe). Set `--len: 200` per icon group via inline style.
 
-```css
-@utility sand-bg {
-  background-color: oklch(0.93 0.022 78);
-  background-image:
-    radial-gradient(ellipse 60% 45% at 15% 0%, oklch(1 0 0 / 0.45), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 90% 100%, oklch(0.85 0.03 75 / 0.35), transparent 65%),
-    repeating-radial-gradient(ellipse 70% 50% at 30% 40%, transparent 0, transparent 58px, oklch(0.35 0.04 70 / 0.04) 58px, oklch(0.35 0.04 70 / 0.04) 59px),
-    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.28  0 0 0 0 0.18  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-```
+### Mapped Path (SVG timeline)
+- Section heading + body: stagger reveal.
+- `PathSVG`: when the section reveals, animate
+  - the main horizontal line: stroke-dash draw from left to right (1.2s),
+  - then the 6 points scale-in (0→1) with staggered 80ms each starting at 600ms,
+  - then the "asset thread" curved bracket draws in,
+  - "ASSET THREAD" label fades in last.
+  - Implemented via a `revealed` boolean from `useReveal` passed into `PathSVG`, which toggles a class on the `<svg>`; CSS scopes `.is-revealed line { animation: draw-line 1.2s forwards } .is-revealed circle { animation: scale-pop .5s var(--d) forwards }` etc.
 
-b. In `BottomCTA()` (line 673): swap `bg-paper` for `sand-bg`, and remove the border-top hairline (or keep a softer one) since the band now stands on its own color. The container stays full-width (it already is — `section` is block-level).
+### Milestones list
+- Heading column: `Reveal rise`.
+- Each `<li>` milestone: `Reveal fade-up` with `delay = i * 60ms`. The royal dot scales from 0→1 with a tiny overshoot (`cubic-bezier(.34,1.4,.64,1)`).
+
+### Intelligence Layer
+- Heading + body + outcomes list: stagger reveal (fade-right for outcomes from the right column).
+- `ILDiagram`: on reveal,
+  - left and right pills: fade + translate inward from their respective edges, staggered by row,
+  - connectors (`<path>`): `draw-line` animation 1s, starting after pills land,
+  - core circle: scale-in with the radial glow opacity rising,
+  - small continuous pulse on the glow (`pulse-soft` 4s infinite) — subtle, since the section is dark and a gentle pulse reads as "alive".
+- Outcome dots: each adds a soft `pulse-soft 3s infinite` with staggered delays so they twinkle calmly.
+
+### Standards Row (5 steps)
+- Heading: `Reveal rise`.
+- Dotted connector line between numbered circles: width grows from 0%→80% (left-to-right) over 1s when revealed.
+- Each step (circle + icon + title + body): stagger `i * 110ms`, fade-up. Number circles get the same stroke-draw-in treatment as the feature icons.
+
+### Before / After
+- Heading column: rise reveal.
+- "Before the map" card: fade-up. Its scatter dots fade in individually staggered (60ms each) — scattered, restless feel.
+- "After the map" card: fade-up with 200ms delay. Then:
+  - The trend line draws left-to-right via `draw-line` (1.2s).
+  - Each dot scales in along the path as the line passes (delays computed from x position).
+  - The arrow between cards (`ArrowRight`) translates from -8px to 0px and fades in once both cards are revealed.
+
+### Bottom CTA
+- Already has staggered fade-in animations — leave as-is, but flip from page-load to scroll-triggered by wrapping the column in `useReveal` and gating the existing keyframes on `data-revealed="true"`.
+
+### Footer
+- Single `Reveal fade-up` for the whole footer row, no stagger (calm closer).
+
+## 3. Performance & accessibility
+
+- All animations animate only `opacity` and `transform` (plus SVG `stroke-dashoffset`) — composited, no layout thrash.
+- `IntersectionObserver` disconnects after first reveal per element.
+- `prefers-reduced-motion: reduce` short-circuits everything: content visible, no transitions, no infinite pulses/drifts.
+- No JS scroll listeners, no rAF loops, no parallax math — keeps the page light.
+
+## Files touched
+
+- New: `src/hooks/use-reveal.ts` (hook + `Reveal` wrapper component)
+- Edit: `src/styles.css` (reveal base styles, new keyframes, reduced-motion guard)
+- Edit: `src/routes/what-we-build.tsx` (wrap sections in `Reveal`, thread `revealed` flag into `PathSVG` / `ILDiagram` / `TrendChart` / `ScatterChart`, add scoped className hooks)
 
 ## Out of scope
-- No copy, button, image, layout, or column-ratio changes.
-- No changes to other sections, hero text, or footer.
 
-## Validation
-Playwright at 1280px + 375px: screenshot the hero seam and the CTA band; verify the photo fades smoothly into the cream and the CTA reads as a warm sand band with subtle texture matching the reference.
+- No copy, layout, color, or asset changes.
+- No new dependencies (no Framer Motion / GSAP — CSS + IO is enough for this aesthetic).
+- No changes to other routes.

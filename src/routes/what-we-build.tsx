@@ -71,6 +71,8 @@ import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
 import ctaBg from "@/assets/cta-section-background.jpg.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Reveal, useReveal } from "@/hooks/use-reveal";
+
 
 export const Route = createFileRoute("/what-we-build")({
   head: () => ({
@@ -233,15 +235,15 @@ function Hero() {
         <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
           <div className="relative z-10 max-w-[620px]">
-            <p className="eyebrow mb-6">What We Build</p>
-            <h1 className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
+            <Reveal immediate variant="fade-up" delay={0} as="p" className="eyebrow mb-6">What We Build</Reveal>
+            <Reveal immediate variant="rise" delay={120} as="h1" className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
               The milestones inside{" "}
-              <span className="italic text-royal">the map.</span>
-            </h1>
-            <p className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
+              <span className="italic text-royal drift inline-block">the map.</span>
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
               Everything we build sits inside your Operating Map, in the order the business calls for it. Each milestone removes friction, sharpens execution, and strengthens the position you are building toward.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
                 Build My Map
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -249,15 +251,15 @@ function Hero() {
               <a href="#" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
                 See the full investment page
               </a>
-            </div>
-            <p className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={540} as="p" className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
               <span className="inline-block h-px w-5 bg-ink/40" />
               <span>Built for founders. Designed to compound.</span>
-            </p>
+            </Reveal>
           </div>
         </div>
 
-        <div className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
+        <Reveal immediate variant="fade-right" delay={300} className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
           <img
             src={heroBook.url}
             alt="Open Operating Map notebook on a warm desk surface"
@@ -273,7 +275,8 @@ function Hero() {
             }}
             aria-hidden="true"
           />
-        </div>
+        </Reveal>
+
       </div>
     </section>
   );
@@ -284,16 +287,20 @@ function FeatureRow() {
   return (
     <section className="border-t border-rule/60 bg-white">
       <div className="mx-auto max-w-[1280px] px-6 py-24 sm:px-10 lg:py-28">
-        <h2 className="text-center font-display text-[32px] leading-tight tracking-[-0.02em] text-ink sm:text-[40px]">
+        <Reveal variant="rise" as="h2" className="text-center font-display text-[32px] leading-tight tracking-[-0.02em] text-ink sm:text-[40px]">
           Built by sequence, not guesswork.
-        </h2>
+        </Reveal>
         <div className="mt-16 grid grid-cols-2 gap-y-12 md:grid-cols-4">
           {FEATURES.map((f, i) => (
-            <div
+            <Reveal
               key={f.title}
+              variant="fade-up"
+              delay={i * 110}
+              iconStagger
               className={`flex flex-col items-center px-6 text-center ${
                 i > 0 ? "md:border-l md:border-ink/10" : ""
               }`}
+              style={{ ["--len" as never]: "260" }}
             >
               <f.icon className="mb-6 h-14 w-14" />
               <h3 className="font-display text-[18px] leading-tight tracking-[-0.01em] text-ink">
@@ -302,43 +309,47 @@ function FeatureRow() {
               <p className="mt-3 max-w-[200px] text-[13px] leading-[1.6] text-ink/65">
                 {f.body}
               </p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
     </section>
+
   );
 }
 
 // ----------- MAPPED PATH -----------
 function MappedPath() {
+  const { ref, inView } = useReveal<HTMLDivElement>();
   return (
-    <section className="bg-[oklch(0.965_0.012_255)]">
+    <section ref={ref} className="bg-[oklch(0.965_0.012_255)]">
       <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.3fr)] lg:gap-20 lg:py-32">
         <div>
-          <p className="eyebrow mb-5">The Walk</p>
-          <h2 className="font-display text-[34px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[40px]">
+          <Reveal as="p" variant="fade-up" className="eyebrow mb-5">The Walk</Reveal>
+          <Reveal as="h2" variant="rise" delay={80} className="font-display text-[34px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[40px]">
             Every build sits on
             <br />a mapped path.
-          </h2>
-          <p className="mt-6 max-w-[400px] text-[14px] leading-[1.75] text-ink/70">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[400px] text-[14px] leading-[1.75] text-ink/70">
             Your map names three points: where the business is today, where it
             needs to be in 24 months, and the position it could own in a decade.
             Each phase on the path is one engagement. Each milestone is a
             capability the business unlocks.
-          </p>
-          <a
-            href="#"
-            className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80"
-          >
-            See how the map gets built
-            <ArrowRight className="size-3.5" strokeWidth={2} />
-          </a>
+          </Reveal>
+          <Reveal variant="fade-up" delay={360}>
+            <a
+              href="#"
+              className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80"
+            >
+              See how the map gets built
+              <ArrowRight className="size-3.5" strokeWidth={2} />
+            </a>
+          </Reveal>
         </div>
 
         <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
           <div className="min-w-[640px] sm:min-w-0">
-            <PathSVG />
+            <PathSVG revealed={inView} />
           </div>
         </div>
       </div>
@@ -346,8 +357,7 @@ function MappedPath() {
   );
 }
 
-function PathSVG() {
-  // Three labelled stops (A, B, C) and three phase points between.
+function PathSVG({ revealed }: { revealed: boolean }) {
   const W = 760;
   const H = 240;
   const points = [
@@ -359,53 +369,67 @@ function PathSVG() {
     { x: 700, y: 90, label: "C", title: "Point C", sub: "The position you could own", sub2: "(10 years)", filled: true, outlined: true },
   ];
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" aria-hidden="true">
-      <line x1="60" y1="90" x2="700" y2="90" stroke="oklch(0.82 0.02 255)" strokeWidth="1" />
-      {points.map((p, i) => (
-        <g key={i}>
-          {p.small ? (
-            <circle cx={p.x} cy={p.y} r="5" fill="#0a1733" />
-          ) : p.outlined ? (
-            <>
-              <circle cx={p.x} cy={p.y} r="11" fill="white" stroke="var(--royal)" strokeWidth="2" />
-              <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--royal)">{p.label}</text>
-            </>
-          ) : (
-            <>
-              <circle cx={p.x} cy={p.y} r="13" fill="var(--royal)" />
-              <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="11" fontWeight="600" fill="white">{p.label}</text>
-            </>
-          )}
-          {p.title && (
-            <text x={p.x} y={p.y + 36} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--ink)">
-              {p.title}
-            </text>
-          )}
-          {p.sub && (
-            <text x={p.x} y={p.y + 52} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)">
-              {p.sub}
-            </text>
-          )}
-          {("sub2" in p) && p.sub2 && (
-            <text x={p.x} y={p.y + 65} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)">
-              {p.sub2}
-            </text>
-          )}
-          {p.small && (
-            <text x={p.x} y={p.y + 22} textAnchor="middle" fontSize="10" fill="oklch(0.45 0.02 260)">
-              {p.label}
-            </text>
-          )}
-        </g>
-      ))}
-      {/* asset thread bracket */}
-      <path d={`M 80 180 Q ${W / 2} 200 ${W - 100} 180`} fill="none" stroke="oklch(0.82 0.02 255)" strokeWidth="1" />
-      <text x={W / 2} y="222" textAnchor="middle" fontSize="9" letterSpacing="2" fill="var(--royal)">
+    <svg viewBox={`0 0 ${W} ${H}`} className={`svg-reveal h-auto w-full ${revealed ? "is-revealed" : ""}`} aria-hidden="true">
+      <line
+        x1="60" y1="90" x2="700" y2="90"
+        stroke="oklch(0.82 0.02 255)" strokeWidth="1"
+        data-anim="line"
+        style={{ ["--len" as never]: "640" }}
+      />
+      {points.map((p, i) => {
+        const dotDelay = `${600 + i * 90}ms`;
+        const labelDelay = `${900 + i * 90}ms`;
+        return (
+          <g key={i}>
+            {p.small ? (
+              <circle cx={p.x} cy={p.y} r="5" fill="#0a1733" data-anim="dot" style={{ ["--d" as never]: dotDelay }} />
+            ) : p.outlined ? (
+              <g data-anim="dot" style={{ ["--d" as never]: dotDelay, transformBox: "fill-box", transformOrigin: "center" }}>
+                <circle cx={p.x} cy={p.y} r="11" fill="white" stroke="var(--royal)" strokeWidth="2" />
+                <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--royal)">{p.label}</text>
+              </g>
+            ) : (
+              <g data-anim="dot" style={{ ["--d" as never]: dotDelay, transformBox: "fill-box", transformOrigin: "center" }}>
+                <circle cx={p.x} cy={p.y} r="13" fill="var(--royal)" />
+                <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="11" fontWeight="600" fill="white">{p.label}</text>
+              </g>
+            )}
+            {p.title && (
+              <text x={p.x} y={p.y + 36} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--ink)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
+                {p.title}
+              </text>
+            )}
+            {p.sub && (
+              <text x={p.x} y={p.y + 52} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
+                {p.sub}
+              </text>
+            )}
+            {("sub2" in p) && p.sub2 && (
+              <text x={p.x} y={p.y + 65} textAnchor="middle" fontSize="9.5" fill="oklch(0.45 0.02 260)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
+                {p.sub2}
+              </text>
+            )}
+            {p.small && (
+              <text x={p.x} y={p.y + 22} textAnchor="middle" fontSize="10" fill="oklch(0.45 0.02 260)" data-anim="fade" style={{ ["--d" as never]: labelDelay }}>
+                {p.label}
+              </text>
+            )}
+          </g>
+        );
+      })}
+      <path
+        d={`M 80 180 Q ${W / 2} 200 ${W - 100} 180`}
+        fill="none" stroke="oklch(0.82 0.02 255)" strokeWidth="1"
+        data-anim="line"
+        style={{ ["--len" as never]: "600", animationDelay: "1100ms" }}
+      />
+      <text x={W / 2} y="222" textAnchor="middle" fontSize="9" letterSpacing="2" fill="var(--royal)" data-anim="fade" style={{ ["--d" as never]: "1700ms" }}>
         ASSET THREAD
       </text>
     </svg>
   );
 }
+
 
 // ----------- MILESTONES -----------
 function Milestones() {
@@ -413,26 +437,29 @@ function Milestones() {
     <section className="border-t border-rule/60 bg-white">
       <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)] lg:gap-16 lg:py-32">
         <div>
-          <p className="eyebrow mb-5">The Milestones</p>
-          <h2 className="font-display text-[32px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[36px]">
+          <Reveal as="p" variant="fade-up" className="eyebrow mb-5">The Milestones</Reveal>
+          <Reveal as="h2" variant="rise" delay={80} className="font-display text-[32px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[36px]">
             Eight milestones.
             <br />
             One connected
             <br />
             operating layer.
-          </h2>
-          <p className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-ink/70">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-ink/70">
             These systems work together to remove friction, raise visibility,
             and create the capacity to lead what comes next. Your map names
             which ones you need, when, and in what order.
-          </p>
+          </Reveal>
         </div>
 
         <div>
           <ul className="divide-y divide-rule/60">
-            {MILESTONES.map((m) => (
-              <li
+            {MILESTONES.map((m, i) => (
+              <Reveal
+                as="li"
                 key={m.n}
+                variant="fade-up"
+                delay={i * 70}
                 className="grid grid-cols-[20px_minmax(0,1fr)] items-start gap-x-4 gap-y-2 py-5 sm:grid-cols-[20px_28px_minmax(0,1fr)_auto] sm:items-center sm:gap-x-5"
               >
                 <span className="mt-1.5 size-2.5 rounded-full bg-royal sm:mt-0 sm:size-3" aria-hidden="true" />
@@ -447,10 +474,11 @@ function Milestones() {
                     {m.tag}
                   </span>
                 )}
-              </li>
+              </Reveal>
             ))}
           </ul>
         </div>
+
       </div>
     </section>
   );
@@ -458,45 +486,47 @@ function Milestones() {
 
 // ----------- INTELLIGENCE LAYER -----------
 function IntelligenceLayer() {
+  const { ref, inView } = useReveal<HTMLDivElement>();
   return (
-    <section className="relative overflow-hidden bg-[#08122b] text-paper">
+    <section ref={ref} className="relative overflow-hidden bg-[#08122b] text-paper">
       <div className="absolute inset-0 opacity-60">
         <div
           className="absolute inset-0"
           style={{
             background:
               "radial-gradient(ellipse 50% 60% at 50% 50%, rgba(80,140,255,0.18), transparent 70%)",
+            animation: "pulse-soft 6s ease-in-out infinite",
           }}
         />
       </div>
       <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 gap-14 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)_minmax(0,0.55fr)] lg:gap-12 lg:py-32">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#7aa6ff]">
+          <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#7aa6ff]">
             The Intelligence Layer
-          </p>
-          <h2 className="mt-5 font-display text-[32px] leading-[1.1] tracking-[-0.02em] sm:text-[38px]">
+          </Reveal>
+          <Reveal as="h2" variant="rise" delay={80} className="mt-5 font-display text-[32px] leading-[1.1] tracking-[-0.02em] sm:text-[38px]">
             One layer
             <br />
             reads all of it.
-          </h2>
-          <p className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-paper/70">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-paper/70">
             Every build creates signals. The intelligence layer reads across the
             system so the business can see what comes next.
-          </p>
+          </Reveal>
         </div>
 
         <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
           <div className="min-w-[560px] sm:min-w-0">
-            <ILDiagram />
+            <ILDiagram revealed={inView} />
           </div>
         </div>
 
         <ul className="flex flex-col justify-center gap-5 lg:border-l lg:border-white/10 lg:pl-8">
-          {IL_OUTCOMES.map((o) => (
-            <li key={o} className="flex items-center gap-3 text-[14px]">
-              <span className="size-2 rounded-full bg-[#5b8cff] shadow-[0_0_10px_rgba(91,140,255,0.8)]" />
+          {IL_OUTCOMES.map((o, i) => (
+            <Reveal as="li" key={o} variant="fade-right" delay={400 + i * 100} className="flex items-center gap-3 text-[14px]">
+              <span className="size-2 rounded-full bg-[#5b8cff] shadow-[0_0_10px_rgba(91,140,255,0.8)] pulse-dot" style={{ animationDelay: `${i * 400}ms` }} />
               <span className="text-paper/85">{o}</span>
-            </li>
+            </Reveal>
           ))}
         </ul>
       </div>
@@ -504,7 +534,7 @@ function IntelligenceLayer() {
   );
 }
 
-function ILDiagram() {
+function ILDiagram({ revealed }: { revealed: boolean }) {
   const W = 560;
   const H = 360;
   const cx = W / 2;
@@ -513,7 +543,7 @@ function ILDiagram() {
   const rightX = W - 90;
   const ys = [60, 140, 220, 300];
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full">
+    <svg viewBox={`0 0 ${W} ${H}`} className={`svg-reveal h-auto w-full ${revealed ? "is-revealed" : ""}`}>
       <defs>
         <radialGradient id="core" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#6da4ff" stopOpacity="0.9" />
@@ -522,34 +552,38 @@ function ILDiagram() {
         </radialGradient>
       </defs>
       {/* connectors */}
-      {ys.map((y, i) => (
-        <g key={`l${i}`}>
-          <path d={`M ${leftX + 60} ${y} C ${cx - 80} ${y}, ${cx - 60} ${cy}, ${cx - 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" />
-          <path d={`M ${rightX - 60} ${y} C ${cx + 80} ${y}, ${cx + 60} ${cy}, ${cx + 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" />
-        </g>
-      ))}
+      {ys.map((y, i) => {
+        const d = `${400 + i * 120}ms`;
+        return (
+          <g key={`l${i}`}>
+            <path d={`M ${leftX + 60} ${y} C ${cx - 80} ${y}, ${cx - 60} ${cy}, ${cx - 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" data-anim="line" style={{ ["--len" as never]: "260", animationDelay: d }} />
+            <path d={`M ${rightX - 60} ${y} C ${cx + 80} ${y}, ${cx + 60} ${cy}, ${cx + 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" data-anim="line" style={{ ["--len" as never]: "260", animationDelay: d }} />
+          </g>
+        );
+      })}
       {/* glow core */}
-      <circle cx={cx} cy={cy} r="110" fill="url(#core)" />
-      <circle cx={cx} cy={cy} r="48" fill="#0a1733" stroke="#5b8cff" strokeWidth="1.5" />
-      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui">The</text>
-      <text x={cx} y={cy + 10} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui">Intelligence</text>
-      <text x={cx} y={cy + 24} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui">Layer</text>
+      <circle cx={cx} cy={cy} r="110" fill="url(#core)" data-anim="dot" style={{ ["--d" as never]: "200ms" }} />
+      <circle cx={cx} cy={cy} r="48" fill="#0a1733" stroke="#5b8cff" strokeWidth="1.5" data-anim="dot" style={{ ["--d" as never]: "300ms" }} />
+      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui" data-anim="fade" style={{ ["--d" as never]: "600ms" }}>The</text>
+      <text x={cx} y={cy + 10} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui" data-anim="fade" style={{ ["--d" as never]: "650ms" }}>Intelligence</text>
+      <text x={cx} y={cy + 24} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui" data-anim="fade" style={{ ["--d" as never]: "700ms" }}>Layer</text>
 
       {/* left pills */}
       {IL_LEFT.map((label, i) => (
-        <g key={label}>
+        <g key={label} data-anim="fade" style={{ ["--d" as never]: `${i * 90}ms` }}>
           <rect x={leftX - 60} y={ys[i] - 15} rx="15" ry="15" width="120" height="30" fill="rgba(255,255,255,0.04)" stroke="rgba(140,180,255,0.35)" />
           <text x={leftX} y={ys[i] + 4} textAnchor="middle" fontSize="10.5" fill="#dde7ff">{label}</text>
         </g>
       ))}
       {IL_RIGHT.map((label, i) => (
-        <g key={label}>
+        <g key={label} data-anim="fade" style={{ ["--d" as never]: `${i * 90}ms` }}>
           <rect x={rightX - 60} y={ys[i] - 15} rx="15" ry="15" width="120" height="30" fill="rgba(255,255,255,0.04)" stroke="rgba(140,180,255,0.35)" />
           <text x={rightX} y={ys[i] + 4} textAnchor="middle" fontSize="10.5" fill="#dde7ff">{label}</text>
         </g>
       ))}
     </svg>
   );
+
 }
 
 // ----------- STANDARDS ROW -----------
@@ -557,37 +591,45 @@ function StandardsRow() {
   return (
     <section className="border-t border-rule/60 bg-white">
       <div className="mx-auto max-w-[1280px] px-6 py-24 sm:px-10 lg:py-32">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,2fr)] lg:gap-16">
+        <Reveal variant="fade-up" className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,2fr)] lg:gap-16">
           <div>
-            <p className="eyebrow mb-5">The Standard</p>
-            <h2 className="font-display text-[32px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[36px]">
+            <Reveal as="p" variant="fade-up" className="eyebrow mb-5">The Standard</Reveal>
+            <Reveal as="h2" variant="rise" delay={80} className="font-display text-[32px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[36px]">
               How every
               <br />
               milestone gets built.
-            </h2>
+            </Reveal>
           </div>
 
           <div className="relative">
             {/* dotted connector between numbered circles */}
             <div
-              className="absolute left-[10%] right-[10%] top-[26px] hidden h-px md:block"
+              className="connector-grow absolute left-[10%] right-[10%] top-[26px] hidden h-px md:block"
               style={{ backgroundImage: "repeating-linear-gradient(to right, color-mix(in oklab, var(--ink) 22%, transparent) 0 3px, transparent 3px 8px)" }}
               aria-hidden="true"
             />
             <div className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 md:grid-cols-5">
-              {STANDARDS.map((s) => (
-                <div key={s.n} className="relative flex flex-col items-center text-center">
+              {STANDARDS.map((s, i) => (
+                <Reveal
+                  key={s.n}
+                  variant="fade-up"
+                  delay={i * 130}
+                  iconStagger
+                  className="relative flex flex-col items-center text-center"
+                  style={{ ["--len" as never]: "260" }}
+                >
                   <div className="relative z-10 mb-5 grid size-[52px] place-items-center rounded-full border border-royal/30 bg-white">
                     <span className="font-mono text-[11px] tracking-wider text-royal">{s.n}</span>
                   </div>
                   <s.icon className="mb-3 h-12 w-12" />
                   <h3 className="font-display text-[16px] tracking-[-0.01em] text-ink">{s.title}</h3>
                   <p className="mt-2 max-w-[160px] text-[12.5px] leading-[1.55] text-ink/60">{s.body}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
-        </div>
+        </Reveal>
+
       </div>
     </section>
   );
@@ -595,35 +637,38 @@ function StandardsRow() {
 
 // ----------- BEFORE / AFTER -----------
 function BeforeAfter() {
+  const { ref, inView } = useReveal<HTMLDivElement>();
   return (
-    <section className="border-t border-rule/60 bg-paper">
+    <section ref={ref} className="border-t border-rule/60 bg-paper">
       <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1.1fr)] lg:items-center lg:gap-10 lg:py-32">
         <div>
-          <p className="eyebrow mb-5">The Order Is The Point</p>
-          <h2 className="font-display text-[30px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[34px]">
+          <Reveal as="p" variant="fade-up" className="eyebrow mb-5">The Order Is The Point</Reveal>
+          <Reveal as="h2" variant="rise" delay={80} className="font-display text-[30px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[34px]">
             The right order
             <br />
             changes the outcome.
-          </h2>
-          <p className="mt-6 max-w-[380px] text-[14px] leading-[1.7] text-ink/70">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[380px] text-[14px] leading-[1.7] text-ink/70">
             Any agency can build these. The difference is the sequence. We build
             visibility before scale. We build systems before automation. We
             build the foundation before the milestone that stands on it.
-          </p>
+          </Reveal>
         </div>
 
-        <ChartCard label="Before the map">
-          <ScatterChart />
-        </ChartCard>
-
-        <div className="relative">
-          <ChartCard label="After the map">
-            <TrendChart />
+        <Reveal variant="fade-up" delay={120}>
+          <ChartCard label="Before the map">
+            <ScatterChart revealed={inView} />
           </ChartCard>
-          <div className="absolute left-[-32px] top-1/2 hidden -translate-y-1/2 lg:block">
+        </Reveal>
+
+        <Reveal variant="fade-up" delay={320} className="relative">
+          <ChartCard label="After the map">
+            <TrendChart revealed={inView} />
+          </ChartCard>
+          <div className="absolute left-[-32px] top-1/2 hidden -translate-y-1/2 lg:block" style={{ opacity: inView ? 1 : 0, transform: `translate(${inView ? 0 : -8}px, -50%)`, transition: "opacity 600ms ease 600ms, transform 600ms ease 600ms" }}>
             <ArrowRight className="size-5 text-ink/40" strokeWidth={1.5} />
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -638,7 +683,7 @@ function ChartCard({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-function ScatterChart() {
+function ScatterChart({ revealed }: { revealed: boolean }) {
   const dots = [
     [25, 70, 8, 0.4],
     [70, 45, 10, 0.45],
@@ -648,15 +693,15 @@ function ScatterChart() {
     [275, 60, 10, 0.5],
   ];
   return (
-    <svg viewBox="0 0 320 140" className="h-full w-full">
+    <svg viewBox="0 0 320 140" className={`svg-reveal h-full w-full ${revealed ? "is-revealed" : ""}`}>
       {dots.map(([x, y, r, o], i) => (
-        <circle key={i} cx={x as number} cy={y as number} r={r as number} fill={`rgba(120,140,170,${o})`} />
+        <circle key={i} cx={x as number} cy={y as number} r={r as number} fill={`rgba(120,140,170,${o})`} data-anim="dot" style={{ ["--d" as never]: `${i * 80}ms` }} />
       ))}
     </svg>
   );
 }
 
-function TrendChart() {
+function TrendChart({ revealed }: { revealed: boolean }) {
   const pts = [
     [20, 110],
     [70, 95],
@@ -667,14 +712,15 @@ function TrendChart() {
   ];
   const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0]} ${p[1]}`).join(" ");
   return (
-    <svg viewBox="0 0 320 140" className="h-full w-full">
-      <path d={d} fill="none" stroke="var(--royal)" strokeWidth="1.5" />
+    <svg viewBox="0 0 320 140" className={`svg-reveal h-full w-full ${revealed ? "is-revealed" : ""}`}>
+      <path d={d} fill="none" stroke="var(--royal)" strokeWidth="1.5" data-anim="line" style={{ ["--len" as never]: "320" }} />
       {pts.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={i === pts.length - 1 ? 7 : 5} fill="var(--royal)" />
+        <circle key={i} cx={x} cy={y} r={i === pts.length - 1 ? 7 : 5} fill="var(--royal)" data-anim="dot" style={{ ["--d" as never]: `${300 + i * 180}ms` }} />
       ))}
     </svg>
   );
 }
+
 
 // ----------- BOTTOM CTA -----------
 function BottomCTA() {
@@ -691,32 +737,33 @@ function BottomCTA() {
     >
       <div className="mx-auto grid w-full max-w-[1220px] grid-cols-1 items-center gap-10 px-6 py-16 sm:px-10 sm:py-[72px] lg:min-h-[420px] lg:grid-cols-2 lg:gap-12 lg:py-[92px]">
         <div className="flex flex-col items-start">
-          <h2
-            className="max-w-[540px] font-display text-[42px] leading-[1.0] tracking-[-0.025em] text-ink opacity-0 [animation:fade-in_0.7s_ease-out_0.05s_forwards] md:text-[54px] lg:text-[60px] lg:leading-[0.98]"
-          >
+          <Reveal as="h2" variant="rise" className="max-w-[540px] font-display text-[42px] leading-[1.0] tracking-[-0.025em] text-ink md:text-[54px] lg:text-[60px] lg:leading-[0.98]">
             Every build
             <br />
             begins with the map.
-          </h2>
-          <span
-            aria-hidden="true"
-            className="mt-5 block h-[2px] w-0 origin-left bg-royal [animation:cta-rule_0.6s_ease-out_0.35s_forwards]"
-          />
-          <p className="mt-6 max-w-[420px] text-[17px] leading-[1.65] text-ink/85 opacity-0 [animation:fade-in_0.7s_ease-out_0.55s_forwards] md:text-[18px]">
+          </Reveal>
+          <Reveal variant="fade" delay={250} className="mt-5">
+            <span
+              aria-hidden="true"
+              className="block h-[2px] w-0 origin-left bg-royal [animation:cta-rule_0.6s_ease-out_0.1s_forwards]"
+            />
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={400} className="mt-6 max-w-[420px] text-[17px] leading-[1.65] text-ink/85 md:text-[18px]">
             The map says whether you need what is on this page, when, and in
             what order. That is where every engagement starts. You own the map
             either way.
-          </p>
-          <div className="mt-[30px] opacity-0 [animation:fade-in_0.7s_ease-out_0.75s_forwards]">
+          </Reveal>
+          <Reveal variant="fade-up" delay={600} className="mt-[30px]">
             <PrimaryButton href="#" className="h-[54px] px-8 text-[14px]">
               Build My Map
             </PrimaryButton>
-          </div>
-          <p className="mt-[18px] max-w-[360px] text-[14px] leading-[1.6] text-ink/65 opacity-0 [animation:fade-in_0.7s_ease-out_0.95s_forwards]">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={780} className="mt-[18px] max-w-[360px] text-[14px] leading-[1.6] text-ink/65">
             A 30-minute conversation. No pitch. If the timing is right, we
             should talk. If not, the work will be waiting when it is.
-          </p>
+          </Reveal>
         </div>
+
 
         {/* Right column intentionally empty — book lives in the background image */}
         <div aria-hidden="true" className="hidden lg:block" />

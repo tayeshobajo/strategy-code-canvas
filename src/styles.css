@@ -149,4 +149,102 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ---------- Scroll-triggered reveal system ---------- */
+[data-reveal] {
+  opacity: 0;
+  will-change: opacity, transform;
+  transition:
+    opacity 700ms cubic-bezier(0.2, 0.6, 0.2, 1) var(--reveal-delay, 0ms),
+    transform 700ms cubic-bezier(0.2, 0.6, 0.2, 1) var(--reveal-delay, 0ms);
+}
+[data-reveal="fade"]       { transform: none; }
+[data-reveal="fade-up"]    { transform: translateY(14px); }
+[data-reveal="rise"]       { transform: translateY(24px); }
+[data-reveal="fade-right"] { transform: translateX(28px); }
+
+[data-reveal][data-revealed="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Diagram-specific keyframes ---------- */
+@keyframes draw-stroke {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes scale-pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+@keyframes drift-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* Icon stroke draw-in when parent reveals */
+[data-reveal-icons] svg :is(path, circle, rect, ellipse) {
+  stroke-dasharray: var(--len, 240);
+  stroke-dashoffset: var(--len, 240);
+}
+[data-reveal-icons][data-revealed="true"] svg :is(path, circle, rect, ellipse) {
+  animation: draw-stroke 1100ms cubic-bezier(0.2, 0.6, 0.2, 1) var(--reveal-delay, 0ms) forwards;
+}
+
+
+/* SVG diagram revealed state hooks */
+.svg-reveal [data-anim="line"] {
+  stroke-dasharray: var(--len, 700);
+  stroke-dashoffset: var(--len, 700);
+}
+.svg-reveal.is-revealed [data-anim="line"] {
+  animation: draw-stroke 1200ms cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
+}
+.svg-reveal [data-anim="dot"] {
+  transform: scale(0);
+  transform-origin: center;
+  transform-box: fill-box;
+  opacity: 0;
+}
+.svg-reveal.is-revealed [data-anim="dot"] {
+  animation: scale-pop 500ms cubic-bezier(0.34, 1.4, 0.64, 1) var(--d, 0ms) forwards;
+}
+.svg-reveal [data-anim="fade"] {
+  opacity: 0;
+  transition: opacity 600ms ease var(--d, 0ms);
+}
+.svg-reveal.is-revealed [data-anim="fade"] {
+  opacity: 1;
+}
+
+/* Dotted connector grow (Standards row) */
+.connector-grow {
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 1000ms cubic-bezier(0.2, 0.6, 0.2, 1) 200ms;
+}
+[data-revealed="true"] .connector-grow {
+  transform: scaleX(1);
+}
+
+/* Continuous gentle motion utilities */
+.drift {
+  animation: drift-y 6s ease-in-out infinite;
+}
+.pulse-dot {
+  animation: pulse-soft 3.2s ease-in-out infinite;
+}
+
+/* Reduced motion: short-circuit */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .svg-reveal [data-anim] { opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; animation: none !important; }
+  .connector-grow { transform: scaleX(1) !important; transition: none !important; }
+  .drift, .pulse-dot { animation: none !important; }
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}
+
+
 
