@@ -543,7 +543,7 @@ function ArticleList() {
             )}
             {loopDetected && (
               <span className="inline-flex flex-col items-center gap-2 text-amber-700 sm:flex-row">
-                <span>Infinite scroll paused — possible fetch loop detected.</span>
+                <span>Infinite scroll paused: possible fetch loop detected.</span>
                 <button
                   type="button"
                   onClick={resumeAfterLoop}
