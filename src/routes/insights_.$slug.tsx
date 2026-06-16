@@ -232,7 +232,7 @@ function InsightArticlePage() {
 
   const sections =
     insight.sections ??
-    insight.body.map((p, i) => ({
+    insight.body.map((p: string, i: number) => ({
       id: `section-${i + 1}`,
       title: `Section ${i + 1}`,
       paragraphs: [p],
@@ -306,7 +306,7 @@ function InsightArticlePage() {
             <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-14">
               {/* Body */}
               <div className="lg:col-span-7 lg:col-start-2">
-                {sections.map((sec, idx) => (
+                {sections.map((sec: { id: string; title: string; paragraphs: string[] }, idx: number) => (
                   <section
                     key={sec.id}
                     id={sec.id}
@@ -319,7 +319,7 @@ function InsightArticlePage() {
                     >
                       {sec.title}
                     </h2>
-                    {sec.paragraphs.map((p, i) => (
+                    {sec.paragraphs.map((p: string, i: number) => (
                       <p
                         key={i}
                         className="mt-4 text-[15.5px] leading-[1.75] text-ink/75"
@@ -333,7 +333,7 @@ function InsightArticlePage() {
                       <figure className="mt-10 flex gap-5">
                         <PullQuoteMark />
                         <blockquote className="font-display text-[22px] font-normal leading-[1.35] tracking-[-0.01em] text-ink sm:text-[26px]">
-                          {insight.pullQuote.map((line, i) => (
+                          {insight.pullQuote!.map((line: string, i: number) => (
                             <p key={i}>{line}</p>
                           ))}
                         </blockquote>
@@ -349,7 +349,7 @@ function InsightArticlePage() {
                         <h3 className="mt-3 font-display text-[22px] font-normal leading-[1.2] tracking-[-0.01em] text-ink">
                           {insight.framework.title}
                         </h3>
-                        {insight.framework.description.map((p, i) => (
+                        {insight.framework!.description.map((p: string, i: number) => (
                           <p key={i} className="mt-3 text-[14px] leading-[1.7] text-ink/65">
                             {p}
                           </p>
@@ -372,7 +372,7 @@ function InsightArticlePage() {
                             <p className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-royal">
                               On the Roadmap
                             </p>
-                            {insight.onRoadmap.map((p, i) => (
+                            {insight.onRoadmap!.map((p: string, i: number) => (
                               <p key={i} className="mt-2 text-[14px] leading-[1.7] text-ink/70">
                                 {p}
                               </p>
@@ -401,7 +401,7 @@ function InsightArticlePage() {
                       In this article
                     </p>
                     <ul className="mt-4 space-y-3 border-l border-rule/70 pl-4">
-                      {sections.map((sec) => (
+                      {sections.map((sec: { id: string; title: string; paragraphs: string[] }) => (
                         <li key={sec.id}>
                           <a
                             href={`#${sec.id}`}
