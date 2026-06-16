@@ -145,7 +145,7 @@ function InsightArticlePage() {
 
           <div className={`${container} pb-20 pt-12 sm:pt-16`}>
             <Reveal as="div" variant="fade-up" delay={80} className="mx-auto max-w-[680px]">
-              {insight.body.map((p, i) => (
+              {insight.body.map((p: string, i: number) => (
                 <p
                   key={i}
                   className={`text-[16px] leading-[1.75] text-ink/80 ${
