@@ -324,15 +324,26 @@ function InsightArticlePage() {
       <main>
         <article aria-labelledby="article-title">
           {/* -------- Back link + title block -------- */}
-          <header className="pt-24 sm:pt-28 lg:pt-32">
+          <header className="pt-24 sm:pt-28 lg:pt-32 print:pt-0">
             <div className={container}>
-              <Link
-                to="/insights"
-                className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-royal hover:text-royal/80"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-                All insights
-              </Link>
+              <div className="flex items-center justify-between gap-4">
+                <Link
+                  to="/insights"
+                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-royal hover:text-royal/80 print:hidden"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  All insights
+                </Link>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/70 transition-colors hover:border-royal/40 hover:text-royal print:hidden"
+                  aria-label="Print this article"
+                >
+                  <Printer className="h-3.5 w-3.5" aria-hidden="true" />
+                  Print
+                </button>
+              </div>
 
               <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
                 <div className="lg:col-span-9 lg:col-start-2">
