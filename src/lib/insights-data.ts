@@ -27,7 +27,22 @@ export type Insight = {
   readMinutes: number;
   date: string;
   publishedAt: string; // ISO
-  body: string[]; // paragraphs
+  body: string[]; // paragraphs (fallback rendering)
+  /** Optional structured article. When present, the article page renders
+   *  these sections with a sidebar TOC instead of the flat body. */
+  sections?: {
+    id: string;
+    title: string;
+    paragraphs: string[];
+  }[];
+  pullQuote?: string[]; // multi-line pull quote
+  framework?: {
+    eyebrow: string;
+    title: string;
+    description: string[];
+    steps: string[];
+  };
+  onRoadmap?: string[]; // paragraphs for the CTA strip
 };
 
 export const INSIGHTS: Insight[] = [
@@ -43,10 +58,63 @@ export const INSIGHTS: Insight[] = [
     date: "January 2026",
     publishedAt: "2026-01-12",
     body: [
-      "Growth does not slow down because the founder cares too much. It slows down when the business cannot move without the founder touching every decision.",
-      "The first sign is rarely a number on a dashboard. It is a quiet pause. A team that has the skill to act, the context to choose, and still waits. They wait because the system has taught them that the safest decision is your decision.",
-      "The fix is not to step back faster. The fix is to name the decisions the business has been making through you, write them down, and give them somewhere to live that is not your inbox.",
+      "You feel it before you say it out loud. No matter how hard the team works, no matter how much you delegate, the business still comes back to you for the decisions only you can make. It feels like responsibility. In reality, it is a bottleneck.",
+      "The visible problem is not that your team is not capable. The problem is that the system was built to route decisions back to you. So the business moves at the speed of your calendar.",
+      "When the system holds the decisions it should hold, the business compounds. Your team moves with confidence. Clients feel the consistency. You get your week back.",
       "Leverage is not the opposite of care. It is the proof of it.",
+    ],
+    sections: [
+      {
+        id: "the-truth",
+        title: "The truth",
+        paragraphs: [
+          "You feel it before you say it out loud.",
+          "No matter how hard the team works, no matter how much you delegate, the business still comes back to you for the decisions only you can make. It feels like responsibility. In reality, it is a bottleneck.",
+        ],
+      },
+      {
+        id: "the-reframe",
+        title: "The reframe",
+        paragraphs: [
+          "The visible problem is not that your team is not capable.",
+          "The problem is that the system was built to route decisions back to you. So the business moves at the speed of your calendar.",
+        ],
+      },
+      {
+        id: "the-framework",
+        title: "The framework",
+        paragraphs: [],
+      },
+      {
+        id: "the-outcome",
+        title: "The outcome",
+        paragraphs: [
+          "When the system holds the decisions it should hold, the business compounds.",
+          "Your team moves with confidence. Clients feel the consistency. You get your week back.",
+        ],
+      },
+      {
+        id: "on-the-roadmap",
+        title: "On the Roadmap",
+        paragraphs: [],
+      },
+    ],
+    pullQuote: [
+      "The founder should guide the system.",
+      "The founder should not be the system.",
+    ],
+    framework: {
+      eyebrow: "Framework",
+      title: "The Founder Bottleneck Loop",
+      description: [
+        "When every decision returns to the founder, the business may still move, but it no longer compounds. The team waits. The client waits.",
+        "The founder carries what the system should have carried.",
+      ],
+      steps: ["Decision", "Founder", "Delay", "Team waits", "Founder carries more", "Repeat"],
+    },
+    onRoadmap: [
+      "This truth usually appears between clarity and sequence.",
+      "The founder can see the opportunity, but the operating rhythm has not yet been built to carry it. The Roadmap turns that weight into milestones, ownership, and visible movement.",
     ],
   },
   {
