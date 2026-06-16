@@ -74,35 +74,42 @@ function HeroPath() {
     >
       <defs>
         <linearGradient id="hero-path" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0%" stopColor="oklch(0.72 0.12 262)" stopOpacity="0.12" />
-          <stop offset="35%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.4" />
+          <stop offset="0%" stopColor="oklch(0.72 0.12 262)" stopOpacity="0.18" />
+          <stop offset="50%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.45" />
           <stop offset="100%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.85" />
         </linearGradient>
       </defs>
-      {/* Main sweeping path: long, eased S-curve rising from lower-left,
-          gently dipping beneath the subhead, then easing up toward the plane. */}
+      {/* Left accent: short low arc near the lower-left corner. */}
       <path
-        d="M -30 290 C 140 230, 260 215, 380 235 S 600 305, 760 280 S 980 200, 1140 120 C 1175 100, 1200 84, 1218 72"
+        d="M -10 300 C 60 270, 130 260, 240 282"
         fill="none"
         stroke="url(#hero-path)"
         strokeWidth="1"
         strokeLinecap="round"
         strokeDasharray="1.75 8"
       />
-      {/* Eased curling trail right behind the airplane — slightly tighter dash,
-          curls from below up into the plane's tail. */}
+      {/* Right curling hook: rises from the lower-right, arcs up and right,
+          hooks back-left and up, then curves out to the paper airplane. */}
       <path
-        d="M 1095 128 C 1130 108, 1158 90, 1182 76"
+        d="M 700 305 C 850 325, 1010 325, 1120 270 C 1220 220, 1230 160, 1130 145 C 1040 132, 1030 88, 1110 82 C 1155 78, 1185 76, 1200 74"
+        fill="none"
+        stroke="url(#hero-path)"
+        strokeWidth="1"
+        strokeLinecap="round"
+        strokeDasharray="1.75 8"
+      />
+      {/* Eased curling trail right behind the airplane. */}
+      <path
+        d="M 1120 130 C 1150 110, 1175 92, 1195 78"
         fill="none"
         stroke="oklch(0.48 0.18 262 / 0.55)"
         strokeWidth="0.9"
         strokeLinecap="round"
         strokeDasharray="1.25 6"
       />
-      <circle cx="60" cy="276" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
-      <circle cx="760" cy="280" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
-      <circle cx="1060" cy="170" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
-      {/* Paper airplane glyph — smaller, cleaner triangles */}
+      <circle cx="60" cy="290" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
+      <circle cx="1175" cy="205" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
+      {/* Paper airplane glyph */}
       <g transform="translate(1196 64) rotate(-18)">
         <path
           d="M 0 0 L 28 -8 L 10 6 Z"
@@ -142,7 +149,7 @@ function Hero() {
             Not trends. Positions. Read three and you will know how we think.
           </p>
         </Reveal>
-        <div className="mt-16 sm:mt-20 lg:mt-24" />
+        <div className="mt-20 sm:mt-28 lg:mt-32" />
       </div>
     </section>
   );
@@ -176,16 +183,16 @@ function MilestonePath() {
         <g key={s.label}>
           {"active" in s && s.active && (
             <>
-              <circle cx={s.x} cy={s.y} r="13" fill="none" stroke="oklch(0.48 0.18 262 / 0.35)" strokeWidth="1" className="ring-breathe" />
-              <circle cx={s.x} cy={s.y} r="8" fill="none" stroke="oklch(0.48 0.18 262 / 0.55)" strokeWidth="1" />
+              <circle cx={s.x} cy={s.y} r="12" fill="none" stroke="oklch(0.48 0.18 262 / 0.3)" strokeWidth="1" className="ring-breathe" />
+              <circle cx={s.x} cy={s.y} r="7" fill="none" stroke="oklch(0.48 0.18 262 / 0.5)" strokeWidth="1" />
             </>
           )}
           <circle cx={s.x} cy={s.y} r={"active" in s && s.active ? 4 : 3} fill="oklch(0.48 0.18 262)" />
           {"labelRight" in s && s.labelRight ? (
             <text
-              x={s.x + 12}
-              y={s.y + 4}
-              textAnchor="start"
+              x={s.x - 4}
+              y={s.y + 22}
+              textAnchor="end"
               fontFamily="var(--font-mono)"
               fontSize="11"
               fill="oklch(0.4 0.04 260)"
@@ -240,7 +247,7 @@ function FeaturedArgument() {
             <span className="ml-1 block h-px w-9 bg-royal/60 transition-all group-hover:w-14" aria-hidden="true" />
           </Link>
         </Reveal>
-        <Reveal as="div" variant="fade" delay={120} className="flex items-center justify-center lg:col-span-5">
+        <Reveal as="div" variant="fade" delay={120} className="flex items-end justify-end pr-2 lg:col-span-5">
           <MilestonePath />
         </Reveal>
       </div>
