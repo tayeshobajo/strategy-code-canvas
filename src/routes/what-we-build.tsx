@@ -437,26 +437,29 @@ function Milestones() {
     <section className="border-t border-rule/60 bg-white">
       <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)] lg:gap-16 lg:py-32">
         <div>
-          <p className="eyebrow mb-5">The Milestones</p>
-          <h2 className="font-display text-[32px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[36px]">
+          <Reveal as="p" variant="fade-up" className="eyebrow mb-5">The Milestones</Reveal>
+          <Reveal as="h2" variant="rise" delay={80} className="font-display text-[32px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[36px]">
             Eight milestones.
             <br />
             One connected
             <br />
             operating layer.
-          </h2>
-          <p className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-ink/70">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-ink/70">
             These systems work together to remove friction, raise visibility,
             and create the capacity to lead what comes next. Your map names
             which ones you need, when, and in what order.
-          </p>
+          </Reveal>
         </div>
 
         <div>
           <ul className="divide-y divide-rule/60">
-            {MILESTONES.map((m) => (
-              <li
+            {MILESTONES.map((m, i) => (
+              <Reveal
+                as="li"
                 key={m.n}
+                variant="fade-up"
+                delay={i * 70}
                 className="grid grid-cols-[20px_minmax(0,1fr)] items-start gap-x-4 gap-y-2 py-5 sm:grid-cols-[20px_28px_minmax(0,1fr)_auto] sm:items-center sm:gap-x-5"
               >
                 <span className="mt-1.5 size-2.5 rounded-full bg-royal sm:mt-0 sm:size-3" aria-hidden="true" />
@@ -471,10 +474,11 @@ function Milestones() {
                     {m.tag}
                   </span>
                 )}
-              </li>
+              </Reveal>
             ))}
           </ul>
         </div>
+
       </div>
     </section>
   );
