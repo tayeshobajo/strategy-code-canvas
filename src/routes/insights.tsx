@@ -365,25 +365,29 @@ function ArticleList() {
                   <Link
                     to="/insights/$slug"
                     params={{ slug: a.slug }}
-                    className="grid grid-cols-[18px_1fr_auto_20px] items-start gap-4 py-7 sm:grid-cols-[200px_1fr_140px_24px] sm:gap-8 sm:py-8"
+                    className="grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 py-7 sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
                   >
-                    <div className="flex items-center gap-3 sm:contents">
-                      <span className="mt-2 inline-block h-[7px] w-[7px] flex-none rounded-full bg-royal sm:mt-[10px]" aria-hidden="true" />
-                      <span className="font-mono text-[10.5px] uppercase tracking-[0.2em] text-ink/55 sm:mt-2 sm:block">
+                    {/* Col 1: dot + category */}
+                    <div className="col-span-2 flex items-center gap-3 sm:col-span-1 sm:items-start sm:pt-[10px]">
+                      <span className="inline-block h-[7px] w-[7px] flex-none rounded-full bg-royal" aria-hidden="true" />
+                      <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/60">
                         {a.category}
                       </span>
                     </div>
-                    <div className="col-span-3 sm:col-span-1">
+                    {/* Col 2: title + blurb */}
+                    <div className="col-span-2 sm:col-span-1">
                       <h3 className="font-display text-[20px] font-normal leading-[1.25] tracking-[-0.015em] text-ink transition-colors group-hover:text-royal sm:text-[22px]">
                         {a.title}
                       </h3>
-                      <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.65] text-ink/60">{a.blurb}</p>
+                      <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.65] text-ink/55">{a.blurb}</p>
                     </div>
-                    <div className="col-start-1 col-end-4 mt-1 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:col-auto sm:mt-2 sm:text-right">
-                      <p>{a.read}</p>
-                      <p>{a.date}</p>
+                    {/* Col 3: meta */}
+                    <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:pt-[10px] sm:text-right">
+                      <p>{a.read.replace(" read", "").toUpperCase()} READ</p>
+                      <p>{a.date.toUpperCase()}</p>
                     </div>
-                    <span className="hidden items-start justify-end pt-2 text-royal sm:flex" aria-hidden="true">
+                    {/* Col 4: arrow */}
+                    <span className="flex items-start justify-end pt-1 text-royal sm:pt-[10px]" aria-hidden="true">
                       <svg viewBox="0 0 20 20" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1">
                         <path d="M3 10 H16 M11 5 L16 10 L11 15" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
