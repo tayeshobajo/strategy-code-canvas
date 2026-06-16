@@ -69,7 +69,7 @@ const IconStewardship = ({ className = "" }: IconProps) => (
   </svg>
 );
 import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
-import mapSectionBg from "@/assets/map-section-bg.jpg.asset.json";
+import ctaSectionBg from "@/assets/cta-section-background.jpg.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Reveal, useReveal } from "@/hooks/use-reveal";
@@ -899,9 +899,9 @@ function BottomCTA() {
       id="cta"
       className="relative overflow-hidden border-t border-[oklch(0.88_0.02_75)] bg-[oklch(0.95_0.018_80)]"
       style={{
-        backgroundImage: `linear-gradient(to right, rgba(251,249,244,0.98) 0%, rgba(251,249,244,0.92) 38%, rgba(251,249,244,0.35) 62%, rgba(251,249,244,0.05) 100%), url(${mapSectionBg.url})`,
+        backgroundImage: `linear-gradient(to right, rgba(251,249,244,0.98) 0%, rgba(251,249,244,0.92) 38%, rgba(251,249,244,0.35) 62%, rgba(251,249,244,0.05) 100%), url(${ctaSectionBg.url})`,
         backgroundSize: "cover, cover",
-        backgroundPosition: "center, right bottom",
+        backgroundPosition: "center, 92% center",
         backgroundRepeat: "no-repeat, no-repeat",
       }}
     >
