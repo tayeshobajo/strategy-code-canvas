@@ -911,8 +911,11 @@ function PaperPlane() {
 }
 
 function CloseCTA() {
+  const { ref, paused } = useInViewPause<HTMLElement>();
   return (
     <section
+      ref={ref}
+      data-anim-paused={paused ? "true" : "false"}
       id="cta"
       className="relative overflow-hidden py-20 lg:py-24"
       style={{
