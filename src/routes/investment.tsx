@@ -597,11 +597,9 @@ function FooterCTA() {
 }
 
 function InvestmentPage() {
-  const active = useActiveSection(React.useMemo(() => SECTION_NAV.map((s) => s.id), []));
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
-      <SectionNav active={active} />
       <main>
         <Hero />
         <Bridge />
