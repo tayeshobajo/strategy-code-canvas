@@ -75,24 +75,48 @@ function HeroPath() {
       <defs>
         <linearGradient id="hero-path" x1="0" x2="1" y1="0" y2="0">
           <stop offset="0%" stopColor="oklch(0.72 0.12 262)" stopOpacity="0.15" />
-          <stop offset="40%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.85" />
+          <stop offset="40%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.8" />
         </linearGradient>
       </defs>
+      {/* Main sweeping path: rises over a hill on the left, dips beneath the
+          subhead, then climbs off the top-right toward the paper airplane. */}
       <path
-        d="M -20 320 C 120 300, 200 280, 300 296 S 520 332, 660 280 S 880 160, 1040 130 S 1180 96, 1220 70"
+        d="M -20 300 C 80 210, 160 175, 260 200 S 460 320, 640 300 S 900 220, 1060 150 S 1200 90, 1230 60"
         fill="none"
         stroke="url(#hero-path)"
         strokeWidth="1.25"
         strokeLinecap="round"
         strokeDasharray="2 7"
       />
-      <circle cx="60" cy="316" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
-      <circle cx="660" cy="280" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
-      <circle cx="1040" cy="130" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
-      <g transform="translate(1188 64) rotate(-18)">
-        <path d="M 0 0 L 28 -8 L 14 6 L 18 14 Z" fill="oklch(0.72 0.12 262 / 0.25)" stroke="oklch(0.48 0.18 262)" strokeWidth="1" strokeLinejoin="round" />
-        <path d="M 0 0 L 14 6" stroke="oklch(0.48 0.18 262)" strokeWidth="1" fill="none" />
+      {/* Small curling trail right behind the airplane */}
+      <path
+        d="M 1110 110 C 1140 92, 1170 78, 1190 70"
+        fill="none"
+        stroke="oklch(0.48 0.18 262 / 0.65)"
+        strokeWidth="1"
+        strokeLinecap="round"
+        strokeDasharray="1.5 5"
+      />
+      <circle cx="60" cy="282" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
+      <circle cx="640" cy="300" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
+      <circle cx="1060" cy="150" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="1" />
+      {/* Paper airplane glyph */}
+      <g transform="translate(1196 64) rotate(-15)">
+        <path
+          d="M 0 0 L 34 -10 L 12 8 Z"
+          fill="oklch(0.72 0.12 262 / 0.18)"
+          stroke="oklch(0.48 0.18 262)"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M 12 8 L 18 18 L 22 4"
+          fill="oklch(0.72 0.12 262 / 0.28)"
+          stroke="oklch(0.48 0.18 262)"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
       </g>
     </svg>
   );
