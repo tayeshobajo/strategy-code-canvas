@@ -9,7 +9,7 @@ const NAV: NavItem[] = [
   { label: "What We Build", to: "/what-we-build" },
   { label: "Investment", to: "/investment" },
   { label: "About", to: "/about" },
-  { label: "Insights", to: "/", hash: "insights" },
+  { label: "Insights", to: "/insights" },
 ];
 
 export function SiteHeader() {
@@ -19,6 +19,7 @@ export function SiteHeader() {
     if (n.to === "/what-we-build") return pathname === "/what-we-build";
     if (n.to === "/investment") return pathname === "/investment";
     if (n.to === "/about") return pathname === "/about";
+    if (n.to === "/insights") return pathname === "/insights";
     if (n.to === "/" && n.hash === "roadmap") return pathname === "/";
     return false;
   };
