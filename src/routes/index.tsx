@@ -797,14 +797,19 @@ function RoadmapRow({
   row,
   statusColor,
   recommended,
+  rowIndex = 0,
 }: {
   row: Row;
   statusColor: Record<Status, string>;
   recommended?: boolean;
+  rowIndex?: number;
 }) {
   return (
     <>
-      <div className="self-center pr-3 text-[12px] text-ink/80">
+      <div
+        className="roadmap-row self-center pr-3 text-[12px] text-ink/80"
+        style={{ ["--row-i" as never]: rowIndex }}
+      >
         <div className="font-medium">{row.name}</div>
         {recommended && (
           <div className="mt-1 flex items-center gap-2 text-[10.5px] text-royal/85">
@@ -826,8 +831,8 @@ function RoadmapRow({
           return (
             <div
               key={i}
-              className={`absolute top-1/2 h-3 -translate-y-1/2 rounded-full ${statusColor[s.status]}`}
-              style={{ left: `${left}%`, width: `${width}%` }}
+              className={`roadmap-seg absolute top-1/2 h-3 -translate-y-1/2 rounded-full ${statusColor[s.status]}`}
+              style={{ left: `${left}%`, width: `${width}%`, ["--row-i" as never]: rowIndex, ["--seg-i" as never]: i }}
             />
           );
         })}
