@@ -235,15 +235,15 @@ function Hero() {
         <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
           <div className="relative z-10 max-w-[620px]">
-            <p className="eyebrow mb-6">What We Build</p>
-            <h1 className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
+            <Reveal immediate variant="fade-up" delay={0} as="p" className="eyebrow mb-6">What We Build</Reveal>
+            <Reveal immediate variant="rise" delay={120} as="h1" className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
               The milestones inside{" "}
-              <span className="italic text-royal">the map.</span>
-            </h1>
-            <p className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
+              <span className="italic text-royal drift inline-block">the map.</span>
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
               Everything we build sits inside your Operating Map, in the order the business calls for it. Each milestone removes friction, sharpens execution, and strengthens the position you are building toward.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
                 Build My Map
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -251,15 +251,15 @@ function Hero() {
               <a href="#" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
                 See the full investment page
               </a>
-            </div>
-            <p className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={540} as="p" className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
               <span className="inline-block h-px w-5 bg-ink/40" />
               <span>Built for founders. Designed to compound.</span>
-            </p>
+            </Reveal>
           </div>
         </div>
 
-        <div className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
+        <Reveal immediate variant="fade-right" delay={300} className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
           <img
             src={heroBook.url}
             alt="Open Operating Map notebook on a warm desk surface"
@@ -275,7 +275,8 @@ function Hero() {
             }}
             aria-hidden="true"
           />
-        </div>
+        </Reveal>
+
       </div>
     </section>
   );
