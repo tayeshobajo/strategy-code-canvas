@@ -331,6 +331,16 @@ function ArticleList() {
 
   const shown = React.useMemo(() => filtered.slice(0, visible), [filtered, visible]);
 
+  // Log once when virtualization toggles on/off so the threshold can be tuned.
+  const virtPrevRef = React.useRef<boolean | null>(null);
+  React.useEffect(() => {
+    virtPrevRef.current = logVirtualizationTransition(
+      virtPrevRef.current,
+      shown.length,
+      VIRTUALIZE_THRESHOLD,
+    );
+  }, [shown.length]);
+
   // Virtualization: window-scrolling list with measured row heights.
   // Track the parent's offsetTop in state so the virtualizer's scrollMargin
   // and the per-item transform offset always use the SAME value (a ref read
