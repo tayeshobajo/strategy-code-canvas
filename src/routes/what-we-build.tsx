@@ -681,37 +681,44 @@ function BottomCTA() {
   return (
     <section
       id="cta"
-      className="relative overflow-hidden bg-[oklch(0.93_0.022_78)]"
+      className="relative overflow-hidden border-t border-[oklch(0.88_0.02_75)] bg-[oklch(0.95_0.018_80)]"
       style={{
-        backgroundImage: `url(${ctaBg.url})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center right",
-        backgroundRepeat: "no-repeat",
+        backgroundImage: `linear-gradient(to right, rgba(251,249,244,0.98) 0%, rgba(251,249,244,0.92) 38%, rgba(251,249,244,0.35) 62%, rgba(251,249,244,0.05) 100%), url(${ctaBg.url})`,
+        backgroundSize: "cover, cover",
+        backgroundPosition: "center, center right",
+        backgroundRepeat: "no-repeat, no-repeat",
       }}
     >
-      <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-start gap-10 px-6 py-28 sm:px-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-12 lg:py-36">
-        <div>
-          <h2 className="font-display text-[40px] leading-[1.02] tracking-[-0.025em] text-ink md:text-[52px] lg:text-[56px]">
+      <div className="mx-auto grid w-full max-w-[1220px] grid-cols-1 items-center gap-10 px-6 py-16 sm:px-10 sm:py-[72px] lg:min-h-[420px] lg:grid-cols-2 lg:gap-12 lg:py-[92px]">
+        <div className="flex flex-col items-start">
+          <h2
+            className="max-w-[420px] font-display text-[42px] leading-[1.0] tracking-[-0.025em] text-ink opacity-0 [animation:fade-in_0.7s_ease-out_0.05s_forwards] md:text-[54px] lg:text-[60px] lg:leading-[0.98]"
+          >
             Every build
             <br />
             begins with the map.
           </h2>
-          <p className="mt-6 max-w-[420px] text-[15px] leading-[1.7] text-ink/80">
+          <span
+            aria-hidden="true"
+            className="mt-5 block h-[2px] w-0 origin-left bg-royal [animation:cta-rule_0.6s_ease-out_0.35s_forwards]"
+          />
+          <p className="mt-6 max-w-[420px] text-[17px] leading-[1.65] text-ink/85 opacity-0 [animation:fade-in_0.7s_ease-out_0.55s_forwards] md:text-[18px]">
             The map says whether you need what is on this page, when, and in
             what order. That is where every engagement starts. You own the map
             either way.
           </p>
-        </div>
-
-        <div className="flex flex-col items-start gap-5 lg:pt-2">
-          <PrimaryButton href="#" className="px-7 py-3.5 text-[14px]">Build My Map</PrimaryButton>
-          <p className="max-w-[300px] text-[13px] leading-[1.65] text-ink/80">
+          <div className="mt-[30px] opacity-0 [animation:fade-in_0.7s_ease-out_0.75s_forwards]">
+            <PrimaryButton href="#" className="h-[54px] px-8 text-[14px]">
+              Build My Map
+            </PrimaryButton>
+          </div>
+          <p className="mt-[18px] max-w-[360px] text-[14px] leading-[1.6] text-ink/65 opacity-0 [animation:fade-in_0.7s_ease-out_0.95s_forwards]">
             A 30-minute conversation. No pitch. If the timing is right, we
             should talk. If not, the work will be waiting when it is.
           </p>
         </div>
 
-        {/* Right column reserved for the books in the background image */}
+        {/* Right column intentionally empty — book lives in the background image */}
         <div aria-hidden="true" className="hidden lg:block" />
       </div>
     </section>
