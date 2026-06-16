@@ -841,13 +841,44 @@ function RoadmapRow({
   recommended?: boolean;
   rowIndex?: number;
 }) {
+  const span = rowSpan(row);
+  const owner = ownerFor(row.name);
+  const phase = phaseFor(span.start);
+  const overall: Status =
+    row.segs.find((s) => s.status === "build")?.status ??
+    row.segs.find((s) => s.status === "live")?.status ??
+    "mapped";
   return (
     <>
       <div
         className="roadmap-row self-center pr-3 text-[12px] text-ink/80"
         style={{ ["--row-i" as never]: rowIndex }}
       >
-        <div className="font-medium">{row.name}</div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="cursor-default text-left font-medium outline-none focus-visible:text-royal"
+            >
+              {row.name}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent
+            side="right"
+            align="start"
+            className="bg-paper text-ink border border-rule shadow-sm rounded-md px-3 py-2 text-[11px] leading-snug font-normal normal-case tracking-normal max-w-[220px]"
+          >
+            <div className="font-medium text-ink">{row.name}</div>
+            <div className="mt-1 grid grid-cols-[58px_1fr] gap-x-2 gap-y-0.5 text-ink/70">
+              <span className="font-mono uppercase tracking-[0.12em] text-[9.5px] text-ink/45">Phase</span>
+              <span>{phase} · Q{span.start}–Q{span.end}</span>
+              <span className="font-mono uppercase tracking-[0.12em] text-[9.5px] text-ink/45">Owner</span>
+              <span>{owner}</span>
+              <span className="font-mono uppercase tracking-[0.12em] text-[9.5px] text-ink/45">Status</span>
+              <span>{STATUS_LABEL[overall]}</span>
+            </div>
+          </TooltipContent>
+        </Tooltip>
         {recommended && (
           <div className="mt-1 flex items-center gap-2 text-[10.5px] text-royal/85">
             <span className="h-1.5 w-1.5 flex-none rounded-full bg-royal" />
@@ -865,12 +896,30 @@ function RoadmapRow({
         {row.segs.map((s, i) => {
           const left = ((s.start - 1) / 8) * 100;
           const width = ((s.end - s.start + 1) / 8) * 100;
+          const segPhase = phaseFor(s.start);
           return (
-            <div
-              key={i}
-              className={`roadmap-seg absolute top-1/2 h-3 -translate-y-1/2 rounded-full ${statusColor[s.status]}`}
-              style={{ left: `${left}%`, width: `${width}%`, ["--row-i" as never]: rowIndex, ["--seg-i" as never]: i }}
-            />
+            <Tooltip key={i}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`${row.name}: ${STATUS_LABEL[s.status]} Q${s.start}${s.end !== s.start ? `–Q${s.end}` : ""}`}
+                  className={`roadmap-seg absolute top-1/2 h-3 -translate-y-1/2 cursor-default rounded-full outline-none transition-[filter,transform] duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-royal/50 ${statusColor[s.status]}`}
+                  style={{ left: `${left}%`, width: `${width}%`, ["--row-i" as never]: rowIndex, ["--seg-i" as never]: i }}
+                />
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="bg-paper text-ink border border-rule shadow-sm rounded-md px-2.5 py-1.5 text-[11px] leading-snug font-normal normal-case tracking-normal"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${statusColor[s.status]}`} />
+                  <span className="font-medium">{STATUS_LABEL[s.status]}</span>
+                  <span className="text-ink/55">·</span>
+                  <span className="font-mono text-[10px] text-ink/65">Q{s.start}{s.end !== s.start ? `–Q${s.end}` : ""}</span>
+                </div>
+                <div className="mt-0.5 text-ink/60">{segPhase} · {ownerFor(row.name)}</div>
+              </TooltipContent>
+            </Tooltip>
           );
         })}
       </div>
