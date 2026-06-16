@@ -240,21 +240,34 @@ function ArticleList() {
     return () => window.clearTimeout(t);
   }, [active, query, sort]);
 
-  // Infinite scroll: load more when sentinel intersects
+  // Infinite scroll: load more when sentinel intersects.
+  // Keep filtered length in a ref so the observer reads the current value
+  // without being torn down and re-created on every state change.
+  const filteredLenRef = React.useRef(filtered.length);
   React.useEffect(() => {
+    filteredLenRef.current = filtered.length;
+  }, [filtered.length]);
+
+  const hasMore = visible < filtered.length;
+
+  React.useEffect(() => {
+    if (!hasMore) return;
     const node = sentinelRef.current;
     if (!node || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          setVisible((v) => Math.min(v + PAGE_SIZE, filtered.length));
+          setVisible((v) => {
+            const max = filteredLenRef.current;
+            return v >= max ? v : Math.min(v + PAGE_SIZE, max);
+          });
         }
       },
-      { rootMargin: "400px 0px" },
+      { rootMargin: "200px 0px" },
     );
     io.observe(node);
     return () => io.disconnect();
-  }, [filtered.length]);
+  }, [hasMore]);
 
   const shown = filtered.slice(0, visible);
 
@@ -399,13 +412,15 @@ function ArticleList() {
           )}
 
           {/* Sentinel + status */}
-          <div
-            ref={sentinelRef}
-            aria-hidden="true"
-            className="h-10"
-          />
+          {hasMore && (
+            <div
+              ref={sentinelRef}
+              aria-hidden="true"
+              className="h-10"
+            />
+          )}
           <p className="pb-8 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/40" aria-live="polite">
-            {visible < filtered.length
+            {hasMore
               ? `Loading more (${shown.length} of ${filtered.length})`
               : `${filtered.length} insight${filtered.length === 1 ? "" : "s"}`}
           </p>
