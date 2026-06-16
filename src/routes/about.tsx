@@ -828,7 +828,7 @@ function ConstellationBG() {
       dur: round(3.2 + seeded(i + 53) * 4.5),
       delay: round(seeded(i + 67) * 5),
     }));
-  }, []);
+  }, [count]);
   return (
     <svg
       viewBox="0 0 380 260"
