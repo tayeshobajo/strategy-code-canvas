@@ -848,16 +848,16 @@ function Pricing() {
         {/* Header row: intro + Operating Map card */}
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
           <div>
-            <p className="eyebrow">Investment</p>
-            <h2 className="mt-4 font-display text-[2.5rem] leading-[1.05] text-ink">
+            <Reveal as="p" variant="fade-up" className="eyebrow">Investment</Reveal>
+            <Reveal as="h2" variant="rise" delay={80} className="mt-4 font-display text-[2.5rem] leading-[1.05] text-ink">
               What the journey costs.
-            </h2>
-            <p className="mt-5 max-w-lg text-[14px] leading-relaxed text-ink/70">
+            </Reveal>
+            <Reveal as="p" variant="fade-up" delay={200} className="mt-5 max-w-lg text-[14px] leading-relaxed text-ink/70">
               You have planned budgets before. You know a number you cannot see is a number you cannot plan around. So the numbers are here: the map, the walks, the math. Take them to your accountant, your partner, your Sunday evening. The work will be here when you decide.
-            </p>
+            </Reveal>
           </div>
 
-          <div className="rounded-lg border border-rule bg-white p-6 lg:p-7">
+          <Reveal variant="fade-up" delay={180} className="price-card-featured rounded-lg border border-rule bg-white p-6 lg:p-7">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
               <div className="shrink-0 overflow-hidden rounded-md border border-rule bg-secondary/40">
                 <img
@@ -877,7 +877,7 @@ function Pricing() {
                 </p>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
 
         {/* Walks chart */}
