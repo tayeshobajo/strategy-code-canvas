@@ -219,19 +219,33 @@ const STANDARDS = [
 
 // =====================================================
 function WhatWeBuild() {
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const activePhase = MILESTONES[activeIndex].phase;
   return (
-    <div className="min-h-screen bg-paper text-ink antialiased">
-      <SiteHeader />
-      <div className="h-20 sm:h-24" aria-hidden="true" />
-      <Hero />
-      <FeatureRow />
-      <MappedPath />
-      <Milestones />
-      <IntelligenceLayer />
-      <StandardsRow />
-      <BeforeAfter />
-      <BottomCTA />
-      <Footer />
+    <div className="relative min-h-screen bg-paper text-ink antialiased">
+      <AmbientLayer />
+      <div className="relative z-10">
+        <SiteHeader />
+        <div className="h-20 sm:h-24" aria-hidden="true" />
+        <Hero />
+        <FeatureRow />
+        <MappedPath activePhase={activePhase} />
+        <Milestones activeIndex={activeIndex} onSelect={setActiveIndex} />
+        <IntelligenceLayer />
+        <StandardsRow />
+        <BeforeAfter />
+        <BottomCTA />
+        <Footer />
+      </div>
+    </div>
+  );
+}
+
+function AmbientLayer() {
+  return (
+    <div className="ambient-layer" aria-hidden="true">
+      <div className="ambient-gradient" />
+      <div className="ambient-dust" />
     </div>
   );
 }
