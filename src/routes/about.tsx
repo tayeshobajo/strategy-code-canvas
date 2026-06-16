@@ -608,14 +608,15 @@ function StarsField({
       return x - Math.floor(x);
     };
     const [dMin, dMax] = durRange;
+    const round = (n: number, p = 2) => Math.round(n * 10 ** p) / 10 ** p;
     return Array.from({ length: count }).map((_, i) => ({
-      x: seeded(i) * width,
-      y: seeded(i + 9) * height,
-      r: 0.4 + seeded(i + 19) * 1.4,
-      oMin: 0.1 + seeded(i + 29) * 0.25,
-      oMax: 0.55 + seeded(i + 41) * 0.45,
-      dur: dMin + seeded(i + 53) * (dMax - dMin),
-      delay: seeded(i + 67) * (dMax),
+      x: round(seeded(i) * width),
+      y: round(seeded(i + 9) * height),
+      r: round(0.4 + seeded(i + 19) * 1.4),
+      oMin: round(0.1 + seeded(i + 29) * 0.25),
+      oMax: round(0.55 + seeded(i + 41) * 0.45),
+      dur: round(dMin + seeded(i + 53) * (dMax - dMin)),
+      delay: round(seeded(i + 67) * dMax),
     }));
   }, [count, width, height, seedSalt, durRange]);
   return (
