@@ -65,89 +65,129 @@ const PAGE_SIZE = 8;
 /* ----------------------------- HERO ----------------------------- */
 
 function HeroPath() {
+  const { ref, inView } = useReveal<HTMLDivElement>({ threshold: 0.25, once: true });
+  // Continuous flight path. The airplane traces this from off-screen left
+  // up to its resting spot. The dashed trail is the SAME path, revealed
+  // via an animated mask so the trail "draws" as the plane flies through it.
+  const flightD =
+    "M -50 320 C 60 290, 130 270, 240 282 C 420 295, 560 318, 700 305 C 850 325, 1010 325, 1120 270 C 1220 220, 1230 160, 1130 145 C 1040 132, 1030 88, 1110 82 C 1155 78, 1185 76, 1196 64";
+  const DUR = "5.5s";
+  const BEGIN = "0.2s";
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 1240 360"
-      preserveAspectRatio="none"
-      className="pointer-events-none absolute inset-0 h-full w-full"
-    >
-      <defs>
-        <linearGradient id="hero-path" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0%" stopColor="oklch(0.72 0.12 262)" stopOpacity="0.18" />
-          <stop offset="50%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.85" />
-        </linearGradient>
-      </defs>
-      {/* Left accent: short low arc near the lower-left corner. */}
-      <path
-        d="M -10 300 C 60 270, 130 260, 240 282"
-        fill="none"
-        stroke="url(#hero-path)"
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeDasharray="1.75 8"
-      />
-      {/* Right curling hook: rises from the lower-right, arcs up and right,
-          hooks back-left and up, then curves out to the paper airplane. */}
-      <path
-        d="M 700 305 C 850 325, 1010 325, 1120 270 C 1220 220, 1230 160, 1130 145 C 1040 132, 1030 88, 1110 82 C 1155 78, 1185 76, 1200 74"
-        fill="none"
-        stroke="url(#hero-path)"
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeDasharray="1.75 8"
-      />
-      {/* Eased curling trail right behind the airplane. */}
-      <path
-        d="M 1120 130 C 1150 110, 1175 92, 1195 78"
-        fill="none"
-        stroke="oklch(0.48 0.18 262 / 0.55)"
-        strokeWidth="0.9"
-        strokeLinecap="round"
-        strokeDasharray="1.25 6"
-      />
-      <circle cx="60" cy="290" r="3" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
-      <circle cx="1175" cy="205" r="2.5" fill="none" stroke="oklch(0.48 0.18 262)" strokeWidth="0.9" />
-      {/* Flight path the paper airplane traces in from the lower-left,
-          following the dashed trail up to its resting spot. */}
-      <path
-        id="hero-flight-path"
-        d="M -50 320 C 60 290, 130 270, 240 282 C 420 295, 560 318, 700 305 C 850 325, 1010 325, 1120 270 C 1220 220, 1230 160, 1130 145 C 1040 132, 1030 88, 1110 82 C 1155 78, 1185 76, 1196 64"
-        fill="none"
-        stroke="none"
-      />
-      {/* Paper airplane glyph — animates along the flight path on mount,
-          then freezes at the resting position in the upper-right. */}
-      <g>
+    <div ref={ref} className="pointer-events-none absolute inset-0">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 1240 360"
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full"
+      >
+        <defs>
+          <linearGradient id="hero-path" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stopColor="oklch(0.72 0.12 262)" stopOpacity="0.18" />
+            <stop offset="50%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.45" />
+            <stop offset="100%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.85" />
+          </linearGradient>
+          {/* Reveal mask: a thick white stroke is drawn along the flight
+              path from start to end, exposing the dashed trail beneath it
+              in sync with the airplane's motion. */}
+          <mask id="hero-trail-reveal" maskUnits="userSpaceOnUse">
+            <rect x="0" y="0" width="1240" height="360" fill="black" />
+            <path
+              d={flightD}
+              fill="none"
+              stroke="white"
+              strokeWidth="40"
+              strokeLinecap="round"
+              pathLength={1}
+              strokeDasharray="1 1"
+              strokeDashoffset={inView ? 1 : 1}
+            >
+              {inView && (
+                <animate
+                  attributeName="stroke-dashoffset"
+                  from="1"
+                  to="0"
+                  dur={DUR}
+                  begin={BEGIN}
+                  fill="freeze"
+                  calcMode="spline"
+                  keyTimes="0;1"
+                  values="1;0"
+                  keySplines="0.42 0 0.2 1"
+                />
+              )}
+            </path>
+          </mask>
+        </defs>
+
+        {/* Dashed trail — masked so only the portion the plane has already
+            passed is visible. */}
         <path
-          d="M 0 0 L 28 -8 L 10 6 Z"
-          fill="oklch(0.72 0.12 262 / 0.16)"
+          id="hero-flight-path"
+          d={flightD}
+          fill="none"
+          stroke="url(#hero-path)"
+          strokeWidth="1"
+          strokeLinecap="round"
+          strokeDasharray="1.75 8"
+          mask="url(#hero-trail-reveal)"
+        />
+
+        {/* Open-circle waypoints — fade in once the plane has passed each. */}
+        <circle
+          cx="60"
+          cy="290"
+          r="3"
+          fill="none"
           stroke="oklch(0.48 0.18 262)"
           strokeWidth="0.9"
-          strokeLinejoin="round"
+          opacity={inView ? 1 : 0}
+          style={{ transition: "opacity 600ms ease-out", transitionDelay: "700ms" }}
         />
-        <path
-          d="M 10 6 L 14 14 L 18 3 Z"
-          fill="oklch(0.72 0.12 262 / 0.28)"
+        <circle
+          cx="1175"
+          cy="205"
+          r="2.5"
+          fill="none"
           stroke="oklch(0.48 0.18 262)"
           strokeWidth="0.9"
-          strokeLinejoin="round"
+          opacity={inView ? 1 : 0}
+          style={{ transition: "opacity 600ms ease-out", transitionDelay: "3800ms" }}
         />
-        <animateMotion
-          dur="3.2s"
-          begin="0.3s"
-          fill="freeze"
-          rotate="auto"
-          keyPoints="0;1"
-          keyTimes="0;1"
-          calcMode="spline"
-          keySplines="0.42 0 0.2 1"
-        >
-          <mpath href="#hero-flight-path" />
-        </animateMotion>
-      </g>
-    </svg>
+
+        {/* Paper airplane glyph — animates along the flight path when the
+            hero scrolls into view, then freezes at the resting position. */}
+        <g style={{ visibility: inView ? "visible" : "hidden" }}>
+          <path
+            d="M 0 0 L 28 -8 L 10 6 Z"
+            fill="oklch(0.72 0.12 262 / 0.16)"
+            stroke="oklch(0.48 0.18 262)"
+            strokeWidth="0.9"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M 10 6 L 14 14 L 18 3 Z"
+            fill="oklch(0.72 0.12 262 / 0.28)"
+            stroke="oklch(0.48 0.18 262)"
+            strokeWidth="0.9"
+            strokeLinejoin="round"
+          />
+          {inView && (
+            <animateMotion
+              dur={DUR}
+              begin={BEGIN}
+              fill="freeze"
+              rotate="auto"
+              calcMode="spline"
+              keyTimes="0;1"
+              keySplines="0.42 0 0.2 1"
+            >
+              <mpath href="#hero-flight-path" />
+            </animateMotion>
+          )}
+        </g>
+      </svg>
+    </div>
   );
 }
 
