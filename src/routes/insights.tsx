@@ -460,62 +460,88 @@ function ArticleList() {
             </p>
           ) : (
             <div ref={listParentRef} className="relative">
-              <ul
-                className="relative w-full"
-                style={{ height: `${totalSize}px` }}
-              >
-                {virtualItems.map((vi) => {
-                  const a = shown[vi.index];
-                  if (!a) return null;
-                  const isLast = vi.index === shown.length - 1;
-                  return (
-                    <li
-                      key={vi.key}
-                      data-index={vi.index}
-                      ref={virtualizer.measureElement}
-                      className={`group absolute left-0 top-0 w-full animate-fade-in ${
-                        isLast ? "" : "border-b border-rule/70"
-                      }`}
-                      style={{
-                        transform: `translateY(${vi.start - virtualizer.options.scrollMargin}px)`,
-                        animationDelay: `${Math.min(vi.index, 6) * 40}ms`,
-                      }}
-                    >
-                      <Link
-                        to="/insights/$slug"
-                        params={{ slug: a.slug }}
-                        className="grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 py-7 sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
-                      >
-                        {/* Col 1: dot + category */}
-                        <div className="col-span-2 flex items-center gap-3 sm:col-span-1 sm:items-start sm:pt-[10px]">
-                          <span className="inline-block h-[7px] w-[7px] flex-none rounded-full bg-royal" aria-hidden="true" />
-                          <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/60">
-                            {a.category}
-                          </span>
-                        </div>
-                        {/* Col 2: title + blurb */}
-                        <div className="col-span-2 sm:col-span-1">
-                          <h3 className="font-display text-[20px] font-normal leading-[1.25] tracking-[-0.015em] text-ink transition-colors group-hover:text-royal sm:text-[22px]">
-                            {a.title}
-                          </h3>
-                          <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.65] text-ink/55">{a.blurb}</p>
-                        </div>
-                        {/* Col 3: meta */}
-                        <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:pt-[10px] sm:text-right">
-                          <p>{a.read.replace(" read", "").toUpperCase()} READ</p>
-                          <p>{a.date.toUpperCase()}</p>
-                        </div>
-                        {/* Col 4: arrow */}
-                        <span className="flex items-start justify-end pt-1 text-royal sm:pt-[10px]" aria-hidden="true">
-                          <svg viewBox="0 0 20 20" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1">
-                            <path d="M3 10 H16 M11 5 L16 10 L11 15" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              {(() => {
+                // Virtualize only when the list is large enough to matter.
+                // Below the threshold, render in normal flow so variable row
+                // heights stay correct without measure-then-reposition flicker.
+                const VIRTUALIZE_THRESHOLD = 30;
+                const useVirtual = shown.length >= VIRTUALIZE_THRESHOLD;
+                const items = useVirtual
+                  ? virtualItems.map((vi) => ({
+                      key: String(vi.key),
+                      index: vi.index,
+                      article: shown[vi.index],
+                      transform: `translateY(${vi.start - virtualizer.options.scrollMargin}px)`,
+                      measureRef: virtualizer.measureElement,
+                    }))
+                  : shown.map((a, i) => ({
+                      key: a.slug,
+                      index: i,
+                      article: a,
+                      transform: undefined as string | undefined,
+                      measureRef: undefined,
+                    }));
+
+                return (
+                  <ul
+                    className={useVirtual ? "relative w-full" : "divide-y divide-rule/70"}
+                    style={useVirtual ? { height: `${totalSize}px` } : undefined}
+                  >
+                    {items.map(({ key, index, article: a, transform, measureRef }) => {
+                      if (!a) return null;
+                      const isLast = index === shown.length - 1;
+                      return (
+                        <li
+                          key={key}
+                          data-index={index}
+                          ref={measureRef}
+                          className={`group animate-fade-in ${
+                            useVirtual
+                              ? `absolute left-0 top-0 w-full ${isLast ? "" : "border-b border-rule/70"}`
+                              : ""
+                          }`}
+                          style={{
+                            ...(transform ? { transform } : null),
+                            animationDelay: `${Math.min(index, 6) * 40}ms`,
+                          }}
+                        >
+                          <Link
+                            to="/insights/$slug"
+                            params={{ slug: a.slug }}
+                            className="grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 py-7 sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
+                          >
+                            {/* Col 1: dot + category */}
+                            <div className="col-span-2 flex items-center gap-3 sm:col-span-1 sm:items-start sm:pt-[10px]">
+                              <span className="inline-block h-[7px] w-[7px] flex-none rounded-full bg-royal" aria-hidden="true" />
+                              <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/60">
+                                {a.category}
+                              </span>
+                            </div>
+                            {/* Col 2: title + blurb */}
+                            <div className="col-span-2 sm:col-span-1">
+                              <h3 className="font-display text-[20px] font-normal leading-[1.25] tracking-[-0.015em] text-ink transition-colors group-hover:text-royal sm:text-[22px]">
+                                {a.title}
+                              </h3>
+                              <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.65] text-ink/55">{a.blurb}</p>
+                            </div>
+                            {/* Col 3: meta */}
+                            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:pt-[10px] sm:text-right">
+                              <p>{a.read.replace(" read", "").toUpperCase()} READ</p>
+                              <p>{a.date.toUpperCase()}</p>
+                            </div>
+                            {/* Col 4: arrow */}
+                            <span className="flex items-start justify-end pt-1 text-royal sm:pt-[10px]" aria-hidden="true">
+                              <svg viewBox="0 0 20 20" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1">
+                                <path d="M3 10 H16 M11 5 L16 10 L11 15" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
+              })()}
             </div>
           )}
 
