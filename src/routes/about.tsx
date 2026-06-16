@@ -626,7 +626,7 @@ function HonestFit() {
 
         <Reveal as="div" variant="fade-up" delay={120} className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
           <FitCard
-            icon={<Gauge className="h-4 w-4" />}
+            icon={<Sun className="h-4 w-4" />}
             title="Treatment of Light"
             body="We value what matters — not what's loud."
           />
@@ -636,7 +636,7 @@ function HonestFit() {
             body="We respect the map, not the shortcut."
           />
           <FitCard
-            icon={<Tag className="h-4 w-4" />}
+            icon={<Scale className="h-4 w-4" />}
             title="Price Alone"
             body="We measure in transformation investments."
           />
