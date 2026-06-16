@@ -692,7 +692,7 @@ function BottomCTA() {
       <div className="mx-auto grid w-full max-w-[1220px] grid-cols-1 items-center gap-10 px-6 py-16 sm:px-10 sm:py-[72px] lg:min-h-[420px] lg:grid-cols-2 lg:gap-12 lg:py-[92px]">
         <div className="flex flex-col items-start">
           <h2
-            className="max-w-[420px] font-display text-[42px] leading-[1.0] tracking-[-0.025em] text-ink opacity-0 [animation:fade-in_0.7s_ease-out_0.05s_forwards] md:text-[54px] lg:text-[60px] lg:leading-[0.98]"
+            className="max-w-[540px] font-display text-[42px] leading-[1.0] tracking-[-0.025em] text-ink opacity-0 [animation:fade-in_0.7s_ease-out_0.05s_forwards] md:text-[54px] lg:text-[60px] lg:leading-[0.98]"
           >
             Every build
             <br />
