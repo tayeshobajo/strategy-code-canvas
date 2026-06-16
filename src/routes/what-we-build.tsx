@@ -737,32 +737,33 @@ function BottomCTA() {
     >
       <div className="mx-auto grid w-full max-w-[1220px] grid-cols-1 items-center gap-10 px-6 py-16 sm:px-10 sm:py-[72px] lg:min-h-[420px] lg:grid-cols-2 lg:gap-12 lg:py-[92px]">
         <div className="flex flex-col items-start">
-          <h2
-            className="max-w-[540px] font-display text-[42px] leading-[1.0] tracking-[-0.025em] text-ink opacity-0 [animation:fade-in_0.7s_ease-out_0.05s_forwards] md:text-[54px] lg:text-[60px] lg:leading-[0.98]"
-          >
+          <Reveal as="h2" variant="rise" className="max-w-[540px] font-display text-[42px] leading-[1.0] tracking-[-0.025em] text-ink md:text-[54px] lg:text-[60px] lg:leading-[0.98]">
             Every build
             <br />
             begins with the map.
-          </h2>
-          <span
-            aria-hidden="true"
-            className="mt-5 block h-[2px] w-0 origin-left bg-royal [animation:cta-rule_0.6s_ease-out_0.35s_forwards]"
-          />
-          <p className="mt-6 max-w-[420px] text-[17px] leading-[1.65] text-ink/85 opacity-0 [animation:fade-in_0.7s_ease-out_0.55s_forwards] md:text-[18px]">
+          </Reveal>
+          <Reveal variant="fade" delay={250} className="mt-5">
+            <span
+              aria-hidden="true"
+              className="block h-[2px] w-0 origin-left bg-royal [animation:cta-rule_0.6s_ease-out_0.1s_forwards]"
+            />
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={400} className="mt-6 max-w-[420px] text-[17px] leading-[1.65] text-ink/85 md:text-[18px]">
             The map says whether you need what is on this page, when, and in
             what order. That is where every engagement starts. You own the map
             either way.
-          </p>
-          <div className="mt-[30px] opacity-0 [animation:fade-in_0.7s_ease-out_0.75s_forwards]">
+          </Reveal>
+          <Reveal variant="fade-up" delay={600} className="mt-[30px]">
             <PrimaryButton href="#" className="h-[54px] px-8 text-[14px]">
               Build My Map
             </PrimaryButton>
-          </div>
-          <p className="mt-[18px] max-w-[360px] text-[14px] leading-[1.6] text-ink/65 opacity-0 [animation:fade-in_0.7s_ease-out_0.95s_forwards]">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={780} className="mt-[18px] max-w-[360px] text-[14px] leading-[1.6] text-ink/65">
             A 30-minute conversation. No pitch. If the timing is right, we
             should talk. If not, the work will be waiting when it is.
-          </p>
+          </Reveal>
         </div>
+
 
         {/* Right column intentionally empty — book lives in the background image */}
         <div aria-hidden="true" className="hidden lg:block" />
