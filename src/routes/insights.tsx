@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Search } from "lucide-react";
 import * as React from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Reveal } from "@/hooks/use-reveal";
 import {
@@ -215,9 +216,13 @@ function ArticleList() {
   const [query, setQuery] = React.useState("");
   const [sort, setSort] = React.useState<SortKey>("newest");
   const [visible, setVisible] = React.useState(PAGE_SIZE);
+  const [status, setStatus] = React.useState<"idle" | "loading" | "error">("idle");
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [loopDetected, setLoopDetected] = React.useState(false);
   const [transitioning, setTransitioning] = React.useState(false);
   const tabRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+  const listParentRef = React.useRef<HTMLDivElement | null>(null);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -232,44 +237,112 @@ function ArticleList() {
     }).sort((a, b) => compare(a, b, sort));
   }, [active, query, sort]);
 
-  // Smooth fade when filter/sort/query changes
+  // Deterministic guards ---------------------------------------------------
+  // Token bumps every time the filter set changes; any in-flight page load
+  // started against an older token is discarded.
+  const loadTokenRef = React.useRef(0);
+  // Maximum number of pages possible for the current filter — a hard ceiling
+  // the sentinel can never exceed regardless of how often it fires.
+  const maxPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pagesLoadedRef = React.useRef(1);
+
+  // Loop detection: count sentinel fires within a rolling window.
+  const fireTimestampsRef = React.useRef<number[]>([]);
+  const LOOP_WINDOW_MS = 1500;
+  const LOOP_THRESHOLD = 6;
+
+  // Reset on filter/sort/query change.
   React.useEffect(() => {
+    loadTokenRef.current += 1;
+    pagesLoadedRef.current = 1;
+    fireTimestampsRef.current = [];
+    setLoopDetected(false);
+    setStatus("idle");
+    setErrorMsg(null);
     setTransitioning(true);
     setVisible(PAGE_SIZE);
     const t = window.setTimeout(() => setTransitioning(false), 180);
     return () => window.clearTimeout(t);
   }, [active, query, sort]);
 
-  // Infinite scroll: load more when sentinel intersects.
-  // Keep filtered length in a ref so the observer reads the current value
-  // without being torn down and re-created on every state change.
-  const filteredLenRef = React.useRef(filtered.length);
-  React.useEffect(() => {
-    filteredLenRef.current = filtered.length;
-  }, [filtered.length]);
+  const filteredLen = filtered.length;
+  const hasMore = visible < filteredLen && !loopDetected;
 
-  const hasMore = visible < filtered.length;
+  // Page loader — async wrapper so we can surface loading + error states even
+  // though the source is in-memory. Honors the load token so stale loads from
+  // a previous filter cannot land.
+  const loadNextPage = React.useCallback(async () => {
+    if (pagesLoadedRef.current >= maxPages) return;
+    const token = loadTokenRef.current;
+    setStatus("loading");
+    setErrorMsg(null);
+    try {
+      // Yield to the browser so the loading state can paint.
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      if (token !== loadTokenRef.current) return; // filter changed mid-flight
+      pagesLoadedRef.current = Math.min(pagesLoadedRef.current + 1, maxPages);
+      setVisible((v) => Math.min(v + PAGE_SIZE, filteredLen));
+      setStatus("idle");
+    } catch (err) {
+      if (token !== loadTokenRef.current) return;
+      setErrorMsg(err instanceof Error ? err.message : "Failed to load more insights.");
+      setStatus("error");
+    }
+  }, [maxPages, filteredLen]);
 
+  // Infinite scroll observer. Disconnects the moment we hit the end-of-list
+  // ceiling, an error, or a detected fetch loop.
   React.useEffect(() => {
-    if (!hasMore) return;
+    if (!hasMore || status === "loading" || status === "error") return;
     const node = sentinelRef.current;
     if (!node || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setVisible((v) => {
-            const max = filteredLenRef.current;
-            return v >= max ? v : Math.min(v + PAGE_SIZE, max);
-          });
+        if (!entries[0]?.isIntersecting) return;
+        const now = performance.now();
+        const fires = fireTimestampsRef.current.filter((t) => now - t < LOOP_WINDOW_MS);
+        fires.push(now);
+        fireTimestampsRef.current = fires;
+        if (fires.length >= LOOP_THRESHOLD) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[insights] sentinel fired ${fires.length}× in ${LOOP_WINDOW_MS}ms — pausing infinite scroll`,
+          );
+          setLoopDetected(true);
+          io.disconnect();
+          return;
         }
+        if (pagesLoadedRef.current >= maxPages) {
+          io.disconnect();
+          return;
+        }
+        void loadNextPage();
       },
       { rootMargin: "200px 0px" },
     );
     io.observe(node);
     return () => io.disconnect();
-  }, [hasMore]);
+  }, [hasMore, status, loadNextPage, maxPages]);
 
-  const shown = filtered.slice(0, visible);
+  const shown = React.useMemo(() => filtered.slice(0, visible), [filtered, visible]);
+
+  // Virtualization — window-scrolling list with measured row heights.
+  const virtualizer = useWindowVirtualizer({
+    count: shown.length,
+    estimateSize: () => 180,
+    overscan: 4,
+    scrollMargin: listParentRef.current?.offsetTop ?? 0,
+    getItemKey: (i) => shown[i]?.slug ?? i,
+  });
+  const virtualItems = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
+  const offsetTop = listParentRef.current?.offsetTop ?? 0;
+
+  const resumeAfterLoop = () => {
+    fireTimestampsRef.current = [];
+    setLoopDetected(false);
+  };
+
 
   const onTabKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Home" && e.key !== "End") return;
@@ -368,62 +441,119 @@ function ArticleList() {
               No insights match that search yet.
             </p>
           ) : (
-            <ul className="divide-y divide-rule/70">
-              {shown.map((a, i) => (
-                <li
-                  key={a.slug}
-                  className="group animate-fade-in"
-                  style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}
-                >
-                  <Link
-                    to="/insights/$slug"
-                    params={{ slug: a.slug }}
-                    className="grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 py-7 sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
-                  >
-                    {/* Col 1: dot + category */}
-                    <div className="col-span-2 flex items-center gap-3 sm:col-span-1 sm:items-start sm:pt-[10px]">
-                      <span className="inline-block h-[7px] w-[7px] flex-none rounded-full bg-royal" aria-hidden="true" />
-                      <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/60">
-                        {a.category}
-                      </span>
-                    </div>
-                    {/* Col 2: title + blurb */}
-                    <div className="col-span-2 sm:col-span-1">
-                      <h3 className="font-display text-[20px] font-normal leading-[1.25] tracking-[-0.015em] text-ink transition-colors group-hover:text-royal sm:text-[22px]">
-                        {a.title}
-                      </h3>
-                      <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.65] text-ink/55">{a.blurb}</p>
-                    </div>
-                    {/* Col 3: meta */}
-                    <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:pt-[10px] sm:text-right">
-                      <p>{a.read.replace(" read", "").toUpperCase()} READ</p>
-                      <p>{a.date.toUpperCase()}</p>
-                    </div>
-                    {/* Col 4: arrow */}
-                    <span className="flex items-start justify-end pt-1 text-royal sm:pt-[10px]" aria-hidden="true">
-                      <svg viewBox="0 0 20 20" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1">
-                        <path d="M3 10 H16 M11 5 L16 10 L11 15" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div ref={listParentRef} className="relative">
+              <ul
+                className="relative w-full"
+                style={{ height: `${totalSize}px` }}
+              >
+                {virtualItems.map((vi) => {
+                  const a = shown[vi.index];
+                  if (!a) return null;
+                  const isLast = vi.index === shown.length - 1;
+                  return (
+                    <li
+                      key={vi.key}
+                      data-index={vi.index}
+                      ref={virtualizer.measureElement}
+                      className={`group absolute left-0 top-0 w-full animate-fade-in ${
+                        isLast ? "" : "border-b border-rule/70"
+                      }`}
+                      style={{
+                        transform: `translateY(${vi.start - offsetTop}px)`,
+                        animationDelay: `${Math.min(vi.index, 6) * 40}ms`,
+                      }}
+                    >
+                      <Link
+                        to="/insights/$slug"
+                        params={{ slug: a.slug }}
+                        className="grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 py-7 sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
+                      >
+                        {/* Col 1: dot + category */}
+                        <div className="col-span-2 flex items-center gap-3 sm:col-span-1 sm:items-start sm:pt-[10px]">
+                          <span className="inline-block h-[7px] w-[7px] flex-none rounded-full bg-royal" aria-hidden="true" />
+                          <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/60">
+                            {a.category}
+                          </span>
+                        </div>
+                        {/* Col 2: title + blurb */}
+                        <div className="col-span-2 sm:col-span-1">
+                          <h3 className="font-display text-[20px] font-normal leading-[1.25] tracking-[-0.015em] text-ink transition-colors group-hover:text-royal sm:text-[22px]">
+                            {a.title}
+                          </h3>
+                          <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.65] text-ink/55">{a.blurb}</p>
+                        </div>
+                        {/* Col 3: meta */}
+                        <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:pt-[10px] sm:text-right">
+                          <p>{a.read.replace(" read", "").toUpperCase()} READ</p>
+                          <p>{a.date.toUpperCase()}</p>
+                        </div>
+                        {/* Col 4: arrow */}
+                        <span className="flex items-start justify-end pt-1 text-royal sm:pt-[10px]" aria-hidden="true">
+                          <svg viewBox="0 0 20 20" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1">
+                            <path d="M3 10 H16 M11 5 L16 10 L11 15" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           )}
 
           {/* Sentinel + status */}
-          {hasMore && (
-            <div
-              ref={sentinelRef}
-              aria-hidden="true"
-              className="h-10"
-            />
+          {hasMore && status !== "error" && !loopDetected && (
+            <div ref={sentinelRef} aria-hidden="true" className="h-10" />
           )}
-          <p className="pb-8 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/40" aria-live="polite">
-            {hasMore
-              ? `Loading more (${shown.length} of ${filtered.length})`
-              : `${filtered.length} insight${filtered.length === 1 ? "" : "s"}`}
-          </p>
+
+          <div
+            className="pb-8 pt-2 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/50"
+            aria-live="polite"
+            role="status"
+          >
+            {status === "loading" && (
+              <span className="inline-flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-3 w-3 animate-spin rounded-full border border-royal/30 border-t-royal"
+                />
+                Loading more ({shown.length} of {filteredLen})
+              </span>
+            )}
+            {status === "error" && (
+              <span className="inline-flex flex-col items-center gap-2 text-ink/70 sm:flex-row">
+                <span className="text-rose-600">
+                  {errorMsg ?? "Something went wrong loading more insights."}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void loadNextPage()}
+                  className="rounded-full border border-royal/40 px-3 py-1 text-royal transition-colors hover:bg-royal hover:text-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-royal/40"
+                >
+                  Retry
+                </button>
+              </span>
+            )}
+            {status === "idle" && !loopDetected && (
+              <span>
+                {hasMore
+                  ? `Scroll for more (${shown.length} of ${filteredLen})`
+                  : `${filteredLen} insight${filteredLen === 1 ? "" : "s"}`}
+              </span>
+            )}
+            {loopDetected && (
+              <span className="inline-flex flex-col items-center gap-2 text-amber-700 sm:flex-row">
+                <span>Infinite scroll paused: possible fetch loop detected.</span>
+                <button
+                  type="button"
+                  onClick={resumeAfterLoop}
+                  className="rounded-full border border-amber-700/40 px-3 py-1 transition-colors hover:bg-amber-700 hover:text-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700/40"
+                >
+                  Resume
+                </button>
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </section>
