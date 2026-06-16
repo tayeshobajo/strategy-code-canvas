@@ -336,18 +336,18 @@ function PatternDiagram() {
       const x = Math.sin(i * 12.9898) * 43758.5453;
       return x - Math.floor(x);
     };
+    const round = (n: number, p = 2) => Math.round(n * 10 ** p) / 10 ** p;
     // converge toward the start of the path (~170,150)
     const target = { x: 170, y: 150 };
     return Array.from({ length: 42 }).map((_, i) => {
-      const x = 20 + seeded(i) * 130;
-      const y = 30 + seeded(i + 17) * 160;
-      const r = 1 + seeded(i + 33) * 1.6;
-      const o = 0.35 + seeded(i + 51) * 0.55;
-      // move ~55% of the way toward the convergence point
-      const dx = (target.x - x) * 0.55;
-      const dy = (target.y - y) * 0.55;
-      const dur = 6 + seeded(i + 71) * 4; // 6–10s
-      const delay = seeded(i + 89) * 4; // 0–4s
+      const x = round(20 + seeded(i) * 130);
+      const y = round(30 + seeded(i + 17) * 160);
+      const r = round(1 + seeded(i + 33) * 1.6);
+      const o = round(0.35 + seeded(i + 51) * 0.55);
+      const dx = round((target.x - x) * 0.55);
+      const dy = round((target.y - y) * 0.55);
+      const dur = round(6 + seeded(i + 71) * 4);
+      const delay = round(seeded(i + 89) * 4);
       return { x, y, r, o, dx, dy, dur, delay };
     });
   }, []);
