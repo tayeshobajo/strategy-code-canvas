@@ -5,7 +5,7 @@ import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 type NavItem = { label: string; to: string; hash?: string };
 
 const NAV: NavItem[] = [
-  { label: "The Roadmap", to: "/", hash: "roadmap" },
+  { label: "The Roadmap", to: "/" },
   { label: "What We Build", to: "/what-we-build" },
   { label: "Investment", to: "/investment" },
   { label: "About", to: "/about" },
@@ -20,7 +20,7 @@ export function SiteHeader() {
     if (n.to === "/investment") return pathname === "/investment";
     if (n.to === "/about") return pathname === "/about";
     if (n.to === "/insights") return pathname === "/insights";
-    if (n.to === "/" && n.hash === "roadmap") return pathname === "/";
+    if (n.to === "/") return pathname === "/";
     return false;
   };
 
