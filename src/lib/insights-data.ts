@@ -30,7 +30,7 @@ export type Insight = {
   body: string[]; // paragraphs
 };
 
-const BASE: Insight[] = [
+export const INSIGHTS: Insight[] = [
   {
     slug: "founder-trap-day-your-business-stopped-scaling",
     category: "The Founder Trap",
@@ -130,43 +130,6 @@ const BASE: Insight[] = [
     ],
   },
 ];
-
-// Pad the list out so infinite scroll has something to chew on while keeping
-// content honest. Variants reuse the same canonical writing with a fresh slug.
-const VARIANTS = [
-  "ii",
-  "iii",
-  "iv",
-  "v",
-  "vi",
-  "vii",
-  "viii",
-  "ix",
-  "x",
-];
-
-export const INSIGHTS: Insight[] = [
-  ...BASE,
-  ...VARIANTS.flatMap((suffix, vi) =>
-    BASE.map((b, bi) => ({
-      ...b,
-      slug: `${b.slug}-${suffix}`,
-      publishedAt: shiftDate(b.publishedAt, -(vi + 1) * 14 - bi),
-      date: monthYear(shiftDate(b.publishedAt, -(vi + 1) * 14 - bi)),
-    })),
-  ),
-];
-
-function shiftDate(iso: string, days: number): string {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function monthYear(iso: string): string {
-  const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
-}
 
 export function getInsightBySlug(slug: string): Insight | undefined {
   return INSIGHTS.find((i) => i.slug === slug);
