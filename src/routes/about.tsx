@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Compass, Leaf, Star, Gauge, Map as MapIcon, Tag } from "lucide-react";
+import { ArrowRight, Compass, Leaf, Star, Gauge, Map as MapIcon, Sun, Scale } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
@@ -259,14 +259,22 @@ function MiniBrowserCard() {
         <span className="h-2 w-2 rounded-full bg-rule" />
         <span className="h-2 w-2 rounded-full bg-rule" />
       </div>
-      <div className="flex h-[160px] items-center justify-center rounded-sm bg-[oklch(0.965_0.012_75)]">
-        <svg width="40" height="36" viewBox="0 0 40 36" fill="none">
+      <div className="relative flex h-[160px] flex-col items-center justify-center rounded-sm bg-[oklch(0.965_0.012_75)] px-6">
+        <p className="font-display text-[20px] leading-none tracking-wide text-ink/85">One</p>
+        <span className="mt-2 block h-px w-6 bg-royal/80" />
+        <span className="mt-4 block h-1.5 w-3/5 rounded-full bg-ink/10" />
+        <span className="mt-1.5 block h-1.5 w-2/5 rounded-full bg-ink/10" />
+        <svg className="absolute bottom-2 right-2" width="44" height="14" viewBox="0 0 44 14" fill="none" aria-hidden="true">
           <path
-            d="M20 33 L4 18 a9 9 0 1 1 16-6 a9 9 0 1 1 16 6 Z"
+            d="M2 10 C 10 2, 20 14, 30 6 S 40 4, 42 5"
             stroke="var(--royal)"
-            strokeWidth="1.4"
+            strokeWidth="1"
+            strokeDasharray="1.5 3"
+            strokeLinecap="round"
             fill="none"
+            opacity="0.7"
           />
+          <circle cx="42" cy="5" r="1.6" fill="var(--royal)" />
         </svg>
       </div>
       <div className="mt-3 space-y-1.5">
@@ -335,7 +343,7 @@ function PatternDiagram() {
     }));
   }, []);
   return (
-    <svg viewBox="0 0 620 240" className="h-auto w-full">
+    <svg viewBox="0 0 620 260" className="h-auto w-full">
       <defs>
         <radialGradient id="ring-glow" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="var(--royal)" stopOpacity="0.35" />
@@ -374,19 +382,19 @@ function PatternDiagram() {
       <circle cx="560" cy="90" r="10" fill="none" stroke="var(--royal)" strokeWidth="1.2" opacity="0.8" />
       <circle cx="560" cy="90" r="4.5" fill="var(--royal)" />
 
-      <text x="175" y="210" fontFamily="Inter, sans-serif" fontSize="11" fill="oklch(0.4 0.04 260)">
+      <text x="60" y="232" fontFamily="Inter, sans-serif" fontSize="11" fill="oklch(0.4 0.04 260)">
         Details
       </text>
-      <text x="175" y="224" fontFamily="Inter, sans-serif" fontSize="11" fill="oklch(0.4 0.04 260)">
+      <text x="60" y="246" fontFamily="Inter, sans-serif" fontSize="11" fill="oklch(0.4 0.04 260)">
         &amp; Systems
       </text>
-      <text x="175" y="238" fontFamily="Inter, sans-serif" fontSize="10.5" fill="oklch(0.5 0.03 260)">
+      <text x="120" y="246" fontFamily="Inter, sans-serif" fontSize="10.5" fill="oklch(0.5 0.03 260)">
         Solve real problems
       </text>
 
       <text
         x="560"
-        y="135"
+        y="128"
         textAnchor="middle"
         fontFamily="Inter, sans-serif"
         fontSize="11"
@@ -394,6 +402,7 @@ function PatternDiagram() {
       >
         The Roadmap
       </text>
+      <line x1="540" y1="134" x2="580" y2="134" stroke="var(--royal)" strokeWidth="1" opacity="0.6" />
     </svg>
   );
 }
@@ -462,7 +471,7 @@ function TheConductor() {
             </div>
           </Reveal>
 
-          <Reveal as="div" variant="fade-up" delay={100} className="lg:col-span-5">
+          <Reveal as="div" variant="fade-up" delay={100} className="lg:col-span-4">
             <Eyebrow>The Conductor</Eyebrow>
             <h2 className="mt-3 font-display text-[28px] leading-[1.15] tracking-tight text-ink sm:text-[34px] lg:text-[38px]">
               The hand that <br /> draws the Roadmap.
@@ -503,13 +512,14 @@ function TheConductor() {
             </ul>
           </Reveal>
 
-          <Reveal as="div" variant="fade-up" delay={200} className="lg:col-span-2">
-            <aside className="rounded-md border border-rule/70 bg-white/60 p-4 text-[12.5px] leading-[1.6] text-ink/75">
-              <Compass className="h-4 w-4 text-royal" />
-              <p className="mt-3">
-                We do the hard work so your mindset can lead the Roadmap.
-              </p>
-              <p className="mt-3">Business runs better, and character built what lasts.</p>
+          <Reveal as="div" variant="fade-up" delay={200} className="lg:col-span-3">
+            <aside className="rounded-md border border-rule/70 bg-white/60 p-5 text-[12.5px] leading-[1.65] text-ink/75">
+              <span className="block h-px w-8 bg-royal/70" />
+              <div className="mt-3 flex items-start gap-2">
+                <Compass className="mt-0.5 h-4 w-4 flex-none text-royal" />
+                <p>We do the hard work so your mindset can lead the Roadmap.</p>
+              </div>
+              <p className="mt-3">Business runs better, and character builds what lasts.</p>
             </aside>
           </Reveal>
         </div>
@@ -589,8 +599,8 @@ function FitCard({
   body: string;
 }) {
   return (
-    <div className="rounded-md border border-rule/70 bg-white/60 p-6">
-      <div className="flex h-9 w-9 items-center justify-center rounded-sm border border-royal/30 text-royal">
+    <div className="group rounded-md border border-rule/70 bg-white/60 p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-royal/30 hover:shadow-[0_18px_40px_-28px_rgba(10,23,51,0.25)]">
+      <div className="flex h-9 w-9 items-center justify-center rounded-sm border border-royal/30 text-royal transition-colors group-hover:border-royal/60">
         {icon}
       </div>
       <h3 className="mt-4 font-display text-[18px] leading-snug text-ink">{title}</h3>
@@ -616,7 +626,7 @@ function HonestFit() {
 
         <Reveal as="div" variant="fade-up" delay={120} className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
           <FitCard
-            icon={<Gauge className="h-4 w-4" />}
+            icon={<Sun className="h-4 w-4" />}
             title="Treatment of Light"
             body="We value what matters — not what's loud."
           />
@@ -626,7 +636,7 @@ function HonestFit() {
             body="We respect the map, not the shortcut."
           />
           <FitCard
-            icon={<Tag className="h-4 w-4" />}
+            icon={<Scale className="h-4 w-4" />}
             title="Price Alone"
             body="We measure in transformation investments."
           />
@@ -695,6 +705,7 @@ function CloseCTA() {
       />
       <div className={`relative ${container}`}>
         <Reveal as="div" variant="fade-up" className="mx-auto max-w-[680px] text-center">
+          <span className="mx-auto mb-6 block h-px w-10 bg-paper/30" />
           <h2 className="font-display text-[28px] leading-[1.2] tracking-tight text-paper sm:text-[32px] lg:text-[36px]">
             Care more than anyone expects you to.
           </h2>
@@ -710,7 +721,7 @@ function CloseCTA() {
             <PrimaryCTA variant="light">Build My Roadmap</PrimaryCTA>
           </div>
           <p className="mt-4 text-[12px] text-paper/55">
-            A 30-minute conversation. No pitch. For the timing is right and we should talk.
+            A 30-minute conversation. No pitch. If the timing is right we should talk.
           </p>
         </Reveal>
       </div>

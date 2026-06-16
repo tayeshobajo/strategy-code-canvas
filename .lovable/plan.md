@@ -1,47 +1,40 @@
-## Goal
-Strengthen structured data on `/about`, ensure the Organization logo is a fully qualified URL matching the real header/footer asset, add BreadcrumbList, and produce a short validation report covering schema.org + OpenGraph + canonical.
+## /about styling review — section-by-section polish
 
-## Changes to `src/routes/about.tsx`
+Reviewed the rendered page against the source. Hero, dark "How We Think" section, and footer are all on-style. Five sections need targeted fixes; nothing structural changes.
 
-1. **Origin helper for absolute URLs**
-   - Add a small `createServerFn` (`getRequestOrigin`) in `src/lib/origin.functions.ts` that reads `x-forwarded-proto` + `host` and returns the absolute origin.
-   - Call it from the route `loader` and expose `origin` via `loaderData` so `head()` can build absolute URLs for `logo`, `image`, `og:image`, `og:url`, `canonical`, and `@id` fields.
+### 1. The Reality — `MiniBrowserCard`
+The card on the left reads as a placeholder: empty browser chrome with a lone heart icon floating in a beige rectangle. Tighten it so it visually represents "the anniversary site, three days, made with care":
+- Replace the centered heart with a small composed mock: a centered serif "ONE" wordmark, a thin royal hairline beneath, two faux lines of body, and a small dotted path in the corner (echoes the Roadmap motif).
+- Keep the same dimensions, border, and shadow.
+- Caption stays "Putting people first".
 
-2. **Logo asset alignment**
-   - Header/footer use `src/assets/trust-tai-logo.png` (light) and `trust-tai-logo-white.png` (dark). Import the light logo asset JSON and use its `.url` for Organization `logo`, prefixed with the absolute origin so it is fully qualified (Google requires absolute logo URLs).
+### 2. The Pattern — diagram labels
+`PatternDiagram` labels currently sit at y=210–238 and visually crowd the curving path on smaller widths. Fix:
+- Move the "Details & Systems / Solve real problems" label block down and left so it anchors under the scatter cluster (not under the path).
+- Raise "The Roadmap" caption a touch and add a subtle 1px royal underline so it reads as a destination label, matching the target rings.
+- Increase `viewBox` height from 240 → 260 so nothing is clipped.
 
-3. **Expanded JSON-LD blocks** (all in `head().scripts`)
-   - **Organization** (`@id: ${origin}/#organization`)
-     - `name`, `url` (absolute), `logo` as `ImageObject` with absolute `url`, `width`, `height`
-     - `sameAs` (leave empty array or omit if none)
-     - `founder` → reference Person by `@id`
-   - **WebSite** (`@id: ${origin}/#website`)
-     - `name`, `url` (absolute), `publisher` → reference Organization by `@id`, `inLanguage: "en"`
-   - **Person** (`@id: ${origin}/#tai`)
-     - `name: "Tai"`, `jobTitle: "Founder & Conductor"`, absolute `image` (portrait), `worksFor` → Organization `@id`, `url` → `${origin}/about`
-   - **AboutPage** (`@id: ${origin}/about#aboutpage`)
-     - `url`, `name`, `description`, `primaryImageOfPage` (absolute), `isPartOf` → WebSite `@id`, `about` → Person `@id`, `breadcrumb` → BreadcrumbList `@id`
-   - **BreadcrumbList** (`@id: ${origin}/about#breadcrumb`)
-     - Item 1: Home → `${origin}/`
-     - Item 2: About → `${origin}/about`
+### 3. The Conductor — column proportions
+The 5 / 5 / 2 grid leaves the right "side note" card ~160px wide; text wraps every 2–3 words ("We do the hard / work so your / mindset…").
+- Change grid to `lg:grid-cols-12` with portrait 5, body 4, aside 3.
+- Aside: add a top hairline, increase padding to `p-5`, tighten line-height. Move the small Compass icon inline with the first line rather than stacked above.
+- Also fix the awkward second line: "Business runs better, and character builds what lasts." (typo: "built" → "builds").
 
-4. **Meta tags**
-   - Ensure `og:url`, `og:image`, `twitter:image`, and `<link rel="canonical">` use the absolute origin (not relative) so crawlers and the validator resolve them unambiguously.
+### 4. The Commitment — `FitCard` icons
+Icons don't match titles:
+- "Treatment of Light" → use `Sun` (lucide) instead of `Gauge`.
+- "Discipline Without a Map" → keep `MapIcon` (reads correctly as the discipline of the map).
+- "Price Alone" → swap `Tag` for `Scale` (value over price reads better than a price tag).
+- Add `transition-shadow` and a subtle hover lift to match the dark principle cards' interaction register.
 
-## Validation report
+### 5. Close / CTA — micro-polish
+- Final line reads "For the timing is right and we should talk." — change "For" → "If" (typo).
+- Add 1px paper/15 hairline above the headline to echo the hero's accent rule and tie the section to the rest of the page.
 
-Run a script (after build) that fetches the `/about` HTML from the running preview and checks:
-- `<title>`, `<meta name="description">` present and non-default
-- `og:title`, `og:description`, `og:url`, `og:image`, `og:type`, `og:site_name`
-- `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`
-- `<link rel="canonical">` present, absolute, self-referencing `/about`
-- All `application/ld+json` blocks parse as JSON
-- Each schema has required fields: Organization (`name`, `url`, `logo`), WebSite (`name`, `url`), Person (`name`), AboutPage (`name`, `url`), BreadcrumbList (`itemListElement` with positions)
-- Organization `logo` is absolute (`https://…`) and returns 200
+### Out of scope
+- No copy rewrites beyond the two typos called out (Conductor aside, CTA footnote).
+- No changes to Hero, How We Think, or Footer.
+- No changes to JSON-LD, head tags, or routing.
 
-Output a concise pass/fail markdown report in chat (no file written).
-
-## Out of scope
-- No changes to other routes' JSON-LD.
-- No changes to copy, layout, or images.
-- No new sitewide JSON-LD in `__root.tsx` (keeps leaf-only canonical/OG pattern intact).
+### Files touched
+- `src/routes/about.tsx` only.
