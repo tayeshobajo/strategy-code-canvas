@@ -6,46 +6,97 @@ import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { Reveal } from "@/hooks/use-reveal";
 import bookHero from "@/assets/hero-open-book-story.png.asset.json";
 import taiPortrait from "@/assets/tai-portrait.png.asset.json";
+import trustTaiLogo from "@/assets/trust-tai-logo.png.asset.json";
+import { getRequestOrigin } from "@/lib/origin.functions";
 
 export const Route = createFileRoute("/about")({
-  head: () => {
+  loader: async () => {
+    const origin = await getRequestOrigin();
+    return { origin };
+  },
+  head: ({ loaderData }) => {
+    const origin = loaderData?.origin ?? "";
+    const abs = (p: string) => (p.startsWith("http") ? p : `${origin}${p}`);
+    const pageUrl = abs("/about");
+    const homeUrl = abs("/");
+    const logoUrl = abs(trustTaiLogo.url);
+    const bookHeroUrl = abs(bookHero.url);
+    const portraitUrl = abs(taiPortrait.url);
+
     const title = "About — Trust Tai";
     const description =
       "From websites to systems to the Roadmap. The standard, the moment, and the hand that draws it.";
     const ogDescription =
       "Care more than anyone expects you to. The standard that launched Trust Tai, and still decides every build.";
+
+    const orgId = `${origin}/#organization`;
+    const websiteId = `${origin}/#website`;
+    const personId = `${origin}/#tai`;
+    const aboutPageId = `${pageUrl}#aboutpage`;
+    const breadcrumbId = `${pageUrl}#breadcrumb`;
+
     const orgLd = {
       "@context": "https://schema.org",
       "@type": "Organization",
+      "@id": orgId,
       name: "Trust Tai",
-      url: "/",
-      logo: "/favicon.ico",
+      url: homeUrl,
+      logo: {
+        "@type": "ImageObject",
+        url: logoUrl,
+        width: 512,
+        height: 512,
+      },
       description:
         "Trust Tai builds the Roadmap — a careful operating system for businesses that want to ship work worth trusting.",
-      founder: {
-        "@type": "Person",
-        name: "Tai",
-        jobTitle: "Founder & Conductor",
-      },
+      founder: { "@id": personId },
     };
+
+    const websiteLd = {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": websiteId,
+      name: "Trust Tai",
+      url: homeUrl,
+      inLanguage: "en",
+      publisher: { "@id": orgId },
+    };
+
+    const personLd = {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "@id": personId,
+      name: "Tai",
+      jobTitle: "Founder & Conductor",
+      image: portraitUrl,
+      url: pageUrl,
+      worksFor: { "@id": orgId },
+    };
+
+    const breadcrumbLd = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "@id": breadcrumbId,
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: homeUrl },
+        { "@type": "ListItem", position: 2, name: "About", item: pageUrl },
+      ],
+    };
+
     const aboutLd = {
       "@context": "https://schema.org",
       "@type": "AboutPage",
+      "@id": aboutPageId,
       name: title,
       description,
-      url: "/about",
-      primaryImageOfPage: {
-        "@type": "ImageObject",
-        url: bookHero.url,
-      },
-      mainEntity: {
-        "@type": "Person",
-        name: "Tai",
-        jobTitle: "Founder & Conductor",
-        image: taiPortrait.url,
-        worksFor: { "@type": "Organization", name: "Trust Tai" },
-      },
+      url: pageUrl,
+      primaryImageOfPage: { "@type": "ImageObject", url: bookHeroUrl },
+      isPartOf: { "@id": websiteId },
+      about: { "@id": personId },
+      breadcrumb: { "@id": breadcrumbId },
+      mainEntity: { "@id": personId },
     };
+
     return {
       meta: [
         { title },
@@ -53,26 +104,30 @@ export const Route = createFileRoute("/about")({
         { property: "og:title", content: title },
         { property: "og:description", content: ogDescription },
         { property: "og:type", content: "profile" },
-        { property: "og:url", content: "/about" },
-        { property: "og:image", content: bookHero.url },
+        { property: "og:url", content: pageUrl },
+        { property: "og:image", content: bookHeroUrl },
         { property: "og:image:alt", content: "An open leather-bound notebook on a warm stone desk." },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: ogDescription },
-        { name: "twitter:image", content: bookHero.url },
+        { name: "twitter:image", content: bookHeroUrl },
       ],
       links: [
-        { rel: "canonical", href: "/about" },
+        { rel: "canonical", href: pageUrl },
         { rel: "preload", as: "image", href: bookHero.url, fetchpriority: "high", media: "(min-width: 640px)" },
       ],
       scripts: [
         { type: "application/ld+json", children: JSON.stringify(orgLd) },
+        { type: "application/ld+json", children: JSON.stringify(websiteLd) },
+        { type: "application/ld+json", children: JSON.stringify(personLd) },
+        { type: "application/ld+json", children: JSON.stringify(breadcrumbLd) },
         { type: "application/ld+json", children: JSON.stringify(aboutLd) },
       ],
     };
   },
   component: AboutPage,
 });
+
 
 const container = "mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-12";
 
