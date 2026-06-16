@@ -616,23 +616,24 @@ function FooterCTA() {
       <div className={`${container} grid grid-cols-1 gap-10 py-20 sm:py-24 lg:grid-cols-12 lg:gap-16 lg:py-28`}>
         <div className="hidden lg:col-span-5 lg:block" />
         <div className="lg:col-span-7">
-          <h2 className="text-[30px] leading-[1.1] tracking-[-0.02em] text-white sm:text-[40px]">
+          <h2 className="font-display font-normal text-[28px] leading-[1.12] tracking-[-0.018em] text-white sm:text-[38px] lg:text-[42px] animate-fade-in [animation-delay:80ms] opacity-0 [animation-fill-mode:forwards]">
             Businesses without a map do not fail. They scatter.
           </h2>
-          <p className="mt-6 max-w-[58ch] text-[14.5px] leading-relaxed text-white/75">
+          <p className="mt-6 max-w-[58ch] text-[14px] leading-[1.75] text-white/70 animate-fade-in [animation-delay:220ms] opacity-0 [animation-fill-mode:forwards]">
             Years go into the right work in the wrong order. The cost was never the spend. The cost is the years. The first step is a 30-minute conversation. We name your number, show you the shape of the walk, and tell you honestly whether we are the ones to build your bridge. If we are not, we will say so, and point you to who is.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href="#" className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[13px] font-medium text-ink transition-transform hover:scale-[1.02]">
-              Build My Map <ArrowRight className="h-3.5 w-3.5" />
+          <div className="mt-8 flex flex-wrap items-center gap-3 animate-fade-in [animation-delay:340ms] opacity-0 [animation-fill-mode:forwards]">
+            <a href="#" className="group inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[13px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]">
+              Build My Map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
-            <a href="#map" className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-[13px] font-medium text-white/85 hover:text-white">
-              Start with the map <ArrowRight className="h-3.5 w-3.5" />
+            <a href="#map" className="group inline-flex items-center gap-2 rounded-full px-4 py-3 text-[13px] font-medium text-white/80 transition-colors duration-300 hover:text-white">
+              Start with the map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
           </div>
-          <p className="mt-8 max-w-[52ch] text-[12px] leading-relaxed text-white/55">
+          <p className="mt-8 max-w-[52ch] text-[11.5px] leading-[1.75] text-white/50 animate-fade-in [animation-delay:460ms] opacity-0 [animation-fill-mode:forwards]">
             A 30-minute conversation. No pitch. If the timing is right, we should talk. If it is not, the work is waiting when it is.
           </p>
+
         </div>
       </div>
 
