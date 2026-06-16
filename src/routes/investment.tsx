@@ -56,76 +56,6 @@ function GhostCTA({ children = "Start with the map" }: { children?: React.ReactN
   );
 }
 
-// ---------- Section-aware nav ----------
-const SECTION_NAV: { id: string; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "bridge", label: "The Bridge" },
-  { id: "map", label: "The Map" },
-  { id: "build", label: "The Build" },
-  { id: "holds", label: "What It Buys" },
-  { id: "review", label: "Reviews" },
-  { id: "cta", label: "Talk" },
-];
-
-function useActiveSection(ids: string[]) {
-  const [active, setActive] = React.useState<string>(ids[0]);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const offset = 140; // pill header + sub-nav
-
-    const compute = () => {
-      let current = ids[0];
-      for (const id of ids) {
-        const el = document.getElementById(id);
-        if (!el) continue;
-        const top = el.getBoundingClientRect().top;
-        if (top - offset <= 0) current = id;
-      }
-      setActive(current);
-    };
-
-    compute();
-    window.addEventListener("scroll", compute, { passive: true });
-    window.addEventListener("resize", compute);
-    return () => {
-      window.removeEventListener("scroll", compute);
-      window.removeEventListener("resize", compute);
-    };
-  }, [ids]);
-
-  return active;
-}
-
-function SectionNav({ active }: { active: string }) {
-  return (
-    <div className="pointer-events-none sticky top-[72px] z-40 flex justify-center px-3 sm:top-[84px] sm:px-6">
-      <nav
-        aria-label="Investment sections"
-        className="pointer-events-auto w-full max-w-[1100px] overflow-x-auto rounded-full border border-rule/60 bg-paper/85 px-2 py-1.5 shadow-[0_6px_20px_-14px_rgba(10,23,51,0.25)] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        <ul className="flex items-center gap-1 whitespace-nowrap text-[12px] text-ink/65">
-          {SECTION_NAV.map((s) => {
-            const isActive = active === s.id;
-            return (
-              <li key={s.id}>
-                <a
-                  href={`#${s.id}`}
-                  aria-current={isActive ? "true" : undefined}
-                  className={`relative inline-flex items-center rounded-full px-3 py-1.5 transition-colors ${
-                    isActive ? "bg-ink text-paper" : "hover:text-ink"
-                  }`}
-                >
-                  {s.label}
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-    </div>
-  );
-}
 
 // ---------- Hero ----------
 function Hero() {
@@ -667,11 +597,9 @@ function FooterCTA() {
 }
 
 function InvestmentPage() {
-  const active = useActiveSection(React.useMemo(() => SECTION_NAV.map((s) => s.id), []));
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
-      <SectionNav active={active} />
       <main>
         <Hero />
         <Bridge />
