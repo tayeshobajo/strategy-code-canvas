@@ -183,16 +183,16 @@ function MilestonePath() {
         <g key={s.label}>
           {"active" in s && s.active && (
             <>
-              <circle cx={s.x} cy={s.y} r="13" fill="none" stroke="oklch(0.48 0.18 262 / 0.35)" strokeWidth="1" className="ring-breathe" />
-              <circle cx={s.x} cy={s.y} r="8" fill="none" stroke="oklch(0.48 0.18 262 / 0.55)" strokeWidth="1" />
+              <circle cx={s.x} cy={s.y} r="12" fill="none" stroke="oklch(0.48 0.18 262 / 0.3)" strokeWidth="1" className="ring-breathe" />
+              <circle cx={s.x} cy={s.y} r="7" fill="none" stroke="oklch(0.48 0.18 262 / 0.5)" strokeWidth="1" />
             </>
           )}
           <circle cx={s.x} cy={s.y} r={"active" in s && s.active ? 4 : 3} fill="oklch(0.48 0.18 262)" />
           {"labelRight" in s && s.labelRight ? (
             <text
-              x={s.x + 12}
-              y={s.y + 4}
-              textAnchor="start"
+              x={s.x - 4}
+              y={s.y + 22}
+              textAnchor="end"
               fontFamily="var(--font-mono)"
               fontSize="11"
               fill="oklch(0.4 0.04 260)"
