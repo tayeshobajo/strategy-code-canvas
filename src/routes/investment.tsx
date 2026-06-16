@@ -18,6 +18,10 @@ export const Route = createFileRoute("/investment")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: heroDesk.url },
     ],
+    links: [
+      // Preload only at desktop widths where the hero image actually renders.
+      { rel: "preload", as: "image", href: heroDesk.url, fetchpriority: "high", media: "(min-width: 640px)" },
+    ],
   }),
   component: InvestmentPage,
 });
