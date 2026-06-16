@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Compass, Leaf, Star, Gauge, Map as MapIcon, Tag } from "lucide-react";
+import { ArrowRight, Compass, Leaf, Star, Gauge, Map as MapIcon, Sun, Scale } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
