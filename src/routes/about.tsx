@@ -589,10 +589,69 @@ function PrincipleCard({
   );
 }
 
+function StarsField({
+  count = 60,
+  width = 1200,
+  height = 600,
+  seedSalt = 1,
+  durRange = [2.4, 5.5],
+}: {
+  count?: number;
+  width?: number;
+  height?: number;
+  seedSalt?: number;
+  durRange?: [number, number];
+}) {
+  const stars = React.useMemo(() => {
+    const seeded = (i: number) => {
+      const x = Math.sin(i * 7.13 + seedSalt * 11.7) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    const [dMin, dMax] = durRange;
+    return Array.from({ length: count }).map((_, i) => ({
+      x: seeded(i) * width,
+      y: seeded(i + 9) * height,
+      r: 0.4 + seeded(i + 19) * 1.4,
+      oMin: 0.1 + seeded(i + 29) * 0.25,
+      oMax: 0.55 + seeded(i + 41) * 0.45,
+      dur: dMin + seeded(i + 53) * (dMax - dMin),
+      delay: seeded(i + 67) * (dMax),
+    }));
+  }, [count, width, height, seedSalt, durRange]);
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+    >
+      {stars.map((s, i) => (
+        <circle
+          key={i}
+          className="twinkle-star"
+          cx={s.x}
+          cy={s.y}
+          r={s.r}
+          fill="#cfe0ff"
+          style={
+            {
+              ["--o-min" as never]: s.oMin,
+              ["--o-max" as never]: s.oMax,
+              ["--dur" as never]: `${s.dur}s`,
+              ["--d" as never]: `${s.delay}s`,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </svg>
+  );
+}
+
 function HowWeThink() {
   return (
-    <section className="contour-bg relative py-20 lg:py-24">
-      <div className={container}>
+    <section className="contour-bg relative overflow-hidden py-20 lg:py-24">
+      <StarsField count={70} width={1400} height={700} seedSalt={3} durRange={[2.8, 6]} />
+      <div className={`relative ${container}`}>
         <Reveal as="div" variant="fade-up" className="mx-auto max-w-[760px] text-center">
           <Eyebrow tone="paper">How We Think</Eyebrow>
           <h2 className="mt-3 font-display text-[28px] leading-[1.2] tracking-tight text-paper sm:text-[34px] lg:text-[40px]">
