@@ -247,7 +247,7 @@ function FeaturedArgument() {
             <span className="ml-1 block h-px w-9 bg-royal/60 transition-all group-hover:w-14" aria-hidden="true" />
           </Link>
         </Reveal>
-        <Reveal as="div" variant="fade" delay={120} className="flex items-center justify-center lg:col-span-5">
+        <Reveal as="div" variant="fade" delay={120} className="flex items-end justify-end pr-2 lg:col-span-5">
           <MilestonePath />
         </Reveal>
       </div>
