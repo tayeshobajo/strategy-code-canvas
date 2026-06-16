@@ -330,33 +330,60 @@ function OneMoment() {
 /* ---------------------- THE PATTERN ---------------------- */
 function PatternDiagram() {
   // dotted "scatter" particles on the left, dotted curving path to the right ending in target rings
+  const pathD = "M170 150 C 230 70, 320 230, 400 130 S 540 70, 560 90";
   const particles = React.useMemo(() => {
     const seeded = (i: number) => {
       const x = Math.sin(i * 12.9898) * 43758.5453;
       return x - Math.floor(x);
     };
-    return Array.from({ length: 42 }).map((_, i) => ({
-      x: 20 + seeded(i) * 130,
-      y: 30 + seeded(i + 17) * 160,
-      r: 1 + seeded(i + 33) * 1.6,
-      o: 0.35 + seeded(i + 51) * 0.55,
-    }));
+    const round = (n: number, p = 2) => Math.round(n * 10 ** p) / 10 ** p;
+    // converge toward the start of the path (~170,150)
+    const target = { x: 170, y: 150 };
+    return Array.from({ length: 42 }).map((_, i) => {
+      const x = round(20 + seeded(i) * 130);
+      const y = round(30 + seeded(i + 17) * 160);
+      const r = round(1 + seeded(i + 33) * 1.6);
+      const o = round(0.35 + seeded(i + 51) * 0.55);
+      const dx = round((target.x - x) * 0.55);
+      const dy = round((target.y - y) * 0.55);
+      const dur = round(6 + seeded(i + 71) * 4);
+      const delay = round(seeded(i + 89) * 4);
+      return { x, y, r, o, dx, dy, dur, delay };
+    });
   }, []);
   return (
-    <svg viewBox="0 0 620 260" className="h-auto w-full">
+    <svg viewBox="0 0 620 260" className="h-auto w-full" aria-hidden="true">
       <defs>
         <radialGradient id="ring-glow" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="var(--royal)" stopOpacity="0.35" />
           <stop offset="100%" stopColor="var(--royal)" stopOpacity="0" />
         </radialGradient>
       </defs>
-      {/* scatter */}
+      {/* scatter — converge toward the path start */}
       {particles.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={p.r} fill="var(--royal)" opacity={p.o} />
+        <circle
+          key={i}
+          className="pattern-dot"
+          cx={p.x}
+          cy={p.y}
+          r={p.r}
+          fill="var(--royal)"
+          opacity={p.o}
+          style={
+            {
+              ["--dx" as never]: `${p.dx}px`,
+              ["--dy" as never]: `${p.dy}px`,
+              ["--o" as never]: p.o,
+              ["--dur" as never]: `${p.dur}s`,
+              ["--d" as never]: `${p.delay}s`,
+            } as React.CSSProperties
+          }
+        />
       ))}
-      {/* dotted curving path */}
+      {/* dotted curving path with marching ants */}
       <path
-        d="M170 150 C 230 70, 320 230, 400 130 S 540 70, 560 90"
+        className="path-march"
+        d={pathD}
         fill="none"
         stroke="var(--royal)"
         strokeWidth="1.5"
@@ -376,10 +403,23 @@ function PatternDiagram() {
       ].map(([x, y], i) => (
         <circle key={i} cx={x} cy={y} r="2.6" fill="var(--royal)" />
       ))}
+      {/* traveler dot moving through the Roadmap */}
+      <circle r="3.2" fill="var(--royal)" opacity="0.95">
+        <animateMotion dur="5s" repeatCount="indefinite" path={pathD} rotate="auto" />
+      </circle>
       {/* target rings on the right */}
-      <circle cx="560" cy="90" r="26" fill="url(#ring-glow)" />
+      <circle cx="560" cy="90" r="26" fill="url(#ring-glow)" className="ring-breathe" />
       <circle cx="560" cy="90" r="16" fill="none" stroke="var(--royal)" strokeWidth="1" opacity="0.5" />
-      <circle cx="560" cy="90" r="10" fill="none" stroke="var(--royal)" strokeWidth="1.2" opacity="0.8" />
+      <circle
+        cx="560"
+        cy="90"
+        r="10"
+        fill="none"
+        stroke="var(--royal)"
+        strokeWidth="1.2"
+        opacity="0.8"
+        className="ring-breathe"
+      />
       <circle cx="560" cy="90" r="4.5" fill="var(--royal)" />
 
       <text x="60" y="232" fontFamily="Inter, sans-serif" fontSize="11" fill="oklch(0.4 0.04 260)">
@@ -549,10 +589,70 @@ function PrincipleCard({
   );
 }
 
+function StarsField({
+  count = 60,
+  width = 1200,
+  height = 600,
+  seedSalt = 1,
+  durRange = [2.4, 5.5],
+}: {
+  count?: number;
+  width?: number;
+  height?: number;
+  seedSalt?: number;
+  durRange?: [number, number];
+}) {
+  const stars = React.useMemo(() => {
+    const seeded = (i: number) => {
+      const x = Math.sin(i * 7.13 + seedSalt * 11.7) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    const [dMin, dMax] = durRange;
+    const round = (n: number, p = 2) => Math.round(n * 10 ** p) / 10 ** p;
+    return Array.from({ length: count }).map((_, i) => ({
+      x: round(seeded(i) * width),
+      y: round(seeded(i + 9) * height),
+      r: round(0.4 + seeded(i + 19) * 1.4),
+      oMin: round(0.1 + seeded(i + 29) * 0.25),
+      oMax: round(0.55 + seeded(i + 41) * 0.45),
+      dur: round(dMin + seeded(i + 53) * (dMax - dMin)),
+      delay: round(seeded(i + 67) * dMax),
+    }));
+  }, [count, width, height, seedSalt, durRange]);
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+    >
+      {stars.map((s, i) => (
+        <circle
+          key={i}
+          className="twinkle-star"
+          cx={s.x}
+          cy={s.y}
+          r={s.r}
+          fill="#cfe0ff"
+          style={
+            {
+              ["--o-min" as never]: s.oMin,
+              ["--o-max" as never]: s.oMax,
+              ["--dur" as never]: `${s.dur}s`,
+              ["--d" as never]: `${s.delay}s`,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </svg>
+  );
+}
+
 function HowWeThink() {
   return (
-    <section className="contour-bg relative py-20 lg:py-24">
-      <div className={container}>
+    <section className="contour-bg relative overflow-hidden py-20 lg:py-24">
+      <StarsField count={70} width={1400} height={700} seedSalt={3} durRange={[2.8, 6]} />
+      <div className={`relative ${container}`}>
         <Reveal as="div" variant="fade-up" className="mx-auto max-w-[760px] text-center">
           <Eyebrow tone="paper">How We Think</Eyebrow>
           <h2 className="mt-3 font-display text-[28px] leading-[1.2] tracking-tight text-paper sm:text-[34px] lg:text-[40px]">
@@ -657,17 +757,21 @@ function ConstellationBG() {
       const x = Math.sin(i * 7.13) * 43758.5453;
       return x - Math.floor(x);
     };
+    const round = (n: number, p = 2) => Math.round(n * 10 ** p) / 10 ** p;
     return Array.from({ length: 70 }).map((_, i) => ({
-      x: seeded(i) * 380,
-      y: seeded(i + 9) * 260,
-      r: 0.4 + seeded(i + 19) * 1.6,
-      o: 0.2 + seeded(i + 29) * 0.7,
+      x: round(seeded(i) * 380),
+      y: round(seeded(i + 9) * 260),
+      r: round(0.4 + seeded(i + 19) * 1.6),
+      oMin: round(0.1 + seeded(i + 29) * 0.3),
+      oMax: round(0.55 + seeded(i + 41) * 0.45),
+      dur: round(3.2 + seeded(i + 53) * 4.5),
+      delay: round(seeded(i + 67) * 5),
     }));
   }, []);
   return (
     <svg
       viewBox="0 0 380 260"
-      className="absolute inset-y-0 left-0 h-full w-[55%] opacity-90"
+      className="pointer-events-none absolute inset-y-0 left-0 h-full w-[55%] opacity-90"
       preserveAspectRatio="xMinYMid slice"
       aria-hidden
     >
@@ -678,9 +782,71 @@ function ConstellationBG() {
         </radialGradient>
       </defs>
       {stars.map((s, i) => (
-        <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#cfe0ff" opacity={s.o} />
+        <circle
+          key={i}
+          className="twinkle-star"
+          cx={s.x}
+          cy={s.y}
+          r={s.r}
+          fill="#cfe0ff"
+          style={
+            {
+              ["--o-min" as never]: s.oMin,
+              ["--o-max" as never]: s.oMax,
+              ["--dur" as never]: `${s.dur}s`,
+              ["--d" as never]: `${s.delay}s`,
+            } as React.CSSProperties
+          }
+        />
       ))}
-      <circle cx="120" cy="150" r="38" fill="url(#star-glow)" />
+      <circle cx="120" cy="150" r="38" fill="url(#star-glow)" className="ring-breathe" />
+    </svg>
+  );
+}
+
+function PaperPlane() {
+  // arc trail from lower-left to upper-right across the CTA, looped
+  const trailD = "M40 360 C 220 260, 380 320, 540 180 S 880 60, 1100 40";
+  return (
+    <svg
+      viewBox="0 0 1200 420"
+      preserveAspectRatio="xMidYMid slice"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      aria-hidden="true"
+    >
+      <path
+        className="plane-trail"
+        d={trailD}
+        fill="none"
+        stroke="#cfe0ff"
+        strokeOpacity="0.35"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        style={{ ["--len" as never]: 1500 } as React.CSSProperties}
+      />
+      {/* paper plane glyph, drawn around origin so animateMotion + rotate=auto looks right */}
+      <g opacity="0.92">
+        <g transform="translate(-12 -8)">
+          <path
+            d="M0 8 L24 0 L16 8 L24 16 Z"
+            fill="#eaf2ff"
+            stroke="#7aa9ff"
+            strokeWidth="0.8"
+            strokeLinejoin="round"
+          />
+          <path d="M16 8 L8 8" stroke="#7aa9ff" strokeWidth="0.8" strokeLinecap="round" />
+        </g>
+        <animateMotion
+          dur="11s"
+          repeatCount="indefinite"
+          rotate="auto"
+          path={trailD}
+          keyPoints="0;1"
+          keyTimes="0;1"
+          calcMode="spline"
+          keySplines="0.4 0 0.2 1"
+        />
+      </g>
     </svg>
   );
 }
@@ -696,6 +862,7 @@ function CloseCTA() {
       }}
     >
       <ConstellationBG />
+      <PaperPlane />
       <div
         className="pointer-events-none absolute inset-y-0 right-0 w-[60%]"
         style={{

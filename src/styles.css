@@ -380,6 +380,60 @@
   box-shadow: 0 18px 40px -22px oklch(0.48 0.18 262 / 0.35);
 }
 
+/* ---------- About page animations ---------- */
+@keyframes star-twinkle {
+  0%, 100% { opacity: var(--o-min, 0.25); transform: scale(0.85); }
+  50%      { opacity: var(--o-max, 1);    transform: scale(1.2); }
+}
+.twinkle-star {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: star-twinkle var(--dur, 3.4s) ease-in-out var(--d, 0s) infinite;
+  will-change: opacity, transform;
+}
+
+@keyframes pattern-converge {
+  0%, 100% { transform: translate(0, 0); opacity: var(--o, 0.5); }
+  45%      { transform: translate(var(--dx, 0px), var(--dy, 0px)); opacity: calc(var(--o, 0.5) * 0.35); }
+  55%      { transform: translate(var(--dx, 0px), var(--dy, 0px)); opacity: calc(var(--o, 0.5) * 0.35); }
+}
+.pattern-dot {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: pattern-converge var(--dur, 8s) ease-in-out var(--d, 0s) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes path-march {
+  to { stroke-dashoffset: -9; }
+}
+.path-march { animation: path-march 1.4s linear infinite; }
+
+@keyframes ring-breathe {
+  0%, 100% { transform: scale(1);    opacity: 0.55; }
+  50%      { transform: scale(1.12); opacity: 1; }
+}
+.ring-breathe {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: ring-breathe 3.8s ease-in-out infinite;
+}
+
+@keyframes plane-trail-draw {
+  from { stroke-dashoffset: var(--len, 800); }
+  to   { stroke-dashoffset: 0; }
+}
+.plane-trail {
+  stroke-dasharray: 3 6;
+  stroke-dashoffset: var(--len, 800);
+  animation: plane-trail-draw 1800ms cubic-bezier(0.2, 0.6, 0.2, 1) 300ms forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .twinkle-star, .pattern-dot, .path-march, .ring-breathe { animation: none !important; transform: none !important; }
+  .plane-trail { stroke-dashoffset: 0 !important; animation: none !important; }
+}
+
 /* Reduced motion: short-circuit */
 @media (prefers-reduced-motion: reduce) {
   [data-reveal] { opacity: 1 !important; transform: none !important; transition: none !important; }
