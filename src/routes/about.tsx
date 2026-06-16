@@ -9,6 +9,50 @@ import taiPortrait from "@/assets/tai-portrait.png.asset.json";
 import trustTaiLogo from "@/assets/trust-tai-logo.png.asset.json";
 import { getRequestOrigin } from "@/lib/origin.functions";
 
+/* ---------- shared perf helpers ---------- */
+function useInViewPause<T extends HTMLElement>(rootMargin = "200px 0px") {
+  const ref = React.useRef<T | null>(null);
+  const [active, setActive] = React.useState(true);
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        // schedule state flip on the next frame so we never thrash during scroll
+        requestAnimationFrame(() => setActive(entries[0]?.isIntersecting ?? true));
+      },
+      { rootMargin, threshold: 0 },
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, [rootMargin]);
+  return { ref, paused: !active };
+}
+
+function useIsSmallViewport(breakpoint = 768) {
+  const [small, setSmall] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const update = () => setSmall(mq.matches);
+    update();
+    // rAF-throttle change handler so resize storms don't re-render mid-frame
+    let frame = 0;
+    const handler = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    };
+    mq.addEventListener?.("change", handler);
+    return () => {
+      mq.removeEventListener?.("change", handler);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [breakpoint]);
+  return small;
+}
+
+
 export const Route = createFileRoute("/about")({
   loader: async () => {
     const origin = await getRequestOrigin();
