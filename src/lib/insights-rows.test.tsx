@@ -9,7 +9,6 @@
 import { describe, it, expect } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
-import { INSIGHTS } from "./insights-data";
 import {
   VIRTUALIZE_THRESHOLD,
   shouldVirtualize,
@@ -18,7 +17,10 @@ import {
 afterEach(cleanup);
 
 function FlowList({ count }: { count: number }) {
-  const shown = INSIGHTS.slice(0, count);
+  const shown = Array.from({ length: count }, (_, i) => ({
+    slug: `test-insight-${i}`,
+    title: `Test insight ${i}`,
+  }));
   const useVirtual = shouldVirtualize(shown.length, VIRTUALIZE_THRESHOLD);
   return (
     <ul
