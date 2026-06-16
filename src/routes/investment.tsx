@@ -122,7 +122,8 @@ function SectionNav({ active }: { active: string }) {
 // ---------- Hero ----------
 function Hero() {
   return (
-    <section id="overview" className="relative overflow-hidden scroll-mt-32">
+    <section id="overview" className="relative overflow-hidden scroll-mt-32 bg-[oklch(0.95_0.018_75)]">
+      {/* Full-bleed warm desk photo — the book sits on the right, sand/paper texture spans behind everything. */}
       <img
         src={heroDesk.url}
         alt="An open leather-bound book and a fountain pen resting on a warm wooden desk in soft natural light."
@@ -132,10 +133,11 @@ function Hero() {
         decoding="async"
         // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
         fetchpriority="high"
-        sizes="(min-width: 640px) 62vw, 0px"
-        className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[62%] object-cover object-left sm:block [mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.15)_10%,rgba(0,0,0,0.6)_22%,black_38%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.15)_10%,rgba(0,0,0,0.6)_22%,black_38%)]"
+        sizes="100vw"
+        className="pointer-events-none absolute inset-0 hidden h-full w-full object-cover object-right sm:block"
       />
-      <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-paper via-paper/80 to-transparent sm:block" />
+      {/* Soft paper wash on the left so the text column stays readable while the warm texture still shows through. */}
+      <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-[oklch(0.95_0.018_75)] from-0% via-[oklch(0.95_0.018_75)]/85 via-30% to-transparent to-55% sm:block" />
       <div className={`${container} relative pt-24 pb-20 sm:pt-32 sm:pb-28 lg:pt-40 lg:pb-32`}>
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
           <div className="lg:col-span-6">
