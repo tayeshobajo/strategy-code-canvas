@@ -161,25 +161,28 @@ function MilestonePath() {
   const stops = [
     { x: 40, y: 230, label: "Clarity" },
     { x: 210, y: 165, label: "Sequence" },
-    { x: 360, y: 140, label: "Leverage", active: true },
+    { x: 360, y: 140, label: "Leverage" },
     { x: 510, y: 55, label: "Freedom", labelRight: true },
   ] as const;
   const pathD =
     "M 40 230 C 110 200, 160 180, 210 165 S 320 145, 360 140 S 470 95, 510 55";
-  // Sequential traveler: Clarity → Sequence → Leverage → Freedom, then
-  // fades out and loops back to Clarity. keyPoints are the fractional
-  // positions of each stop along the path; duplicated values create the
-  // dwell on each stop so it reads as one dot at a time.
-  const dur = "7s";
-  const keyTimes  = "0;0.06;0.20;0.30;0.44;0.54;0.68;0.86;0.92;1";
-  const keyPoints = "0;0;0.33;0.33;0.66;0.66;1;1;0;0";
-  const opacities = "0;1;1;1;1;1;1;1;0;0";
+
+  const DUR = 7; // seconds per full loop
+  const ACTIVE_COLOR = "oklch(0.48 0.18 262)";
+  const INACTIVE_COLOR = "oklch(0.4 0.04 260)";
+
+  // Each stop gets a 1/4 slot in the loop. Stop i is "active" during
+  // [i/4, (i+1)/4). The ripple/ring/label fill all key off the same offset.
+  // Per-stop animations use begin="<offset>s" with dur=DUR/4 so the active
+  // burst lines up exactly with the traveler dial-in.
+  const slot = DUR / 4;
+
   return (
     <svg
       viewBox="0 0 580 280"
       className="h-auto w-full"
       role="img"
-      aria-label="Journey path through Clarity, Sequence, Leverage, and Freedom, currently at Leverage."
+      aria-label="Journey path through Clarity, Sequence, Leverage, and Freedom."
     >
       <path
         id="milestone-track"
@@ -190,64 +193,107 @@ function MilestonePath() {
         strokeDasharray="2 6"
         strokeLinecap="round"
       />
-      {stops.map((s) => (
-        <g key={s.label}>
-          {"active" in s && s.active && (
-            <>
-              <circle cx={s.x} cy={s.y} r="12" fill="none" stroke="oklch(0.48 0.18 262 / 0.3)" strokeWidth="1" className="ring-breathe" />
-              <circle cx={s.x} cy={s.y} r="7" fill="none" stroke="oklch(0.48 0.18 262 / 0.5)" strokeWidth="1" />
-            </>
-          )}
-          <circle cx={s.x} cy={s.y} r={"active" in s && s.active ? 4 : 3} fill="oklch(0.48 0.18 262)" />
-          {"labelRight" in s && s.labelRight ? (
+      {stops.map((s, i) => {
+        const begin = `${(i * slot).toFixed(3)}s`;
+        return (
+          <g key={s.label}>
+            {/* Ripple: expanding ring that fades, fires when this stop dials in */}
+            <circle cx={s.x} cy={s.y} r="4" fill="none" stroke={ACTIVE_COLOR} strokeWidth="1" opacity="0">
+              <animate
+                attributeName="r"
+                values="4;18"
+                dur={`${slot}s`}
+                begin={begin}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values="0.6;0"
+                dur={`${slot}s`}
+                begin={begin}
+                repeatCount="indefinite"
+              />
+            </circle>
+            {/* Active inner ring (steady while this stop is active) */}
+            <circle cx={s.x} cy={s.y} r="12" fill="none" stroke="oklch(0.48 0.18 262 / 0.3)" strokeWidth="1" opacity="0">
+              <animate
+                attributeName="opacity"
+                values="0;1;1;0"
+                keyTimes="0;0.05;0.95;1"
+                dur={`${slot}s`}
+                begin={begin}
+                repeatCount="indefinite"
+              />
+            </circle>
+            <circle cx={s.x} cy={s.y} r="7" fill="none" stroke="oklch(0.48 0.18 262 / 0.5)" strokeWidth="1" opacity="0">
+              <animate
+                attributeName="opacity"
+                values="0;1;1;0"
+                keyTimes="0;0.05;0.95;1"
+                dur={`${slot}s`}
+                begin={begin}
+                repeatCount="indefinite"
+              />
+            </circle>
+            {/* Stop dot — radius grows slightly when active */}
+            <circle cx={s.x} cy={s.y} r="3" fill={ACTIVE_COLOR}>
+              <animate
+                attributeName="r"
+                values="3;4;4;3"
+                keyTimes="0;0.05;0.95;1"
+                dur={`${slot}s`}
+                begin={begin}
+                repeatCount="indefinite"
+              />
+            </circle>
+            {/* Label — fill flips to active color, opacity lifts to 1 in sync */}
             <text
-              x={s.x - 4}
+              x={"labelRight" in s && s.labelRight ? s.x - 4 : s.x}
               y={s.y + 22}
-              textAnchor="end"
+              textAnchor={"labelRight" in s && s.labelRight ? "end" : "middle"}
               fontFamily="var(--font-mono)"
               fontSize="11"
-              fill="oklch(0.4 0.04 260)"
-              opacity={0.75}
+              fill={INACTIVE_COLOR}
+              opacity="0.75"
             >
               {s.label}
+              <animate
+                attributeName="fill"
+                values={`${INACTIVE_COLOR};${ACTIVE_COLOR};${ACTIVE_COLOR};${INACTIVE_COLOR}`}
+                keyTimes="0;0.05;0.95;1"
+                dur={`${slot}s`}
+                begin={begin}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values="0.75;1;1;0.75"
+                keyTimes="0;0.05;0.95;1"
+                dur={`${slot}s`}
+                begin={begin}
+                repeatCount="indefinite"
+              />
             </text>
-          ) : (
-            <text
-              x={s.x}
-              y={s.y + 22}
-              textAnchor="middle"
-              fontFamily="var(--font-mono)"
-              fontSize="11"
-              fill={"active" in s && s.active ? "oklch(0.48 0.18 262)" : "oklch(0.4 0.04 260)"}
-              opacity={"active" in s && s.active ? 1 : 0.75}
-            >
-              {s.label}
-            </text>
-          )}
-        </g>
-      ))}
+          </g>
+        );
+      })}
       {/* Dial-in traveler: jumps from milestone to milestone (no slide). */}
-      <circle r="5" fill="oklch(0.48 0.18 262)">
+      <circle r="5" fill={ACTIVE_COLOR}>
         <animate
           attributeName="cx"
-          dur="7s"
+          dur={`${DUR}s`}
           repeatCount="indefinite"
           calcMode="discrete"
+          keyTimes="0;0.25;0.5;0.75;1"
           values="40;210;360;510;40"
         />
         <animate
           attributeName="cy"
-          dur="7s"
+          dur={`${DUR}s`}
           repeatCount="indefinite"
           calcMode="discrete"
+          keyTimes="0;0.25;0.5;0.75;1"
           values="230;165;140;55;230"
-        />
-        <animate
-          attributeName="opacity"
-          dur="7s"
-          repeatCount="indefinite"
-          values="0;1;1;1;1;0"
-          keyTimes="0;0.04;0.25;0.50;0.75;1"
         />
       </circle>
     </svg>
