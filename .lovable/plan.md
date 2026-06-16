@@ -1,50 +1,53 @@
-# Typo + em-dash cleanup across all pages
+# Insights page — match reference design
 
-Scope: `/` (index), `/about`, `/investment`, `/what-we-build`, plus shared components (`SiteHeader`, `TrustTaiLogo`, footer). Code comments are out of scope.
+Four focused fixes in `src/routes/insights.tsx`. No business logic, no data, no virtualization changes.
 
-## 1. Remove em-dashes (—) from user-facing text
+## 1. Hero SVG — sweeping dotted path + paper airplane
 
-I found 34 em-dashes across the codebase. The user-facing ones I'll replace using context-appropriate punctuation (mix, my judgment):
+Reference shows one long, gently undulating dotted line that crosses the whole hero band from lower-left, dips under the headline, then rises to the upper-right where a small paper airplane sits at the tip with a curling tail. The current `HeroPath` is close but the curve is too flat through the middle and the "airplane" is a tiny arrow-shape, not the recognizable triangle glyph.
 
-**Page titles / OG titles** (use a pipe, standard convention):
-- `Trust Tai — The Business Operating Roadmap` → `Trust Tai | The Business Operating Roadmap`
-- `About — Trust Tai` → `About | Trust Tai`
-- `Investment — Trust Tai` → `Investment | Trust Tai`
-- `What We Build — Trust Tai` → `What We Build | Trust Tai`
-- `Trust Tai — Consultancy + AI Agency` (logo alt) → `Trust Tai | Consultancy + AI Agency`
+Updates to `HeroPath`:
+- Redraw the `<path d=...>` so it: starts below the left edge, rises over a hill near the eyebrow, dips beneath the subhead, then sweeps up off the right edge — same dashed style (`strokeDasharray="2 7"`) and same `url(#hero-path)` gradient.
+- Add a second short, more tightly-dashed `<path>` for the airplane's *trail* — a small curl ending where the plane sits (upper-right).
+- Replace the small arrow glyph with a proper paper-airplane: two triangles forming the body + fold, drawn with `stroke="oklch(0.48 0.18 262)"`, `fill="oklch(0.72 0.12 262 / 0.18)"`, rotated ~-15°. Keep the existing milestone open-circles along the path.
 
-**Body copy / meta descriptions / alt text** (comma, period, or parenthetical depending on flow). Examples:
-- "where it needs to be — and build the first leg…" → "where it needs to be, and build the first leg…"
-- "carry this roadmap into the future — with or without us." → "carry this roadmap into the future, with or without us."
-- "Less hunting, more harvesting — the pipeline becomes a function…" → "Less hunting, more harvesting. The pipeline becomes a function…"
-- "self-serve answers, status, and access — and where the founder…" → "self-serve answers, status, and access, and where the founder…"
-- "a careful operating system for businesses…" (keep flow with comma)
-- "lit by soft natural light — the standard that started Trust Tai." → "lit by soft natural light. The standard that started Trust Tai."
-- "Founders we partner best with — people who choose becoming…" → "Founders we partner best with: people who choose becoming…"
-- "We value what matters — not what's loud." → "We value what matters, not what's loud."
-- "If that's how you build — let's build your Roadmap." → "If that's how you build, let's build your Roadmap."
-- "the three walks — named before…" → "the three walks, named before…"
-- "Bridge spanning a river — where most firms start…" → "Bridge spanning a river, where most firms start…"
+## 2. The Current Argument — milestone path SVG
 
-**Out of scope:** em-dashes inside JSX comments (`{/* … */}`), TS `@ts-expect-error` comments, and `src/routes/README.md` (internal doc) stay as-is.
+Reference shows 4 stops on a rising dotted curve:
+- `Clarity` (bottom-left, small filled dot, label below)
+- `Sequence` (mid-left, filled dot, label below)
+- `Leverage` (center, **active**: filled dot inside a concentric breathing ring, label below in royal)
+- `Freedom` (top-right, filled dot, label to the right of the dot)
 
-## 2. Typo pass
+Updates to `MilestonePath`:
+- Adjust stop coordinates so the curve is a smooth rise (Clarity low-left → Freedom high-right) matching the reference's gentler arc — current curve drops back down between Sequence and Leverage. New approximate stops: Clarity (40,230), Sequence (210,165), Leverage (360,140, active), Freedom (510,55).
+- Keep the breathing ring on the active stop, but tighten it: outer ring r=13 at 35% opacity, inner ring r=8 at 55%, solid dot r=4. The active dot color stays royal.
+- Move the `Freedom` label to the *right* of its dot (x+12, y+4, `textAnchor="start"`) — every other label stays centered below at `y+22`.
+- Keep `role="img"` + descriptive `aria-label`.
 
-I'll read every user-visible string block in:
-- `src/routes/index.tsx` (hero, roadmap labels, walks, FAQ, CTA, footer copy)
-- `src/routes/about.tsx` (all six narrative sections + CTA)
-- `src/routes/investment.tsx` (intro, pricing tiers, three walks, included/excluded lists, FAQ)
-- `src/routes/what-we-build.tsx` (problem statements, outcomes, timeline, CTA)
-- `src/components/SiteHeader.tsx` (nav labels)
+## 3. Row dot vertical alignment
 
-For each file I'll check for: misspellings, wrong homophones (its/it's, your/you're), doubled words ("the the"), stray punctuation, mismatched capitalization in headings, and inconsistent product naming (Roadmap vs roadmap, Trust Tai vs TrustTai). Fixes will be applied with targeted `line_replace` edits so unrelated copy and animations stay untouched.
+Currently the category column uses `sm:items-start sm:pt-[10px]`, which pushes the bullet up to the top of the row above the SMALL CAPS category text baseline. Reference shows the dot vertically centered with the category label.
 
-## 3. "Little issue"
+Change in the row template:
+- Category column: replace `sm:items-start sm:pt-[10px]` with `sm:items-center sm:pt-0`. Remove the redundant `items-center` on mobile (keep it implicit) — final classes: `col-span-2 flex items-center gap-3 sm:col-span-1`.
+- Keep the meta column (`MIN READ / DATE`) at `sm:pt-[10px]` so it still aligns with the top of the title.
+- Keep the arrow column at `sm:pt-[10px]`.
 
-You didn't share what the little issue is. I'll ship the typo + em-dash cleanup first; please describe (or screenshot) the issue in your next message and I'll address it in the same pass before you review.
+## 4. Full-row hover highlight
+
+Currently only the title color changes on hover (`group-hover:text-royal` on `<h3>`). Reference and request: the whole row should highlight.
+
+Change:
+- Move `group` from the `<li>` onto the `<Link>` and add a subtle full-row background: `hover:bg-royal/[0.025]` and `transition-colors duration-200` on the `<Link>`. Add `-mx-4 px-4 rounded-sm` so the highlight reads as a soft strip that extends slightly past the rule lines without breaking the column grid.
+- Keep `group-hover:text-royal` on the title and `group-hover:translate-x-1` on the arrow — they continue to work because `group` is now on the link.
+- Ensure `divide-y` borders still render (they're on the `<ul>`, unaffected).
 
 ## Out of scope
 
-- No layout, color, animation, or component-structure changes.
-- No copy rewrites beyond fixing errors and removing em-dashes.
-- README and code comments untouched.
+- No changes to data, sort/filter/search logic, infinite scroll, virtualization, or tests.
+- No layout changes to the featured section's text column or the article list grid columns.
+
+## Files touched
+
+- `src/routes/insights.tsx` — `HeroPath`, `MilestonePath`, and the row template inside `ArticleList`.
