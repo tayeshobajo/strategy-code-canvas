@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Compass, Printer } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -286,6 +286,110 @@ function ContinueArrow() {
   );
 }
 
+/* ---------------------------- TOC sidebar nav ---------------------------- */
+
+type TocSection = { id: string; title: string; paragraphs: string[] };
+
+function TocNav({ sections, activeId }: { sections: TocSection[]; activeId: string }) {
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
+  const [indicator, setIndicator] = useState<{ top: number; height: number; visible: boolean }>({
+    top: 0,
+    height: 0,
+    visible: false,
+  });
+
+  // Use layout effect on the client so the bar lines up before paint.
+  const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+  useIsoLayoutEffect(() => {
+    const measure = () => {
+      const list = listRef.current;
+      const el = itemRefs.current[activeId];
+      if (!list || !el) {
+        setIndicator((s) => ({ ...s, visible: false }));
+        return;
+      }
+      const listRect = list.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      setIndicator({
+        top: elRect.top - listRect.top,
+        height: elRect.height,
+        visible: true,
+      });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (listRef.current) ro.observe(listRef.current);
+    Object.values(itemRefs.current).forEach((el) => el && ro.observe(el));
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [activeId, sections.length]);
+
+  return (
+    <nav aria-label="In this article" className="print:hidden">
+      <p className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-royal">
+        In this article
+      </p>
+      <ul
+        ref={listRef}
+        className="relative mt-4 space-y-1 border-l border-rule/70 pl-0"
+      >
+        {/* Sliding indicator bar — single element that eases between items */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 -ml-px w-[2px] rounded-full bg-royal"
+          style={{
+            transform: `translateY(${indicator.top}px)`,
+            height: `${indicator.height}px`,
+            opacity: indicator.visible ? 1 : 0,
+            transition:
+              "transform 450ms cubic-bezier(0.22, 1, 0.36, 1), height 450ms cubic-bezier(0.22, 1, 0.36, 1), opacity 250ms ease-out",
+          }}
+        />
+        {sections.map((sec) => {
+          const isActive = activeId === sec.id;
+          return (
+            <li
+              key={sec.id}
+              ref={(node) => {
+                itemRefs.current[sec.id] = node;
+              }}
+              className="relative"
+            >
+              <a
+                href={`#${sec.id}`}
+                aria-current={isActive ? "location" : undefined}
+                className="block py-1.5 pl-4 text-[13.5px] leading-[1.5]"
+                style={{
+                  color: isActive ? "var(--tw-prose-royal, oklch(0.48 0.18 262))" : undefined,
+                  transform: isActive ? "translateX(2px)" : "translateX(0)",
+                  fontWeight: isActive ? 500 : 400,
+                  transition:
+                    "color 350ms ease-out, transform 450ms cubic-bezier(0.22, 1, 0.36, 1), font-weight 200ms ease-out",
+                }}
+              >
+                <span
+                  className={
+                    isActive
+                      ? "text-royal"
+                      : "text-ink/65 transition-colors duration-300 hover:text-royal"
+                  }
+                >
+                  {sec.title}
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
 /* --------------------------------- Print --------------------------------- */
 
 function PrintStyles() {
@@ -536,37 +640,10 @@ function InsightArticlePage() {
               {/* Sidebar */}
               <aside className="lg:col-span-4 lg:col-start-9">
                 <div className="lg:sticky lg:top-28">
-                  <nav aria-label="In this article">
-                    <p className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-royal">
-                      In this article
-                    </p>
-                    <ul className="mt-4 relative space-y-1 border-l border-rule/70 pl-0">
-                      {sections.map((sec: { id: string; title: string; paragraphs: string[] }) => {
-                        const isActive = activeId === sec.id;
-                        return (
-                          <li key={sec.id} className="relative">
-                            <span
-                              aria-hidden="true"
-                              className={`absolute left-0 top-0 h-full w-[2px] -ml-px transition-all duration-300 ${
-                                isActive ? "bg-royal opacity-100" : "bg-transparent opacity-0"
-                              }`}
-                            />
-                            <a
-                              href={`#${sec.id}`}
-                              aria-current={isActive ? "location" : undefined}
-                              className={`block py-1.5 pl-4 text-[13.5px] leading-[1.5] transition-all duration-300 ${
-                                isActive
-                                  ? "text-royal font-medium translate-x-0.5"
-                                  : "text-ink/65 hover:text-royal"
-                              }`}
-                            >
-                              {sec.title}
-                            </a>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </nav>
+                  <TocNav
+                    sections={sections}
+                    activeId={activeId}
+                  />
 
                   <hr className="my-8 border-rule/70" />
 
