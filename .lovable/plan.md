@@ -1,53 +1,45 @@
-# Insights page — match reference design
+## Match hero + Current Argument SVGs to reference
 
-Four focused fixes in `src/routes/insights.tsx`. No business logic, no data, no virtualization changes.
+Only `src/routes/insights.tsx` is touched. No data/logic changes.
 
-## 1. Hero SVG — sweeping dotted path + paper airplane
+### 1. Hero trail — redraw shape, keep airplane
 
-Reference shows one long, gently undulating dotted line that crosses the whole hero band from lower-left, dips under the headline, then rises to the upper-right where a small paper airplane sits at the tip with a curling tail. The current `HeroPath` is close but the curve is too flat through the middle and the "airplane" is a tiny arrow-shape, not the recognizable triangle glyph.
+The current `HeroPath` is one continuous S-curve edge-to-edge. The reference has two distinct shapes with a clear gap under the headline:
 
-Updates to `HeroPath`:
-- Redraw the `<path d=...>` so it: starts below the left edge, rises over a hill near the eyebrow, dips beneath the subhead, then sweeps up off the right edge — same dashed style (`strokeDasharray="2 7"`) and same `url(#hero-path)` gradient.
-- Add a second short, more tightly-dashed `<path>` for the airplane's *trail* — a small curl ending where the plane sits (upper-right).
-- Replace the small arrow glyph with a proper paper-airplane: two triangles forming the body + fold, drawn with `stroke="oklch(0.48 0.18 262)"`, `fill="oklch(0.72 0.12 262 / 0.18)"`, rotated ~-15°. Keep the existing milestone open-circles along the path.
+- **Left accent** (lower-left): a short, low arc starting just off the left edge with an open-circle waypoint, ending before the headline column.
+- **Right loop** (right ~45% of the band): a tall curling "S/almost-loop" that rises from the bottom-right area, sweeps left under the subhead, curls back up and to the right, and ends at the paper airplane in the upper-right. One open-circle waypoint sits on the descending part of the right curl (visible in the reference under the right arrow).
+- **Trail behind plane**: a small curl just behind the plane's tail (already present — refine endpoint to land on the new loop's terminus).
 
-## 2. The Current Argument — milestone path SVG
+Concrete updates to `HeroPath` (viewBox stays `0 0 1240 360`):
+- Replace the single `<path d=...>` with two paths sharing the same gradient stroke (`url(#hero-path)`), `strokeWidth="1"`, `strokeDasharray="1.75 8"`, `strokeLinecap="round"`:
+  - Left arc: `M -10 300 C 60 270, 130 260, 240 282` — short and low.
+  - Right loop: starts low-right, sweeps up-left under subhead, curls back right-up to the plane, approximately:
+    `M 620 320 C 760 320, 880 300, 980 250 S 1130 150, 1080 110 S 950 120, 990 170 S 1140 180, 1200 90`
+    Tune by eye against the reference; the goal is the "hook" silhouette on the right.
+- Open-circle waypoints: one at `~(60, 290)` on the left arc, one at `~(1070, 175)` on the descending right curl. Drop the middle waypoint at 760.
+- Move the small trail curl to end at the new plane anchor, keep `1.25 6` dash and `0.9` stroke.
+- Airplane glyph and rotation stay as-is (size already matches reference).
+- Increase hero bottom padding so the right loop has vertical room: change the spacer below from `mt-16 sm:mt-20 lg:mt-24` to `mt-20 sm:mt-28 lg:mt-32`.
 
-Reference shows 4 stops on a rising dotted curve:
-- `Clarity` (bottom-left, small filled dot, label below)
-- `Sequence` (mid-left, filled dot, label below)
-- `Leverage` (center, **active**: filled dot inside a concentric breathing ring, label below in royal)
-- `Freedom` (top-right, filled dot, label to the right of the dot)
+### 2. Current Argument — small refinements only
 
-Updates to `MilestonePath`:
-- Adjust stop coordinates so the curve is a smooth rise (Clarity low-left → Freedom high-right) matching the reference's gentler arc — current curve drops back down between Sequence and Leverage. New approximate stops: Clarity (40,230), Sequence (210,165), Leverage (360,140, active), Freedom (510,55).
-- Keep the breathing ring on the active stop, but tighten it: outer ring r=13 at 35% opacity, inner ring r=8 at 55%, solid dot r=4. The active dot color stays royal.
-- Move the `Freedom` label to the *right* of its dot (x+12, y+4, `textAnchor="start"`) — every other label stays centered below at `y+22`.
-- Keep `role="img"` + descriptive `aria-label`.
+The `MilestonePath` matches the reference closely; only fine-tune to reference proportions:
+- Container: the right column currently uses `lg:col-span-5` with `justify-center`. Reference shows the path nudged slightly down-right relative to the text column — change to `items-end justify-end` and add `pr-2` so Freedom sits near the upper-right corner of the column without overflowing.
+- Tighten the active "Leverage" ring slightly to match reference scale: outer `r=12` at `0.3` opacity, inner `r=7` at `0.5`. Keep solid dot `r=4`.
+- Move the `Freedom` label below-right (reference shows it below the dot, not vertically aligned): change to `x={s.x - 4} y={s.y + 22} textAnchor="end"` — appears just under-and-left of the dot like the reference.
+- Inactive dot radius stays `r=3`; Clarity, Sequence, Leverage label `y+22` unchanged.
 
-## 3. Row dot vertical alignment
+### 3. Visual regression baselines
 
-Currently the category column uses `sm:items-start sm:pt-[10px]`, which pushes the bullet up to the top of the row above the SMALL CAPS category text baseline. Reference shows the dot vertically centered with the category label.
+After the SVG changes, regenerate the existing Playwright baselines so the hero and rows screenshots track the new design:
+- `bun run test:visual:update` (existing script) — updates the 4 viewport snapshots in `tests/visual/insights-hero.spec.ts-snapshots/`.
 
-Change in the row template:
-- Category column: replace `sm:items-start sm:pt-[10px]` with `sm:items-center sm:pt-0`. Remove the redundant `items-center` on mobile (keep it implicit) — final classes: `col-span-2 flex items-center gap-3 sm:col-span-1`.
-- Keep the meta column (`MIN READ / DATE`) at `sm:pt-[10px]` so it still aligns with the top of the title.
-- Keep the arrow column at `sm:pt-[10px]`.
+### Out of scope
 
-## 4. Full-row hover highlight
+- No changes to data, sort/filter/search, infinite scroll, virtualization, article list rendering, or row hover/dot alignment (already correct per prior turn — 0.00px delta across viewports).
+- No new dependencies or test files.
 
-Currently only the title color changes on hover (`group-hover:text-royal` on `<h3>`). Reference and request: the whole row should highlight.
+### Files touched
 
-Change:
-- Move `group` from the `<li>` onto the `<Link>` and add a subtle full-row background: `hover:bg-royal/[0.025]` and `transition-colors duration-200` on the `<Link>`. Add `-mx-4 px-4 rounded-sm` so the highlight reads as a soft strip that extends slightly past the rule lines without breaking the column grid.
-- Keep `group-hover:text-royal` on the title and `group-hover:translate-x-1` on the arrow — they continue to work because `group` is now on the link.
-- Ensure `divide-y` borders still render (they're on the `<ul>`, unaffected).
-
-## Out of scope
-
-- No changes to data, sort/filter/search logic, infinite scroll, virtualization, or tests.
-- No layout changes to the featured section's text column or the article list grid columns.
-
-## Files touched
-
-- `src/routes/insights.tsx` — `HeroPath`, `MilestonePath`, and the row template inside `ArticleList`.
+- `src/routes/insights.tsx` — `HeroPath`, `Hero` spacer, `MilestonePath`, `FeaturedArgument` right-column classes.
+- `tests/visual/insights-hero.spec.ts-snapshots/*` — regenerated baselines.
