@@ -826,7 +826,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
           </span>
         </div>
       </div>
-    </>
+    </TooltipProvider>
   );
 }
 
