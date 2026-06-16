@@ -17,6 +17,13 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:8080",
     deviceScaleFactor: 1,
+    launchOptions: {
+      // Use the Chromium build preinstalled in the sandbox so the test runner
+      // doesn't need to download browsers. Override locally with PWDEBUG=1 etc.
+      executablePath:
+        process.env.PLAYWRIGHT_CHROMIUM_PATH ||
+        "/chromium_headless_shell-1194/chrome-linux/headless_shell",
+    },
   },
   // Threshold for pixel diffs — small enough to catch shape regressions,
   // loose enough to tolerate sub-pixel font rasterization noise.
