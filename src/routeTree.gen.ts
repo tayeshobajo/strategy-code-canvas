@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatWeBuildRouteImport } from './routes/what-we-build'
 import { Route as InvestmentRouteImport } from './routes/investment'
+import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const WhatWeBuildRoute = WhatWeBuildRouteImport.update({
 const InvestmentRoute = InvestmentRouteImport.update({
   id: '/investment',
   path: '/investment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsightsRoute = InsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/what-we-build': typeof WhatWeBuildRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/what-we-build': typeof WhatWeBuildRoute
 }
@@ -51,20 +59,28 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/what-we-build': typeof WhatWeBuildRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/investment' | '/what-we-build'
+  fullPaths: '/' | '/about' | '/insights' | '/investment' | '/what-we-build'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/investment' | '/what-we-build'
-  id: '__root__' | '/' | '/about' | '/investment' | '/what-we-build'
+  to: '/' | '/about' | '/insights' | '/investment' | '/what-we-build'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/insights'
+    | '/investment'
+    | '/what-we-build'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
 }
@@ -83,6 +99,13 @@ declare module '@tanstack/react-router' {
       path: '/investment'
       fullPath: '/investment'
       preLoaderRoute: typeof InvestmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insights': {
+      id: '/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof InsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -105,6 +128,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
 }
