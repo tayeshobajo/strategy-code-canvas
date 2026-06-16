@@ -824,17 +824,17 @@ function PaperPlane() {
         strokeLinecap="round"
         style={{ ["--len" as never]: 1500 } as React.CSSProperties}
       />
-      {/* paper plane glyph, drawn around origin so animateMotion + rotate=auto looks right */}
+      {/* paper plane glyph — nose points to +X so rotate="auto" flies forward */}
       <g opacity="0.92">
         <g transform="translate(-12 -8)">
           <path
-            d="M0 8 L24 0 L16 8 L24 16 Z"
+            d="M24 8 L0 0 L8 8 L0 16 Z"
             fill="#eaf2ff"
             stroke="#7aa9ff"
             strokeWidth="0.8"
             strokeLinejoin="round"
           />
-          <path d="M16 8 L8 8" stroke="#7aa9ff" strokeWidth="0.8" strokeLinecap="round" />
+          <path d="M8 8 L0 8" stroke="#7aa9ff" strokeWidth="0.8" strokeLinecap="round" />
         </g>
         <animateMotion
           dur="11s"
