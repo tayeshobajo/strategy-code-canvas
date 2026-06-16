@@ -637,35 +637,38 @@ function StandardsRow() {
 
 // ----------- BEFORE / AFTER -----------
 function BeforeAfter() {
+  const { ref, inView } = useReveal<HTMLDivElement>();
   return (
-    <section className="border-t border-rule/60 bg-paper">
+    <section ref={ref} className="border-t border-rule/60 bg-paper">
       <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1.1fr)] lg:items-center lg:gap-10 lg:py-32">
         <div>
-          <p className="eyebrow mb-5">The Order Is The Point</p>
-          <h2 className="font-display text-[30px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[34px]">
+          <Reveal as="p" variant="fade-up" className="eyebrow mb-5">The Order Is The Point</Reveal>
+          <Reveal as="h2" variant="rise" delay={80} className="font-display text-[30px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[34px]">
             The right order
             <br />
             changes the outcome.
-          </h2>
-          <p className="mt-6 max-w-[380px] text-[14px] leading-[1.7] text-ink/70">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[380px] text-[14px] leading-[1.7] text-ink/70">
             Any agency can build these. The difference is the sequence. We build
             visibility before scale. We build systems before automation. We
             build the foundation before the milestone that stands on it.
-          </p>
+          </Reveal>
         </div>
 
-        <ChartCard label="Before the map">
-          <ScatterChart />
-        </ChartCard>
-
-        <div className="relative">
-          <ChartCard label="After the map">
-            <TrendChart />
+        <Reveal variant="fade-up" delay={120}>
+          <ChartCard label="Before the map">
+            <ScatterChart revealed={inView} />
           </ChartCard>
-          <div className="absolute left-[-32px] top-1/2 hidden -translate-y-1/2 lg:block">
+        </Reveal>
+
+        <Reveal variant="fade-up" delay={320} className="relative">
+          <ChartCard label="After the map">
+            <TrendChart revealed={inView} />
+          </ChartCard>
+          <div className="absolute left-[-32px] top-1/2 hidden -translate-y-1/2 lg:block" style={{ opacity: inView ? 1 : 0, transform: `translate(${inView ? 0 : -8}px, -50%)`, transition: "opacity 600ms ease 600ms, transform 600ms ease 600ms" }}>
             <ArrowRight className="size-5 text-ink/40" strokeWidth={1.5} />
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -680,7 +683,7 @@ function ChartCard({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-function ScatterChart() {
+function ScatterChart({ revealed }: { revealed: boolean }) {
   const dots = [
     [25, 70, 8, 0.4],
     [70, 45, 10, 0.45],
@@ -690,15 +693,15 @@ function ScatterChart() {
     [275, 60, 10, 0.5],
   ];
   return (
-    <svg viewBox="0 0 320 140" className="h-full w-full">
+    <svg viewBox="0 0 320 140" className={`svg-reveal h-full w-full ${revealed ? "is-revealed" : ""}`}>
       {dots.map(([x, y, r, o], i) => (
-        <circle key={i} cx={x as number} cy={y as number} r={r as number} fill={`rgba(120,140,170,${o})`} />
+        <circle key={i} cx={x as number} cy={y as number} r={r as number} fill={`rgba(120,140,170,${o})`} data-anim="dot" style={{ ["--d" as never]: `${i * 80}ms` }} />
       ))}
     </svg>
   );
 }
 
-function TrendChart() {
+function TrendChart({ revealed }: { revealed: boolean }) {
   const pts = [
     [20, 110],
     [70, 95],
@@ -709,14 +712,15 @@ function TrendChart() {
   ];
   const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0]} ${p[1]}`).join(" ");
   return (
-    <svg viewBox="0 0 320 140" className="h-full w-full">
-      <path d={d} fill="none" stroke="var(--royal)" strokeWidth="1.5" />
+    <svg viewBox="0 0 320 140" className={`svg-reveal h-full w-full ${revealed ? "is-revealed" : ""}`}>
+      <path d={d} fill="none" stroke="var(--royal)" strokeWidth="1.5" data-anim="line" style={{ ["--len" as never]: "320" }} />
       {pts.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={i === pts.length - 1 ? 7 : 5} fill="var(--royal)" />
+        <circle key={i} cx={x} cy={y} r={i === pts.length - 1 ? 7 : 5} fill="var(--royal)" data-anim="dot" style={{ ["--d" as never]: `${300 + i * 180}ms` }} />
       ))}
     </svg>
   );
 }
+
 
 // ----------- BOTTOM CTA -----------
 function BottomCTA() {
