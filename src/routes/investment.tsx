@@ -130,52 +130,53 @@ function SectionNav({ active }: { active: string }) {
 // ---------- Hero ----------
 function Hero() {
   return (
-    <section id="overview" className="relative overflow-hidden scroll-mt-32 bg-[oklch(0.95_0.018_75)]">
-      {/* Full-bleed warm desk photo — the book sits on the right, sand/paper texture spans behind everything. */}
-      <img
-        src={heroDesk.url}
-        alt="An open leather-bound book and a fountain pen resting on a warm wooden desk in soft natural light."
-        width={1920}
-        height={1280}
-        loading="eager"
-        decoding="async"
-        // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
-        fetchpriority="high"
-        sizes="100vw"
-        className="pointer-events-none absolute inset-0 hidden h-full w-full object-cover object-right sm:block"
-      />
-      {/* Soft paper wash on the left so the text column stays readable while the warm texture still shows through. */}
-      <div className="pointer-events-none absolute inset-0 hidden sm:block bg-[linear-gradient(to_right,oklch(0.95_0.018_75)_0%,oklch(0.95_0.018_75/0.96)_22%,oklch(0.95_0.018_75/0.78)_38%,oklch(0.95_0.018_75/0.35)_55%,transparent_72%)]" />
-      <div className={`${container} relative pt-24 pb-20 sm:pt-32 sm:pb-28 lg:pt-40 lg:pb-32`}>
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
+    <section
+      id="overview"
+      className="relative scroll-mt-32 border-b border-rule/60 bg-[oklch(0.95_0.018_75)]"
+    >
+      <div className={`${container} relative pt-20 pb-14 sm:pt-24 sm:pb-16 lg:pt-28 lg:pb-20`}>
+        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-6">
             <div className="animate-fade-in [animation-delay:60ms] opacity-0 [animation-fill-mode:forwards]">
               <Eyebrow>Investment</Eyebrow>
             </div>
-            <h1 className="mt-5 font-display font-normal text-[38px] leading-[1.04] tracking-[-0.018em] text-ink sm:text-[54px] lg:text-[66px] animate-fade-in [animation-delay:140ms] opacity-0 [animation-fill-mode:forwards]">
+            <h1 className="mt-5 font-display font-normal text-[40px] leading-[1.05] tracking-[-0.018em] text-ink sm:text-[52px] lg:text-[60px] animate-fade-in [animation-delay:140ms] opacity-0 [animation-fill-mode:forwards]">
               The price of a business<br className="hidden sm:block" /> that runs without you.
             </h1>
-            <p className="mt-7 max-w-[44ch] text-[14.5px] leading-[1.7] text-ink/65 animate-fade-in [animation-delay:280ms] opacity-0 [animation-fill-mode:forwards]">
+            <p className="mt-6 max-w-[44ch] text-[14px] leading-[1.7] text-ink/65 animate-fade-in [animation-delay:280ms] opacity-0 [animation-fill-mode:forwards]">
               Every number is on this page. The map, the build, the three walks.
               No call required to see it, because a decision this size deserves the
               whole picture before the first conversation, not after.
             </p>
-            <div className="mt-9 flex flex-wrap items-center gap-3 animate-fade-in [animation-delay:400ms] opacity-0 [animation-fill-mode:forwards]">
+            <div className="mt-7 flex flex-wrap items-center gap-2 animate-fade-in [animation-delay:400ms] opacity-0 [animation-fill-mode:forwards]">
               <PrimaryCTA />
               <GhostCTA />
             </div>
-            <p className="mt-10 max-w-[40ch] text-[12px] leading-[1.7] text-ink/50 animate-fade-in [animation-delay:520ms] opacity-0 [animation-fill-mode:forwards]">
+            <p className="mt-9 max-w-[40ch] text-[12px] leading-[1.7] text-ink/50 animate-fade-in [animation-delay:520ms] opacity-0 [animation-fill-mode:forwards]">
               A 30-minute conversation. No pitch. If the timing is right, we should talk.
               If it is not, the work is waiting when it is.
             </p>
           </div>
-          <div className="hidden lg:col-span-6 lg:block" />
-
+          <div className="hidden lg:col-span-6 lg:block">
+            <img
+              src={heroDesk.url}
+              alt="An open leather-bound book and a fountain pen resting on a warm wooden desk in soft natural light."
+              width={1920}
+              height={1280}
+              loading="eager"
+              decoding="async"
+              // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+              fetchpriority="high"
+              sizes="(min-width: 1024px) 50vw, 0px"
+              className="h-[460px] w-full object-cover object-center [mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.4)_6%,black_18%)]"
+            />
+          </div>
         </div>
       </div>
     </section>
   );
 }
+
 
 // ---------- Bridge ----------
 function Bridge() {
@@ -608,34 +609,36 @@ function FooterCTA() {
       id="cta"
       className="relative scroll-mt-32 overflow-hidden bg-[oklch(0.14_0.05_265)] text-white"
       style={{
-        backgroundImage: `linear-gradient(to left, oklch(0.14 0.05 265) 0%, oklch(0.14 0.05 265 / 0.88) 45%, oklch(0.14 0.05 265 / 0.55) 80%, oklch(0.14 0.05 265 / 0.35) 100%), url(${starscapeImg.url})`,
+        backgroundImage: `linear-gradient(to right, oklch(0.14 0.05 265 / 0.25) 0%, oklch(0.14 0.05 265 / 0.85) 40%, oklch(0.14 0.05 265) 58%, oklch(0.14 0.05 265) 100%), url(${starscapeImg.url})`,
         backgroundSize: "cover",
         backgroundPosition: "left center",
+        backgroundRepeat: "no-repeat",
       }}
     >
-      <div className={`${container} grid grid-cols-1 gap-10 py-20 sm:py-24 lg:grid-cols-12 lg:gap-16 lg:py-28`}>
+      <div className={`${container} grid grid-cols-1 gap-10 py-16 sm:py-20 lg:grid-cols-12 lg:gap-12 lg:py-20`}>
         <div className="hidden lg:col-span-5 lg:block" />
         <div className="lg:col-span-7">
-          <h2 className="font-display font-normal text-[28px] leading-[1.12] tracking-[-0.018em] text-white sm:text-[38px] lg:text-[42px] animate-fade-in [animation-delay:80ms] opacity-0 [animation-fill-mode:forwards]">
+          <h2 className="font-display font-normal text-[28px] leading-[1.15] tracking-[-0.018em] text-white sm:text-[36px] lg:text-[40px] animate-fade-in [animation-delay:80ms] opacity-0 [animation-fill-mode:forwards]">
             Businesses without a map do not fail. They scatter.
           </h2>
-          <p className="mt-6 max-w-[58ch] text-[14px] leading-[1.75] text-white/70 animate-fade-in [animation-delay:220ms] opacity-0 [animation-fill-mode:forwards]">
+          <p className="mt-5 max-w-[60ch] text-[13.5px] leading-[1.7] text-white/70 animate-fade-in [animation-delay:220ms] opacity-0 [animation-fill-mode:forwards]">
             Years go into the right work in the wrong order. The cost was never the spend. The cost is the years. The first step is a 30-minute conversation. We name your number, show you the shape of the walk, and tell you honestly whether we are the ones to build your bridge. If we are not, we will say so, and point you to who is.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3 animate-fade-in [animation-delay:340ms] opacity-0 [animation-fill-mode:forwards]">
-            <a href="#" className="group inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[13px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]">
+          <div className="mt-7 flex flex-wrap items-center gap-2 animate-fade-in [animation-delay:340ms] opacity-0 [animation-fill-mode:forwards]">
+            <a href="#" className="group inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[12.5px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]">
               Build My Map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
-            <a href="#map" className="group inline-flex items-center gap-2 rounded-full px-4 py-3 text-[13px] font-medium text-white/80 transition-colors duration-300 hover:text-white">
+            <a href="#map" className="group inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-medium text-white/80 transition-colors duration-300 hover:text-white">
               Start with the map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
           </div>
-          <p className="mt-8 max-w-[52ch] text-[11.5px] leading-[1.75] text-white/50 animate-fade-in [animation-delay:460ms] opacity-0 [animation-fill-mode:forwards]">
+          <p className="mt-6 max-w-[52ch] text-[11.5px] leading-[1.75] text-white/50 animate-fade-in [animation-delay:460ms] opacity-0 [animation-fill-mode:forwards]">
             A 30-minute conversation. No pitch. If the timing is right, we should talk. If it is not, the work is waiting when it is.
           </p>
 
         </div>
       </div>
+
 
       <footer className="border-t border-white/10">
         <div className={`${container} grid grid-cols-1 gap-8 py-10 sm:grid-cols-3`}>

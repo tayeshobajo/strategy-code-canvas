@@ -1,55 +1,39 @@
-# Animations for The Roadmap page
+## Goal
+Bring the Investment page Hero and the "Businesses without a map do not fail. They scatter." section closer to the reference mockup, with the rest of the page left as-is.
 
-Style: **understated, editorial, intentional** — every motion earns its place by reinforcing meaning (a walk, a sequence, a destination). No decorative motion; nothing competes with reading. Reuses the existing `Reveal` / `useReveal` infrastructure and respects `prefers-reduced-motion`.
+## What changes
 
-## Guiding rules
-- Every animation maps to a concept on the page (route, sequence, arrival, compounding).
-- One motion per moment — never two competing focal points.
-- Slow cubic-bezier easings (≈600–900ms); short delays (60–120ms stagger).
-- The existing `AnimatedWalksChart` and `WalkFigure` stay as the page's animation centerpiece — nothing new should compete with them.
+### Hero (`function Hero` in `src/routes/investment.tsx`)
+Reference shows: a compact hero, no top section-nav floating over it, generous warm-paper area on the left with the book photo sitting cleanly on the right (not full-bleed under the text), and a thin hairline separating the section from the Bridge below.
 
-## Section-by-section
+- Reduce vertical padding: top ~pt-28, bottom ~pb-16 at desktop (currently `lg:pt-40 lg:pb-32` — too tall).
+- Replace the full-bleed image + heavy gradient wash with a contained two-column layout: text column on the left (col-span-6), book photo on the right (col-span-6) cropped to the desk/book area, with a soft feather only on its left edge so it blends into the paper background instead of bleeding behind the headline.
+- Keep paper background `oklch(0.95 0.018 75)` across the full section so left side reads as warm paper, not white.
+- Headline: tighten to `text-[44px] sm:text-[56px] lg:text-[60px]`, `leading-[1.05]`, single-color ink, matching the reference's smaller, balanced two-line set.
+- Eyebrow stays `INVESTMENT` in royal blue.
+- CTAs: keep primary (dark pill) + ghost text link, same order; tighten the gap to `gap-2`.
+- Fine-print line spacing unchanged.
+- Add a bottom 1px `border-rule/60` divider so the Bridge section starts on a clean hairline (reference shows that line clearly).
 
-**1. Hero ("from Point A to a position…")**
-- Eyebrow → headline → body → CTA staggered fade-up (use `Reveal immediate`), matching What We Build hero rhythm.
-- Hero image: gentle fade-right on load; subtle 8s `drift` on the headline accent word only.
-- A faint hairline rule under the headline draws left→right (240ms after headline lands) — signals "a line is being mapped".
+### "Businesses without a map do not fail. They scatter." (`function FooterCTA`)
+Reference shows: the starscape constellation occupies the **left** ~40% only, fading to flat deep-navy on the right; text column sits on the right, centered vertically; the small "Build My Map" pill is white with dark text; ghost "Start with the map" is white text; fine print sits directly under the CTAs.
 
-**2. Feature strip (Clarity / Strategy / Compounding / Ownership)**
-- Staggered fade-up per card (110ms apart) on scroll-in.
-- Icon stroke draw-in (reuse `iconStagger` pattern already in What We Build).
-
-**3. Roadmap section + tabs (Consulting / Education / Healthcare)**
-- Section header reveals first; tabs slide in as a single rail.
-- **Tab switching:** rows cross-fade with a 40ms row-by-row stagger; the status segments (mapped / build / live) animate their width from 0 → final using `transform: scaleX` from the left, so the build order visibly "lays down" each switch. This makes the tab change feel like re-mapping, not just swapping content.
-- Active tab underline slides between tabs (shared layout pill).
-
-**4. Build-order chart rows**
-- On first scroll-in, each row's segments draw left→right in sequence (top row first), 80ms stagger. Conveys "sequenced builds."
-- Status legend dots do a single scale-pop as they enter.
-
-**5. Animated Walks chart (already animated)**
-- Leave the walking figures and arrival pulse exactly as-is.
-- Add only: reveal-on-scroll for the surrounding card frame and a one-time fade-in for the heading/intro copy. No new motion inside the chart.
-
-**6. Pricing**
-- Section header rises in.
-- Three plan cards fade-up staggered (120ms apart).
-- The recommended/featured card lifts 2px with a soft shadow on enter (single, settled — not a hover loop).
-
-**7. CTA band (contour background)**
-- Headline, body, buttons stagger reveal.
-- The contour SVG lines (already in the bg) get a slow 12s drift via transform — already-faint, ambient, never distracting.
-
-## Cross-page consistency
-- Reuse `Reveal` component, `useReveal` hook, and CSS tokens already defined in `src/styles.css` for What We Build (`[data-reveal]`, `drift`, `scale-pop`, `draw-stroke`). No new keyframe families unless needed (likely one: `seg-grow` for chart segments).
-- Respect `prefers-reduced-motion` everywhere — fall back to plain opacity:1 final state.
-
-## Technical notes
-- Files to edit: `src/routes/index.tsx` (wrap sections/items in `Reveal`, add tab-change stagger state, segment grow transitions), `src/styles.css` (add `seg-grow` keyframe + `[data-roadmap-seg]` transition, reduced-motion overrides).
-- No new dependencies.
-- The tab-switch row stagger uses a `key` on the rows container tied to active tab so `Reveal`-style animation replays on each switch (or a simple CSS `animation-delay` ladder keyed on row index).
+- Keep the existing `to left` gradient direction (already correct), but tighten the fade so the starscape is fully solid navy past ~55% (currently fades too gradually).
+- Reduce section padding: `py-16 lg:py-20` (currently `py-20 lg:py-28`) — reference is more compact.
+- Headline: `text-[30px] sm:text-[36px] lg:text-[40px]`, `leading-[1.15]`, single line at desktop where possible.
+- Body copy width: `max-w-[60ch]`, `text-[13.5px] leading-[1.7]`.
+- CTAs: shrink to `px-5 py-2.5 text-[12.5px]` to match the smaller pill in the reference.
+- Keep the footer block underneath unchanged.
 
 ## Out of scope
-- No parallax, no scrub-tied scroll animations, no Lottie.
-- No changes to the walking-figure cadence or arrival logic.
+- No changes to Bridge, Map, Pace, Holds, Quarterly, QuoteDivider sections.
+- No changes to SiteHeader or SectionNav components.
+- No new assets — reuse `hero-investment-book-desk.png` and `footer-network-starscape.png`.
+- No copy changes.
+
+## Verification
+- Visual check at 1440px and 1024px via Playwright screenshot of `/investment`, comparing hero + CTA against the reference.
+- 375px / 414px responsive sanity check — book photo hides on mobile (already `sm:block`), CTA stack remains readable.
+
+## Files touched
+- `src/routes/investment.tsx` (Hero + FooterCTA blocks only)
