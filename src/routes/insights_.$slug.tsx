@@ -1,8 +1,79 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Compass } from "lucide-react";
+import { ArrowLeft, ArrowRight, Compass, Printer } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { INSIGHTS, getInsightBySlug, type Insight } from "@/lib/insights-data";
 import taiPortrait from "@/assets/tai-portrait-seated.png.asset.json";
+
+/* ----------------------- Reading progress + scroll-spy ----------------------- */
+
+function useReadingProgress() {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const update = () => {
+      const article = document.getElementById("article-root");
+      if (!article) return;
+      const rect = article.getBoundingClientRect();
+      const total = rect.height - window.innerHeight;
+      const scrolled = Math.min(Math.max(-rect.top, 0), Math.max(total, 1));
+      setProgress(total > 0 ? (scrolled / total) * 100 : 0);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return progress;
+}
+
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState<string>(ids[0] ?? "");
+  useEffect(() => {
+    if (!ids.length) return;
+    const elements = ids
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => Boolean(el));
+    if (!elements.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Track all sections currently intersecting; choose the one closest to the top.
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) {
+          setActive(visible[0].target.id);
+        }
+      },
+      { rootMargin: "-20% 0px -65% 0px", threshold: 0 },
+    );
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [ids.join("|")]);
+  return active;
+}
+
+function ReadingProgressBar() {
+  const progress = useReadingProgress();
+  return (
+    <div
+      className="fixed inset-x-0 top-0 z-50 h-[3px] bg-transparent print:hidden"
+      aria-hidden="true"
+    >
+      <div
+        className="h-full origin-left bg-royal transition-[width] duration-150 ease-out"
+        style={{ width: `${progress}%` }}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progress)}
+      />
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/insights_/$slug")({
   loader: ({ params }) => {
@@ -215,6 +286,55 @@ function ContinueArrow() {
   );
 }
 
+/* --------------------------------- Print --------------------------------- */
+
+function PrintStyles() {
+  // Print-optimized stylesheet: hide chrome (header, sidebar, progress, CTAs),
+  // restack content to a single column, swap to serif body text at a
+  // print-friendly size, and force light backgrounds + black ink.
+  return (
+    <style>{`
+      @media print {
+        @page { margin: 18mm 16mm; size: auto; }
+        html, body { background: #fff !important; color: #000 !important; }
+        header[class*="SiteHeader"], nav[aria-label="In this article"],
+        aside[aria-label="On the Roadmap"] { }
+        /* Hide site chrome and interactive bits */
+        body > header, .site-header, [data-site-header] { display: none !important; }
+        /* Hide everything explicitly marked print:hidden via Tailwind */
+        .print\\:hidden { display: none !important; }
+        /* Sidebar + related-content footer hidden for print */
+        article > div > div > aside { display: none !important; }
+        article > section[aria-labelledby="continue-heading"] { display: none !important; }
+        /* Collapse the body grid to a single column */
+        article > div > div { display: block !important; }
+        article > div > div > div { max-width: 100% !important; }
+        /* Typography */
+        body, article, article p, article li, article blockquote {
+          font-family: Georgia, "Times New Roman", Times, serif !important;
+          color: #000 !important;
+        }
+        article h1 { font-size: 24pt !important; line-height: 1.15 !important; }
+        article h2 { font-size: 15pt !important; line-height: 1.25 !important; margin-top: 18pt !important; }
+        article h3 { font-size: 13pt !important; }
+        article p, article li { font-size: 11pt !important; line-height: 1.55 !important; color: #111 !important; }
+        article blockquote { font-style: italic; border-left: 2pt solid #333; padding-left: 10pt; }
+        /* Avoid awkward breaks */
+        article h1, article h2, article h3 { break-after: avoid; page-break-after: avoid; }
+        article p, article li, article blockquote, article figure { break-inside: avoid; page-break-inside: avoid; }
+        /* Strip decorative cards/backgrounds */
+        article [class*="rounded-xl"] {
+          background: transparent !important;
+          border: 1px solid #ccc !important;
+          box-shadow: none !important;
+        }
+        /* Expand URLs after links (optional, classic print convention) */
+        article a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #444; }
+      }
+    `}</style>
+  );
+}
+
 /* --------------------------------- Page --------------------------------- */
 
 function InsightArticlePage() {
@@ -238,21 +358,41 @@ function InsightArticlePage() {
       paragraphs: [p],
     }));
 
+  const sectionIds = sections.map((s: { id: string }) => s.id);
+  const activeId = useActiveSection(sectionIds);
+
+  const handlePrint = () => {
+    if (typeof window !== "undefined") window.print();
+  };
+
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="min-h-screen bg-paper" id="article-root">
+      <PrintStyles />
+      <ReadingProgressBar />
       <SiteHeader />
       <main>
         <article aria-labelledby="article-title">
           {/* -------- Back link + title block -------- */}
-          <header className="pt-24 sm:pt-28 lg:pt-32">
+          <header className="pt-24 sm:pt-28 lg:pt-32 print:pt-0">
             <div className={container}>
-              <Link
-                to="/insights"
-                className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-royal hover:text-royal/80"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-                All insights
-              </Link>
+              <div className="flex items-center justify-between gap-4">
+                <Link
+                  to="/insights"
+                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-royal hover:text-royal/80 print:hidden"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  All insights
+                </Link>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/70 transition-colors hover:border-royal/40 hover:text-royal print:hidden"
+                  aria-label="Print this article"
+                >
+                  <Printer className="h-3.5 w-3.5" aria-hidden="true" />
+                  Print
+                </button>
+              </div>
 
               <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
                 <div className="lg:col-span-9 lg:col-start-2">
@@ -400,17 +540,31 @@ function InsightArticlePage() {
                     <p className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-royal">
                       In this article
                     </p>
-                    <ul className="mt-4 space-y-3 border-l border-rule/70 pl-4">
-                      {sections.map((sec: { id: string; title: string; paragraphs: string[] }) => (
-                        <li key={sec.id}>
-                          <a
-                            href={`#${sec.id}`}
-                            className="block text-[13.5px] leading-[1.5] text-ink/65 transition-colors hover:text-royal"
-                          >
-                            {sec.title}
-                          </a>
-                        </li>
-                      ))}
+                    <ul className="mt-4 relative space-y-1 border-l border-rule/70 pl-0">
+                      {sections.map((sec: { id: string; title: string; paragraphs: string[] }) => {
+                        const isActive = activeId === sec.id;
+                        return (
+                          <li key={sec.id} className="relative">
+                            <span
+                              aria-hidden="true"
+                              className={`absolute left-0 top-0 h-full w-[2px] -ml-px transition-all duration-300 ${
+                                isActive ? "bg-royal opacity-100" : "bg-transparent opacity-0"
+                              }`}
+                            />
+                            <a
+                              href={`#${sec.id}`}
+                              aria-current={isActive ? "location" : undefined}
+                              className={`block py-1.5 pl-4 text-[13.5px] leading-[1.5] transition-all duration-300 ${
+                                isActive
+                                  ? "text-royal font-medium translate-x-0.5"
+                                  : "text-ink/65 hover:text-royal"
+                              }`}
+                            >
+                              {sec.title}
+                            </a>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </nav>
 
