@@ -125,11 +125,17 @@ function Hero() {
     <section id="overview" className="relative overflow-hidden scroll-mt-32">
       <img
         src={heroDesk.url}
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[62%] object-cover object-left sm:block"
+        alt="An open leather-bound book and a fountain pen resting on a warm wooden desk in soft natural light."
+        width={1920}
+        height={1280}
+        loading="eager"
+        decoding="async"
+        // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+        fetchpriority="high"
+        sizes="(min-width: 640px) 62vw, 0px"
+        className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[62%] object-cover object-left sm:block [mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.15)_10%,rgba(0,0,0,0.6)_22%,black_38%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.15)_10%,rgba(0,0,0,0.6)_22%,black_38%)]"
       />
-      <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-paper via-paper/95 to-transparent sm:block" />
+      <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-paper via-paper/80 to-transparent sm:block" />
       <div className={`${container} relative pt-24 pb-20 sm:pt-32 sm:pb-28 lg:pt-40 lg:pb-32`}>
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
           <div className="lg:col-span-6">
