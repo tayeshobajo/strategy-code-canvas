@@ -696,9 +696,21 @@ function StarsField({
 }
 
 function HowWeThink() {
+  const { ref, paused } = useInViewPause<HTMLElement>();
+  const isSmall = useIsSmallViewport();
   return (
-    <section className="contour-bg relative overflow-hidden py-20 lg:py-24">
-      <StarsField count={70} width={1400} height={700} seedSalt={3} durRange={[2.8, 6]} />
+    <section
+      ref={ref}
+      data-anim-paused={paused ? "true" : "false"}
+      className="contour-bg relative overflow-hidden py-20 lg:py-24"
+    >
+      <StarsField
+        count={isSmall ? 28 : 70}
+        width={1400}
+        height={700}
+        seedSalt={3}
+        durRange={[2.8, 6]}
+      />
       <div className={`relative ${container}`}>
         <Reveal as="div" variant="fade-up" className="mx-auto max-w-[760px] text-center">
           <Eyebrow tone="paper">How We Think</Eyebrow>
