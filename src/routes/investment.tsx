@@ -61,48 +61,47 @@ function GhostCTA({ children = "Start with the map" }: { children?: React.ReactN
 // ---------- Hero ----------
 function Hero() {
   return (
-    <section
-      id="overview"
-      className="relative scroll-mt-32 border-b border-rule/60 bg-[oklch(0.95_0.018_75)]"
-    >
-      <div className={`${container} relative pt-20 pb-14 sm:pt-24 sm:pb-16 lg:pt-32 lg:pb-24`}>
-        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16">
-          <div className="lg:col-span-7 xl:col-span-6">
-            <div className="animate-fade-in [animation-delay:60ms] opacity-0 [animation-fill-mode:forwards]">
-              <Eyebrow>Investment</Eyebrow>
-            </div>
-            <h1 className="mt-6 font-display font-normal text-[40px] leading-[1.08] tracking-[-0.02em] text-ink sm:text-[52px] sm:leading-[1.06] lg:text-[58px] lg:leading-[1.04] xl:text-[64px] animate-fade-in [animation-delay:140ms] opacity-0 [animation-fill-mode:forwards]">
-              The price of a business<br className="hidden sm:block" /> that runs without you.
-            </h1>
-            <p className="mt-7 max-w-[46ch] text-[14.5px] leading-[1.75] text-ink/65 animate-fade-in [animation-delay:280ms] opacity-0 [animation-fill-mode:forwards]">
-              Every number is on this page. The map, the build, the three walks.
-              No call required to see it, because a decision this size deserves the
-              whole picture before the first conversation, not after.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3 animate-fade-in [animation-delay:400ms] opacity-0 [animation-fill-mode:forwards]">
-              <PrimaryCTA />
-              <GhostCTA />
-            </div>
-            <p className="mt-10 max-w-[42ch] text-[12px] leading-[1.75] text-ink/50 animate-fade-in [animation-delay:520ms] opacity-0 [animation-fill-mode:forwards]">
-              A 30-minute conversation. No pitch. If the timing is right, we should talk.
-              If it is not, the work is waiting when it is.
-            </p>
-          </div>
-          <div className="hidden lg:col-span-5 lg:block xl:col-span-6">
-            <img
-              src={heroDesk.url}
-              alt="An open leather-bound book and a fountain pen resting on a warm wooden desk in soft natural light."
-              width={1920}
-              height={1280}
-              loading="eager"
-              decoding="async"
-              // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
-              fetchpriority="high"
-              sizes="(min-width: 1280px) 50vw, (min-width: 1024px) 42vw, 0px"
-              className="h-[440px] xl:h-[480px] w-full object-cover object-center [mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.35)_5%,black_16%)]"
-            />
+    <section id="overview" className="relative w-full overflow-hidden bg-paper">
+      <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
+        <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
+          <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
+          <div className="relative z-10 max-w-[620px]">
+            <Reveal immediate variant="fade-up" delay={0} as="p" className="eyebrow mb-6">Investment</Reveal>
+            <Reveal immediate variant="rise" delay={120} as="h1" className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
+              The price of a business{" "}
+              <span className="italic text-royal drift inline-block">that runs without you.</span>
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
+              Every number is on this page. The map, the build, the three walks. No call required to see it, because a decision this size deserves the whole picture before the first conversation, not after.
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
+                Build My Map
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </a>
+              <a href="#map" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
+                Start with the map
+              </a>
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={540} as="p" className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+              <span className="inline-block h-px w-5 bg-ink/40" />
+              <span>A 30 minute conversation. No pitch.</span>
+            </Reveal>
           </div>
         </div>
+
+        <Reveal immediate variant="fade-right" delay={300} className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
+          <img
+            src={heroDesk.url}
+            alt="An open leather-bound book and a fountain pen resting on a warm wooden desk in soft natural light."
+            loading="eager"
+            decoding="async"
+            // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+            fetchpriority="high"
+            className="absolute inset-0 h-full w-full object-cover object-right lg:hero-photo-fade"
+          />
+          <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block" aria-hidden="true" />
+        </Reveal>
       </div>
     </section>
   );
