@@ -598,10 +598,10 @@ function FeatureStrip() {
   return (
     <section className="border-y border-rule/70 bg-white">
       <div className="mx-auto max-w-7xl px-6 pb-12 pt-8 lg:px-10 lg:pb-[72px]">
-        <h2 className="text-center font-display text-2xl text-ink">Built for founders who are done guessing.</h2>
+        <Reveal as="h2" variant="rise" className="text-center font-display text-2xl text-ink">Built for founders who are done guessing.</Reveal>
         <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="flex gap-4">
+          {FEATURES.map((f, i) => (
+            <Reveal key={f.title} variant="fade-up" delay={i * 110} className="flex gap-4">
               <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-royal/25 text-royal">
                 <f.icon className="h-5 w-5" strokeWidth={1.5} />
               </div>
@@ -609,7 +609,7 @@ function FeatureStrip() {
                 <h3 className="font-sans text-[15px] font-semibold tracking-normal text-ink">{f.title}</h3>
                 <p className="mt-1.5 text-[13px] leading-relaxed text-ink/65">{f.body}</p>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
