@@ -27,7 +27,22 @@ export type Insight = {
   readMinutes: number;
   date: string;
   publishedAt: string; // ISO
-  body: string[]; // paragraphs
+  body: string[]; // paragraphs (fallback rendering)
+  /** Optional structured article. When present, the article page renders
+   *  these sections with a sidebar TOC instead of the flat body. */
+  sections?: {
+    id: string;
+    title: string;
+    paragraphs: string[];
+  }[];
+  pullQuote?: string[]; // multi-line pull quote
+  framework?: {
+    eyebrow: string;
+    title: string;
+    description: string[];
+    steps: string[];
+  };
+  onRoadmap?: string[]; // paragraphs for the CTA strip
 };
 
 export const INSIGHTS: Insight[] = [
