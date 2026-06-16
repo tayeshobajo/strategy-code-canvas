@@ -699,31 +699,31 @@ function RoadmapPanel() {
   return (
     <div className="overflow-hidden rounded-lg border border-rule bg-white">
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-rule px-6 py-3.5">
-        <div>
+      <div className="flex flex-col gap-3 border-b border-rule px-4 py-3.5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="shrink-0">
           <div className="font-display text-lg text-ink">Trust Tai</div>
           <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/55">Roadmap</div>
         </div>
-        <div className="hidden gap-10 text-[11px] sm:flex">
+        <div className="grid grid-cols-1 gap-3 text-[11px] sm:grid-cols-3 sm:gap-6 lg:gap-10">
           {[
             { l: "Point A", s: "Where you are" },
             { l: "Point B", s: "Where you need to be (24 months)" },
             { l: "Point C", s: "The position you could own (10 years)" },
           ].map((p) => (
-            <div key={p.l}>
+            <div key={p.l} className="min-w-0">
               <div className="font-mono uppercase tracking-[0.16em] text-royal">{p.l}</div>
               <div className="mt-0.5 text-ink/60">{p.s}</div>
             </div>
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-[148px_1fr]">
+      <div className="grid grid-cols-1 md:grid-cols-[148px_1fr]">
         {/* Tabs */}
-        <div className="bg-ink py-1.5 text-paper/70">
+        <div className="flex overflow-x-auto bg-ink py-1.5 text-paper/70 md:block md:overflow-visible">
           {TABS.map((t, i) => (
             <button
               key={t}
-              className={`flex w-full cursor-pointer items-center gap-2 px-3.5 py-[5px] text-left text-[11.5px] transition-colors ${
+              className={`flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap px-3.5 py-[5px] text-left text-[11.5px] transition-colors md:w-full ${
                 i === 7
                   ? "bg-royal/25 text-paper"
                   : "text-paper/55 hover:bg-white/5 hover:text-paper/80"
@@ -738,16 +738,20 @@ function RoadmapPanel() {
           ))}
         </div>
         {/* Gantt */}
-        <div className="px-8 pt-5 pb-5">
+        <div className="min-w-0 px-4 pt-5 pb-5 sm:px-6 md:px-8">
           <div className="mb-3.5 flex items-end justify-between">
             <h3 className="font-display text-xl text-ink">The Build Order</h3>
           </div>
-          <BuildOrderChart statusColor={statusColor} />
+          <div className="-mx-4 overflow-x-auto px-4 sm:-mx-6 sm:px-6 md:mx-0 md:px-0">
+            <div className="min-w-[540px]">
+              <BuildOrderChart statusColor={statusColor} />
+            </div>
+          </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-y-3 border-t border-rule/70 pt-3.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
+          <div className="mt-6 flex flex-col gap-3 border-t border-rule/70 pt-3.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
 
             <div>24 Month Roadmap · 8 Quarters, Sequenced</div>
-            <div className="flex items-center gap-6 whitespace-nowrap">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
               {[
                 { l: "Mapped", c: "bg-royal-soft/35" },
                 { l: "In build", c: "bg-royal/80" },
@@ -798,7 +802,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
       </div>
       <div
         key={active}
-        className="roadmap-rows grid grid-cols-[170px_repeat(8,1fr)] gap-y-3.5 text-[11px] text-ink/55"
+        className="roadmap-rows grid min-w-[540px] grid-cols-[130px_repeat(8,minmax(38px,1fr))] gap-y-3.5 text-[11px] text-ink/55 sm:grid-cols-[170px_repeat(8,1fr)]"
         data-animate="true"
       >
 
