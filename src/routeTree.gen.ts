@@ -14,7 +14,7 @@ import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as InsightsSlugRouteImport } from './routes/insights.$slug'
+import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 
 const WhatWeBuildRoute = WhatWeBuildRouteImport.update({
   id: '/what-we-build',
@@ -42,15 +42,15 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const InsightsSlugRoute = InsightsSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => InsightsRoute,
+  id: '/insights_/$slug',
+  path: '/insights/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/insights': typeof InsightsRouteWithChildren
+  '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -58,7 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/insights': typeof InsightsRouteWithChildren
+  '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -67,10 +67,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/insights': typeof InsightsRouteWithChildren
+  '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/what-we-build': typeof WhatWeBuildRoute
-  '/insights/$slug': typeof InsightsSlugRoute
+  '/insights_/$slug': typeof InsightsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -96,15 +96,16 @@ export interface FileRouteTypes {
     | '/insights'
     | '/investment'
     | '/what-we-build'
-    | '/insights/$slug'
+    | '/insights_/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  InsightsRoute: typeof InsightsRouteWithChildren
+  InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
+  InsightsSlugRoute: typeof InsightsSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -144,34 +145,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/insights/$slug': {
-      id: '/insights/$slug'
-      path: '/$slug'
+    '/insights_/$slug': {
+      id: '/insights_/$slug'
+      path: '/insights/$slug'
       fullPath: '/insights/$slug'
       preLoaderRoute: typeof InsightsSlugRouteImport
-      parentRoute: typeof InsightsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface InsightsRouteChildren {
-  InsightsSlugRoute: typeof InsightsSlugRoute
-}
-
-const InsightsRouteChildren: InsightsRouteChildren = {
-  InsightsSlugRoute: InsightsSlugRoute,
-}
-
-const InsightsRouteWithChildren = InsightsRoute._addFileChildren(
-  InsightsRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  InsightsRoute: InsightsRouteWithChildren,
+  InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
+  InsightsSlugRoute: InsightsSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
