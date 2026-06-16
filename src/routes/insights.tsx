@@ -151,20 +151,20 @@ function Hero() {
 
 function MilestonePath() {
   const stops = [
-    { x: 40, y: 220, label: "Clarity" },
-    { x: 200, y: 150, label: "Sequence" },
-    { x: 360, y: 130, label: "Leverage", active: true },
-    { x: 500, y: 50, label: "Freedom" },
-  ];
+    { x: 40, y: 230, label: "Clarity" },
+    { x: 210, y: 165, label: "Sequence" },
+    { x: 360, y: 140, label: "Leverage", active: true },
+    { x: 510, y: 55, label: "Freedom", labelRight: true },
+  ] as const;
   return (
     <svg
-      viewBox="0 0 540 280"
-      className="h-auto w-full max-w-[540px]"
+      viewBox="0 0 580 280"
+      className="h-auto w-full max-w-[560px]"
       role="img"
       aria-label="Journey path through Clarity, Sequence, Leverage, and Freedom, currently at Leverage."
     >
       <path
-        d="M 40 220 C 110 200, 150 165, 200 150 S 310 130, 360 130 S 460 90, 500 50"
+        d="M 40 230 C 110 200, 160 180, 210 165 S 320 145, 360 140 S 470 95, 510 55"
         fill="none"
         stroke="oklch(0.48 0.18 262 / 0.45)"
         strokeWidth="1"
@@ -173,16 +173,38 @@ function MilestonePath() {
       />
       {stops.map((s) => (
         <g key={s.label}>
-          {s.active && (
+          {"active" in s && s.active && (
             <>
-              <circle cx={s.x} cy={s.y} r="14" fill="none" stroke="oklch(0.48 0.18 262 / 0.35)" strokeWidth="1" className="ring-breathe" />
-              <circle cx={s.x} cy={s.y} r="9" fill="none" stroke="oklch(0.48 0.18 262 / 0.5)" strokeWidth="1" />
+              <circle cx={s.x} cy={s.y} r="13" fill="none" stroke="oklch(0.48 0.18 262 / 0.35)" strokeWidth="1" className="ring-breathe" />
+              <circle cx={s.x} cy={s.y} r="8" fill="none" stroke="oklch(0.48 0.18 262 / 0.55)" strokeWidth="1" />
             </>
           )}
-          <circle cx={s.x} cy={s.y} r={s.active ? 4 : 3} fill="oklch(0.48 0.18 262)" />
-          <text x={s.x} y={s.y + 26} textAnchor="middle" fontFamily="var(--font-mono)" fontSize="11" fill={s.active ? "oklch(0.48 0.18 262)" : "oklch(0.4 0.04 260)"} opacity={s.active ? 1 : 0.7}>
-            {s.label}
-          </text>
+          <circle cx={s.x} cy={s.y} r={"active" in s && s.active ? 4 : 3} fill="oklch(0.48 0.18 262)" />
+          {"labelRight" in s && s.labelRight ? (
+            <text
+              x={s.x + 12}
+              y={s.y + 4}
+              textAnchor="start"
+              fontFamily="var(--font-mono)"
+              fontSize="11"
+              fill="oklch(0.4 0.04 260)"
+              opacity={0.75}
+            >
+              {s.label}
+            </text>
+          ) : (
+            <text
+              x={s.x}
+              y={s.y + 22}
+              textAnchor="middle"
+              fontFamily="var(--font-mono)"
+              fontSize="11"
+              fill={"active" in s && s.active ? "oklch(0.48 0.18 262)" : "oklch(0.4 0.04 260)"}
+              opacity={"active" in s && s.active ? 1 : 0.75}
+            >
+              {s.label}
+            </text>
+          )}
         </g>
       ))}
     </svg>
