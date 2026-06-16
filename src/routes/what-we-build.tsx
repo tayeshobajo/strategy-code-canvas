@@ -486,45 +486,47 @@ function Milestones() {
 
 // ----------- INTELLIGENCE LAYER -----------
 function IntelligenceLayer() {
+  const { ref, inView } = useReveal<HTMLDivElement>();
   return (
-    <section className="relative overflow-hidden bg-[#08122b] text-paper">
+    <section ref={ref} className="relative overflow-hidden bg-[#08122b] text-paper">
       <div className="absolute inset-0 opacity-60">
         <div
           className="absolute inset-0"
           style={{
             background:
               "radial-gradient(ellipse 50% 60% at 50% 50%, rgba(80,140,255,0.18), transparent 70%)",
+            animation: "pulse-soft 6s ease-in-out infinite",
           }}
         />
       </div>
       <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 gap-14 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)_minmax(0,0.55fr)] lg:gap-12 lg:py-32">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#7aa6ff]">
+          <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#7aa6ff]">
             The Intelligence Layer
-          </p>
-          <h2 className="mt-5 font-display text-[32px] leading-[1.1] tracking-[-0.02em] sm:text-[38px]">
+          </Reveal>
+          <Reveal as="h2" variant="rise" delay={80} className="mt-5 font-display text-[32px] leading-[1.1] tracking-[-0.02em] sm:text-[38px]">
             One layer
             <br />
             reads all of it.
-          </h2>
-          <p className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-paper/70">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-paper/70">
             Every build creates signals. The intelligence layer reads across the
             system so the business can see what comes next.
-          </p>
+          </Reveal>
         </div>
 
         <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
           <div className="min-w-[560px] sm:min-w-0">
-            <ILDiagram />
+            <ILDiagram revealed={inView} />
           </div>
         </div>
 
         <ul className="flex flex-col justify-center gap-5 lg:border-l lg:border-white/10 lg:pl-8">
-          {IL_OUTCOMES.map((o) => (
-            <li key={o} className="flex items-center gap-3 text-[14px]">
-              <span className="size-2 rounded-full bg-[#5b8cff] shadow-[0_0_10px_rgba(91,140,255,0.8)]" />
+          {IL_OUTCOMES.map((o, i) => (
+            <Reveal as="li" key={o} variant="fade-right" delay={400 + i * 100} className="flex items-center gap-3 text-[14px]">
+              <span className="size-2 rounded-full bg-[#5b8cff] shadow-[0_0_10px_rgba(91,140,255,0.8)] pulse-dot" style={{ animationDelay: `${i * 400}ms` }} />
               <span className="text-paper/85">{o}</span>
-            </li>
+            </Reveal>
           ))}
         </ul>
       </div>
@@ -532,7 +534,7 @@ function IntelligenceLayer() {
   );
 }
 
-function ILDiagram() {
+function ILDiagram({ revealed }: { revealed: boolean }) {
   const W = 560;
   const H = 360;
   const cx = W / 2;
@@ -541,7 +543,7 @@ function ILDiagram() {
   const rightX = W - 90;
   const ys = [60, 140, 220, 300];
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full">
+    <svg viewBox={`0 0 ${W} ${H}`} className={`svg-reveal h-auto w-full ${revealed ? "is-revealed" : ""}`}>
       <defs>
         <radialGradient id="core" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#6da4ff" stopOpacity="0.9" />
@@ -550,34 +552,38 @@ function ILDiagram() {
         </radialGradient>
       </defs>
       {/* connectors */}
-      {ys.map((y, i) => (
-        <g key={`l${i}`}>
-          <path d={`M ${leftX + 60} ${y} C ${cx - 80} ${y}, ${cx - 60} ${cy}, ${cx - 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" />
-          <path d={`M ${rightX - 60} ${y} C ${cx + 80} ${y}, ${cx + 60} ${cy}, ${cx + 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" />
-        </g>
-      ))}
+      {ys.map((y, i) => {
+        const d = `${400 + i * 120}ms`;
+        return (
+          <g key={`l${i}`}>
+            <path d={`M ${leftX + 60} ${y} C ${cx - 80} ${y}, ${cx - 60} ${cy}, ${cx - 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" data-anim="line" style={{ ["--len" as never]: "260", animationDelay: d }} />
+            <path d={`M ${rightX - 60} ${y} C ${cx + 80} ${y}, ${cx + 60} ${cy}, ${cx + 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" data-anim="line" style={{ ["--len" as never]: "260", animationDelay: d }} />
+          </g>
+        );
+      })}
       {/* glow core */}
-      <circle cx={cx} cy={cy} r="110" fill="url(#core)" />
-      <circle cx={cx} cy={cy} r="48" fill="#0a1733" stroke="#5b8cff" strokeWidth="1.5" />
-      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui">The</text>
-      <text x={cx} y={cy + 10} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui">Intelligence</text>
-      <text x={cx} y={cy + 24} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui">Layer</text>
+      <circle cx={cx} cy={cy} r="110" fill="url(#core)" data-anim="dot" style={{ ["--d" as never]: "200ms" }} />
+      <circle cx={cx} cy={cy} r="48" fill="#0a1733" stroke="#5b8cff" strokeWidth="1.5" data-anim="dot" style={{ ["--d" as never]: "300ms" }} />
+      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui" data-anim="fade" style={{ ["--d" as never]: "600ms" }}>The</text>
+      <text x={cx} y={cy + 10} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui" data-anim="fade" style={{ ["--d" as never]: "650ms" }}>Intelligence</text>
+      <text x={cx} y={cy + 24} textAnchor="middle" fontSize="11" fill="#cfe0ff" fontFamily="ui-sans-serif,system-ui" data-anim="fade" style={{ ["--d" as never]: "700ms" }}>Layer</text>
 
       {/* left pills */}
       {IL_LEFT.map((label, i) => (
-        <g key={label}>
+        <g key={label} data-anim="fade" style={{ ["--d" as never]: `${i * 90}ms` }}>
           <rect x={leftX - 60} y={ys[i] - 15} rx="15" ry="15" width="120" height="30" fill="rgba(255,255,255,0.04)" stroke="rgba(140,180,255,0.35)" />
           <text x={leftX} y={ys[i] + 4} textAnchor="middle" fontSize="10.5" fill="#dde7ff">{label}</text>
         </g>
       ))}
       {IL_RIGHT.map((label, i) => (
-        <g key={label}>
+        <g key={label} data-anim="fade" style={{ ["--d" as never]: `${i * 90}ms` }}>
           <rect x={rightX - 60} y={ys[i] - 15} rx="15" ry="15" width="120" height="30" fill="rgba(255,255,255,0.04)" stroke="rgba(140,180,255,0.35)" />
           <text x={rightX} y={ys[i] + 4} textAnchor="middle" fontSize="10.5" fill="#dde7ff">{label}</text>
         </g>
       ))}
     </svg>
   );
+
 }
 
 // ----------- STANDARDS ROW -----------
