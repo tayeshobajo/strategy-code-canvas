@@ -1,95 +1,55 @@
-# Bring the What We Build page alive
+# Animations for The Roadmap page
 
-Quiet, editorial motion that fires as each section scrolls into view. No new libraries — pure CSS keyframes + a tiny IntersectionObserver hook. Respects `prefers-reduced-motion`.
+Style: **understated, editorial, intentional** — every motion earns its place by reinforcing meaning (a walk, a sequence, a destination). No decorative motion; nothing competes with reading. Reuses the existing `Reveal` / `useReveal` infrastructure and respects `prefers-reduced-motion`.
 
-## 1. Shared infrastructure
+## Guiding rules
+- Every animation maps to a concept on the page (route, sequence, arrival, compounding).
+- One motion per moment — never two competing focal points.
+- Slow cubic-bezier easings (≈600–900ms); short delays (60–120ms stagger).
+- The existing `AnimatedWalksChart` and `WalkFigure` stay as the page's animation centerpiece — nothing new should compete with them.
 
-**New hook `src/hooks/use-reveal.ts`**
-- `useReveal<T extends Element>(options?)` — returns a ref and an `inView` boolean. Uses `IntersectionObserver` with `threshold: 0.15`, `rootMargin: "0px 0px -10% 0px"`, fires once then disconnects.
-- Reads `window.matchMedia('(prefers-reduced-motion: reduce)')` — if reduced, returns `inView: true` immediately so content is visible without motion.
+## Section-by-section
 
-**New `Reveal` component (in the same file)**
-- Wraps children, applies a `data-revealed` attribute on the wrapper when in view. Optional `delay` prop (ms) sets `style={{ '--reveal-delay': ... }}`.
-- Variants via prop: `"fade"` (default), `"fade-up"`, `"fade-right"`, `"rise"` (slightly larger translateY for headlines).
+**1. Hero ("from Point A to a position…")**
+- Eyebrow → headline → body → CTA staggered fade-up (use `Reveal immediate`), matching What We Build hero rhythm.
+- Hero image: gentle fade-right on load; subtle 8s `drift` on the headline accent word only.
+- A faint hairline rule under the headline draws left→right (240ms after headline lands) — signals "a line is being mapped".
 
-**New CSS in `src/styles.css`**
-- `[data-reveal]` initial state: `opacity:0; transform:translateY(14px); transition: opacity 700ms cubic-bezier(.2,.6,.2,1) var(--reveal-delay,0ms), transform 700ms cubic-bezier(.2,.6,.2,1) var(--reveal-delay,0ms);`
-- `[data-reveal][data-revealed="true"]`: `opacity:1; transform:none;`
-- Variant overrides for `fade-right` (translateX), `rise` (translateY 24px).
-- New keyframes used by section-specific motion below:
-  - `@keyframes draw-line { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }`
-  - `@keyframes pulse-soft { 0%,100% { opacity:.55 } 50% { opacity:1 } }`
-  - `@keyframes drift-y { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }`
-- `@media (prefers-reduced-motion: reduce) { [data-reveal]{transition:none; opacity:1; transform:none } * { animation: none !important } }`
+**2. Feature strip (Clarity / Strategy / Compounding / Ownership)**
+- Staggered fade-up per card (110ms apart) on scroll-in.
+- Icon stroke draw-in (reuse `iconStagger` pattern already in What We Build).
 
-## 2. Per-section motion (`src/routes/what-we-build.tsx`)
+**3. Roadmap section + tabs (Consulting / Education / Healthcare)**
+- Section header reveals first; tabs slide in as a single rail.
+- **Tab switching:** rows cross-fade with a 40ms row-by-row stagger; the status segments (mapped / build / live) animate their width from 0 → final using `transform: scaleX` from the left, so the build order visibly "lays down" each switch. This makes the tab change feel like re-mapping, not just swapping content.
+- Active tab underline slides between tabs (shared layout pill).
 
-### Hero
-- Page-load (not scroll, since it's above the fold): wrap eyebrow, headline, body, button row, footnote in `Reveal` with staggered delays `0, 120, 240, 360, 480 ms`. Variant `rise` on the headline.
-- Hero photo: add `data-reveal` with `fade-right` variant + 300ms delay so the image eases in from the right edge as the mask reveals.
-- Subtle continuous "breathing" on the headline italic word `the map.`: 6s `drift-y` infinite, only above `prefers-reduced-motion: no-preference`.
+**4. Build-order chart rows**
+- On first scroll-in, each row's segments draw left→right in sequence (top row first), 80ms stagger. Conveys "sequenced builds."
+- Status legend dots do a single scale-pop as they enter.
 
-### Feature Row (4 icons)
-- Section heading: `Reveal rise`.
-- Each of the four feature cards: `Reveal fade-up` with staggered delay `i * 90ms` (0/90/180/270).
-- Icon stroke draw-in: give each inline SVG a `stroke-dasharray` of e.g. 200 and animate `stroke-dashoffset` from 200→0 over 900ms when the parent reveals (via `[data-revealed="true"] svg path, ... circle, ... rect` selector + the `draw-line` keyframe). Set `--len: 200` per icon group via inline style.
+**5. Animated Walks chart (already animated)**
+- Leave the walking figures and arrival pulse exactly as-is.
+- Add only: reveal-on-scroll for the surrounding card frame and a one-time fade-in for the heading/intro copy. No new motion inside the chart.
 
-### Mapped Path (SVG timeline)
-- Section heading + body: stagger reveal.
-- `PathSVG`: when the section reveals, animate
-  - the main horizontal line: stroke-dash draw from left to right (1.2s),
-  - then the 6 points scale-in (0→1) with staggered 80ms each starting at 600ms,
-  - then the "asset thread" curved bracket draws in,
-  - "ASSET THREAD" label fades in last.
-  - Implemented via a `revealed` boolean from `useReveal` passed into `PathSVG`, which toggles a class on the `<svg>`; CSS scopes `.is-revealed line { animation: draw-line 1.2s forwards } .is-revealed circle { animation: scale-pop .5s var(--d) forwards }` etc.
+**6. Pricing**
+- Section header rises in.
+- Three plan cards fade-up staggered (120ms apart).
+- The recommended/featured card lifts 2px with a soft shadow on enter (single, settled — not a hover loop).
 
-### Milestones list
-- Heading column: `Reveal rise`.
-- Each `<li>` milestone: `Reveal fade-up` with `delay = i * 60ms`. The royal dot scales from 0→1 with a tiny overshoot (`cubic-bezier(.34,1.4,.64,1)`).
+**7. CTA band (contour background)**
+- Headline, body, buttons stagger reveal.
+- The contour SVG lines (already in the bg) get a slow 12s drift via transform — already-faint, ambient, never distracting.
 
-### Intelligence Layer
-- Heading + body + outcomes list: stagger reveal (fade-right for outcomes from the right column).
-- `ILDiagram`: on reveal,
-  - left and right pills: fade + translate inward from their respective edges, staggered by row,
-  - connectors (`<path>`): `draw-line` animation 1s, starting after pills land,
-  - core circle: scale-in with the radial glow opacity rising,
-  - small continuous pulse on the glow (`pulse-soft` 4s infinite) — subtle, since the section is dark and a gentle pulse reads as "alive".
-- Outcome dots: each adds a soft `pulse-soft 3s infinite` with staggered delays so they twinkle calmly.
+## Cross-page consistency
+- Reuse `Reveal` component, `useReveal` hook, and CSS tokens already defined in `src/styles.css` for What We Build (`[data-reveal]`, `drift`, `scale-pop`, `draw-stroke`). No new keyframe families unless needed (likely one: `seg-grow` for chart segments).
+- Respect `prefers-reduced-motion` everywhere — fall back to plain opacity:1 final state.
 
-### Standards Row (5 steps)
-- Heading: `Reveal rise`.
-- Dotted connector line between numbered circles: width grows from 0%→80% (left-to-right) over 1s when revealed.
-- Each step (circle + icon + title + body): stagger `i * 110ms`, fade-up. Number circles get the same stroke-draw-in treatment as the feature icons.
-
-### Before / After
-- Heading column: rise reveal.
-- "Before the map" card: fade-up. Its scatter dots fade in individually staggered (60ms each) — scattered, restless feel.
-- "After the map" card: fade-up with 200ms delay. Then:
-  - The trend line draws left-to-right via `draw-line` (1.2s).
-  - Each dot scales in along the path as the line passes (delays computed from x position).
-  - The arrow between cards (`ArrowRight`) translates from -8px to 0px and fades in once both cards are revealed.
-
-### Bottom CTA
-- Already has staggered fade-in animations — leave as-is, but flip from page-load to scroll-triggered by wrapping the column in `useReveal` and gating the existing keyframes on `data-revealed="true"`.
-
-### Footer
-- Single `Reveal fade-up` for the whole footer row, no stagger (calm closer).
-
-## 3. Performance & accessibility
-
-- All animations animate only `opacity` and `transform` (plus SVG `stroke-dashoffset`) — composited, no layout thrash.
-- `IntersectionObserver` disconnects after first reveal per element.
-- `prefers-reduced-motion: reduce` short-circuits everything: content visible, no transitions, no infinite pulses/drifts.
-- No JS scroll listeners, no rAF loops, no parallax math — keeps the page light.
-
-## Files touched
-
-- New: `src/hooks/use-reveal.ts` (hook + `Reveal` wrapper component)
-- Edit: `src/styles.css` (reveal base styles, new keyframes, reduced-motion guard)
-- Edit: `src/routes/what-we-build.tsx` (wrap sections in `Reveal`, thread `revealed` flag into `PathSVG` / `ILDiagram` / `TrendChart` / `ScatterChart`, add scoped className hooks)
+## Technical notes
+- Files to edit: `src/routes/index.tsx` (wrap sections/items in `Reveal`, add tab-change stagger state, segment grow transitions), `src/styles.css` (add `seg-grow` keyframe + `[data-roadmap-seg]` transition, reduced-motion overrides).
+- No new dependencies.
+- The tab-switch row stagger uses a `key` on the rows container tied to active tab so `Reveal`-style animation replays on each switch (or a simple CSS `animation-delay` ladder keyed on row index).
 
 ## Out of scope
-
-- No copy, layout, color, or asset changes.
-- No new dependencies (no Framer Motion / GSAP — CSS + IO is enough for this aesthetic).
-- No changes to other routes.
+- No parallax, no scrub-tied scroll animations, no Lottie.
+- No changes to the walking-figure cadence or arrival logic.

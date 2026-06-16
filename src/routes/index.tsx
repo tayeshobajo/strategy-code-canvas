@@ -12,6 +12,7 @@ import {
 import heroAsset from "@/assets/trust-tai-hero.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Reveal } from "@/hooks/use-reveal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -553,14 +554,15 @@ function Hero() {
         <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
           <div className="relative z-10 max-w-[620px]">
-            <h1 className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
+            <Reveal immediate variant="rise" delay={60} as="h1" className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
               We map the journey from where your business is to{" "}
-              <span className="italic text-royal">where it needs to be.</span>
-            </h1>
-            <p className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
+              <span className="italic text-royal drift inline-block">where it needs to be.</span>
+            </Reveal>
+            <span className="hero-hairline mt-5" aria-hidden="true" />
+            <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
               We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B) — and build the first leg toward the position you could own in a decade (Point C).
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
                 Build My Map
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -568,15 +570,15 @@ function Hero() {
               <a href="#pricing" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
                 See what it costs
               </a>
-            </div>
-            <p className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={540} as="p" className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
               <span className="inline-block h-px w-5 bg-ink/40" />
               <span>A 30 minute conversation. No pitch.</span>
-            </p>
+            </Reveal>
           </div>
         </div>
 
-        <div className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
+        <Reveal immediate variant="fade-right" delay={300} className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
           <img
             src={heroAsset.url}
             alt="Trust Tai Business Operating Roadmap booklet on a textured desk"
@@ -584,7 +586,7 @@ function Hero() {
           />
           {/* Feathered seam between text and image */}
           <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block" aria-hidden="true" />
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -596,10 +598,10 @@ function FeatureStrip() {
   return (
     <section className="border-y border-rule/70 bg-white">
       <div className="mx-auto max-w-7xl px-6 pb-12 pt-8 lg:px-10 lg:pb-[72px]">
-        <h2 className="text-center font-display text-2xl text-ink">Built for founders who are done guessing.</h2>
+        <Reveal as="h2" variant="rise" className="text-center font-display text-2xl text-ink">Built for founders who are done guessing.</Reveal>
         <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="flex gap-4">
+          {FEATURES.map((f, i) => (
+            <Reveal key={f.title} variant="fade-up" delay={i * 110} className="flex gap-4">
               <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-royal/25 text-royal">
                 <f.icon className="h-5 w-5" strokeWidth={1.5} />
               </div>
@@ -607,7 +609,7 @@ function FeatureStrip() {
                 <h3 className="font-sans text-[15px] font-semibold tracking-normal text-ink">{f.title}</h3>
                 <p className="mt-1.5 text-[13px] leading-relaxed text-ink/65">{f.body}</p>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -620,29 +622,31 @@ function RoadmapSection() {
     <section id="roadmap" className="bg-secondary/60">
       <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[minmax(380px,440px)_minmax(760px,1fr)] lg:gap-16 lg:px-10 lg:pt-[72px] lg:pb-24 xl:gap-[72px]">
         <div>
-          <p className="eyebrow">What You Get</p>
-          <h2 className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
+          <Reveal as="p" variant="fade-up" className="eyebrow">What You Get</Reveal>
+          <Reveal as="h2" variant="rise" delay={80} className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
             A living plan. Specific.<br />Sequenced. Yours.
-          </h2>
-          <p className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={180} className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
             The Operating Map turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.
-          </p>
+          </Reveal>
           <ul className="mt-8 space-y-4">
-            {CHECKLIST.map((c) => (
-              <li key={c.label} className="flex items-start gap-3 text-[13.5px] leading-[1.65] text-ink/75">
+            {CHECKLIST.map((c, i) => (
+              <Reveal as="li" key={c.label} variant="fade-up" delay={260 + i * 60} className="flex items-start gap-3 text-[13.5px] leading-[1.65] text-ink/75">
                 <CheckCircle2 className="mt-[3px] h-[16px] w-[16px] flex-none text-royal" strokeWidth={1.75} />
                 <span>
                   <span className="font-semibold text-ink">{c.label}:</span> {c.body}
                 </span>
-              </li>
+              </Reveal>
             ))}
           </ul>
         </div>
         <div>
-          <RoadmapPanel />
-          <p className="mt-5 text-[13px] leading-relaxed text-ink/60">
+          <Reveal variant="fade-up" delay={120}>
+            <RoadmapPanel />
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={260} className="mt-5 text-[13px] leading-relaxed text-ink/60">
             Three businesses, three build orders. Yours will hold your milestones, in your order. The order is a conversation, not a contract.
-          </p>
+          </Reveal>
         </div>
       </div>
     </section>
@@ -755,7 +759,11 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-[170px_repeat(8,1fr)] gap-y-3.5 text-[11px] text-ink/55">
+      <div
+        key={active}
+        className="roadmap-rows grid grid-cols-[170px_repeat(8,1fr)] gap-y-3.5 text-[11px] text-ink/55"
+        data-animate="true"
+      >
 
         <div />
         {Array.from({ length: 8 }, (_, i) => (
@@ -767,6 +775,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
             row={row}
             statusColor={statusColor}
             recommended={idx === 0}
+            rowIndex={idx}
           />
         ))}
         {/* Intelligence Layer band */}
@@ -788,14 +797,19 @@ function RoadmapRow({
   row,
   statusColor,
   recommended,
+  rowIndex = 0,
 }: {
   row: Row;
   statusColor: Record<Status, string>;
   recommended?: boolean;
+  rowIndex?: number;
 }) {
   return (
     <>
-      <div className="self-center pr-3 text-[12px] text-ink/80">
+      <div
+        className="roadmap-row self-center pr-3 text-[12px] text-ink/80"
+        style={{ ["--row-i" as never]: rowIndex }}
+      >
         <div className="font-medium">{row.name}</div>
         {recommended && (
           <div className="mt-1 flex items-center gap-2 text-[10.5px] text-royal/85">
@@ -817,8 +831,8 @@ function RoadmapRow({
           return (
             <div
               key={i}
-              className={`absolute top-1/2 h-3 -translate-y-1/2 rounded-full ${statusColor[s.status]}`}
-              style={{ left: `${left}%`, width: `${width}%` }}
+              className={`roadmap-seg absolute top-1/2 h-3 -translate-y-1/2 rounded-full ${statusColor[s.status]}`}
+              style={{ left: `${left}%`, width: `${width}%`, ["--row-i" as never]: rowIndex, ["--seg-i" as never]: i }}
             />
           );
         })}
@@ -834,16 +848,16 @@ function Pricing() {
         {/* Header row: intro + Operating Map card */}
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
           <div>
-            <p className="eyebrow">Investment</p>
-            <h2 className="mt-4 font-display text-[2.5rem] leading-[1.05] text-ink">
+            <Reveal as="p" variant="fade-up" className="eyebrow">Investment</Reveal>
+            <Reveal as="h2" variant="rise" delay={80} className="mt-4 font-display text-[2.5rem] leading-[1.05] text-ink">
               What the journey costs.
-            </h2>
-            <p className="mt-5 max-w-lg text-[14px] leading-relaxed text-ink/70">
+            </Reveal>
+            <Reveal as="p" variant="fade-up" delay={200} className="mt-5 max-w-lg text-[14px] leading-relaxed text-ink/70">
               You have planned budgets before. You know a number you cannot see is a number you cannot plan around. So the numbers are here: the map, the walks, the math. Take them to your accountant, your partner, your Sunday evening. The work will be here when you decide.
-            </p>
+            </Reveal>
           </div>
 
-          <div className="rounded-lg border border-rule bg-white p-6 lg:p-7">
+          <Reveal variant="fade-up" delay={180} className="price-card-featured rounded-lg border border-rule bg-white p-6 lg:p-7">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
               <div className="shrink-0 overflow-hidden rounded-md border border-rule bg-secondary/40">
                 <img
@@ -863,7 +877,7 @@ function Pricing() {
                 </p>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
 
         {/* Walks chart */}
