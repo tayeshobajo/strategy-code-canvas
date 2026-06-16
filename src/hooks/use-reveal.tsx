@@ -49,7 +49,7 @@ export function useReveal<T extends Element = HTMLDivElement>(
 type RevealVariant = "fade" | "fade-up" | "fade-right" | "rise";
 
 type RevealProps = Omit<React.HTMLAttributes<HTMLElement>, "ref"> & {
-  as?: "div" | "section" | "li" | "ul" | "p" | "span" | "h2" | "h3" | "header" | "footer" | "article";
+  as?: "div" | "section" | "li" | "ul" | "p" | "span" | "h1" | "h2" | "h3" | "header" | "footer" | "article";
   variant?: RevealVariant;
   delay?: number;
   once?: boolean;
