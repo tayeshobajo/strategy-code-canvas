@@ -34,16 +34,24 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 
 function PrimaryCTA({ children = "Build My Map" }: { children?: React.ReactNode }) {
   return (
-    <a href="#cta" className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-transform hover:scale-[1.02]">
-      {children} <ArrowRight className="h-3.5 w-3.5" />
+    <a
+      href="#cta"
+      className="group inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-all duration-300 ease-out hover:shadow-[0_10px_30px_-12px_rgba(10,23,51,0.5)] hover:-translate-y-[1px]"
+    >
+      {children}
+      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
     </a>
   );
 }
 
 function GhostCTA({ children = "Start with the map" }: { children?: React.ReactNode }) {
   return (
-    <a href="#map" className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-[13px] font-medium text-ink/80 transition-colors hover:text-ink">
-      {children} <ArrowRight className="h-3.5 w-3.5" />
+    <a
+      href="#map"
+      className="group inline-flex items-center gap-2 rounded-full px-4 py-3 text-[13px] font-medium text-ink/70 transition-colors duration-300 hover:text-ink"
+    >
+      {children}
+      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
     </a>
   );
 }
