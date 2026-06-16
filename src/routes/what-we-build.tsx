@@ -287,16 +287,20 @@ function FeatureRow() {
   return (
     <section className="border-t border-rule/60 bg-white">
       <div className="mx-auto max-w-[1280px] px-6 py-24 sm:px-10 lg:py-28">
-        <h2 className="text-center font-display text-[32px] leading-tight tracking-[-0.02em] text-ink sm:text-[40px]">
+        <Reveal variant="rise" as="h2" className="text-center font-display text-[32px] leading-tight tracking-[-0.02em] text-ink sm:text-[40px]">
           Built by sequence, not guesswork.
-        </h2>
+        </Reveal>
         <div className="mt-16 grid grid-cols-2 gap-y-12 md:grid-cols-4">
           {FEATURES.map((f, i) => (
-            <div
+            <Reveal
               key={f.title}
+              variant="fade-up"
+              delay={i * 110}
+              iconStagger
               className={`flex flex-col items-center px-6 text-center ${
                 i > 0 ? "md:border-l md:border-ink/10" : ""
               }`}
+              style={{ ["--len" as never]: "260" }}
             >
               <f.icon className="mb-6 h-14 w-14" />
               <h3 className="font-display text-[18px] leading-tight tracking-[-0.01em] text-ink">
@@ -305,11 +309,12 @@ function FeatureRow() {
               <p className="mt-3 max-w-[200px] text-[13px] leading-[1.6] text-ink/65">
                 {f.body}
               </p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
     </section>
+
   );
 }
 
