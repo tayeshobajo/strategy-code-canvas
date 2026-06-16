@@ -130,52 +130,53 @@ function SectionNav({ active }: { active: string }) {
 // ---------- Hero ----------
 function Hero() {
   return (
-    <section id="overview" className="relative overflow-hidden scroll-mt-32 bg-[oklch(0.95_0.018_75)]">
-      {/* Full-bleed warm desk photo — the book sits on the right, sand/paper texture spans behind everything. */}
-      <img
-        src={heroDesk.url}
-        alt="An open leather-bound book and a fountain pen resting on a warm wooden desk in soft natural light."
-        width={1920}
-        height={1280}
-        loading="eager"
-        decoding="async"
-        // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
-        fetchpriority="high"
-        sizes="100vw"
-        className="pointer-events-none absolute inset-0 hidden h-full w-full object-cover object-right sm:block"
-      />
-      {/* Soft paper wash on the left so the text column stays readable while the warm texture still shows through. */}
-      <div className="pointer-events-none absolute inset-0 hidden sm:block bg-[linear-gradient(to_right,oklch(0.95_0.018_75)_0%,oklch(0.95_0.018_75/0.96)_22%,oklch(0.95_0.018_75/0.78)_38%,oklch(0.95_0.018_75/0.35)_55%,transparent_72%)]" />
-      <div className={`${container} relative pt-24 pb-20 sm:pt-32 sm:pb-28 lg:pt-40 lg:pb-32`}>
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
+    <section
+      id="overview"
+      className="relative scroll-mt-32 border-b border-rule/60 bg-[oklch(0.95_0.018_75)]"
+    >
+      <div className={`${container} relative pt-20 pb-14 sm:pt-24 sm:pb-16 lg:pt-28 lg:pb-20`}>
+        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-6">
             <div className="animate-fade-in [animation-delay:60ms] opacity-0 [animation-fill-mode:forwards]">
               <Eyebrow>Investment</Eyebrow>
             </div>
-            <h1 className="mt-5 font-display font-normal text-[38px] leading-[1.04] tracking-[-0.018em] text-ink sm:text-[54px] lg:text-[66px] animate-fade-in [animation-delay:140ms] opacity-0 [animation-fill-mode:forwards]">
+            <h1 className="mt-5 font-display font-normal text-[40px] leading-[1.05] tracking-[-0.018em] text-ink sm:text-[52px] lg:text-[60px] animate-fade-in [animation-delay:140ms] opacity-0 [animation-fill-mode:forwards]">
               The price of a business<br className="hidden sm:block" /> that runs without you.
             </h1>
-            <p className="mt-7 max-w-[44ch] text-[14.5px] leading-[1.7] text-ink/65 animate-fade-in [animation-delay:280ms] opacity-0 [animation-fill-mode:forwards]">
+            <p className="mt-6 max-w-[44ch] text-[14px] leading-[1.7] text-ink/65 animate-fade-in [animation-delay:280ms] opacity-0 [animation-fill-mode:forwards]">
               Every number is on this page. The map, the build, the three walks.
               No call required to see it, because a decision this size deserves the
               whole picture before the first conversation, not after.
             </p>
-            <div className="mt-9 flex flex-wrap items-center gap-3 animate-fade-in [animation-delay:400ms] opacity-0 [animation-fill-mode:forwards]">
+            <div className="mt-7 flex flex-wrap items-center gap-2 animate-fade-in [animation-delay:400ms] opacity-0 [animation-fill-mode:forwards]">
               <PrimaryCTA />
               <GhostCTA />
             </div>
-            <p className="mt-10 max-w-[40ch] text-[12px] leading-[1.7] text-ink/50 animate-fade-in [animation-delay:520ms] opacity-0 [animation-fill-mode:forwards]">
+            <p className="mt-9 max-w-[40ch] text-[12px] leading-[1.7] text-ink/50 animate-fade-in [animation-delay:520ms] opacity-0 [animation-fill-mode:forwards]">
               A 30-minute conversation. No pitch. If the timing is right, we should talk.
               If it is not, the work is waiting when it is.
             </p>
           </div>
-          <div className="hidden lg:col-span-6 lg:block" />
-
+          <div className="hidden lg:col-span-6 lg:block">
+            <img
+              src={heroDesk.url}
+              alt="An open leather-bound book and a fountain pen resting on a warm wooden desk in soft natural light."
+              width={1920}
+              height={1280}
+              loading="eager"
+              decoding="async"
+              // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+              fetchpriority="high"
+              sizes="(min-width: 1024px) 50vw, 0px"
+              className="h-[460px] w-full object-cover object-center [mask-image:linear-gradient(to_right,transparent_0%,rgba(0,0,0,0.4)_6%,black_18%)]"
+            />
+          </div>
         </div>
       </div>
     </section>
   );
 }
+
 
 // ---------- Bridge ----------
 function Bridge() {
