@@ -412,13 +412,15 @@ function ArticleList() {
           )}
 
           {/* Sentinel + status */}
-          <div
-            ref={sentinelRef}
-            aria-hidden="true"
-            className="h-10"
-          />
+          {hasMore && (
+            <div
+              ref={sentinelRef}
+              aria-hidden="true"
+              className="h-10"
+            />
+          )}
           <p className="pb-8 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/40" aria-live="polite">
-            {visible < filtered.length
+            {hasMore
               ? `Loading more (${shown.length} of ${filtered.length})`
               : `${filtered.length} insight${filtered.length === 1 ? "" : "s"}`}
           </p>
