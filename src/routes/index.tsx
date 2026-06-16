@@ -759,7 +759,11 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-[170px_repeat(8,1fr)] gap-y-3.5 text-[11px] text-ink/55">
+      <div
+        key={active}
+        className="roadmap-rows grid grid-cols-[170px_repeat(8,1fr)] gap-y-3.5 text-[11px] text-ink/55"
+        data-animate="true"
+      >
 
         <div />
         {Array.from({ length: 8 }, (_, i) => (
@@ -771,6 +775,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
             row={row}
             statusColor={statusColor}
             recommended={idx === 0}
+            rowIndex={idx}
           />
         ))}
         {/* Intelligence Layer band */}
