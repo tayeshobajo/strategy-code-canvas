@@ -443,11 +443,10 @@
   will-change: auto;
 }
 
-/* Cap reveal stagger on small screens so sections don't visually overlap
-   while scrolling fast on phones. */
+/* Tighten reveal stagger on small screens — keep the cadence, shorter so
+   sections don't visually pile up while scrolling fast on phones. */
 @media (max-width: 640px) {
   [data-reveal] {
-    --reveal-delay: 0ms;
     transition-duration: 520ms;
   }
 }
