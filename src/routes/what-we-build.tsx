@@ -591,37 +591,45 @@ function StandardsRow() {
   return (
     <section className="border-t border-rule/60 bg-white">
       <div className="mx-auto max-w-[1280px] px-6 py-24 sm:px-10 lg:py-32">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,2fr)] lg:gap-16">
+        <Reveal variant="fade-up" className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,2fr)] lg:gap-16">
           <div>
-            <p className="eyebrow mb-5">The Standard</p>
-            <h2 className="font-display text-[32px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[36px]">
+            <Reveal as="p" variant="fade-up" className="eyebrow mb-5">The Standard</Reveal>
+            <Reveal as="h2" variant="rise" delay={80} className="font-display text-[32px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[36px]">
               How every
               <br />
               milestone gets built.
-            </h2>
+            </Reveal>
           </div>
 
           <div className="relative">
             {/* dotted connector between numbered circles */}
             <div
-              className="absolute left-[10%] right-[10%] top-[26px] hidden h-px md:block"
+              className="connector-grow absolute left-[10%] right-[10%] top-[26px] hidden h-px md:block"
               style={{ backgroundImage: "repeating-linear-gradient(to right, color-mix(in oklab, var(--ink) 22%, transparent) 0 3px, transparent 3px 8px)" }}
               aria-hidden="true"
             />
             <div className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 md:grid-cols-5">
-              {STANDARDS.map((s) => (
-                <div key={s.n} className="relative flex flex-col items-center text-center">
+              {STANDARDS.map((s, i) => (
+                <Reveal
+                  key={s.n}
+                  variant="fade-up"
+                  delay={i * 130}
+                  iconStagger
+                  className="relative flex flex-col items-center text-center"
+                  style={{ ["--len" as never]: "260" }}
+                >
                   <div className="relative z-10 mb-5 grid size-[52px] place-items-center rounded-full border border-royal/30 bg-white">
                     <span className="font-mono text-[11px] tracking-wider text-royal">{s.n}</span>
                   </div>
                   <s.icon className="mb-3 h-12 w-12" />
                   <h3 className="font-display text-[16px] tracking-[-0.01em] text-ink">{s.title}</h3>
                   <p className="mt-2 max-w-[160px] text-[12.5px] leading-[1.55] text-ink/60">{s.body}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
-        </div>
+        </Reveal>
+
       </div>
     </section>
   );
