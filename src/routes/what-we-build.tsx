@@ -69,7 +69,7 @@ const IconStewardship = ({ className = "" }: IconProps) => (
   </svg>
 );
 import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
-import mapSectionBg from "@/assets/map-section-bg.jpg.asset.json";
+import ctaSectionBg from "@/assets/cta-section-background.jpg.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Reveal, useReveal } from "@/hooks/use-reveal";
