@@ -423,33 +423,59 @@ const holdsNodes = [
 
 function HoldsDiagram() {
   return (
-    <div className="relative mx-auto aspect-[5/4] w-full max-w-[560px] lg:max-w-none">
-      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" preserveAspectRatio="none" aria-hidden>
-        {holdsNodes.map((n, i) => (
-          <line key={i} x1={n.x} y1={n.y} x2="50" y2="50" stroke="oklch(0.72 0.12 262 / 0.4)" strokeWidth="0.25" />
-        ))}
-      </svg>
-      {holdsNodes.map((n) => (
-        <div
-          key={n.label}
-          className="absolute -translate-x-1/2 -translate-y-1/2"
-          style={{ left: `${n.x}%`, top: `${n.y}%` }}
-        >
-          <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[10px] text-white/85 backdrop-blur-sm sm:gap-2 sm:px-3 sm:py-2 sm:text-[11.5px]">
-            <n.Icon className="h-3 w-3 text-[oklch(0.78_0.14_262)] sm:h-3.5 sm:w-3.5" strokeWidth={1.5} />
-            <span className="whitespace-nowrap">{n.label}</span>
+    <>
+      {/* Mobile: centered orb with stacked label grid */}
+      <div className="sm:hidden">
+        <div className="mx-auto grid place-items-center">
+          <div className="relative">
+            <div className="absolute inset-0 -m-6 rounded-full bg-[oklch(0.62_0.18_262)] opacity-30 blur-2xl" />
+            <div className="relative grid h-24 w-24 place-items-center rounded-full border border-[oklch(0.78_0.14_262)]/40 bg-[oklch(0.20_0.07_262)] text-center font-display text-[12px] leading-tight text-white shadow-[0_0_60px_-10px_oklch(0.62_0.18_262)]">
+              The<br />Business<br />Holds
+            </div>
           </div>
         </div>
-      ))}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <div className="relative">
-          <div className="absolute inset-0 -m-6 rounded-full bg-[oklch(0.62_0.18_262)] opacity-30 blur-2xl" />
-          <div className="relative grid h-20 w-20 place-items-center rounded-full border border-[oklch(0.78_0.14_262)]/40 bg-[oklch(0.20_0.07_262)] text-center font-display text-[11.5px] leading-tight text-white shadow-[0_0_60px_-10px_oklch(0.62_0.18_262)] sm:h-28 sm:w-28 sm:text-[14px]">
-            The<br />Business<br />Holds
+        <ul className="mx-auto mt-8 grid max-w-[420px] grid-cols-2 gap-2">
+          {holdsNodes.map((n) => (
+            <li
+              key={n.label}
+              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-2 text-[11.5px] text-white/85 backdrop-blur-sm"
+            >
+              <n.Icon className="h-3.5 w-3.5 shrink-0 text-[oklch(0.78_0.14_262)]" strokeWidth={1.5} />
+              <span className="truncate">{n.label}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Tablet+: orbital diagram */}
+      <div className="relative mx-auto hidden aspect-[5/4] w-full max-w-[640px] sm:block lg:max-w-none">
+        <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" preserveAspectRatio="none" aria-hidden>
+          {holdsNodes.map((n, i) => (
+            <line key={i} x1={n.x} y1={n.y} x2="50" y2="50" stroke="oklch(0.72 0.12 262 / 0.4)" strokeWidth="0.25" />
+          ))}
+        </svg>
+        {holdsNodes.map((n) => (
+          <div
+            key={n.label}
+            className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${n.x}%`, top: `${n.y}%` }}
+          >
+            <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-2 text-[11px] text-white/85 backdrop-blur-sm lg:text-[11.5px]">
+              <n.Icon className="h-3.5 w-3.5 text-[oklch(0.78_0.14_262)]" strokeWidth={1.5} />
+              <span className="whitespace-nowrap">{n.label}</span>
+            </div>
+          </div>
+        ))}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div className="relative">
+            <div className="absolute inset-0 -m-6 rounded-full bg-[oklch(0.62_0.18_262)] opacity-30 blur-2xl" />
+            <div className="relative grid h-24 w-24 place-items-center rounded-full border border-[oklch(0.78_0.14_262)]/40 bg-[oklch(0.20_0.07_262)] text-center font-display text-[13px] leading-tight text-white shadow-[0_0_60px_-10px_oklch(0.62_0.18_262)] lg:h-28 lg:w-28 lg:text-[14px]">
+              The<br />Business<br />Holds
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
