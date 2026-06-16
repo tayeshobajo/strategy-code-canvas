@@ -230,12 +230,103 @@
 }
 
 /* Continuous gentle motion utilities */
-.drift {
-  animation: drift-y 6s ease-in-out infinite;
+.drift { animation: drift-y 6s ease-in-out infinite; }
+.pulse-dot { animation: pulse-soft 3.2s ease-in-out infinite; }
+
+/* ---------- Ambient motion layer ---------- */
+@keyframes ambient-drift {
+  0%   { transform: translate3d(-3%, -2%, 0) scale(1.05); }
+  50%  { transform: translate3d(3%, 2%, 0) scale(1.1); }
+  100% { transform: translate3d(-3%, -2%, 0) scale(1.05); }
 }
-.pulse-dot {
-  animation: pulse-soft 3.2s ease-in-out infinite;
+@keyframes dust-drift {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-40px, -28px, 0); }
 }
+.ambient-layer {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  mix-blend-mode: multiply;
+}
+.ambient-layer .ambient-gradient {
+  position: absolute; inset: -10%;
+  background:
+    radial-gradient(ellipse 50% 40% at 18% 22%, oklch(0.72 0.12 262 / 0.10), transparent 60%),
+    radial-gradient(ellipse 45% 38% at 82% 78%, oklch(0.65 0.10 60 / 0.08), transparent 65%);
+  animation: ambient-drift 38s ease-in-out infinite;
+  will-change: transform;
+}
+.ambient-layer .ambient-dust {
+  position: absolute; inset: -20%;
+  opacity: 0.32;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.16  0 0 0 0 0.22  0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: dust-drift 24s linear infinite;
+  will-change: transform;
+}
+
+/* ---------- Interactive milestones ---------- */
+.ms-item {
+  position: relative;
+  cursor: pointer;
+  transition: background-color 300ms ease, padding-left 400ms cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.ms-item:hover { background-color: oklch(0.97 0.012 260 / 0.6); }
+.ms-item[data-active="true"] {
+  padding-left: 14px;
+  background-color: oklch(0.97 0.018 260 / 0.85);
+}
+.ms-item::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 50%;
+  height: 0; width: 2px;
+  background: var(--royal);
+  transform: translateY(-50%);
+  transition: height 400ms cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.ms-item[data-active="true"]::before { height: 70%; }
+.ms-item .ms-dot {
+  transition: transform 400ms cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 400ms ease;
+}
+.ms-item[data-active="true"] .ms-dot {
+  transform: scale(1.5);
+  box-shadow: 0 0 0 4px oklch(0.48 0.18 262 / 0.18);
+}
+
+/* Staggered description reveal */
+.ms-detail > * {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 500ms cubic-bezier(0.2, 0.6, 0.2, 1), transform 500ms cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.ms-detail[data-state="in"] > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 60ms; }
+.ms-detail[data-state="in"] > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 160ms; }
+.ms-detail[data-state="in"] > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 260ms; }
+.ms-detail[data-state="in"] > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 360ms; }
+
+.ms-bar-track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: oklch(0.92 0.015 260);
+  overflow: hidden;
+}
+.ms-bar-fill {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(to right, var(--royal), oklch(0.62 0.16 262));
+  border-radius: 999px;
+  width: 0%;
+  transition: width 700ms cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+
+/* Mapped-path active highlight */
+.path-active-marker { transition: transform 700ms cubic-bezier(0.2, 0.6, 0.2, 1); will-change: transform; }
+.path-active-marker circle { animation: pulse-soft 2.6s ease-in-out infinite; }
+.path-progress { transition: stroke-dashoffset 900ms cubic-bezier(0.2, 0.6, 0.2, 1); }
+.path-point { transition: opacity 400ms ease; }
+.path-point[data-state="dim"] { opacity: 0.35; }
 
 /* Reduced motion: short-circuit */
 @media (prefers-reduced-motion: reduce) {
@@ -243,6 +334,9 @@
   .svg-reveal [data-anim] { opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; animation: none !important; }
   .connector-grow { transform: scaleX(1) !important; transition: none !important; }
   .drift, .pulse-dot { animation: none !important; }
+  .ambient-layer { display: none !important; }
+  .ms-detail > * { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .path-active-marker circle { animation: none !important; }
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }
 
