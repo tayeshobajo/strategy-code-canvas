@@ -68,7 +68,7 @@ const IconStewardship = ({ className = "" }: IconProps) => (
   </svg>
 );
 import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
-import ctaBook from "@/assets/cta-book-cover-desk.png.asset.json";
+import ctaBg from "@/assets/cta-section-background.jpg.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -679,8 +679,17 @@ function TrendChart() {
 // ----------- BOTTOM CTA -----------
 function BottomCTA() {
   return (
-    <section id="cta" className="sand-bg relative overflow-hidden">
-      <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-start gap-12 px-6 py-28 sm:px-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.75fr)_minmax(0,1.3fr)] lg:gap-12 lg:py-36">
+    <section
+      id="cta"
+      className="relative overflow-hidden bg-[oklch(0.93_0.022_78)]"
+      style={{
+        backgroundImage: `url(${ctaBg.url})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center right",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-start gap-10 px-6 py-28 sm:px-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-12 lg:py-36">
         <div>
           <h2 className="font-display text-[40px] leading-[1.02] tracking-[-0.025em] text-ink md:text-[52px] lg:text-[56px]">
             Every build
@@ -696,20 +705,14 @@ function BottomCTA() {
 
         <div className="flex flex-col items-start gap-5 lg:pt-2">
           <PrimaryButton href="#" className="px-7 py-3.5 text-[14px]">Build My Map</PrimaryButton>
-          <p className="max-w-[300px] text-[13px] leading-[1.65] text-ink/65">
+          <p className="max-w-[300px] text-[13px] leading-[1.65] text-ink/80">
             A 30-minute conversation. No pitch. If the timing is right, we
             should talk. If not, the work will be waiting when it is.
           </p>
         </div>
 
-        <div className="relative">
-          <img
-            src={ctaBook.url}
-            alt="Trust Tai notebook closed on a warm desk"
-            className="aspect-[16/9] w-full select-none rounded-[2px] object-cover shadow-[0_30px_60px_-30px_rgba(15,23,42,0.25)]"
-            draggable={false}
-          />
-        </div>
+        {/* Right column reserved for the books in the background image */}
+        <div aria-hidden="true" className="hidden lg:block" />
       </div>
     </section>
   );
