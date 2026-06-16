@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import * as React from "react";
 
 // ----- inline SVG icons (uploaded assets) -----
 type IconProps = { className?: string };
