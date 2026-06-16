@@ -1,8 +1,79 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Compass } from "lucide-react";
+import { ArrowLeft, ArrowRight, Compass, Printer } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { INSIGHTS, getInsightBySlug, type Insight } from "@/lib/insights-data";
 import taiPortrait from "@/assets/tai-portrait-seated.png.asset.json";
+
+/* ----------------------- Reading progress + scroll-spy ----------------------- */
+
+function useReadingProgress() {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const update = () => {
+      const article = document.getElementById("article-root");
+      if (!article) return;
+      const rect = article.getBoundingClientRect();
+      const total = rect.height - window.innerHeight;
+      const scrolled = Math.min(Math.max(-rect.top, 0), Math.max(total, 1));
+      setProgress(total > 0 ? (scrolled / total) * 100 : 0);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return progress;
+}
+
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState<string>(ids[0] ?? "");
+  useEffect(() => {
+    if (!ids.length) return;
+    const elements = ids
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => Boolean(el));
+    if (!elements.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Track all sections currently intersecting; choose the one closest to the top.
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) {
+          setActive(visible[0].target.id);
+        }
+      },
+      { rootMargin: "-20% 0px -65% 0px", threshold: 0 },
+    );
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [ids.join("|")]);
+  return active;
+}
+
+function ReadingProgressBar() {
+  const progress = useReadingProgress();
+  return (
+    <div
+      className="fixed inset-x-0 top-0 z-50 h-[3px] bg-transparent print:hidden"
+      aria-hidden="true"
+    >
+      <div
+        className="h-full origin-left bg-royal transition-[width] duration-150 ease-out"
+        style={{ width: `${progress}%` }}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progress)}
+      />
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/insights_/$slug")({
   loader: ({ params }) => {
