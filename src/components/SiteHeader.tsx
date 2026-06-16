@@ -30,20 +30,20 @@ export function SiteHeader() {
             <TrustTaiLogo variant="dark" />
           </Link>
           <nav className="hidden items-center gap-8 text-[13px] text-ink/75 lg:flex">
-            {NAV.map((n) => {
+          {NAV.map((n) => {
               const active = isActive(n);
-              const href = n.hash ? `${n.to === "/" ? "" : n.to}#${n.hash}` : n.to;
               return (
-                <a
+                <Link
                   key={n.label}
-                  href={href}
+                  to={n.to}
+                  hash={n.hash}
                   className={`relative pb-1 transition-colors hover:text-ink ${active ? "text-royal" : ""}`}
                 >
                   {n.label}
                   {active && (
                     <span className="absolute -bottom-px left-0 right-0 h-[2px] bg-royal" />
                   )}
-                </a>
+                </Link>
               );
             })}
           </nav>
