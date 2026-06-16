@@ -554,7 +554,7 @@ function ArticleList() {
                           key={key}
                           data-index={index}
                           ref={measureRef}
-                          className={`group animate-fade-in ${
+                          className={`animate-fade-in ${
                             useVirtual
                               ? `absolute left-0 top-0 w-full ${isLast ? "" : "border-b border-rule/70"}`
                               : ""
@@ -567,15 +567,16 @@ function ArticleList() {
                           <Link
                             to="/insights/$slug"
                             params={{ slug: a.slug }}
-                            className="grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 py-7 sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
+                            className="group -mx-4 grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-3 rounded-sm px-4 py-7 transition-colors duration-200 hover:bg-royal/[0.04] sm:grid-cols-[220px_minmax(0,1fr)_140px_24px] sm:gap-x-10 sm:gap-y-0 sm:py-8"
                           >
                             {/* Col 1: dot + category */}
-                            <div className="col-span-2 flex items-center gap-3 sm:col-span-1 sm:items-start sm:pt-[10px]">
+                            <div className="col-span-2 flex items-center gap-3 sm:col-span-1">
                               <span className="inline-block h-[7px] w-[7px] flex-none rounded-full bg-royal" aria-hidden="true" />
                               <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/60">
                                 {a.category}
                               </span>
                             </div>
+
                             {/* Col 2: title + blurb */}
                             <div className="col-span-2 sm:col-span-1">
                               <h3 className="font-display text-[20px] font-normal leading-[1.25] tracking-[-0.015em] text-ink transition-colors group-hover:text-royal sm:text-[22px]">
