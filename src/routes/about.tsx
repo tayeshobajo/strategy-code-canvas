@@ -471,7 +471,7 @@ function TheConductor() {
             </div>
           </Reveal>
 
-          <Reveal as="div" variant="fade-up" delay={100} className="lg:col-span-5">
+          <Reveal as="div" variant="fade-up" delay={100} className="lg:col-span-4">
             <Eyebrow>The Conductor</Eyebrow>
             <h2 className="mt-3 font-display text-[28px] leading-[1.15] tracking-tight text-ink sm:text-[34px] lg:text-[38px]">
               The hand that <br /> draws the Roadmap.
@@ -512,13 +512,14 @@ function TheConductor() {
             </ul>
           </Reveal>
 
-          <Reveal as="div" variant="fade-up" delay={200} className="lg:col-span-2">
-            <aside className="rounded-md border border-rule/70 bg-white/60 p-4 text-[12.5px] leading-[1.6] text-ink/75">
-              <Compass className="h-4 w-4 text-royal" />
-              <p className="mt-3">
-                We do the hard work so your mindset can lead the Roadmap.
-              </p>
-              <p className="mt-3">Business runs better, and character built what lasts.</p>
+          <Reveal as="div" variant="fade-up" delay={200} className="lg:col-span-3">
+            <aside className="rounded-md border border-rule/70 bg-white/60 p-5 text-[12.5px] leading-[1.65] text-ink/75">
+              <span className="block h-px w-8 bg-royal/70" />
+              <div className="mt-3 flex items-start gap-2">
+                <Compass className="mt-0.5 h-4 w-4 flex-none text-royal" />
+                <p>We do the hard work so your mindset can lead the Roadmap.</p>
+              </div>
+              <p className="mt-3">Business runs better, and character builds what lasts.</p>
             </aside>
           </Reveal>
         </div>
