@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Reveal } from "@/hooks/use-reveal";
 import { INSIGHTS, getInsightBySlug } from "@/lib/insights-data";
 
-export const Route = createFileRoute("/insights/$slug")({
+export const Route = createFileRoute("/insights_/$slug")({
   loader: ({ params }) => {
     const insight = getInsightBySlug(params.slug);
     if (!insight) throw notFound();
