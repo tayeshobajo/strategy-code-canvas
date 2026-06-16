@@ -802,7 +802,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
       </div>
       <div
         key={active}
-        className="roadmap-rows grid grid-cols-[170px_repeat(8,1fr)] gap-y-3.5 text-[11px] text-ink/55"
+        className="roadmap-rows grid min-w-[540px] grid-cols-[130px_repeat(8,minmax(38px,1fr))] gap-y-3.5 text-[11px] text-ink/55 sm:grid-cols-[170px_repeat(8,1fr)]"
         data-animate="true"
       >
 
