@@ -1,40 +1,50 @@
-## Animate the About page
+# Typo + em-dash cleanup across all pages
 
-Pure CSS / SVG animations, scoped to `/about`. No new libraries, no copy or layout changes. All animations respect `prefers-reduced-motion` (existing global rule already disables anything `animation: none !important`).
+Scope: `/` (index), `/about`, `/investment`, `/what-we-build`, plus shared components (`SiteHeader`, `TrustTaiLogo`, footer). Code comments are out of scope.
 
-### 1. The Pattern — dots converge and travel the Roadmap
-File: `src/routes/about.tsx` `PatternDiagram` + new CSS in `src/styles.css`.
+## 1. Remove em-dashes (—) from user-facing text
 
-- Give each scatter particle a class `pattern-dot` with a per-dot `--i` index.
-  - Animation: gentle inward drift (toward the start of the curve `~170,150`) on a 7–10s loop, with the dot fading from 0 → its base opacity, then easing back. Stagger by `--i`.
-- The dotted curving `path` gets a `path-travel` class:
-  - Use `stroke-dasharray` / `stroke-dashoffset` to "draw" the path on reveal (one-shot, 1.6s).
-  - After the draw, run a continuous "marching ants" effect by animating `stroke-dashoffset` from 0 → `-9` on a 1.4s linear loop (matches the existing `2 7` dash so dots appear to flow along the path toward the target rings).
-- Add a small "traveler" `<circle>` that follows the path using SVG `<animateMotion>` with the same path `d`, 4.5s loop, easing in-out, ending at the rings — reinforces "moving through the Roadmap." Hidden when reduced motion.
-- Target rings: the outer ring already exists; add a slow `pulse-soft` (reuse existing keyframe) on the middle ring + glow circle so the destination breathes.
+I found 34 em-dashes across the codebase. The user-facing ones I'll replace using context-appropriate punctuation (mix, my judgment):
 
-### 2. How We Think — stars twinkle (and the CTA constellation)
-- The dark `HowWeThink` section currently uses `contour-bg` (no stars). Add a non-intrusive `<StarsField>` SVG layer absolutely positioned behind the content (low opacity, `pointer-events-none`, `aria-hidden`) so it does not affect layout or contrast of the principle cards.
-  - 40–50 seeded stars sized 0.5–1.6px with class `twinkle-star` and a per-star `--d` delay + `--dur` (2.4s–5.5s).
-  - Keyframe `star-twinkle`: opacity 0.25 ↔ 1, scale 0.9 ↔ 1.15, alternating infinite.
-- The existing `ConstellationBG` in `CloseCTA` also gets the `twinkle-star` class on each star + the glow circle pulses slowly. Same keyframe, longer durations so the two sections feel related but not identical.
+**Page titles / OG titles** (use a pipe, standard convention):
+- `Trust Tai — The Business Operating Roadmap` → `Trust Tai | The Business Operating Roadmap`
+- `About — Trust Tai` → `About | Trust Tai`
+- `Investment — Trust Tai` → `Investment | Trust Tai`
+- `What We Build — Trust Tai` → `What We Build | Trust Tai`
+- `Trust Tai — Consultancy + AI Agency` (logo alt) → `Trust Tai | Consultancy + AI Agency`
 
-### 3. Close / CTA — paper plane flying
-- Add a `<PaperPlane />` SVG (small, ~28px) inside `CloseCTA`, absolutely positioned, behind the text, above the constellation layer.
-- A faint dotted royal/paper trail path (similar to the Pattern curve) arcs from lower-left up and across to upper-right, exiting offscreen.
-- The plane uses SVG `<animateMotion>` along that path with `rotate="auto"` so it tilts with the curve. Duration 9s, loops, with a small pause at the end (use `keyTimes`/`keySplines` or restart after delay via `begin="0s;plane.end+1.2s"`).
-- Trail draws in once on reveal (stroke-dashoffset), then stays. Plane and trail both `pointer-events-none` and `aria-hidden`.
-- Hidden under reduced motion.
+**Body copy / meta descriptions / alt text** (comma, period, or parenthetical depending on flow). Examples:
+- "where it needs to be — and build the first leg…" → "where it needs to be, and build the first leg…"
+- "carry this roadmap into the future — with or without us." → "carry this roadmap into the future, with or without us."
+- "Less hunting, more harvesting — the pipeline becomes a function…" → "Less hunting, more harvesting. The pipeline becomes a function…"
+- "self-serve answers, status, and access — and where the founder…" → "self-serve answers, status, and access, and where the founder…"
+- "a careful operating system for businesses…" (keep flow with comma)
+- "lit by soft natural light — the standard that started Trust Tai." → "lit by soft natural light. The standard that started Trust Tai."
+- "Founders we partner best with — people who choose becoming…" → "Founders we partner best with: people who choose becoming…"
+- "We value what matters — not what's loud." → "We value what matters, not what's loud."
+- "If that's how you build — let's build your Roadmap." → "If that's how you build, let's build your Roadmap."
+- "the three walks — named before…" → "the three walks, named before…"
+- "Bridge spanning a river — where most firms start…" → "Bridge spanning a river, where most firms start…"
 
-### 4. Light ambient touches (already partially present, keep minimal)
-- The hero `drift` on "the Roadmap." italic stays as-is.
-- No new animations on Hero, The Reality, The Conductor, Honest Fit — those sections rely on the existing `Reveal` scroll-in and should stay calm.
+**Out of scope:** em-dashes inside JSX comments (`{/* … */}`), TS `@ts-expect-error` comments, and `src/routes/README.md` (internal doc) stay as-is.
 
-### Implementation surface
-- `src/routes/about.tsx`: extend `PatternDiagram`, `ConstellationBG`, `HowWeThink`, `CloseCTA`. Add `StarsField` and `PaperPlane` helper components in the same file.
-- `src/styles.css`: add keyframes `star-twinkle`, `path-march`, `pattern-converge`, `plane-trail-draw`; add a `prefers-reduced-motion` short-circuit for each.
+## 2. Typo pass
 
-### Out of scope
-- No JS-driven animation libraries.
-- No changes to copy, layout, colors, or the Roadmap panel on `/`.
-- No changes to `Hero`, `OneMoment`, `TheConductor`, `HonestFit` aside from leaving their reveals intact.
+I'll read every user-visible string block in:
+- `src/routes/index.tsx` (hero, roadmap labels, walks, FAQ, CTA, footer copy)
+- `src/routes/about.tsx` (all six narrative sections + CTA)
+- `src/routes/investment.tsx` (intro, pricing tiers, three walks, included/excluded lists, FAQ)
+- `src/routes/what-we-build.tsx` (problem statements, outcomes, timeline, CTA)
+- `src/components/SiteHeader.tsx` (nav labels)
+
+For each file I'll check for: misspellings, wrong homophones (its/it's, your/you're), doubled words ("the the"), stray punctuation, mismatched capitalization in headings, and inconsistent product naming (Roadmap vs roadmap, Trust Tai vs TrustTai). Fixes will be applied with targeted `line_replace` edits so unrelated copy and animations stay untouched.
+
+## 3. "Little issue"
+
+You didn't share what the little issue is. I'll ship the typo + em-dash cleanup first; please describe (or screenshot) the issue in your next message and I'll address it in the same pass before you review.
+
+## Out of scope
+
+- No layout, color, animation, or component-structure changes.
+- No copy rewrites beyond fixing errors and removing em-dashes.
+- README and code comments untouched.

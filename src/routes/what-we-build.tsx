@@ -78,9 +78,9 @@ import { Reveal, useReveal } from "@/hooks/use-reveal";
 export const Route = createFileRoute("/what-we-build")({
   head: () => ({
     meta: [
-      { title: "What We Build — Trust Tai" },
+      { title: "What We Build | Trust Tai" },
       { name: "description", content: "The milestones inside the map. Eight builds, one connected operating layer, sequenced by the order the business calls for." },
-      { property: "og:title", content: "What We Build — Trust Tai" },
+      { property: "og:title", content: "What We Build | Trust Tai" },
       { property: "og:description", content: "Eight milestones. One connected operating layer. Built for founders. Designed to compound." },
       { property: "og:image", content: heroBook.url },
     ],
@@ -138,7 +138,7 @@ const MILESTONES: Milestone[] = [
   },
   {
     n: "03", name: "Lead Engine", tag: null, phase: 2,
-    desc: "Predictable, sequenced demand. Less hunting, more harvesting — the pipeline becomes a function, not a hope.",
+    desc: "Predictable, sequenced demand. Less hunting, more harvesting. The pipeline becomes a function, not a hope.",
     impact: [
       { label: "Clarity", value: 70 },
       { label: "Sequence", value: 88 },
@@ -148,7 +148,7 @@ const MILESTONES: Milestone[] = [
   },
   {
     n: "04", name: "Client Portal", tag: "Founder Bottleneck Loop™", phase: 2,
-    desc: "Where clients self-serve answers, status, and access — and where the founder stops being the routing layer.",
+    desc: "Where clients self-serve answers, status, and access, and where the founder stops being the routing layer.",
     impact: [
       { label: "Clarity", value: 76 },
       { label: "Sequence", value: 72 },
@@ -958,7 +958,7 @@ function Footer() {
           <li><a href="#" className="hover:text-paper">Investment</a></li>
         </ul>
         <div className="flex flex-col items-start justify-between gap-4 text-[12.5px] text-paper/55 md:items-end md:text-right">
-          <p>© 2025 Trust Tai. All rights reserved.</p>
+          <p>© 2026 Trust Tai. All rights reserved.</p>
           <div className="flex gap-5">
             <a href="#" className="hover:text-paper">Privacy Policy</a>
             <a href="#" className="hover:text-paper">Terms of Service</a>

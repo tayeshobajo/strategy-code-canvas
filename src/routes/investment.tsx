@@ -11,9 +11,9 @@ import starscapeImg from "@/assets/footer-network-starscape.png.asset.json";
 export const Route = createFileRoute("/investment")({
   head: () => ({
     meta: [
-      { title: "Investment — Trust Tai" },
-      { name: "description", content: "The price of a business that runs without you. Map, build, and the three walks — named before the engagement begins." },
-      { property: "og:title", content: "Investment — Trust Tai" },
+      { title: "Investment | Trust Tai" },
+      { name: "description", content: "The price of a business that runs without you. Map, build, and the three walks, named before the engagement begins." },
+      { property: "og:title", content: "Investment | Trust Tai" },
       { property: "og:description", content: "Every number on one page. The map, the build, the three walks." },
       { property: "og:image", content: heroDesk.url },
       { name: "twitter:card", content: "summary_large_image" },
@@ -121,7 +121,7 @@ function Bridge() {
     <section id="bridge" className="scroll-mt-32 border-t border-rule/60 bg-white">
       <div className={`${container} grid grid-cols-1 items-center gap-10 py-20 sm:py-24 lg:grid-cols-12 lg:gap-16 lg:py-32`}>
         <div className="order-2 lg:order-1 lg:col-span-6">
-          <img src={bridgeImg.url} alt="Bridge spanning a river — where most firms start to where your business is headed" className="w-full" />
+          <img src={bridgeImg.url} alt="Bridge spanning a river, where most firms start to where your business is headed" className="w-full" />
         </div>
         <div className="order-1 lg:order-2 lg:col-span-6">
           <h2 className="text-[30px] leading-[1.1] tracking-[-0.02em] text-ink sm:text-[40px]">
@@ -291,7 +291,7 @@ function MapSection() {
 // ---------- Pace ----------
 type Walk = { name: string; subtitle: string; Icon: typeof Footprints; months: number; price: string; total: string };
 const walks: Walk[] = [
-  { name: "The Fast Walk", subtitle: "Point B in one year. The most team on the build, the earliest arrival.", Icon: Footprints, months: 12, price: "$7,500", total: "$90,000" },
+  { name: "The Fast Walk", subtitle: "Point B in one year. The heaviest team on the build, the earliest arrival.", Icon: Footprints, months: 12, price: "$7,500", total: "$90,000" },
   { name: "The Middle Walk", subtitle: "Point B in eighteen months.", Icon: PersonStanding, months: 18, price: "$4,500", total: "$81,000" },
   { name: "The Steady Walk", subtitle: "Point B in two years. The walk most founders fund from operations.", Icon: Snail, months: 24, price: "$2,500", total: "$60,000" },
 ];
@@ -591,7 +591,7 @@ function FooterCTA() {
             <li><Link to="/investment" className="hover:text-white">Investment</Link></li>
           </ul>
           <div className="flex flex-col items-start gap-4 text-[12px] text-white/55 sm:items-end">
-            <p>© 2025 Trust Tai. All rights reserved.</p>
+            <p>© 2026 Trust Tai. All rights reserved.</p>
             <div className="flex gap-5">
               <a href="#" className="hover:text-white">Privacy Policy</a>
               <a href="#" className="hover:text-white">Terms of Service</a>

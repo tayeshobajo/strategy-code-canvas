@@ -80,7 +80,7 @@ export function TrustTaiLogo({
     <span ref={wrapRef} className="inline-flex">
       <img
         src={asset.url}
-        alt="Trust Tai — Consultancy + AI Agency"
+        alt="Trust Tai | Consultancy + AI Agency"
         className={`h-6 w-auto sm:h-7 ${className}`}
       />
     </span>
