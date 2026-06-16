@@ -7,7 +7,7 @@ type NavItem = { label: string; to: string; hash?: string };
 const NAV: NavItem[] = [
   { label: "The Roadmap", to: "/", hash: "roadmap" },
   { label: "What We Build", to: "/what-we-build" },
-  { label: "Investment", to: "/", hash: "pricing" },
+  { label: "Investment", to: "/investment" },
   { label: "About", to: "/", hash: "about" },
   { label: "Insights", to: "/", hash: "insights" },
 ];
@@ -17,6 +17,7 @@ export function SiteHeader() {
 
   const isActive = (n: NavItem) => {
     if (n.to === "/what-we-build") return pathname === "/what-we-build";
+    if (n.to === "/investment") return pathname === "/investment";
     if (n.to === "/" && n.hash === "roadmap") return pathname === "/";
     return false;
   };
