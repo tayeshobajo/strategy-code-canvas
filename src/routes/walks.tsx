@@ -347,8 +347,8 @@ function Hero() {
           </div>
 
           <div className="relative">
-            <div className="relative aspect-[700/260] w-full">
-              <HeroRoute />
+            <div ref={routeRef} className="relative aspect-[700/260] w-full">
+              <HeroRoute inView={routeInView} />
             </div>
             <Reveal
               as="div"
