@@ -473,5 +473,75 @@
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }
 
+/* ---------- The Walks hero ---------- */
+.walks-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 0.82fr 1.18fr;
+  min-height: 720px;
+  padding: 96px 72px 80px;
+  background: #fbf8f2;
+  overflow: hidden;
+}
+
+.walks-hero-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 560px;
+}
+
+.walks-hero-art-wrap {
+  position: relative;
+  min-height: 540px;
+  overflow: visible;
+}
+
+.walks-hero-art {
+  position: absolute;
+  right: -110px;
+  top: 48px;
+  width: 126%;
+  max-width: none;
+  height: auto;
+  z-index: 1;
+}
+
+.thesis-line {
+  position: absolute;
+  left: 42%;
+  bottom: 72px;
+  z-index: 2;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-style: italic;
+  color: #071a3d;
+  text-align: center;
+}
+
+@media (max-width: 1023px) {
+  .walks-hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 96px 24px 80px;
+  }
+  .walks-hero-art-wrap {
+    min-height: 380px;
+    margin-top: 2rem;
+  }
+  .walks-hero-art {
+    right: -40px;
+    top: 24px;
+    width: 110%;
+  }
+  .thesis-line {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+}
+
+
 
 
