@@ -451,19 +451,28 @@ export const Route = createFileRoute("/walks_/$slug")({
       </main>
     </div>
   ),
-  errorComponent: ({ error, reset }) => (
-    <div className="min-h-screen bg-paper">
-      <SiteHeader />
-      <main className="mx-auto max-w-[1240px] px-6 py-32 text-center">
-        <p className="eyebrow">Something broke</p>
-        <h1 className="mt-6 font-display text-[2.5rem] text-ink">We could not load this walk.</h1>
-        <p className="mt-4 text-ink/65">{String(error?.message ?? error)}</p>
-        <button onClick={() => reset()} className="mt-10 inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-paper">
-          Try again
-        </button>
-      </main>
-    </div>
-  ),
+  errorComponent: ({ error, reset }) => {
+    const router = useRouter();
+    return (
+      <div className="min-h-screen bg-paper">
+        <SiteHeader />
+        <main className="mx-auto max-w-[1240px] px-6 py-32 text-center">
+          <p className="eyebrow">Something broke</p>
+          <h1 className="mt-6 font-display text-[2.5rem] text-ink">We could not load this walk.</h1>
+          <p className="mt-4 text-ink/65">{String(error?.message ?? error)}</p>
+          <button
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
+            className="mt-10 inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-paper"
+          >
+            Try again
+          </button>
+        </main>
+      </div>
+    );
+  },
   component: WalkDetailPage,
 });
 
