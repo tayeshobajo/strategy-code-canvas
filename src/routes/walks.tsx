@@ -183,15 +183,16 @@ function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number 
 
 function Hero() {
   return (
-    <section className="relative w-full overflow-hidden bg-paper pt-20 sm:pt-24">
+    <section className="relative w-full overflow-hidden bg-paper">
       <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
         <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
           <div className="relative z-10 max-w-[620px]">
-            <Reveal as="p" variant="fade-up" className="eyebrow mb-6">
+            <Reveal immediate as="p" variant="fade-up" className="eyebrow mb-6">
               The Walks
             </Reveal>
             <Reveal
+              immediate
               as="h1"
               variant="rise"
               delay={120}
@@ -202,6 +203,7 @@ function Hero() {
               Real <em className="italic text-royal">ground</em> covered.
             </Reveal>
             <Reveal
+              immediate
               as="p"
               variant="fade-up"
               delay={260}
@@ -213,6 +215,7 @@ function Hero() {
               stands today.
             </Reveal>
             <Reveal
+              immediate
               as="p"
               variant="fade-up"
               delay={340}
@@ -220,7 +223,7 @@ function Hero() {
             >
               A selection. Most of our work stays private.
             </Reveal>
-            <Reveal as="div" variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Reveal immediate as="div" variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a
                 href="#cta"
                 className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
@@ -229,7 +232,7 @@ function Hero() {
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
             </Reveal>
-            <Reveal as="p" variant="fade-up" delay={540} className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+            <Reveal immediate as="p" variant="fade-up" delay={540} className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
               <span className="inline-block h-px w-5 bg-ink/40" />
               <span>No two walks are the same.</span>
             </Reveal>
