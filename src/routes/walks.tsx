@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { Reveal } from "@/hooks/use-reveal";
+import { Reveal, useReveal } from "@/hooks/use-reveal";
 
 export const Route = createFileRoute("/walks")({
   head: () => {
@@ -192,7 +192,7 @@ function ContourBg() {
   );
 }
 
-function HeroRoute() {
+function HeroRoute({ inView }: { inView: boolean }) {
   // Ascending dotted route with milestone open-circles and an arrow head.
   // Coordinates chosen against viewBox 700x260.
   const points: [number, number][] = [
@@ -207,50 +207,96 @@ function HeroRoute() {
     .map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`))
     .join(" ");
   const last = points[points.length - 1];
+  // Total stagger time for milestone reveals
+  const milestoneCount = points.length - 1; // excluding start (point A is implicit at index 0)
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 700 260"
       className="h-full w-full"
     >
-      <path
-        d={d}
-        fill="none"
-        stroke="var(--royal)"
-        strokeWidth="1.4"
-        strokeDasharray="2 6"
-        strokeLinecap="round"
-      />
-      {/* Milestone circles */}
-      {points.slice(1, -1).map(([x, y], i) => (
-        <circle
-          key={i}
-          cx={x}
-          cy={y}
-          r={5}
-          fill="white"
+      <defs>
+        <mask id="walks-hero-reveal" maskUnits="userSpaceOnUse">
+          <rect width="700" height="260" fill="black" />
+          <path
+            d={d}
+            fill="none"
+            stroke="white"
+            strokeWidth="22"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            pathLength={1}
+            strokeDasharray="1 1"
+            strokeDashoffset={inView ? 0 : 1}
+            style={{
+              transition: "stroke-dashoffset 2200ms cubic-bezier(0.42, 0, 0.2, 1)",
+            }}
+          />
+        </mask>
+      </defs>
+
+      {/* Dotted ascending route, revealed via mask as it draws */}
+      <g mask="url(#walks-hero-reveal)">
+        <path
+          d={d}
+          fill="none"
           stroke="var(--royal)"
-          strokeWidth="1.5"
+          strokeWidth="1.4"
+          strokeDasharray="2 6"
+          strokeLinecap="round"
         />
-      ))}
-      {/* Final filled node */}
-      <circle cx={last[0]} cy={last[1]} r={6} fill="var(--royal)" />
-      {/* Arrow head */}
-      <path
-        d={`M ${last[0] - 2} ${last[1] - 14} L ${last[0] + 14} ${last[1] - 26} L ${last[0] + 4} ${last[1] - 8} Z`}
-        fill="var(--royal)"
-      />
-      <path
-        d={`M ${last[0]} ${last[1]} L ${last[0] + 14} ${last[1] - 26}`}
-        stroke="var(--royal)"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
+      </g>
+
+      {/* Milestone circles — fade in staggered along the draw */}
+      {points.slice(1, -1).map(([x, y], i) => {
+        const t = (i + 1) / milestoneCount; // approx progress along path
+        const delay = 200 + t * 1800;
+        return (
+          <circle
+            key={i}
+            cx={x}
+            cy={y}
+            r={5}
+            fill="white"
+            stroke="var(--royal)"
+            strokeWidth="1.5"
+            style={{
+              opacity: inView ? 1 : 0,
+              transition: `opacity 380ms ease-out ${delay}ms`,
+            }}
+          />
+        );
+      })}
+
+      {/* Final filled node + arrow — appear at end of draw */}
+      <g
+        style={{
+          opacity: inView ? 1 : 0,
+          transition: "opacity 420ms ease-out 2100ms",
+        }}
+      >
+        <circle cx={last[0]} cy={last[1]} r={6} fill="var(--royal)" />
+        <path
+          d={`M ${last[0] - 2} ${last[1] - 14} L ${last[0] + 14} ${last[1] - 26} L ${last[0] + 4} ${last[1] - 8} Z`}
+          fill="var(--royal)"
+        />
+        <path
+          d={`M ${last[0]} ${last[1]} L ${last[0] + 14} ${last[1] - 26}`}
+          stroke="var(--royal)"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </g>
     </svg>
   );
 }
 
 function Hero() {
+  const { ref: routeRef, inView: routeInView } = useReveal<HTMLDivElement>({
+    threshold: 0.35,
+    once: true,
+    rootMargin: "0px 0px -5% 0px",
+  });
   return (
     <section className="relative overflow-hidden bg-paper pt-28 sm:pt-32">
       <ContourBg />
@@ -301,8 +347,8 @@ function Hero() {
           </div>
 
           <div className="relative">
-            <div className="relative aspect-[700/260] w-full">
-              <HeroRoute />
+            <div ref={routeRef} className="relative aspect-[700/260] w-full">
+              <HeroRoute inView={routeInView} />
             </div>
             <Reveal
               as="div"
@@ -359,7 +405,10 @@ function FilterRow({
 
 /* --------------------------- WALK ROW SVG --------------------------- */
 
-function WalkRoute({ labels }: { labels: string[] }) {
+function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: number }) {
+  // Stagger the breathing ring across rows so they don't pulse in unison.
+  // Negative delays start each row mid-cycle for an immediate, varied feel.
+  const ringDelay = `${-(rowIndex * 480) % 3800}ms`;
   // Render an upward-trending line with N nodes; last node has ripple rings.
   const n = labels.length;
   const W = 560;
@@ -414,6 +463,8 @@ function WalkRoute({ labels }: { labels: string[] }) {
                   fill="var(--royal)"
                   fillOpacity="0.10"
                   className="ring-breathe"
+                  style={{ ["--ring-delay" as never]: ringDelay }}
+                  vectorEffect="non-scaling-stroke"
                 />
                 <circle
                   cx={x}
@@ -503,7 +554,7 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
 
         {/* SVG route */}
         <div className="relative h-[170px] w-full">
-          <WalkRoute labels={walk.milestones} />
+          <WalkRoute labels={walk.milestones} rowIndex={index} />
         </div>
 
         {/* Right: stats + link */}
@@ -626,17 +677,44 @@ function SiteFooter() {
 
 function WalksPage() {
   const [filter, setFilter] = React.useState<Filter>("All");
+  const filterAnchorRef = React.useRef<HTMLDivElement>(null);
+  // Track viewport offset of the filter row across renders so we can
+  // restore scroll position after a filter change shrinks/grows the list.
+  const pendingAnchorTopRef = React.useRef<number | null>(null);
+
   const filtered = React.useMemo(
     () => (filter === "All" ? WALKS : WALKS.filter((w) => w.bucket === filter)),
     [filter],
   );
+
+  const handleFilterChange = React.useCallback((next: Filter) => {
+    if (next === filter) return;
+    const node = filterAnchorRef.current;
+    pendingAnchorTopRef.current = node ? node.getBoundingClientRect().top : null;
+    setFilter(next);
+  }, [filter]);
+
+  React.useLayoutEffect(() => {
+    const prevTop = pendingAnchorTopRef.current;
+    if (prevTop == null) return;
+    const node = filterAnchorRef.current;
+    if (!node) return;
+    const nextTop = node.getBoundingClientRect().top;
+    const delta = nextTop - prevTop;
+    if (delta !== 0) {
+      window.scrollBy({ top: delta, left: 0, behavior: "auto" });
+    }
+    pendingAnchorTopRef.current = null;
+  }, [filter]);
 
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
       <main>
         <Hero />
-        <FilterRow active={filter} onChange={setFilter} />
+        <div ref={filterAnchorRef}>
+          <FilterRow active={filter} onChange={handleFilterChange} />
+        </div>
         <section className="mt-2">
           {filtered.map((w, i) => (
             <WalkRow key={w.slug} walk={w} index={i} />
