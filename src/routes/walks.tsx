@@ -188,17 +188,15 @@ function HeroRoute({ inView }: { inView: boolean }) {
   // mountain range. Hollow + filled milestone nodes alternate; ends at a
   // summit flag near the dominant peak (right side of the engraved range).
   const points: [number, number][] = [
-    [60, 320],
-    [200, 285],
-    [330, 240],
-    [470, 195],
-    [605, 140],
-    [735, 80],
-    [840, 40],
+    [70, 245],
+    [220, 210],
+    [350, 160],
+    [500, 125],
+    [650, 90],
+    [805, 58],
+    [860, 22],
   ];
-  const d = points
-    .map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`))
-    .join(" ");
+  const d = "M70 245 C180 210, 260 190, 350 160 C455 120, 550 135, 650 90 C735 52, 805 58, 860 22";
   const last = points[points.length - 1];
   const milestoneCount = points.length - 1;
   return (
@@ -232,9 +230,9 @@ function HeroRoute({ inView }: { inView: boolean }) {
         <path
           d={d}
           fill="none"
-          stroke="var(--royal)"
-          strokeWidth="1.8"
-          strokeDasharray="2 7"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeDasharray="7 8"
           strokeLinecap="round"
         />
       </g>
