@@ -184,10 +184,55 @@ function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number 
 function Hero() {
   return (
     <section className="relative w-full overflow-hidden bg-paper pt-20 sm:pt-24">
-      <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
-        <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
-          <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
-          <div className="relative z-10 max-w-[620px]">
+      <div className="relative min-h-[640px] lg:min-h-[720px]">
+        {/* Mountain art — absolute, right 68% of the hero */}
+        <Reveal
+          immediate
+          variant="fade-right"
+          delay={300}
+          className="pointer-events-none absolute right-0 top-20 hidden h-[620px] w-[68%] lg:block"
+          style={{ zIndex: 1 }}
+        >
+          <img
+            src={heroArt.url}
+            alt="Hand-drawn mountain range with a dotted blue climbing route ending at a summit flag."
+            loading="eager"
+            decoding="async"
+            // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+            fetchpriority="high"
+            className="h-full w-full object-cover object-right"
+          />
+        </Reveal>
+        {/* Mobile art */}
+        <img
+          src={heroArt.url}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-32 h-[360px] w-full object-cover object-right opacity-50 lg:hidden"
+          style={{ zIndex: 1 }}
+        />
+        {/* Cream fade — softens left edge of the art into the copy */}
+        <div
+          className="pointer-events-none absolute inset-0 hidden lg:block"
+          style={{
+            zIndex: 2,
+            background:
+              "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 88%, transparent) 18%, color-mix(in oklab, var(--paper) 28%, transparent) 42%, transparent 70%)",
+          }}
+        />
+        {/* Mobile overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 lg:hidden"
+          style={{
+            zIndex: 2,
+            background:
+              "linear-gradient(to bottom, var(--paper) 0%, color-mix(in oklab, var(--paper) 78%, transparent) 28%, color-mix(in oklab, var(--paper) 55%, transparent) 70%, var(--paper) 100%)",
+          }}
+        />
+
+        {/* Copy column */}
+        <div className="relative z-10 px-6 py-14 lg:py-24 lg:pl-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
+          <div className="max-w-[560px]">
             <Reveal as="p" variant="fade-up" className="eyebrow mb-6">
               The Walks
             </Reveal>
@@ -229,32 +274,16 @@ function Hero() {
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
             </Reveal>
-            <Reveal as="p" variant="fade-up" delay={540} className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
-              <span className="inline-block h-px w-5 bg-ink/40" />
-              <span>No two walks are the same.</span>
-            </Reveal>
           </div>
         </div>
 
-        <Reveal immediate variant="fade-right" delay={300} className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
-          <img
-            src={heroArt.url}
-            alt="Hand-drawn mountain range with a dotted blue climbing route ending at a summit flag."
-            loading="eager"
-            decoding="async"
-            // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
-            fetchpriority="high"
-            className="absolute inset-0 h-full w-full object-cover object-right lg:hero-photo-fade"
-          />
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[42%] lg:block"
-            style={{
-              backgroundImage:
-                "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 80%, transparent) 30%, color-mix(in oklab, var(--paper) 40%, transparent) 60%, transparent 100%)",
-            }}
-            aria-hidden="true"
-          />
-        </Reveal>
+        {/* Thesis line — quiet serif, under lower middle of the route */}
+        <p className="absolute bottom-32 right-[22%] z-10 hidden font-display text-[20px] italic text-ink lg:block">
+          No two walks are the same.
+        </p>
+        <p className="relative z-10 px-6 pb-10 text-center font-display text-[17px] italic text-ink lg:hidden">
+          No two walks are the same.
+        </p>
       </div>
     </section>
   );
