@@ -188,17 +188,15 @@ function HeroRoute({ inView }: { inView: boolean }) {
   // mountain range. Hollow + filled milestone nodes alternate; ends at a
   // summit flag near the dominant peak (right side of the engraved range).
   const points: [number, number][] = [
-    [60, 320],
-    [200, 285],
-    [330, 240],
-    [470, 195],
-    [605, 140],
-    [735, 80],
-    [840, 40],
+    [70, 245],
+    [220, 210],
+    [350, 160],
+    [500, 125],
+    [650, 90],
+    [805, 58],
+    [860, 22],
   ];
-  const d = points
-    .map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`))
-    .join(" ");
+  const d = "M70 245 C180 210, 260 190, 350 160 C455 120, 550 135, 650 90 C735 52, 805 58, 860 22";
   const last = points[points.length - 1];
   const milestoneCount = points.length - 1;
   return (
@@ -232,9 +230,9 @@ function HeroRoute({ inView }: { inView: boolean }) {
         <path
           d={d}
           fill="none"
-          stroke="var(--royal)"
-          strokeWidth="1.8"
-          strokeDasharray="2 7"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeDasharray="7 8"
           strokeLinecap="round"
         />
       </g>
@@ -329,7 +327,7 @@ function Hero() {
 
           <div
             ref={routeRef}
-            className="relative min-h-[420px] w-full overflow-hidden lg:min-h-[520px]"
+            className="relative min-h-[560px] w-full overflow-hidden"
           >
             {/* Mountain illustration layer — engraved SVG, anchored bottom-right */}
             <img
@@ -337,10 +335,10 @@ function Hero() {
               alt=""
               aria-hidden="true"
               draggable={false}
-              className="pointer-events-none absolute -right-16 bottom-4 z-0 w-[118%] max-w-none select-none opacity-[0.28]"
+              className="pointer-events-none absolute -right-[90px] bottom-10 z-[1] w-[132%] max-w-none select-none opacity-[0.38]"
             />
             {/* Blue route layer — sits on top of the mountains */}
-            <div className="pointer-events-none absolute inset-0 z-10">
+            <div className="pointer-events-none absolute top-[150px] right-[70px] z-[2] h-[290px] w-[78%] overflow-visible text-royal">
               <HeroRoute inView={routeInView} />
             </div>
             {/* Thesis line — sits beneath the route, above the mountain base */}
@@ -348,9 +346,9 @@ function Hero() {
               as="div"
               variant="fade-up"
               delay={420}
-              className="absolute bottom-6 left-[34%] z-10 hidden flex-col items-center text-center lg:flex"
+              className="absolute bottom-[82px] left-[42%] z-[3] hidden flex-col items-center text-center lg:flex"
             >
-              <p className="font-display text-[20px] italic text-ink/80 sm:text-[22px]">
+              <p className="font-display text-[20px] italic text-ink">
                 No two walks are the same.
               </p>
               <span className="mt-3 inline-block h-px w-10 bg-ink/40" />
