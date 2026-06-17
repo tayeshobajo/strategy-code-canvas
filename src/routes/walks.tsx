@@ -367,13 +367,13 @@ function Hero() {
             ref={routeRef}
             className="relative min-h-[360px] w-full lg:min-h-[460px]"
           >
-            {/* Mountain illustration layer — engraved SVG, low opacity */}
+            {/* Mountain illustration layer — engraved SVG, anchored bottom-right */}
             <img
               src={mountainAsset.url}
               alt=""
               aria-hidden="true"
               draggable={false}
-              className="pointer-events-none absolute -right-6 bottom-6 w-[112%] max-w-none select-none opacity-50 lg:opacity-[0.55]"
+              className="pointer-events-none absolute -right-16 bottom-0 w-[170%] max-w-none select-none lg:w-[165%]"
             />
             {/* Blue route layer — sits on top of the mountains */}
             <div className="pointer-events-none absolute inset-0">
