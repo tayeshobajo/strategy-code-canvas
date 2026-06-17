@@ -212,7 +212,7 @@ function Hero() {
 
       {/* Content */}
       <div className="relative z-[3] mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-12">
-        <div style={{ maxWidth: '560px', paddingTop: '110px', paddingBottom: '90px' }}>
+        <div style={{ maxWidth: '560px', paddingTop: '110px', paddingBottom: '50px' }}>
 
           <Reveal as="p" variant="fade-up" className="eyebrow mb-6">
             The Walks
