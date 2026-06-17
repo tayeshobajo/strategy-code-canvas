@@ -247,7 +247,7 @@ function Hero() {
           immediate
           variant="fade-right"
           delay={300}
-          className="relative h-[360px] w-full sm:h-[440px] lg:h-full lg:min-h-[660px]"
+          className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]"
         >
           <img
             src={heroArt.url}
@@ -256,20 +256,11 @@ function Hero() {
             decoding="async"
             // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
             fetchpriority="high"
-            className="absolute inset-0 h-full w-full scale-[1.04] object-cover object-[78%_center] transition-transform duration-[1200ms] ease-out lg:scale-100 lg:object-[65%_center] xl:object-[60%_center]"
+            className="absolute inset-0 h-full w-full object-cover object-right"
           />
-          {/* Feathered seam — wider, multi-stop fade for a softer entrance */}
+          {/* Feathered seam between text and image */}
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-paper via-paper/70 to-transparent sm:w-1/2 lg:w-[55%]"
-            aria-hidden="true"
-          />
-          {/* Top + bottom vignette so the art sits within the cream canvas */}
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-paper to-transparent"
-            aria-hidden="true"
-          />
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-paper to-transparent"
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block"
             aria-hidden="true"
           />
         </Reveal>
