@@ -3,7 +3,6 @@ import { ArrowRight } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Reveal, useReveal } from "@/hooks/use-reveal";
-import mountainAsset from "@/assets/walks-mountain-range.svg.asset.json";
 
 export const Route = createFileRoute("/walks")({
   head: () => {
