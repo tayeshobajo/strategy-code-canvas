@@ -185,49 +185,15 @@ function Hero() {
   return (
     <section className="relative w-full overflow-hidden bg-paper pt-20 sm:pt-24">
       <div className="relative min-h-[640px] lg:min-h-[720px]">
-        {/* Mountain art — absolute, right 68% of the hero */}
-        <Reveal
-          immediate
-          variant="fade-right"
-          delay={300}
-          className="pointer-events-none absolute right-0 top-20 hidden h-[620px] w-[68%] lg:block"
-          style={{ zIndex: 1 }}
-        >
-          <img
-            src={heroArt.url}
-            alt="Hand-drawn mountain range with a dotted blue climbing route ending at a summit flag."
-            loading="eager"
-            decoding="async"
-            // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
-            fetchpriority="high"
-            className="h-full w-full object-cover object-right"
-          />
-        </Reveal>
-        {/* Mobile art */}
+        {/* Full-width hero background — one continuous canvas */}
         <img
           src={heroArt.url}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-32 h-[360px] w-full object-cover object-right opacity-50 lg:hidden"
-          style={{ zIndex: 1 }}
-        />
-        {/* Cream fade — softens left edge of the art into the copy */}
-        <div
-          className="pointer-events-none absolute inset-0 hidden lg:block"
-          style={{
-            zIndex: 2,
-            background:
-              "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 88%, transparent) 18%, color-mix(in oklab, var(--paper) 28%, transparent) 42%, transparent 70%)",
-          }}
-        />
-        {/* Mobile overlay */}
-        <div
-          className="pointer-events-none absolute inset-0 lg:hidden"
-          style={{
-            zIndex: 2,
-            background:
-              "linear-gradient(to bottom, var(--paper) 0%, color-mix(in oklab, var(--paper) 78%, transparent) 28%, color-mix(in oklab, var(--paper) 55%, transparent) 70%, var(--paper) 100%)",
-          }}
+          alt="Hand-drawn mountain range with a dotted blue climbing route ending at a summit flag."
+          loading="eager"
+          decoding="async"
+          // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+          fetchpriority="high"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-right"
         />
 
         {/* Copy column */}
@@ -277,8 +243,8 @@ function Hero() {
           </div>
         </div>
 
-        {/* Thesis line — quiet serif, under lower middle of the route */}
-        <p className="absolute bottom-32 right-[22%] z-10 hidden font-display text-[20px] italic text-ink lg:block">
+        {/* Thesis line — quiet serif, lower middle of the mountain route */}
+        <p className="absolute bottom-28 left-[52%] z-10 hidden translate-x-[-50%] font-display text-[20px] italic text-ink lg:block">
           No two walks are the same.
         </p>
         <p className="relative z-10 px-6 pb-10 text-center font-display text-[17px] italic text-ink lg:hidden">
