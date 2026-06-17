@@ -281,10 +281,9 @@ function Hero() {
   });
   return (
     <section className="relative overflow-hidden bg-paper pt-28 sm:pt-32">
-      <ContourBg />
       <div className={`${container} relative`}>
         <div className="grid grid-cols-1 gap-10 pb-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16 lg:pb-16">
-          <div className="flex flex-col">
+          <div className="relative z-10 flex flex-col">
             <Reveal as="p" variant="fade-up" className="eyebrow">
               The Walks
             </Reveal>
@@ -330,7 +329,7 @@ function Hero() {
 
           <div
             ref={routeRef}
-            className="relative min-h-[360px] w-full lg:min-h-[460px]"
+            className="relative min-h-[420px] w-full overflow-hidden lg:min-h-[520px]"
           >
             {/* Mountain illustration layer — engraved SVG, anchored bottom-right */}
             <img
@@ -338,18 +337,18 @@ function Hero() {
               alt=""
               aria-hidden="true"
               draggable={false}
-              className="pointer-events-none absolute -right-16 bottom-0 w-[170%] max-w-none select-none lg:w-[165%]"
+              className="pointer-events-none absolute -right-16 bottom-4 z-0 w-[118%] max-w-none select-none opacity-[0.28]"
             />
             {/* Blue route layer — sits on top of the mountains */}
-            <div className="pointer-events-none absolute inset-0">
+            <div className="pointer-events-none absolute inset-0 z-10">
               <HeroRoute inView={routeInView} />
             </div>
-            {/* Thesis line — anchored beneath the lower segment of the route */}
+            {/* Thesis line — sits beneath the route, above the mountain base */}
             <Reveal
               as="div"
               variant="fade-up"
               delay={420}
-              className="absolute bottom-2 left-1/2 hidden -translate-x-1/2 flex-col items-center text-center lg:flex"
+              className="absolute bottom-6 left-[34%] z-10 hidden flex-col items-center text-center lg:flex"
             >
               <p className="font-display text-[20px] italic text-ink/80 sm:text-[22px]">
                 No two walks are the same.
@@ -358,6 +357,7 @@ function Hero() {
             </Reveal>
           </div>
         </div>
+
 
         {/* Mobile thesis line — stacked under the simplified landscape */}
         <Reveal
