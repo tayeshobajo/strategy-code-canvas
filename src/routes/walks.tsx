@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { Reveal } from "@/hooks/use-reveal";
+import { Reveal, useReveal } from "@/hooks/use-reveal";
 
 export const Route = createFileRoute("/walks")({
   head: () => {
