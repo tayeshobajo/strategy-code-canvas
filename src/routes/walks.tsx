@@ -192,9 +192,73 @@ function ContourBg() {
   );
 }
 
+function EngravedMountains() {
+  // Fine line-drawn mountain range, navy ink on cream, low opacity.
+  return (
+    <g
+      aria-hidden="true"
+      fill="none"
+      stroke="oklch(0.32 0.06 262)"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="0.55"
+      opacity="0.32"
+    >
+      <path d="M 0 175 L 60 150 L 110 165 L 175 120 L 230 145 L 290 110 L 360 135 L 430 95 L 500 120 L 570 80 L 640 100 L 700 70" strokeOpacity="0.55" />
+      <path d="M 0 205 L 70 175 L 130 195 L 200 150 L 270 180 L 340 135 L 410 165 L 480 115 L 560 145 L 630 95 L 700 80" />
+      <path d="M 0 235 L 50 215 L 120 230 L 195 185 L 260 215 L 330 165 L 405 195 L 475 140 L 545 175 L 615 110 L 660 78 L 700 95" strokeWidth="0.7" />
+      <g strokeOpacity="0.45" strokeWidth="0.4">
+        <path d="M 620 118 L 635 100" />
+        <path d="M 628 128 L 645 105" />
+        <path d="M 636 138 L 654 112" />
+        <path d="M 644 148 L 660 122" />
+        <path d="M 652 158 L 668 132" />
+        <path d="M 660 168 L 676 142" />
+      </g>
+      <g strokeOpacity="0.4" strokeWidth="0.4">
+        <path d="M 478 152 L 495 132" />
+        <path d="M 488 168 L 510 138" />
+        <path d="M 498 182 L 525 145" />
+        <path d="M 510 196 L 540 155" />
+      </g>
+      <g strokeOpacity="0.35" strokeWidth="0.35">
+        <path d="M 200 162 L 215 148" />
+        <path d="M 208 175 L 226 153" />
+        <path d="M 216 188 L 238 160" />
+      </g>
+      <g strokeOpacity="0.35" strokeWidth="0.35">
+        <path d="M 333 178 L 348 162" />
+        <path d="M 340 190 L 358 168" />
+        <path d="M 348 202 L 368 175" />
+      </g>
+    </g>
+  );
+}
+
+function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
+  const h = 16 * scale;
+  const w = 9 * scale;
+  return (
+    <g>
+      <line
+        x1={x}
+        y1={y}
+        x2={x}
+        y2={y - h}
+        stroke="var(--royal)"
+        strokeWidth={1.4 * scale}
+        strokeLinecap="round"
+      />
+      <path
+        d={`M ${x} ${y - h} L ${x + w} ${y - h + 3 * scale} L ${x} ${y - h + 6 * scale} Z`}
+        fill="var(--royal)"
+      />
+    </g>
+  );
+}
+
 function HeroRoute({ inView }: { inView: boolean }) {
-  // Ascending dotted route with milestone open-circles and an arrow head.
-  // Coordinates chosen against viewBox 700x260.
+  // Ascending dotted route with milestone open-circles ending at a summit flag.
   const points: [number, number][] = [
     [40, 220],
     [200, 200],
@@ -207,14 +271,15 @@ function HeroRoute({ inView }: { inView: boolean }) {
     .map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`))
     .join(" ");
   const last = points[points.length - 1];
-  // Total stagger time for milestone reveals
-  const milestoneCount = points.length - 1; // excluding start (point A is implicit at index 0)
+  const milestoneCount = points.length - 1;
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 700 260"
       className="h-full w-full"
     >
+      <EngravedMountains />
+
       <defs>
         <mask id="walks-hero-reveal" maskUnits="userSpaceOnUse">
           <rect width="700" height="260" fill="black" />
@@ -235,7 +300,6 @@ function HeroRoute({ inView }: { inView: boolean }) {
         </mask>
       </defs>
 
-      {/* Dotted ascending route, revealed via mask as it draws */}
       <g mask="url(#walks-hero-reveal)">
         <path
           d={d}
@@ -247,9 +311,8 @@ function HeroRoute({ inView }: { inView: boolean }) {
         />
       </g>
 
-      {/* Milestone circles — fade in staggered along the draw */}
       {points.slice(1, -1).map(([x, y], i) => {
-        const t = (i + 1) / milestoneCount; // approx progress along path
+        const t = (i + 1) / milestoneCount;
         const delay = 200 + t * 1800;
         return (
           <circle
@@ -268,24 +331,14 @@ function HeroRoute({ inView }: { inView: boolean }) {
         );
       })}
 
-      {/* Final filled node + arrow — appear at end of draw */}
       <g
         style={{
           opacity: inView ? 1 : 0,
           transition: "opacity 420ms ease-out 2100ms",
         }}
       >
-        <circle cx={last[0]} cy={last[1]} r={6} fill="var(--royal)" />
-        <path
-          d={`M ${last[0] - 2} ${last[1] - 14} L ${last[0] + 14} ${last[1] - 26} L ${last[0] + 4} ${last[1] - 8} Z`}
-          fill="var(--royal)"
-        />
-        <path
-          d={`M ${last[0]} ${last[1]} L ${last[0] + 14} ${last[1] - 26}`}
-          stroke="var(--royal)"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
+        <circle cx={last[0]} cy={last[1]} r={5} fill="var(--royal)" />
+        <SummitFlag x={last[0]} y={last[1] - 2} scale={1.1} />
       </g>
     </svg>
   );
