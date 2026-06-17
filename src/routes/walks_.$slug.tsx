@@ -891,6 +891,10 @@ function SiteFooter() {
         </ul>
         <div className="flex flex-col gap-4 sm:items-end sm:text-right">
           <p>© 2026 Trust Tai. All rights reserved.</p>
+          <div className="flex gap-5">
+            <a href="#" className="hover:text-ink">Privacy Policy</a>
+            <a href="#" className="hover:text-ink">Terms of Service</a>
+          </div>
           <p className="text-ink/55">We build the map.<br />You build what matters.</p>
         </div>
       </div>
