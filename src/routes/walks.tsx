@@ -304,17 +304,17 @@ function EngravedMountains() {
       strokeLinejoin="round"
     >
       {/* Atmospheric haze — distant ridges */}
-      <g strokeOpacity="0.45" strokeWidth="0.9">
+      <g strokeOpacity="0.32" strokeWidth="1.1">
         <path d={farRidge1} />
         <path d={farRidge2} />
       </g>
 
       {/* Mid ridges */}
-      <path d={midRidge1} strokeOpacity="0.6" strokeWidth="1" />
-      <path d={midRidge2} strokeOpacity="0.7" strokeWidth="1.1" />
+      <path d={midRidge1} strokeOpacity="0.5" strokeWidth="1.3" />
+      <path d={midRidge2} strokeOpacity="0.6" strokeWidth="1.4" />
 
       {/* Foreground massif silhouette */}
-      <path d={fgRidge} strokeOpacity="0.95" strokeWidth="1.4" />
+      <path d={fgRidge} strokeOpacity="0.85" strokeWidth="1.7" />
 
       {/* Engraved hatching — bespoke per peak */}
       {peaks.map((p, i) => (
