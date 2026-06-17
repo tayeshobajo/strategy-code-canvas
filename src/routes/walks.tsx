@@ -408,7 +408,6 @@ function Hero() {
         </Reveal>
       </div>
     </section>
-    </section>
   );
 }
 
