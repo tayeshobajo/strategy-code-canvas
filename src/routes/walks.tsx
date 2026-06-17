@@ -505,36 +505,33 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
       {/* milestone dots */}
       {xs.map((x, i) => {
         const isLast = i === n - 1;
+        if (isLast) {
+          // The summit gets a flag instead of a plain dot; rings sit beneath.
+          return (
+            <g key={i}>
+              <circle
+                cx={x}
+                cy={ys[i]}
+                r="11"
+                fill="var(--royal)"
+                fillOpacity="0.10"
+                className="ring-breathe"
+                style={{ ["--ring-delay" as never]: ringDelay }}
+                vectorEffect="non-scaling-stroke"
+              />
+              <circle cx={x} cy={ys[i]} r="3.5" fill="var(--royal)" />
+              <SummitFlag x={x} y={ys[i] - 1} scale={0.9} />
+            </g>
+          );
+        }
         return (
-          <g key={i}>
-            {isLast && (
-              <>
-                <circle
-                  cx={x}
-                  cy={ys[i]}
-                  r="12"
-                  fill="var(--royal)"
-                  fillOpacity="0.10"
-                  className="ring-breathe"
-                  style={{ ["--ring-delay" as never]: ringDelay }}
-                  vectorEffect="non-scaling-stroke"
-                />
-                <circle
-                  cx={x}
-                  cy={ys[i]}
-                  r="9"
-                  fill="var(--royal)"
-                  fillOpacity="0.18"
-                />
-              </>
-            )}
-            <circle
-              cx={x}
-              cy={ys[i]}
-              r={isLast ? 4.5 : 3.5}
-              fill="var(--royal)"
-            />
-          </g>
+          <circle
+            key={i}
+            cx={x}
+            cy={ys[i]}
+            r={3.5}
+            fill="var(--royal)"
+          />
         );
       })}
       {/* labels */}
@@ -558,16 +555,6 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
           </text>
         );
       })}
-      {/* highlight ring for last (mimics outline circle around endpoint) */}
-      <circle
-        cx={lastX}
-        cy={lastY}
-        r="9"
-        fill="none"
-        stroke="var(--royal)"
-        strokeOpacity="0.5"
-        strokeWidth="1"
-      />
     </svg>
   );
 }
