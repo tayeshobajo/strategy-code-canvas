@@ -390,7 +390,7 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
             x={x}
             y={125}
             textAnchor="middle"
-            fontSize="9"
+            fontSize="10.5"
             fill="oklch(0.32 0.04 260)"
             fontFamily="Inter, system-ui, sans-serif"
           >
