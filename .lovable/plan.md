@@ -1,40 +1,67 @@
-Yes — the current `EngravedMountains` is only a few ridge lines and light hatching, which is why it reads thin compared to the reference. I can build a much richer, fully hand-authored inline SVG that captures the engraved-illustration feel of the reference image. No raster, no external assets.
+# Walks Hero Rebuild
 
-## What I'll build
+Rebuild the hero in `src/routes/walks.tsx` using a three-layer composition. Keep everything below the hero (filter row, walk rows, CTA, footer) untouched.
 
-A dense, multi-layer mountain range rendered as inline SVG inside the hero route artwork in `src/routes/walks.tsx`. The route + summit flag stay exactly as they are now; only the mountain backdrop becomes substantially more detailed.
+## 1. Register the mountain SVG as a production asset
 
-### Visual layers (back to front)
+- Upload `user-uploads://trust-tai-mountain-range-with-summit-flag-header-tight_1.svg` via `lovable-assets create` and write the pointer to `src/assets/walks-mountain-range.svg.asset.json`.
+- Import the pointer in `walks.tsx`: `import mountainAsset from "@/assets/walks-mountain-range.svg.asset.json"`.
+- Render as `<img src={mountainAsset.url} alt="" aria-hidden />` so the file stays SVG (no rasterization) and can be styled with CSS opacity / positioning.
+- Delete the now-unused inline `EngravedMountains` component and its `Peak`/`hatch`/`cross` helpers.
 
-1. Distant haze ridges — 2 very faint, low-frequency silhouettes at low opacity for atmospheric depth.
-2. Mid-range ridges — 2 sharper polylines with subtle jagged peaks.
-3. Foreground massif — the dominant right-hand peak cluster where the summit flag lands, drawn as a single bold ridge silhouette.
-4. Engraved shading — dense diagonal hatch lines following each peak's shaded flank, varying:
-   - stroke angle per peak (perpendicular to the slope)
-   - stroke length (longer near the base, tapering toward the ridge)
-   - stroke spacing (tighter in shadow valleys, looser on lit faces)
-   - stroke weight (0.3 – 0.6) for a hand-etched cadence
-5. Cross-hatching in the deepest shadow pockets (valleys between front peaks) for tonal weight.
-6. Fine vertical "scree" flick marks near the base of the foreground massif for texture.
-7. A few hairline contour curves echoing each peak's silhouette inward, suggesting snow-line breaks.
+## 2. Hero layout
 
-### Style rules
+Replace the current hero JSX with a two-column grid:
 
-- Single ink color: navy (`oklch(0.32 0.06 262)`), opacity layered between 0.18 and 0.55 across the layers so depth comes from density, not color.
-- All strokes: `strokeLinecap="round"`, `strokeLinejoin="round"`, `vectorEffect="non-scaling-stroke"` so lines stay crisp at any width.
-- No fills anywhere — pure line work, true to the reference's engraved/etched look.
-- Mountains sit only in the right ~65% of the hero viewBox so they don't fight the headline on the left.
-- The dotted route still climbs over the range and the summit flag plants at the highest peak.
+```text
++-------------------------------+--------------------------------------+
+| eyebrow: THE WALKS            |  [mountain SVG, opacity ~0.4]        |
+| H1: Real businesses.          |  [blue dashed route SVG on top]      |
+|     Real routes.              |                                      |
+|     Real <em>ground</em>      |                                      |
+|     covered.                  |                                      |
+| body paragraph                |                                      |
+| "A selection..." quiet line   |                                      |
+| [Build My Roadmap] button     |  "No two walks are the same."        |
++-------------------------------+--------------------------------------+
+```
 
-### Technical details
+- Desktop grid: `grid-cols-[0.9fr_1.4fr]`, min-height ~620px, generous padding.
+- Mobile: single column; copy first, then a simplified landscape block beneath (mountain + route at reduced height).
+- Background: existing cream (`bg-paper`). Text: navy (`text-ink`). Italic "ground" in `text-royal italic` using the serif italic.
+- Button = existing pill CTA style ("Build My Roadmap" → `#cta`).
 
-- File: `src/routes/walks.tsx`
-- Function replaced: `EngravedMountains` (same viewBox `0 0 700 260`, same call site inside `HeroRoute`)
-- Implementation: ~80–120 inline SVG elements, all hand-placed coordinates (no `Array.from` shortcuts for the hatching — each peak gets bespoke hatch sets so the strokes follow the real slope angle).
-- No new dependencies, no new files, no asset uploads.
-- Hero route animation, summit flag, row routes, stat blocks, filter, CTA, footer: all unchanged.
+## 3. Mountain illustration layer
 
-### Out of scope
+- `<img>` positioned absolutely inside the right column: `right: -40px`, `bottom: 40px`, `width: 105%`, `opacity: 0.42`, `pointer-events-none`, `select-none`.
+- Wrapper `overflow: hidden` so the SVG crops cleanly into the hero.
+- Color stays navy on cream — the asset already uses `#071b3f`; no recolor needed.
 
-- No changes to row SVGs, filter, copy, or layout.
-- No raster image, no Lucide icon substitution, no external CDN assets.
+## 4. Blue route layer (separate inline SVG)
+
+New `<HeroRoute />` inline SVG above the mountain `<img>`:
+- `viewBox="0 0 900 360"`, absolutely positioned (`top: 80px`, `right: 20px`, `width: 92%`).
+- Single path climbing lower-left → upper-right across the range, electric blue (`var(--royal)`), `stroke-dasharray` for dotted feel, `stroke-width: 2`, round caps.
+- 5 milestone nodes along the path: alternating hollow (stroke only, fill cream) and filled (solid royal), `r=5–6`.
+- Endpoint near summit: small filled royal dot with a tiny flag (pole + pennant triangle), matching the existing SummitFlag language.
+- Reuse the existing in-view draw animation (intersection observer triggers `stroke-dashoffset` from full length → 0, freezes at end). Nodes fade in staggered as the path passes them — keep existing CSS animation hooks in `src/styles.css`; no new keyframes required.
+
+## 5. Thesis line
+
+- `<p class="thesis-line">No two walks are the same.</p>` rendered inside the right column, absolutely positioned centered beneath the lower segment of the route (`left: 35%`, `bottom: 40px`, translate-x to center).
+- Serif italic-free, navy, with a short hairline underline beneath (existing serif token).
+
+## 6. Mobile behavior
+
+- Below `md`, switch grid to single column, hide the absolutely-positioned mountain `<img>` overflow, render a compact landscape block (mountain at `width: 130%`, `opacity: 0.35`, route SVG scaled down) sitting under the copy. Thesis line centers under it in normal flow (no absolute positioning at this breakpoint).
+
+## Technical notes
+
+- File touched: `src/routes/walks.tsx` (hero section + remove `EngravedMountains`), plus new `src/assets/walks-mountain-range.svg.asset.json` pointer.
+- No new dependencies. No changes to header, filter, rows, CTA, footer, or `src/styles.css` route animation rules.
+- Voice law preserved: no em-dashes, no exclamation points.
+
+## Out of scope
+
+- Walk row routes, filter logic, CTA band, footer.
+- Any photographic imagery or new decorative elements.
