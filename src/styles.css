@@ -416,7 +416,8 @@
 .ring-breathe {
   transform-origin: center;
   transform-box: fill-box;
-  animation: ring-breathe 3.8s ease-in-out infinite;
+  animation: ring-breathe 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: var(--ring-delay, 0ms);
 }
 
 @keyframes plane-trail-draw {
