@@ -223,19 +223,22 @@ function EngravedMountains() {
   };
   const peaks: Peak[] = [
     // dominant summit cluster (behind the flag)
-    { peak: [658, 75], base: [700, 132], count: 26, length: 16, opacity: 0.85, width: 1.2, crossHatch: true },
-    { peak: [635, 92], base: [612, 168], count: 22, length: 13, opacity: 0.78, width: 1.1 },
-    { peak: [615, 110], base: [582, 178], count: 20, length: 12, opacity: 0.72, width: 1.05 },
-    { peak: [565, 130], base: [535, 198], count: 18, length: 11, opacity: 0.66, width: 1.0, crossHatch: true },
-    { peak: [510, 145], base: [482, 208], count: 16, length: 10, opacity: 0.6, width: 0.95 },
-    { peak: [455, 160], base: [430, 218], count: 13, length: 9, opacity: 0.54, width: 0.9 },
-    { peak: [395, 180], base: [375, 228], count: 11, length: 8, opacity: 0.48, width: 0.85 },
-    { peak: [320, 200], base: [303, 238], count: 9, length: 7, opacity: 0.42, width: 0.8 },
+    { peak: [660, 72], base: [700, 130], count: 22, length: 16, opacity: 0.7, width: 0.9, crossHatch: true },
+    { peak: [642, 85], base: [620, 160], count: 20, length: 14, opacity: 0.62, width: 0.85 },
+    { peak: [622, 102], base: [600, 175], count: 18, length: 13, opacity: 0.56, width: 0.8 },
+    { peak: [600, 118], base: [578, 188], count: 16, length: 12, opacity: 0.5, width: 0.75, crossHatch: true },
+    { peak: [575, 160], base: [555, 215], count: 12, length: 9, opacity: 0.4, width: 0.65 },
+    { peak: [548, 138], base: [528, 198], count: 14, length: 11, opacity: 0.46, width: 0.7 },
+    { peak: [498, 158], base: [478, 218], count: 12, length: 10, opacity: 0.4, width: 0.65 },
+    { peak: [470, 198], base: [455, 240], count: 9, length: 7, opacity: 0.32, width: 0.6 },
+    { peak: [442, 178], base: [424, 225], count: 10, length: 8, opacity: 0.36, width: 0.6 },
+    { peak: [388, 192], base: [372, 232], count: 8, length: 7, opacity: 0.3, width: 0.55 },
+    { peak: [332, 205], base: [318, 240], count: 7, length: 6, opacity: 0.26, width: 0.5 },
     // mid-ridge accent peaks
-    { peak: [540, 115], base: [512, 168], count: 12, length: 8, opacity: 0.5, width: 0.9 },
-    { peak: [450, 135], base: [425, 182], count: 10, length: 7, opacity: 0.44, width: 0.85 },
-    { peak: [365, 145], base: [342, 192], count: 9, length: 6.5, opacity: 0.4, width: 0.8 },
-    { peak: [275, 160], base: [255, 202], count: 8, length: 6, opacity: 0.35, width: 0.75 },
+    { peak: [608, 88], base: [585, 145], count: 12, length: 9, opacity: 0.34, width: 0.55 },
+    { peak: [518, 110], base: [498, 162], count: 10, length: 8, opacity: 0.3, width: 0.5 },
+    { peak: [425, 132], base: [405, 178], count: 8, length: 7, opacity: 0.26, width: 0.48 },
+    { peak: [335, 150], base: [318, 192], count: 7, length: 6, opacity: 0.22, width: 0.45 },
   ];
 
   function hatch(p: Peak): React.ReactElement[] {
