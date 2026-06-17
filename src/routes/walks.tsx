@@ -193,43 +193,154 @@ function ContourBg() {
 }
 
 function EngravedMountains() {
-  // Fine line-drawn mountain range, navy ink on cream, low opacity.
+  // Hand-authored multi-layer engraved mountain range, navy ink on cream.
+  // Composed entirely of stroked SVG paths/lines — no fills, no rasters.
+  const navy = "oklch(0.28 0.07 262)";
+
+  // Ridge silhouettes (back to front) — varied peak heights, organic spacing
+  const farRidge1 =
+    "M 0 200 L 70 188 L 135 195 L 205 168 L 270 178 L 340 152 L 405 165 L 470 138 L 540 152 L 605 122 L 660 132 L 700 124";
+  const farRidge2 =
+    "M 0 218 L 80 208 L 155 215 L 225 188 L 295 200 L 365 172 L 430 188 L 498 158 L 560 172 L 620 142 L 678 150 L 700 145";
+  const midRidge1 =
+    "M 120 215 L 168 190 L 205 205 L 248 168 L 290 188 L 335 150 L 378 175 L 425 132 L 472 158 L 518 110 L 562 138 L 608 88 L 652 105 L 700 92";
+  const midRidge2 =
+    "M 60 232 L 110 215 L 158 225 L 205 195 L 252 215 L 298 180 L 345 200 L 392 162 L 440 188 L 488 142 L 535 168 L 580 118 L 628 138 L 678 108 L 700 118";
+  // Foreground massif: dramatic varied peaks, dominant summit at right
+  const fgRidge =
+    "M 220 250 L 252 232 L 282 218 L 305 228 L 332 205 L 360 222 L 388 192 L 414 215 L 442 178 L 470 198 L 498 158 L 522 180 L 548 138 L 575 160 L 600 118 L 622 102 L 642 85 L 660 72 L 678 92 L 695 80 L 700 86";
+
+  // Per-peak hatching: each entry describes a shaded flank.
+  // Strokes are placed perpendicular to (peak -> base) so they follow real slope.
+  type Peak = {
+    peak: [number, number];
+    base: [number, number];
+    count: number;
+    length: number;
+    opacity: number;
+    width: number;
+    crossHatch?: boolean;
+  };
+  const peaks: Peak[] = [
+    // dominant summit cluster (behind the flag)
+    { peak: [660, 72], base: [700, 130], count: 22, length: 16, opacity: 0.7, width: 0.9, crossHatch: true },
+    { peak: [642, 85], base: [620, 160], count: 20, length: 14, opacity: 0.62, width: 0.85 },
+    { peak: [622, 102], base: [600, 175], count: 18, length: 13, opacity: 0.56, width: 0.8 },
+    { peak: [600, 118], base: [578, 188], count: 16, length: 12, opacity: 0.5, width: 0.75, crossHatch: true },
+    { peak: [575, 160], base: [555, 215], count: 12, length: 9, opacity: 0.4, width: 0.65 },
+    { peak: [548, 138], base: [528, 198], count: 14, length: 11, opacity: 0.46, width: 0.7 },
+    { peak: [498, 158], base: [478, 218], count: 12, length: 10, opacity: 0.4, width: 0.65 },
+    { peak: [470, 198], base: [455, 240], count: 9, length: 7, opacity: 0.32, width: 0.6 },
+    { peak: [442, 178], base: [424, 225], count: 10, length: 8, opacity: 0.36, width: 0.6 },
+    { peak: [388, 192], base: [372, 232], count: 8, length: 7, opacity: 0.3, width: 0.55 },
+    { peak: [332, 205], base: [318, 240], count: 7, length: 6, opacity: 0.26, width: 0.5 },
+    // mid-ridge accent peaks
+    { peak: [608, 88], base: [585, 145], count: 12, length: 9, opacity: 0.34, width: 0.55 },
+    { peak: [518, 110], base: [498, 162], count: 10, length: 8, opacity: 0.3, width: 0.5 },
+    { peak: [425, 132], base: [405, 178], count: 8, length: 7, opacity: 0.26, width: 0.48 },
+    { peak: [335, 150], base: [318, 192], count: 7, length: 6, opacity: 0.22, width: 0.45 },
+  ];
+
+  function hatch(p: Peak): React.ReactElement[] {
+    const [px0, py0] = p.peak;
+    const [bx, by] = p.base;
+    const dx = bx - px0;
+    const dy = by - py0;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    const out: React.ReactElement[] = [];
+    for (let i = 0; i < p.count; i++) {
+      const t = 0.08 + (i / Math.max(1, p.count - 1)) * 0.92;
+      const cx = px0 + dx * t;
+      const cy = py0 + dy * t;
+      const falloff = 0.38 + 0.62 * t;
+      const jitter = (((i * 53) % 7) / 7 - 0.5) * 0.8;
+      const l = p.length * falloff + jitter;
+      out.push(
+        <line
+          key={`h-${i}`}
+          x1={cx}
+          y1={cy}
+          x2={cx + nx * l}
+          y2={cy + ny * l}
+        />,
+      );
+    }
+    return out;
+  }
+
+  function cross(p: Peak): React.ReactElement[] {
+    const [px0, py0] = p.peak;
+    const [bx, by] = p.base;
+    const dx = bx - px0;
+    const dy = by - py0;
+    const len = Math.hypot(dx, dy) || 1;
+    // opposite perpendicular for the cross stroke
+    const nx = dy / len;
+    const ny = -dx / len;
+    const n = Math.max(3, Math.floor(p.count * 0.45));
+    const out: React.ReactElement[] = [];
+    for (let i = 0; i < n; i++) {
+      const t = 0.35 + (i / Math.max(1, n - 1)) * 0.55;
+      const cx = px0 + dx * t;
+      const cy = py0 + dy * t;
+      const l = p.length * 0.55;
+      out.push(
+        <line
+          key={`x-${i}`}
+          x1={cx}
+          y1={cy}
+          x2={cx + nx * l}
+          y2={cy + ny * l}
+        />,
+      );
+    }
+    return out;
+  }
+
   return (
     <g
       aria-hidden="true"
       fill="none"
-      stroke="oklch(0.32 0.06 262)"
+      stroke={navy}
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth="0.55"
-      opacity="0.32"
     >
-      <path d="M 0 175 L 60 150 L 110 165 L 175 120 L 230 145 L 290 110 L 360 135 L 430 95 L 500 120 L 570 80 L 640 100 L 700 70" strokeOpacity="0.55" />
-      <path d="M 0 205 L 70 175 L 130 195 L 200 150 L 270 180 L 340 135 L 410 165 L 480 115 L 560 145 L 630 95 L 700 80" />
-      <path d="M 0 235 L 50 215 L 120 230 L 195 185 L 260 215 L 330 165 L 405 195 L 475 140 L 545 175 L 615 110 L 660 78 L 700 95" strokeWidth="0.7" />
-      <g strokeOpacity="0.45" strokeWidth="0.4">
-        <path d="M 620 118 L 635 100" />
-        <path d="M 628 128 L 645 105" />
-        <path d="M 636 138 L 654 112" />
-        <path d="M 644 148 L 660 122" />
-        <path d="M 652 158 L 668 132" />
-        <path d="M 660 168 L 676 142" />
+      {/* Atmospheric haze — distant ridges */}
+      <g strokeOpacity="0.22" strokeWidth="0.9">
+        <path d={farRidge1} />
+        <path d={farRidge2} />
       </g>
-      <g strokeOpacity="0.4" strokeWidth="0.4">
-        <path d="M 478 152 L 495 132" />
-        <path d="M 488 168 L 510 138" />
-        <path d="M 498 182 L 525 145" />
-        <path d="M 510 196 L 540 155" />
+
+      {/* Mid ridges */}
+      <path d={midRidge1} strokeOpacity="0.34" strokeWidth="1.0" />
+      <path d={midRidge2} strokeOpacity="0.42" strokeWidth="1.1" />
+
+      {/* Foreground massif silhouette */}
+      <path d={fgRidge} strokeOpacity="0.62" strokeWidth="1.35" />
+
+      {/* Engraved hatching — bespoke per peak */}
+      {peaks.map((p, i) => (
+        <g key={i} strokeOpacity={p.opacity} strokeWidth={p.width}>
+          {hatch(p)}
+          {p.crossHatch && cross(p)}
+        </g>
+      ))}
+
+      {/* Snow-line contour hairlines wrapping the summit peak */}
+      <g strokeOpacity="0.28" strokeWidth="0.55">
+        <path d="M 648 84 Q 664 78 682 90" />
+        <path d="M 638 98 Q 662 92 690 104" />
+        <path d="M 624 116 Q 656 108 694 120" />
+        <path d="M 606 138 Q 644 128 696 140" />
       </g>
-      <g strokeOpacity="0.35" strokeWidth="0.35">
-        <path d="M 200 162 L 215 148" />
-        <path d="M 208 175 L 226 153" />
-        <path d="M 216 188 L 238 160" />
-      </g>
-      <g strokeOpacity="0.35" strokeWidth="0.35">
-        <path d="M 333 178 L 348 162" />
-        <path d="M 340 190 L 358 168" />
-        <path d="M 348 202 L 368 175" />
+
+      {/* Secondary snow-line accents on the mid-right peaks */}
+      <g strokeOpacity="0.22" strokeWidth="0.5">
+        <path d="M 558 144 Q 574 140 592 152" />
+        <path d="M 548 160 Q 572 154 596 168" />
+        <path d="M 504 166 Q 520 162 538 172" />
       </g>
     </g>
   );
@@ -515,7 +626,7 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
                 fillOpacity="0.10"
                 className="ring-breathe"
                 style={{ ["--ring-delay" as never]: ringDelay }}
-                vectorEffect="non-scaling-stroke"
+               
               />
               <circle cx={x} cy={ys[i]} r="3.5" fill="var(--royal)" />
               <SummitFlag x={x} y={ys[i] - 1} scale={0.9} />
