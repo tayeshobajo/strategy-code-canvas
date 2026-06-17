@@ -195,19 +195,20 @@ function ContourBg() {
 function EngravedMountains() {
   // Hand-authored multi-layer engraved mountain range, navy ink on cream.
   // Composed entirely of stroked SVG paths/lines — no fills, no rasters.
-  const navy = "var(--ink)";
+  const navy = "oklch(0.28 0.07 262)";
 
-  // Ridge silhouettes (back to front)
+  // Ridge silhouettes (back to front) — varied peak heights, organic spacing
   const farRidge1 =
-    "M 0 195 L 60 175 L 120 185 L 180 155 L 240 170 L 300 140 L 360 160 L 420 125 L 480 145 L 545 110 L 605 130 L 665 100 L 700 115";
+    "M 0 200 L 70 188 L 135 195 L 205 168 L 270 178 L 340 152 L 405 165 L 470 138 L 540 152 L 605 122 L 660 132 L 700 124";
   const farRidge2 =
-    "M 0 215 L 70 200 L 140 210 L 210 180 L 280 195 L 350 165 L 420 180 L 490 150 L 560 165 L 625 135 L 690 145 L 700 140";
+    "M 0 218 L 80 208 L 155 215 L 225 188 L 295 200 L 365 172 L 430 188 L 498 158 L 560 172 L 620 142 L 678 150 L 700 145";
   const midRidge1 =
-    "M 150 200 L 195 175 L 235 195 L 275 160 L 320 180 L 365 145 L 410 170 L 450 135 L 495 155 L 540 115 L 585 140 L 625 95 L 670 110 L 700 90";
+    "M 120 215 L 168 190 L 205 205 L 248 168 L 290 188 L 335 150 L 378 175 L 425 132 L 472 158 L 518 110 L 562 138 L 608 88 L 652 105 L 700 92";
   const midRidge2 =
-    "M 80 220 L 130 200 L 175 215 L 220 180 L 265 200 L 310 165 L 355 190 L 400 150 L 445 175 L 490 130 L 540 150 L 585 105 L 630 125 L 680 95 L 700 105";
+    "M 60 232 L 110 215 L 158 225 L 205 195 L 252 215 L 298 180 L 345 200 L 392 162 L 440 188 L 488 142 L 535 168 L 580 118 L 628 138 L 678 108 L 700 118";
+  // Foreground massif: dramatic varied peaks, dominant summit at right
   const fgRidge =
-    "M 240 240 L 280 220 L 320 200 L 360 215 L 395 180 L 420 200 L 455 160 L 478 175 L 510 145 L 535 165 L 565 130 L 590 150 L 615 110 L 635 92 L 658 75 L 678 95 L 700 80";
+    "M 220 250 L 252 232 L 282 218 L 305 228 L 332 205 L 360 222 L 388 192 L 414 215 L 442 178 L 470 198 L 498 158 L 522 180 L 548 138 L 575 160 L 600 118 L 622 102 L 642 85 L 660 72 L 678 92 L 695 80 L 700 86";
 
   // Per-peak hatching: each entry describes a shaded flank.
   // Strokes are placed perpendicular to (peak -> base) so they follow real slope.
