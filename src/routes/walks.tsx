@@ -183,91 +183,85 @@ function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number 
 
 function Hero() {
   return (
-    <section className="relative w-full overflow-hidden bg-paper pt-20 sm:pt-24">
-      <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
-        {/* Copy column */}
-        <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
-          <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
-          <div className="relative z-10 max-w-[620px]">
-            <Reveal as="p" variant="fade-up" className="eyebrow mb-6">
-              The Walks
-            </Reveal>
-            <Reveal
-              as="h1"
-              variant="rise"
-              delay={120}
-              className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]"
-            >
-              Real businesses.<br />
-              Real routes.<br />
-              Real <em className="italic text-royal">ground</em> covered.
-            </Reveal>
-            <Reveal
-              as="p"
-              variant="fade-up"
-              delay={260}
-              className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70"
-            >
-              Every walk here started where your business is now: a founder
-              carrying weight, a map waiting to be drawn. These are the journeys,
-              the milestones we built along them, and where each business
-              stands today.
-            </Reveal>
-            <Reveal
-              as="p"
-              variant="fade-up"
-              delay={340}
-              className="mt-5 text-[13px] italic leading-[1.7] text-ink/55"
-            >
-              A selection. Most of our work stays private.
-            </Reveal>
-            <Reveal as="div" variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <a
-                href="#cta"
-                className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
-              >
-                Build My Roadmap
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </a>
-            </Reveal>
-            <Reveal
-              as="p"
-              variant="fade-up"
-              delay={540}
-              className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60"
-            >
-              <span className="inline-block h-px w-5 bg-ink/40" />
-              <span>A 30 minute conversation. No pitch.</span>
-            </Reveal>
-          </div>
-        </div>
+    <section
+      className="walks-hero relative w-full overflow-hidden bg-paper"
+      style={{ minHeight: '720px' }}
+    >
+      {/* Mountain background layer */}
+      <div
+        className="pointer-events-none absolute inset-0 z-[1]"
+        style={{
+          backgroundImage: `url(${heroArt.url})`,
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: '72% auto',
+          backgroundPosition: 'right 46%',
+          opacity: 0.92,
+        }}
+        aria-hidden="true"
+      />
 
-        {/* Image column */}
-        <Reveal
-          immediate
-          variant="fade-right"
-          delay={300}
-          className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]"
-        >
-          <img
-            src={heroArt.url}
-            alt="Hand-drawn mountain range with a dotted blue climbing route ending at a summit flag."
-            loading="eager"
-            decoding="async"
-            // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
-            fetchpriority="high"
-            className="absolute inset-0 h-full w-full object-cover object-right"
-          />
-          {/* Feathered seam between text and image */}
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block"
-            aria-hidden="true"
-          />
-        </Reveal>
+      {/* Cream gradient overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 z-[2]"
+        style={{
+          background:
+            'linear-gradient(to right, #fbf8f2 0%, #fbf8f2 30%, rgba(251, 248, 242, 0.88) 43%, rgba(251, 248, 242, 0.36) 58%, rgba(251, 248, 242, 0.08) 78%, rgba(251, 248, 242, 0) 100%)',
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Content */}
+      <div className="relative z-[3] mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-12">
+        <div style={{ maxWidth: '560px', paddingTop: '130px' }}>
+          <Reveal as="p" variant="fade-up" className="eyebrow mb-6">
+            The Walks
+          </Reveal>
+          <Reveal
+            as="h1"
+            variant="rise"
+            delay={120}
+            className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]"
+          >
+            Real businesses.<br />
+            Real routes.<br />
+            Real <em className="italic text-royal">ground</em> covered.
+          </Reveal>
+          <Reveal
+            as="p"
+            variant="fade-up"
+            delay={260}
+            className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70"
+          >
+            Every walk here started where your business is now: a founder
+            carrying weight, a map waiting to be drawn. These are the journeys,
+            the milestones we built along them, and where each business
+            stands today.
+          </Reveal>
+          <Reveal
+            as="p"
+            variant="fade-up"
+            delay={340}
+            className="mt-5 text-[13px] italic leading-[1.7] text-ink/55"
+          >
+            A selection. Most of our work stays private.
+          </Reveal>
+          <Reveal as="div" variant="fade-up" delay={400} className="mt-8">
+            <a
+              href="#cta"
+              className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
+            >
+              Build My Roadmap
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </a>
+          </Reveal>
+        </div>
       </div>
 
-      {/* Thesis line — centered, quiet, beneath the hero */}
-      <p className="px-6 pb-12 pt-10 text-center font-display text-[18px] italic text-ink/80 sm:text-[20px]">
+      {/* Thesis line — inside the mountain area */}
+      <p
+        className="absolute z-[3] hidden font-display italic text-ink lg:block"
+        style={{ right: '27%', bottom: '155px', fontSize: '20px' }}
+      >
         No two walks are the same.
       </p>
     </section>
