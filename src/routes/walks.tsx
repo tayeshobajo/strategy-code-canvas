@@ -192,7 +192,7 @@ function ContourBg() {
   );
 }
 
-function HeroRoute() {
+function HeroRoute({ inView }: { inView: boolean }) {
   // Ascending dotted route with milestone open-circles and an arrow head.
   // Coordinates chosen against viewBox 700x260.
   const points: [number, number][] = [
@@ -207,45 +207,86 @@ function HeroRoute() {
     .map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`))
     .join(" ");
   const last = points[points.length - 1];
+  // Total stagger time for milestone reveals
+  const milestoneCount = points.length - 1; // excluding start (point A is implicit at index 0)
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 700 260"
       className="h-full w-full"
     >
-      <path
-        d={d}
-        fill="none"
-        stroke="var(--royal)"
-        strokeWidth="1.4"
-        strokeDasharray="2 6"
-        strokeLinecap="round"
-      />
-      {/* Milestone circles */}
-      {points.slice(1, -1).map(([x, y], i) => (
-        <circle
-          key={i}
-          cx={x}
-          cy={y}
-          r={5}
-          fill="white"
+      <defs>
+        <mask id="walks-hero-reveal" maskUnits="userSpaceOnUse">
+          <rect width="700" height="260" fill="black" />
+          <path
+            d={d}
+            fill="none"
+            stroke="white"
+            strokeWidth="22"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            pathLength={1}
+            strokeDasharray="1 1"
+            strokeDashoffset={inView ? 0 : 1}
+            style={{
+              transition: "stroke-dashoffset 2200ms cubic-bezier(0.42, 0, 0.2, 1)",
+            }}
+          />
+        </mask>
+      </defs>
+
+      {/* Dotted ascending route, revealed via mask as it draws */}
+      <g mask="url(#walks-hero-reveal)">
+        <path
+          d={d}
+          fill="none"
           stroke="var(--royal)"
-          strokeWidth="1.5"
+          strokeWidth="1.4"
+          strokeDasharray="2 6"
+          strokeLinecap="round"
         />
-      ))}
-      {/* Final filled node */}
-      <circle cx={last[0]} cy={last[1]} r={6} fill="var(--royal)" />
-      {/* Arrow head */}
-      <path
-        d={`M ${last[0] - 2} ${last[1] - 14} L ${last[0] + 14} ${last[1] - 26} L ${last[0] + 4} ${last[1] - 8} Z`}
-        fill="var(--royal)"
-      />
-      <path
-        d={`M ${last[0]} ${last[1]} L ${last[0] + 14} ${last[1] - 26}`}
-        stroke="var(--royal)"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
+      </g>
+
+      {/* Milestone circles — fade in staggered along the draw */}
+      {points.slice(1, -1).map(([x, y], i) => {
+        const t = (i + 1) / milestoneCount; // approx progress along path
+        const delay = 200 + t * 1800;
+        return (
+          <circle
+            key={i}
+            cx={x}
+            cy={y}
+            r={5}
+            fill="white"
+            stroke="var(--royal)"
+            strokeWidth="1.5"
+            style={{
+              opacity: inView ? 1 : 0,
+              transition: `opacity 380ms ease-out ${delay}ms`,
+            }}
+          />
+        );
+      })}
+
+      {/* Final filled node + arrow — appear at end of draw */}
+      <g
+        style={{
+          opacity: inView ? 1 : 0,
+          transition: "opacity 420ms ease-out 2100ms",
+        }}
+      >
+        <circle cx={last[0]} cy={last[1]} r={6} fill="var(--royal)" />
+        <path
+          d={`M ${last[0] - 2} ${last[1] - 14} L ${last[0] + 14} ${last[1] - 26} L ${last[0] + 4} ${last[1] - 8} Z`}
+          fill="var(--royal)"
+        />
+        <path
+          d={`M ${last[0]} ${last[1]} L ${last[0] + 14} ${last[1] - 26}`}
+          stroke="var(--royal)"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </g>
     </svg>
   );
 }
