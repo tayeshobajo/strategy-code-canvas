@@ -405,9 +405,10 @@ function FilterRow({
 
 /* --------------------------- WALK ROW SVG --------------------------- */
 
-function WalkRoute({ labels }: { labels: string[] }) {
-  // Render an upward-trending line with N nodes; last node has ripple rings.
-  const n = labels.length;
+function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: number }) {
+  // Stagger the breathing ring across rows so they don't pulse in unison.
+  // Negative delays start each row mid-cycle for an immediate, varied feel.
+  const ringDelay = `${-(rowIndex * 480) % 3800}ms`;
   const W = 560;
   const H = 170;
   const padX = 30;
