@@ -193,7 +193,7 @@ function Hero() {
           decoding="async"
           // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
           fetchpriority="high"
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-right"
         />
 
         {/* Copy column */}
