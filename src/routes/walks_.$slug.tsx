@@ -718,7 +718,7 @@ function WhereTheyStandNow({ walk }: { walk: WalkDetail }) {
 
 function QuoteBlock({ walk }: { walk: WalkDetail }) {
   return (
-    <section className={`${container} pb-14`}>
+    <section className={`${container} border-t border-rule pb-14 pt-14`}>
       <div className="relative overflow-hidden rounded-md border border-rule bg-paper">
         <div
           aria-hidden
