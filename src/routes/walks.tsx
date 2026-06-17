@@ -185,16 +185,16 @@ function Hero() {
   return (
     <section
       className="walks-hero relative w-full overflow-hidden bg-paper"
-      style={{ minHeight: '720px' }}
+      style={{ minHeight: '660px' }}
     >
-      {/* Mountain background layer */}
+      {/* Mountain background layer — nudged right so it stays clear of copy */}
       <div
         className="pointer-events-none absolute inset-0 z-[1]"
         style={{
           backgroundImage: `url(${heroArt.url})`,
           backgroundRepeat: 'no-repeat',
-          backgroundSize: '72% auto',
-          backgroundPosition: 'right 46%',
+          backgroundSize: '70% auto',
+          backgroundPosition: 'right -5% top 32%',
           opacity: 0.92,
         }}
         aria-hidden="true"
@@ -205,14 +205,15 @@ function Hero() {
         className="pointer-events-none absolute inset-0 z-[2]"
         style={{
           background:
-            'linear-gradient(to right, #fbf8f2 0%, #fbf8f2 30%, rgba(251, 248, 242, 0.88) 43%, rgba(251, 248, 242, 0.36) 58%, rgba(251, 248, 242, 0.08) 78%, rgba(251, 248, 242, 0) 100%)',
+            'linear-gradient(to right, #fbf8f2 0%, #fbf8f2 32%, rgba(251, 248, 242, 0.9) 46%, rgba(251, 248, 242, 0.4) 60%, rgba(251, 248, 242, 0.1) 80%, rgba(251, 248, 242, 0) 100%)',
         }}
         aria-hidden="true"
       />
 
       {/* Content */}
       <div className="relative z-[3] mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-12">
-        <div style={{ maxWidth: '560px', paddingTop: '130px' }}>
+        <div style={{ maxWidth: '560px', paddingTop: '110px', paddingBottom: '90px' }}>
+
           <Reveal as="p" variant="fade-up" className="eyebrow mb-6">
             The Walks
           </Reveal>
@@ -257,13 +258,14 @@ function Hero() {
         </div>
       </div>
 
-      {/* Thesis line — inside the mountain area */}
+      {/* Thesis line — beneath the route in the mountain area */}
       <p
-        className="absolute z-[3] hidden font-display italic text-ink lg:block"
-        style={{ right: '27%', bottom: '155px', fontSize: '20px' }}
+        className="absolute z-[3] hidden font-display italic lg:block"
+        style={{ right: '22%', bottom: '170px', fontSize: '20px', color: '#071a3d', opacity: 0.82 }}
       >
         No two walks are the same.
       </p>
+
     </section>
   );
 }
@@ -388,7 +390,7 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
             x={x}
             y={125}
             textAnchor="middle"
-            fontSize="9"
+            fontSize="10.5"
             fill="oklch(0.32 0.04 260)"
             fontFamily="Inter, system-ui, sans-serif"
           >
