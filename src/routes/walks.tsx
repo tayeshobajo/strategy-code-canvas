@@ -194,7 +194,7 @@ function Hero() {
           backgroundImage: `url(${heroArt.url})`,
           backgroundRepeat: 'no-repeat',
           backgroundSize: '70% auto',
-          backgroundPosition: 'right -5% center',
+          backgroundPosition: 'right -5% top 32%',
           opacity: 0.92,
         }}
         aria-hidden="true"
