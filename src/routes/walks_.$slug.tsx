@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import {
   ArrowRight,
   ArrowLeft,
@@ -451,19 +451,28 @@ export const Route = createFileRoute("/walks_/$slug")({
       </main>
     </div>
   ),
-  errorComponent: ({ error, reset }) => (
-    <div className="min-h-screen bg-paper">
-      <SiteHeader />
-      <main className="mx-auto max-w-[1240px] px-6 py-32 text-center">
-        <p className="eyebrow">Something broke</p>
-        <h1 className="mt-6 font-display text-[2.5rem] text-ink">We could not load this walk.</h1>
-        <p className="mt-4 text-ink/65">{String(error?.message ?? error)}</p>
-        <button onClick={() => reset()} className="mt-10 inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-paper">
-          Try again
-        </button>
-      </main>
-    </div>
-  ),
+  errorComponent: ({ error, reset }) => {
+    const router = useRouter();
+    return (
+      <div className="min-h-screen bg-paper">
+        <SiteHeader />
+        <main className="mx-auto max-w-[1240px] px-6 py-32 text-center">
+          <p className="eyebrow">Something broke</p>
+          <h1 className="mt-6 font-display text-[2.5rem] text-ink">We could not load this walk.</h1>
+          <p className="mt-4 text-ink/65">{String(error?.message ?? error)}</p>
+          <button
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
+            className="mt-10 inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-paper"
+          >
+            Try again
+          </button>
+        </main>
+      </div>
+    );
+  },
   component: WalkDetailPage,
 });
 
@@ -718,7 +727,7 @@ function WhereTheyStandNow({ walk }: { walk: WalkDetail }) {
 
 function QuoteBlock({ walk }: { walk: WalkDetail }) {
   return (
-    <section className={`${container} pb-14`}>
+    <section className={`${container} border-t border-rule pb-14 pt-14`}>
       <div className="relative overflow-hidden rounded-md border border-rule bg-paper">
         <div
           aria-hidden
@@ -757,9 +766,34 @@ function QuoteBlock({ walk }: { walk: WalkDetail }) {
 
 /* --------------------------- DARK CTA --------------------------- */
 
+function CtaContour() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      viewBox="0 0 1240 280"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <g fill="none" stroke="white" strokeOpacity="0.06" strokeWidth="0.7">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <ellipse
+            key={i}
+            cx="980"
+            cy="140"
+            rx={140 + i * 70}
+            ry={60 + i * 30}
+            transform="rotate(-8 980 140)"
+          />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
 function DarkCta() {
   return (
-    <section id="cta" className="relative overflow-hidden bg-[oklch(0.13_0.05_265)] text-white">
+    <section id="cta" className="relative mt-16 overflow-hidden bg-[oklch(0.13_0.05_265)] text-white">
+      <CtaContour />
       <div className={`${container} relative grid grid-cols-1 items-center gap-8 py-14 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-12 md:py-16`}>
         <div>
           <h2 className="font-display text-[26px] leading-[1.18] tracking-[-0.018em] text-white sm:text-[32px]">
@@ -771,7 +805,7 @@ function DarkCta() {
         </div>
         <div className="flex flex-col items-start gap-4 md:items-end md:text-right">
           <a
-            href="/#cta"
+            href="#cta"
             className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[13px] font-medium text-ink transition-all duration-300 hover:-translate-y-[1px]"
           >
             Build My Roadmap
@@ -866,6 +900,10 @@ function SiteFooter() {
         </ul>
         <div className="flex flex-col gap-4 sm:items-end sm:text-right">
           <p>© 2026 Trust Tai. All rights reserved.</p>
+          <div className="flex gap-5">
+            <a href="#" className="hover:text-ink">Privacy Policy</a>
+            <a href="#" className="hover:text-ink">Terms of Service</a>
+          </div>
           <p className="text-ink/55">We build the map.<br />You build what matters.</p>
         </div>
       </div>
