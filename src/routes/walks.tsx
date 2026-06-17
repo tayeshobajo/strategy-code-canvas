@@ -576,16 +576,15 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
           <p className="mt-1 text-[12.5px] text-ink/55">{walk.subcategory}</p>
         </div>
 
-        {/* Headline + blurb */}
+        {/* Lead stat + journey context */}
         <div>
-          <h3 className="font-display text-[22px] leading-[1.18] tracking-[-0.015em] text-ink sm:text-[24px]">
-            {walk.headline.map((line, i) => (
-              <span key={i} className="block">
-                {line}
-              </span>
-            ))}
-          </h3>
-          <p className="mt-4 max-w-[40ch] text-[12.5px] leading-[1.7] text-ink/60">
+          <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink sm:text-[42px]">
+            {"{{OUTCOME}}"}
+          </p>
+          <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
+            Verified outcome
+          </p>
+          <p className="mt-5 max-w-[40ch] text-[12.5px] leading-[1.7] text-ink/65">
             {walk.blurb}
           </p>
         </div>
