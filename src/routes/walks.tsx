@@ -185,7 +185,7 @@ function Hero() {
   return (
     <section
       className="walks-hero relative w-full overflow-hidden bg-paper"
-      style={{ minHeight: '660px' }}
+      style={{ minHeight: '560px' }}
     >
       {/* Mountain background layer — nudged right so it stays clear of copy */}
       <div
