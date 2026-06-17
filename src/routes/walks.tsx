@@ -677,17 +677,44 @@ function SiteFooter() {
 
 function WalksPage() {
   const [filter, setFilter] = React.useState<Filter>("All");
+  const filterAnchorRef = React.useRef<HTMLDivElement>(null);
+  // Track viewport offset of the filter row across renders so we can
+  // restore scroll position after a filter change shrinks/grows the list.
+  const pendingAnchorTopRef = React.useRef<number | null>(null);
+
   const filtered = React.useMemo(
     () => (filter === "All" ? WALKS : WALKS.filter((w) => w.bucket === filter)),
     [filter],
   );
+
+  const handleFilterChange = React.useCallback((next: Filter) => {
+    if (next === filter) return;
+    const node = filterAnchorRef.current;
+    pendingAnchorTopRef.current = node ? node.getBoundingClientRect().top : null;
+    setFilter(next);
+  }, [filter]);
+
+  React.useLayoutEffect(() => {
+    const prevTop = pendingAnchorTopRef.current;
+    if (prevTop == null) return;
+    const node = filterAnchorRef.current;
+    if (!node) return;
+    const nextTop = node.getBoundingClientRect().top;
+    const delta = nextTop - prevTop;
+    if (delta !== 0) {
+      window.scrollBy({ top: delta, left: 0, behavior: "auto" });
+    }
+    pendingAnchorTopRef.current = null;
+  }, [filter]);
 
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
       <main>
         <Hero />
-        <FilterRow active={filter} onChange={setFilter} />
+        <div ref={filterAnchorRef}>
+          <FilterRow active={filter} onChange={handleFilterChange} />
+        </div>
         <section className="mt-2">
           {filtered.map((w, i) => (
             <WalkRow key={w.slug} walk={w} index={i} />
