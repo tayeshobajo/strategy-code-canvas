@@ -184,21 +184,11 @@ function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number 
 function Hero() {
   return (
     <section className="relative w-full overflow-hidden bg-paper pt-20 sm:pt-24">
-      <div className="relative min-h-[640px] lg:min-h-[720px]">
-        {/* Full-width hero background — one continuous canvas */}
-        <img
-          src={heroArt.url}
-          alt="Hand-drawn mountain range with a dotted blue climbing route ending at a summit flag."
-          loading="eager"
-          decoding="async"
-          // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
-          fetchpriority="high"
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-right"
-        />
-
+      <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
         {/* Copy column */}
-        <div className="relative z-10 px-6 py-14 lg:py-24 lg:pl-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
-          <div className="max-w-[560px]">
+        <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
+          <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
+          <div className="relative z-10 max-w-[620px]">
             <Reveal as="p" variant="fade-up" className="eyebrow mb-6">
               The Walks
             </Reveal>
@@ -240,17 +230,46 @@ function Hero() {
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
             </Reveal>
+            <Reveal
+              as="p"
+              variant="fade-up"
+              delay={540}
+              className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60"
+            >
+              <span className="inline-block h-px w-5 bg-ink/40" />
+              <span>A 30 minute conversation. No pitch.</span>
+            </Reveal>
           </div>
         </div>
 
-        {/* Thesis line — quiet serif, lower middle of the mountain route */}
-        <p className="absolute bottom-28 left-[52%] z-10 hidden translate-x-[-50%] font-display text-[20px] italic text-ink lg:block">
-          No two walks are the same.
-        </p>
-        <p className="relative z-10 px-6 pb-10 text-center font-display text-[17px] italic text-ink lg:hidden">
-          No two walks are the same.
-        </p>
+        {/* Image column */}
+        <Reveal
+          immediate
+          variant="fade-right"
+          delay={300}
+          className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]"
+        >
+          <img
+            src={heroArt.url}
+            alt="Hand-drawn mountain range with a dotted blue climbing route ending at a summit flag."
+            loading="eager"
+            decoding="async"
+            // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+            fetchpriority="high"
+            className="absolute inset-0 h-full w-full object-cover object-right"
+          />
+          {/* Feathered seam between text and image */}
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-paper to-transparent lg:block"
+            aria-hidden="true"
+          />
+        </Reveal>
       </div>
+
+      {/* Thesis line — centered, quiet, beneath the hero */}
+      <p className="px-6 pb-12 pt-10 text-center font-display text-[18px] italic text-ink/80 sm:text-[20px]">
+        No two walks are the same.
+      </p>
     </section>
   );
 }
