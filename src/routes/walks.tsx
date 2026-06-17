@@ -205,7 +205,7 @@ function Hero() {
         className="pointer-events-none absolute inset-0 z-[2]"
         style={{
           background:
-            'linear-gradient(to right, #fbf8f2 0%, #fbf8f2 32%, rgba(251, 248, 242, 0.9) 46%, rgba(251, 248, 242, 0.4) 60%, rgba(251, 248, 242, 0.1) 80%, rgba(251, 248, 242, 0) 100%)',
+            'linear-gradient(to right, #fbf8f2 0%, #fbf8f2 30%, rgba(251, 248, 242, 0.82) 42%, rgba(251, 248, 242, 0.35) 56%, rgba(251, 248, 242, 0.08) 76%, rgba(251, 248, 242, 0) 100%)',
         }}
         aria-hidden="true"
       />
