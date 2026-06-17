@@ -183,67 +183,86 @@ function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number 
 
 function Hero() {
   return (
-    <section className="walks-hero">
-      <div className="walks-hero-copy">
-        <Reveal as="p" variant="fade-up" className="eyebrow">
-          The Walks
-        </Reveal>
-        <Reveal
-          as="h1"
-          variant="fade-up"
-          delay={80}
-          className="mt-6 font-display text-[44px] leading-[1.05] tracking-[-0.022em] text-ink sm:text-[56px] lg:text-[64px]"
-        >
-          Real businesses.<br />
-          Real routes.<br />
-          Real <em className="italic text-royal">ground</em> covered.
-        </Reveal>
-        <Reveal
-          as="p"
-          variant="fade-up"
-          delay={160}
-          className="mt-7 max-w-[44ch] text-[14px] leading-[1.75] text-ink/65"
-        >
-          Every walk here started where your business is now: a founder
-          carrying weight, a map waiting to be drawn. These are the journeys,
-          the milestones we built along them, and where each business
-          stands today.
-        </Reveal>
-        <Reveal
-          as="p"
-          variant="fade-up"
-          delay={220}
-          className="mt-5 text-[13px] italic leading-[1.7] text-ink/55"
-        >
-          A selection. Most of our work stays private.
-        </Reveal>
-        <Reveal as="div" variant="fade-up" delay={300} className="mt-9">
-          <a
-            href="#cta"
-            className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[13px] font-medium text-paper transition-all duration-300 hover:-translate-y-[1px]"
-          >
-            Build My Roadmap
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </a>
-        </Reveal>
-      </div>
+    <section className="relative overflow-hidden bg-paper pt-28 sm:pt-32">
+      <div className={`${container} relative`}>
+        <div className="grid grid-cols-1 gap-10 pb-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16 lg:pb-16">
+          <div className="relative z-10 flex flex-col">
+            <Reveal as="p" variant="fade-up" className="eyebrow">
+              The Walks
+            </Reveal>
+            <Reveal
+              as="h1"
+              variant="fade-up"
+              delay={80}
+              className="mt-6 font-display text-[44px] leading-[1.05] tracking-[-0.022em] text-ink sm:text-[56px] lg:text-[64px]"
+            >
+              Real businesses.<br />
+              Real routes.<br />
+              Real <em className="italic text-royal">ground</em> covered.
+            </Reveal>
+            <Reveal
+              as="p"
+              variant="fade-up"
+              delay={160}
+              className="mt-7 max-w-[44ch] text-[14px] leading-[1.75] text-ink/65"
+            >
+              Every walk here started where your business is now: a founder
+              carrying weight, a map waiting to be drawn. These are the journeys,
+              the milestones we built along them, and where each business
+              stands today.
+            </Reveal>
+            <Reveal
+              as="p"
+              variant="fade-up"
+              delay={220}
+              className="mt-5 text-[13px] italic leading-[1.7] text-ink/55"
+            >
+              A selection. Most of our work stays private.
+            </Reveal>
+            <Reveal as="div" variant="fade-up" delay={300} className="mt-9">
+              <a
+                href="#cta"
+                className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[13px] font-medium text-paper transition-all duration-300 hover:-translate-y-[1px]"
+              >
+                Build My Roadmap
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              </a>
+            </Reveal>
+          </div>
 
-      <div className="walks-hero-art-wrap">
-        <img
-          src={heroArt.url}
-          alt="Engraved mountain range with a climbing route to summit"
-          className="walks-hero-art"
-        />
+          <div className="relative flex min-h-[460px] w-full flex-col items-center justify-center overflow-hidden">
+            <img
+              src={heroArt.url}
+              alt="Engraved mountain range with a climbing route to summit"
+              className="w-full flex-1 object-contain"
+            />
+            {/* Thesis line — beneath the artwork, centered */}
+            <Reveal
+              as="div"
+              variant="fade-up"
+              delay={420}
+              className="mt-4 flex flex-col items-center text-center"
+            >
+              <p className="font-display text-[20px] italic text-ink">
+                No two walks are the same.
+              </p>
+              <span className="mt-3 inline-block h-px w-10 bg-ink/40" />
+            </Reveal>
+          </div>
+        </div>
+
+
+        {/* Mobile thesis line — stacked under the simplified landscape */}
         <Reveal
           as="div"
           variant="fade-up"
           delay={420}
-          className="thesis-line"
+          className="mb-10 flex flex-col items-center text-center lg:hidden"
         >
-          <p className="font-display text-[20px] italic text-ink">
+          <p className="font-display text-[20px] italic text-ink/80">
             No two walks are the same.
           </p>
-          <span className="mx-auto mt-3 block h-px w-10 bg-ink/40" />
+          <span className="mt-3 inline-block h-px w-10 bg-ink/40" />
         </Reveal>
       </div>
     </section>
