@@ -484,8 +484,6 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
   const d = xs
     .map((x, i) => (i === 0 ? `M ${x} ${ys[i]}` : `L ${x} ${ys[i]}`))
     .join(" ");
-  const lastX = xs[n - 1];
-  const lastY = ys[n - 1];
 
   return (
     <svg
