@@ -183,18 +183,19 @@ function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number 
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden bg-paper pt-28 sm:pt-32">
-      <div className={`${container} relative`}>
-        <div className="grid grid-cols-1 gap-10 pb-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16 lg:pb-16">
-          <div className="relative z-10 flex flex-col">
-            <Reveal as="p" variant="fade-up" className="eyebrow">
+    <section className="relative w-full overflow-hidden bg-paper pt-20 sm:pt-24">
+      <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
+        <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
+          <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
+          <div className="relative z-10 max-w-[620px]">
+            <Reveal as="p" variant="fade-up" className="eyebrow mb-6">
               The Walks
             </Reveal>
             <Reveal
               as="h1"
-              variant="fade-up"
-              delay={80}
-              className="mt-6 font-display text-[44px] leading-[1.05] tracking-[-0.022em] text-ink sm:text-[56px] lg:text-[64px]"
+              variant="rise"
+              delay={120}
+              className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]"
             >
               Real businesses.<br />
               Real routes.<br />
@@ -203,8 +204,8 @@ function Hero() {
             <Reveal
               as="p"
               variant="fade-up"
-              delay={160}
-              className="mt-7 max-w-[44ch] text-[14px] leading-[1.75] text-ink/65"
+              delay={260}
+              className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70"
             >
               Every walk here started where your business is now: a founder
               carrying weight, a map waiting to be drawn. These are the journeys,
@@ -214,55 +215,45 @@ function Hero() {
             <Reveal
               as="p"
               variant="fade-up"
-              delay={220}
+              delay={340}
               className="mt-5 text-[13px] italic leading-[1.7] text-ink/55"
             >
               A selection. Most of our work stays private.
             </Reveal>
-            <Reveal as="div" variant="fade-up" delay={300} className="mt-9">
+            <Reveal as="div" variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a
                 href="#cta"
-                className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[13px] font-medium text-paper transition-all duration-300 hover:-translate-y-[1px]"
+                className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
               >
                 Build My Roadmap
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
             </Reveal>
-          </div>
-
-          <div className="relative flex min-h-[460px] w-full flex-col items-center justify-center overflow-hidden">
-            <img
-              src={heroArt.url}
-              alt="Engraved mountain range with a climbing route to summit"
-              className="w-full flex-1 object-contain"
-            />
-            {/* Thesis line — beneath the artwork, centered */}
-            <Reveal
-              as="div"
-              variant="fade-up"
-              delay={420}
-              className="mt-4 flex flex-col items-center text-center"
-            >
-              <p className="font-display text-[20px] italic text-ink">
-                No two walks are the same.
-              </p>
-              <span className="mt-3 inline-block h-px w-10 bg-ink/40" />
+            <Reveal as="p" variant="fade-up" delay={540} className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+              <span className="inline-block h-px w-5 bg-ink/40" />
+              <span>No two walks are the same.</span>
             </Reveal>
           </div>
         </div>
 
-
-        {/* Mobile thesis line — stacked under the simplified landscape */}
-        <Reveal
-          as="div"
-          variant="fade-up"
-          delay={420}
-          className="mb-10 flex flex-col items-center text-center lg:hidden"
-        >
-          <p className="font-display text-[20px] italic text-ink/80">
-            No two walks are the same.
-          </p>
-          <span className="mt-3 inline-block h-px w-10 bg-ink/40" />
+        <Reveal immediate variant="fade-right" delay={300} className="relative h-[420px] w-full lg:h-full lg:min-h-[640px]">
+          <img
+            src={heroArt.url}
+            alt="Hand-drawn mountain range with a dotted blue climbing route ending at a summit flag."
+            loading="eager"
+            decoding="async"
+            // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+            fetchpriority="high"
+            className="absolute inset-0 h-full w-full object-cover object-right lg:hero-photo-fade"
+          />
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[42%] lg:block"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, var(--paper) 0%, color-mix(in oklab, var(--paper) 80%, transparent) 30%, color-mix(in oklab, var(--paper) 40%, transparent) 60%, transparent 100%)",
+            }}
+            aria-hidden="true"
+          />
         </Reveal>
       </div>
     </section>
