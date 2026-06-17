@@ -373,7 +373,7 @@ function Hero() {
               alt=""
               aria-hidden="true"
               draggable={false}
-              className="pointer-events-none absolute -right-16 bottom-0 w-[170%] max-w-none select-none opacity-95 lg:w-[165%]"
+              className="pointer-events-none absolute -right-16 bottom-0 w-[170%] max-w-none select-none lg:w-[165%]"
             />
             {/* Blue route layer — sits on top of the mountains */}
             <div className="pointer-events-none absolute inset-0">
