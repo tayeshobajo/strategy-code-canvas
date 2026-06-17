@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { Reveal, useReveal } from "@/hooks/use-reveal";
+import { Reveal } from "@/hooks/use-reveal";
+import heroArt from "@/assets/trust-tai-walks-hero-composed.svg.asset.json";
 
 export const Route = createFileRoute("/walks")({
   head: () => {
@@ -156,109 +157,6 @@ type Filter = (typeof FILTERS)[number];
 
 /* ------------------------------ HERO ------------------------------ */
 
-// Engraved mountain range, hand-authored inline so we control composition
-// pixel-for-pixel against the approved mockup. Shares the same viewBox as
-// HeroRoute so the blue dotted route climbs across the ridgeline and the
-// summit flag lands on the dominant peak.
-
-// Hand-authored engraved mountain range, inlined so the route shares the
-// same coordinate system (viewBox 0 185 1440 300) and the dominant summit
-// sits at (1320, 208) — the route ends there and owns the flag.
-function EngravedMountains() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 185 1440 300"
-      preserveAspectRatio="xMidYEnd meet"
-      className="h-full w-full text-ink"
-    >
-      <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-        {/* distant range */}
-        <g opacity="0.16" strokeWidth="1.1">
-          <path d="M118 378 C188 334 238 318 294 323 C354 330 404 289 462 302 C531 318 575 256 644 274 C702 289 748 244 806 264 C873 293 922 220 997 234 C1062 246 1124 198 1195 220 C1270 242 1320 205 1394 230" />
-          <path d="M204 353 L281 323 L336 360" />
-          <path d="M387 329 L462 302 L520 345" />
-          <path d="M592 302 L644 274 L694 318" />
-          <path d="M757 294 L806 264 L858 312" />
-          <path d="M930 274 L997 234 L1061 296" />
-          <path d="M1138 260 L1195 220 L1255 284" />
-          <path d="M1288 254 L1344 214 L1394 230" />
-        </g>
-
-        {/* middle ridge */}
-        <g opacity="0.26" strokeWidth="1.1">
-          <path d="M32 410 C128 390 182 364 254 374 C315 382 357 340 426 348 C492 356 536 296 615 318 C686 338 748 278 826 298 C900 316 948 250 1037 270 C1116 288 1171 232 1258 260 C1324 282 1366 258 1430 274" />
-          <path d="M162 391 L254 374 L331 420" />
-          <path d="M318 381 L426 348 L501 406" />
-          <path d="M512 382 L615 318 L702 414" />
-          <path d="M724 373 L826 298 L904 398" />
-          <path d="M941 347 L1037 270 L1126 394" />
-          <path d="M1164 347 L1258 260 L1354 396" />
-        </g>
-
-        {/* front range with main summit */}
-        <g opacity="0.42" strokeWidth="1.1">
-          <path d="M4 438 C86 418 155 402 236 408 C323 415 372 372 448 385 C530 400 586 326 675 347 C753 365 822 316 897 336 C982 359 1027 274 1108 296 C1178 315 1234 176 1320 208 C1376 228 1406 248 1436 262" />
-          <path d="M75 431 C160 422 216 414 285 438" />
-          <path d="M297 423 L448 385 L548 456" />
-          <path d="M485 416 L675 347 L782 468" />
-          <path d="M770 414 L897 336 L1015 468" />
-          <path d="M990 420 L1108 296 L1210 462" />
-          <path d="M1122 432 L1320 208 L1436 262" />
-          <path d="M1184 352 L1320 208 L1392 436" />
-          <path d="M1244 294 L1320 208 L1358 388" />
-        </g>
-
-        {/* etched slope hatching */}
-        <g opacity="0.34" strokeWidth="0.85">
-          <path d="M334 413 C372 400 405 397 439 385" />
-          <path d="M356 428 C397 412 428 405 462 393" />
-          <path d="M386 443 C426 426 462 416 500 401" />
-          <path d="M422 455 C466 440 501 430 534 416" />
-          <path d="M548 409 C590 388 623 371 675 347" />
-          <path d="M591 430 C630 410 665 395 708 380" />
-          <path d="M633 454 C671 434 705 419 744 398" />
-          <path d="M704 455 C737 436 763 420 793 402" />
-          <path d="M506 438 C557 424 608 417 662 408" />
-          <path d="M472 459 C551 450 626 443 714 430" />
-          <path d="M820 392 C856 374 875 356 897 336" />
-          <path d="M842 421 C887 398 928 381 974 358" />
-          <path d="M883 449 C928 428 974 409 1014 388" />
-          <path d="M930 464 C977 441 1028 422 1080 402" />
-          <path d="M1006 362 C1048 340 1082 318 1108 296" />
-          <path d="M1036 390 C1074 371 1108 353 1144 336" />
-          <path d="M1058 427 C1105 402 1144 382 1184 360" />
-          <path d="M1094 454 C1134 435 1178 414 1222 392" />
-          <path d="M796 451 C858 438 918 430 984 419" />
-          <path d="M850 470 C939 456 1022 445 1114 426" />
-          <path d="M1132 424 C1180 392 1236 340 1320 208" />
-          <path d="M1169 438 C1221 397 1272 326 1320 208" />
-          <path d="M1206 451 C1248 409 1288 314 1320 208" />
-          <path d="M1242 459 C1278 414 1303 315 1320 208" />
-          <path d="M1282 458 C1296 405 1311 305 1320 208" />
-          <path d="M1324 233 C1353 288 1374 349 1392 436" />
-          <path d="M1340 248 C1370 286 1398 334 1424 396" />
-          <path d="M1185 383 C1243 361 1306 342 1378 330" />
-          <path d="M1166 414 C1240 394 1322 375 1412 356" />
-          <path d="M1146 444 C1234 425 1330 405 1436 386" />
-          <path d="M1190 315 C1226 302 1268 292 1308 286" />
-          <path d="M1220 278 C1252 270 1286 263 1318 257" />
-          <path d="M1252 247 C1274 241 1296 236 1318 231" />
-        </g>
-
-        {/* faint ground contour lines */}
-        <g opacity="0.14" strokeWidth="0.9">
-          <path d="M0 462 C168 448 320 451 486 462 C632 472 780 476 940 462 C1082 449 1230 446 1440 458" />
-          <path d="M40 482 C220 468 396 470 548 483 C696 496 836 500 1002 486 C1148 474 1290 473 1418 482" />
-          <path d="M142 499 C274 491 420 493 562 502 C692 510 838 512 982 503 C1122 494 1272 493 1394 500" />
-          <path d="M190 445 C272 436 358 438 442 448" />
-          <path d="M632 448 C736 438 838 438 948 448" />
-          <path d="M1048 444 C1154 433 1272 433 1380 444" />
-        </g>
-      </g>
-    </svg>
-  );
-}
 
 function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
   const h = 28 * scale;
@@ -282,101 +180,8 @@ function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number 
   );
 }
 
-function HeroRoute({ inView }: { inView: boolean }) {
-  // Dotted royal-blue route climbing lower-left -> upper-right across the
-  // engraved range. Ends at the dominant summit (1320, 208) where it owns
-  // the flag. Shares the mountain SVG's viewBox so points align exactly.
-  const points: [number, number][] = [
-    [80, 445],
-    [275, 418],
-    [475, 392],
-    [700, 360],
-    [915, 325],
-    [1130, 278],
-    [1320, 208],
-  ];
-  const d =
-    "M80 445 C200 432, 350 425, 475 392 C620 355, 820 360, 915 325 C1040 280, 1200 265, 1320 208";
-  const last = points[points.length - 1];
-  const milestoneCount = points.length - 1;
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 185 1440 300"
-      preserveAspectRatio="xMidYEnd meet"
-      className="h-full w-full"
-    >
-      <defs>
-        <mask id="walks-hero-reveal" maskUnits="userSpaceOnUse">
-          <rect x="0" y="185" width="1440" height="300" fill="black" />
-          <path
-            d={d}
-            fill="none"
-            stroke="white"
-            strokeWidth="36"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            pathLength={1}
-            strokeDasharray="1 1"
-            strokeDashoffset={inView ? 0 : 1}
-            style={{
-              transition: "stroke-dashoffset 2400ms cubic-bezier(0.42, 0, 0.2, 1)",
-            }}
-          />
-        </mask>
-      </defs>
-
-      <g mask="url(#walks-hero-reveal)">
-        <path
-          d={d}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-          strokeDasharray="7 9"
-          strokeLinecap="round"
-        />
-      </g>
-
-      {points.slice(1, -1).map(([x, y], i) => {
-        const t = (i + 1) / milestoneCount;
-        const delay = 200 + t * 2000;
-        const filled = i % 2 === 1;
-        return (
-          <circle
-            key={i}
-            cx={x}
-            cy={y}
-            r={filled ? 7 : 6.5}
-            fill={filled ? "var(--royal)" : "var(--paper)"}
-            stroke="var(--royal)"
-            strokeWidth="1.8"
-            style={{
-              opacity: inView ? 1 : 0,
-              transition: `opacity 380ms ease-out ${delay}ms`,
-            }}
-          />
-        );
-      })}
-
-      <g
-        style={{
-          opacity: inView ? 1 : 0,
-          transition: "opacity 420ms ease-out 2300ms",
-        }}
-      >
-        <circle cx={last[0]} cy={last[1]} r={7} fill="var(--royal)" />
-        <SummitFlag x={last[0]} y={last[1] - 2} scale={1.1} />
-      </g>
-    </svg>
-  );
-}
 
 function Hero() {
-  const { ref: routeRef, inView: routeInView } = useReveal<HTMLDivElement>({
-    threshold: 0.35,
-    once: true,
-    rootMargin: "0px 0px -5% 0px",
-  });
   return (
     <section className="relative overflow-hidden bg-paper pt-28 sm:pt-32">
       <div className={`${container} relative`}>
@@ -425,24 +230,18 @@ function Hero() {
             </Reveal>
           </div>
 
-          <div
-            ref={routeRef}
-            className="relative min-h-[460px] w-full overflow-hidden"
-          >
-            {/* Engraved mountain layer — inline SVG */}
-            <div className="pointer-events-none absolute inset-0 z-[1]">
-              <EngravedMountains />
-            </div>
-            {/* Blue route layer — climbs across the ridgeline */}
-            <div className="pointer-events-none absolute inset-0 z-[2] text-royal">
-              <HeroRoute inView={routeInView} />
-            </div>
-            {/* Thesis line — sits beneath the route, above the mountain base */}
+          <div className="relative flex min-h-[460px] w-full flex-col items-center justify-center overflow-hidden">
+            <img
+              src={heroArt.url}
+              alt="Engraved mountain range with a climbing route to summit"
+              className="w-full flex-1 object-contain"
+            />
+            {/* Thesis line — beneath the artwork, centered */}
             <Reveal
               as="div"
               variant="fade-up"
               delay={420}
-              className="absolute bottom-[82px] left-[42%] z-[3] hidden flex-col items-center text-center lg:flex"
+              className="mt-4 flex flex-col items-center text-center"
             >
               <p className="font-display text-[20px] italic text-ink">
                 No two walks are the same.
