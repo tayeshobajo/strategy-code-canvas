@@ -554,7 +554,7 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
 
         {/* SVG route */}
         <div className="relative h-[170px] w-full">
-          <WalkRoute labels={walk.milestones} />
+          <WalkRoute labels={walk.milestones} rowIndex={index} />
         </div>
 
         {/* Right: stats + link */}
