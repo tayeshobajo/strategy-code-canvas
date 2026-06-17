@@ -185,7 +185,7 @@ function Hero() {
   return (
     <section
       className="walks-hero relative w-full overflow-hidden bg-paper"
-      style={{ minHeight: '560px' }}
+      style={{ minHeight: '660px' }}
     >
       {/* Mountain background layer — nudged right so it stays clear of copy */}
       <div
@@ -194,7 +194,7 @@ function Hero() {
           backgroundImage: `url(${heroArt.url})`,
           backgroundRepeat: 'no-repeat',
           backgroundSize: '70% auto',
-          backgroundPosition: 'right -8% top 32%',
+          backgroundPosition: 'right -5% top 32%',
           opacity: 0.92,
         }}
         aria-hidden="true"
@@ -205,14 +205,14 @@ function Hero() {
         className="pointer-events-none absolute inset-0 z-[2]"
         style={{
           background:
-            'linear-gradient(to right, #fbf8f2 0%, #fbf8f2 30%, rgba(251, 248, 242, 0.82) 42%, rgba(251, 248, 242, 0.35) 56%, rgba(251, 248, 242, 0.08) 76%, rgba(251, 248, 242, 0) 100%)',
+            'linear-gradient(to right, #fbf8f2 0%, #fbf8f2 32%, rgba(251, 248, 242, 0.9) 46%, rgba(251, 248, 242, 0.4) 60%, rgba(251, 248, 242, 0.1) 80%, rgba(251, 248, 242, 0) 100%)',
         }}
         aria-hidden="true"
       />
 
       {/* Content */}
       <div className="relative z-[3] mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-12">
-        <div style={{ maxWidth: '560px', paddingTop: '110px', paddingBottom: '50px' }}>
+        <div style={{ maxWidth: '560px', paddingTop: '110px', paddingBottom: '90px' }}>
 
           <Reveal as="p" variant="fade-up" className="eyebrow mb-6">
             The Walks
