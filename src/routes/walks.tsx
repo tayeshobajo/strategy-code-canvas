@@ -406,10 +406,8 @@ function Hero() {
           </p>
           <span className="mt-3 inline-block h-px w-10 bg-ink/40" />
         </Reveal>
-
-        <div className="hidden">{/* spacer placeholder to keep grid div balanced */}</div>
-        </div>
       </div>
+    </section>
     </section>
   );
 }
