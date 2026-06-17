@@ -463,6 +463,8 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
                   fill="var(--royal)"
                   fillOpacity="0.10"
                   className="ring-breathe"
+                  style={{ ["--ring-delay" as never]: ringDelay }}
+                  vectorEffect="non-scaling-stroke"
                 />
                 <circle
                   cx={x}
