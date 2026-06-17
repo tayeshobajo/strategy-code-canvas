@@ -157,44 +157,9 @@ type Filter = (typeof FILTERS)[number];
 
 /* ------------------------------ HERO ------------------------------ */
 
-function ContourBg() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 h-full w-full"
-      viewBox="0 0 1240 520"
-      preserveAspectRatio="xMidYMid slice"
-    >
-      <defs>
-        <radialGradient id="walks-contour" cx="70%" cy="40%" r="55%">
-          <stop offset="0%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0.08" />
-          <stop offset="100%" stopColor="oklch(0.48 0.18 262)" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <rect width="1240" height="520" fill="url(#walks-contour)" />
-      <g
-        fill="none"
-        stroke="oklch(0.48 0.18 262)"
-        strokeOpacity="0.07"
-        strokeWidth="0.75"
-      >
-        {Array.from({ length: 9 }).map((_, i) => (
-          <ellipse
-            key={i}
-            cx="880"
-            cy="220"
-            rx={120 + i * 60}
-            ry={70 + i * 38}
-            transform={`rotate(-12 880 220)`}
-          />
-        ))}
-      </g>
-    </svg>
-  );
-}
-
 // Engraved mountain illustration lives as a CDN-hosted SVG asset and is
 // rendered as a layered <img> behind the blue route inside Hero().
+
 
 function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
   const h = 16 * scale;
