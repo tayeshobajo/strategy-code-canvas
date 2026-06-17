@@ -382,18 +382,14 @@ function Hero() {
 
           <div
             ref={routeRef}
-            className="relative min-h-[560px] w-full overflow-hidden"
+            className="relative min-h-[460px] w-full overflow-hidden"
           >
-            {/* Mountain illustration layer — engraved SVG, anchored bottom-right */}
-            <img
-              src={mountainAsset.url}
-              alt=""
-              aria-hidden="true"
-              draggable={false}
-              className="pointer-events-none absolute -right-[90px] bottom-10 z-[1] w-[132%] max-w-none select-none opacity-[0.38]"
-            />
-            {/* Blue route layer — sits on top of the mountains */}
-            <div className="pointer-events-none absolute top-[150px] right-[70px] z-[2] h-[290px] w-[78%] overflow-visible text-royal">
+            {/* Engraved mountain layer — inline SVG */}
+            <div className="pointer-events-none absolute inset-0 z-[1]">
+              <EngravedMountains />
+            </div>
+            {/* Blue route layer — climbs across the ridgeline */}
+            <div className="pointer-events-none absolute inset-0 z-[2] text-royal">
               <HeroRoute inView={routeInView} />
             </div>
             {/* Thesis line — sits beneath the route, above the mountain base */}
