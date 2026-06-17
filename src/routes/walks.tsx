@@ -156,8 +156,64 @@ type Filter = (typeof FILTERS)[number];
 
 /* ------------------------------ HERO ------------------------------ */
 
-// Engraved mountain illustration lives as a CDN-hosted SVG asset and is
-// rendered as a layered <img> behind the blue route inside Hero().
+// Engraved mountain range, hand-authored inline so we control composition
+// pixel-for-pixel against the approved mockup. Shares the same viewBox as
+// HeroRoute so the blue dotted route climbs across the ridgeline and the
+// summit flag lands on the dominant peak.
+
+function EngravedMountains() {
+  const backRidge =
+    "M0 230 L60 200 L110 215 L170 180 L230 205 L300 175 L360 195 L430 160 L500 180 L570 140 L650 165 L720 120 L790 145 L860 95 L900 110 L900 360 L0 360 Z";
+  const midRidge =
+    "M0 270 L40 245 L90 260 L140 215 L200 245 L260 200 L320 230 L380 175 L450 210 L510 150 L580 195 L640 130 L700 175 L760 28 L820 105 L880 70 L900 90 L900 360 L0 360 Z";
+  const frontRidge =
+    "M0 320 L50 300 L110 315 L170 285 L240 305 L310 270 L380 295 L450 255 L520 280 L590 235 L660 270 L730 220 L790 255 L860 215 L900 235 L900 360 L0 360 Z";
+
+  const hatching = (clipId: string, spacing: number, opacity: number) => {
+    const lines: React.ReactElement[] = [];
+    for (let x = -40; x <= 940; x += spacing) {
+      lines.push(
+        <line
+          key={`${clipId}-${x}`}
+          x1={x}
+          y1={0}
+          x2={x - 65}
+          y2={360}
+          stroke="var(--ink)"
+          strokeWidth={0.5}
+          strokeOpacity={opacity}
+        />,
+      );
+    }
+    return <g clipPath={`url(#${clipId})`}>{lines}</g>;
+  };
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 900 360"
+      preserveAspectRatio="xMidYEnd meet"
+      className="h-full w-full"
+    >
+      <defs>
+        <clipPath id="walks-back-clip"><path d={backRidge} /></clipPath>
+        <clipPath id="walks-mid-clip"><path d={midRidge} /></clipPath>
+        <clipPath id="walks-front-clip"><path d={frontRidge} /></clipPath>
+      </defs>
+
+      <path d={backRidge} fill="none" stroke="var(--ink)" strokeOpacity="0.22" strokeWidth="0.9" strokeLinejoin="round" />
+      {hatching("walks-back-clip", 6, 0.07)}
+
+      <path d={midRidge} fill="none" stroke="var(--ink)" strokeOpacity="0.42" strokeWidth="1" strokeLinejoin="round" />
+      {hatching("walks-mid-clip", 4, 0.11)}
+
+      <path d={frontRidge} fill="none" stroke="var(--ink)" strokeOpacity="0.55" strokeWidth="1.1" strokeLinejoin="round" />
+      {hatching("walks-front-clip", 3, 0.14)}
+    </svg>
+  );
+}
+
+
 
 
 function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
