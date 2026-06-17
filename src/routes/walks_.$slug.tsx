@@ -757,9 +757,34 @@ function QuoteBlock({ walk }: { walk: WalkDetail }) {
 
 /* --------------------------- DARK CTA --------------------------- */
 
+function CtaContour() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      viewBox="0 0 1240 280"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <g fill="none" stroke="white" strokeOpacity="0.06" strokeWidth="0.7">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <ellipse
+            key={i}
+            cx="980"
+            cy="140"
+            rx={140 + i * 70}
+            ry={60 + i * 30}
+            transform="rotate(-8 980 140)"
+          />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
 function DarkCta() {
   return (
-    <section id="cta" className="relative overflow-hidden bg-[oklch(0.13_0.05_265)] text-white">
+    <section id="cta" className="relative mt-16 overflow-hidden bg-[oklch(0.13_0.05_265)] text-white">
+      <CtaContour />
       <div className={`${container} relative grid grid-cols-1 items-center gap-8 py-14 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-12 md:py-16`}>
         <div>
           <h2 className="font-display text-[26px] leading-[1.18] tracking-[-0.018em] text-white sm:text-[32px]">
@@ -771,7 +796,7 @@ function DarkCta() {
         </div>
         <div className="flex flex-col items-start gap-4 md:items-end md:text-right">
           <a
-            href="/#cta"
+            href="#cta"
             className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[13px] font-medium text-ink transition-all duration-300 hover:-translate-y-[1px]"
           >
             Build My Roadmap
