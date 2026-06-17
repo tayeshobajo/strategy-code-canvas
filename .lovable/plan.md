@@ -1,32 +1,23 @@
-# Match Hero Mountain to Reference
+# Fix The Walks Hero Composition
 
-The current mountain asset reads too sparse and faint next to the reference, which shows a denser engraved range with strong directional hatching on the foreground right-hand peak cluster, layered mid ridges, and faded distant silhouettes on the left.
-
-## Approach
-
-Author a new richer engraved-mountain SVG and swap it in as the hero asset. Keep everything else (route, milestones, summit flag, copy, layout) untouched.
+The hero is currently dominated by a too-strong mountain image and a competing contour ellipse pattern. Restructure it so the mountain is a quiet, masked background landscape, the blue route is the confident gesture, and the headline keeps focus.
 
 ## Changes
 
-1. **New SVG asset**: write a hand-authored `walks-mountain-range-v2.svg` with:
-   - **Distant left silhouettes** — 2–3 faint low-frequency ridge lines at ~12–18% opacity to fade the left side toward the headline (so it doesn't fight the copy).
-   - **Mid-range layer** — sharper polylines across the full width with subtle peak variance, ~25% opacity.
-   - **Foreground massif (right side)** — dominant peak cluster with bold ridge silhouette, multiple sub-peaks, ~50% opacity stroke.
-   - **Dense directional hatching** — every foreground/mid peak gets bespoke hatch sets perpendicular to its slope, with cross-hatching in the deepest shadow valleys. Stroke spacing tighter in shadows, looser on lit faces. This is what gives the reference its weight.
-   - **Snow-line contour hairlines** wrapping each summit.
-   - Single navy ink, layered opacity, no fills, `stroke-linecap="round"`, `vectorEffect="non-scaling-stroke"`.
-   - viewBox tuned so the dense peaks sit on the right ~60% and softly fade left.
+### 1. Replace the mountain asset with the originally uploaded SVG
+The current asset was modified (boosted opacities/strokes). Re-upload `user-uploads://trust-tai-mountain-range-with-summit-flag-header-tight_1-2.svg` unchanged via `lovable-assets create`, overwrite `src/assets/walks-mountain-range.svg.asset.json`, and delete the old asset.
 
-2. **Upload via `lovable-assets create`** and write the new `.asset.json` pointer at `src/assets/walks-mountain-range.svg.asset.json` (overwriting the existing pointer). Delete the previous asset with `delete_asset` afterward so CDN doesn't keep an orphan.
+### 2. `src/routes/walks.tsx` — Hero only
+- **Remove `<ContourBg />`** and its component. It's the "heavy contour pattern" competing with the mountain.
+- **Right-column container** becomes the masked landscape world: `relative overflow-hidden min-h-[460px] lg:min-h-[520px]`.
+- **Mountain `<img>`**: position `absolute -right-16 bottom-4`, `w-[118%]`, `opacity-[0.28]`, `pointer-events-none`, `select-none`. Sits at z-index 1 (no class needed, behind route).
+- **Route SVG wrapper**: keep absolute inset-0 but raise to `z-10` so it sits above the mountain. The route already climbs lower-left → upper-right ending at a summit flag — keep as is.
+- **Thesis line**: move out from the visual center to sit below the route, above the mountain base — `absolute bottom-6 left-[34%] z-10` on lg, with the small rule beneath. Keep mobile fallback unchanged.
+- Headline/copy column unchanged structurally; just ensure it has `relative z-10` so nothing layers over it.
 
-3. **Tune `<img>` styling in `src/routes/walks.tsx`** if needed — likely bump opacity from `0.42` to ~`0.5` and nudge positioning so the dense right side anchors near the summit flag of the blue route, matching the reference composition.
-
-## Out of scope
-
-- Blue route, milestones, summit flag, copy, filter, walk rows, CTA, footer — all unchanged.
-- No raster image, no photographs, no new dependencies.
+### Out of scope
+Filter row, walk rows, CTA, footer, other routes — untouched.
 
 ## Files touched
-
-- `src/assets/walks-mountain-range.svg.asset.json` (replaced with new asset pointer)
-- `src/routes/walks.tsx` (opacity / positioning tweaks on the mountain `<img>` only)
+- `src/assets/walks-mountain-range.svg.asset.json` (re-uploaded, original SVG)
+- `src/routes/walks.tsx` (Hero composition + remove ContourBg)
