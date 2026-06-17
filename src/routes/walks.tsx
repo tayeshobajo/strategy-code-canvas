@@ -292,6 +292,11 @@ function HeroRoute({ inView }: { inView: boolean }) {
 }
 
 function Hero() {
+  const { ref: routeRef, inView: routeInView } = useReveal<HTMLDivElement>({
+    threshold: 0.35,
+    once: true,
+    rootMargin: "0px 0px -5% 0px",
+  });
   return (
     <section className="relative overflow-hidden bg-paper pt-28 sm:pt-32">
       <ContourBg />
