@@ -195,7 +195,7 @@ function ContourBg() {
 function EngravedMountains() {
   // Hand-authored multi-layer engraved mountain range, navy ink on cream.
   // Composed entirely of stroked SVG paths/lines — no fills, no rasters.
-  const navy = "oklch(0.22 0.06 262)";
+  const navy = "var(--ink)";
 
   // Ridge silhouettes (back to front)
   const farRidge1 =
