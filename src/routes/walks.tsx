@@ -182,11 +182,6 @@ function SummitFlag({ x, y, scale = 1 }: { x: number; y: number; scale?: number 
 
 
 function Hero() {
-  const { ref: routeRef, inView: routeInView } = useReveal<HTMLDivElement>({
-    threshold: 0.35,
-    once: true,
-    rootMargin: "0px 0px -5% 0px",
-  });
   return (
     <section className="relative overflow-hidden bg-paper pt-28 sm:pt-32">
       <div className={`${container} relative`}>
@@ -235,24 +230,18 @@ function Hero() {
             </Reveal>
           </div>
 
-          <div
-            ref={routeRef}
-            className="relative min-h-[460px] w-full overflow-hidden"
-          >
-            {/* Engraved mountain layer — inline SVG */}
-            <div className="pointer-events-none absolute inset-0 z-[1]">
-              <EngravedMountains />
-            </div>
-            {/* Blue route layer — climbs across the ridgeline */}
-            <div className="pointer-events-none absolute inset-0 z-[2] text-royal">
-              <HeroRoute inView={routeInView} />
-            </div>
-            {/* Thesis line — sits beneath the route, above the mountain base */}
+          <div className="relative flex min-h-[460px] w-full flex-col items-center justify-center overflow-hidden">
+            <img
+              src={heroArt.url}
+              alt="Engraved mountain range with a climbing route to summit"
+              className="w-full flex-1 object-contain"
+            />
+            {/* Thesis line — beneath the artwork, centered */}
             <Reveal
               as="div"
               variant="fade-up"
               delay={420}
-              className="absolute bottom-[82px] left-[42%] z-[3] hidden flex-col items-center text-center lg:flex"
+              className="mt-4 flex flex-col items-center text-center"
             >
               <p className="font-display text-[20px] italic text-ink">
                 No two walks are the same.
