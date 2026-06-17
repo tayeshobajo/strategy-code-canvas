@@ -409,6 +409,8 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
   // Stagger the breathing ring across rows so they don't pulse in unison.
   // Negative delays start each row mid-cycle for an immediate, varied feel.
   const ringDelay = `${-(rowIndex * 480) % 3800}ms`;
+  // Render an upward-trending line with N nodes; last node has ripple rings.
+  const n = labels.length;
   const W = 560;
   const H = 170;
   const padX = 30;
