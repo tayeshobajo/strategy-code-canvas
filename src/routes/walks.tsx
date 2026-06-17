@@ -308,65 +308,39 @@ function EngravedMountains() {
       strokeLinejoin="round"
     >
       {/* Atmospheric haze — distant ridges */}
-      <g strokeOpacity="0.32" strokeWidth="1.1">
+      <g strokeOpacity="0.22" strokeWidth="0.9">
         <path d={farRidge1} />
         <path d={farRidge2} />
       </g>
 
       {/* Mid ridges */}
-      <path d={midRidge1} strokeOpacity="0.5" strokeWidth="1.3" />
-      <path d={midRidge2} strokeOpacity="0.6" strokeWidth="1.4" />
+      <path d={midRidge1} strokeOpacity="0.34" strokeWidth="1.0" />
+      <path d={midRidge2} strokeOpacity="0.42" strokeWidth="1.1" />
 
       {/* Foreground massif silhouette */}
-      <path d={fgRidge} strokeOpacity="0.85" strokeWidth="1.7" />
+      <path d={fgRidge} strokeOpacity="0.62" strokeWidth="1.35" />
 
       {/* Engraved hatching — bespoke per peak */}
       {peaks.map((p, i) => (
-        <g
-          key={i}
-          strokeOpacity={p.opacity}
-          strokeWidth={p.width}
-         
-        >
+        <g key={i} strokeOpacity={p.opacity} strokeWidth={p.width}>
           {hatch(p)}
           {p.crossHatch && cross(p)}
         </g>
       ))}
 
       {/* Snow-line contour hairlines wrapping the summit peak */}
-      <g strokeOpacity="0.24" strokeWidth="0.35">
-        <path d="M 645 92 Q 662 86 680 96" />
-        <path d="M 636 104 Q 660 96 688 108" />
-        <path d="M 624 120 Q 656 112 692 122" />
-        <path d="M 608 138 Q 644 128 696 138" />
+      <g strokeOpacity="0.28" strokeWidth="0.55">
+        <path d="M 648 84 Q 664 78 682 90" />
+        <path d="M 638 98 Q 662 92 690 104" />
+        <path d="M 624 116 Q 656 108 694 120" />
+        <path d="M 606 138 Q 644 128 696 140" />
       </g>
 
-      {/* Secondary snow-line accents on the mid-right peak */}
-      <g strokeOpacity="0.18" strokeWidth="0.32">
-        <path d="M 552 132 Q 568 128 580 138" />
-        <path d="M 544 146 Q 568 140 588 152" />
-        <path d="M 498 148 Q 514 144 525 154" />
-      </g>
-
-      {/* Scree flick marks at base of foreground massif */}
-      <g strokeOpacity="0.3" strokeWidth="0.35">
-        {Array.from({ length: 30 }).map((_, i) => {
-          const x = 295 + i * 13 + ((i * 17) % 6);
-          const y = 232 + ((i * 11) % 8);
-          const h = 3 + ((i * 5) % 4);
-          return <line key={i} x1={x} y1={y} x2={x + 0.3} y2={y + h} />;
-        })}
-      </g>
-
-      {/* A few sparse foreground tree/rock flicks for depth */}
-      <g strokeOpacity="0.35" strokeWidth="0.4">
-        {[
-          [262, 244], [278, 246], [294, 245], [338, 248],
-          [372, 249], [410, 248], [452, 250], [498, 251],
-          [540, 251], [582, 252], [624, 252], [660, 253],
-        ].map(([x, y], i) => (
-          <line key={i} x1={x} y1={y} x2={x} y2={(y as number) - (2 + (i % 3))} />
-        ))}
+      {/* Secondary snow-line accents on the mid-right peaks */}
+      <g strokeOpacity="0.22" strokeWidth="0.5">
+        <path d="M 558 144 Q 574 140 592 152" />
+        <path d="M 548 160 Q 572 154 596 168" />
+        <path d="M 504 166 Q 520 162 538 172" />
       </g>
     </g>
   );
