@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Reveal } from "@/hooks/use-reveal";
-import heroArt from "@/assets/trust-tai-walks-hero-composed.svg.asset.json";
+import heroArt from "@/assets/walks-hero-bg.png.asset.json";
 
 export const Route = createFileRoute("/walks")({
   head: () => {
