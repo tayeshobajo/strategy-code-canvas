@@ -193,43 +193,176 @@ function ContourBg() {
 }
 
 function EngravedMountains() {
-  // Fine line-drawn mountain range, navy ink on cream, low opacity.
+  // Hand-authored multi-layer engraved mountain range, navy ink on cream.
+  // Composed entirely of stroked SVG paths/lines — no fills, no rasters.
+  const navy = "oklch(0.32 0.06 262)";
+
+  // Ridge silhouettes (back to front)
+  const farRidge1 =
+    "M 0 195 L 60 175 L 120 185 L 180 155 L 240 170 L 300 140 L 360 160 L 420 125 L 480 145 L 545 110 L 605 130 L 665 100 L 700 115";
+  const farRidge2 =
+    "M 0 215 L 70 200 L 140 210 L 210 180 L 280 195 L 350 165 L 420 180 L 490 150 L 560 165 L 625 135 L 690 145 L 700 140";
+  const midRidge1 =
+    "M 150 200 L 195 175 L 235 195 L 275 160 L 320 180 L 365 145 L 410 170 L 450 135 L 495 155 L 540 115 L 585 140 L 625 95 L 670 110 L 700 90";
+  const midRidge2 =
+    "M 80 220 L 130 200 L 175 215 L 220 180 L 265 200 L 310 165 L 355 190 L 400 150 L 445 175 L 490 130 L 540 150 L 585 105 L 630 125 L 680 95 L 700 105";
+  const fgRidge =
+    "M 240 240 L 280 220 L 320 200 L 360 215 L 395 180 L 420 200 L 455 160 L 478 175 L 510 145 L 535 165 L 565 130 L 590 150 L 615 110 L 635 92 L 658 75 L 678 95 L 700 80";
+
+  // Per-peak hatching: each entry describes a shaded flank.
+  // Strokes are placed perpendicular to (peak -> base) so they follow real slope.
+  type Peak = {
+    peak: [number, number];
+    base: [number, number];
+    count: number;
+    length: number;
+    opacity: number;
+    width: number;
+    crossHatch?: boolean;
+  };
+  const peaks: Peak[] = [
+    // dominant summit cluster (behind the flag)
+    { peak: [658, 75], base: [700, 132], count: 22, length: 15, opacity: 0.5, width: 0.5, crossHatch: true },
+    { peak: [635, 92], base: [612, 168], count: 18, length: 12, opacity: 0.46, width: 0.45 },
+    { peak: [615, 110], base: [582, 178], count: 16, length: 11, opacity: 0.42, width: 0.45 },
+    { peak: [565, 130], base: [535, 198], count: 14, length: 10, opacity: 0.4, width: 0.42, crossHatch: true },
+    { peak: [510, 145], base: [482, 208], count: 13, length: 9, opacity: 0.38, width: 0.4 },
+    { peak: [455, 160], base: [430, 218], count: 11, length: 8, opacity: 0.34, width: 0.38 },
+    { peak: [395, 180], base: [375, 228], count: 9, length: 7, opacity: 0.3, width: 0.35 },
+    { peak: [320, 200], base: [303, 238], count: 7, length: 6, opacity: 0.26, width: 0.35 },
+    // mid-ridge accent peaks
+    { peak: [540, 115], base: [512, 168], count: 10, length: 7, opacity: 0.28, width: 0.35 },
+    { peak: [450, 135], base: [425, 182], count: 8, length: 6, opacity: 0.25, width: 0.32 },
+    { peak: [365, 145], base: [342, 192], count: 7, length: 5.5, opacity: 0.22, width: 0.3 },
+    { peak: [275, 160], base: [255, 202], count: 6, length: 5, opacity: 0.2, width: 0.3 },
+  ];
+
+  function hatch(p: Peak): React.ReactElement[] {
+    const [px0, py0] = p.peak;
+    const [bx, by] = p.base;
+    const dx = bx - px0;
+    const dy = by - py0;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    const out: React.ReactElement[] = [];
+    for (let i = 0; i < p.count; i++) {
+      const t = 0.08 + (i / Math.max(1, p.count - 1)) * 0.92;
+      const cx = px0 + dx * t;
+      const cy = py0 + dy * t;
+      const falloff = 0.38 + 0.62 * t;
+      const jitter = (((i * 53) % 7) / 7 - 0.5) * 0.8;
+      const l = p.length * falloff + jitter;
+      out.push(
+        <line
+          key={`h-${i}`}
+          x1={cx}
+          y1={cy}
+          x2={cx + nx * l}
+          y2={cy + ny * l}
+        />,
+      );
+    }
+    return out;
+  }
+
+  function cross(p: Peak): React.ReactElement[] {
+    const [px0, py0] = p.peak;
+    const [bx, by] = p.base;
+    const dx = bx - px0;
+    const dy = by - py0;
+    const len = Math.hypot(dx, dy) || 1;
+    // opposite perpendicular for the cross stroke
+    const nx = dy / len;
+    const ny = -dx / len;
+    const n = Math.max(3, Math.floor(p.count * 0.45));
+    const out: React.ReactElement[] = [];
+    for (let i = 0; i < n; i++) {
+      const t = 0.35 + (i / Math.max(1, n - 1)) * 0.55;
+      const cx = px0 + dx * t;
+      const cy = py0 + dy * t;
+      const l = p.length * 0.55;
+      out.push(
+        <line
+          key={`x-${i}`}
+          x1={cx}
+          y1={cy}
+          x2={cx + nx * l}
+          y2={cy + ny * l}
+        />,
+      );
+    }
+    return out;
+  }
+
   return (
     <g
       aria-hidden="true"
       fill="none"
-      stroke="oklch(0.32 0.06 262)"
+      stroke={navy}
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth="0.55"
-      opacity="0.32"
     >
-      <path d="M 0 175 L 60 150 L 110 165 L 175 120 L 230 145 L 290 110 L 360 135 L 430 95 L 500 120 L 570 80 L 640 100 L 700 70" strokeOpacity="0.55" />
-      <path d="M 0 205 L 70 175 L 130 195 L 200 150 L 270 180 L 340 135 L 410 165 L 480 115 L 560 145 L 630 95 L 700 80" />
-      <path d="M 0 235 L 50 215 L 120 230 L 195 185 L 260 215 L 330 165 L 405 195 L 475 140 L 545 175 L 615 110 L 660 78 L 700 95" strokeWidth="0.7" />
-      <g strokeOpacity="0.45" strokeWidth="0.4">
-        <path d="M 620 118 L 635 100" />
-        <path d="M 628 128 L 645 105" />
-        <path d="M 636 138 L 654 112" />
-        <path d="M 644 148 L 660 122" />
-        <path d="M 652 158 L 668 132" />
-        <path d="M 660 168 L 676 142" />
+      {/* Atmospheric haze — distant ridges */}
+      <g strokeOpacity="0.14" strokeWidth="0.5">
+        <path d={farRidge1} />
+        <path d={farRidge2} />
       </g>
-      <g strokeOpacity="0.4" strokeWidth="0.4">
-        <path d="M 478 152 L 495 132" />
-        <path d="M 488 168 L 510 138" />
-        <path d="M 498 182 L 525 145" />
-        <path d="M 510 196 L 540 155" />
+
+      {/* Mid ridges */}
+      <path d={midRidge1} strokeOpacity="0.28" strokeWidth="0.55" />
+      <path d={midRidge2} strokeOpacity="0.34" strokeWidth="0.6" />
+
+      {/* Foreground massif silhouette */}
+      <path d={fgRidge} strokeOpacity="0.6" strokeWidth="0.8" />
+
+      {/* Engraved hatching — bespoke per peak */}
+      {peaks.map((p, i) => (
+        <g
+          key={i}
+          strokeOpacity={p.opacity}
+          strokeWidth={p.width}
+          vectorEffect="non-scaling-stroke"
+        >
+          {hatch(p)}
+          {p.crossHatch && cross(p)}
+        </g>
+      ))}
+
+      {/* Snow-line contour hairlines wrapping the summit peak */}
+      <g strokeOpacity="0.24" strokeWidth="0.35" vectorEffect="non-scaling-stroke">
+        <path d="M 645 92 Q 662 86 680 96" />
+        <path d="M 636 104 Q 660 96 688 108" />
+        <path d="M 624 120 Q 656 112 692 122" />
+        <path d="M 608 138 Q 644 128 696 138" />
       </g>
-      <g strokeOpacity="0.35" strokeWidth="0.35">
-        <path d="M 200 162 L 215 148" />
-        <path d="M 208 175 L 226 153" />
-        <path d="M 216 188 L 238 160" />
+
+      {/* Secondary snow-line accents on the mid-right peak */}
+      <g strokeOpacity="0.18" strokeWidth="0.32" vectorEffect="non-scaling-stroke">
+        <path d="M 552 132 Q 568 128 580 138" />
+        <path d="M 544 146 Q 568 140 588 152" />
+        <path d="M 498 148 Q 514 144 525 154" />
       </g>
-      <g strokeOpacity="0.35" strokeWidth="0.35">
-        <path d="M 333 178 L 348 162" />
-        <path d="M 340 190 L 358 168" />
-        <path d="M 348 202 L 368 175" />
+
+      {/* Scree flick marks at base of foreground massif */}
+      <g strokeOpacity="0.3" strokeWidth="0.35" vectorEffect="non-scaling-stroke">
+        {Array.from({ length: 30 }).map((_, i) => {
+          const x = 295 + i * 13 + ((i * 17) % 6);
+          const y = 232 + ((i * 11) % 8);
+          const h = 3 + ((i * 5) % 4);
+          return <line key={i} x1={x} y1={y} x2={x + 0.3} y2={y + h} />;
+        })}
+      </g>
+
+      {/* A few sparse foreground tree/rock flicks for depth */}
+      <g strokeOpacity="0.35" strokeWidth="0.4" vectorEffect="non-scaling-stroke">
+        {[
+          [262, 244], [278, 246], [294, 245], [338, 248],
+          [372, 249], [410, 248], [452, 250], [498, 251],
+          [540, 251], [582, 252], [624, 252], [660, 253],
+        ].map(([x, y], i) => (
+          <line key={i} x1={x} y1={y} x2={x} y2={(y as number) - (2 + (i % 3))} />
+        ))}
       </g>
     </g>
   );
