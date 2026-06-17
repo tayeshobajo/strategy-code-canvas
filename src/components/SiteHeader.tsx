@@ -10,6 +10,7 @@ const NAV: NavItem[] = [
   { label: "Investment", to: "/investment" },
   { label: "About", to: "/about" },
   { label: "Insights", to: "/insights" },
+  { label: "The Walks", to: "/walks" },
 ];
 
 export function SiteHeader() {
@@ -19,7 +20,8 @@ export function SiteHeader() {
     if (n.to === "/what-we-build") return pathname === "/what-we-build";
     if (n.to === "/investment") return pathname === "/investment";
     if (n.to === "/about") return pathname === "/about";
-    if (n.to === "/insights") return pathname === "/insights";
+    if (n.to === "/insights") return pathname.startsWith("/insights");
+    if (n.to === "/walks") return pathname.startsWith("/walks");
     if (n.to === "/") return pathname === "/";
     return false;
   };
