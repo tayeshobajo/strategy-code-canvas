@@ -322,7 +322,7 @@ function EngravedMountains() {
           key={i}
           strokeOpacity={p.opacity}
           strokeWidth={p.width}
-          vectorEffect="non-scaling-stroke"
+         
         >
           {hatch(p)}
           {p.crossHatch && cross(p)}
@@ -330,7 +330,7 @@ function EngravedMountains() {
       ))}
 
       {/* Snow-line contour hairlines wrapping the summit peak */}
-      <g strokeOpacity="0.24" strokeWidth="0.35" vectorEffect="non-scaling-stroke">
+      <g strokeOpacity="0.24" strokeWidth="0.35">
         <path d="M 645 92 Q 662 86 680 96" />
         <path d="M 636 104 Q 660 96 688 108" />
         <path d="M 624 120 Q 656 112 692 122" />
@@ -338,14 +338,14 @@ function EngravedMountains() {
       </g>
 
       {/* Secondary snow-line accents on the mid-right peak */}
-      <g strokeOpacity="0.18" strokeWidth="0.32" vectorEffect="non-scaling-stroke">
+      <g strokeOpacity="0.18" strokeWidth="0.32">
         <path d="M 552 132 Q 568 128 580 138" />
         <path d="M 544 146 Q 568 140 588 152" />
         <path d="M 498 148 Q 514 144 525 154" />
       </g>
 
       {/* Scree flick marks at base of foreground massif */}
-      <g strokeOpacity="0.3" strokeWidth="0.35" vectorEffect="non-scaling-stroke">
+      <g strokeOpacity="0.3" strokeWidth="0.35">
         {Array.from({ length: 30 }).map((_, i) => {
           const x = 295 + i * 13 + ((i * 17) % 6);
           const y = 232 + ((i * 11) % 8);
@@ -355,7 +355,7 @@ function EngravedMountains() {
       </g>
 
       {/* A few sparse foreground tree/rock flicks for depth */}
-      <g strokeOpacity="0.35" strokeWidth="0.4" vectorEffect="non-scaling-stroke">
+      <g strokeOpacity="0.35" strokeWidth="0.4">
         {[
           [262, 244], [278, 246], [294, 245], [338, 248],
           [372, 249], [410, 248], [452, 250], [498, 251],
@@ -648,7 +648,7 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
                 fillOpacity="0.10"
                 className="ring-breathe"
                 style={{ ["--ring-delay" as never]: ringDelay }}
-                vectorEffect="non-scaling-stroke"
+               
               />
               <circle cx={x} cy={ys[i]} r="3.5" fill="var(--royal)" />
               <SummitFlag x={x} y={ys[i] - 1} scale={0.9} />
