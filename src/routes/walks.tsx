@@ -258,13 +258,14 @@ function Hero() {
         </div>
       </div>
 
-      {/* Thesis line — inside the mountain area */}
+      {/* Thesis line — beneath the route in the mountain area */}
       <p
-        className="absolute z-[3] hidden font-display italic text-ink lg:block"
-        style={{ right: '27%', bottom: '155px', fontSize: '20px' }}
+        className="absolute z-[3] hidden font-display italic lg:block"
+        style={{ right: '22%', bottom: '170px', fontSize: '20px', color: '#071a3d', opacity: 0.82 }}
       >
         No two walks are the same.
       </p>
+
     </section>
   );
 }
