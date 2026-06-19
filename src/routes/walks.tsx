@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal } from "@/hooks/use-reveal";
 import heroArt from "@/assets/walks-hero-bg.png.asset.json";
 
@@ -526,39 +527,7 @@ function DarkCta() {
 }
 
 /* ----------------------------- FOOTER ----------------------------- */
-
-function SiteFooter() {
-  return (
-    <footer className="border-t border-rule bg-paper">
-      <div className={`${container} grid grid-cols-1 gap-8 py-10 text-[12.5px] text-ink/65 sm:grid-cols-4`}>
-        <div>
-          <p className="font-display text-[18px] text-ink">Trust Tai</p>
-        </div>
-        <ul className="space-y-1.5">
-          <li><Link to="/" className="hover:text-ink">The Roadmap</Link></li>
-          <li><Link to="/what-we-build" className="hover:text-ink">What We Build</Link></li>
-          <li><Link to="/investment" className="hover:text-ink">Investment</Link></li>
-          <li><Link to="/about" className="hover:text-ink">About</Link></li>
-        </ul>
-        <ul className="space-y-1.5">
-          <li><Link to="/insights" className="hover:text-ink">Insights</Link></li>
-          <li><Link to="/walks" className="hover:text-ink">The Walks</Link></li>
-        </ul>
-        <div className="flex flex-col gap-4 sm:items-end sm:text-right">
-          <p>© 2026 Trust Tai. All rights reserved.</p>
-          <div className="flex gap-5">
-            <a href="#" className="hover:text-ink">Privacy Policy</a>
-            <a href="#" className="hover:text-ink">Terms of Service</a>
-          </div>
-          <p className="text-ink/55">
-            We build the map.<br />
-            You build what matters.
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-}
+// SiteFooter is imported from @/components/SiteFooter
 
 /* ------------------------------ PAGE ------------------------------ */
 
