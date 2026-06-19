@@ -22,7 +22,9 @@ import {
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Reveal } from "@/hooks/use-reveal";
-import heroArt from "@/assets/walks-hero-bg.png.asset.json";
+import heroArt from "@/assets/mountain-1.png.asset.json";
+import pointAArt from "@/assets/mountain-3.png.asset.json";
+import panoramaArt from "@/assets/mountain-4.png.asset.json";
 
 /* --------------------------- DETAIL DATA --------------------------- */
 
@@ -488,9 +490,9 @@ function DetailHero({ walk }: { walk: WalkDetail }) {
         style={{
           backgroundImage: `url(${heroArt.url})`,
           backgroundRepeat: "no-repeat",
-          backgroundSize: "62% auto",
-          backgroundPosition: "right -2% top 38%",
-          opacity: 0.85,
+          backgroundSize: "58% auto",
+          backgroundPosition: "right 0% center",
+          opacity: 1,
         }}
         aria-hidden="true"
       />
@@ -614,11 +616,11 @@ function TheRoute({ points }: { points: RoutePoint[] }) {
 function MountainSketch({ className }: { className?: string }) {
   return (
     <img
-      src={heroArt.url}
+      src={pointAArt.url}
       alt=""
       aria-hidden="true"
-      className={`pointer-events-none select-none opacity-80 ${className ?? ""}`}
-      style={{ objectFit: "cover", objectPosition: "50% 40%" }}
+      className={`pointer-events-none select-none ${className ?? ""}`}
+      style={{ objectFit: "contain", objectPosition: "left center" }}
     />
   );
 }
@@ -638,14 +640,8 @@ function PointAndMilestones({ walk }: { walk: WalkDetail }) {
               {p}
             </p>
           ))}
-          <div className="relative mt-10 h-[160px] w-full overflow-hidden">
-            <MountainSketch className="absolute inset-0 h-full w-[55%]" />
-            <span
-              className="absolute font-display italic text-royal"
-              style={{ left: "50%", top: "22%", fontSize: "22px" }}
-            >
-              A
-            </span>
+          <div className="relative mt-10 h-[180px] w-full overflow-hidden">
+            <MountainSketch className="absolute inset-0 h-full w-full" />
           </div>
         </div>
 
@@ -731,13 +727,13 @@ function QuoteBlock({ walk }: { walk: WalkDetail }) {
       <div className="relative overflow-hidden rounded-md border border-rule bg-paper">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-[55%]"
+          className="pointer-events-none absolute inset-y-0 right-0 w-[60%]"
           style={{
-            backgroundImage: `url(${heroArt.url})`,
+            backgroundImage: `url(${panoramaArt.url})`,
             backgroundRepeat: "no-repeat",
-            backgroundSize: "auto 130%",
+            backgroundSize: "cover",
             backgroundPosition: "right center",
-            opacity: 0.6,
+            opacity: 0.85,
           }}
         />
         <div
