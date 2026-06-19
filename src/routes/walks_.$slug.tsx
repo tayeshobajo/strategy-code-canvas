@@ -914,7 +914,9 @@ function SiteFooter() {
 /* ------------------------------ PAGE ------------------------------ */
 
 function WalkDetailPage() {
-  const { walk } = Route.useLoaderData();
+  const { slug } = Route.useLoaderData();
+  const walk = DETAILS[slug];
+  if (!walk) return null;
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
