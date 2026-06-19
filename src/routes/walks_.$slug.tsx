@@ -843,7 +843,7 @@ function ContinueWalking({ slugs }: { slugs: string[] }) {
                   {sum.milestonesCount} milestones · {sum.walkingSince}
                 </p>
                 <Link
-                  to="/walks_/$slug"
+                  to="/walks/$slug"
                   params={{ slug: s }}
                   className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] text-ink underline decoration-ink/30 underline-offset-[6px] transition-colors hover:text-royal hover:decoration-royal"
                 >
