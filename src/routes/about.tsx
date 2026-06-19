@@ -233,7 +233,7 @@ function AboutPage() {
       <TheConductor />
       <HowWeThink />
       <HonestFit />
-      <CloseCTA />
+      
       <SiteFooter />
     </main>
   );
