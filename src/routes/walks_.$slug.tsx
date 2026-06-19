@@ -640,7 +640,7 @@ function PointAndMilestones({ walk }: { walk: WalkDetail }) {
               {p}
             </p>
           ))}
-          <div className="relative mt-10 h-[300px] w-[125%] -ml-[5%] overflow-visible">
+          <div className="relative mt-10 h-[200px] w-full overflow-hidden sm:h-[240px] lg:h-[300px] lg:w-[125%] lg:-ml-[5%] lg:overflow-visible">
             <MountainSketch className="absolute inset-0 h-full w-full" />
           </div>
         </div>
