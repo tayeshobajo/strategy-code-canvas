@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Compass, Leaf, Star, Gauge, Map as MapIcon, Sun, Scale } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { Reveal } from "@/hooks/use-reveal";
 import bookHero from "@/assets/hero-open-book-story.png.asset.json";
