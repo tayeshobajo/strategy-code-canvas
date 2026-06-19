@@ -1,27 +1,46 @@
-# Fix "View Walk" 404
+# Fix Walk detail page (SSR crash) and verify against reference
 
 ## Problem
 
-Clicking "View Walk" lands on `/walks_/leadership-education` and shows the root 404 page. The detail route file is `src/routes/walks_.$slug.tsx`, where the trailing `_` on `walks_` is TanStack Router's "break out of parent layout" suffix — it is part of the route ID, not the URL. The actual URL is `/walks/$slug` (confirmed in `routeTree.gen.ts`: `path: '/walks/$slug'`).
+`/walks/leadership-education` renders a blank page. Console shows:
 
-The `<Link>` in `src/routes/walks.tsx` (line 453) is using the route ID as the `to` prop:
-
-```tsx
-to="/walks_/$slug"
+```
+Invariant failed: Expected to find a dehydrated data on window.$_TSR.router…
 ```
 
-TanStack types accept this (it matches the route id), but it serializes literally into the address bar, producing the underscore URL that does not match any route.
+Root cause: the route loader in `src/routes/walks_.$slug.tsx` returns the full `DETAILS[slug]` object, which contains `headline` as a `React.ReactNode` (JSX with `<em>`). TanStack Start serializes loader data into the SSR HTML for hydration, and React elements are not serializable — dehydration fails and the client mounts with no data, throwing the invariant. Because the page never renders, we cannot visually compare against the reference yet.
 
 ## Fix
 
-In `src/routes/walks.tsx`, change the View Walk link:
+In `src/routes/walks_.$slug.tsx`:
 
-- `to="/walks_/$slug"` → `to="/walks/$slug"`
-- Keep `params={{ slug: walk.slug }}` unchanged.
+1. Loader: validate the slug and return only the slug string — no JSX.
+   ```ts
+   loader: ({ params }) => {
+     if (!DETAILS[params.slug]) throw notFound();
+     return { slug: params.slug };
+   }
+   ```
+2. `head()`: read `loaderData?.slug` and look up `SUMMARY[slug]`/`DETAILS[slug]` for title/description (still serializable strings).
+3. `WalkDetailPage` component (line 917): replace `const { walk } = Route.useLoaderData()` with
+   ```ts
+   const { slug } = Route.useLoaderData();
+   const walk = DETAILS[slug];
+   ```
 
-Single-line edit, no other files affected. Existing slug guard / `notFoundComponent` in `walks_.$slug.tsx` stays as-is.
+No visual code changes — only data plumbing. The existing hero, route bar, milestones, stats, quote, dark CTA, continue-walking, and footer sections stay as-is.
 
-## Verification
+## Verify against reference
 
-- Navigate to `/walks`, click "View Walk" on Leadership Education → URL becomes `/walks/leadership-education` and the detail page renders.
-- Click an unknown slug manually → still hits the route's `notFoundComponent` (slug-safe loading already in place).
+After the fix, drive Playwright to `/walks/leadership-education`, capture full-page screenshots at 1280px width, and compare to the user's reference image section by section:
+
+- Hero: eyebrow "THE WALKS", headline with italic royal "carries the work.", subhead, mountain art on right with route line ending in flag.
+- The Route: 7-step horizontal bar (Point A → 01–05 → Current State) with labels.
+- Point A + The Milestones: left copy block, right 5 numbered milestones with Lucide icons and titles.
+- Where They Stand Now: left copy + 4 stat cards (1,250+, 84%, 28, 18+).
+- Quote block with mountain art, founder attribution.
+- Dark CTA "Your business is at its own Point A right now." with Build My Roadmap button.
+- Continue Walking: 5 horizontal cards with sparkline-like routes and "View walk →".
+- Footer matching site footer.
+
+Note any deviations and patch only the off-spec elements (spacing, type sizes, colors). Stop when the rendered page matches the reference layout.
