@@ -213,17 +213,29 @@ function RouteMark({ inView, small = false }: { inView: boolean; small?: boolean
 export function SiteFooter() {
   const headline = useInViewOnce<HTMLDivElement>();
   const reasons = useInViewOnce<HTMLDivElement>();
+  const { ref: animRef, paused } = useInViewPause<HTMLElement>();
   return (
-    <footer id="cta" className="relative bg-[#0A0F1F] text-paper">
-      {/* faint topographic contour texture */}
+    <footer
+      ref={animRef}
+      data-anim-paused={paused ? "true" : "false"}
+      id="cta"
+      className="relative overflow-hidden text-paper"
+      style={{
+        background:
+          "linear-gradient(to right, oklch(0.18 0.05 262) 0%, oklch(0.14 0.05 262) 60%, oklch(0.13 0.05 262) 100%)",
+      }}
+    >
+      <ConstellationBG />
+      <PaperPlane />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.06]"
+        className="pointer-events-none absolute inset-y-0 right-0 w-[60%]"
         style={{
-          backgroundImage:
-            "repeating-radial-gradient(circle at 22% 38%, transparent 0, transparent 46px, rgba(255,255,255,0.6) 46px, rgba(255,255,255,0.6) 47px), repeating-radial-gradient(circle at 78% 68%, transparent 0, transparent 56px, rgba(255,255,255,0.5) 56px, rgba(255,255,255,0.5) 57px)",
+          background:
+            "linear-gradient(to left, oklch(0.14 0.05 262) 30%, transparent 100%)",
         }}
       />
+
 
       <style>{`
         .tt-routemark { position: relative; width: 100%; }
