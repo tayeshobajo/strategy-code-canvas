@@ -416,12 +416,12 @@ const SUMMARY: Record<string, { category: string; subcategory: string; blurb: st
 
 export const Route = createFileRoute("/walks_/$slug")({
   loader: ({ params }) => {
-    const walk = DETAILS[params.slug];
-    if (!walk) throw notFound();
-    return { walk };
+    if (!DETAILS[params.slug]) throw notFound();
+    return { slug: params.slug };
   },
   head: ({ loaderData }) => {
-    const walk = loaderData?.walk;
+    const slug = loaderData?.slug;
+    const walk = slug ? DETAILS[slug] : undefined;
     const title = walk ? `${SUMMARY[walk.slug]?.category ?? "Walk"} | The Walks | Trust Tai` : "Walk | Trust Tai";
     const description = walk?.subhead ?? "A walk we have taken with a founder-led business.";
     return {
