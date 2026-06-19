@@ -7,7 +7,7 @@ import { Reveal } from "@/hooks/use-reveal";
 import heroDesk from "@/assets/hero-investment-book-desk.png.asset.json";
 import bridgeImg from "@/assets/bridge-illustration-river.png.asset.json";
 import landscapeImg from "@/assets/roadmap-landscape-divider.png.asset.json";
-import starscapeImg from "@/assets/footer-network-starscape.png.asset.json";
+
 
 export const Route = createFileRoute("/investment")({
   head: () => ({
