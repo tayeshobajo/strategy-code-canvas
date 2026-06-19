@@ -506,7 +506,7 @@ function DetailHero({ walk }: { walk: WalkDetail }) {
       />
 
       <div className={`relative z-[3] ${container}`}>
-        <div style={{ maxWidth: "640px", paddingTop: "84px", paddingBottom: "70px" }}>
+        <div style={{ maxWidth: "640px", paddingTop: "120px", paddingBottom: "70px" }}>
           <Link
             to="/walks"
             className="eyebrow inline-flex items-center gap-2 text-royal/80 hover:text-royal"
