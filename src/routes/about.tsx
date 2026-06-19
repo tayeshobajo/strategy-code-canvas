@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Compass, Leaf, Star, Gauge, Map as MapIcon, Sun, Scale } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { Reveal } from "@/hooks/use-reveal";
 import bookHero from "@/assets/hero-open-book-story.png.asset.json";
@@ -233,8 +233,10 @@ function AboutPage() {
       <TheConductor />
       <HowWeThink />
       <HonestFit />
-      <CloseCTA />
-      <SiteFooter />
+      <SiteClosing
+        headline={<><Accent>Care more than anyone expects you to.</Accent></>}
+        supporting={<>Your ambition matters. So does the partner you hand it to. If that is how you build, let us build your Roadmap. If it is not, we will point you toward someone who builds the way you need.</>}
+      />
     </main>
   );
 }

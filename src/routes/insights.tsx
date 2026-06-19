@@ -3,7 +3,7 @@ import { ArrowRight, Search } from "lucide-react";
 import * as React from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { Reveal, useReveal } from "@/hooks/use-reveal";
 import {
   CATEGORIES,
@@ -887,9 +887,11 @@ function InsightsPage() {
         <Hero />
         <FeaturedArgument />
         <ArticleList />
-        <FooterCTA />
       </main>
-      <SiteFooter />
+      <SiteClosing
+        headline={<>Every piece here is <Accent>a truth we have walked with a founder</Accent>.</>}
+        supporting={<>If reading them made you want the version mapped for your business, that is where the Roadmap begins.</>}
+      />
     </div>
   );
 }

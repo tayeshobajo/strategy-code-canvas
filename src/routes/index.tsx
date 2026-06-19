@@ -12,7 +12,7 @@ import {
 import heroAsset from "@/assets/trust-tai-hero.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { Reveal } from "@/hooks/use-reveal";
 import {
   Tooltip,
@@ -559,8 +559,10 @@ function Index() {
       <FeatureStrip />
       <RoadmapSection />
       <Pricing />
-      <CTABand />
-      <SiteFooter />
+      <SiteClosing
+        headline={<>The Roadmap is where the next two years <Accent>stop being a guess</Accent>.</>}
+        supporting={<>One conversation. One document. The distance from where you are to where you need to be, drawn before the first build begins.</>}
+      />
     </div>
   );
 }
