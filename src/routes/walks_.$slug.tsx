@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal } from "@/hooks/use-reveal";
 import heroArt from "@/assets/mountain-1.png.asset.json";
 import pointAArt from "@/assets/mountain-3.png.asset.json";
