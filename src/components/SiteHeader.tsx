@@ -2,9 +2,9 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 
-type NavItem = { label: string; to: string; hash?: string };
+export type NavItem = { label: string; to: string; hash?: string };
 
-const NAV: NavItem[] = [
+export const NAV: NavItem[] = [
   { label: "The Roadmap", to: "/" },
   { label: "What We Build", to: "/what-we-build" },
   { label: "Investment", to: "/investment" },

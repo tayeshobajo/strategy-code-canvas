@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Footprints, PersonStanding, Snail, Target, Settings, ShieldCheck, X, Equal, ListChecks, BarChart3, Wallet, Cog, Users, ArrowLeftRight, LineChart, Wrench, UserCheck, Check } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal } from "@/hooks/use-reveal";
 import heroDesk from "@/assets/hero-investment-book-desk.png.asset.json";
 import bridgeImg from "@/assets/bridge-illustration-river.png.asset.json";
@@ -577,28 +578,6 @@ function FooterCTA() {
       </div>
 
 
-      <footer className="border-t border-white/10">
-        <div className={`${container} grid grid-cols-1 gap-8 py-10 sm:grid-cols-3`}>
-          <div>
-            <p className="font-display text-[18px] text-white">Trust Tai</p>
-            <p className="mt-1 text-[11px] tracking-[0.2em] text-white/45">MAP. BUILD. SCALE.</p>
-          </div>
-          <ul className="space-y-1.5 text-[12.5px] text-white/65">
-            <li><a href="#map" className="hover:text-white">The Roadmap</a></li>
-            <li><Link to="/what-we-build" className="hover:text-white">Our Builds</Link></li>
-            <li><a href="#" className="hover:text-white">Our Story</a></li>
-            <li><a href="#" className="hover:text-white">Insights</a></li>
-            <li><Link to="/investment" className="hover:text-white">Investment</Link></li>
-          </ul>
-          <div className="flex flex-col items-start gap-4 text-[12px] text-white/55 sm:items-end">
-            <p>© 2026 Trust Tai. All rights reserved.</p>
-            <div className="flex gap-5">
-              <a href="#" className="hover:text-white">Privacy Policy</a>
-              <a href="#" className="hover:text-white">Terms of Service</a>
-            </div>
-          </div>
-        </div>
-      </footer>
     </section>
   );
 }
@@ -617,6 +596,7 @@ function InvestmentPage() {
         <QuoteDivider />
         <FooterCTA />
       </main>
+      <SiteFooter />
     </div>
   );
 }
