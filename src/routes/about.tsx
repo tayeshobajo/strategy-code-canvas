@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Compass, Leaf, Star, Gauge, Map as MapIcon, Sun, Scale } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { Reveal } from "@/hooks/use-reveal";
 import bookHero from "@/assets/hero-open-book-story.png.asset.json";
@@ -960,81 +961,3 @@ function CloseCTA() {
   );
 }
 
-/* ---------------------- FOOTER ---------------------- */
-function SiteFooter() {
-  return (
-    <footer className="contour-bg text-paper">
-      <div className="border-t border-paper/10">
-        <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-10 px-6 py-14 md:grid-cols-3 lg:px-10">
-          <div>
-            <TrustTaiLogo variant="white" />
-            <p className="mt-3 text-[12.5px] text-paper/55">The system behind the system.</p>
-          </div>
-          <div>
-            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-paper/45">
-              Navigation
-            </div>
-            <ul className="mt-4 space-y-2 text-[13px] text-paper/80">
-              <li>
-                <Link to="/" hash="roadmap" className="hover:text-paper">
-                  The Roadmap
-                </Link>
-              </li>
-              <li>
-                <Link to="/what-we-build" className="hover:text-paper">
-                  What We Build
-                </Link>
-              </li>
-              <li>
-                <Link to="/about" className="hover:text-paper">
-                  Our Story
-                </Link>
-              </li>
-              <li>
-                <Link to="/" hash="insights" className="hover:text-paper">
-                  Insights
-                </Link>
-              </li>
-              <li>
-                <Link to="/investment" className="hover:text-paper">
-                  Investment
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-paper/45">
-              Connect
-            </div>
-            <ul className="mt-4 space-y-2 text-[13px] text-paper/80">
-              <li>Murfreesboro, Tennessee</li>
-              <li>
-                <a href="mailto:hello@trusttai.com" className="hover:text-paper">
-                  hello@trusttai.com
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-paper">
-                  LinkedIn
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-paper/10">
-          <div className="mx-auto flex max-w-[1180px] flex-col items-start justify-between gap-3 px-6 py-5 text-[11.5px] text-paper/50 sm:flex-row sm:items-center lg:px-10">
-            <span>© 2026 Trust Tai. All rights reserved.</span>
-            <span className="flex gap-6">
-              <a href="#" className="hover:text-paper">
-                Privacy Policy
-              </a>
-              <a href="#" className="hover:text-paper">
-                Terms of Service
-              </a>
-            </span>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
