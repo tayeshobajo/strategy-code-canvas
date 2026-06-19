@@ -222,39 +222,15 @@ function RouteAnimation() {
           stroke="rgba(255,255,255,0.7)"
           strokeWidth={1.5}
         />
-        {/* Dotted route */}
+        {/* Hidden reference path for milestone point sampling */}
         <path
           ref={pathRef}
           d={path}
           fill="none"
-          stroke={ROUTE_BLUE}
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeDasharray="2 7"
-          pathLength={1}
-          style={{
-            strokeDasharray: active ? "2 7" : undefined,
-            // Use a draw mask via second overlay path approach instead:
-          }}
+          stroke="none"
+          style={{ visibility: "hidden" }}
         />
-        {/* Reveal mask: a solid path animating its own dashoffset from 1 → 0 to "draw" the dotted line */}
-        <path
-          d={path}
-          fill="none"
-          stroke={NAVY}
-          strokeWidth={4}
-          pathLength={1}
-          strokeDasharray={1}
-          strokeDashoffset={active ? 0 : 1}
-          style={{
-            transition: active
-              ? `stroke-dashoffset ${duration}ms cubic-bezier(0.22, 1, 0.36, 1)`
-              : "none",
-            // We invert: this overlay HIDES the dotted path until it retracts.
-            // So when armed → dashoffset goes 1 → 0 means it covers entirely. Wrong direction; flip.
-          }}
-        />
-        {/* Correct draw: a clipping rect that grows left→right. Simpler & reliable. */}
+        {/* Draw via clipPath that grows left→right */}
         <defs>
           <clipPath id="route-clip">
             <rect
