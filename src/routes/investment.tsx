@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Footprints, PersonStanding, Snail, Target, Settings, ShieldCheck, X, Equal, ListChecks, BarChart3, Wallet, Cog, Users, ArrowLeftRight, LineChart, Wrench, UserCheck, Check } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal } from "@/hooks/use-reveal";
 import heroDesk from "@/assets/hero-investment-book-desk.png.asset.json";
 import bridgeImg from "@/assets/bridge-illustration-river.png.asset.json";

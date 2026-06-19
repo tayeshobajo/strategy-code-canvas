@@ -12,6 +12,7 @@ import {
 import heroAsset from "@/assets/trust-tai-hero.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal } from "@/hooks/use-reveal";
 import {
   Tooltip,

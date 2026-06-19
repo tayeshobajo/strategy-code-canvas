@@ -3,6 +3,7 @@ import { ArrowRight, Search } from "lucide-react";
 import * as React from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal, useReveal } from "@/hooks/use-reveal";
 import {
   CATEGORIES,
