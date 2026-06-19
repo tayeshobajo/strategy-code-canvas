@@ -404,11 +404,9 @@ function ContourField() {
 /* Cream-italic accent helper for headlines */
 export function Accent({ children }: { children: ReactNode }) {
   return (
-    <em
-      className="font-serif italic font-normal"
-      style={{ color: CREAM }}
-    >
+    <em className="italic font-normal" style={{ color: CREAM }}>
       {children}
     </em>
   );
 }
+
