@@ -72,6 +72,7 @@ import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
 import ctaSectionBg from "@/assets/cta-section-background.jpg.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal, useReveal } from "@/hooks/use-reveal";
 
 
@@ -235,7 +236,7 @@ function WhatWeBuild() {
         <StandardsRow />
         <BeforeAfter />
         <BottomCTA />
-        <Footer />
+        <SiteFooter />
       </div>
     </div>
   );
