@@ -1,46 +1,35 @@
-# Fix Walk detail page (SSR crash) and verify against reference
+## Goal
 
-## Problem
+Use the footer that already exists on `/insights` as the single shared component across every page. Remove all other per-page footers.
 
-`/walks/leadership-education` renders a blank page. Console shows:
+## Step 1 — Extract `SiteFooter`
 
-```
-Invariant failed: Expected to find a dehydrated data on window.$_TSR.router…
-```
+Lift the existing footer markup from `src/routes/insights.tsx` (currently the `<footer>` inside `FooterCTA`, ~line 875) into a new component `src/components/SiteFooter.tsx`.
 
-Root cause: the route loader in `src/routes/walks_.$slug.tsx` returns the full `DETAILS[slug]` object, which contains `headline` as a `React.ReactNode` (JSX with `<em>`). TanStack Start serializes loader data into the SSR HTML for hydration, and React elements are not serializable — dehydration fails and the client mounts with no data, throwing the invariant. Because the page never renders, we cannot visually compare against the reference yet.
+- Keeps the starscape/constellation background exactly as-is.
+- Uses `<TrustTaiLogo variant="white" />` alone (no duplicated "Trust Tai" / "MAP. BUILD. SCALE." text next to it).
+- Nav list mirrors `SiteHeader`'s `NAV` exactly, same order and labels:
+  The Roadmap, What We Build, Investment, About, Insights, The Walks — all real `<Link>`s.
+  To keep them literally in sync, export `NAV` from `SiteHeader.tsx` and import it in `SiteFooter.tsx`.
+- "© 2026 Trust Tai. All rights reserved." + Privacy Policy / Terms of Service links.
 
-## Fix
+The pre-footer CTA on `/insights` stays where it is; only the `<footer>` block moves into the shared component, and `FooterCTA` then renders `<SiteFooter />` underneath.
 
-In `src/routes/walks_.$slug.tsx`:
+## Step 2 — Replace every other page's footer
 
-1. Loader: validate the slug and return only the slug string — no JSX.
-   ```ts
-   loader: ({ params }) => {
-     if (!DETAILS[params.slug]) throw notFound();
-     return { slug: params.slug };
-   }
-   ```
-2. `head()`: read `loaderData?.slug` and look up `SUMMARY[slug]`/`DETAILS[slug]` for title/description (still serializable strings).
-3. `WalkDetailPage` component (line 917): replace `const { walk } = Route.useLoaderData()` with
-   ```ts
-   const { slug } = Route.useLoaderData();
-   const walk = DETAILS[slug];
-   ```
+For each page below, delete the local footer function/JSX and render `<SiteFooter />` instead. Pre-footer CTA sections stay; only the bottom `<footer>` block is swapped.
 
-No visual code changes — only data plumbing. The existing hero, route bar, milestones, stats, quote, dark CTA, continue-walking, and footer sections stay as-is.
+- `src/routes/index.tsx` — inline footer (~line 1170)
+- `src/routes/what-we-build.tsx` — local `Footer` (~line 945)
+- `src/routes/investment.tsx` — `<footer>` inside `FooterCTA` (~line 580)
+- `src/routes/about.tsx` — local `SiteFooter` (~line 963)
+- `src/routes/walks.tsx` — local `SiteFooter` (~line 530)
+- `src/routes/walks_.$slug.tsx` — local `SiteFooter` (~line 882)
+- `src/routes/insights_.$slug.tsx` — replace any footer block there too
 
-## Verify against reference
+## Verification
 
-After the fix, drive Playwright to `/walks/leadership-education`, capture full-page screenshots at 1280px width, and compare to the user's reference image section by section:
-
-- Hero: eyebrow "THE WALKS", headline with italic royal "carries the work.", subhead, mountain art on right with route line ending in flag.
-- The Route: 7-step horizontal bar (Point A → 01–05 → Current State) with labels.
-- Point A + The Milestones: left copy block, right 5 numbered milestones with Lucide icons and titles.
-- Where They Stand Now: left copy + 4 stat cards (1,250+, 84%, 28, 18+).
-- Quote block with mountain art, founder attribution.
-- Dark CTA "Your business is at its own Point A right now." with Build My Roadmap button.
-- Continue Walking: 5 horizontal cards with sparkline-like routes and "View walk →".
-- Footer matching site footer.
-
-Note any deviations and patch only the off-spec elements (spacing, type sizes, colors). Stop when the rendered page matches the reference layout.
+- `rg -n "<footer" src/routes` returns zero matches.
+- `rg -n "function (Site)?Footer\b|^function Footer\b" src/routes` returns nothing.
+- Every route imports `SiteFooter` from `@/components/SiteFooter` and renders it once.
+- Visual pass on `/`, `/what-we-build`, `/investment`, `/about`, `/insights`, `/walks`, an insight detail, and a walk detail: identical starscape footer, white logo mark alone, header and footer nav labels match exactly, "© 2026".
