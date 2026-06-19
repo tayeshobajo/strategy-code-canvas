@@ -927,7 +927,7 @@ function WalkDetailPage() {
         <WhereTheyStandNow walk={walk} />
         <QuoteBlock walk={walk} />
         <DarkCta />
-        <ContinueWalking slugs={walk.continueWalking} />
+        {/* <ContinueWalking slugs={walk.continueWalking} /> */}
         <SiteFooter />
       </main>
     </div>
