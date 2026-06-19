@@ -12,6 +12,7 @@ import {
 import heroAsset from "@/assets/trust-tai-hero.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal } from "@/hooks/use-reveal";
 import {
   Tooltip,
@@ -559,6 +560,7 @@ function Index() {
       <RoadmapSection />
       <Pricing />
       <CTABand />
+      <SiteFooter />
     </div>
   );
 }
@@ -1167,42 +1169,6 @@ function CTABand() {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-paper/10">
-        <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-10 px-6 py-14 md:grid-cols-3 lg:px-10">
-          <div>
-            <TrustTaiLogo variant="white" />
-            <p className="mt-3 text-[12.5px] text-paper/55">The system behind the system.</p>
-          </div>
-          <div>
-            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-paper/45">Navigation</div>
-            <ul className="mt-4 space-y-2 text-[13px] text-paper/80">
-              <li><a href="#roadmap" className="hover:text-paper">The Roadmap</a></li>
-              <li><a href="#what" className="hover:text-paper">Our Builds</a></li>
-              <li><a href="#about" className="hover:text-paper">Our Story</a></li>
-              <li><a href="#insights" className="hover:text-paper">Insights</a></li>
-              <li><a href="#pricing" className="hover:text-paper">Investment</a></li>
-            </ul>
-          </div>
-          <div>
-            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-paper/45">Connect</div>
-            <ul className="mt-4 space-y-2 text-[13px] text-paper/80">
-              <li>Murfreesboro, Tennessee</li>
-              <li><a href="mailto:hello@trusttai.com" className="hover:text-paper">hello@trusttai.com</a></li>
-              <li><a href="#" className="hover:text-paper">LinkedIn</a></li>
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-paper/10">
-          <div className="mx-auto flex max-w-[1180px] flex-col items-start justify-between gap-3 px-6 py-5 text-[11.5px] text-paper/50 sm:flex-row sm:items-center lg:px-10">
-            <span>© 2026 Trust Tai. All rights reserved.</span>
-            <span className="flex gap-6">
-              <a href="#" className="hover:text-paper">Privacy Policy</a>
-              <a href="#" className="hover:text-paper">Terms of Service</a>
-            </span>
-          </div>
-        </div>
-      </div>
     </section>
   );
 }
