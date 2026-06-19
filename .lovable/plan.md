@@ -1,28 +1,46 @@
-## Goal
+# Fix Walk detail page (SSR crash) and verify against reference
 
-The "Care more than anyone expects you to" section (`CloseCTA` on `/about`) has the animated treatment the user wants — twinkling stars, looping paper plane along an arc trail, soft ring glow on the left, and a navy gradient background. Move that visual layer into the shared `SiteFooter` so every page's footer carries it, and delete the section from About.
+## Problem
 
-## Changes
+`/walks/leadership-education` renders a blank page. Console shows:
 
-### 1. `src/components/SiteFooter.tsx`
-- Replace the current flat `#0A0F1F` background + faint contour div with:
-  - A navy gradient wrapper (`linear-gradient(to right, oklch(0.18 0.05 262) 0%, oklch(0.14 0.05 262) 60%, oklch(0.13 0.05 262) 100%)`).
-  - `ConstellationBG` (twinkling stars + ring-breathe glow on the left ~55% of the footer).
-  - `PaperPlane` (animated SVG arc trail with looping plane along the path).
-  - Right-edge gradient overlay (`linear-gradient(to left, oklch(0.14 0.05 262) 30%, transparent 100%)`) so the headline stays readable.
-- Wrap the footer in a ref using a local `useInViewPause` so animations pause when the footer is offscreen (`data-anim-paused`), matching the existing pattern.
-- Inline copies of `ConstellationBG`, `PaperPlane`, `useIsSmallViewport`, and `useInViewPause` inside `SiteFooter.tsx` (these are small, self-contained helpers; importing from a route file would create coupling).
-- Keep everything else: arrival dotted route + pulsing marker, headline, supporting line, three proof columns, CTA button, deep footer columns, bottom bar.
+```
+Invariant failed: Expected to find a dehydrated data on window.$_TSR.router…
+```
 
-### 2. `src/routes/about.tsx`
-- Remove `<CloseCTA />` from the page composition (line 236).
-- Delete the `CloseCTA`, `ConstellationBG`, and `PaperPlane` function definitions (lines ~813–962). Keep `useInViewPause` and `useIsSmallViewport` — other sections still use them.
+Root cause: the route loader in `src/routes/walks_.$slug.tsx` returns the full `DETAILS[slug]` object, which contains `headline` as a `React.ReactNode` (JSX with `<em>`). TanStack Start serializes loader data into the SSR HTML for hydration, and React elements are not serializable — dehydration fails and the client mounts with no data, throwing the invariant. Because the page never renders, we cannot visually compare against the reference yet.
 
-### 3. CSS
-No changes. `twinkle-star`, `ring-breathe`, `plane-trail`, and the `data-anim-paused` selectors already live globally in `src/styles.css`.
+## Fix
 
-## Verification
-- Type-check.
-- Visit `/about` to confirm the section is gone and the footer now shows stars + paper plane + glow.
-- Spot-check `/`, `/insights`, `/walks`, `/investment`, `/what-we-build` — the same animated footer should appear (single shared component).
-- Confirm `prefers-reduced-motion` still kills the animations (already handled in `styles.css`).
+In `src/routes/walks_.$slug.tsx`:
+
+1. Loader: validate the slug and return only the slug string — no JSX.
+   ```ts
+   loader: ({ params }) => {
+     if (!DETAILS[params.slug]) throw notFound();
+     return { slug: params.slug };
+   }
+   ```
+2. `head()`: read `loaderData?.slug` and look up `SUMMARY[slug]`/`DETAILS[slug]` for title/description (still serializable strings).
+3. `WalkDetailPage` component (line 917): replace `const { walk } = Route.useLoaderData()` with
+   ```ts
+   const { slug } = Route.useLoaderData();
+   const walk = DETAILS[slug];
+   ```
+
+No visual code changes — only data plumbing. The existing hero, route bar, milestones, stats, quote, dark CTA, continue-walking, and footer sections stay as-is.
+
+## Verify against reference
+
+After the fix, drive Playwright to `/walks/leadership-education`, capture full-page screenshots at 1280px width, and compare to the user's reference image section by section:
+
+- Hero: eyebrow "THE WALKS", headline with italic royal "carries the work.", subhead, mountain art on right with route line ending in flag.
+- The Route: 7-step horizontal bar (Point A → 01–05 → Current State) with labels.
+- Point A + The Milestones: left copy block, right 5 numbered milestones with Lucide icons and titles.
+- Where They Stand Now: left copy + 4 stat cards (1,250+, 84%, 28, 18+).
+- Quote block with mountain art, founder attribution.
+- Dark CTA "Your business is at its own Point A right now." with Build My Roadmap button.
+- Continue Walking: 5 horizontal cards with sparkline-like routes and "View walk →".
+- Footer matching site footer.
+
+Note any deviations and patch only the off-spec elements (spacing, type sizes, colors). Stop when the rendered page matches the reference layout.

@@ -2,12 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Footprints, PersonStanding, Snail, Target, Settings, ShieldCheck, X, Equal, ListChecks, BarChart3, Wallet, Cog, Users, ArrowLeftRight, LineChart, Wrench, UserCheck, Check } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal } from "@/hooks/use-reveal";
 import heroDesk from "@/assets/hero-investment-book-desk.png.asset.json";
 import bridgeImg from "@/assets/bridge-illustration-river.png.asset.json";
 import landscapeImg from "@/assets/roadmap-landscape-divider.png.asset.json";
-
+import starscapeImg from "@/assets/footer-network-starscape.png.asset.json";
 
 export const Route = createFileRoute("/investment")({
   head: () => ({
@@ -542,7 +541,66 @@ function QuoteDivider() {
 
 // ---------- Pre-footer CTA + footer ----------
 function FooterCTA() {
-  return <SiteFooter />;
+  return (
+    <section
+      id="cta"
+      className="relative scroll-mt-32 overflow-hidden bg-[oklch(0.14_0.05_265)] text-white"
+      style={{
+        backgroundImage: `linear-gradient(to right, oklch(0.14 0.05 265 / 0.25) 0%, oklch(0.14 0.05 265 / 0.85) 40%, oklch(0.14 0.05 265) 58%, oklch(0.14 0.05 265) 100%), url(${starscapeImg.url})`,
+        backgroundSize: "cover",
+        backgroundPosition: "left center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className={`${container} grid grid-cols-1 gap-10 py-16 sm:py-20 lg:grid-cols-12 lg:gap-12 lg:py-20`}>
+        <div className="hidden lg:col-span-5 lg:block" />
+        <div className="lg:col-span-7">
+          <h2 className="font-display font-normal text-[28px] leading-[1.15] tracking-[-0.018em] text-white sm:text-[36px] lg:text-[40px] animate-fade-in [animation-delay:80ms] opacity-0 [animation-fill-mode:forwards]">
+            Businesses without a map do not fail. They scatter.
+          </h2>
+          <p className="mt-5 max-w-[60ch] text-[13.5px] leading-[1.7] text-white/70 animate-fade-in [animation-delay:220ms] opacity-0 [animation-fill-mode:forwards]">
+            Years go into the right work in the wrong order. The cost was never the spend. The cost is the years. The first step is a 30-minute conversation. We name your number, show you the shape of the walk, and tell you honestly whether we are the ones to build your bridge. If we are not, we will say so, and point you to who is.
+          </p>
+          <div className="mt-7 flex flex-wrap items-center gap-2 animate-fade-in [animation-delay:340ms] opacity-0 [animation-fill-mode:forwards]">
+            <a href="#" className="group inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[12.5px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]">
+              Build My Roadmap <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </a>
+            <a href="#map" className="group inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-medium text-white/80 transition-colors duration-300 hover:text-white">
+              Start with the map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </a>
+          </div>
+          <p className="mt-6 max-w-[52ch] text-[11.5px] leading-[1.75] text-white/50 animate-fade-in [animation-delay:460ms] opacity-0 [animation-fill-mode:forwards]">
+            A 30-minute conversation. No pitch. If the timing is right, we should talk. If it is not, the work is waiting when it is.
+          </p>
+
+        </div>
+      </div>
+
+
+      <footer className="border-t border-white/10">
+        <div className={`${container} grid grid-cols-1 gap-8 py-10 sm:grid-cols-3`}>
+          <div>
+            <p className="font-display text-[18px] text-white">Trust Tai</p>
+            <p className="mt-1 text-[11px] tracking-[0.2em] text-white/45">MAP. BUILD. SCALE.</p>
+          </div>
+          <ul className="space-y-1.5 text-[12.5px] text-white/65">
+            <li><a href="#map" className="hover:text-white">The Roadmap</a></li>
+            <li><Link to="/what-we-build" className="hover:text-white">Our Builds</Link></li>
+            <li><a href="#" className="hover:text-white">Our Story</a></li>
+            <li><a href="#" className="hover:text-white">Insights</a></li>
+            <li><Link to="/investment" className="hover:text-white">Investment</Link></li>
+          </ul>
+          <div className="flex flex-col items-start gap-4 text-[12px] text-white/55 sm:items-end">
+            <p>© 2026 Trust Tai. All rights reserved.</p>
+            <div className="flex gap-5">
+              <a href="#" className="hover:text-white">Privacy Policy</a>
+              <a href="#" className="hover:text-white">Terms of Service</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </section>
+  );
 }
 
 function InvestmentPage() {
