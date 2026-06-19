@@ -450,7 +450,7 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
             <p className="mt-1 uppercase text-ink/50">{walk.walkingSince}</p>
           </div>
           <Link
-            to="/walks_/$slug"
+            to="/walks/$slug"
             params={{ slug: walk.slug }}
             className="group inline-flex items-center gap-1.5 text-[13px] text-ink underline decoration-ink/30 underline-offset-[6px] transition-colors hover:text-royal hover:decoration-royal"
           >
