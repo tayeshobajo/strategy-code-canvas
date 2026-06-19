@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Compass, Printer } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { INSIGHTS, getInsightBySlug, type Insight } from "@/lib/insights-data";
 import taiPortrait from "@/assets/tai-portrait-seated.png.asset.json";
 
@@ -746,6 +747,7 @@ function InsightArticlePage() {
           </section>
         </article>
       </main>
+      <SiteFooter />
     </div>
   );
 }
