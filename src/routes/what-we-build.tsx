@@ -944,27 +944,5 @@ function BottomCTA() {
 
 // ----------- FOOTER -----------
 function Footer() {
-  return (
-    <footer className="bg-[#08122b] text-paper">
-      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-10 px-6 py-14 sm:px-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)]">
-        <div>
-          <TrustTaiLogo variant="white" />
-        </div>
-        <ul className="flex flex-col gap-2 text-[13px] text-paper/70">
-          <li><Link to="/" className="hover:text-paper">The Roadmap</Link></li>
-          <li><Link to="/what-we-build" className="hover:text-paper">Our Builds</Link></li>
-          <li><a href="#" className="hover:text-paper">Our Story</a></li>
-          <li><a href="#" className="hover:text-paper">Insights</a></li>
-          <li><a href="#" className="hover:text-paper">Investment</a></li>
-        </ul>
-        <div className="flex flex-col items-start justify-between gap-4 text-[12.5px] text-paper/55 md:items-end md:text-right">
-          <p>© 2026 Trust Tai. All rights reserved.</p>
-          <div className="flex gap-5">
-            <a href="#" className="hover:text-paper">Privacy Policy</a>
-            <a href="#" className="hover:text-paper">Terms of Service</a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
+  return <SiteFooter />;
 }

@@ -844,58 +844,7 @@ function ContourField() {
 }
 
 function FooterCTA() {
-  return (
-    <section
-      id="cta"
-      className="relative scroll-mt-32 overflow-hidden bg-[oklch(0.13_0.05_265)] text-white"
-      aria-labelledby="cta-heading"
-    >
-      <ContourField />
-      <div className={`${container} relative py-20 text-center sm:py-24`}>
-        <Reveal as="h2" id="cta-heading" variant="fade-up" className="mx-auto max-w-[28ch] font-display text-[28px] font-normal leading-[1.18] tracking-[-0.018em] text-white sm:text-[36px] lg:text-[42px]">
-          This is how we think. The <em className="italic">Roadmap</em> is how we <em className="italic">build</em>.
-        </Reveal>
-        <Reveal as="p" variant="fade-up" delay={120} className="mx-auto mt-6 max-w-[62ch] text-[13.5px] leading-[1.75] text-white/65">
-          Every piece here is a truth we have walked with a founder. If reading them made you want the version mapped for your business, that is where the Roadmap begins.
-        </Reveal>
-        <Reveal as="div" variant="fade-up" delay={220} className="mt-9 flex flex-col items-center gap-4">
-          <a
-            href="#"
-            className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[13px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]"
-          >
-            Build My Roadmap
-            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
-          </a>
-          <p className="mx-auto max-w-[52ch] text-[11.5px] leading-[1.75] text-white/45">
-            A 30-minute conversation. No pitch. If the timing is right, we should talk. If it is not, the work is waiting when it is.
-          </p>
-        </Reveal>
-      </div>
-
-      <footer className="relative border-t border-white/10">
-        <div className={`${container} grid grid-cols-1 gap-8 py-10 sm:grid-cols-3`}>
-          <div>
-            <p className="font-display text-[18px] text-white">Trust Tai</p>
-            <p className="mt-1 text-[11px] tracking-[0.2em] text-white/45">MAP. BUILD. SCALE.</p>
-          </div>
-          <ul className="space-y-1.5 text-[12.5px] text-white/65">
-            <li><Link to="/" className="hover:text-white">The Roadmap</Link></li>
-            <li><Link to="/what-we-build" className="hover:text-white">Our Builds</Link></li>
-            <li><Link to="/about" className="hover:text-white">Our Story</Link></li>
-            <li><Link to="/insights" className="hover:text-white">Insights</Link></li>
-            <li><Link to="/investment" className="hover:text-white">Investment</Link></li>
-          </ul>
-          <div className="flex flex-col items-start gap-4 text-[12px] text-white/55 sm:items-end">
-            <p>© 2026 Trust Tai. All rights reserved.</p>
-            <div className="flex gap-5">
-              <a href="#" className="hover:text-white">Privacy Policy</a>
-              <a href="#" className="hover:text-white">Terms of Service</a>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </section>
-  );
+  return <SiteFooter />;
 }
 
 /* ------------------------------- PAGE ------------------------------- */
