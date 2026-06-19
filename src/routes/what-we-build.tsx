@@ -72,7 +72,7 @@ import heroBook from "@/assets/hero-open-book-desk.png.asset.json";
 import ctaSectionBg from "@/assets/cta-section-background.jpg.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { Reveal, useReveal } from "@/hooks/use-reveal";
 
 
@@ -235,9 +235,11 @@ function WhatWeBuild() {
         <IntelligenceLayer />
         <StandardsRow />
         <BeforeAfter />
-        <BottomCTA />
-        <SiteFooter />
       </div>
+      <SiteClosing
+        headline={<>The build is never the point. <Accent>The position it earns you is.</Accent></>}
+        supporting={<>Every system here is a milestone inside a larger map, built in the order your business needs them.</>}
+      />
     </div>
   );
 }

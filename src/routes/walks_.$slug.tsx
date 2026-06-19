@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { Reveal } from "@/hooks/use-reveal";
 import heroArt from "@/assets/mountain-1.png.asset.json";
 import pointAArt from "@/assets/mountain-3.png.asset.json";
@@ -894,10 +894,12 @@ function WalkDetailPage() {
         <PointAndMilestones walk={walk} />
         <WhereTheyStandNow walk={walk} />
         <QuoteBlock walk={walk} />
-        <DarkCta />
         {/* <ContinueWalking slugs={walk.continueWalking} /> */}
-        <SiteFooter />
       </main>
+      <SiteClosing
+        headline={<>Every walk here started <Accent>where you are now</Accent>.</>}
+        supporting={<>A first conversation. A map. Then the first milestone. Your walk begins the same way.</>}
+      />
     </div>
   );
 }

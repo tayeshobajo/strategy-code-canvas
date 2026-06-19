@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { Reveal } from "@/hooks/use-reveal";
 import heroArt from "@/assets/walks-hero-bg.png.asset.json";
 
@@ -575,9 +575,11 @@ function WalksPage() {
           ))}
           {filtered.length > 0 && <div className="border-t border-rule" />}
         </section>
-        <DarkCta />
-        <SiteFooter />
       </main>
+      <SiteClosing
+        headline={<>Every walk here started <Accent>where you are now</Accent>.</>}
+        supporting={<>A first conversation. A map. Then the first milestone. Your walk begins the same way.</>}
+      />
     </div>
   );
 }
