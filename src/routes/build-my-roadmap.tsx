@@ -443,37 +443,43 @@ function ReassureItem({
   );
 }
 
-/* Hairline route-marks — engraved survey marks, not stock icons. */
+/* Hairline cartographic marks — survey benchmark, milestone post, bearing line. */
 function RouteMarkA() {
+  // Trail benchmark: triangle over a hairline rule
   return (
-    <svg viewBox="0 0 36 36" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.1} strokeLinecap="round">
-        <circle cx={18} cy={18} r={11} strokeOpacity={0.45} />
-        <circle cx={18} cy={18} r={2.4} fill={ROYAL} stroke="none" />
-        <path d="M 18 4.5 L 18 9" />
-        <path d="M 18 27 L 18 31.5" />
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M 4 30 L 40 30" strokeOpacity={0.45} />
+        <path d="M 22 12 L 32 28 L 12 28 Z" />
+        <circle cx={22} cy={22} r={1.6} fill={ROYAL} stroke="none" />
+        <path d="M 8 34 L 12 34 M 18 34 L 26 34 M 32 34 L 36 34" strokeOpacity={0.35} />
       </g>
     </svg>
   );
 }
 function RouteMarkB() {
+  // Milestone post: a numbered cairn-stone marker on a route line
   return (
-    <svg viewBox="0 0 36 36" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.1} strokeLinecap="round">
-        <circle cx={18} cy={18} r={11} strokeOpacity={0.45} />
-        <path d="M 8 18 L 28 18" />
-        <path d="M 14 12 L 22 24" strokeOpacity={0.55} />
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M 4 32 C 14 32, 18 32, 22 32 S 34 32, 40 32" strokeOpacity={0.45} />
+        <rect x={17} y={14} width={10} height={18} rx={1.5} />
+        <path d="M 17 21 L 27 21" strokeOpacity={0.45} />
+        <path d="M 22 10 L 22 14" />
+        <circle cx={22} cy={9} r={1.4} fill={ROYAL} stroke="none" />
       </g>
     </svg>
   );
 }
 function RouteMarkC() {
+  // Route bearing: dotted course toward a destination cross
   return (
-    <svg viewBox="0 0 36 36" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.1} strokeLinecap="round">
-        <circle cx={18} cy={18} r={11} strokeOpacity={0.45} />
-        <path d="M 6 26 C 12 18, 18 22, 24 14 L 30 8" />
-        <path d="M 30 8 L 26 8 M 30 8 L 30 12" />
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1} strokeLinecap="round">
+        <circle cx={10} cy={32} r={2.2} fill={ROYAL} stroke="none" />
+        <path d="M 12 30 L 32 12" strokeDasharray="1.4 4" />
+        <path d="M 28 12 L 34 12 L 34 18" strokeOpacity={0.7} />
+        <path d="M 30 8 L 36 14 M 36 8 L 30 14" strokeOpacity={0.55} />
       </g>
     </svg>
   );
