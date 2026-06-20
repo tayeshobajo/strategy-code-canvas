@@ -698,8 +698,7 @@ function InsightArticlePage() {
                     If this named something you have been carrying, the Roadmap is where we map it.
                   </p>
                   <Link
-                    to="/"
-                    hash="cta"
+                    to="/build-my-roadmap"
                     className="group mt-6 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-all duration-300 ease-out hover:-translate-y-[1px]"
                   >
                     Build My Roadmap

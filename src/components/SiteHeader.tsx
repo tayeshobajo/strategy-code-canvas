@@ -52,7 +52,7 @@ export function SiteHeader() {
             })}
           </nav>
           <a
-            href="#cta"
+            href="/build-my-roadmap"
             className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-paper transition-transform hover:scale-[1.02]"
           >
             Build My Roadmap <ArrowRight className="h-3.5 w-3.5" />

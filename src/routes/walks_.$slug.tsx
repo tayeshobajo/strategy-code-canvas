@@ -802,7 +802,7 @@ function DarkCta() {
         </div>
         <div className="flex flex-col items-start gap-4 md:items-end md:text-right">
           <a
-            href="#cta"
+            href="/build-my-roadmap"
             className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[13px] font-medium text-ink transition-all duration-300 hover:-translate-y-[1px]"
           >
             Build My Roadmap
