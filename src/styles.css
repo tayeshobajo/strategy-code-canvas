@@ -91,6 +91,33 @@
   .font-mono { font-family: var(--font-mono); }
 }
 
+/* Shared interactive row — hover + selected states, used by Walks and any
+   other site lists that want the same royal-tinted interaction model. */
+@utility row-interactive {
+  cursor: pointer;
+  transition: background-color 200ms ease, box-shadow 200ms ease;
+  &:hover {
+    background-color: var(--row-hover-bg);
+  }
+  &[data-selected="true"] {
+    background-color: var(--row-selected-bg);
+    box-shadow: inset 3px 0 0 0 var(--row-selected-border);
+  }
+  &[data-selected="true"]:hover {
+    background-color: var(--row-selected-bg);
+  }
+}
+
+@utility link-royal {
+  color: var(--link-royal);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--link-royal) 40%, transparent);
+  text-underline-offset: 6px;
+  transition: text-decoration-color 200ms ease;
+  &:hover {
+    text-decoration-color: var(--link-royal);
+  }
+
 @utility eyebrow {
   font-family: var(--font-mono);
   font-size: 11px;
