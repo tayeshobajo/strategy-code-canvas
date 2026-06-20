@@ -37,7 +37,7 @@ const ROYAL = "#2563FF";
 /* -------------------- HERO -------------------- */
 function Hero() {
   return (
-    <section className="relative w-full overflow-hidden bg-paper">
+    <section className="relative w-full overflow-hidden bg-white">
       <div className={`${container} grid grid-cols-1 items-center gap-10 pt-[140px] pb-10 lg:grid-cols-[1.05fr_1fr] lg:pt-[160px] lg:pb-12`}>
         <div>
           <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.28em]" >
