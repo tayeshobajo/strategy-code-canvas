@@ -156,6 +156,30 @@ const WALKS: Walk[] = [
 const FILTERS = ["All", "Foundations", "Growth Engines", "Operating Systems", "Long Walks"] as const;
 type Filter = (typeof FILTERS)[number];
 
+const SORTS = ["Newest", "Oldest", "Most milestones", "Fewest milestones"] as const;
+type Sort = (typeof SORTS)[number];
+
+function walkYear(w: Walk): number {
+  const m = w.walkingSince.match(/(\d{4})/);
+  if (m) return Number(m[1]);
+  // "Active" / "Completed in N days" — treat as current.
+  return new Date().getFullYear();
+}
+
+function sortWalks(list: Walk[], sort: Sort): Walk[] {
+  const arr = [...list];
+  switch (sort) {
+    case "Newest":
+      return arr.sort((a, b) => walkYear(b) - walkYear(a));
+    case "Oldest":
+      return arr.sort((a, b) => walkYear(a) - walkYear(b));
+    case "Most milestones":
+      return arr.sort((a, b) => b.milestones.length - a.milestones.length);
+    case "Fewest milestones":
+      return arr.sort((a, b) => a.milestones.length - b.milestones.length);
+  }
+}
+
 /* ------------------------------ HERO ------------------------------ */
 
 
