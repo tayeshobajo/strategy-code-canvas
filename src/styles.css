@@ -53,6 +53,7 @@
   --row-selected-bg: color-mix(in oklch, var(--royal) 9%, transparent);
   --row-selected-border: color-mix(in oklch, var(--royal) 55%, transparent);
   --link-royal: var(--royal);
+  --link-royal-underline: color-mix(in oklch, var(--royal) 40%, transparent);
   --card: oklch(1 0 0);
   --card-foreground: var(--ink);
   --popover: oklch(1 0 0);
@@ -110,8 +111,8 @@
 
 @utility link-royal {
   color: var(--link-royal);
-  text-decoration: underline;
-  text-decoration-color: color-mix(in oklch, var(--link-royal) 40%, transparent);
+  text-decoration-line: underline;
+  text-decoration-color: var(--link-royal-underline);
   text-underline-offset: 6px;
   transition: text-decoration-color 200ms ease;
   &:hover {
