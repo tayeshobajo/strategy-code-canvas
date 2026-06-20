@@ -26,14 +26,6 @@ export type SiteClosingProps = {
 export function SiteClosing({ headline, supporting }: SiteClosingProps) {
   return (
     <>
-      {/* Blend strip: fades the previous section into navy. No seam. */}
-      <div
-        aria-hidden="true"
-        className="h-40 sm:h-48"
-        style={{
-          backgroundImage: `linear-gradient(to bottom, transparent 0%, ${NAVY} 100%)`,
-        }}
-      />
       <section
         className="relative overflow-hidden text-white"
         style={{ backgroundColor: NAVY }}
