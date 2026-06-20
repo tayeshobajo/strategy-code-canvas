@@ -47,6 +47,12 @@
   --royal: oklch(0.48 0.18 262);
   --royal-soft: oklch(0.72 0.12 262);
   --rule: oklch(0.9 0.01 260);
+  /* Shared interactive row tokens — derived from --royal so hover/selected
+     states stay consistent across the site. */
+  --row-hover-bg: color-mix(in oklch, var(--royal) 5%, transparent);
+  --row-selected-bg: color-mix(in oklch, var(--royal) 9%, transparent);
+  --row-selected-border: color-mix(in oklch, var(--royal) 55%, transparent);
+  --link-royal: var(--royal);
   --card: oklch(1 0 0);
   --card-foreground: var(--ink);
   --popover: oklch(1 0 0);
