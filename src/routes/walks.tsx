@@ -463,13 +463,40 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
 
 /* ----------------------------- WALK ROW ----------------------------- */
 
-function WalkRow({ walk, index }: { walk: Walk; index: number }) {
+function WalkRow({
+  walk,
+  index,
+  selected,
+  onSelect,
+}: {
+  walk: Walk;
+  index: number;
+  selected: boolean;
+  onSelect: (slug: string) => void;
+}) {
+  const handleActivate = (e: React.MouseEvent | React.KeyboardEvent) => {
+    // Don't hijack the link click — let it navigate.
+    const target = e.target as HTMLElement;
+    if (target.closest("a")) return;
+    onSelect(walk.slug);
+  };
   return (
     <Reveal
       as="article"
       variant="fade-up"
       delay={index * 60}
-      className="group border-t border-rule transition-colors duration-200 hover:bg-royal/[0.04]"
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      data-selected={selected}
+      onClick={handleActivate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleActivate(e);
+        }
+      }}
+      className="group row-interactive border-t border-rule focus:outline-none focus-visible:ring-2 focus-visible:ring-royal/40"
     >
       <div
         className={`${container} grid grid-cols-1 gap-6 py-10 md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1.1fr)_170px] md:gap-8`}
@@ -482,7 +509,7 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
 
         {/* Lead stat + journey context */}
         <div>
-          <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal sm:text-[42px]">
+          <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[42px]">
             {"{{OUTCOME}}"}
           </p>
           <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
@@ -507,7 +534,8 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
           <Link
             to="/walks/$slug"
             params={{ slug: walk.slug }}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-royal underline decoration-royal/40 underline-offset-[6px] transition-all hover:decoration-royal group-hover:translate-x-0.5"
+            onClick={(e) => e.stopPropagation()}
+            className="link-royal inline-flex items-center gap-1.5 text-[13px] font-medium transition-transform group-hover:translate-x-0.5"
           >
             View walk
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
@@ -517,6 +545,7 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
     </Reveal>
   );
 }
+
 
 /* --------------------------- DARK CTA --------------------------- */
 
