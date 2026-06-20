@@ -40,7 +40,7 @@
 
 :root {
   --radius: 0.5rem;
-  --paper: oklch(0.973 0.012 85); /* #FBF9F4 — warm cream brand paper */
+  --paper: oklch(0.985 0.005 85); /* cool near-white brand paper */
   --background: oklch(1 0 0);
   --foreground: oklch(0.18 0.04 260);
   --ink: oklch(0.13 0.05 265);
