@@ -620,10 +620,13 @@ function WalksPage() {
   // restore scroll position after a filter change shrinks/grows the list.
   const pendingAnchorTopRef = React.useRef<number | null>(null);
 
-  const filtered = React.useMemo(
-    () => (filter === "All" ? WALKS : WALKS.filter((w) => w.bucket === filter)),
-    [filter],
-  );
+  const [sort, setSort] = React.useState<Sort>("Newest");
+  const [selectedSlug, setSelectedSlug] = React.useState<string | null>(null);
+
+  const filtered = React.useMemo(() => {
+    const base = filter === "All" ? WALKS : WALKS.filter((w) => w.bucket === filter);
+    return sortWalks(base, sort);
+  }, [filter, sort]);
 
   const handleFilterChange = React.useCallback((next: Filter) => {
     if (next === filter) return;
@@ -631,6 +634,10 @@ function WalksPage() {
     pendingAnchorTopRef.current = node ? node.getBoundingClientRect().top : null;
     setFilter(next);
   }, [filter]);
+
+  const handleSelect = React.useCallback((slug: string) => {
+    setSelectedSlug((prev) => (prev === slug ? null : slug));
+  }, []);
 
   React.useLayoutEffect(() => {
     const prevTop = pendingAnchorTopRef.current;
@@ -651,11 +658,23 @@ function WalksPage() {
       <main>
         <Hero />
         <div ref={filterAnchorRef}>
-          <FilterRow active={filter} onChange={handleFilterChange} />
+          <FilterRow
+            active={filter}
+            onChange={handleFilterChange}
+            sort={sort}
+            onSortChange={setSort}
+            resultCount={filtered.length}
+          />
         </div>
         <section className="mt-2">
           {filtered.map((w, i) => (
-            <WalkRow key={w.slug} walk={w} index={i} />
+            <WalkRow
+              key={w.slug}
+              walk={w}
+              index={i}
+              selected={selectedSlug === w.slug}
+              onSelect={handleSelect}
+            />
           ))}
           {filtered.length > 0 && <div className="border-t border-rule" />}
         </section>
