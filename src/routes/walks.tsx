@@ -415,7 +415,7 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
       as="article"
       variant="fade-up"
       delay={index * 60}
-      className="border-t border-rule"
+      className="group border-t border-rule transition-colors duration-200 hover:bg-royal/[0.04]"
     >
       <div
         className={`${container} grid grid-cols-1 gap-6 py-10 md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1.1fr)_170px] md:gap-8`}
@@ -428,7 +428,7 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
 
         {/* Lead stat + journey context */}
         <div>
-          <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink sm:text-[42px]">
+          <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal sm:text-[42px]">
             {"{{OUTCOME}}"}
           </p>
           <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
@@ -453,9 +453,10 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
           <Link
             to="/walks/$slug"
             params={{ slug: walk.slug }}
-            className="group inline-flex items-center gap-1.5 text-[13px] text-ink underline decoration-ink/30 underline-offset-[6px] transition-colors hover:text-royal hover:decoration-royal"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-royal underline decoration-royal/40 underline-offset-[6px] transition-all hover:decoration-royal group-hover:translate-x-0.5"
           >
             View walk
+            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
           </Link>
         </div>
       </div>
