@@ -207,7 +207,7 @@ function StartConversation() {
     <section
       id="cta"
       className="relative"
-      style={{ backgroundColor: "#DCE3F8" }}
+      style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
     >
       <div className={`${container} grid grid-cols-1 gap-14 py-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:py-28`}>
         {/* LEFT — form */}
@@ -278,7 +278,7 @@ function StartConversation() {
 
             {/* Divider */}
             <div className="relative pt-2 pb-1 text-center">
-              <span className="relative z-[1] inline-block px-4 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/55" style={{ backgroundColor: "#DCE3F8" }}>
+              <span className="relative z-[1] inline-block px-4 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/55" style={{ backgroundColor: "#F2F5F8" }}>
                 Or book a time that works
               </span>
               <span className="absolute left-0 right-0 top-1/2 -z-0 h-px bg-ink/10" aria-hidden="true" />
