@@ -207,7 +207,7 @@ function StartConversation() {
     <section
       id="cta"
       className="relative"
-      style={{ backgroundColor: "#DCE3F8" }}
+      style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
     >
       <div className={`${container} grid grid-cols-1 gap-14 py-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:py-28`}>
         {/* LEFT — form */}
