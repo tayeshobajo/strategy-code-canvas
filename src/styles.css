@@ -110,10 +110,12 @@
 
 @utility link-royal {
   color: var(--link-royal);
-  text-decoration: underline;
+  text-decoration-line: underline;
   text-decoration-color: color-mix(in oklch, var(--link-royal) 40%, transparent);
   text-underline-offset: 6px;
   transition: text-decoration-color 200ms ease;
+}
+@utility link-royal {
   &:hover {
     text-decoration-color: var(--link-royal);
   }
