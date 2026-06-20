@@ -231,16 +231,44 @@ function ConversationSteps() {
 }
 
 /* -------------------- SECTION 3 — Form + Reassurance -------------------- */
+const NAME_MAX = 100;
+const EMAIL_MAX = 255;
+const STUCK_MAX = 1000;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type FieldErrors = { name?: string; email?: string; stuck?: string };
+
 function StartConversation() {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [stuck, setStuck] = React.useState("");
-  const [submitted, setSubmitted] = React.useState(false);
+  const [errors, setErrors] = React.useState<FieldErrors>({});
+  const [status, setStatus] = React.useState<"idle" | "submitting" | "submitted">("idle");
+
+  const validate = (): FieldErrors => {
+    const e: FieldErrors = {};
+    const n = name.trim();
+    const em = email.trim();
+    const s = stuck.trim();
+    if (!n) e.name = "Please enter your name.";
+    else if (n.length > NAME_MAX) e.name = `Keep it under ${NAME_MAX} characters.`;
+    if (!em) e.email = "Please enter your email.";
+    else if (em.length > EMAIL_MAX) e.email = `Keep it under ${EMAIL_MAX} characters.`;
+    else if (!EMAIL_RE.test(em)) e.email = "That email does not look right.";
+    if (s.length > STUCK_MAX) e.stuck = `Keep it under ${STUCK_MAX} characters.`;
+    return e;
+  };
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    const next = validate();
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+    setStatus("submitting");
+    // Local-only handler. A real submission endpoint can be wired here.
+    window.setTimeout(() => setStatus("submitted"), 250);
   };
+  const submitted = status === "submitted";
 
   return (
     <section
