@@ -550,33 +550,7 @@ function RouteMarkC() {
   );
 }
 
-function RouteMarkB() {
-  // Milestone post: a numbered cairn-stone marker on a route line
-  return (
-    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M 4 32 C 14 32, 18 32, 22 32 S 34 32, 40 32" strokeOpacity={0.45} />
-        <rect x={17} y={14} width={10} height={18} rx={1.5} />
-        <path d="M 17 21 L 27 21" strokeOpacity={0.45} />
-        <path d="M 22 10 L 22 14" />
-        <circle cx={22} cy={9} r={1.4} fill={ROYAL} stroke="none" />
-      </g>
-    </svg>
-  );
-}
-function RouteMarkC() {
-  // Route bearing: dotted course toward a destination cross
-  return (
-    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1} strokeLinecap="round">
-        <circle cx={10} cy={32} r={2.2} fill={ROYAL} stroke="none" />
-        <path d="M 12 30 L 32 12" strokeDasharray="1.4 4" />
-        <path d="M 28 12 L 34 12 L 34 18" strokeOpacity={0.7} />
-        <path d="M 30 8 L 36 14 M 36 8 L 30 14" strokeOpacity={0.55} />
-      </g>
-    </svg>
-  );
-}
+
 function CalendarMark() {
   return (
     <svg viewBox="0 0 36 36" className="h-8 w-8" aria-hidden="true">
