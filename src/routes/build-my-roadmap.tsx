@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -195,19 +195,33 @@ function StartConversation() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (status === "submitting") return;
     const next = validate();
     setErrors(next);
     if (Object.keys(next).length > 0) return;
     setStatus("submitting");
+    const correlationId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `roadmap-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     try {
       const res = await fetch("/api/public/hooks/build-roadmap-contact", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), stuck: stuck.trim() }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-correlation-id": correlationId,
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          stuck: stuck.trim(),
+          correlationId,
+        }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setStatus("submitted");
-    } catch {
+    } catch (err) {
+      console.error("[build-my-roadmap] submit failed", { correlationId, err });
       setStatus("error");
     }
   };
@@ -318,11 +332,19 @@ function StartConversation() {
             <button
               type="submit"
               disabled={status === "submitting"}
-              className="group mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:opacity-70"
+              aria-busy={status === "submitting"}
+              className="group mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             >
-              {status === "submitting" ? "Sending…" : "Start the conversation"}
-              {status !== "submitting" && (
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              {status === "submitting" ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <span>Sending…</span>
+                </>
+              ) : (
+                <>
+                  <span>Start the conversation</span>
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                </>
               )}
             </button>
 
