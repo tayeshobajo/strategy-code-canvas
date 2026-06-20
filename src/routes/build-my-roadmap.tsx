@@ -170,7 +170,7 @@ function ConversationSteps() {
   ];
   return (
     <section className="bg-paper">
-      <div className={`${container} py-24 lg:py-32`}>
+      <div className={`${container} pt-16 pb-24 lg:pt-20 lg:pb-28`}>
         <Reveal
           as="h2"
           variant="fade-up"
