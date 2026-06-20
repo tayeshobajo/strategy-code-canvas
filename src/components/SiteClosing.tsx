@@ -14,6 +14,7 @@ import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 
 const NAVY = "#0A0F1F";
 const ROUTE_BLUE = "#2563FF";
+const IVORY = "#FBF9F4";
 const CREAM = "oklch(0.92 0.07 85)";
 
 const container = "mx-auto max-w-[1240px] px-6 sm:px-8 lg:px-10";
@@ -26,14 +27,24 @@ export type SiteClosingProps = {
 export function SiteClosing({ headline, supporting }: SiteClosingProps) {
   return (
     <>
+      {/* Blend strip: gradient from page background → solid navy. Lives OUTSIDE the
+          navy section so the section itself is unbroken navy. The strip is tall
+          enough that its bottom is fully NAVY before the section starts. */}
+      <div
+        aria-hidden="true"
+        className="h-[240px] sm:h-[320px] w-full"
+        style={{
+          background: `linear-gradient(to bottom, transparent 0%, ${NAVY} 100%)`,
+        }}
+      />
       <section
         className="relative overflow-hidden text-white"
         style={{ backgroundColor: NAVY }}
       >
         <ContourField />
 
-        {/* Close slot */}
-        <div className={`${container} relative pt-4 pb-8 sm:pt-8 sm:pb-12`}>
+        {/* Close slot — generous breathing room above the headline */}
+        <div className={`${container} relative pt-[120px] sm:pt-[180px] pb-12 sm:pb-16`}>
           <div className="mx-auto max-w-[760px] text-center">
             <h2 className="font-display text-[clamp(1.85rem,4vw,2.6rem)] leading-[1.18] tracking-[-0.018em] text-white">
               {headline}
@@ -63,27 +74,17 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
         <div className={`${container} relative pb-12 pt-16`}>
           <div className="grid grid-cols-1 gap-10 md:grid-cols-4 md:gap-0 md:divide-x md:divide-white/10">
             <div className="md:pr-8">
-              <img
-                src={logoWhite.url}
-                alt="Trust Tai"
-                className="h-7 w-auto"
-              />
+              <img src={logoWhite.url} alt="Trust Tai" className="h-7 w-auto" />
               <p className="mt-4 text-[13px] leading-[1.6] text-white/55">
                 The system behind the system.
               </p>
             </div>
             <div className="md:px-8">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-                Navigate
-              </p>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Navigate</p>
               <ul className="mt-4 space-y-2 text-[13px] text-white/70">
                 {NAV.map((n) => (
                   <li key={n.to}>
-                    <Link
-                      to={n.to}
-                      hash={n.hash}
-                      className="transition-colors hover:text-white"
-                    >
+                    <Link to={n.to} hash={n.hash} className="transition-colors hover:text-white">
                       {n.label}
                     </Link>
                   </li>
@@ -91,51 +92,26 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
               </ul>
             </div>
             <div className="md:px-8">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-                Connect
-              </p>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Connect</p>
               <ul className="mt-4 space-y-2 text-[13px] text-white/70">
                 <li>Murfreesboro, Tennessee</li>
                 <li>
-                  <a
-                    href="mailto:hello@trusttai.com"
-                    className="transition-colors hover:text-white"
-                  >
+                  <a href="mailto:hello@trusttai.com" className="transition-colors hover:text-white">
                     hello@trusttai.com
                   </a>
                 </li>
               </ul>
             </div>
             <div className="md:pl-8">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-                Follow
-              </p>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Follow</p>
               <div className="mt-4 flex items-center gap-3">
-                <a
-                  href="#"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="LinkedIn"
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white"
-                >
+                <a href="#" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white">
                   <Linkedin className="h-4 w-4" />
                 </a>
-                <a
-                  href="#"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Instagram"
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white"
-                >
+                <a href="#" target="_blank" rel="noreferrer" aria-label="Instagram" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white">
                   <Instagram className="h-4 w-4" />
                 </a>
-                <a
-                  href="#"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="X"
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white"
-                >
+                <a href="#" target="_blank" rel="noreferrer" aria-label="X" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white">
                   <XIcon className="h-3.5 w-3.5" />
                 </a>
               </div>
@@ -145,12 +121,8 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
           <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-6 text-[12px] text-white/45 sm:flex-row sm:items-center">
             <p>© 2026 Trust Tai. All rights reserved.</p>
             <div className="flex gap-5">
-              <a href="#" className="hover:text-white">
-                Privacy Policy
-              </a>
-              <a href="#" className="hover:text-white">
-                Terms of Service
-              </a>
+              <a href="#" className="hover:text-white">Privacy Policy</a>
+              <a href="#" className="hover:text-white">Terms of Service</a>
             </div>
           </div>
         </div>
@@ -159,13 +131,17 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
   );
 }
 
-/* -------------------- Route animation -------------------- */
-// Single horizontal journey: Point A → three uneven milestones → destination.
-// Draws once on first scroll-in. Holds. No loop.
+/* -------------------- Engraved cartographic route --------------------
+   A single hairline contour, pre-etched into the navy. On scroll-in,
+   one warm point of light travels its length once over ~3.5s, inscribing
+   five hairline survey marks at uneven positions as it passes. The
+   destination retains a faint electric-blue core. No loop, no pulse. */
 function RouteAnimation() {
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const pathRef = useRef<SVGPathElement | null>(null);
   const [armed, setArmed] = useState(false);
   const [reduced, setReduced] = useState(false);
+  const [progress, setProgress] = useState(0); // 0..1 along path
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -192,215 +168,177 @@ function RouteAnimation() {
     return () => obs.disconnect();
   }, [armed]);
 
-  // Path: gentle curve from (left, mid) to (right, mid).
-  // viewBox 1000 x 100. Path drawn as a quadratic that rises softly then settles.
-  const W = 1000;
-  const H = 100;
-  const startX = 40;
-  const endX = 960;
-  const midY = 56;
-  const path = `M ${startX} ${midY} C 220 36, 420 78, 560 50 S 820 38, ${endX} ${midY}`;
-  // Approximate pathLength for stroke-dash; we set pathLength="1" for normalized animation.
-  const milestones = [0.22, 0.48, 0.78];
+  // Animate progress 0 → 1 over 3500ms with long ease-in-out.
+  useEffect(() => {
+    if (!armed) return;
+    if (reduced) {
+      setProgress(1);
+      return;
+    }
+    const duration = 3500;
+    const start = performance.now();
+    let raf = 0;
+    const easeInOut = (t: number) =>
+      t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      setProgress(easeInOut(t));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [armed, reduced]);
 
-  // Compute approximate (x,y) for milestones by sampling a path in a hidden SVG node.
-  const pathRef = useRef<SVGPathElement | null>(null);
-  const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
+  // Geometry — gentle contour-line wave across the field.
+  const W = 1000;
+  const H = 120;
+  const startX = 56;
+  const endX = 944;
+  const path = `M ${startX} 70 C 180 38, 280 96, 400 70 S 560 38, 660 64 S 840 92, ${endX} 60`;
+
+  // Uneven waypoints — cluster two close, then a long stretch, then spaced.
+  // Values are normalized t along the path (0..1).
+  const waypoints = [0.16, 0.24, 0.55, 0.72, 0.88];
+
+  // Sample geometry from the SVG path once it's mounted.
+  const [pts, setPts] = useState<{ x: number; y: number }[]>([]);
+  const [endPt, setEndPt] = useState<{ x: number; y: number } | null>(null);
+  const [travelPt, setTravelPt] = useState<{ x: number; y: number } | null>(null);
+  const [totalLen, setTotalLen] = useState(0);
+
   useEffect(() => {
     const p = pathRef.current;
     if (!p) return;
     const total = p.getTotalLength();
-    setPoints(
-      milestones.map((t) => {
+    setTotalLen(total);
+    setPts(
+      waypoints.map((t) => {
         const pt = p.getPointAtLength(total * t);
         return { x: pt.x, y: pt.y };
       }),
     );
-    // milestones is a stable literal; no deps needed
+    const ept = p.getPointAtLength(total);
+    setEndPt({ x: ept.x, y: ept.y });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const active = armed || reduced;
-  // Total draw duration in ms
-  const duration = 2500;
+  // Update traveling light point.
+  useEffect(() => {
+    const p = pathRef.current;
+    if (!p || !totalLen) return;
+    const pt = p.getPointAtLength(totalLen * progress);
+    setTravelPt({ x: pt.x, y: pt.y });
+  }, [progress, totalLen]);
 
   return (
-    <div ref={wrapRef} className="relative mx-auto mt-10 mb-10 w-full max-w-[860px]">
-      {/* Point A label */}
-      <div className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 select-none">
-        <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-white/55">
-          Point A
-        </span>
-      </div>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="block h-[80px] w-full"
-        aria-hidden="true"
-      >
-        {/* Hollow Point A marker */}
-        <circle
-          cx={startX}
-          cy={midY}
-          r={6}
-          fill="none"
-          stroke="rgba(255,255,255,0.7)"
-          strokeWidth={1.5}
-        />
-        {/* Hidden reference path for milestone point sampling */}
+    <div ref={wrapRef} className="relative mx-auto mt-12 mb-10 w-full max-w-[860px]">
+      <svg viewBox={`0 0 ${W} ${H}`} className="block h-[96px] w-full" aria-hidden="true">
+        {/* Pre-etched hairline contour — present at rest */}
         <path
           ref={pathRef}
           d={path}
           fill="none"
-          stroke="none"
-          style={{ visibility: "hidden" }}
+          stroke={IVORY}
+          strokeOpacity={0.12}
+          strokeWidth={1}
+          strokeLinecap="round"
         />
-        {/* Draw via clipPath that grows left→right */}
-        <defs>
-          <clipPath id="route-clip">
-            <rect
-              x={0}
-              y={0}
-              width={active ? W : 0}
-              height={H}
+
+        {/* Point A — hollow hairline ring */}
+        <circle
+          cx={startX}
+          cy={70}
+          r={5}
+          fill="none"
+          stroke={IVORY}
+          strokeOpacity={0.55}
+          strokeWidth={1}
+        />
+
+        {/* Survey marks — fade in as the light reaches each waypoint */}
+        {pts.map((pt, i) => {
+          const t = waypoints[i];
+          // Begin inscribing slightly before arrival; fully inked at arrival.
+          const lit = progress >= t;
+          const opacity = lit ? 0.7 : 0;
+          // Alternate between hairline ring and crosshair tick for variety.
+          const isRing = i % 2 === 0;
+          return (
+            <g
+              key={i}
               style={{
-                transition: active
-                  ? `width ${duration}ms cubic-bezier(0.22, 1, 0.36, 1)`
-                  : "none",
+                opacity,
+                transition: "opacity 600ms ease-out",
               }}
+            >
+              {isRing ? (
+                <circle
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={3.5}
+                  fill="none"
+                  stroke={IVORY}
+                  strokeWidth={1}
+                />
+              ) : (
+                <g stroke={IVORY} strokeWidth={1} strokeLinecap="round">
+                  <line x1={pt.x - 4} y1={pt.y} x2={pt.x + 4} y2={pt.y} />
+                  <line x1={pt.x} y1={pt.y - 4} x2={pt.x} y2={pt.y + 4} />
+                </g>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Destination — inscribed when light arrives; faint blue core. */}
+        {endPt && (
+          <g
+            style={{
+              opacity: progress >= 1 ? 1 : 0,
+              transition: "opacity 700ms ease-out",
+            }}
+          >
+            <circle
+              cx={endPt.x}
+              cy={endPt.y}
+              r={5}
+              fill="none"
+              stroke={IVORY}
+              strokeOpacity={0.7}
+              strokeWidth={1}
             />
-          </clipPath>
-        </defs>
-        <g clipPath="url(#route-clip)">
-          <path
-            d={path}
-            fill="none"
-            stroke={ROUTE_BLUE}
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeDasharray="2 7"
-          />
-        </g>
+            <circle cx={endPt.x} cy={endPt.y} r={1.5} fill={ROUTE_BLUE} />
+          </g>
+        )}
 
-        {/* Milestones — light in sequence as the draw passes them */}
-        {points.map((pt, i) => (
-          <Milestone
-            key={i}
-            cx={pt.x}
-            cy={pt.y}
-            delayMs={Math.round(milestones[i] * duration)}
-            active={active}
-            reduced={reduced}
-          />
-        ))}
-
-        {/* Destination marker on right — settles last with soft glow */}
-        <DestinationMarker
-          cx={endX}
-          cy={midY}
-          delayMs={duration}
-          active={active}
-          reduced={reduced}
-        />
+        {/* Traveling point of light — only visible while moving */}
+        {travelPt && !reduced && progress > 0 && progress < 1 && (
+          <g>
+            <circle
+              cx={travelPt.x}
+              cy={travelPt.y}
+              r={2.5}
+              fill={IVORY}
+              opacity={0.95}
+            />
+            <circle
+              cx={travelPt.x}
+              cy={travelPt.y}
+              r={6}
+              fill={IVORY}
+              opacity={0.18}
+            />
+          </g>
+        )}
       </svg>
+
+      {/* POINT A label, thin mono */}
+      <div className="pointer-events-none absolute left-0 top-1/2 -translate-y-[calc(50%+18px)] select-none">
+        <span className="block font-mono text-[9px] uppercase tracking-[0.32em] text-white/45">
+          Point A
+        </span>
+      </div>
     </div>
-  );
-}
-
-function Milestone({
-  cx,
-  cy,
-  delayMs,
-  active,
-  reduced,
-}: {
-  cx: number;
-  cy: number;
-  delayMs: number;
-  active: boolean;
-  reduced: boolean;
-}) {
-  const [lit, setLit] = useState(false);
-  useEffect(() => {
-    if (!active) return;
-    if (reduced) {
-      setLit(true);
-      return;
-    }
-    const t = window.setTimeout(() => setLit(true), delayMs);
-    return () => window.clearTimeout(t);
-  }, [active, reduced, delayMs]);
-
-  return (
-    <g>
-      <circle
-        cx={cx}
-        cy={cy}
-        r={9}
-        fill={ROUTE_BLUE}
-        opacity={lit ? 0.22 : 0}
-        style={{ transition: "opacity 600ms ease-out" }}
-      />
-      <circle
-        cx={cx}
-        cy={cy}
-        r={4}
-        fill={lit ? ROUTE_BLUE : "rgba(255,255,255,0.18)"}
-        style={{ transition: "fill 600ms ease-out" }}
-      />
-    </g>
-  );
-}
-
-function DestinationMarker({
-  cx,
-  cy,
-  delayMs,
-  active,
-  reduced,
-}: {
-  cx: number;
-  cy: number;
-  delayMs: number;
-  active: boolean;
-  reduced: boolean;
-}) {
-  const [lit, setLit] = useState(false);
-  useEffect(() => {
-    if (!active) return;
-    if (reduced) {
-      setLit(true);
-      return;
-    }
-    const t = window.setTimeout(() => setLit(true), delayMs);
-    return () => window.clearTimeout(t);
-  }, [active, reduced, delayMs]);
-
-  return (
-    <g>
-      <circle
-        cx={cx}
-        cy={cy}
-        r={16}
-        fill={ROUTE_BLUE}
-        opacity={lit ? 0.18 : 0}
-        style={{ transition: "opacity 700ms ease-out" }}
-      />
-      <circle
-        cx={cx}
-        cy={cy}
-        r={10}
-        fill={ROUTE_BLUE}
-        opacity={lit ? 0.32 : 0}
-        style={{ transition: "opacity 700ms ease-out" }}
-      />
-      <circle
-        cx={cx}
-        cy={cy}
-        r={5}
-        fill={lit ? "#FFFFFF" : "rgba(255,255,255,0.35)"}
-        style={{ transition: "fill 700ms ease-out" }}
-      />
-    </g>
   );
 }
 
@@ -433,4 +371,3 @@ export function Accent({ children }: { children: ReactNode }) {
     </em>
   );
 }
-
