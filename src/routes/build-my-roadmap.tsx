@@ -413,11 +413,12 @@ function StartConversation() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="mb-2 block text-[13px] text-ink/75">{label}</label>
       {children}
+      {error && <p className="mt-1.5 text-[12px] text-[#B91C1C]">{error}</p>}
     </div>
   );
 }
