@@ -277,7 +277,7 @@ function StartConversation() {
 
             {/* Divider */}
             <div className="relative pt-2 pb-1 text-center">
-              <span className="relative z-[1] inline-block px-4 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/55" style={{ backgroundColor: "#DCE3F8" }}>
+              <span className="relative z-[1] inline-block bg-paper px-4 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/55">
                 Or book a time that works
               </span>
               <span className="absolute left-0 right-0 top-1/2 -z-0 h-px bg-ink/10" aria-hidden="true" />
