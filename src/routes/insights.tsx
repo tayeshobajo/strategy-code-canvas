@@ -230,8 +230,9 @@ function MilestonePath() {
     "M 40 230 C 110 200, 160 180, 210 165 S 320 145, 360 140 S 470 95, 510 55";
 
   const DUR = 7; // seconds per full loop
-  const ACTIVE_COLOR = "oklch(0.48 0.18 262)";
-  const INACTIVE_COLOR = "oklch(0.4 0.04 260)";
+  // Tuned for a deep-navy band: electric blue marks, muted cream labels.
+  const ACTIVE_COLOR = "oklch(0.62 0.2 262)";
+  const INACTIVE_COLOR = "oklch(0.92 0.02 85 / 0.55)";
 
   // Each stop gets a 1/4 slot in the loop. Stop i is "active" during
   // [i/4, (i+1)/4). The ripple/ring/label fill all key off the same offset.
@@ -250,7 +251,7 @@ function MilestonePath() {
         id="milestone-track"
         d={pathD}
         fill="none"
-        stroke="oklch(0.48 0.18 262 / 0.45)"
+        stroke="oklch(0.92 0.02 85 / 0.28)"
         strokeWidth="1"
         strokeDasharray="2 6"
         strokeLinecap="round"
@@ -364,30 +365,59 @@ function MilestonePath() {
 
 function FeaturedArgument() {
   const featured = INSIGHTS[0];
+  const NAVY = "#0A0F1F";
+  const CREAM = "#FBF9F4";
+  const ELECTRIC = "oklch(0.62 0.2 262)";
   return (
-    <section className="border-t border-rule/70" aria-labelledby="featured-heading">
-      <div className={`${container} grid grid-cols-1 gap-10 py-16 sm:py-20 lg:grid-cols-12 lg:gap-12`}>
+    <section
+      className="relative overflow-hidden"
+      style={{ backgroundColor: NAVY, color: CREAM }}
+      aria-labelledby="featured-heading"
+    >
+      <ContourField />
+      <div className={`${container} relative grid grid-cols-1 gap-10 py-24 sm:py-32 lg:grid-cols-12 lg:gap-12 lg:py-40`}>
         <Reveal as="div" variant="fade-up" className="lg:col-span-6">
-          <p className="eyebrow">The Current Argument</p>
-          <p className="mt-5 text-[13px] text-ink/55">{featured.category}</p>
+          <p
+            className="font-mono text-[11px] uppercase tracking-[0.22em]"
+            style={{ color: ELECTRIC }}
+          >
+            The Current Argument
+          </p>
+          <p className="mt-5 text-[13px]" style={{ color: "rgba(251,249,244,0.6)" }}>
+            {featured.category}
+          </p>
           <h2
             id="featured-heading"
-            className="mt-3 font-display text-[30px] font-normal leading-[1.15] tracking-[-0.02em] text-ink sm:text-[38px] lg:text-[44px]"
+            className="mt-3 font-display text-[30px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[38px] lg:text-[44px]"
+            style={{ color: CREAM }}
           >
             {featured.title}
           </h2>
-          <p className="mt-6 max-w-[58ch] text-[14px] leading-[1.75] text-ink/65">{featured.body[0]}</p>
-          <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.18em] text-ink/45">
+          <p
+            className="mt-6 max-w-[58ch] text-[14px] leading-[1.75]"
+            style={{ color: "rgba(251,249,244,0.78)" }}
+          >
+            {featured.body[0]}
+          </p>
+          <p
+            className="mt-6 font-mono text-[11px] uppercase tracking-[0.18em]"
+            style={{ color: "rgba(251,249,244,0.5)" }}
+          >
             {featured.read} &nbsp;·&nbsp; {featured.date}
           </p>
           <Link
             to="/insights/$slug"
             params={{ slug: featured.slug }}
-            className="group mt-6 inline-flex items-center gap-2 text-[13px] font-medium text-royal"
+            className="group mt-6 inline-flex items-center gap-2 text-[13px] font-medium"
+            style={{ color: ELECTRIC }}
           >
             Read the insight
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
-            <span className="ml-1 block h-px w-9 bg-royal/60 transition-all group-hover:w-14" aria-hidden="true" />
+            <span
+              className="ml-1 block h-px w-9 transition-all group-hover:w-14"
+              style={{ backgroundColor: ELECTRIC, opacity: 0.6 }}
+              aria-hidden="true"
+            />
           </Link>
         </Reveal>
         <Reveal as="div" variant="fade" delay={120} className="flex items-stretch justify-center lg:col-span-6">
