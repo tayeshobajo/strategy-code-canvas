@@ -37,7 +37,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 function PrimaryCTA({ children = "Build My Roadmap" }: { children?: React.ReactNode }) {
   return (
     <a
-      href="#cta"
+      href="/build-my-roadmap"
       className="group inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-all duration-300 ease-out hover:shadow-[0_10px_30px_-12px_rgba(10,23,51,0.5)] hover:-translate-y-[1px]"
     >
       {children}

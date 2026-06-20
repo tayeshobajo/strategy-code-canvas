@@ -204,7 +204,7 @@ function PrimaryCTA({
       ? "bg-ink text-paper hover:shadow-[0_10px_30px_-12px_rgba(10,23,51,0.5)]"
       : "bg-paper text-ink hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]";
   return (
-    <a href="#cta" className={`${base} ${skin}`}>
+    <a href="/build-my-roadmap" className={`${base} ${skin}`}>
       {children}
       <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
     </a>
