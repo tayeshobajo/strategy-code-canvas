@@ -300,35 +300,65 @@ function Hero() {
 function FilterRow({
   active,
   onChange,
+  sort,
+  onSortChange,
+  resultCount,
 }: {
   active: Filter;
   onChange: (f: Filter) => void;
+  sort: Sort;
+  onSortChange: (s: Sort) => void;
+  resultCount: number;
 }) {
   return (
     <div className={`${container} mt-8`}>
-      <div className="flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-rule pb-3 text-[13px]">
-        {FILTERS.map((f) => {
-          const isActive = f === active;
-          return (
-            <button
-              key={f}
-              type="button"
-              onClick={() => onChange(f)}
-              className={`relative pb-2 transition-colors ${
-                isActive ? "text-royal" : "text-ink/60 hover:text-ink"
-              }`}
+      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-b border-rule pb-3 text-[13px]">
+        <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
+          {FILTERS.map((f) => {
+            const isActive = f === active;
+            return (
+              <button
+                key={f}
+                type="button"
+                onClick={() => onChange(f)}
+                className={`relative pb-2 transition-colors ${
+                  isActive ? "text-royal" : "text-ink/60 hover:text-ink"
+                }`}
+              >
+                {f}
+                {isActive && (
+                  <span className="absolute -bottom-[13px] left-0 right-0 h-[2px] bg-royal" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-3 pb-1">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
+            {resultCount} {resultCount === 1 ? "walk" : "walks"}
+          </span>
+          <label className="flex items-center gap-2 text-[12px] text-ink/65">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
+              Sort
+            </span>
+            <select
+              value={sort}
+              onChange={(e) => onSortChange(e.target.value as Sort)}
+              className="rounded-full border border-rule bg-paper px-3 py-1.5 text-[12.5px] text-ink transition-colors hover:border-royal/50 focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/20"
             >
-              {f}
-              {isActive && (
-                <span className="absolute -bottom-[13px] left-0 right-0 h-[2px] bg-royal" />
-              )}
-            </button>
-          );
-        })}
+              {SORTS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
     </div>
   );
 }
+
 
 /* --------------------------- WALK ROW SVG --------------------------- */
 
