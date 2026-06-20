@@ -168,6 +168,7 @@ const NAME_MAX = 100;
 const EMAIL_MAX = 255;
 const STUCK_MAX = 1000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CONTACT_EMAIL = "tai@trusttai.com";
 
 type FieldErrors = { name?: string; email?: string; stuck?: string };
 
@@ -176,7 +177,7 @@ function StartConversation() {
   const [email, setEmail] = React.useState("");
   const [stuck, setStuck] = React.useState("");
   const [errors, setErrors] = React.useState<FieldErrors>({});
-  const [status, setStatus] = React.useState<"idle" | "submitting" | "submitted">("idle");
+  const [status, setStatus] = React.useState<"idle" | "submitting" | "submitted" | "error">("idle");
 
   const validate = (): FieldErrors => {
     const e: FieldErrors = {};
@@ -192,16 +193,28 @@ function StartConversation() {
     return e;
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const next = validate();
     setErrors(next);
     if (Object.keys(next).length > 0) return;
     setStatus("submitting");
-    // Local-only handler. A real submission endpoint can be wired here.
-    window.setTimeout(() => setStatus("submitted"), 250);
+    try {
+      const res = await fetch("/api/public/hooks/build-roadmap-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), stuck: stuck.trim() }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setStatus("submitted");
+    } catch {
+      setStatus("error");
+    }
   };
-  const submitted = status === "submitted";
+
+  if (status === "submitted") {
+    return <SuccessSection />;
+  }
 
   return (
     <section
@@ -304,17 +317,28 @@ function StartConversation() {
 
             <button
               type="submit"
-              className="group mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
+              disabled={status === "submitting"}
+              className="group mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:opacity-70"
             >
-              {submitted ? "Thank you — we'll reply shortly." : "Start the conversation"}
-              {!submitted && (
+              {status === "submitting" ? "Sending…" : "Start the conversation"}
+              {status !== "submitting" && (
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
               )}
             </button>
 
-            <p className="text-[12.5px] leading-[1.7] text-ink/55">
-              We reply within one business day. A real person, not a sequence.
-            </p>
+            {status === "error" ? (
+              <p className="text-[12.5px] leading-[1.7] text-ink/70">
+                That did not send. Your words are still here. Try once more, or email{" "}
+                <a href={`mailto:${CONTACT_EMAIL}`} className="underline decoration-ink/30 underline-offset-2 hover:text-ink">
+                  {CONTACT_EMAIL}
+                </a>{" "}
+                directly.
+              </p>
+            ) : (
+              <p className="text-[12.5px] leading-[1.7] text-ink/55">
+                We reply within one business day. A real person, not a sequence.
+              </p>
+            )}
           </form>
         </div>
 
@@ -343,6 +367,152 @@ function StartConversation() {
         </div>
       </div>
     </section>
+  );
+}
+
+/* -------------------- SUCCESS STATE -------------------- */
+function SuccessSection() {
+  const steps = [
+    {
+      mark: <SuccessMarkA />,
+      title: "Within one business day, you get one reply.",
+      body: "From a person, by name. Not a sequence.",
+    },
+    {
+      mark: <SuccessMarkB />,
+      title: "We read what you sent and tell you honestly whether a 30-minute conversation makes sense.",
+      body: "If it does not, we say so.",
+    },
+    {
+      mark: <SuccessMarkC />,
+      title: "If it does, we find a time that works for you.",
+      body: "No pressure to decide on the call.",
+    },
+  ];
+  return (
+    <section
+      id="cta"
+      className="relative"
+      style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
+    >
+      <div className={`${container} grid grid-cols-1 gap-14 py-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:py-28`}>
+        {/* LEFT — confirmation */}
+        <div>
+          <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.28em]" >
+            <span style={{ color: ROYAL }}>Your message arrived</span>
+          </Reveal>
+          <Reveal
+            as="h2"
+            variant="rise"
+            delay={120}
+            className="mt-5 font-display text-[clamp(2rem,3.6vw,2.8rem)] leading-[1.1] tracking-[-0.018em] text-ink"
+          >
+            We have it.<br />
+            Now you can{" "}
+            <em className="italic font-normal" style={{ color: "oklch(0.55 0.13 75)" }}>
+              put it down
+            </em>
+            .
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[42ch] text-[14.5px] leading-[1.75] text-ink/70">
+            Your note is with a person, not a queue.<br />
+            Here is what happens next.
+          </Reveal>
+
+          <ol className="mt-10 space-y-7">
+            {steps.map((s, i) => (
+              <Reveal as="li" key={i} variant="fade-up" delay={300 + i * 120} className="flex items-start gap-5">
+                <div className="mt-1 shrink-0">{s.mark}</div>
+                <div>
+                  <p className="text-[14.5px] font-medium leading-[1.55] text-ink">{s.title}</p>
+                  <p className="mt-1.5 max-w-[48ch] text-[13.5px] leading-[1.7] text-ink/60">{s.body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </ol>
+
+          <div className="mt-12 border-t border-ink/10 pt-8">
+            <Reveal as="p" variant="fade-up" delay={700} className="text-[14px] leading-[1.7] text-ink/70">
+              Nothing is needed from you right now.<br />
+              The next move is ours.
+            </Reveal>
+            <Reveal as="p" variant="fade-up" delay={800} className="mt-8 flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/45">
+              <LockMark />
+              Complete. We will be in touch.
+            </Reveal>
+          </div>
+        </div>
+
+        {/* RIGHT — reassurance (preserved) */}
+        <div>
+          <Reveal as="h2" variant="fade-up" className="font-display text-[clamp(1.6rem,2.6vw,2rem)] text-ink">
+            Before you wonder.
+          </Reveal>
+          <ul className="mt-8 divide-y divide-ink/10">
+            <ReassureItem
+              mark={<RouteMarkA />}
+              title="You will not be hounded."
+              body="One reply, from a person. If you go quiet, we leave you be."
+            />
+            <ReassureItem
+              mark={<RouteMarkB />}
+              title="You will not be pitched."
+              body="The first conversation has no slides and no close. We listen."
+            />
+            <ReassureItem
+              mark={<RouteMarkC />}
+              title="You will not be the wrong fit in silence."
+              body="If we are not right for you, we say so on the call, and point you somewhere better."
+            />
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* Hairline marks for the success steps — vertical timeline feel */
+function SuccessMarkA() {
+  return (
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeLinecap="round">
+        <circle cx={22} cy={10} r={2.4} fill={ROYAL} stroke="none" />
+        <path d="M 22 14 L 22 36" strokeWidth={0.9} strokeDasharray="1.3 4" />
+      </g>
+    </svg>
+  );
+}
+function SuccessMarkB() {
+  return (
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeLinecap="round">
+        <path d="M 22 4 L 22 16" strokeWidth={0.9} strokeDasharray="1.3 4" />
+        <circle cx={22} cy={20} r={2.4} fill={ROYAL} stroke="none" />
+        <path d="M 22 24 L 22 40" strokeWidth={0.9} strokeDasharray="1.3 4" />
+      </g>
+    </svg>
+  );
+}
+function SuccessMarkC() {
+  return (
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeLinecap="round">
+        <path d="M 22 4 L 22 26" strokeWidth={0.9} strokeDasharray="1.3 4" />
+        <path d="M 14 30 L 30 30" strokeWidth={1} />
+        <path d="M 22 26 L 22 34" strokeWidth={1} />
+        <circle cx={22} cy={30} r={1.8} fill={ROYAL} stroke="none" />
+      </g>
+    </svg>
+  );
+}
+function LockMark() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden="true">
+      <g fill="none" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round">
+        <rect x={3.5} y={7} width={9} height={6.5} rx={1} />
+        <path d="M 5.5 7 L 5.5 5 a 2.5 2.5 0 0 1 5 0 L 10.5 7" />
+      </g>
+    </svg>
   );
 }
 
