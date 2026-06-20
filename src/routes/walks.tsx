@@ -156,6 +156,30 @@ const WALKS: Walk[] = [
 const FILTERS = ["All", "Foundations", "Growth Engines", "Operating Systems", "Long Walks"] as const;
 type Filter = (typeof FILTERS)[number];
 
+const SORTS = ["Newest", "Oldest", "Most milestones", "Fewest milestones"] as const;
+type Sort = (typeof SORTS)[number];
+
+function walkYear(w: Walk): number {
+  const m = w.walkingSince.match(/(\d{4})/);
+  if (m) return Number(m[1]);
+  // "Active" / "Completed in N days" — treat as current.
+  return new Date().getFullYear();
+}
+
+function sortWalks(list: Walk[], sort: Sort): Walk[] {
+  const arr = [...list];
+  switch (sort) {
+    case "Newest":
+      return arr.sort((a, b) => walkYear(b) - walkYear(a));
+    case "Oldest":
+      return arr.sort((a, b) => walkYear(a) - walkYear(b));
+    case "Most milestones":
+      return arr.sort((a, b) => b.milestones.length - a.milestones.length);
+    case "Fewest milestones":
+      return arr.sort((a, b) => a.milestones.length - b.milestones.length);
+  }
+}
+
 /* ------------------------------ HERO ------------------------------ */
 
 
@@ -276,35 +300,65 @@ function Hero() {
 function FilterRow({
   active,
   onChange,
+  sort,
+  onSortChange,
+  resultCount,
 }: {
   active: Filter;
   onChange: (f: Filter) => void;
+  sort: Sort;
+  onSortChange: (s: Sort) => void;
+  resultCount: number;
 }) {
   return (
     <div className={`${container} mt-8`}>
-      <div className="flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-rule pb-3 text-[13px]">
-        {FILTERS.map((f) => {
-          const isActive = f === active;
-          return (
-            <button
-              key={f}
-              type="button"
-              onClick={() => onChange(f)}
-              className={`relative pb-2 transition-colors ${
-                isActive ? "text-royal" : "text-ink/60 hover:text-ink"
-              }`}
+      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-b border-rule pb-3 text-[13px]">
+        <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
+          {FILTERS.map((f) => {
+            const isActive = f === active;
+            return (
+              <button
+                key={f}
+                type="button"
+                onClick={() => onChange(f)}
+                className={`relative pb-2 transition-colors ${
+                  isActive ? "text-royal" : "text-ink/60 hover:text-ink"
+                }`}
+              >
+                {f}
+                {isActive && (
+                  <span className="absolute -bottom-[13px] left-0 right-0 h-[2px] bg-royal" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-3 pb-1">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
+            {resultCount} {resultCount === 1 ? "walk" : "walks"}
+          </span>
+          <label className="flex items-center gap-2 text-[12px] text-ink/65">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
+              Sort
+            </span>
+            <select
+              value={sort}
+              onChange={(e) => onSortChange(e.target.value as Sort)}
+              className="rounded-full border border-rule bg-paper px-3 py-1.5 text-[12.5px] text-ink transition-colors hover:border-royal/50 focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/20"
             >
-              {f}
-              {isActive && (
-                <span className="absolute -bottom-[13px] left-0 right-0 h-[2px] bg-royal" />
-              )}
-            </button>
-          );
-        })}
+              {SORTS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
     </div>
   );
 }
+
 
 /* --------------------------- WALK ROW SVG --------------------------- */
 
@@ -409,13 +463,40 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
 
 /* ----------------------------- WALK ROW ----------------------------- */
 
-function WalkRow({ walk, index }: { walk: Walk; index: number }) {
+function WalkRow({
+  walk,
+  index,
+  selected,
+  onSelect,
+}: {
+  walk: Walk;
+  index: number;
+  selected: boolean;
+  onSelect: (slug: string) => void;
+}) {
+  const handleActivate = (e: React.MouseEvent | React.KeyboardEvent) => {
+    // Don't hijack the link click — let it navigate.
+    const target = e.target as HTMLElement;
+    if (target.closest("a")) return;
+    onSelect(walk.slug);
+  };
   return (
     <Reveal
       as="article"
       variant="fade-up"
       delay={index * 60}
-      className="group border-t border-rule transition-colors duration-200 hover:bg-royal/[0.04]"
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      data-selected={selected}
+      onClick={handleActivate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleActivate(e);
+        }
+      }}
+      className="group row-interactive border-t border-rule focus:outline-none focus-visible:ring-2 focus-visible:ring-royal/40"
     >
       <div
         className={`${container} grid grid-cols-1 gap-6 py-10 md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1.1fr)_170px] md:gap-8`}
@@ -428,7 +509,7 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
 
         {/* Lead stat + journey context */}
         <div>
-          <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal sm:text-[42px]">
+          <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[42px]">
             {"{{OUTCOME}}"}
           </p>
           <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
@@ -453,7 +534,8 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
           <Link
             to="/walks/$slug"
             params={{ slug: walk.slug }}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-royal underline decoration-royal/40 underline-offset-[6px] transition-all hover:decoration-royal group-hover:translate-x-0.5"
+            onClick={(e) => e.stopPropagation()}
+            className="link-royal inline-flex items-center gap-1.5 text-[13px] font-medium transition-transform group-hover:translate-x-0.5"
           >
             View walk
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
@@ -463,6 +545,7 @@ function WalkRow({ walk, index }: { walk: Walk; index: number }) {
     </Reveal>
   );
 }
+
 
 /* --------------------------- DARK CTA --------------------------- */
 
@@ -537,10 +620,13 @@ function WalksPage() {
   // restore scroll position after a filter change shrinks/grows the list.
   const pendingAnchorTopRef = React.useRef<number | null>(null);
 
-  const filtered = React.useMemo(
-    () => (filter === "All" ? WALKS : WALKS.filter((w) => w.bucket === filter)),
-    [filter],
-  );
+  const [sort, setSort] = React.useState<Sort>("Newest");
+  const [selectedSlug, setSelectedSlug] = React.useState<string | null>(null);
+
+  const filtered = React.useMemo(() => {
+    const base = filter === "All" ? WALKS : WALKS.filter((w) => w.bucket === filter);
+    return sortWalks(base, sort);
+  }, [filter, sort]);
 
   const handleFilterChange = React.useCallback((next: Filter) => {
     if (next === filter) return;
@@ -548,6 +634,10 @@ function WalksPage() {
     pendingAnchorTopRef.current = node ? node.getBoundingClientRect().top : null;
     setFilter(next);
   }, [filter]);
+
+  const handleSelect = React.useCallback((slug: string) => {
+    setSelectedSlug((prev) => (prev === slug ? null : slug));
+  }, []);
 
   React.useLayoutEffect(() => {
     const prevTop = pendingAnchorTopRef.current;
@@ -568,11 +658,23 @@ function WalksPage() {
       <main>
         <Hero />
         <div ref={filterAnchorRef}>
-          <FilterRow active={filter} onChange={handleFilterChange} />
+          <FilterRow
+            active={filter}
+            onChange={handleFilterChange}
+            sort={sort}
+            onSortChange={setSort}
+            resultCount={filtered.length}
+          />
         </div>
         <section className="mt-2">
           {filtered.map((w, i) => (
-            <WalkRow key={w.slug} walk={w} index={i} />
+            <WalkRow
+              key={w.slug}
+              walk={w}
+              index={i}
+              selected={selectedSlug === w.slug}
+              onSelect={handleSelect}
+            />
           ))}
           {filtered.length > 0 && <div className="border-t border-rule" />}
         </section>
