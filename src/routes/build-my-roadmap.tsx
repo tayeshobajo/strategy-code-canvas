@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal } from "@/hooks/use-reveal";
 import notebookImg from "@/assets/cta-book-cover-desk.png.asset.json";
+import heroMountain from "@/assets/roadmap-hero-mountain.png.asset.json";
 
 export const Route = createFileRoute("/build-my-roadmap")({
   head: () => {
@@ -65,149 +66,15 @@ function Hero() {
   );
 }
 
-/* Hairline engraved illustration: layered ridges, a detailed engraved pine,
-   and a winding dotted route descending from POINT A through the valley.
-   No fills, no glow — pure cartographer's pen. */
 function EngravedWorld() {
   return (
-    <svg
-      viewBox="0 0 640 420"
-      className="block w-full h-auto"
+    <img
+      src={heroMountain.url}
+      alt=""
       aria-hidden="true"
-    >
-      <g
-        fill="none"
-        stroke="#0A0F1F"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {/* Far back range — softest */}
-        <g strokeOpacity={0.16} strokeWidth={0.8}>
-          <path d="M 30 200 L 80 168 L 110 184 L 150 150 L 190 176 L 225 156 L 265 182 L 305 160 L 345 188 L 385 166 L 425 192 L 465 172 L 505 196 L 545 178 L 585 200 L 615 188" />
-          <path d="M 50 218 L 95 188 L 130 210 L 170 174 L 210 204 L 250 180 L 290 208 L 335 186 L 375 212 L 420 190 L 460 216 L 500 196 L 540 220" />
-        </g>
-
-        {/* Mid range with light hatching */}
-        <g strokeOpacity={0.3} strokeWidth={0.9}>
-          <path d="M 40 244 L 100 198 L 140 232 L 185 178 L 225 222 L 265 192 L 310 232 L 355 196 L 400 236 L 445 204 L 490 240 L 535 212 L 580 244" />
-          <g strokeOpacity={0.45}>
-            <path d="M 178 200 L 196 226" />
-            <path d="M 188 196 L 206 222" />
-            <path d="M 198 198 L 214 222" />
-            <path d="M 258 210 L 274 232" />
-            <path d="M 268 206 L 284 228" />
-            <path d="M 348 214 L 366 240" />
-            <path d="M 358 210 L 374 234" />
-            <path d="M 368 214 L 382 238" />
-            <path d="M 438 220 L 454 244" />
-            <path d="M 448 218 L 462 240" />
-          </g>
-        </g>
-
-        {/* Front ridge — strongest line + dense hatching */}
-        <g strokeOpacity={0.55} strokeWidth={1}>
-          <path d="M 20 286 L 70 246 L 110 274 L 152 220 L 200 268 L 245 234 L 290 280 L 335 244 L 380 286 L 425 252 L 470 290 L 515 262 L 560 296 L 600 272" />
-          <g strokeOpacity={0.5} strokeWidth={0.7}>
-            <path d="M 142 240 L 162 268" />
-            <path d="M 152 234 L 172 262" />
-            <path d="M 162 240 L 180 266" />
-            <path d="M 232 252 L 252 278" />
-            <path d="M 242 248 L 262 274" />
-            <path d="M 252 252 L 270 278" />
-            <path d="M 322 258 L 342 282" />
-            <path d="M 332 254 L 350 278" />
-            <path d="M 412 268 L 430 292" />
-            <path d="M 422 264 L 440 288" />
-            <path d="M 502 276 L 520 298" />
-          </g>
-        </g>
-
-        {/* Valley floor — broken horizon */}
-        <g strokeOpacity={0.22} strokeWidth={0.8}>
-          <path d="M 20 326 C 110 322, 220 326, 340 326 S 560 330, 620 326" />
-          <path d="M 30 338 C 140 336, 260 340, 380 338 S 580 340, 615 338" strokeOpacity={0.14} />
-          <g strokeOpacity={0.18}>
-            <path d="M 70 332 L 78 332" />
-            <path d="M 130 332 L 140 332" />
-            <path d="M 200 332 L 212 332" />
-            <path d="M 280 332 L 292 332" />
-            <path d="M 360 332 L 372 332" />
-            <path d="M 440 332 L 452 332" />
-          </g>
-        </g>
-
-        {/* Detailed engraved pine — lower right */}
-        <g transform="translate(545 222)" strokeOpacity={0.7} strokeWidth={0.9}>
-          {/* trunk */}
-          <path d="M 0 110 L 0 62" />
-          <path d="M -2 108 L -2 70" strokeOpacity={0.4} />
-          {/* foliage tiers */}
-          <path d="M -10 62 L 0 42 L 10 62" />
-          <path d="M -16 78 L 0 50 L 16 78" />
-          <path d="M -22 94 L 0 58 L 22 94" />
-          <path d="M -28 108 L 0 66 L 28 108" />
-          {/* inner shading hatching */}
-          <g strokeOpacity={0.4} strokeWidth={0.6}>
-            <path d="M -6 60 L -2 56" />
-            <path d="M -10 72 L -4 66" />
-            <path d="M -14 86 L -6 78" />
-            <path d="M -18 100 L -8 90" />
-            <path d="M 6 60 L 2 56" />
-            <path d="M 10 72 L 4 66" />
-            <path d="M 14 86 L 6 78" />
-            <path d="M 18 100 L 8 90" />
-          </g>
-          {/* base ground tick */}
-          <path d="M -14 112 L 14 112" strokeOpacity={0.45} />
-        </g>
-
-        {/* Small accompanying shrubs */}
-        <g strokeOpacity={0.35} strokeWidth={0.7}>
-          <path d="M 470 322 L 470 312 M 466 320 L 470 314 L 474 320" />
-          <path d="M 420 326 L 420 318 M 417 324 L 420 320 L 423 324" />
-        </g>
-      </g>
-
-      {/* Winding dotted route from POINT A pin, curving down through the valley */}
-      <path
-        d="M 558 96
-           C 540 130, 510 138, 478 132
-           S 430 116, 398 138
-           S 350 188, 320 200
-           S 250 198, 222 224
-           S 158 268, 130 286
-           S 80 314, 60 324"
-        fill="none"
-        stroke={ROYAL}
-        strokeWidth={1.6}
-        strokeLinecap="round"
-        strokeDasharray="1.6 6"
-        opacity={0.9}
-      />
-
-      {/* POINT A pin */}
-      <g transform="translate(560 96)">
-        <text
-          x={-6}
-          y={-22}
-          textAnchor="end"
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 9,
-            letterSpacing: 3,
-            fill: ROYAL,
-            textTransform: "uppercase",
-          }}
-        >
-          POINT A
-        </text>
-        <path
-          d="M 0 -16 C 8 -16, 14 -10, 14 -2 C 14 8, 0 18, 0 18 C 0 18, -14 8, -14 -2 C -14 -10, -8 -16, 0 -16 Z"
-          fill={ROYAL}
-        />
-        <circle cx={0} cy={-2} r={3.5} fill="#FBF9F4" />
-      </g>
-    </svg>
+      className="block w-full h-auto select-none"
+      draggable={false}
+    />
   );
 }
 
@@ -340,7 +207,7 @@ function StartConversation() {
     <section
       id="cta"
       className="relative"
-      style={{ backgroundColor: "color-mix(in oklch, var(--royal) 8%, var(--paper))" }}
+      style={{ backgroundColor: "#DCE3F8" }}
     >
       <div className={`${container} grid grid-cols-1 gap-14 py-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:py-28`}>
         {/* LEFT — form */}
@@ -411,7 +278,7 @@ function StartConversation() {
 
             {/* Divider */}
             <div className="relative pt-2 pb-1 text-center">
-              <span className="relative z-[1] inline-block bg-[color:color-mix(in_oklch,var(--royal)_8%,var(--paper))] px-4 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/55">
+              <span className="relative z-[1] inline-block px-4 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/55" style={{ backgroundColor: "#DCE3F8" }}>
                 Or book a time that works
               </span>
               <span className="absolute left-0 right-0 top-1/2 -z-0 h-px bg-ink/10" aria-hidden="true" />
