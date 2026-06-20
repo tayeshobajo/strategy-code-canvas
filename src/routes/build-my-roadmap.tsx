@@ -37,7 +37,7 @@ const ROYAL = "#2563FF";
 /* -------------------- HERO -------------------- */
 function Hero() {
   return (
-    <section className="relative w-full overflow-hidden bg-paper">
+    <section className="relative w-full overflow-hidden bg-white">
       <div className={`${container} grid grid-cols-1 items-center gap-10 pt-[140px] pb-10 lg:grid-cols-[1.05fr_1fr] lg:pt-[160px] lg:pb-12`}>
         <div>
           <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.28em]" >
@@ -206,8 +206,7 @@ function StartConversation() {
   return (
     <section
       id="cta"
-      className="relative"
-      style={{ backgroundColor: "#DCE3F8" }}
+      className="relative bg-paper"
     >
       <div className={`${container} grid grid-cols-1 gap-14 py-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:py-28`}>
         {/* LEFT — form */}
@@ -278,7 +277,7 @@ function StartConversation() {
 
             {/* Divider */}
             <div className="relative pt-2 pb-1 text-center">
-              <span className="relative z-[1] inline-block px-4 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/55" style={{ backgroundColor: "#DCE3F8" }}>
+              <span className="relative z-[1] inline-block bg-paper px-4 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/55">
                 Or book a time that works
               </span>
               <span className="absolute left-0 right-0 top-1/2 -z-0 h-px bg-ink/10" aria-hidden="true" />
@@ -369,7 +368,7 @@ function ReassureItem({
     <li className="flex items-start gap-5 py-6">
       <div className="mt-1 shrink-0">{mark}</div>
       <div>
-        <p className="text-[14.5px] font-medium" style={{ color: ROYAL }}>{title}</p>
+        <p className="text-[14.5px] font-medium text-ink">{title}</p>
         <p className="mt-1.5 max-w-[44ch] text-[13.5px] leading-[1.7] text-ink/65">{body}</p>
       </div>
     </li>
