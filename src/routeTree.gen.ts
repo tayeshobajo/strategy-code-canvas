@@ -13,6 +13,7 @@ import { Route as WhatWeBuildRouteImport } from './routes/what-we-build'
 import { Route as WalksRouteImport } from './routes/walks'
 import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
+import { Route as BuildMyRoadmapRouteImport } from './routes/build-my-roadmap'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
@@ -36,6 +37,11 @@ const InvestmentRoute = InvestmentRouteImport.update({
 const InsightsRoute = InsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuildMyRoadmapRoute = BuildMyRoadmapRouteImport.update({
+  id: '/build-my-roadmap',
+  path: '/build-my-roadmap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -62,6 +68,7 @@ const InsightsSlugRoute = InsightsSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/walks': typeof WalksRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/walks': typeof WalksRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/walks': typeof WalksRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/build-my-roadmap'
     | '/insights'
     | '/investment'
     | '/walks'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/build-my-roadmap'
     | '/insights'
     | '/investment'
     | '/walks'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/build-my-roadmap'
     | '/insights'
     | '/investment'
     | '/walks'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  BuildMyRoadmapRoute: typeof BuildMyRoadmapRoute
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
   WalksRoute: typeof WalksRoute
@@ -164,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/build-my-roadmap': {
+      id: '/build-my-roadmap'
+      path: '/build-my-roadmap'
+      fullPath: '/build-my-roadmap'
+      preLoaderRoute: typeof BuildMyRoadmapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  BuildMyRoadmapRoute: BuildMyRoadmapRoute,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
   WalksRoute: WalksRoute,
