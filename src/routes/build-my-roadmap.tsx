@@ -195,19 +195,33 @@ function StartConversation() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (status === "submitting") return;
     const next = validate();
     setErrors(next);
     if (Object.keys(next).length > 0) return;
     setStatus("submitting");
+    const correlationId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `roadmap-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     try {
       const res = await fetch("/api/public/hooks/build-roadmap-contact", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), stuck: stuck.trim() }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-correlation-id": correlationId,
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          stuck: stuck.trim(),
+          correlationId,
+        }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setStatus("submitted");
-    } catch {
+    } catch (err) {
+      console.error("[build-my-roadmap] submit failed", { correlationId, err });
       setStatus("error");
     }
   };
