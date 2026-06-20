@@ -283,25 +283,33 @@ function StartConversation() {
             Start the conversation.
           </Reveal>
 
-          <form onSubmit={onSubmit} className="mt-8 space-y-5">
-            <Field label="Name">
+          <form onSubmit={onSubmit} noValidate className="mt-8 space-y-5">
+            <Field label="Name" error={errors.name}>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors((p) => ({ ...p, name: undefined }));
+                }}
+                maxLength={NAME_MAX}
+                aria-invalid={!!errors.name}
                 placeholder="Your name"
-                className="w-full rounded-md border border-rule bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
-                required
+                className={`w-full rounded-md border bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${errors.name ? "border-[#B91C1C]" : "border-rule"}`}
               />
             </Field>
-            <Field label="Email">
+            <Field label="Email" error={errors.email}>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
+                }}
+                maxLength={EMAIL_MAX}
+                aria-invalid={!!errors.email}
                 placeholder="you@example.com"
-                className="w-full rounded-md border border-rule bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
-                required
+                className={`w-full rounded-md border bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${errors.email ? "border-[#B91C1C]" : "border-rule"}`}
               />
             </Field>
 
@@ -316,12 +324,24 @@ function StartConversation() {
               </div>
               <textarea
                 value={stuck}
-                onChange={(e) => setStuck(e.target.value)}
+                onChange={(e) => {
+                  setStuck(e.target.value);
+                  if (errors.stuck) setErrors((p) => ({ ...p, stuck: undefined }));
+                }}
                 rows={4}
+                maxLength={STUCK_MAX}
+                aria-invalid={!!errors.stuck}
                 placeholder="Tell us what is on your mind"
-                className="w-full rounded-md border border-rule bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
+                className={`w-full rounded-md border bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${errors.stuck ? "border-[#B91C1C]" : "border-rule"}`}
               />
+              <div className="mt-1.5 flex items-center justify-between">
+                {errors.stuck ? (
+                  <p className="text-[12px] text-[#B91C1C]">{errors.stuck}</p>
+                ) : <span />}
+                <span className="font-mono text-[10.5px] text-ink/40">{stuck.length}/{STUCK_MAX}</span>
+              </div>
             </div>
+
 
             {/* Divider */}
             <div className="relative pt-2 pb-1 text-center">
