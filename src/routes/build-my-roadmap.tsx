@@ -509,20 +509,47 @@ function ReassureItem({
   );
 }
 
-/* Hairline cartographic marks — survey benchmark, milestone post, bearing line. */
+/* Hairline route-marks: dotted course + survey tick. No icon glyphs. */
 function RouteMarkA() {
-  // Trail benchmark: triangle over a hairline rule
+  // Dotted route arriving at a single waypoint dot
   return (
     <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M 4 30 L 40 30" strokeOpacity={0.45} />
-        <path d="M 22 12 L 32 28 L 12 28 Z" />
-        <circle cx={22} cy={22} r={1.6} fill={ROYAL} stroke="none" />
-        <path d="M 8 34 L 12 34 M 18 34 L 26 34 M 32 34 L 36 34" strokeOpacity={0.35} />
+      <g fill="none" stroke={ROYAL} strokeLinecap="round">
+        <path d="M 4 30 C 12 26, 18 22, 26 22" strokeWidth={1} strokeDasharray="1.3 4" />
+        <circle cx={28} cy={22} r={2.4} fill={ROYAL} stroke="none" />
+        <path d="M 28 14 L 28 18" strokeOpacity={0.5} strokeWidth={0.9} />
       </g>
     </svg>
   );
 }
+function RouteMarkB() {
+  // Two waypoints joined by a dotted bearing line
+  return (
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeLinecap="round">
+        <circle cx={9} cy={30} r={2.2} fill={ROYAL} stroke="none" />
+        <path d="M 11 28 C 18 22, 24 18, 33 14" strokeWidth={1} strokeDasharray="1.3 4" />
+        <circle cx={34} cy={14} r={2.2} fill={ROYAL} stroke="none" />
+        <path d="M 6 34 L 38 34" strokeOpacity={0.25} strokeWidth={0.8} />
+      </g>
+    </svg>
+  );
+}
+function RouteMarkC() {
+  // Survey tick: hairline rule with three engraved ticks and a center mark
+  return (
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeLinecap="round">
+        <path d="M 4 24 L 40 24" strokeWidth={1} strokeOpacity={0.5} />
+        <path d="M 10 20 L 10 28" strokeWidth={0.9} strokeOpacity={0.55} />
+        <path d="M 22 16 L 22 32" strokeWidth={1} />
+        <path d="M 34 20 L 34 28" strokeWidth={0.9} strokeOpacity={0.55} />
+        <circle cx={22} cy={24} r={1.8} fill={ROYAL} stroke="none" />
+      </g>
+    </svg>
+  );
+}
+
 function RouteMarkB() {
   // Milestone post: a numbered cairn-stone marker on a route line
   return (
