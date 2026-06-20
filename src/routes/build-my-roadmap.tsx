@@ -368,7 +368,7 @@ function ReassureItem({
     <li className="flex items-start gap-5 py-6">
       <div className="mt-1 shrink-0">{mark}</div>
       <div>
-        <p className="text-[14.5px] font-medium" style={{ color: ROYAL }}>{title}</p>
+        <p className="text-[14.5px] font-medium text-ink">{title}</p>
         <p className="mt-1.5 max-w-[44ch] text-[13.5px] leading-[1.7] text-ink/65">{body}</p>
       </div>
     </li>
