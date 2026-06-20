@@ -27,16 +27,6 @@ export type SiteClosingProps = {
 export function SiteClosing({ headline, supporting }: SiteClosingProps) {
   return (
     <>
-      {/* Blend strip: gradient from page background → solid navy. Lives OUTSIDE the
-          navy section so the section itself is unbroken navy. The strip is tall
-          enough that its bottom is fully NAVY before the section starts. */}
-      <div
-        aria-hidden="true"
-        className="h-[240px] sm:h-[320px] w-full"
-        style={{
-          background: `linear-gradient(to bottom, transparent 0%, ${NAVY} 100%)`,
-        }}
-      />
       <section
         className="relative overflow-hidden text-white"
         style={{ backgroundColor: NAVY }}
