@@ -891,7 +891,7 @@ function FooterCTA() {
         </Reveal>
         <Reveal as="div" variant="fade-up" delay={220} className="mt-9 flex flex-col items-center gap-4">
           <a
-            href="#"
+            href="/build-my-roadmap"
             className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[13px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]"
           >
             Build My Roadmap

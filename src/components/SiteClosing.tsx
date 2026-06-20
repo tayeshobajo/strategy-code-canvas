@@ -38,7 +38,7 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
 
           <div className="mt-2 flex flex-col items-center gap-4">
             <a
-              href="#contact"
+              href="/build-my-roadmap"
               className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 text-[13.5px] font-semibold text-[#0A0F1F] transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.4)]"
             >
               Build My Roadmap

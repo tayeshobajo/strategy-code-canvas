@@ -231,16 +231,44 @@ function ConversationSteps() {
 }
 
 /* -------------------- SECTION 3 — Form + Reassurance -------------------- */
+const NAME_MAX = 100;
+const EMAIL_MAX = 255;
+const STUCK_MAX = 1000;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type FieldErrors = { name?: string; email?: string; stuck?: string };
+
 function StartConversation() {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [stuck, setStuck] = React.useState("");
-  const [submitted, setSubmitted] = React.useState(false);
+  const [errors, setErrors] = React.useState<FieldErrors>({});
+  const [status, setStatus] = React.useState<"idle" | "submitting" | "submitted">("idle");
+
+  const validate = (): FieldErrors => {
+    const e: FieldErrors = {};
+    const n = name.trim();
+    const em = email.trim();
+    const s = stuck.trim();
+    if (!n) e.name = "Please enter your name.";
+    else if (n.length > NAME_MAX) e.name = `Keep it under ${NAME_MAX} characters.`;
+    if (!em) e.email = "Please enter your email.";
+    else if (em.length > EMAIL_MAX) e.email = `Keep it under ${EMAIL_MAX} characters.`;
+    else if (!EMAIL_RE.test(em)) e.email = "That email does not look right.";
+    if (s.length > STUCK_MAX) e.stuck = `Keep it under ${STUCK_MAX} characters.`;
+    return e;
+  };
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    const next = validate();
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+    setStatus("submitting");
+    // Local-only handler. A real submission endpoint can be wired here.
+    window.setTimeout(() => setStatus("submitted"), 250);
   };
+  const submitted = status === "submitted";
 
   return (
     <section
@@ -255,25 +283,33 @@ function StartConversation() {
             Start the conversation.
           </Reveal>
 
-          <form onSubmit={onSubmit} className="mt-8 space-y-5">
-            <Field label="Name">
+          <form onSubmit={onSubmit} noValidate className="mt-8 space-y-5">
+            <Field label="Name" error={errors.name}>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors((p) => ({ ...p, name: undefined }));
+                }}
+                maxLength={NAME_MAX}
+                aria-invalid={!!errors.name}
                 placeholder="Your name"
-                className="w-full rounded-md border border-rule bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
-                required
+                className={`w-full rounded-md border bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${errors.name ? "border-[#B91C1C]" : "border-rule"}`}
               />
             </Field>
-            <Field label="Email">
+            <Field label="Email" error={errors.email}>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
+                }}
+                maxLength={EMAIL_MAX}
+                aria-invalid={!!errors.email}
                 placeholder="you@example.com"
-                className="w-full rounded-md border border-rule bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
-                required
+                className={`w-full rounded-md border bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${errors.email ? "border-[#B91C1C]" : "border-rule"}`}
               />
             </Field>
 
@@ -288,12 +324,24 @@ function StartConversation() {
               </div>
               <textarea
                 value={stuck}
-                onChange={(e) => setStuck(e.target.value)}
+                onChange={(e) => {
+                  setStuck(e.target.value);
+                  if (errors.stuck) setErrors((p) => ({ ...p, stuck: undefined }));
+                }}
                 rows={4}
+                maxLength={STUCK_MAX}
+                aria-invalid={!!errors.stuck}
                 placeholder="Tell us what is on your mind"
-                className="w-full rounded-md border border-rule bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
+                className={`w-full rounded-md border bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${errors.stuck ? "border-[#B91C1C]" : "border-rule"}`}
               />
+              <div className="mt-1.5 flex items-center justify-between">
+                {errors.stuck ? (
+                  <p className="text-[12px] text-[#B91C1C]">{errors.stuck}</p>
+                ) : <span />}
+                <span className="font-mono text-[10.5px] text-ink/40">{stuck.length}/{STUCK_MAX}</span>
+              </div>
             </div>
+
 
             {/* Divider */}
             <div className="relative pt-2 pb-1 text-center">
@@ -365,11 +413,12 @@ function StartConversation() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="mb-2 block text-[13px] text-ink/75">{label}</label>
       {children}
+      {error && <p className="mt-1.5 text-[12px] text-[#B91C1C]">{error}</p>}
     </div>
   );
 }
@@ -394,37 +443,43 @@ function ReassureItem({
   );
 }
 
-/* Hairline route-marks — engraved survey marks, not stock icons. */
+/* Hairline cartographic marks — survey benchmark, milestone post, bearing line. */
 function RouteMarkA() {
+  // Trail benchmark: triangle over a hairline rule
   return (
-    <svg viewBox="0 0 36 36" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.1} strokeLinecap="round">
-        <circle cx={18} cy={18} r={11} strokeOpacity={0.45} />
-        <circle cx={18} cy={18} r={2.4} fill={ROYAL} stroke="none" />
-        <path d="M 18 4.5 L 18 9" />
-        <path d="M 18 27 L 18 31.5" />
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M 4 30 L 40 30" strokeOpacity={0.45} />
+        <path d="M 22 12 L 32 28 L 12 28 Z" />
+        <circle cx={22} cy={22} r={1.6} fill={ROYAL} stroke="none" />
+        <path d="M 8 34 L 12 34 M 18 34 L 26 34 M 32 34 L 36 34" strokeOpacity={0.35} />
       </g>
     </svg>
   );
 }
 function RouteMarkB() {
+  // Milestone post: a numbered cairn-stone marker on a route line
   return (
-    <svg viewBox="0 0 36 36" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.1} strokeLinecap="round">
-        <circle cx={18} cy={18} r={11} strokeOpacity={0.45} />
-        <path d="M 8 18 L 28 18" />
-        <path d="M 14 12 L 22 24" strokeOpacity={0.55} />
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M 4 32 C 14 32, 18 32, 22 32 S 34 32, 40 32" strokeOpacity={0.45} />
+        <rect x={17} y={14} width={10} height={18} rx={1.5} />
+        <path d="M 17 21 L 27 21" strokeOpacity={0.45} />
+        <path d="M 22 10 L 22 14" />
+        <circle cx={22} cy={9} r={1.4} fill={ROYAL} stroke="none" />
       </g>
     </svg>
   );
 }
 function RouteMarkC() {
+  // Route bearing: dotted course toward a destination cross
   return (
-    <svg viewBox="0 0 36 36" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.1} strokeLinecap="round">
-        <circle cx={18} cy={18} r={11} strokeOpacity={0.45} />
-        <path d="M 6 26 C 12 18, 18 22, 24 14 L 30 8" />
-        <path d="M 30 8 L 26 8 M 30 8 L 30 12" />
+    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1} strokeLinecap="round">
+        <circle cx={10} cy={32} r={2.2} fill={ROYAL} stroke="none" />
+        <path d="M 12 30 L 32 12" strokeDasharray="1.4 4" />
+        <path d="M 28 12 L 34 12 L 34 18" strokeOpacity={0.7} />
+        <path d="M 30 8 L 36 14 M 36 8 L 30 14" strokeOpacity={0.55} />
       </g>
     </svg>
   );

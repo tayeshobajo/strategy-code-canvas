@@ -204,7 +204,7 @@ function PrimaryCTA({
       ? "bg-ink text-paper hover:shadow-[0_10px_30px_-12px_rgba(10,23,51,0.5)]"
       : "bg-paper text-ink hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]";
   return (
-    <a href="#cta" className={`${base} ${skin}`}>
+    <a href="/build-my-roadmap" className={`${base} ${skin}`}>
       {children}
       <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
     </a>
@@ -258,7 +258,7 @@ function Hero() {
               Trust Tai launched a decade ago because Tai Shobajo had a standard, not a business plan. The instinct was simple to say and hard to hold: care more than anyone expects you to.
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
+              <a href="/build-my-roadmap" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
                 Build My Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>

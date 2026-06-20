@@ -580,7 +580,7 @@ function Header() {
             </a>
           ))}
         </nav>
-        <a href="#cta" className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-paper transition-transform hover:scale-[1.02]">
+        <a href="/build-my-roadmap" className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-paper transition-transform hover:scale-[1.02]">
           Build My Roadmap <ArrowRight className="h-3.5 w-3.5" />
         </a>
       </div>
@@ -604,7 +604,7 @@ function Hero() {
               We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B), and build the first leg toward the position you could own in a decade (Point C).
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <a href="#cta" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
+              <a href="/build-my-roadmap" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
                 Build My Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
@@ -993,7 +993,7 @@ function Pricing() {
         {/* Actions */}
         <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
           <a
-            href="#cta"
+            href="/build-my-roadmap"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
           >
             Build My Roadmap
@@ -1163,7 +1163,7 @@ function CTABand() {
         {/* CTA */}
         <div className="mt-14 flex justify-center">
           <a
-            href="#"
+            href="/build-my-roadmap"
             className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-paper px-7 text-[13.5px] font-semibold text-ink shadow-[0_0_40px_-10px_oklch(0.85_0.18_252/0.55)] transition-transform hover:scale-[1.02] sm:w-auto"
           >
             Build My Roadmap <ArrowRight className="h-4 w-4" />

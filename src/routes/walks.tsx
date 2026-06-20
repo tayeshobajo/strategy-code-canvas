@@ -273,7 +273,7 @@ function Hero() {
           </Reveal>
           <Reveal as="div" variant="fade-up" delay={400} className="mt-8">
             <a
-              href="#cta"
+              href="/build-my-roadmap"
               className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
             >
               Build My Roadmap
@@ -593,7 +593,7 @@ function DarkCta() {
         </div>
         <div className="flex flex-col items-start gap-4 md:items-end md:text-right">
           <a
-            href="#"
+            href="/build-my-roadmap"
             className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[13px] font-medium text-ink transition-all duration-300 hover:-translate-y-[1px]"
           >
             Build My Roadmap
