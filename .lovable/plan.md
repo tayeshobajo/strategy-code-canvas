@@ -1,12 +1,23 @@
-## Objective
-Eliminate the white/light gradient effect that currently sits at the top of the unified closing/footer section.
+## Visual comparison findings
 
-## Issue
-The `SiteClosing` component renders a `h-40 sm:h-48` blend strip with `linear-gradient(to bottom, transparent 0%, #0A0F1F 100%)`. Because the page background behind it is white/light, this strip reads as a white-to-navy fade rather than a seamless transition, creating the visible band highlighted in the screenshot.
+After comparing `/build-my-roadmap` against the mockup, one clear mismatch remains:
 
-## Plan
-1. **Remove the blend strip** from `src/components/SiteClosing.tsx` — delete the empty `div` with the gradient background.
-2. **Adjust spacing** so the navy section still has adequate top padding after the strip is removed.
-3. **Spot-check** across key routes (`/what-we-build`, `/`, `/insights`, etc.) to confirm the transition from the preceding section into the navy field looks clean without the white band.
+**The middle band ("Start the conversation" + "Before you wonder") is currently cream (`bg-paper`), but the mockup shows it in soft periwinkle blue (`#DCE3F8`).**
 
-No other changes needed.
+All other bands in the mockup are cream:
+- Hero: white (matches)
+- "What the conversation is": cream (matches)
+- Form + Before you wonder: **periwinkle `#DCE3F8`** (currently wrong — cream)
+- "This conversation is for founders who…": cream (matches)
+- Closing notebook section: cream (matches)
+- Footer: navy (matches)
+
+## Change
+
+In `src/routes/build-my-roadmap.tsx`, `StartConversation()`:
+
+1. Set the section background back to `#DCE3F8` (periwinkle), keeping the rest of the page cream.
+2. Update the "OR BOOK A TIME THAT WORKS" divider's inline pill background from `bg-paper` to `#DCE3F8` so it blends with the new section color.
+3. Leave typography (navy `text-ink` titles in "Before you wonder") and the hairline route-marks unchanged — those already match the mockup.
+
+No other sections, spacing, or content changes.
