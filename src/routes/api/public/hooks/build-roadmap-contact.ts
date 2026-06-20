@@ -35,7 +35,10 @@ export const Route = createFileRoute("/api/public/hooks/build-roadmap-contact")(
           const { supabaseAdmin } = await import(
             "@/integrations/supabase/client.server"
           );
-          const { error } = await supabaseAdmin.rpc("enqueue_email", {
+          const { error } = await (supabaseAdmin.rpc as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ error: unknown }>)("enqueue_email", {
             queue_name: "transactional_emails",
             payload: {
               template_name: "build-roadmap-contact",

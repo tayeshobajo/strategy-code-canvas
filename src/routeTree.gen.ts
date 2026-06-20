@@ -18,6 +18,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
+import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
 
 const WhatWeBuildRoute = WhatWeBuildRouteImport.update({
   id: '/what-we-build',
@@ -64,6 +65,12 @@ const InsightsSlugRoute = InsightsSlugRouteImport.update({
   path: '/insights/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksBuildRoadmapContactRoute =
+  ApiPublicHooksBuildRoadmapContactRouteImport.update({
+    id: '/api/public/hooks/build-roadmap-contact',
+    path: '/api/public/hooks/build-roadmap-contact',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/what-we-build': typeof WhatWeBuildRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/walks/$slug': typeof WalksSlugRoute
+  '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +94,7 @@ export interface FileRoutesByTo {
   '/what-we-build': typeof WhatWeBuildRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/walks/$slug': typeof WalksSlugRoute
+  '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +107,7 @@ export interface FileRoutesById {
   '/what-we-build': typeof WhatWeBuildRoute
   '/insights_/$slug': typeof InsightsSlugRoute
   '/walks_/$slug': typeof WalksSlugRoute
+  '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/insights/$slug'
     | '/walks/$slug'
+    | '/api/public/hooks/build-roadmap-contact'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +133,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/insights/$slug'
     | '/walks/$slug'
+    | '/api/public/hooks/build-roadmap-contact'
   id:
     | '__root__'
     | '/'
@@ -133,6 +145,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/insights_/$slug'
     | '/walks_/$slug'
+    | '/api/public/hooks/build-roadmap-contact'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +158,7 @@ export interface RootRouteChildren {
   WhatWeBuildRoute: typeof WhatWeBuildRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
   WalksSlugRoute: typeof WalksSlugRoute
+  ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InsightsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/build-roadmap-contact': {
+      id: '/api/public/hooks/build-roadmap-contact'
+      path: '/api/public/hooks/build-roadmap-contact'
+      fullPath: '/api/public/hooks/build-roadmap-contact'
+      preLoaderRoute: typeof ApiPublicHooksBuildRoadmapContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +246,8 @@ const rootRouteChildren: RootRouteChildren = {
   WhatWeBuildRoute: WhatWeBuildRoute,
   InsightsSlugRoute: InsightsSlugRoute,
   WalksSlugRoute: WalksSlugRoute,
+  ApiPublicHooksBuildRoadmapContactRoute:
+    ApiPublicHooksBuildRoadmapContactRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
