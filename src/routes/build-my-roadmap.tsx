@@ -1,0 +1,599 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
+import * as React from "react";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+import { Reveal } from "@/hooks/use-reveal";
+import notebookImg from "@/assets/cta-book-cover-desk.png.asset.json";
+
+export const Route = createFileRoute("/build-my-roadmap")({
+  head: () => {
+    const title = "Build My Roadmap | Trust Tai";
+    const description =
+      "A 30-minute conversation, not a pitch. We listen first, tell you what we see, and only map the road if it fits. No pressure, no follow-up hounding.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: "/build-my-roadmap" },
+        { property: "og:site_name", content: "Trust Tai" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: "/build-my-roadmap" }],
+    };
+  },
+  component: BuildMyRoadmapPage,
+});
+
+const container = "mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-12";
+const ROYAL = "#2563FF";
+
+/* -------------------- HERO -------------------- */
+function Hero() {
+  return (
+    <section className="relative w-full overflow-hidden bg-paper">
+      <div className={`${container} grid grid-cols-1 items-center gap-10 pt-[140px] pb-20 lg:grid-cols-[1.05fr_1fr] lg:pt-[170px] lg:pb-28`}>
+        <div>
+          <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.28em]" >
+            <span style={{ color: ROYAL }}>Build My Roadmap</span>
+          </Reveal>
+          <Reveal
+            as="h1"
+            variant="rise"
+            delay={120}
+            className="mt-5 font-display text-[clamp(2.4rem,5vw,3.6rem)] leading-[1.06] tracking-[-0.02em] text-ink"
+          >
+            Let&rsquo;s see where your<br />business needs to go.
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={240} className="mt-6 max-w-[34rem] text-[15px] leading-[1.75] text-ink/70">
+            This is a 30-minute conversation, not a pitch. We listen first. You leave with a clearer picture of your business whether we walk together or not.
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={320} className="mt-4 max-w-[34rem] text-[15px] leading-[1.75] text-ink/70">
+            If we are not the right partner, we will tell you, and point you to who is.
+          </Reveal>
+        </div>
+        <Reveal as="div" variant="fade-up" delay={200} className="relative">
+          <EngravedWorld />
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* Hairline engraved illustration: distant ridges, lone pine, a route winding
+   in from POINT A. No fills, no glow — pure cartographer's pen. */
+function EngravedWorld() {
+  return (
+    <svg
+      viewBox="0 0 640 420"
+      className="block w-full h-auto"
+      aria-hidden="true"
+    >
+      <g
+        fill="none"
+        stroke="#0A0F1F"
+        strokeOpacity={0.35}
+        strokeWidth={0.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* Distant ridge — back range */}
+        <path d="M 60 180 L 110 150 L 145 168 L 180 138 L 215 162 L 250 142 L 290 170 L 330 152 L 370 178 L 410 158 L 450 184 L 490 168" strokeOpacity={0.18} />
+        {/* Mid ridge */}
+        <path d="M 80 210 L 130 172 L 160 196 L 200 158 L 235 192 L 270 168 L 305 200 L 345 176 L 385 208 L 425 184 L 470 214" strokeOpacity={0.28} />
+        {/* Front ridge with shading hatch */}
+        <path d="M 50 246 L 120 196 L 165 232 L 215 184 L 260 226 L 305 198 L 350 240 L 400 206 L 445 246 L 490 218 L 530 252" />
+        {/* Hatching on front ridge for engraved feel */}
+        <g strokeOpacity={0.16}>
+          <path d="M 175 220 L 195 240" />
+          <path d="M 185 215 L 205 235" />
+          <path d="M 270 215 L 290 235" />
+          <path d="M 280 210 L 300 230" />
+          <path d="M 365 232 L 385 252" />
+          <path d="M 410 220 L 430 240" />
+        </g>
+        {/* Ground line */}
+        <path d="M 30 320 C 140 318, 260 316, 380 318 S 600 322, 620 320" strokeOpacity={0.22} />
+
+        {/* Lone pine, lower right */}
+        <g transform="translate(540 230)">
+          <path d="M 0 90 L 0 50" />
+          <path d="M -22 50 L 0 8 L 22 50 Z" />
+          <path d="M -28 76 L 0 30 L 28 76 Z" strokeOpacity={0.7} />
+          <path d="M -10 96 L 10 96" />
+        </g>
+      </g>
+
+      {/* Dotted route winding from POINT A pin down to the ground */}
+      <path
+        d="M 560 96 C 500 110, 440 150, 400 180 S 300 240, 240 256 S 140 296, 90 312"
+        fill="none"
+        stroke={ROYAL}
+        strokeWidth={1.4}
+        strokeLinecap="round"
+        strokeDasharray="1.5 6"
+        opacity={0.85}
+      />
+
+      {/* POINT A pin */}
+      <g transform="translate(560 96)">
+        <text
+          x={-6}
+          y={-22}
+          textAnchor="end"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 9,
+            letterSpacing: 3,
+            fill: ROYAL,
+            textTransform: "uppercase",
+          }}
+        >
+          POINT A
+        </text>
+        <path
+          d="M 0 -16 C 8 -16, 14 -10, 14 -2 C 14 8, 0 18, 0 18 C 0 18, -14 8, -14 -2 C -14 -10, -8 -16, 0 -16 Z"
+          fill={ROYAL}
+        />
+        <circle cx={0} cy={-2} r={3.5} fill="#FBF9F4" />
+      </g>
+    </svg>
+  );
+}
+
+/* -------------------- SECTION 2 — What the conversation is -------------------- */
+function ConversationSteps() {
+  const steps = [
+    {
+      n: "One.",
+      title: "We talk for 30 minutes.",
+      body:
+        "You describe where the business is and where it feels stuck. We listen more than we talk. No slides, no pitch deck.",
+    },
+    {
+      n: "Two.",
+      title: "We tell you what we see.",
+      body:
+        "Where your business stands, and whether a Roadmap fits. If it does not, we say so. You leave with a clearer view either way.",
+    },
+    {
+      n: "Three.",
+      title: "If it fits, we map.",
+      body:
+        "Only if it makes sense for you. The Roadmap engagement comes after the conversation, never before, and never as a surprise.",
+    },
+  ];
+  return (
+    <section className="bg-paper">
+      <div className={`${container} py-24 lg:py-32`}>
+        <Reveal
+          as="h2"
+          variant="fade-up"
+          className="text-center font-display text-[clamp(1.6rem,3vw,2.1rem)] leading-tight text-ink"
+        >
+          What the conversation is.
+        </Reveal>
+
+        <div className="relative mx-auto mt-14 max-w-[1080px]">
+          {/* Hairline dotted joiner across the three circles, behind them */}
+          <div
+            className="pointer-events-none absolute left-[16%] right-[16%] top-[22px] hidden h-px md:block"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, rgba(10,15,31,0.22) 0 4px, transparent 4px 10px)",
+              backgroundSize: "10px 1px",
+              backgroundRepeat: "repeat-x",
+            }}
+            aria-hidden="true"
+          />
+          <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-8">
+            {steps.map((s, i) => (
+              <Reveal
+                key={s.n}
+                variant="fade-up"
+                delay={i * 120}
+                className="relative flex flex-col items-center text-center"
+              >
+                <div
+                  className="relative z-[1] flex h-11 w-11 items-center justify-center rounded-full border bg-paper font-mono text-[13px]"
+                  style={{ borderColor: ROYAL, color: ROYAL }}
+                >
+                  {i + 1}
+                </div>
+                <p className="mt-6 font-display text-[1.35rem]" style={{ color: ROYAL }}>
+                  {s.n}
+                </p>
+                <p className="mt-1 font-display text-[1.15rem] text-ink">{s.title}</p>
+                <p className="mt-3 max-w-[28ch] text-[13.5px] leading-[1.7] text-ink/65">
+                  {s.body}
+                </p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+
+        <Reveal
+          as="p"
+          variant="fade-up"
+          delay={420}
+          className="mx-auto mt-16 max-w-[60ch] text-center text-[14px] leading-[1.8] text-ink/70"
+        >
+          No pressure to decide on the call. No follow-up hounding. If the timing is right, we keep talking. If it is not, the work is waiting when it is.
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------- SECTION 3 — Form + Reassurance -------------------- */
+function StartConversation() {
+  const [name, setName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [stuck, setStuck] = React.useState("");
+  const [submitted, setSubmitted] = React.useState(false);
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+  };
+
+  return (
+    <section
+      id="cta"
+      className="relative"
+      style={{ backgroundColor: "color-mix(in oklch, var(--royal) 8%, var(--paper))" }}
+    >
+      <div className={`${container} grid grid-cols-1 gap-14 py-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:py-28`}>
+        {/* LEFT — form */}
+        <div>
+          <Reveal as="h2" variant="fade-up" className="font-display text-[clamp(1.6rem,2.6vw,2rem)] text-ink">
+            Start the conversation.
+          </Reveal>
+
+          <form onSubmit={onSubmit} className="mt-8 space-y-5">
+            <Field label="Name">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+                className="w-full rounded-md border border-rule bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
+                required
+              />
+            </Field>
+            <Field label="Email">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded-md border border-rule bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
+                required
+              />
+            </Field>
+
+            <div>
+              <div className="mb-2 flex items-baseline justify-between">
+                <label className="text-[13px] text-ink/75">
+                  In a sentence or two, where does your business feel stuck right now?
+                </label>
+                <span className="font-mono text-[10.5px] uppercase tracking-[0.2em] text-ink/45">
+                  (optional)
+                </span>
+              </div>
+              <textarea
+                value={stuck}
+                onChange={(e) => setStuck(e.target.value)}
+                rows={4}
+                placeholder="Tell us what is on your mind"
+                className="w-full rounded-md border border-rule bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="relative pt-2 pb-1 text-center">
+              <span className="relative z-[1] inline-block bg-[color:color-mix(in_oklch,var(--royal)_8%,var(--paper))] px-4 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/55">
+                Or book a time that works
+              </span>
+              <span className="absolute left-0 right-0 top-1/2 -z-0 h-px bg-ink/10" aria-hidden="true" />
+            </div>
+
+            {/* Calendar block */}
+            <div className="flex flex-col items-start justify-between gap-4 rounded-md border border-rule bg-white px-5 py-4 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-3">
+                <CalendarMark />
+                <div>
+                  <p className="text-[14px] text-ink">Find a time on our calendar</p>
+                  <p className="text-[12.5px] text-ink/60">Choose a 30-minute slot that works for you.</p>
+                </div>
+              </div>
+              <a
+                href="#availability"
+                className="group inline-flex items-center gap-2 rounded-full border border-royal px-4 py-2 text-[12.5px] font-medium text-royal transition-colors hover:bg-royal hover:text-white"
+              >
+                View Availability
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              </a>
+            </div>
+
+            <button
+              type="submit"
+              className="group mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
+            >
+              {submitted ? "Thank you — we'll reply shortly." : "Start the conversation"}
+              {!submitted && (
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              )}
+            </button>
+
+            <p className="text-[12.5px] leading-[1.7] text-ink/55">
+              We reply within one business day. A real person, not a sequence.
+            </p>
+          </form>
+        </div>
+
+        {/* RIGHT — reassurance */}
+        <div>
+          <Reveal as="h2" variant="fade-up" className="font-display text-[clamp(1.6rem,2.6vw,2rem)] text-ink">
+            Before you wonder.
+          </Reveal>
+          <ul className="mt-8 divide-y divide-ink/10">
+            <ReassureItem
+              mark={<RouteMarkA />}
+              title="You will not be hounded."
+              body="One reply, from a person. If you go quiet, we leave you be."
+            />
+            <ReassureItem
+              mark={<RouteMarkB />}
+              title="You will not be pitched."
+              body="The first conversation has no slides and no close. We listen."
+            />
+            <ReassureItem
+              mark={<RouteMarkC />}
+              title="You will not be the wrong fit in silence."
+              body="If we are not right for you, we say so on the call, and point you somewhere better."
+            />
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-2 block text-[13px] text-ink/75">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function ReassureItem({
+  mark,
+  title,
+  body,
+}: {
+  mark: React.ReactNode;
+  title: string;
+  body: string;
+}) {
+  return (
+    <li className="flex items-start gap-5 py-6">
+      <div className="mt-1 shrink-0">{mark}</div>
+      <div>
+        <p className="text-[14.5px] font-medium" style={{ color: ROYAL }}>{title}</p>
+        <p className="mt-1.5 max-w-[44ch] text-[13.5px] leading-[1.7] text-ink/65">{body}</p>
+      </div>
+    </li>
+  );
+}
+
+/* Hairline route-marks — engraved survey marks, not stock icons. */
+function RouteMarkA() {
+  return (
+    <svg viewBox="0 0 36 36" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.1} strokeLinecap="round">
+        <circle cx={18} cy={18} r={11} strokeOpacity={0.45} />
+        <circle cx={18} cy={18} r={2.4} fill={ROYAL} stroke="none" />
+        <path d="M 18 4.5 L 18 9" />
+        <path d="M 18 27 L 18 31.5" />
+      </g>
+    </svg>
+  );
+}
+function RouteMarkB() {
+  return (
+    <svg viewBox="0 0 36 36" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.1} strokeLinecap="round">
+        <circle cx={18} cy={18} r={11} strokeOpacity={0.45} />
+        <path d="M 8 18 L 28 18" />
+        <path d="M 14 12 L 22 24" strokeOpacity={0.55} />
+      </g>
+    </svg>
+  );
+}
+function RouteMarkC() {
+  return (
+    <svg viewBox="0 0 36 36" className="h-9 w-9" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.1} strokeLinecap="round">
+        <circle cx={18} cy={18} r={11} strokeOpacity={0.45} />
+        <path d="M 6 26 C 12 18, 18 22, 24 14 L 30 8" />
+        <path d="M 30 8 L 26 8 M 30 8 L 30 12" />
+      </g>
+    </svg>
+  );
+}
+function CalendarMark() {
+  return (
+    <svg viewBox="0 0 36 36" className="h-8 w-8" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.2} strokeLinecap="round">
+        <rect x={6} y={9} width={24} height={20} rx={2} strokeOpacity={0.55} />
+        <path d="M 6 15 L 30 15" strokeOpacity={0.55} />
+        <path d="M 12 7 L 12 11" />
+        <path d="M 24 7 L 24 11" />
+        <circle cx={18} cy={22} r={1.6} fill={ROYAL} stroke="none" />
+      </g>
+    </svg>
+  );
+}
+
+/* -------------------- SECTION 4 — Fit list -------------------- */
+function FitList() {
+  const fits = [
+    "The business works, but it works because of you.",
+    "You have bought builds before and they did not change how the company runs.",
+    "You want to know what to build next, in what order, and why.",
+  ];
+  const notFits = [
+    "You want the cheapest option.",
+    "You want execution without a map.",
+    "You want it fast more than you want it right.",
+  ];
+  return (
+    <section className="bg-paper">
+      <div className={`${container} py-24 lg:py-28`}>
+        <Reveal
+          as="h2"
+          variant="fade-up"
+          className="text-center font-display text-[clamp(1.6rem,3vw,2.1rem)] text-ink"
+        >
+          This conversation is for founders who&hellip;
+        </Reveal>
+
+        <div className="mx-auto mt-14 grid max-w-[1000px] grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
+          <div>
+            <div className="mb-6 flex items-center gap-3">
+              <CheckMark />
+              <h3 className="font-display text-[1.25rem] text-ink">It fits if:</h3>
+            </div>
+            <ul className="space-y-4">
+              {fits.map((t) => (
+                <li key={t} className="flex items-start gap-3 text-[14px] leading-[1.7] text-ink/75">
+                  <span className="mt-[6px] shrink-0"><CheckMark small /></span>
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="md:border-l md:border-rule md:pl-12">
+            <div className="mb-6 flex items-center gap-3">
+              <CrossMark />
+              <h3 className="font-display text-[1.25rem] text-ink">It does not fit if:</h3>
+            </div>
+            <ul className="space-y-4">
+              {notFits.map((t) => (
+                <li key={t} className="flex items-start gap-3 text-[14px] leading-[1.7] text-ink/75">
+                  <span className="mt-[6px] shrink-0"><CrossMark small /></span>
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <Reveal
+          as="p"
+          variant="fade-up"
+          delay={300}
+          className="mx-auto mt-16 max-w-[60ch] text-center text-[14px] leading-[1.8] text-ink/70"
+        >
+          If that first list sounded like you, the conversation is worth 30 minutes.
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function CheckMark({ small }: { small?: boolean }) {
+  const s = small ? 16 : 26;
+  return (
+    <svg viewBox="0 0 32 32" width={s} height={s} aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round">
+        {!small && <circle cx={16} cy={16} r={13} strokeOpacity={0.5} />}
+        <path d="M 9 17 L 14 22 L 23 11" />
+      </g>
+    </svg>
+  );
+}
+function CrossMark({ small }: { small?: boolean }) {
+  const s = small ? 16 : 26;
+  return (
+    <svg viewBox="0 0 32 32" width={s} height={s} aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.2} strokeLinecap="round">
+        {!small && <circle cx={16} cy={16} r={13} strokeOpacity={0.5} />}
+        <path d="M 11 11 L 21 21" />
+        <path d="M 21 11 L 11 21" />
+      </g>
+    </svg>
+  );
+}
+
+/* -------------------- SECTION 5 — Close (cream) -------------------- */
+function CloseSection() {
+  return (
+    <section className="relative bg-paper">
+      <div className={`${container} grid grid-cols-1 items-center gap-12 pt-24 pb-28 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-28 lg:pb-36`}>
+        <div className="text-center lg:text-left">
+          <Reveal
+            as="h2"
+            variant="fade-up"
+            className="font-display text-[clamp(1.85rem,3.6vw,2.6rem)] leading-[1.18] tracking-[-0.018em] text-ink"
+          >
+            Where you are is where you are.<br />
+            Where you need to be is{" "}
+            <em className="italic font-normal" style={{ color: "oklch(0.55 0.13 75)" }}>
+              what we map next
+            </em>
+            .
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={160} className="mx-auto mt-6 max-w-[52ch] text-[14.5px] leading-[1.8] text-ink/70 lg:mx-0">
+            The first step is small. A conversation. No pitch, no pressure, no obligation. Everything after it is your choice.
+          </Reveal>
+          <Reveal as="div" variant="fade-up" delay={260} className="mt-8">
+            <a
+              href="#cta"
+              className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(10,15,31,0.45)]"
+            >
+              Start the conversation
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </a>
+          </Reveal>
+          <Reveal as="p" variant="fade-up" delay={340} className="mx-auto mt-6 max-w-[52ch] text-[12.5px] italic leading-[1.7] text-ink/55 lg:mx-0">
+            If the timing is right, we should talk. If it is not, the work is waiting when it is.
+          </Reveal>
+        </div>
+        <Reveal as="div" variant="fade-up" delay={200} className="relative">
+          <img
+            src={notebookImg.url}
+            alt="A cream Roadmap journal embossed with the Trust Tai paper-plane mark, beside a navy notebook on a warm desk."
+            className="block h-auto w-full rounded-md object-cover shadow-[0_30px_60px_-30px_rgba(10,15,31,0.25)]"
+            loading="lazy"
+          />
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------- PAGE -------------------- */
+function BuildMyRoadmapPage() {
+  return (
+    <div className="min-h-screen bg-paper">
+      <SiteHeader />
+      <main>
+        <Hero />
+        <ConversationSteps />
+        <StartConversation />
+        <FitList />
+        <CloseSection />
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
