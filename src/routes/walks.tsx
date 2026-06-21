@@ -37,7 +37,19 @@ export const Route = createFileRoute("/walks")({
             isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
           }),
         },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
+              { "@type": "ListItem", position: 2, name: "Walks", item: "https://new.trusttai.com/walks" },
+            ],
+          }),
+        },
       ],
+
     };
   },
   component: WalksPage,
