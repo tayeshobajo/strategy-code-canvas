@@ -60,9 +60,28 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Trust Tai | The Business Operating Roadmap" },
       { property: "og:description", content: "A living plan from Point A to Point C. Built for founders who are done guessing." },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "/" },
+      { property: "og:url", content: "https://new.trusttai.com/" },
     ],
-    links: [{ rel: "canonical", href: "/" }],
+    links: [{ rel: "canonical", href: "https://new.trusttai.com/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Trust Tai | The Business Operating Roadmap",
+          description:
+            "We map the journey from where your business is today to where it needs to be, and build the first leg toward the position you could own in a decade.",
+          url: "https://new.trusttai.com/",
+          isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+          about: { "@type": "Organization", name: "Trust Tai" },
+          primaryImageOfPage: {
+            "@type": "ImageObject",
+            url: "https://storage.googleapis.com/gpt-engineer-file-uploads/5AF3iZ8RMUTUtcLFr34LH1XEPBM2/social-images/social-1782064559119-image_(6).webp",
+          },
+        }),
+      },
+    ],
   }),
   component: Index,
 });
