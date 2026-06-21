@@ -16,13 +16,29 @@ export const Route = createFileRoute("/investment")({
       { name: "description", content: "The price of a business that runs without you. Map, build, and the three walks, named before the engagement begins." },
       { property: "og:title", content: "Investment | Trust Tai" },
       { property: "og:description", content: "Every number on one page. The map, the build, the three walks." },
+      { property: "og:url", content: "https://new.trusttai.com/investment" },
       { property: "og:image", content: heroDesk.url },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: heroDesk.url },
     ],
     links: [
+      { rel: "canonical", href: "https://new.trusttai.com/investment" },
       // Preload only at desktop widths where the hero image actually renders.
       { rel: "preload", as: "image", href: heroDesk.url, fetchpriority: "high", media: "(min-width: 640px)" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Investment | Trust Tai",
+          description:
+            "The price of a business that runs without you. Map, build, and the three walks, named before the engagement begins.",
+          url: "https://new.trusttai.com/investment",
+          isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+        }),
+      },
     ],
   }),
   component: InvestmentPage,

@@ -83,9 +83,31 @@ export const Route = createFileRoute("/what-we-build")({
       { name: "description", content: "The milestones inside the map. Eight builds, one connected operating layer, sequenced by the order the business calls for." },
       { property: "og:title", content: "What We Build | Trust Tai" },
       { property: "og:description", content: "Eight milestones. One connected operating layer. Built for founders. Designed to compound." },
+      { property: "og:url", content: "https://new.trusttai.com/what-we-build" },
       { property: "og:image", content: heroBook.url },
     ],
-    links: [{ rel: "canonical", href: "/what-we-build" }],
+    links: [{ rel: "canonical", href: "https://new.trusttai.com/what-we-build" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "What We Build | Trust Tai",
+          description:
+            "Eight milestones. One connected operating layer. Built for founders. Designed to compound.",
+          url: "https://new.trusttai.com/what-we-build",
+          isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+          about: {
+            "@type": "Service",
+            name: "Business Operating Roadmap",
+            provider: { "@type": "Organization", name: "Trust Tai", url: "https://new.trusttai.com" },
+            areaServed: "Global",
+            serviceType: "Strategy and operations consultancy",
+          },
+        }),
+      },
+    ],
   }),
   component: WhatWeBuild,
 });

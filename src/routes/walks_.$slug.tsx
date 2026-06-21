@@ -427,6 +427,7 @@ export const Route = createFileRoute("/walks_/$slug")({
     const walk = slug ? DETAILS[slug] : undefined;
     const title = walk ? `${SUMMARY[walk.slug]?.category ?? "Walk"} | The Walks | Trust Tai` : "Walk | Trust Tai";
     const description = walk?.subhead ?? "A walk we have taken with a founder-led business.";
+    const url = `https://new.trusttai.com/walks/${walk?.slug ?? ""}`;
     return {
       meta: [
         { title },
@@ -434,11 +435,37 @@ export const Route = createFileRoute("/walks_/$slug")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "article" },
+        { property: "og:url", content: url },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
       ],
-      links: [{ rel: "canonical", href: `/walks/${walk?.slug ?? ""}` }],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            name: title,
+            description,
+            url,
+            isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+          }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
+              { "@type": "ListItem", position: 2, name: "The Walks", item: "https://new.trusttai.com/walks" },
+              { "@type": "ListItem", position: 3, name: title, item: url },
+            ],
+          }),
+        },
+      ],
     };
   },
   notFoundComponent: () => (
