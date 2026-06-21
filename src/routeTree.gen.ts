@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatWeBuildRouteImport } from './routes/what-we-build'
 import { Route as WalksRouteImport } from './routes/walks'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as BuildMyRoadmapRouteImport } from './routes/build-my-roadmap'
@@ -29,6 +30,11 @@ const WhatWeBuildRoute = WhatWeBuildRouteImport.update({
 const WalksRoute = WalksRouteImport.update({
   id: '/walks',
   path: '/walks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InvestmentRoute = InvestmentRouteImport.update({
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/insights_/$slug': typeof InsightsSlugRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/build-my-roadmap'
     | '/insights'
     | '/investment'
+    | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
     | '/insights/$slug'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/build-my-roadmap'
     | '/insights'
     | '/investment'
+    | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
     | '/insights/$slug'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/build-my-roadmap'
     | '/insights'
     | '/investment'
+    | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
     | '/insights_/$slug'
@@ -167,6 +179,7 @@ export interface RootRouteChildren {
   BuildMyRoadmapRoute: typeof BuildMyRoadmapRoute
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WalksRoute: typeof WalksRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
@@ -189,6 +202,13 @@ declare module '@tanstack/react-router' {
       path: '/walks'
       fullPath: '/walks'
       preLoaderRoute: typeof WalksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/investment': {
@@ -263,6 +283,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuildMyRoadmapRoute: BuildMyRoadmapRoute,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   WalksRoute: WalksRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
   InsightsSlugRoute: InsightsSlugRoute,
