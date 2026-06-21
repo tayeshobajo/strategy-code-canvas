@@ -38,7 +38,7 @@ const ROYAL = "#2563FF";
 function Hero() {
   return (
     <section className="relative w-full overflow-hidden bg-white">
-      <div className={`${container} grid grid-cols-1 items-center gap-10 pt-[140px] pb-10 lg:grid-cols-[1.05fr_1fr] lg:pt-[160px] lg:pb-12`}>
+      <div className={`${container} flex flex-col-reverse items-center gap-10 pt-[140px] pb-10 lg:grid lg:grid-cols-[1.05fr_1fr] lg:pt-[160px] lg:pb-12`}>
         <div>
           <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.28em]" >
             <span style={{ color: ROYAL }}>Build My Roadmap</span>
