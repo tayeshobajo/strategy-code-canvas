@@ -48,7 +48,19 @@ export const Route = createFileRoute("/build-my-roadmap")({
             },
           }),
         },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
+              { "@type": "ListItem", position: 2, name: "Build My Roadmap", item: "https://new.trusttai.com/build-my-roadmap" },
+            ],
+          }),
+        },
       ],
+
     };
   },
   component: BuildMyRoadmapPage,
