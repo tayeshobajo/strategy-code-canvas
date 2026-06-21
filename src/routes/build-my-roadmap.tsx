@@ -19,13 +19,36 @@ export const Route = createFileRoute("/build-my-roadmap")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
-        { property: "og:url", content: "/build-my-roadmap" },
+        { property: "og:url", content: "https://new.trusttai.com/build-my-roadmap" },
         { property: "og:site_name", content: "Trust Tai" },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
       ],
-      links: [{ rel: "canonical", href: "/build-my-roadmap" }],
+      links: [{ rel: "canonical", href: "https://new.trusttai.com/build-my-roadmap" }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ContactPage",
+            name: title,
+            description,
+            url: "https://new.trusttai.com/build-my-roadmap",
+            isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+            mainEntity: {
+              "@type": "Organization",
+              name: "Trust Tai",
+              email: "tai@trusttai.com",
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                email: "tai@trusttai.com",
+              },
+            },
+          }),
+        },
+      ],
     };
   },
   component: BuildMyRoadmapPage,
