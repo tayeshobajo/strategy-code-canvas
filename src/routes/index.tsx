@@ -591,7 +591,7 @@ function Header() {
 function Hero() {
   return (
     <section className="relative w-full overflow-hidden bg-paper">
-      <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
+      <div className="flex flex-col-reverse lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
         <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
           <div className="relative z-10 max-w-[620px]">
