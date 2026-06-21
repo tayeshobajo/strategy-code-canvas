@@ -54,7 +54,21 @@ export const Route = createFileRoute("/insights")({
         { name: "twitter:description", content: ogDescription },
       ],
       links: [{ rel: "canonical", href: "/insights" }],
-      scripts: [{ type: "application/ld+json", children: JSON.stringify(ld) }],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(ld) },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
+              { "@type": "ListItem", position: 2, name: "Insights", item: "https://new.trusttai.com/insights" },
+            ],
+          }),
+        },
+      ],
+
     };
   },
   component: InsightsPage,
