@@ -717,13 +717,10 @@ function IntelligenceLayer() {
             The Intelligence Layer
           </Reveal>
           <Reveal as="h2" variant="rise" delay={80} className="mt-5 font-display text-[32px] leading-[1.1] tracking-[-0.02em] sm:text-[38px]">
-            One layer
-            <br />
-            reads all of it.
+            One layer turns the system into insight.
           </Reveal>
-          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-paper/70">
-            Every build creates signals. The intelligence layer reads across the
-            system so the business can see what comes next.
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[340px] text-[14px] leading-[1.7] text-paper/70">
+            Every website, CRM, lead engine, portal, assistant, and dashboard creates signals. The intelligence layer helps the business see what is working, what is stuck, and what should happen next.
           </Reveal>
         </div>
 
