@@ -951,12 +951,14 @@ function ILDiagram({
   onHover: (name: string | null) => void;
   onSelect: (name: string) => void;
 }) {
-  const W = 560;
+  const W = 680;
   const H = 360;
   const cx = W / 2;
   const cy = H / 2;
-  const leftX = 90;
-  const rightX = W - 90;
+  const PILL_W = 210;
+  const PILL_HALF = PILL_W / 2;
+  const leftX = 120;
+  const rightX = W - 120;
   const ys = [60, 140, 220, 300];
   const dim = active != null;
 
