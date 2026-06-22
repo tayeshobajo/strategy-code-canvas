@@ -54,9 +54,9 @@ export const Route = createFileRoute("/investment")({
                 { "@type": "Offer", name: "Foundational Roadmap", description: "The diagnosis and the route to Point B.", price: "10000", priceCurrency: "USD", category: "Roadmap", url: "https://new.trusttai.com/investment#map", availability: "https://schema.org/InStock" },
                 { "@type": "Offer", name: "Standard Roadmap", description: "The full map, every pillar named.", price: "17500", priceCurrency: "USD", category: "Roadmap", url: "https://new.trusttai.com/investment#map", availability: "https://schema.org/InStock" },
                 { "@type": "Offer", name: "Comprehensive Roadmap", description: "Deep modeling for layered operations.", price: "25000", priceCurrency: "USD", category: "Roadmap", url: "https://new.trusttai.com/investment#map", availability: "https://schema.org/InStock" },
-                { "@type": "Offer", name: "The Fast Walk", description: "Point B in twelve months. Heaviest team on the build.", price: "7500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "7500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://new.trusttai.com/investment", availability: "https://schema.org/InStock" },
-                { "@type": "Offer", name: "The Middle Walk", description: "Point B in eighteen months.", price: "4500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "4500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://new.trusttai.com/investment", availability: "https://schema.org/InStock" },
-                { "@type": "Offer", name: "The Steady Walk", description: "Point B in twenty-four months. The walk most founders fund from operations.", price: "2500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "2500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://new.trusttai.com/investment", availability: "https://schema.org/InStock" },
+                { "@type": "Offer", name: "Accelerated Pace", description: "Point B in twelve months. Heaviest team on the build.", price: "7500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "7500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://new.trusttai.com/investment", availability: "https://schema.org/InStock" },
+                { "@type": "Offer", name: "Balanced Pace", description: "Point B in eighteen months.", price: "4500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "4500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://new.trusttai.com/investment", availability: "https://schema.org/InStock" },
+                { "@type": "Offer", name: "Steady Pace", description: "Point B in twenty-four months. The walk most founders fund from operations.", price: "2500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "2500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://new.trusttai.com/investment", availability: "https://schema.org/InStock" },
               ],
             },
             {
@@ -340,9 +340,9 @@ function MapSection() {
 // ---------- Pace ----------
 type Walk = { name: string; subtitle: string; Icon: typeof Footprints; months: number; price: string; total: string };
 const walks: Walk[] = [
-  { name: "The Fast Walk", subtitle: "Point B in one year. The heaviest team on the build, the earliest arrival.", Icon: Footprints, months: 12, price: "$7,500", total: "$90,000" },
-  { name: "The Middle Walk", subtitle: "Point B in eighteen months.", Icon: PersonStanding, months: 18, price: "$4,500", total: "$81,000" },
-  { name: "The Steady Walk", subtitle: "Point B in two years. The walk most founders fund from operations.", Icon: Snail, months: 24, price: "$2,500", total: "$60,000" },
+  { name: "Accelerated Pace", subtitle: "Point B in one year. The heaviest team on the build, the earliest arrival.", Icon: Footprints, months: 12, price: "$7,500", total: "$90,000" },
+  { name: "Balanced Pace", subtitle: "Point B in eighteen months.", Icon: PersonStanding, months: 18, price: "$4,500", total: "$81,000" },
+  { name: "Steady Pace", subtitle: "Point B in two years. The walk most founders fund from operations.", Icon: Snail, months: 24, price: "$2,500", total: "$60,000" },
 ];
 
 function WalkRow({ walk }: { walk: Walk }) {
