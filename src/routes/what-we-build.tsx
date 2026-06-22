@@ -768,31 +768,56 @@ function IntelligenceLayer() {
           }}
         />
       </div>
-      <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 gap-14 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)_minmax(0,0.7fr)] lg:gap-12 lg:py-32">
+      <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 gap-10 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)_minmax(0,0.7fr)] lg:gap-12 lg:py-32">
         <div>
           <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#7aa6ff]">
             The Intelligence Layer
           </Reveal>
-          <Reveal as="h2" variant="rise" delay={80} className="mt-5 font-display text-[32px] leading-[1.1] tracking-[-0.02em] sm:text-[38px]">
+          <Reveal as="h2" variant="rise" delay={80} className="mt-5 font-display text-[30px] leading-[1.1] tracking-[-0.02em] sm:text-[38px]">
             One layer turns the system into insight.
           </Reveal>
           <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[340px] text-[14px] leading-[1.7] text-paper/70">
             Every website, CRM, lead engine, portal, assistant, and dashboard creates signals. The intelligence layer helps the business see what is working, what is stuck, and what should happen next.
           </Reveal>
           <Reveal as="p" variant="fade-up" delay={320} className="mt-5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#7aa6ff]/80">
-            Hover or click a system →
+            <span className="hidden lg:inline">Hover or click a system →</span>
+            <span className="lg:hidden">Tap a system to see how it turns signals into action ↓</span>
           </Reveal>
         </div>
 
-        <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
-          <div className="min-w-[560px] sm:min-w-0">
-            <ILDiagram
-              revealed={inView}
-              active={active}
-              onHover={setHovered}
-              onSelect={(name) => setSelected((s) => (s === name ? null : name))}
-            />
+        {/* Mobile/tablet: tappable pill grid in place of the SVG */}
+        <div className="lg:hidden">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {[...IL_LEFT, ...IL_RIGHT].map((name) => {
+              const isActive = active === name;
+              const isPinned = selected === name;
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setSelected((s) => (s === name ? null : name))}
+                  aria-pressed={isPinned}
+                  className={`min-h-11 rounded-full border px-3 py-2 text-left text-[12.5px] leading-tight transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa6ff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08122b] active:scale-[0.97] ${
+                    isActive
+                      ? "border-[#7aa6ff] bg-[#5b8cff]/20 text-paper shadow-[0_0_18px_rgba(91,140,255,0.25)]"
+                      : "border-white/15 bg-white/[0.03] text-paper/80 hover:border-white/35 hover:text-paper"
+                  }`}
+                >
+                  {name}
+                </button>
+              );
+            })}
           </div>
+        </div>
+
+        {/* Desktop diagram */}
+        <div className="hidden lg:block">
+          <ILDiagram
+            revealed={inView}
+            active={active}
+            onHover={setHovered}
+            onSelect={(name) => setSelected((s) => (s === name ? null : name))}
+          />
         </div>
 
         <div className="lg:border-l lg:border-white/10 lg:pl-8">
@@ -825,6 +850,7 @@ function IntelligenceLayer() {
     </section>
   );
 }
+
 
 function ILDetailPanel({
   name,
