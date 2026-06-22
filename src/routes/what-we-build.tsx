@@ -92,33 +92,34 @@ export const Route = createFileRoute("/what-we-build")({
         type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "WebPage",
-          name: "What We Build | Trust Tai",
-          description:
-            "Eight milestones. One connected operating layer. Built for founders. Designed to compound.",
-          url: "https://new.trusttai.com/what-we-build",
-          isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
-          about: {
-            "@type": "Service",
-            name: "Business Operating Roadmap",
-            provider: { "@type": "Organization", name: "Trust Tai", url: "https://new.trusttai.com" },
-            areaServed: "Global",
-            serviceType: "Strategy and operations consultancy",
-          },
-        }),
-      },
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          itemListElement: [
-            { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
-            { "@type": "ListItem", position: 2, name: "What We Build", item: "https://new.trusttai.com/what-we-build" },
+          "@graph": [
+            {
+              "@type": "WebPage",
+              name: "What We Build | Trust Tai",
+              description:
+                "Eight milestones. One connected operating layer. Built for founders. Designed to compound.",
+              url: "https://new.trusttai.com/what-we-build",
+              isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+              about: {
+                "@type": "Service",
+                name: "Business Operating Roadmap",
+                provider: { "@type": "Organization", name: "Trust Tai", url: "https://new.trusttai.com" },
+                areaServed: "Global",
+                serviceType: "Strategy and operations consultancy",
+              },
+            },
+            {
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
+                { "@type": "ListItem", position: 2, name: "What We Build", item: "https://new.trusttai.com/what-we-build" },
+              ],
+            },
           ],
         }),
       },
     ],
+
 
   }),
   component: WhatWeBuild,
