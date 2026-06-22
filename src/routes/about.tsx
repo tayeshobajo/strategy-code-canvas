@@ -237,6 +237,7 @@ function AboutPage() {
       <TheConductor />
       <HowWeThink />
       <HonestFit />
+      <NextSteps />
       <SiteClosing
         headline={<><Accent>Care more than anyone expects you to.</Accent></>}
         supporting={<>Your ambition matters. So does the partner you hand it to. If that is how you build, let us build your Roadmap. If it is not, we will point you toward someone who builds the way you need.</>}
