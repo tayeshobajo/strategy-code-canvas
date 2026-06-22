@@ -194,7 +194,7 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    n: "05", name: "AI Support Assistant", tag: "The Intelligence Layer™", phase: 3,
+    n: "05", name: "AI Sales & Support Assistant", tag: "The Intelligence Layer™", phase: 3,
     desc: "Reads across the system, answers in context, and escalates only what needs a human. Capacity without headcount.",
     impact: [
       { label: "Clarity", value: 82 },
