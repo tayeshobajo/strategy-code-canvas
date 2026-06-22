@@ -340,9 +340,9 @@ function MapSection() {
 // ---------- Pace ----------
 type Walk = { name: string; subtitle: string; Icon: typeof Footprints; months: number; price: string; total: string };
 const walks: Walk[] = [
-  { name: "The Fast Walk", subtitle: "Point B in one year. The heaviest team on the build, the earliest arrival.", Icon: Footprints, months: 12, price: "$7,500", total: "$90,000" },
-  { name: "The Middle Walk", subtitle: "Point B in eighteen months.", Icon: PersonStanding, months: 18, price: "$4,500", total: "$81,000" },
-  { name: "The Steady Walk", subtitle: "Point B in two years. The walk most founders fund from operations.", Icon: Snail, months: 24, price: "$2,500", total: "$60,000" },
+  { name: "Accelerated Pace", subtitle: "Point B in one year. The heaviest team on the build, the earliest arrival.", Icon: Footprints, months: 12, price: "$7,500", total: "$90,000" },
+  { name: "Balanced Pace", subtitle: "Point B in eighteen months.", Icon: PersonStanding, months: 18, price: "$4,500", total: "$81,000" },
+  { name: "Steady Pace", subtitle: "Point B in two years. The walk most founders fund from operations.", Icon: Snail, months: 24, price: "$2,500", total: "$60,000" },
 ];
 
 function WalkRow({ walk }: { walk: Walk }) {
