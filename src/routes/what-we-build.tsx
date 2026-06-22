@@ -245,6 +245,58 @@ const IL_OUTCOMES = [
   "Long-term business position",
 ];
 
+type ILDetail = { signals: string; insight: string; decision: string; nextAction: string };
+const IL_DETAILS: Record<string, ILDetail> = {
+  "Conversion-Focused Website": {
+    signals: "Traffic source, scroll depth, CTA clicks, form starts and abandons.",
+    insight: "Which pages convert attention into conversation, and which leak it.",
+    decision: "Where to tighten copy, what offer to lead with, what page to retire.",
+    nextAction: "Ship the winning variation. Rewrite the page losing the most intent.",
+  },
+  "Connected CRM": {
+    signals: "Contact source, stage age, owner activity, revenue by segment.",
+    insight: "Which deals stall, where ownership drops, which segment compounds.",
+    decision: "Who follows up next, what to deprioritise, where to invest time.",
+    nextAction: "Re-route the stalled deals. Lock the next outreach for the top segment.",
+  },
+  "Lead Capture Engine": {
+    signals: "Channel cost, form fill rate, lead quality and reply rate by source.",
+    insight: "Which channels create real conversation, and which only create noise.",
+    decision: "Double down on the channel that compounds, shut off the channel that does not.",
+    nextAction: "Shift budget. Refresh the offer behind the highest-intent channel.",
+  },
+  "Client Portal": {
+    signals: "Login frequency, ticket type, self-serve resolution rate, time-to-answer.",
+    insight: "Which requests should never have reached the founder in the first place.",
+    decision: "What becomes a documented flow, what stays a human call.",
+    nextAction: "Turn the repeat question into a portal answer. Remove a routing step.",
+  },
+  "AI Sales & Support Assistant": {
+    signals: "Questions asked, resolution rate, escalation reasons, conversation quality.",
+    insight: "Where the assistant answers well, and where it should hand off to a person.",
+    decision: "What knowledge to add, what to route to a human, what to script.",
+    nextAction: "Extend the answer set. Sharpen the escalation rule for high-value asks.",
+  },
+  "Operating Dashboard": {
+    signals: "Revenue, pipeline, capacity, delivery health, leading indicators.",
+    insight: "Which metric is moving against plan before it becomes a problem.",
+    decision: "Where leadership focuses this week, what target gets reset.",
+    nextAction: "Trigger the right review. Reset the number the team is chasing.",
+  },
+  "Workflow Automation": {
+    signals: "Step duration, exception rate, manual touchpoints, handoff delays.",
+    insight: "Where work still stalls, and which step a human no longer needs to touch.",
+    decision: "Which step to automate next, which to retire, which to leave alone.",
+    nextAction: "Ship the next automation. Remove a manual handoff from the workflow.",
+  },
+  "Internal Workflow Tools": {
+    signals: "Tool usage, time-on-task, error rates, where spreadsheets are doing too much.",
+    insight: "Which custom workflow is now worth dedicated tooling.",
+    decision: "What to build internally, what to standardise across the team.",
+    nextAction: "Scope the next internal tool. Retire the spreadsheet it replaces.",
+  },
+};
+
 // ----- standards -----
 const STANDARDS = [
   { n: "01", icon: IconFoundation, title: "Foundation", body: "Before we lay the foundation, we map the ground." },
@@ -699,6 +751,11 @@ function Milestones({ activeIndex, onSelect }: { activeIndex: number; onSelect: 
 // ----------- INTELLIGENCE LAYER -----------
 function IntelligenceLayer() {
   const { ref, inView } = useReveal<HTMLDivElement>();
+  const [hovered, setHovered] = React.useState<string | null>(null);
+  const [selected, setSelected] = React.useState<string | null>(null);
+  const active = hovered ?? selected;
+  const detail = active ? IL_DETAILS[active] : null;
+
   return (
     <section ref={ref} className="relative overflow-hidden bg-[#08122b] text-paper">
       <div className="absolute inset-0 opacity-60">
@@ -711,7 +768,7 @@ function IntelligenceLayer() {
           }}
         />
       </div>
-      <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 gap-14 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)_minmax(0,0.55fr)] lg:gap-12 lg:py-32">
+      <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 gap-14 px-6 py-24 sm:px-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.6fr)_minmax(0,0.7fr)] lg:gap-12 lg:py-32">
         <div>
           <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#7aa6ff]">
             The Intelligence Layer
@@ -722,28 +779,120 @@ function IntelligenceLayer() {
           <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[340px] text-[14px] leading-[1.7] text-paper/70">
             Every website, CRM, lead engine, portal, assistant, and dashboard creates signals. The intelligence layer helps the business see what is working, what is stuck, and what should happen next.
           </Reveal>
+          <Reveal as="p" variant="fade-up" delay={320} className="mt-5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#7aa6ff]/80">
+            Hover or click a system →
+          </Reveal>
         </div>
 
         <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
           <div className="min-w-[560px] sm:min-w-0">
-            <ILDiagram revealed={inView} />
+            <ILDiagram
+              revealed={inView}
+              active={active}
+              onHover={setHovered}
+              onSelect={(name) => setSelected((s) => (s === name ? null : name))}
+            />
           </div>
         </div>
 
-        <ul className="flex flex-col justify-center gap-5 lg:border-l lg:border-white/10 lg:pl-8">
-          {IL_OUTCOMES.map((o, i) => (
-            <Reveal as="li" key={o} variant="fade-right" delay={400 + i * 100} className="flex items-center gap-3 text-[14px]">
-              <span className="size-2 rounded-full bg-[#5b8cff] shadow-[0_0_10px_rgba(91,140,255,0.8)] pulse-dot" style={{ animationDelay: `${i * 400}ms` }} />
-              <span className="text-paper/85">{o}</span>
-            </Reveal>
-          ))}
-        </ul>
+        <div className="lg:border-l lg:border-white/10 lg:pl-8">
+          {detail ? (
+            <ILDetailPanel
+              key={active}
+              name={active!}
+              detail={detail}
+              isPinned={selected === active}
+              onClear={() => {
+                setSelected(null);
+                setHovered(null);
+              }}
+            />
+          ) : (
+            <ul className="flex flex-col justify-center gap-5">
+              <li className="mb-1 font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#7aa6ff]/80">
+                What the layer produces
+              </li>
+              {IL_OUTCOMES.map((o, i) => (
+                <Reveal as="li" key={o} variant="fade-right" delay={400 + i * 100} className="flex items-center gap-3 text-[14px]">
+                  <span className="size-2 rounded-full bg-[#5b8cff] shadow-[0_0_10px_rgba(91,140,255,0.8)] pulse-dot" style={{ animationDelay: `${i * 400}ms` }} />
+                  <span className="text-paper/85">{o}</span>
+                </Reveal>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </section>
   );
 }
 
-function ILDiagram({ revealed }: { revealed: boolean }) {
+function ILDetailPanel({
+  name,
+  detail,
+  isPinned,
+  onClear,
+}: {
+  name: string;
+  detail: ILDetail;
+  isPinned: boolean;
+  onClear: () => void;
+}) {
+  const stages: { label: string; value: string }[] = [
+    { label: "Signals", value: detail.signals },
+    { label: "Insight", value: detail.insight },
+    { label: "Decision", value: detail.decision },
+    { label: "Next action", value: detail.nextAction },
+  ];
+  return (
+    <div className="animate-fade-in">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#7aa6ff]">
+            {isPinned ? "Pinned · click again to clear" : "Previewing"}
+          </div>
+          <div className="mt-2 font-display text-[20px] leading-tight text-paper">{name}</div>
+        </div>
+        {isPinned && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="rounded-full border border-white/15 px-2.5 py-1 font-mono text-[9.5px] uppercase tracking-[0.14em] text-paper/70 transition-colors hover:border-white/40 hover:text-paper"
+            aria-label="Clear selection"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <ol className="mt-5 flex flex-col gap-4">
+        {stages.map((s, i) => (
+          <li key={s.label} className="relative pl-5">
+            <span
+              className="absolute left-0 top-[7px] size-1.5 rounded-full bg-[#5b8cff]"
+              style={{ boxShadow: "0 0 8px rgba(91,140,255,0.8)" }}
+            />
+            {i < stages.length - 1 && (
+              <span className="absolute left-[3px] top-[16px] h-[calc(100%-4px)] w-px bg-gradient-to-b from-[#5b8cff]/60 to-[#5b8cff]/0" />
+            )}
+            <div className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-[#7aa6ff]">{s.label}</div>
+            <div className="mt-1 text-[13px] leading-[1.6] text-paper/85">{s.value}</div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function ILDiagram({
+  revealed,
+  active,
+  onHover,
+  onSelect,
+}: {
+  revealed: boolean;
+  active: string | null;
+  onHover: (name: string | null) => void;
+  onSelect: (name: string) => void;
+}) {
   const W = 560;
   const H = 360;
   const cx = W / 2;
@@ -751,6 +900,19 @@ function ILDiagram({ revealed }: { revealed: boolean }) {
   const leftX = 90;
   const rightX = W - 90;
   const ys = [60, 140, 220, 300];
+  const dim = active != null;
+
+  const pillFill = (name: string) =>
+    active === name ? "rgba(91,140,255,0.22)" : "rgba(255,255,255,0.04)";
+  const pillStroke = (name: string) =>
+    active === name ? "#7aa6ff" : dim ? "rgba(140,180,255,0.18)" : "rgba(140,180,255,0.35)";
+  const pillStrokeW = (name: string) => (active === name ? 1.6 : 1);
+  const textFill = (name: string) =>
+    active === name ? "#ffffff" : dim ? "rgba(221,231,255,0.55)" : "#dde7ff";
+  const lineStroke = (name: string) =>
+    active === name ? "#7aa6ff" : dim ? "rgba(140,180,255,0.12)" : "rgba(140,180,255,0.35)";
+  const lineW = (name: string) => (active === name ? 1.6 : 1);
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className={`svg-reveal h-auto w-full ${revealed ? "is-revealed" : ""}`}>
       <defs>
@@ -763,10 +925,26 @@ function ILDiagram({ revealed }: { revealed: boolean }) {
       {/* connectors */}
       {ys.map((y, i) => {
         const d = `${400 + i * 120}ms`;
+        const leftName = IL_LEFT[i];
+        const rightName = IL_RIGHT[i];
         return (
           <g key={`l${i}`}>
-            <path d={`M ${leftX + 60} ${y} C ${cx - 80} ${y}, ${cx - 60} ${cy}, ${cx - 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" data-anim="line" style={{ ["--len" as never]: "260", animationDelay: d }} />
-            <path d={`M ${rightX - 60} ${y} C ${cx + 80} ${y}, ${cx + 60} ${cy}, ${cx + 30} ${cy}`} stroke="rgba(140,180,255,0.35)" strokeWidth="1" fill="none" data-anim="line" style={{ ["--len" as never]: "260", animationDelay: d }} />
+            <path
+              d={`M ${leftX + 60} ${y} C ${cx - 80} ${y}, ${cx - 60} ${cy}, ${cx - 30} ${cy}`}
+              stroke={lineStroke(leftName)}
+              strokeWidth={lineW(leftName)}
+              fill="none"
+              data-anim="line"
+              style={{ ["--len" as never]: "260", animationDelay: d, transition: "stroke 200ms, stroke-width 200ms" }}
+            />
+            <path
+              d={`M ${rightX - 60} ${y} C ${cx + 80} ${y}, ${cx + 60} ${cy}, ${cx + 30} ${cy}`}
+              stroke={lineStroke(rightName)}
+              strokeWidth={lineW(rightName)}
+              fill="none"
+              data-anim="line"
+              style={{ ["--len" as never]: "260", animationDelay: d, transition: "stroke 200ms, stroke-width 200ms" }}
+            />
           </g>
         );
       })}
@@ -779,20 +957,89 @@ function ILDiagram({ revealed }: { revealed: boolean }) {
 
       {/* left pills */}
       {IL_LEFT.map((label, i) => (
-        <g key={label} data-anim="fade" style={{ ["--d" as never]: `${i * 90}ms` }}>
-          <rect x={leftX - 60} y={ys[i] - 15} rx="15" ry="15" width="120" height="30" fill="rgba(255,255,255,0.04)" stroke="rgba(140,180,255,0.35)" />
-          <text x={leftX} y={ys[i] + 4} textAnchor="middle" fontSize="10.5" fill="#dde7ff">{label}</text>
+        <g
+          key={label}
+          data-anim="fade"
+          style={{ ["--d" as never]: `${i * 90}ms`, cursor: "pointer" }}
+          onMouseEnter={() => onHover(label)}
+          onMouseLeave={() => onHover(null)}
+          onClick={() => onSelect(label)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelect(label);
+            }
+          }}
+        >
+          <rect
+            x={leftX - 60}
+            y={ys[i] - 15}
+            rx="15"
+            ry="15"
+            width="120"
+            height="30"
+            fill={pillFill(label)}
+            stroke={pillStroke(label)}
+            strokeWidth={pillStrokeW(label)}
+            style={{ transition: "fill 200ms, stroke 200ms, stroke-width 200ms" }}
+          />
+          <text
+            x={leftX}
+            y={ys[i] + 4}
+            textAnchor="middle"
+            fontSize="10.5"
+            fill={textFill(label)}
+            style={{ transition: "fill 200ms", pointerEvents: "none" }}
+          >
+            {label}
+          </text>
         </g>
       ))}
       {IL_RIGHT.map((label, i) => (
-        <g key={label} data-anim="fade" style={{ ["--d" as never]: `${i * 90}ms` }}>
-          <rect x={rightX - 60} y={ys[i] - 15} rx="15" ry="15" width="120" height="30" fill="rgba(255,255,255,0.04)" stroke="rgba(140,180,255,0.35)" />
-          <text x={rightX} y={ys[i] + 4} textAnchor="middle" fontSize="10.5" fill="#dde7ff">{label}</text>
+        <g
+          key={label}
+          data-anim="fade"
+          style={{ ["--d" as never]: `${i * 90}ms`, cursor: "pointer" }}
+          onMouseEnter={() => onHover(label)}
+          onMouseLeave={() => onHover(null)}
+          onClick={() => onSelect(label)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelect(label);
+            }
+          }}
+        >
+          <rect
+            x={rightX - 60}
+            y={ys[i] - 15}
+            rx="15"
+            ry="15"
+            width="120"
+            height="30"
+            fill={pillFill(label)}
+            stroke={pillStroke(label)}
+            strokeWidth={pillStrokeW(label)}
+            style={{ transition: "fill 200ms, stroke 200ms, stroke-width 200ms" }}
+          />
+          <text
+            x={rightX}
+            y={ys[i] + 4}
+            textAnchor="middle"
+            fontSize="10.5"
+            fill={textFill(label)}
+            style={{ transition: "fill 200ms", pointerEvents: "none" }}
+          >
+            {label}
+          </text>
         </g>
       ))}
     </svg>
   );
-
 }
 
 // ----------- STANDARDS ROW -----------
