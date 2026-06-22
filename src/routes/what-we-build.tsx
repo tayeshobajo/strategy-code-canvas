@@ -245,6 +245,58 @@ const IL_OUTCOMES = [
   "Long-term business position",
 ];
 
+type ILDetail = { signals: string; insight: string; decision: string; nextAction: string };
+const IL_DETAILS: Record<string, ILDetail> = {
+  "Conversion-Focused Website": {
+    signals: "Traffic source, scroll depth, CTA clicks, form starts and abandons.",
+    insight: "Which pages convert attention into conversation, and which leak it.",
+    decision: "Where to tighten copy, what offer to lead with, what page to retire.",
+    nextAction: "Ship the winning variation. Rewrite the page losing the most intent.",
+  },
+  "Connected CRM": {
+    signals: "Contact source, stage age, owner activity, revenue by segment.",
+    insight: "Which deals stall, where ownership drops, which segment compounds.",
+    decision: "Who follows up next, what to deprioritise, where to invest time.",
+    nextAction: "Re-route the stalled deals. Lock the next outreach for the top segment.",
+  },
+  "Lead Capture Engine": {
+    signals: "Channel cost, form fill rate, lead quality and reply rate by source.",
+    insight: "Which channels create real conversation, and which only create noise.",
+    decision: "Double down on the channel that compounds, shut off the channel that does not.",
+    nextAction: "Shift budget. Refresh the offer behind the highest-intent channel.",
+  },
+  "Client Portal": {
+    signals: "Login frequency, ticket type, self-serve resolution rate, time-to-answer.",
+    insight: "Which requests should never have reached the founder in the first place.",
+    decision: "What becomes a documented flow, what stays a human call.",
+    nextAction: "Turn the repeat question into a portal answer. Remove a routing step.",
+  },
+  "AI Sales & Support Assistant": {
+    signals: "Questions asked, resolution rate, escalation reasons, conversation quality.",
+    insight: "Where the assistant answers well, and where it should hand off to a person.",
+    decision: "What knowledge to add, what to route to a human, what to script.",
+    nextAction: "Extend the answer set. Sharpen the escalation rule for high-value asks.",
+  },
+  "Operating Dashboard": {
+    signals: "Revenue, pipeline, capacity, delivery health, leading indicators.",
+    insight: "Which metric is moving against plan before it becomes a problem.",
+    decision: "Where leadership focuses this week, what target gets reset.",
+    nextAction: "Trigger the right review. Reset the number the team is chasing.",
+  },
+  "Workflow Automation": {
+    signals: "Step duration, exception rate, manual touchpoints, handoff delays.",
+    insight: "Where work still stalls, and which step a human no longer needs to touch.",
+    decision: "Which step to automate next, which to retire, which to leave alone.",
+    nextAction: "Ship the next automation. Remove a manual handoff from the workflow.",
+  },
+  "Internal Workflow Tools": {
+    signals: "Tool usage, time-on-task, error rates, where spreadsheets are doing too much.",
+    insight: "Which custom workflow is now worth dedicated tooling.",
+    decision: "What to build internally, what to standardise across the team.",
+    nextAction: "Scope the next internal tool. Retire the spreadsheet it replaces.",
+  },
+};
+
 // ----- standards -----
 const STANDARDS = [
   { n: "01", icon: IconFoundation, title: "Foundation", body: "Before we lay the foundation, we map the ground." },
