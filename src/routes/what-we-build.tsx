@@ -961,7 +961,8 @@ function ILDiagram({
               strokeWidth={lineW(leftName)}
               fill="none"
               data-anim="line"
-              style={{ ["--len" as never]: "260", animationDelay: d, transition: "stroke 200ms, stroke-width 200ms" }}
+              className={`il-connector ${active === leftName ? "is-active" : ""}`}
+              style={{ ["--len" as never]: "260", animationDelay: d }}
             />
             <path
               d={`M ${rightX - 60} ${y} C ${cx + 80} ${y}, ${cx + 60} ${cy}, ${cx + 30} ${cy}`}
@@ -969,7 +970,8 @@ function ILDiagram({
               strokeWidth={lineW(rightName)}
               fill="none"
               data-anim="line"
-              style={{ ["--len" as never]: "260", animationDelay: d, transition: "stroke 200ms, stroke-width 200ms" }}
+              className={`il-connector ${active === rightName ? "is-active" : ""}`}
+              style={{ ["--len" as never]: "260", animationDelay: d }}
             />
           </g>
         );
