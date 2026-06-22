@@ -68,11 +68,11 @@ export const Route = createFileRoute("/about")({
     const bookHeroUrl = abs(bookHero.url);
     const portraitUrl = abs(taiPortrait.url);
 
-    const title = "About | Trust Tai";
+    const title = "About Trust Tai | Roadmap standard, Conductor, and team";
     const description =
-      "From websites to systems to the Roadmap. The standard, the moment, and the hand that draws it.";
+      "Trust Tai is led by Tai Shobajo and a team that turns the Roadmap into systems clients can use. Care over noise, discipline over shortcuts, transformation over price alone.";
     const ogDescription =
-      "Care more than anyone expects you to. The standard that launched Trust Tai, and still decides every build.";
+      "The Roadmap standard, the Conductor who protects it, and the team that builds the systems behind it. How Trust Tai works, and who it works best with.";
 
     const orgId = `${origin}/#organization`;
     const websiteId = `${origin}/#website`;
