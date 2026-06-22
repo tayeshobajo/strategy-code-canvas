@@ -103,35 +103,39 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     scripts: [
       {
         type: "application/ld+json",
+          id: "jsonld-root",
         children: JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "Trust Tai",
-          alternateName: "Trust Tai Consultancy + AI Agency",
-          url: "https://new.trusttai.com",
-          logo: "https://new.trusttai.com/favicon.ico",
-          description:
-            "Consultancy + AI agency that maps the journey from where your business is to where it needs to be.",
-          founder: { "@type": "Person", name: "Tai Eshobajo" },
-          contactPoint: {
-            "@type": "ContactPoint",
-            contactType: "customer support",
-            email: "tai@trusttai.com",
-            url: "https://new.trusttai.com/build-my-roadmap",
-          },
-        }),
-      },
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          name: "Trust Tai",
-          url: "https://new.trusttai.com",
-          publisher: { "@type": "Organization", name: "Trust Tai" },
+          "@graph": [
+            {
+              "@type": "Organization",
+              "@id": "https://new.trusttai.com/#organization",
+              name: "Trust Tai",
+              alternateName: "Trust Tai Consultancy + AI Agency",
+              url: "https://new.trusttai.com",
+              logo: "https://new.trusttai.com/favicon.ico",
+              description:
+                "Consultancy + AI agency that maps the journey from where your business is to where it needs to be.",
+              founder: { "@type": "Person", name: "Tai Eshobajo" },
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                email: "tai@trusttai.com",
+                url: "https://new.trusttai.com/build-my-roadmap",
+              },
+            },
+            {
+              "@type": "WebSite",
+              "@id": "https://new.trusttai.com/#website",
+              name: "Trust Tai",
+              url: "https://new.trusttai.com",
+              publisher: { "@id": "https://new.trusttai.com/#organization" },
+            },
+          ],
         }),
       },
     ],
+
   }),
   shellComponent: RootShell,
   component: RootComponent,

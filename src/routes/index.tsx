@@ -66,6 +66,7 @@ export const Route = createFileRoute("/")({
     scripts: [
       {
         type: "application/ld+json",
+          id: "jsonld-home",
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebPage",

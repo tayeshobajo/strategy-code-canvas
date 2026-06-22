@@ -162,12 +162,16 @@ export const Route = createFileRoute("/about")({
         { rel: "preload", as: "image", href: bookHero.url, fetchpriority: "high", media: "(min-width: 640px)" },
       ],
       scripts: [
-        { type: "application/ld+json", children: JSON.stringify(orgLd) },
-        { type: "application/ld+json", children: JSON.stringify(websiteLd) },
-        { type: "application/ld+json", children: JSON.stringify(personLd) },
-        { type: "application/ld+json", children: JSON.stringify(breadcrumbLd) },
-        { type: "application/ld+json", children: JSON.stringify(aboutLd) },
+        {
+          type: "application/ld+json",
+          id: "jsonld-about",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [orgLd, websiteLd, personLd, breadcrumbLd, aboutLd],
+          }),
+        },
       ],
+
     };
   },
   component: AboutPage,

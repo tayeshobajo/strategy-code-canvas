@@ -29,37 +29,39 @@ export const Route = createFileRoute("/build-my-roadmap")({
       scripts: [
         {
           type: "application/ld+json",
+          id: "jsonld-build-my-roadmap",
           children: JSON.stringify({
             "@context": "https://schema.org",
-            "@type": "ContactPage",
-            name: title,
-            description,
-            url: "https://new.trusttai.com/build-my-roadmap",
-            isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
-            mainEntity: {
-              "@type": "Organization",
-              name: "Trust Tai",
-              email: "tai@trusttai.com",
-              contactPoint: {
-                "@type": "ContactPoint",
-                contactType: "customer support",
-                email: "tai@trusttai.com",
+            "@graph": [
+              {
+                "@type": "ContactPage",
+                name: title,
+                description,
+                url: "https://new.trusttai.com/build-my-roadmap",
+                isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+                mainEntity: {
+                  "@type": "Organization",
+                  name: "Trust Tai",
+                  email: "tai@trusttai.com",
+                  contactPoint: {
+                    "@type": "ContactPoint",
+                    contactType: "customer support",
+                    email: "tai@trusttai.com",
+                  },
+                },
               },
-            },
-          }),
-        },
-        {
-          type: "application/ld+json",
-          children: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            itemListElement: [
-              { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
-              { "@type": "ListItem", position: 2, name: "Build My Roadmap", item: "https://new.trusttai.com/build-my-roadmap" },
+              {
+                "@type": "BreadcrumbList",
+                itemListElement: [
+                  { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
+                  { "@type": "ListItem", position: 2, name: "Build My Roadmap", item: "https://new.trusttai.com/build-my-roadmap" },
+                ],
+              },
             ],
           }),
         },
       ],
+
 
     };
   },
