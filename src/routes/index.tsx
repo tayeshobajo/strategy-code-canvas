@@ -107,11 +107,11 @@ const CHECKLIST: { label: string; body: string }[] = [
   { label: "Point A, documented", body: "how the business runs today and what the drag costs" },
   { label: "Point B, defined", body: "the 24 month destination, in your numbers" },
   { label: "Point C, named", body: "the position you could own in ten years" },
-  { label: "The unbuilt asset", body: "each initiative row on your roadmap — the website, system, tool, content engine, workflow, or operating layer the business needs but has not built yet" },
+  { label: "The unbuilt asset", body: "each initiative row on your roadmap: the website, system, tool, content engine, workflow, or operating layer the business needs but has not built yet" },
   { label: "The build order", body: "every initiative placed across the eight quarters, in the order the business needs them, with what depends on it and what it unlocks next" },
   { label: "The economics", body: "the revenue case, modeled and tracked" },
-  { label: "Who carries what", body: "the owner stamped on every row — Studio, Ops, Automation, Intelligence, Learning, Commerce, Revenue — and what stays with your team" },
-  { label: "The scoreboard", body: "the status of every row at a glance — Mapped, In build, Live — across the visibility, lead, content, workflow, and business indicators we track" },
+  { label: "Who carries what", body: "the owner stamped on every row (Studio, Ops, Automation, Intelligence, Learning, Commerce, Revenue), and what stays with your team" },
+  { label: "The scoreboard", body: "the status of every row at a glance (Mapped, In build, Live) across the visibility, lead, content, workflow, and business indicators we track" },
 ];
 
 const TABS = [
@@ -292,7 +292,7 @@ function WalkFigure({
           </g>
         </>
       ) : (
-        /* Neutral standing pose — used for both pre-start and arrival */
+        /* Neutral standing pose, used for both pre-start and arrival */
         <g fill="none" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8 7.4 L7.9 17" strokeWidth="2.2" />
           <path d="M12 7.4 L12.1 17" strokeWidth="2.2" />
@@ -452,7 +452,7 @@ function AnimatedWalksChart() {
               {/* Route + caption */}
               <div>
                 <div className="relative h-20">
-                  {/* dotted route — full length, uniform opacity */}
+                  {/* dotted route, full length, uniform opacity */}
                   <div
                     className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/45 z-0"
                     style={{ width: `${pct}%` }}
@@ -551,7 +551,7 @@ function AnimatedWalksChart() {
         })}
       </div>
 
-      {/* Month axis — desktop/tablet only */}
+      {/* Month axis, desktop/tablet only */}
       <div className="mt-8 hidden md:block md:pl-[212px]">
         <div className="relative h-6 border-t border-rule">
           {[0, 6, 12, 18, 24].map((m) => (
