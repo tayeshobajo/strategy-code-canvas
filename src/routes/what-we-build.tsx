@@ -374,7 +374,10 @@ function Hero() {
               The milestones inside{" "}
               <span className="italic text-royal drift inline-block">the map.</span>
             </Reveal>
-            <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
+            <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[32rem] text-[15px] leading-relaxed text-ink/70">
+              After the Roadmap, we build the systems inside it: the website, CRM, lead engine, client portal, AI assistant, dashboard, automation, and internal tools your business needs — in the right order.
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={340} as="p" className="mt-4 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
               Everything we build sits inside your Roadmap, in the order the business calls for it. Each milestone removes friction, sharpens execution, and strengthens the position you are building toward.
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
