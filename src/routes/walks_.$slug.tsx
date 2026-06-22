@@ -444,6 +444,7 @@ export const Route = createFileRoute("/walks_/$slug")({
       scripts: [
         {
           type: "application/ld+json",
+          id: "jsonld-walk",
           children: JSON.stringify({
             "@context": "https://schema.org",
             "@graph": [

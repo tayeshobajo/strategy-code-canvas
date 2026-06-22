@@ -29,6 +29,7 @@ export const Route = createFileRoute("/investment")({
     scripts: [
       {
         type: "application/ld+json",
+          id: "jsonld-investment",
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@graph": [

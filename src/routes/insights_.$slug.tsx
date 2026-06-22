@@ -118,7 +118,7 @@ export const Route = createFileRoute("/insights_/$slug")({
         { name: "twitter:description", content: description },
       ],
       links: [{ rel: "canonical", href: url }],
-      scripts: [{ type: "application/ld+json", children: JSON.stringify(ld) }],
+      scripts: [{ type: "application/ld+json", id: "jsonld-insight", children: JSON.stringify(ld) }],
     };
   },
   notFoundComponent: NotFoundInsight,

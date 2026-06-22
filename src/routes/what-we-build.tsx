@@ -90,6 +90,7 @@ export const Route = createFileRoute("/what-we-build")({
     scripts: [
       {
         type: "application/ld+json",
+          id: "jsonld-what-we-build",
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@graph": [

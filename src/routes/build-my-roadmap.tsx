@@ -29,6 +29,7 @@ export const Route = createFileRoute("/build-my-roadmap")({
       scripts: [
         {
           type: "application/ld+json",
+          id: "jsonld-build-my-roadmap",
           children: JSON.stringify({
             "@context": "https://schema.org",
             "@graph": [

@@ -28,6 +28,7 @@ export const Route = createFileRoute("/walks")({
       scripts: [
         {
           type: "application/ld+json",
+          id: "jsonld-walks",
           children: JSON.stringify({
             "@context": "https://schema.org",
             "@graph": [
