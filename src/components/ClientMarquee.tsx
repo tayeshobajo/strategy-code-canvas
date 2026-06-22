@@ -89,16 +89,39 @@ export function ClientMarquee() {
       <style>{`
         .tt-marquee__cell {
           /* Uniform optical cell — every logo gets the same vertical and
-             horizontal room, so wordmarks and square marks balance. */
+             horizontal room, so wordmarks and square marks balance.
+             Cell grows in lockstep with viewport so spacing stays even
+             from 1280px laptops through 1920px monitors. */
           height: 56px;
           width: 168px;
           padding: 0 12px;
         }
         @media (min-width: 768px) {
           .tt-marquee__cell {
+            height: 60px;
+            width: 184px;
+            padding: 0 14px;
+          }
+        }
+        @media (min-width: 1280px) {
+          .tt-marquee__cell {
             height: 64px;
             width: 200px;
             padding: 0 16px;
+          }
+        }
+        @media (min-width: 1440px) {
+          .tt-marquee__cell {
+            height: 68px;
+            width: 220px;
+            padding: 0 18px;
+          }
+        }
+        @media (min-width: 1920px) {
+          .tt-marquee__cell {
+            height: 76px;
+            width: 248px;
+            padding: 0 22px;
           }
         }
         .tt-marquee__track {
