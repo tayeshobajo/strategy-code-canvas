@@ -683,36 +683,135 @@ function FeatureStrip() {
 function RoadmapSection() {
   return (
     <section id="roadmap" className="bg-secondary/60">
-      <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[minmax(380px,440px)_minmax(760px,1fr)] lg:gap-16 lg:px-10 lg:pt-[72px] lg:pb-24 xl:gap-[72px]">
-        <div>
-          <Reveal as="p" variant="fade-up" className="eyebrow">What You Get</Reveal>
-          <Reveal as="h2" variant="rise" delay={80} className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
-            A living plan. Specific.<br />Sequenced. Yours.
-          </Reveal>
-          <Reveal as="p" variant="fade-up" delay={180} className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
-            The Roadmap turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.
-          </Reveal>
-          <ul className="mt-8 space-y-4">
-            {CHECKLIST.map((c, i) => (
-              <Reveal as="li" key={c.label} variant="fade-up" delay={260 + i * 60} className="flex items-start gap-3 text-[13.5px] leading-[1.65] text-ink/75">
-                <CheckCircle2 className="mt-[3px] h-[16px] w-[16px] flex-none text-royal" strokeWidth={1.75} />
-                <span>
-                  <span className="font-semibold text-ink">{c.label}:</span> {c.body}
-                </span>
-              </Reveal>
-            ))}
-          </ul>
+      <div className="mx-auto max-w-[1440px] px-6 py-16 lg:px-10 lg:pt-[72px] lg:pb-24">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(380px,440px)_minmax(760px,1fr)] lg:gap-16 xl:gap-[72px]">
+          <div>
+            <Reveal as="p" variant="fade-up" className="eyebrow">What You Get</Reveal>
+            <Reveal as="h2" variant="rise" delay={80} className="mt-4 font-display text-[2.5rem] leading-[1.1] text-ink">
+              A living plan. Specific.<br />Sequenced. Yours.
+            </Reveal>
+            <Reveal as="p" variant="fade-up" delay={180} className="mt-5 max-w-md text-[14px] leading-relaxed text-ink/70">
+              The Roadmap turns strategy into a build order your team can follow. It shows what matters now, what can wait, what each milestone must unlock, and where the business is headed over the next 24 months.
+            </Reveal>
+            <ul className="mt-8 space-y-4">
+              {CHECKLIST.map((c, i) => (
+                <Reveal as="li" key={c.label} variant="fade-up" delay={260 + i * 60} className="flex items-start gap-3 text-[13.5px] leading-[1.65] text-ink/75">
+                  <CheckCircle2 className="mt-[3px] h-[16px] w-[16px] flex-none text-royal" strokeWidth={1.75} />
+                  <span>
+                    <span className="font-semibold text-ink">{c.label}:</span> {c.body}
+                  </span>
+                </Reveal>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <Reveal variant="fade-up" delay={120}>
+              <RoadmapPanel />
+            </Reveal>
+            <Reveal as="p" variant="fade-up" delay={260} className="mt-5 text-[13px] leading-relaxed text-ink/60">
+              Three businesses, three build orders. Yours will hold your milestones, in your order. The order is a conversation, not a contract.
+            </Reveal>
+          </div>
         </div>
-        <div>
-          <Reveal variant="fade-up" delay={120}>
-            <RoadmapPanel />
-          </Reveal>
-          <Reveal as="p" variant="fade-up" delay={260} className="mt-5 text-[13px] leading-relaxed text-ink/60">
-            Three businesses, three build orders. Yours will hold your milestones, in your order. The order is a conversation, not a contract.
-          </Reveal>
-        </div>
+        <Reveal variant="fade-up" delay={160} className="mt-16">
+          <BuildOrderSequence />
+        </Reveal>
       </div>
     </section>
+  );
+}
+
+function BuildOrderSequence() {
+  const [active, setActive] = useState(0);
+  const rows = TAB_DATA[active].rows;
+  // Sort milestones by start quarter, then end quarter
+  const milestones = rows
+    .map((r) => {
+      const span = rowSpan(r);
+      return { name: r.name, start: span.start, end: span.end };
+    })
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+
+  // Dependencies: milestones that began before this one and are still active (end >= my.start)
+  // Unlocks: next milestones whose start is >= my.start and <= my.end + 1 (handed off as I finish)
+  const deps = (i: number) =>
+    milestones
+      .filter((m, j) => j < i && m.end >= milestones[i].start && m.start < milestones[i].start)
+      .map((m) => m.name);
+  const unlocks = (i: number) =>
+    milestones
+      .filter((m, j) => j > i && m.start <= milestones[i].end + 1 && m.start >= milestones[i].start + 1)
+      .map((m) => m.name);
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-rule bg-white">
+      <div className="flex flex-col gap-3 border-b border-rule px-4 py-3.5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-royal">Build Order · Sequence View</div>
+          <div className="mt-1 font-display text-lg text-ink">Each milestone in order, with what it needs and what it unlocks.</div>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12px]">
+          {TAB_DATA.map((t, i) => (
+            <button
+              key={t.label}
+              onClick={() => setActive(i)}
+              className={`relative cursor-pointer pb-1 transition-colors ${
+                i === active ? "text-ink" : "text-ink/60 hover:text-ink"
+              }`}
+            >
+              {t.label}
+              {i === active && <span className="absolute inset-x-0 -bottom-px h-[2px] bg-royal" />}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="overflow-x-auto px-4 py-6 sm:px-6">
+        <ol className="flex min-w-max items-stretch gap-3">
+          {milestones.map((m, i) => {
+            const d = deps(i);
+            const u = unlocks(i);
+            const owner = ownerFor(m.name);
+            const phase = phaseFor(m.start);
+            return (
+              <li key={m.name} className="flex items-stretch">
+                <div className="flex w-[240px] flex-col rounded-md border border-rule bg-paper/60 p-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-royal">
+                      Step {i + 1} · Q{m.start}{m.end !== m.start ? `–Q${m.end}` : ""}
+                    </span>
+                    <span className="rounded-full border border-rule px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.12em] text-ink/55">
+                      {phase}
+                    </span>
+                  </div>
+                  <div className="mt-2 font-display text-[15px] leading-snug text-ink">{m.name}</div>
+                  <div className="mt-1 text-[11px] text-ink/55">Owner · {owner}</div>
+                  <div className="mt-3 border-t border-rule/60 pt-2.5 text-[11.5px] leading-relaxed">
+                    <div className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink/45">Depends on</div>
+                    <div className="mt-0.5 text-ink/75">
+                      {d.length ? d.join(", ") : <span className="text-ink/40">Starts the sequence</span>}
+                    </div>
+                  </div>
+                  <div className="mt-2.5 text-[11.5px] leading-relaxed">
+                    <div className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink/45">Unlocks next</div>
+                    <div className="mt-0.5 text-royal/90">
+                      {u.length ? u.join(", ") : <span className="text-ink/40">Final milestone in the walk</span>}
+                    </div>
+                  </div>
+                </div>
+                {i < milestones.length - 1 && (
+                  <div className="flex w-8 flex-none items-center justify-center text-royal/55">
+                    <ArrowRight className="h-4 w-4" strokeWidth={1.5} />
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+      <div className="border-t border-rule/70 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50 sm:px-6">
+        Sequenced left to right · Dependencies pulled from the gantt above
+      </div>
+    </div>
   );
 }
 
