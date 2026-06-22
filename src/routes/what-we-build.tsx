@@ -174,7 +174,7 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    n: "03", name: "Lead Engine", tag: null, phase: 2,
+    n: "03", name: "Lead Capture Engine", tag: null, phase: 2,
     desc: "Predictable, sequenced demand. Less hunting, more harvesting. The pipeline becomes a function, not a hope.",
     impact: [
       { label: "Clarity", value: 70 },
