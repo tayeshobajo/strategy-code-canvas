@@ -714,9 +714,6 @@ function RoadmapSection() {
             </Reveal>
           </div>
         </div>
-        <Reveal variant="fade-up" delay={160} className="mt-16">
-          <BuildOrderSequence />
-        </Reveal>
       </div>
     </section>
   );
