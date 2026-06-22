@@ -8,6 +8,10 @@ import payStandards from "@/assets/clients/PayStandards.webp.asset.json";
 import pitcher from "@/assets/clients/Pitcher.webp.asset.json";
 import emci from "@/assets/clients/PTTanywhere.png.asset.json";
 import realLeaders from "@/assets/clients/Real_Leaders.webp.asset.json";
+import sharkGroup from "@/assets/clients/Shark_Group.webp.asset.json";
+import tuneUpFitness from "@/assets/clients/Tune_Up_Fitness.webp.asset.json";
+import teamsynerG from "@/assets/clients/TeamsynerG.webp.asset.json";
+import swellCollective from "@/assets/clients/Swell_Collective.webp.asset.json";
 
 type Logo = { name: string; src: string; scale?: number };
 
@@ -25,7 +29,12 @@ const LOGOS: Logo[] = [
   { name: "Destination Magic", src: destinationMagic.url, scale: 0.9 },
   { name: "Pitcher", src: pitcher.url, scale: 0.75 },
   { name: "Real Leaders", src: realLeaders.url, scale: 0.75 },
+  { name: "The Shark Group", src: sharkGroup.url, scale: 1 },
+  { name: "Tune Up Fitness", src: tuneUpFitness.url, scale: 1 },
+  { name: "TeamsynerG Global Consulting", src: teamsynerG.url, scale: 1 },
+  { name: "The Swell Collective", src: swellCollective.url, scale: 1.05 },
 ];
+
 
 export function ClientMarquee() {
   const loop = [...LOGOS, ...LOGOS];
