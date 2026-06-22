@@ -13,6 +13,7 @@ import heroAsset from "@/assets/trust-tai-hero.png.asset.json";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteClosing, Accent } from "@/components/SiteClosing";
+import { ClientMarquee } from "@/components/ClientMarquee";
 import { Reveal } from "@/hooks/use-reveal";
 import {
   Tooltip,
@@ -576,6 +577,7 @@ function Index() {
       <SiteHeader />
       <div className="h-20 sm:h-24" aria-hidden="true" />
       <Hero />
+      <ClientMarquee />
       <FeatureStrip />
       <RoadmapSection />
       <Pricing />

@@ -1,34 +1,37 @@
-# Mobile Stack Order: Image First
+# Client Logo Marquee — Homepage
 
-## Problem
-On mobile, hero and section layouts stack image **below** the headline + body copy. The image is the visual anchor — when stacked, it should land at the top so the eye gets the picture before the words.
+Add an infinitely-scrolling client logo strip on the homepage, placed directly above the "Built for founders who are done guessing" section. Logos render in black and white (grayscale + reduced opacity), with a subtle hover state restoring slight contrast.
 
-## Change
-On mobile (stacked) only: image renders first, text second. On desktop (side-by-side), order is unchanged.
+## Logos to include (9)
 
-Implementation pattern per section:
-- Keep DOM order as-is (text first) for SEO/semantics where text is primary, OR put image first in DOM and use `lg:order-*` to restore desktop order.
-- Use Tailwind `order-first lg:order-none` (or explicit `order-1 lg:order-2`) on the image wrapper, and the inverse on the text wrapper.
-- For grid layouts, ensure the grid is `flex flex-col lg:grid` or uses `order-*` utilities that work in both flex and grid.
+Uploaded by user:
+- Aceyus (a Five9 company)
+- Agilysys Book4Time
+- Creative World School
+- Destination Magic
+- Hellopaid (paid)
+- Keep Financial
+- PayStandards
+- Pitcher
+- EMCI Wireless (PTTanywhere.png)
 
-## Scope — pages to audit and update
+All uploaded as Lovable Assets (CDN) — no binaries committed to the repo.
 
-Hero + any stacked image/text section in:
-- `src/routes/index.tsx` (home)
-- `src/routes/build-my-roadmap.tsx` (the page in the screenshot)
-- `src/routes/about.tsx`
-- `src/routes/investment.tsx`
-- `src/routes/walks.tsx` and `src/routes/walks_.$slug.tsx`
-- `src/routes/insights.tsx` and `src/routes/insights_.$slug.tsx`
-- `src/routes/what-we-build.tsx`
+## Implementation
 
-For each: find image+text pair sections, add `order-first lg:order-none` to the image container (or equivalent ordering classes).
+1. **Upload logos as CDN assets** via `lovable-assets create` from `/mnt/user-uploads/`, writing `.asset.json` pointers into `src/assets/clients/`.
+2. **New component** `src/components/ClientMarquee.tsx`:
+   - Heading: "Trusted by founders & operators" (small, muted, centered) — confirm copy with user if needed; defaulting to a neutral line since reference uses "Trusted by 500+ Businesses" which may not be accurate.
+   - Horizontally scrolling track using a CSS keyframe animation (`translateX(-50%)` over ~40s, linear, infinite). Duplicate the logo list twice in the DOM for a seamless loop.
+   - Each logo: `<img>` with fixed height (~40–48px), `width: auto`, `className="grayscale opacity-60 hover:opacity-100 transition"`. Logos with color (Aceyus, Book4Time, CWS, Destination Magic, paid, Keep, PayStandards, Pitcher accent) become monochrome via `filter: grayscale(1)`.
+   - Edge fade masks (left/right) using `mask-image: linear-gradient(...)` so logos fade in/out at the edges.
+   - Pause on hover (`:hover { animation-play-state: paused }`).
+   - Respects `prefers-reduced-motion` — animation disabled, logos shown statically wrapped.
+3. **Mount on homepage** `src/routes/index.tsx`: insert `<ClientMarquee />` immediately above the "Built for founders who are done guessing" section.
+4. **Sizing**: container `py-12`, logos capped at `h-10 md:h-12`, with per-logo max-widths where needed (Book4Time is tall/square — render at `h-14` to compensate; CWS wide — `h-10`). Tuned visually after first render.
 
 ## Out of scope
-- Inline icons, decorative backgrounds, full-bleed background images.
-- Footer/header.
-- Desktop layout — unchanged.
-- Copy, imagery, spacing, typography.
 
-## Verification
-Playwright at 390px viewport on every listed route: confirm the first large image appears above the matching headline. Then 1280px: confirm desktop order is unchanged.
+- No backend changes.
+- No new routes or SEO/structured-data changes (logos are decorative, not linked).
+- Not adding a "Trusted by 500+ Businesses" counter unless user confirms the number.
