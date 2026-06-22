@@ -46,7 +46,7 @@ export function ClientMarquee() {
       <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-12">
         <h2
           id="client-marquee-heading"
-          className="text-center font-sans text-[12px] uppercase tracking-[0.18em] text-ink/55"
+          className="text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55"
         >
           Trusted by teams at
         </h2>
