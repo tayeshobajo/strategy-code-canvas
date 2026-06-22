@@ -1039,11 +1039,11 @@ function ILDiagram({
           }}
         >
           <rect
-            x={leftX - 60}
+            x={leftX - PILL_HALF}
             y={ys[i] - 15}
             rx="15"
             ry="15"
-            width="120"
+            width={PILL_W}
             height="30"
             fill={pillFill(label)}
             stroke={pillStroke(label)}
