@@ -577,8 +577,8 @@ function Index() {
       <SiteHeader />
       <div className="h-20 sm:h-24" aria-hidden="true" />
       <Hero />
-      <ClientMarquee />
       <FeatureStrip />
+      <ClientMarquee />
       <RoadmapSection />
       <Pricing />
       <SiteClosing
