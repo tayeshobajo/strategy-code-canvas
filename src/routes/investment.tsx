@@ -397,7 +397,9 @@ function Pace() {
           </div>
           <div className="lg:col-span-5">
             <p className="text-[14.5px] leading-relaxed text-ink/70">
-              Every walk reaches Point B. The pace sets how fast you arrive, and how much of the team is on your map each month. Priced by the month, not the milestone, so you never face a ten-thousand-dollar wall to take the next step. You progress, and the order stays yours to set.
+              Every walk gets you to the destination.
+              <br /><br />
+              The difference is pace, monthly investment, team capacity, and how quickly the business needs the new systems in place.
             </p>
           </div>
         </div>
