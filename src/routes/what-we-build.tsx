@@ -999,7 +999,7 @@ function ILDiagram({
               style={{ ["--len" as never]: "260", animationDelay: d }}
             />
             <path
-              d={`M ${rightX - 60} ${y} C ${cx + 80} ${y}, ${cx + 60} ${cy}, ${cx + 30} ${cy}`}
+              d={`M ${rightX - PILL_HALF} ${y} C ${cx + 80} ${y}, ${cx + 60} ${cy}, ${cx + 30} ${cy}`}
               stroke={lineStroke(rightName)}
               strokeWidth={lineW(rightName)}
               fill="none"
