@@ -990,7 +990,7 @@ function ILDiagram({
         return (
           <g key={`l${i}`}>
             <path
-              d={`M ${leftX + 60} ${y} C ${cx - 80} ${y}, ${cx - 60} ${cy}, ${cx - 30} ${cy}`}
+              d={`M ${leftX + PILL_HALF} ${y} C ${cx - 80} ${y}, ${cx - 60} ${cy}, ${cx - 30} ${cy}`}
               stroke={lineStroke(leftName)}
               strokeWidth={lineW(leftName)}
               fill="none"
