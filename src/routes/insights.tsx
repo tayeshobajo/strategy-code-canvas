@@ -224,7 +224,7 @@ function Hero() {
             className="mt-5 font-display text-[40px] font-normal leading-[1.05] tracking-[-0.02em] text-ink sm:text-[56px] lg:text-[68px]"
           >
             The same truths,<br className="hidden sm:block" />{" "}
-            argued in new stories.
+            explored in new stories.
           </h1>
           <p className="mx-auto mt-7 max-w-[58ch] text-[14px] leading-[1.7] text-ink/65 sm:text-[15px]">
             What we have learned mapping the journey for founder-led businesses.
