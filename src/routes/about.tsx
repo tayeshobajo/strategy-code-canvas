@@ -572,7 +572,7 @@ function TheConductor() {
             </h2>
             <div className="mt-6 space-y-4 text-[14px] leading-[1.8] text-ink/75">
               <p>
-                Tai Shobajo authors every Roadmap, holds creative direction, and carries the standard.
+                Tai Shobajo leads the Roadmap standard, protects the strategic direction, and works with a team that turns the map into systems clients can use.
                 He works from Murfreesboro, Tennessee, with a team that has built alongside him for
                 years.
               </p>
