@@ -154,7 +154,7 @@ type Milestone = {
 };
 const MILESTONES: Milestone[] = [
   {
-    n: "01", name: "Converting Website", tag: null, phase: 1,
+    n: "01", name: "Conversion-Focused Website", tag: null, phase: 1,
     desc: "The front door that earns attention and turns it into qualified conversation. Built to convert, not impress.",
     impact: [
       { label: "Clarity", value: 78 },
@@ -174,7 +174,7 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    n: "03", name: "Lead Engine", tag: null, phase: 2,
+    n: "03", name: "Lead Capture Engine", tag: null, phase: 2,
     desc: "Predictable, sequenced demand. Less hunting, more harvesting. The pipeline becomes a function, not a hope.",
     impact: [
       { label: "Clarity", value: 70 },
@@ -194,7 +194,7 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    n: "05", name: "AI Support Assistant", tag: "The Intelligence Layer™", phase: 3,
+    n: "05", name: "AI Sales & Support Assistant", tag: "The Intelligence Layer™", phase: 3,
     desc: "Reads across the system, answers in context, and escalates only what needs a human. Capacity without headcount.",
     impact: [
       { label: "Clarity", value: 82 },
@@ -224,7 +224,7 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    n: "08", name: "Internal Tools", tag: null, phase: 4,
+    n: "08", name: "Internal Workflow Tools", tag: null, phase: 4,
     desc: "Bespoke tooling for the workflows no off-the-shelf product knows about. The compounding edge of the business.",
     impact: [
       { label: "Clarity", value: 86 },
@@ -236,13 +236,13 @@ const MILESTONES: Milestone[] = [
 ];
 
 // ----- intelligence layer nodes -----
-const IL_LEFT = ["Converting Website", "Connected CRM", "Lead Engine", "Client Portal"];
-const IL_RIGHT = ["AI Support Assistant", "Operating Dashboard", "Workflow Automation", "Internal Tools"];
+const IL_LEFT = ["Conversion-Focused Website", "Connected CRM", "Lead Capture Engine", "Client Portal"];
+const IL_RIGHT = ["AI Sales & Support Assistant", "Operating Dashboard", "Workflow Automation", "Internal Workflow Tools"];
 const IL_OUTCOMES = [
-  "Clarity",
-  "Decisions",
+  "Clearer decisions",
+  "Better lead visibility",
   "Operational leverage",
-  "Compounding position",
+  "Long-term business position",
 ];
 
 // ----- standards -----
@@ -374,7 +374,10 @@ function Hero() {
               The milestones inside{" "}
               <span className="italic text-royal drift inline-block">the map.</span>
             </Reveal>
-            <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
+            <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[32rem] text-[15px] leading-relaxed text-ink/70">
+              After the Roadmap, we build the systems inside it: the website, CRM, lead engine, client portal, AI assistant, dashboard, automation, and internal tools your business needs — in the right order.
+            </Reveal>
+            <Reveal immediate variant="fade-up" delay={340} as="p" className="mt-4 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
               Everything we build sits inside your Roadmap, in the order the business calls for it. Each milestone removes friction, sharpens execution, and strengthens the position you are building toward.
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -714,13 +717,10 @@ function IntelligenceLayer() {
             The Intelligence Layer
           </Reveal>
           <Reveal as="h2" variant="rise" delay={80} className="mt-5 font-display text-[32px] leading-[1.1] tracking-[-0.02em] sm:text-[38px]">
-            One layer
-            <br />
-            reads all of it.
+            One layer turns the system into insight.
           </Reveal>
-          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[320px] text-[14px] leading-[1.7] text-paper/70">
-            Every build creates signals. The intelligence layer reads across the
-            system so the business can see what comes next.
+          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[340px] text-[14px] leading-[1.7] text-paper/70">
+            Every website, CRM, lead engine, portal, assistant, and dashboard creates signals. The intelligence layer helps the business see what is working, what is stuck, and what should happen next.
           </Reveal>
         </div>
 
