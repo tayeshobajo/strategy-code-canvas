@@ -107,11 +107,11 @@ const CHECKLIST: { label: string; body: string }[] = [
   { label: "Point A, documented", body: "how the business runs today and what the drag costs" },
   { label: "Point B, defined", body: "the 24 month destination, in your numbers" },
   { label: "Point C, named", body: "the position you could own in ten years" },
-  { label: "The unbuilt asset", body: "the compounding advantage you already hold" },
-  { label: "The build order", body: "every milestone, sequenced, with what each unlocks" },
+  { label: "The unbuilt asset", body: "the website, system, tool, content engine, workflow, or operating layer your business already needs but has not built yet" },
+  { label: "The build order", body: "each milestone arranged by what the business needs first, what depends on it, and what it unlocks next" },
   { label: "The economics", body: "the revenue case, modeled and tracked" },
-  { label: "Who carries what", body: "what stays inside the build, and what stays outside it" },
-  { label: "The scoreboard", body: "what gets measured, and when" },
+  { label: "Who carries what", body: "what Trust Tai builds, what your team owns, and what should become part of your ongoing operations" },
+  { label: "The scoreboard", body: "the visibility, lead, content, workflow, and business indicators we will track over time" },
 ];
 
 const TABS = [
