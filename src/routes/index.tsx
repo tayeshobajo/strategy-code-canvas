@@ -292,7 +292,7 @@ function WalkFigure({
           </g>
         </>
       ) : (
-        /* Neutral standing pose — used for both pre-start and arrival */
+        /* Neutral standing pose, used for both pre-start and arrival */
         <g fill="none" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8 7.4 L7.9 17" strokeWidth="2.2" />
           <path d="M12 7.4 L12.1 17" strokeWidth="2.2" />
@@ -452,7 +452,7 @@ function AnimatedWalksChart() {
               {/* Route + caption */}
               <div>
                 <div className="relative h-20">
-                  {/* dotted route — full length, uniform opacity */}
+                  {/* dotted route, full length, uniform opacity */}
                   <div
                     className="absolute top-1/2 left-0 -translate-y-1/2 border-t border-dashed border-royal/45 z-0"
                     style={{ width: `${pct}%` }}
@@ -551,7 +551,7 @@ function AnimatedWalksChart() {
         })}
       </div>
 
-      {/* Month axis — desktop/tablet only */}
+      {/* Month axis, desktop/tablet only */}
       <div className="mt-8 hidden md:block md:pl-[212px]">
         <div className="relative h-6 border-t border-rule">
           {[0, 6, 12, 18, 24].map((m) => (
