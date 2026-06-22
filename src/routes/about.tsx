@@ -572,7 +572,7 @@ function TheConductor() {
             </h2>
             <div className="mt-6 space-y-4 text-[14px] leading-[1.8] text-ink/75">
               <p>
-                Tai Shobajo authors every Roadmap, holds creative direction, and carries the standard.
+                Tai Shobajo leads the Roadmap standard, protects the strategic direction, and works with a team that turns the map into systems clients can use.
                 He works from Murfreesboro, Tennessee, with a team that has built alongside him for
                 years.
               </p>
@@ -584,7 +584,7 @@ function TheConductor() {
                   <Compass className="h-3.5 w-3.5" />
                 </ConductorIcon>
                 <p>
-                  <span className="font-medium text-ink">The client</span> brings the world.
+                  <span className="font-medium text-ink">The client</span> brings the business context.
                 </p>
               </li>
               <li className="flex items-start gap-3">
@@ -592,7 +592,7 @@ function TheConductor() {
                   <Star className="h-3.5 w-3.5" />
                 </ConductorIcon>
                 <p>
-                  <span className="font-medium text-ink">The Conductor</span> protects the world.
+                  <span className="font-medium text-ink">The Conductor</span> protects the Roadmap.
                 </p>
               </li>
               <li className="flex items-start gap-3">
@@ -600,7 +600,7 @@ function TheConductor() {
                   <MapIcon className="h-3.5 w-3.5" />
                 </ConductorIcon>
                 <p>
-                  <span className="font-medium text-ink">The team</span> builds the world.
+                  <span className="font-medium text-ink">The team</span> builds the system.
                 </p>
               </li>
             </ul>
@@ -745,8 +745,8 @@ function HowWeThink() {
           />
           <PrincipleCard
             icon={<Gauge className="h-4 w-4" />}
-            title="Nothing ships below a nine"
-            body="Not perfectionism. The client deserves the version that works."
+            title="Refined before it reaches the client"
+            body="Every output is pressure-tested and refined inside the studio so the version the client sees is the version that works."
           />
         </Reveal>
       </div>
@@ -793,18 +793,18 @@ function HonestFit() {
         <Reveal as="div" variant="fade-up" delay={120} className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
           <FitCard
             icon={<Sun className="h-4 w-4" />}
-            title="Treatment of Light"
-            body="We value what matters, not what's loud."
+            title="Care Over Noise"
+            body="We value what matters, not what is loud."
           />
           <FitCard
             icon={<MapIcon className="h-4 w-4" />}
-            title="Discipline Without a Map"
+            title="Discipline Over Shortcuts"
             body="We respect the map, not the shortcut."
           />
           <FitCard
             icon={<Scale className="h-4 w-4" />}
-            title="Price Alone"
-            body="We measure in transformation investments."
+            title="Transformation Over Price Alone"
+            body="We measure the work by the change it helps the business make."
           />
         </Reveal>
 
