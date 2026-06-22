@@ -600,7 +600,7 @@ function TheConductor() {
                   <MapIcon className="h-3.5 w-3.5" />
                 </ConductorIcon>
                 <p>
-                  <span className="font-medium text-ink">The team</span> builds the world.
+                  <span className="font-medium text-ink">The team</span> builds the system.
                 </p>
               </li>
             </ul>
