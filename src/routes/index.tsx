@@ -195,21 +195,21 @@ const TAB_DATA: { label: string; rows: Row[] }[] = [
 
 const WALKS = [
   {
-    name: "The Fast Walk",
+    name: "Accelerated Pace",
     price: "$7,500 per month",
     total: "$90,000 over the walk",
     months: 12,
     body: "Point B in one year. The heaviest months, the earliest arrival.",
   },
   {
-    name: "The Middle Walk",
+    name: "Balanced Pace",
     price: "$4,500 per month",
     total: "$81,000 over the walk",
     months: 18,
     body: "Point B in eighteen months.",
   },
   {
-    name: "The Steady Walk",
+    name: "Steady Pace",
     price: "$2,500 per month",
     total: "$60,000 over the walk",
     months: 24,
