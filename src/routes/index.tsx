@@ -422,8 +422,9 @@ function AnimatedWalksChart() {
         The Build. Three walks. One destination.
       </h3>
       <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink/65">
-        Every walk reaches Point B. The pace decides when you arrive.
+        Every walk gets you to the destination. The difference is pace, monthly investment, team capacity, and how quickly the business needs the new systems in place.
       </p>
+
 
       <div className="mt-10 space-y-10 md:space-y-8">
         {WALKS.map((w, i) => {

@@ -338,53 +338,112 @@ function MapSection() {
 }
 
 // ---------- Pace ----------
-type Walk = { name: string; subtitle: string; Icon: typeof Footprints; months: number; price: string; total: string };
+type Walk = {
+  name: string;
+  subtitle: string;
+  Icon: typeof Footprints;
+  months: number;
+  price: string;
+  total: string;
+  team: string;
+  timing: string;
+};
 const walks: Walk[] = [
-  { name: "Accelerated Pace", subtitle: "Point B in one year. The heaviest team on the build, the earliest arrival.", Icon: Footprints, months: 12, price: "$7,500", total: "$90,000" },
-  { name: "Balanced Pace", subtitle: "Point B in eighteen months.", Icon: PersonStanding, months: 18, price: "$4,500", total: "$81,000" },
-  { name: "Steady Pace", subtitle: "Point B in two years. The walk most founders fund from operations.", Icon: Snail, months: 24, price: "$2,500", total: "$60,000" },
+  {
+    name: "Accelerated Pace",
+    subtitle: "Point B in one year. The heaviest team on the build, the earliest arrival.",
+    Icon: Footprints,
+    months: 12,
+    price: "$7,500",
+    total: "$90,000",
+    team: "Full build team allocated each month",
+    timing: "Systems land fastest, earliest compounding",
+  },
+  {
+    name: "Balanced Pace",
+    subtitle: "Point B in eighteen months.",
+    Icon: PersonStanding,
+    months: 18,
+    price: "$4,500",
+    total: "$81,000",
+    team: "Core build team at a measured cadence",
+    timing: "Systems land in a steady, predictable rhythm",
+  },
+  {
+    name: "Steady Pace",
+    subtitle: "Point B in two years. The walk most founders fund from operations.",
+    Icon: Snail,
+    months: 24,
+    price: "$2,500",
+    total: "$60,000",
+    team: "Focused, sustained allocation each month",
+    timing: "Systems land in phases the business can absorb",
+  },
 ];
 
 function WalkRow({ walk }: { walk: Walk }) {
   const dots = 7;
   return (
-    <div className="grid grid-cols-12 items-center gap-4 rounded-lg border border-rule/60 bg-white px-5 py-5 transition-colors hover:border-royal/30 sm:gap-6 sm:px-6 sm:py-6">
-      <div className="col-span-12 flex items-start gap-4 sm:col-span-4">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-royal/8">
-          <walk.Icon className="h-5 w-5 text-royal" strokeWidth={1.5} />
-        </div>
-        <div className="min-w-0">
-          <p className="font-display text-[20px] text-ink">{walk.name}</p>
-          <p className="mt-1 text-[12.5px] leading-snug text-ink/60">{walk.subtitle}</p>
-        </div>
-      </div>
-      <div className="col-span-12 sm:col-span-5">
-        <div className="relative">
-          <div className="mb-2 flex items-center justify-between text-[10.5px] tracking-[0.18em] text-ink/45">
-            <span>START</span><span>{walk.months} MONTHS</span><span>POINT B</span>
+    <div className="rounded-lg border border-rule/60 bg-white px-5 py-5 transition-colors hover:border-royal/30 sm:px-6 sm:py-6">
+      <div className="grid grid-cols-12 items-center gap-4 sm:gap-6">
+        <div className="col-span-12 flex items-start gap-4 sm:col-span-4">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-royal/8">
+            <walk.Icon className="h-5 w-5 text-royal" strokeWidth={1.5} />
           </div>
-          <div className="relative flex items-center">
-            <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-rule" />
-            <span className="relative z-10 h-2.5 w-2.5 shrink-0 rounded-full bg-white ring-1 ring-rule" />
-            <div className="relative z-10 mx-auto flex w-full max-w-[80%] items-center justify-between">
-              {Array.from({ length: dots }).map((_, i) => (
-                <span key={i} className="h-1.5 w-1.5 rounded-full bg-royal/40" />
-              ))}
+          <div className="min-w-0">
+            <p className="font-display text-[20px] text-ink">{walk.name}</p>
+            <p className="mt-1 text-[12.5px] leading-snug text-ink/60">{walk.subtitle}</p>
+          </div>
+        </div>
+        <div className="col-span-12 sm:col-span-5">
+          <div className="relative">
+            <div className="mb-2 flex items-center justify-between text-[10.5px] tracking-[0.18em] text-ink/45">
+              <span>START</span><span>{walk.months} MONTHS</span><span>POINT B</span>
             </div>
-            <span className="relative z-10 h-3 w-3 shrink-0 rounded-full bg-royal ring-4 ring-royal/15" />
+            <div className="relative flex items-center">
+              <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-rule" />
+              <span className="relative z-10 h-2.5 w-2.5 shrink-0 rounded-full bg-white ring-1 ring-rule" />
+              <div className="relative z-10 mx-auto flex w-full max-w-[80%] items-center justify-between">
+                {Array.from({ length: dots }).map((_, i) => (
+                  <span key={i} className="h-1.5 w-1.5 rounded-full bg-royal/40" />
+                ))}
+              </div>
+              <span className="relative z-10 h-3 w-3 shrink-0 rounded-full bg-royal ring-4 ring-royal/15" />
+            </div>
           </div>
         </div>
+        <div className="col-span-12 sm:col-span-3 sm:text-right">
+          <p className="text-[20px] font-medium text-ink">
+            {walk.price} <span className="text-[11.5px] font-normal text-ink/55">per month</span>
+          </p>
+          <p className="text-[12px] text-ink/55">{walk.months} months</p>
+          <p className="mt-1 text-[15px] text-royal">{walk.total} <span className="text-[11.5px] text-ink/55">over the walk</span></p>
+        </div>
       </div>
-      <div className="col-span-12 sm:col-span-3 sm:text-right">
-        <p className="text-[20px] font-medium text-ink">
-          {walk.price} <span className="text-[11.5px] font-normal text-ink/55">per month</span>
-        </p>
-        <p className="text-[12px] text-ink/55">{walk.months} months</p>
-        <p className="mt-1 text-[15px] text-royal">{walk.total} <span className="text-[11.5px] text-ink/55">over the walk</span></p>
-      </div>
+
+      {/* Per-tier breakdown */}
+      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-rule/50 pt-5 sm:grid-cols-4">
+        <div>
+          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Pace</dt>
+          <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.months} months to Point B</dd>
+        </div>
+        <div>
+          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Monthly investment</dt>
+          <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.price} per month · {walk.total} total</dd>
+        </div>
+        <div>
+          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Team capacity</dt>
+          <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.team}</dd>
+        </div>
+        <div>
+          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Implementation timing</dt>
+          <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.timing}</dd>
+        </div>
+      </dl>
     </div>
   );
 }
+
 
 function Pace() {
   return (
