@@ -25,7 +25,7 @@ export const Route = createFileRoute("/insights")({
     const description =
       "Positions, not trends. What we have learned mapping the journey for founder-led businesses. Read three and you will know how we think.";
     const ogDescription =
-      "The same truths, argued in new stories. Field-tested positions for founder-led businesses.";
+      "The same truths, explored in new stories. Field-tested positions for founder-led businesses.";
     const ld = {
       "@context": "https://schema.org",
       "@type": "Blog",
