@@ -592,7 +592,7 @@ function TheConductor() {
                   <Star className="h-3.5 w-3.5" />
                 </ConductorIcon>
                 <p>
-                  <span className="font-medium text-ink">The Conductor</span> protects the world.
+                  <span className="font-medium text-ink">The Conductor</span> protects the Roadmap.
                 </p>
               </li>
               <li className="flex items-start gap-3">
