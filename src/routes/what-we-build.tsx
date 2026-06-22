@@ -749,12 +749,44 @@ function Milestones({ activeIndex, onSelect }: { activeIndex: number; onSelect: 
 }
 
 // ----------- INTELLIGENCE LAYER -----------
+const IL_STORAGE_KEY = "tt:il:selected";
+
 function IntelligenceLayer() {
   const { ref, inView } = useReveal<HTMLDivElement>();
   const [hovered, setHovered] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<string | null>(null);
+  const [hydrated, setHydrated] = React.useState(false);
+
+  // Restore pinned selection on mount
+  React.useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(IL_STORAGE_KEY);
+      if (saved && IL_DETAILS[saved]) {
+        setSelected(saved);
+      }
+    } catch {
+      // localStorage unavailable; ignore
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist pinned selection
+  React.useEffect(() => {
+    if (!hydrated) return;
+    try {
+      if (selected) {
+        window.localStorage.setItem(IL_STORAGE_KEY, selected);
+      } else {
+        window.localStorage.removeItem(IL_STORAGE_KEY);
+      }
+    } catch {
+      // ignore
+    }
+  }, [selected, hydrated]);
+
   const active = hovered ?? selected;
   const detail = active ? IL_DETAILS[active] : null;
+
 
   return (
     <section ref={ref} className="relative overflow-hidden bg-[#08122b] text-paper">
