@@ -623,7 +623,7 @@ function Hero() {
             </Reveal>
             <span className="hero-hairline mt-5" aria-hidden="true" />
             <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
-              We map the journey from where your business is today (Point A) to where it needs to be at 24 months (Point B), and build the first leg toward the position you could own in a decade (Point C).
+              We map where your business is today, define where it needs to be next, and sequence the digital systems, tools, content, workflows, and milestones that can move it there with clarity.
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="/build-my-roadmap" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
