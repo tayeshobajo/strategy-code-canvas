@@ -68,11 +68,11 @@ export const Route = createFileRoute("/about")({
     const bookHeroUrl = abs(bookHero.url);
     const portraitUrl = abs(taiPortrait.url);
 
-    const title = "About | Trust Tai";
+    const title = "About Trust Tai | Roadmap standard, Conductor, and team";
     const description =
-      "From websites to systems to the Roadmap. The standard, the moment, and the hand that draws it.";
+      "Trust Tai is led by Tai Shobajo and a team that turns the Roadmap into systems clients can use. Care over noise, discipline over shortcuts, transformation over price alone.";
     const ogDescription =
-      "Care more than anyone expects you to. The standard that launched Trust Tai, and still decides every build.";
+      "The Roadmap standard, the Conductor who protects it, and the team that builds the systems behind it. How Trust Tai works, and who it works best with.";
 
     const orgId = `${origin}/#organization`;
     const websiteId = `${origin}/#website`;
@@ -237,6 +237,7 @@ function AboutPage() {
       <TheConductor />
       <HowWeThink />
       <HonestFit />
+      <NextSteps />
       <SiteClosing
         headline={<><Accent>Care more than anyone expects you to.</Accent></>}
         supporting={<>Your ambition matters. So does the partner you hand it to. If that is how you build, let us build your Roadmap. If it is not, we will point you toward someone who builds the way you need.</>}
@@ -810,6 +811,82 @@ function HonestFit() {
 
         <Reveal as="p" variant="fade-up" delay={220} className="mx-auto mt-8 max-w-[640px] text-center text-[13px] leading-[1.7] text-ink/60">
           If that costs us work, it was work we were going to do badly.
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------------- NEXT STEPS ---------------------- */
+type NextStep = {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  to: string;
+  cta: string;
+};
+
+const NEXT_STEPS: NextStep[] = [
+  {
+    icon: <Compass className="h-4 w-4" />,
+    title: "Build your Roadmap",
+    body: "A 30-minute conversation. We listen first, then map the work.",
+    to: "/build-my-roadmap",
+    cta: "Start the Roadmap",
+  },
+  {
+    icon: <MapIcon className="h-4 w-4" />,
+    title: "See what we build",
+    body: "The systems we ship behind the Roadmap, by sequence.",
+    to: "/what-we-build",
+    cta: "See the build",
+  },
+  {
+    icon: <Scale className="h-4 w-4" />,
+    title: "Understand the investment",
+    body: "Pace, monthly investment, team capacity, and timing.",
+    to: "/investment",
+    cta: "See investment",
+  },
+];
+
+function NextStepCard({ step }: { step: NextStep }) {
+  return (
+    <Link
+      to={step.to}
+      className="group flex flex-col rounded-md border border-rule/70 bg-white/60 p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-royal/30 hover:shadow-[0_18px_40px_-28px_rgba(10,23,51,0.25)]"
+    >
+      <div className="flex h-9 w-9 items-center justify-center rounded-sm border border-royal/30 text-royal transition-colors group-hover:border-royal/60">
+        {step.icon}
+      </div>
+      <h3 className="mt-4 font-display text-[18px] leading-snug text-ink">{step.title}</h3>
+      <p className="mt-2 text-[13px] leading-[1.7] text-ink/70">{step.body}</p>
+      <span className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-royal">
+        {step.cta}
+        <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+      </span>
+    </Link>
+  );
+}
+
+function NextSteps() {
+  return (
+    <section className="bg-paper py-20 lg:py-24">
+      <div className={container}>
+        <Reveal as="div" variant="fade-up" className="mx-auto max-w-[760px] text-center">
+          <Eyebrow>What's Next</Eyebrow>
+          <h2 className="mt-3 font-display text-[28px] leading-[1.2] tracking-tight text-ink sm:text-[34px] lg:text-[40px]">
+            Three ways to take the next step.
+          </h2>
+          <p className="mt-4 text-[13.5px] leading-[1.8] text-ink/65">
+            Pick the entry point that fits where you are.
+          </p>
+        </Reveal>
+
+        <Reveal as="div" variant="fade-up" delay={120} className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
+          {NEXT_STEPS.map((step) => (
+            <NextStepCard key={step.to} step={step} />
+          ))}
         </Reveal>
       </div>
     </section>
