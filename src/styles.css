@@ -417,6 +417,45 @@
   box-shadow: 0 18px 40px -22px oklch(0.48 0.18 262 / 0.35);
 }
 
+/* ---------- Intelligence Layer pills + connectors ---------- */
+.il-pill {
+  outline: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.il-pill > rect {
+  transition: fill 220ms ease, stroke 220ms ease, stroke-width 220ms ease;
+}
+.il-pill > text {
+  transition: fill 220ms ease;
+}
+.il-pill:hover { transform: scale(1.05); }
+.il-pill.is-active { transform: scale(1.06); }
+.il-pill:focus-visible > rect {
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+.il-pill:focus-visible {
+  filter: drop-shadow(0 0 6px rgba(122, 166, 255, 0.7));
+}
+.il-pill:active { transform: scale(0.97); transition-duration: 120ms; }
+
+.il-connector { transition: stroke 220ms ease, stroke-width 220ms ease; }
+.il-connector.is-active {
+  stroke-dasharray: 4 8;
+  animation: il-flow 1.2s linear infinite;
+}
+@keyframes il-flow {
+  to { stroke-dashoffset: -24; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .il-pill, .il-pill > rect, .il-pill > text, .il-connector { transition: none; }
+  .il-pill:hover, .il-pill.is-active, .il-pill:active { transform: none; }
+  .il-connector.is-active { animation: none; stroke-dasharray: none; }
+}
+
 /* ---------- About page animations ---------- */
 @keyframes star-twinkle {
   0%, 100% { opacity: var(--o-min, 0.25); transform: scale(0.85); }
