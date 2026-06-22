@@ -224,7 +224,7 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    n: "08", name: "Internal Tools", tag: null, phase: 4,
+    n: "08", name: "Internal Workflow Tools", tag: null, phase: 4,
     desc: "Bespoke tooling for the workflows no off-the-shelf product knows about. The compounding edge of the business.",
     impact: [
       { label: "Clarity", value: 86 },
