@@ -745,8 +745,8 @@ function HowWeThink() {
           />
           <PrincipleCard
             icon={<Gauge className="h-4 w-4" />}
-            title="Nothing ships below a nine"
-            body="Not perfectionism. The client deserves the version that works."
+            title="Refined before it reaches the client"
+            body="Every output is pressure-tested and refined inside the studio so the version the client sees is the version that works."
           />
         </Reveal>
       </div>
