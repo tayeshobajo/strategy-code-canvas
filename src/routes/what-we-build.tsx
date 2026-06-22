@@ -154,7 +154,7 @@ type Milestone = {
 };
 const MILESTONES: Milestone[] = [
   {
-    n: "01", name: "Converting Website", tag: null, phase: 1,
+    n: "01", name: "Conversion-Focused Website", tag: null, phase: 1,
     desc: "The front door that earns attention and turns it into qualified conversation. Built to convert, not impress.",
     impact: [
       { label: "Clarity", value: 78 },
