@@ -7,6 +7,7 @@ import keep from "@/assets/clients/Keep_Financial.webp.asset.json";
 import payStandards from "@/assets/clients/PayStandards.webp.asset.json";
 import pitcher from "@/assets/clients/Pitcher.webp.asset.json";
 import emci from "@/assets/clients/PTTanywhere.png.asset.json";
+import realLeaders from "@/assets/clients/Real_Leaders.webp.asset.json";
 
 type Logo = { name: string; src: string; heightClass: string };
 
@@ -20,6 +21,7 @@ const LOGOS: Logo[] = [
   { name: "Agilysys Book4Time", src: book4time.url, heightClass: "h-12 md:h-14" },
   { name: "Destination Magic", src: destinationMagic.url, heightClass: "h-9 md:h-10" },
   { name: "Pitcher", src: pitcher.url, heightClass: "h-7 md:h-8" },
+  { name: "Real Leaders", src: realLeaders.url, heightClass: "h-7 md:h-8" },
 ];
 
 export function ClientMarquee() {
