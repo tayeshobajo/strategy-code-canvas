@@ -107,11 +107,11 @@ const CHECKLIST: { label: string; body: string }[] = [
   { label: "Point A, documented", body: "how the business runs today and what the drag costs" },
   { label: "Point B, defined", body: "the 24 month destination, in your numbers" },
   { label: "Point C, named", body: "the position you could own in ten years" },
-  { label: "The unbuilt asset", body: "each initiative row on your roadmap — the website, system, tool, content engine, workflow, or operating layer the business needs but has not built yet" },
+  { label: "The unbuilt asset", body: "each initiative row on your roadmap: the website, system, tool, content engine, workflow, or operating layer the business needs but has not built yet" },
   { label: "The build order", body: "every initiative placed across the eight quarters, in the order the business needs them, with what depends on it and what it unlocks next" },
   { label: "The economics", body: "the revenue case, modeled and tracked" },
-  { label: "Who carries what", body: "the owner stamped on every row — Studio, Ops, Automation, Intelligence, Learning, Commerce, Revenue — and what stays with your team" },
-  { label: "The scoreboard", body: "the status of every row at a glance — Mapped, In build, Live — across the visibility, lead, content, workflow, and business indicators we track" },
+  { label: "Who carries what", body: "the owner stamped on every row (Studio, Ops, Automation, Intelligence, Learning, Commerce, Revenue), and what stays with your team" },
+  { label: "The scoreboard", body: "the status of every row at a glance (Mapped, In build, Live) across the visibility, lead, content, workflow, and business indicators we track" },
 ];
 
 const TABS = [
