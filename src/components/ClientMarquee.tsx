@@ -9,31 +9,41 @@ import pitcher from "@/assets/clients/Pitcher.webp.asset.json";
 import emci from "@/assets/clients/PTTanywhere.png.asset.json";
 import realLeaders from "@/assets/clients/Real_Leaders.webp.asset.json";
 
-type Logo = { name: string; src: string; heightClass: string };
+type Logo = { name: string; src: string; scale?: number };
 
+// Each logo is rendered inside a uniform cell so wordmarks and square marks
+// share the same optical weight. `scale` nudges individual marks that read
+// visually small or large at the default cell height.
 const LOGOS: Logo[] = [
-  { name: "PayStandards", src: payStandards.url, heightClass: "h-8 md:h-9" },
-  { name: "EMCI Wireless", src: emci.url, heightClass: "h-12 md:h-14" },
-  { name: "paid", src: hellopaid.url, heightClass: "h-10 md:h-12" },
-  { name: "Aceyus, a Five9 company", src: aceyus.url, heightClass: "h-9 md:h-10" },
-  { name: "Keep Financial", src: keep.url, heightClass: "h-10 md:h-12" },
-  { name: "Creative World School", src: cws.url, heightClass: "h-10 md:h-12" },
-  { name: "Agilysys Book4Time", src: book4time.url, heightClass: "h-12 md:h-14" },
-  { name: "Destination Magic", src: destinationMagic.url, heightClass: "h-9 md:h-10" },
-  { name: "Pitcher", src: pitcher.url, heightClass: "h-7 md:h-8" },
-  { name: "Real Leaders", src: realLeaders.url, heightClass: "h-7 md:h-8" },
+  { name: "PayStandards", src: payStandards.url, scale: 0.85 },
+  { name: "EMCI Wireless", src: emci.url, scale: 1.05 },
+  { name: "paid", src: hellopaid.url, scale: 0.95 },
+  { name: "Aceyus, a Five9 company", src: aceyus.url, scale: 0.9 },
+  { name: "Keep Financial", src: keep.url, scale: 0.95 },
+  { name: "Creative World School", src: cws.url, scale: 1 },
+  { name: "Agilysys Book4Time", src: book4time.url, scale: 1.1 },
+  { name: "Destination Magic", src: destinationMagic.url, scale: 0.9 },
+  { name: "Pitcher", src: pitcher.url, scale: 0.75 },
+  { name: "Real Leaders", src: realLeaders.url, scale: 0.75 },
 ];
 
 export function ClientMarquee() {
   const loop = [...LOGOS, ...LOGOS];
   return (
-    <section className="border-y border-rule/70 bg-white" aria-label="Clients">
+    <section
+      className="border-y border-rule/70 bg-white"
+      aria-labelledby="client-marquee-heading"
+    >
       <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-12">
-        <p className="text-center font-sans text-[12px] uppercase tracking-[0.18em] text-ink/55">
+        <h2
+          id="client-marquee-heading"
+          className="text-center font-sans text-[12px] uppercase tracking-[0.18em] text-ink/55"
+        >
           Trusted by teams at
-        </p>
+        </h2>
+
         <div
-          className="group relative mt-8 overflow-hidden"
+          className="tt-marquee group relative mt-8 overflow-hidden"
           style={{
             WebkitMaskImage:
               "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
@@ -41,32 +51,76 @@ export function ClientMarquee() {
               "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
           }}
         >
-          <div className="marquee-track flex w-max items-center gap-14 md:gap-20">
+          {/* Visually scrolling track is decorative; the static list below
+              gives assistive tech a stable, non-duplicated reading order. */}
+          <ul
+            className="tt-marquee__track flex w-max items-center"
+            aria-hidden="true"
+          >
             {loop.map((logo, i) => (
-              <img
+              <li
                 key={`${logo.name}-${i}`}
-                src={logo.src}
-                alt={logo.name}
-                loading="lazy"
-                className={`${logo.heightClass} w-auto flex-none object-contain opacity-70 grayscale transition duration-300 hover:opacity-100`}
-              />
+                className="tt-marquee__cell flex shrink-0 items-center justify-center"
+              >
+                <img
+                  src={logo.src}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  style={{
+                    maxHeight: `${(logo.scale ?? 1) * 100}%`,
+                    maxWidth: `${(logo.scale ?? 1) * 100}%`,
+                  }}
+                  className="h-auto w-auto object-contain opacity-70 grayscale transition-opacity duration-300 group-hover:opacity-90"
+                />
+              </li>
             ))}
-          </div>
+          </ul>
+
+          <ul className="sr-only">
+            {LOGOS.map((logo) => (
+              <li key={logo.name}>{logo.name}</li>
+            ))}
+          </ul>
         </div>
       </div>
+
       <style>{`
-        .marquee-track {
-          animation: tt-marquee 45s linear infinite;
+        .tt-marquee__cell {
+          /* Uniform optical cell — every logo gets the same vertical and
+             horizontal room, so wordmarks and square marks balance. */
+          height: 56px;
+          width: 168px;
+          padding: 0 12px;
         }
-        .group:hover .marquee-track {
+        @media (min-width: 768px) {
+          .tt-marquee__cell {
+            height: 64px;
+            width: 200px;
+            padding: 0 16px;
+          }
+        }
+        .tt-marquee__track {
+          /* GPU-friendly transform animation; no layout/paint per frame. */
+          animation: tt-marquee-scroll 50s linear infinite;
+          will-change: transform;
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
+        }
+        .tt-marquee:hover .tt-marquee__track,
+        .tt-marquee:focus-within .tt-marquee__track {
           animation-play-state: paused;
         }
-        @keyframes tt-marquee {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
+        @keyframes tt-marquee-scroll {
+          from { transform: translate3d(0, 0, 0); }
+          to   { transform: translate3d(-50%, 0, 0); }
         }
         @media (prefers-reduced-motion: reduce) {
-          .marquee-track { animation: none; }
+          .tt-marquee__track {
+            animation: none;
+            transform: none;
+          }
         }
       `}</style>
     </section>
