@@ -988,12 +988,15 @@ function ILDiagram({
         <g
           key={label}
           data-anim="fade"
+          className={`il-pill ${active === label ? "is-active" : ""}`}
           style={{ ["--d" as never]: `${i * 90}ms`, cursor: "pointer" }}
           onMouseEnter={() => onHover(label)}
           onMouseLeave={() => onHover(null)}
           onClick={() => onSelect(label)}
           role="button"
           tabIndex={0}
+          aria-label={`${label} — show how its signals become decisions`}
+          aria-pressed={active === label}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -1011,7 +1014,6 @@ function ILDiagram({
             fill={pillFill(label)}
             stroke={pillStroke(label)}
             strokeWidth={pillStrokeW(label)}
-            style={{ transition: "fill 200ms, stroke 200ms, stroke-width 200ms" }}
           />
           <text
             x={leftX}
@@ -1019,7 +1021,7 @@ function ILDiagram({
             textAnchor="middle"
             fontSize="10.5"
             fill={textFill(label)}
-            style={{ transition: "fill 200ms", pointerEvents: "none" }}
+            style={{ pointerEvents: "none" }}
           >
             {label}
           </text>
@@ -1029,12 +1031,15 @@ function ILDiagram({
         <g
           key={label}
           data-anim="fade"
+          className={`il-pill ${active === label ? "is-active" : ""}`}
           style={{ ["--d" as never]: `${i * 90}ms`, cursor: "pointer" }}
           onMouseEnter={() => onHover(label)}
           onMouseLeave={() => onHover(null)}
           onClick={() => onSelect(label)}
           role="button"
           tabIndex={0}
+          aria-label={`${label} — show how its signals become decisions`}
+          aria-pressed={active === label}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -1052,7 +1057,6 @@ function ILDiagram({
             fill={pillFill(label)}
             stroke={pillStroke(label)}
             strokeWidth={pillStrokeW(label)}
-            style={{ transition: "fill 200ms, stroke 200ms, stroke-width 200ms" }}
           />
           <text
             x={rightX}
@@ -1060,7 +1064,7 @@ function ILDiagram({
             textAnchor="middle"
             fontSize="10.5"
             fill={textFill(label)}
-            style={{ transition: "fill 200ms", pointerEvents: "none" }}
+            style={{ pointerEvents: "none" }}
           >
             {label}
           </text>
