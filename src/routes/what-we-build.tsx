@@ -236,13 +236,13 @@ const MILESTONES: Milestone[] = [
 ];
 
 // ----- intelligence layer nodes -----
-const IL_LEFT = ["Converting Website", "Connected CRM", "Lead Engine", "Client Portal"];
-const IL_RIGHT = ["AI Support Assistant", "Operating Dashboard", "Workflow Automation", "Internal Tools"];
+const IL_LEFT = ["Conversion-Focused Website", "Connected CRM", "Lead Capture Engine", "Client Portal"];
+const IL_RIGHT = ["AI Sales & Support Assistant", "Operating Dashboard", "Workflow Automation", "Internal Workflow Tools"];
 const IL_OUTCOMES = [
-  "Clarity",
-  "Decisions",
+  "Clearer decisions",
+  "Better lead visibility",
   "Operational leverage",
-  "Compounding position",
+  "Long-term business position",
 ];
 
 // ----- standards -----
