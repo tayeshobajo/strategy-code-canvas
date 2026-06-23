@@ -64,7 +64,7 @@ export function ClientMarquee() {
                   loading="lazy"
                   decoding="async"
                   draggable={false}
-                  className="max-h-full max-w-full object-contain opacity-70 grayscale transition-opacity duration-300 group-hover:opacity-90"
+                  className="tt-marquee__logo max-h-full max-w-full object-contain transition-opacity duration-300"
                 />
               </li>
             ))}
