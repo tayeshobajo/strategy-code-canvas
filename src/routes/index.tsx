@@ -578,8 +578,8 @@ function Index() {
       <SiteHeader />
       <div className="h-20 sm:h-24" aria-hidden="true" />
       <Hero />
-      <FeatureStrip />
       <ClientMarquee />
+      <FeatureStrip />
       <RoadmapSection />
       <Pricing />
       <SiteClosing
