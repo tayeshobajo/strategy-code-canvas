@@ -9,9 +9,9 @@ import realLeaders from "@/assets/clients/Real_Leaders.webp.asset.json";
 
 type Logo = { name: string; src: string };
 
-// Curated set — every mark is a real relationship we can stand behind.
-// All logos render at the same optical weight in a single royal ink so
-// the row reads as one confident wall of proof.
+// Curated set. Every mark is a real relationship we can stand behind.
+// All logos render at the same optical weight in black and white so the
+// row reads as one confident wall of proof.
 const LOGOS: Logo[] = [
   { name: "Aceyus, a Five9 company", src: aceyus.url },
   { name: "Agilysys Book4Time", src: book4time.url },
@@ -30,7 +30,7 @@ export function ClientMarquee() {
       className="border-y border-rule/70 bg-white"
       aria-labelledby="client-marquee-heading"
     >
-      <div className="mx-auto max-w-7xl px-6 py-6 lg:px-10 lg:py-7">
+      <div className="mx-auto max-w-7xl px-6 py-5 lg:px-10 lg:py-6">
         <h2
           id="client-marquee-heading"
           className="text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55"
@@ -39,7 +39,7 @@ export function ClientMarquee() {
         </h2>
 
         <div
-          className="tt-marquee group relative mt-5 overflow-hidden"
+          className="tt-marquee group relative mt-4 overflow-hidden"
           style={{
             WebkitMaskImage:
               "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
@@ -58,14 +58,13 @@ export function ClientMarquee() {
                 key={`${logo.name}-${i}`}
                 className="tt-marquee__cell flex shrink-0 items-center justify-center"
               >
-                <span
-                  className="tt-marquee__mark"
-                  style={{
-                    WebkitMaskImage: `url(${logo.src})`,
-                    maskImage: `url(${logo.src})`,
-                  }}
-                  role="img"
-                  aria-label={logo.name}
+                <img
+                  src={logo.src}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  className="max-h-full max-w-full object-contain opacity-70 grayscale transition-opacity duration-300 group-hover:opacity-90"
                 />
               </li>
             ))}
@@ -81,58 +80,39 @@ export function ClientMarquee() {
 
       <style>{`
         .tt-marquee__cell {
-          /* Uniform optical cell — every logo gets the same room so the row
+          /* Uniform optical cell. Every logo gets the same room so the row
              reads as one weight, one rhythm. */
-          height: 44px;
+          height: 40px;
           width: 168px;
           padding: 0 12px;
         }
         @media (min-width: 768px) {
           .tt-marquee__cell {
-            height: 48px;
+            height: 44px;
             width: 184px;
             padding: 0 14px;
           }
         }
         @media (min-width: 1280px) {
           .tt-marquee__cell {
-            height: 52px;
+            height: 48px;
             width: 200px;
             padding: 0 16px;
           }
         }
         @media (min-width: 1440px) {
           .tt-marquee__cell {
-            height: 56px;
+            height: 52px;
             width: 220px;
             padding: 0 18px;
           }
         }
         @media (min-width: 1920px) {
           .tt-marquee__cell {
-            height: 60px;
+            height: 56px;
             width: 248px;
             padding: 0 22px;
           }
-        }
-        .tt-marquee__mark {
-          /* CSS mask normalizes every logo to a single ink — no per-logo
-             color, weight, or opacity variance. */
-          display: block;
-          width: 100%;
-          height: 100%;
-          background-color: var(--royal);
-          opacity: 0.7;
-          transition: opacity 300ms ease;
-          -webkit-mask-repeat: no-repeat;
-          mask-repeat: no-repeat;
-          -webkit-mask-position: center;
-          mask-position: center;
-          -webkit-mask-size: contain;
-          mask-size: contain;
-        }
-        .tt-marquee:hover .tt-marquee__mark {
-          opacity: 0.9;
         }
         .tt-marquee__track {
           /* GPU-friendly transform animation; no layout/paint per frame. */
