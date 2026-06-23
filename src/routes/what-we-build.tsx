@@ -427,7 +427,7 @@ function Hero() {
               <span className="italic text-royal drift inline-block">the map.</span>
             </Reveal>
             <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[32rem] text-[15px] leading-relaxed text-ink/70">
-              After the Roadmap, we build the systems inside it: the website, CRM, lead engine, client portal, AI assistant, dashboard, automation, and internal tools your business needs — in the right order.
+              After the Roadmap, we build the systems inside it: the website, CRM, lead engine, client portal, AI assistant, dashboard, automation, and internal tools your business needs - in the right order.
             </Reveal>
             <Reveal immediate variant="fade-up" delay={340} as="p" className="mt-4 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
               Everything we build sits inside your Roadmap, in the order the business calls for it. Each milestone removes friction, sharpens execution, and strengthens the position you are building toward.
@@ -630,7 +630,7 @@ function PathSVG({ revealed, activePhase }: { revealed: boolean; activePhase: nu
           </g>
         );
       })}
-      {/* Active marker pulse — slides between points */}
+      {/* Active marker pulse - slides between points */}
       {revealed && (
         <g
           className="path-active-marker"
@@ -1029,7 +1029,7 @@ function ILDiagram({
           onClick={() => onSelect(label)}
           role="button"
           tabIndex={0}
-          aria-label={`${label} — show how its signals become decisions`}
+          aria-label={`${label} - show how its signals become decisions`}
           aria-pressed={active === label}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -1072,7 +1072,7 @@ function ILDiagram({
           onClick={() => onSelect(label)}
           role="button"
           tabIndex={0}
-          aria-label={`${label} — show how its signals become decisions`}
+          aria-label={`${label} - show how its signals become decisions`}
           aria-pressed={active === label}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -1287,7 +1287,7 @@ function BottomCTA() {
         </div>
 
 
-        {/* Right column intentionally empty — book lives in the background image */}
+        {/* Right column intentionally empty - book lives in the background image */}
         <div aria-hidden="true" className="hidden lg:block" />
       </div>
     </section>

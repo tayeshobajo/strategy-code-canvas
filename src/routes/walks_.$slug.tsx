@@ -264,7 +264,7 @@ const DETAILS: Record<string, WalkDetail> = {
       ],
     },
     milestones: [
-      { title: "Map", body: "We mapped the real work — not the org chart, the actual path a project takes through the business.", icon: MapIcon },
+      { title: "Map", body: "We mapped the real work - not the org chart, the actual path a project takes through the business.", icon: MapIcon },
       { title: "CRM", body: "A shared view of every client, every conversation, every commitment.", icon: Network },
       { title: "Workflows", body: "The repeating work became repeatable, without the founder being asked.", icon: Workflow },
       { title: "Knowledge Base", body: "Answers live in one place the team can reach without interrupting.", icon: Database },

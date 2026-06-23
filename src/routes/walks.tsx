@@ -10,7 +10,7 @@ export const Route = createFileRoute("/walks")({
   head: () => {
     const title = "The Walks | Trust Tai";
     const description =
-      "Real businesses. Real routes. Real ground covered. A selection of walks we have taken with founder-led businesses — the milestones built, and where each business stands today.";
+      "Real businesses. Real routes. Real ground covered. A selection of walks we have taken with founder-led businesses - the milestones built, and where each business stands today.";
     return {
       meta: [
         { title },
@@ -189,7 +189,7 @@ type Sort = (typeof SORTS)[number];
 function walkYear(w: Walk): number {
   const m = w.walkingSince.match(/(\d{4})/);
   if (m) return Number(m[1]);
-  // "Active" / "Completed in N days" — treat as current.
+  // "Active" / "Completed in N days" - treat as current.
   return new Date().getFullYear();
 }
 
@@ -239,7 +239,7 @@ function Hero() {
       className="walks-hero relative w-full overflow-hidden bg-paper"
       style={{ minHeight: '660px' }}
     >
-      {/* Mountain background layer — nudged right so it stays clear of copy */}
+      {/* Mountain background layer - nudged right so it stays clear of copy */}
       <div
         className="pointer-events-none absolute inset-0 z-[1]"
         style={{
@@ -310,7 +310,7 @@ function Hero() {
         </div>
       </div>
 
-      {/* Thesis line — beneath the route in the mountain area */}
+      {/* Thesis line - beneath the route in the mountain area */}
       <p
         className="absolute z-[3] hidden font-display italic lg:block"
         style={{ right: '22%', bottom: '170px', fontSize: '20px', color: '#071a3d', opacity: 0.82 }}
@@ -402,7 +402,7 @@ function WalkRoute({ labels, rowIndex = 0 }: { labels: string[]; rowIndex?: numb
   const xs = Array.from({ length: n }, (_, i) =>
     padX + (i * usable) / (n - 1),
   );
-  // y trends upward (lower number) with small variance — last point is highest.
+  // y trends upward (lower number) with small variance - last point is highest.
   const baseTop = 40;
   const baseBottom = 95;
   const ys = xs.map((_, i) => {
@@ -502,7 +502,7 @@ function WalkRow({
   onSelect: (slug: string) => void;
 }) {
   const handleActivate = (e: React.MouseEvent | React.KeyboardEvent) => {
-    // Don't hijack the link click — let it navigate.
+    // Don't hijack the link click - let it navigate.
     const target = e.target as HTMLElement;
     if (target.closest("a")) return;
     onSelect(walk.slug);

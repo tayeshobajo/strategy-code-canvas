@@ -47,7 +47,7 @@
   --royal: oklch(0.48 0.18 262);
   --royal-soft: oklch(0.72 0.12 262);
   --rule: oklch(0.9 0.01 260);
-  /* Shared interactive row tokens — derived from --royal so hover/selected
+  /* Shared interactive row tokens - derived from --royal so hover/selected
      states stay consistent across the site. */
   --row-hover-bg: color-mix(in oklch, var(--royal) 5%, transparent);
   --row-selected-bg: color-mix(in oklch, var(--royal) 9%, transparent);
@@ -92,7 +92,7 @@
   .font-mono { font-family: var(--font-mono); }
 }
 
-/* Shared interactive row — hover + selected states, used by Walks and any
+/* Shared interactive row - hover + selected states, used by Walks and any
    other site lists that want the same royal-tinted interaction model. */
 @utility row-interactive {
   cursor: pointer;
@@ -520,7 +520,7 @@
   will-change: auto;
 }
 
-/* Tighten reveal stagger on small screens — keep the cadence, shorter so
+/* Tighten reveal stagger on small screens - keep the cadence, shorter so
    sections don't visually pile up while scrolling fast on phones. */
 @media (max-width: 640px) {
   [data-reveal] {

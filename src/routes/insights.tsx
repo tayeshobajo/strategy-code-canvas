@@ -141,7 +141,7 @@ function HeroPath() {
           </mask>
         </defs>
 
-        {/* Dashed trail — masked so only the portion the plane has already
+        {/* Dashed trail - masked so only the portion the plane has already
             passed is visible. */}
         <path
           id="hero-flight-path"
@@ -154,7 +154,7 @@ function HeroPath() {
           mask="url(#hero-trail-reveal)"
         />
 
-        {/* Open-circle waypoints — fade in once the plane has passed each. */}
+        {/* Open-circle waypoints - fade in once the plane has passed each. */}
         <circle
           cx="60"
           cy="290"
@@ -176,7 +176,7 @@ function HeroPath() {
           style={{ transition: "opacity 600ms ease-out", transitionDelay: "3800ms" }}
         />
 
-        {/* Paper airplane glyph — animates along the flight path when the
+        {/* Paper airplane glyph - animates along the flight path when the
             hero scrolls into view, then freezes at the resting position. */}
         <g style={{ visibility: inView ? "visible" : "hidden" }}>
           <path
@@ -318,7 +318,7 @@ function MilestonePath() {
                 repeatCount="indefinite"
               />
             </circle>
-            {/* Stop dot — radius grows slightly when active */}
+            {/* Stop dot - radius grows slightly when active */}
             <circle cx={s.x} cy={s.y} r="3" fill={ACTIVE_COLOR}>
               <animate
                 attributeName="r"
@@ -329,7 +329,7 @@ function MilestonePath() {
                 repeatCount="indefinite"
               />
             </circle>
-            {/* Label — fill flips to active color, opacity lifts to 1 in sync */}
+            {/* Label - fill flips to active color, opacity lifts to 1 in sync */}
             <text
               x={"labelRight" in s && s.labelRight ? s.x - 4 : s.x}
               y={s.y + 22}
@@ -493,7 +493,7 @@ function ArticleList() {
   // Token bumps every time the filter set changes; any in-flight page load
   // started against an older token is discarded.
   const loadTokenRef = React.useRef(0);
-  // Maximum number of pages possible for the current filter — a hard ceiling
+  // Maximum number of pages possible for the current filter - a hard ceiling
   // the sentinel can never exceed regardless of how often it fires.
   const maxPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pagesLoadedRef = React.useRef(1);
@@ -520,7 +520,7 @@ function ArticleList() {
   const filteredLen = filtered.length;
   const hasMore = visible < filteredLen && !loopDetected;
 
-  // Page loader — async wrapper so we can surface loading + error states even
+  // Page loader - async wrapper so we can surface loading + error states even
   // though the source is in-memory. Honors the load token so stale loads from
   // a previous filter cannot land.
   const loadNextPage = React.useCallback(async () => {
@@ -558,7 +558,7 @@ function ArticleList() {
         if (fires.length >= LOOP_THRESHOLD) {
           // eslint-disable-next-line no-console
           console.warn(
-            `[insights] sentinel fired ${fires.length}× in ${LOOP_WINDOW_MS}ms — pausing infinite scroll`,
+            `[insights] sentinel fired ${fires.length}× in ${LOOP_WINDOW_MS}ms - pausing infinite scroll`,
           );
           setLoopDetected(true);
           io.disconnect();

@@ -23,7 +23,7 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
       >
         <ContourField />
 
-        {/* Close slot — generous breathing room above the headline */}
+        {/* Close slot - generous breathing room above the headline */}
         <div className={`${container} relative pt-[120px] sm:pt-[180px] pb-12 sm:pb-16`}>
           <div className="mx-auto max-w-[760px] text-center">
             <h2 className="font-display text-[clamp(1.85rem,4vw,2.6rem)] leading-[1.18] tracking-[-0.018em] text-white">
@@ -113,14 +113,14 @@ function RouteAnimation() {
     return () => cancelAnimationFrame(raf);
   }, [armed, reduced]);
 
-  // Geometry — gentle contour-line wave across the field.
+  // Geometry - gentle contour-line wave across the field.
   const W = 1000;
   const H = 120;
   const startX = 56;
   const endX = 944;
   const path = `M ${startX} 70 C 180 38, 280 96, 400 70 S 560 38, 660 64 S 840 92, ${endX} 60`;
 
-  // Uneven waypoints — cluster two close, then a long stretch, then spaced.
+  // Uneven waypoints - cluster two close, then a long stretch, then spaced.
   // Values are normalized t along the path (0..1).
   const waypoints = [0.16, 0.24, 0.55, 0.72, 0.88];
 
@@ -157,7 +157,7 @@ function RouteAnimation() {
   return (
     <div ref={wrapRef} className="relative mx-auto mt-12 mb-10 w-full max-w-[860px]">
       <svg viewBox={`0 0 ${W} ${H}`} className="block h-[96px] w-full" aria-hidden="true">
-        {/* Pre-etched hairline contour — present at rest */}
+        {/* Pre-etched hairline contour - present at rest */}
         <path
           ref={pathRef}
           d={path}
@@ -168,7 +168,7 @@ function RouteAnimation() {
           strokeLinecap="round"
         />
 
-        {/* Point A — hollow hairline ring */}
+        {/* Point A - hollow hairline ring */}
         <circle
           cx={startX}
           cy={70}
@@ -179,7 +179,7 @@ function RouteAnimation() {
           strokeWidth={1}
         />
 
-        {/* Survey marks — fade in as the light reaches each waypoint */}
+        {/* Survey marks - fade in as the light reaches each waypoint */}
         {pts.map((pt, i) => {
           const t = waypoints[i];
           // Begin inscribing slightly before arrival; fully inked at arrival.
@@ -214,7 +214,7 @@ function RouteAnimation() {
           );
         })}
 
-        {/* Destination — inscribed when light arrives; faint blue core. */}
+        {/* Destination - inscribed when light arrives; faint blue core. */}
         {endPt && (
           <g
             style={{
@@ -235,7 +235,7 @@ function RouteAnimation() {
           </g>
         )}
 
-        {/* Traveling point of light — only visible while moving */}
+        {/* Traveling point of light - only visible while moving */}
         {travelPt && !reduced && progress > 0 && progress < 1 && (
           <g>
             <circle

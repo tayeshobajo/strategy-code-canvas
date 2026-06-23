@@ -116,7 +116,7 @@ function EngravedWorld() {
 }
 
 
-/* -------------------- SECTION 2 — What the conversation is -------------------- */
+/* -------------------- SECTION 2 - What the conversation is -------------------- */
 function ConversationSteps() {
   const steps = [
     {
@@ -200,7 +200,7 @@ function ConversationSteps() {
   );
 }
 
-/* -------------------- SECTION 3 — Form + Reassurance -------------------- */
+/* -------------------- SECTION 3 - Form + Reassurance -------------------- */
 const NAME_MAX = 100;
 const EMAIL_MAX = 255;
 const STUCK_MAX = 1000;
@@ -274,7 +274,7 @@ function StartConversation() {
       style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
     >
       <div className={`${container} grid grid-cols-1 gap-14 py-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:py-28`}>
-        {/* LEFT — form */}
+        {/* LEFT - form */}
         <div>
           <Reveal as="h2" variant="fade-up" className="font-display text-[clamp(1.6rem,2.6vw,2rem)] text-ink">
             Start the conversation.
@@ -401,7 +401,7 @@ function StartConversation() {
           </form>
         </div>
 
-        {/* RIGHT — reassurance */}
+        {/* RIGHT - reassurance */}
         <div>
           <Reveal as="h2" variant="fade-up" className="font-display text-[clamp(1.6rem,2.6vw,2rem)] text-ink">
             Before you wonder.
@@ -455,7 +455,7 @@ function SuccessSection() {
       style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
     >
       <div className={`${container} grid grid-cols-1 gap-14 py-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:py-28`}>
-        {/* LEFT — confirmation */}
+        {/* LEFT - confirmation */}
         <div>
           <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.28em]" >
             <span style={{ color: ROYAL }}>Your message arrived</span>
@@ -502,7 +502,7 @@ function SuccessSection() {
           </div>
         </div>
 
-        {/* RIGHT — reassurance (preserved) */}
+        {/* RIGHT - reassurance (preserved) */}
         <div>
           <Reveal as="h2" variant="fade-up" className="font-display text-[clamp(1.6rem,2.6vw,2rem)] text-ink">
             Before you wonder.
@@ -530,7 +530,7 @@ function SuccessSection() {
   );
 }
 
-/* Hairline marks for the success steps — vertical timeline feel */
+/* Hairline marks for the success steps - vertical timeline feel */
 function SuccessMarkA() {
   return (
     <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
@@ -661,7 +661,7 @@ function CalendarMark() {
   );
 }
 
-/* -------------------- SECTION 4 — Fit list -------------------- */
+/* -------------------- SECTION 4 - Fit list -------------------- */
 function FitList() {
   const fits = [
     "The business works, but it works because of you.",
@@ -752,7 +752,7 @@ function CrossMark({ small }: { small?: boolean }) {
   );
 }
 
-/* -------------------- SECTION 5 — Close (cream) -------------------- */
+/* -------------------- SECTION 5 - Close (cream) -------------------- */
 function CloseSection() {
   return (
     <section className="relative bg-paper">
