@@ -635,9 +635,8 @@ function Hero() {
                 See what it costs
               </a>
             </Reveal>
-            <Reveal immediate variant="fade-up" delay={540} as="p" className="mt-5 flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
-              <span className="inline-block h-px w-5 bg-ink/40" />
-              <span>A 30 minute conversation. No pitch.</span>
+            <Reveal immediate variant="fade-up" delay={540} as="p" className="mt-5 font-mono text-[11.5px] uppercase tracking-[0.16em] text-ink/60">
+              A 30 minute conversation. No pitch.
             </Reveal>
           </div>
         </div>
