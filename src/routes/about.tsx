@@ -284,7 +284,7 @@ function Hero() {
             alt="An open leather-bound notebook on a warm stone desk, lit by soft natural light. The standard that started Trust Tai."
             loading="eager"
             decoding="async"
-            // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+            // @ts-expect-error - fetchpriority is a valid HTML attribute, React types lag
             fetchpriority="high"
             className="absolute inset-0 h-full w-full object-cover object-right lg:hero-photo-fade"
           />
@@ -411,7 +411,7 @@ function PatternDiagram() {
           <stop offset="100%" stopColor="var(--royal)" stopOpacity="0" />
         </radialGradient>
       </defs>
-      {/* scatter — converge toward the path start */}
+      {/* scatter - converge toward the path start */}
       {particles.map((p, i) => (
         <circle
           key={i}
@@ -969,7 +969,7 @@ function PaperPlane() {
         strokeLinecap="round"
         style={{ ["--len" as never]: 1500 } as React.CSSProperties}
       />
-      {/* paper plane glyph — nose points to +X so rotate="auto" flies forward */}
+      {/* paper plane glyph - nose points to +X so rotate="auto" flies forward */}
       <g opacity="0.92">
         <g transform="translate(-12 -8)">
           <path

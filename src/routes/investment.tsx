@@ -145,7 +145,7 @@ function Hero() {
             alt="An open leather-bound book and a fountain pen resting on a warm wooden desk in soft natural light."
             loading="eager"
             decoding="async"
-            // @ts-expect-error — fetchpriority is a valid HTML attribute, React types lag
+            // @ts-expect-error - fetchpriority is a valid HTML attribute, React types lag
             fetchpriority="high"
             className="absolute inset-0 h-full w-full object-cover object-right lg:hero-photo-fade"
           />
@@ -305,7 +305,7 @@ function MapSection() {
               <p className="mt-1.5 text-[12px] text-ink/50">Credited in full toward the build if we walk together.</p>
             </div>
 
-            {/* Step row — included steps highlighted */}
+            {/* Step row - included steps highlighted */}
             <div className="mt-8 grid grid-cols-3 gap-y-6 sm:mt-10 sm:grid-cols-6">
               {mapSteps.map(({ id, label, Icon }, i) => {
                 const isIn = includedSet.has(id);

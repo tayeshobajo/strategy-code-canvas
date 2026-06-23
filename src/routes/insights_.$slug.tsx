@@ -339,7 +339,7 @@ function TocNav({ sections, activeId }: { sections: TocSection[]; activeId: stri
         ref={listRef}
         className="relative mt-4 space-y-1 border-l border-rule/70 pl-0"
       >
-        {/* Sliding indicator bar — single element that eases between items */}
+        {/* Sliding indicator bar - single element that eases between items */}
         <span
           aria-hidden="true"
           className="pointer-events-none absolute left-0 -ml-px w-[2px] rounded-full bg-royal"

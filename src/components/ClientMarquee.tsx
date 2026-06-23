@@ -64,7 +64,7 @@ export function ClientMarquee() {
                   loading="lazy"
                   decoding="async"
                   draggable={false}
-                  className="max-h-full max-w-full object-contain opacity-70 grayscale transition-opacity duration-300 group-hover:opacity-90"
+                  className="tt-marquee__logo max-h-full max-w-full object-contain transition-opacity duration-300"
                 />
               </li>
             ))}
@@ -79,6 +79,17 @@ export function ClientMarquee() {
       </div>
 
       <style>{`
+        .tt-marquee__logo {
+          /* Force every mark to a single black ink so the row reads as one
+             weight, regardless of each logo's native palette. Backgrounds on
+             these assets are transparent, so the silhouette stays crisp. */
+          filter: grayscale(1) brightness(0);
+          opacity: 0.6;
+        }
+        .tt-marquee:hover .tt-marquee__logo,
+        .tt-marquee:focus-within .tt-marquee__logo {
+          opacity: 0.85;
+        }
         .tt-marquee__cell {
           /* Uniform optical cell. Every logo gets the same room so the row
              reads as one weight, one rhythm. */
