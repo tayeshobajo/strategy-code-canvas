@@ -229,11 +229,52 @@ function IntakeExperience() {
   const [reflections, setReflections] = React.useState<Record<string, { state: "idle" | "loading" | "ready" | "error"; text: string }>>({});
   const [contact, setContact] = React.useState<ContactState>({ name: "", business: "", website: "", email: "" });
   const [consent, setConsent] = React.useState<boolean>(true);
-  const [contactErrors, setContactErrors] = React.useState<{ name?: string; email?: string }>({});
+  const [contactErrors, setContactErrors] = React.useState<{ name?: string; email?: string; website?: string }>({});
   const [status, setStatus] = React.useState<SubmitStatus>("idle");
+  const [hydrated, setHydrated] = React.useState(false);
 
   const total = QUESTIONS.length;
   const progress = step < 0 ? 0 : Math.min(1, step / total);
+
+  // Hydrate from localStorage on mount
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          answers?: Record<string, AnswerRecord>;
+          contact?: Partial<ContactState>;
+          consent?: boolean;
+        };
+        if (parsed.answers && typeof parsed.answers === "object") setAnswers(parsed.answers);
+        if (parsed.contact) setContact((p) => ({ ...p, ...parsed.contact }));
+        if (typeof parsed.consent === "boolean") setConsent(parsed.consent);
+      }
+    } catch (err) {
+      console.warn("[intake] could not restore draft", err);
+    } finally {
+      setHydrated(true);
+    }
+  }, []);
+
+  // Persist on change
+  React.useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ answers, contact, consent }),
+      );
+    } catch {
+      // quota or privacy mode - silently ignore
+    }
+  }, [answers, contact, consent, hydrated]);
+
+  const clearDraft = () => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+  };
 
   const onAnswerChange = (key: string, value: string) => {
     setAnswers((prev) => ({
@@ -242,17 +283,18 @@ function IntakeExperience() {
     }));
   };
 
-  // Reflection debouncing per-question
+  // Reflection debouncing per-question (with timeout + abort)
   const reflectTimers = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
+  const reflectAborts = React.useRef<Record<string, AbortController | undefined>>({});
   React.useEffect(() => {
     if (step < 0 || step >= total) return;
     const q = QUESTIONS[step];
     const value = answers[q.key]?.response ?? "";
     const trimmed = value.trim();
 
-    // Clear existing timer
     const existing = reflectTimers.current[q.key];
     if (existing) clearTimeout(existing);
+    reflectAborts.current[q.key]?.abort();
 
     if (trimmed.length < REFLECT_MIN) {
       setReflections((prev) => ({ ...prev, [q.key]: { state: "idle", text: "" } }));
@@ -260,12 +302,16 @@ function IntakeExperience() {
     }
 
     reflectTimers.current[q.key] = setTimeout(async () => {
+      const ctrl = new AbortController();
+      reflectAborts.current[q.key] = ctrl;
+      const to = setTimeout(() => ctrl.abort(), REFLECT_TIMEOUT_MS);
       setReflections((prev) => ({ ...prev, [q.key]: { state: "loading", text: prev[q.key]?.text ?? "" } }));
       try {
         const mod = await import("@/lib/intake.functions");
         const res = await mod.reflectAnswer({
           data: { question: `${q.before}${q.accent}${q.after}`, answer: trimmed },
-        });
+          signal: ctrl.signal,
+        } as Parameters<typeof mod.reflectAnswer>[0]);
         const text = (res?.text ?? "").trim();
         if (!text) {
           setReflections((prev) => ({ ...prev, [q.key]: { state: "idle", text: "" } }));
@@ -277,8 +323,11 @@ function IntakeExperience() {
           [q.key]: { response: prev[q.key]?.response ?? trimmed, reflected_offered: text },
         }));
       } catch (err) {
-        console.error("[intake] reflect failed", err);
+        if ((err as { name?: string })?.name === "AbortError") return;
+        console.warn("[intake] reflect failed (non-blocking)", err);
         setReflections((prev) => ({ ...prev, [q.key]: { state: "error", text: "" } }));
+      } finally {
+        clearTimeout(to);
       }
     }, REFLECT_DEBOUNCE_MS);
 
@@ -305,14 +354,24 @@ function IntakeExperience() {
     if (step > -1) setStep(step - 1);
   };
 
-  const validateContact = () => {
-    const e: { name?: string; email?: string } = {};
-    if (!contact.name.trim()) e.name = "Please add your name.";
-    const em = contact.email.trim();
+  const validateContact = (state: ContactState = contact, consentState: boolean = consent) => {
+    const e: { name?: string; email?: string; website?: string } = {};
+    if (!state.name.trim()) e.name = "Please add your name.";
+    const em = state.email.trim();
     if (!em) e.email = "Please add your email.";
     else if (!EMAIL_RE.test(em)) e.email = "That email does not look right.";
+    const site = state.website.trim();
+    if (site && !URL_RE.test(site)) e.website = "That URL does not look right.";
+    if (consentState && !site) e.website = "Add a website, or uncheck the box below.";
     return e;
   };
+
+  // Live revalidation after first error appears
+  React.useEffect(() => {
+    if (Object.keys(contactErrors).length === 0) return;
+    setContactErrors(validateContact());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contact, consent]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,6 +398,7 @@ function IntakeExperience() {
     try {
       const mod = await import("@/lib/intake.functions");
       await mod.submitIntake({ data: payload });
+      clearDraft();
       setStep(total + 1);
       setStatus("idle");
     } catch (err) {
@@ -346,6 +406,7 @@ function IntakeExperience() {
       setStatus("error");
     }
   };
+
 
   const firstName = contact.name.trim().split(/\s+/)[0] || "there";
   const currentQuestion = step >= 0 && step < total ? QUESTIONS[step] : null;
