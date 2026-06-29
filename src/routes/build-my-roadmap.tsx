@@ -116,156 +116,238 @@ function EngravedWorld() {
 }
 
 
-/* -------------------- SECTION 2 - What the conversation is -------------------- */
-function ConversationSteps() {
-  const steps = [
-    {
-      n: "One.",
-      title: "We talk for 30 minutes.",
-      body:
-        "You describe where the business is and where it feels stuck. We listen more than we talk. No slides, no pitch deck.",
-    },
-    {
-      n: "Two.",
-      title: "We tell you what we see.",
-      body:
-        "Where your business stands, and whether a Roadmap fits. If it does not, we say so. You leave with a clearer view either way.",
-    },
-    {
-      n: "Three.",
-      title: "If it fits, we map.",
-      body:
-        "Only if it makes sense for you. The Roadmap engagement comes after the conversation, never before, and never as a surprise.",
-    },
-  ];
+/* -------------------- SECTION 2 - Lead-in line -------------------- */
+function ConversationLead() {
   return (
     <section className="bg-paper">
-      <div className={`${container} pt-16 pb-24 lg:pt-20 lg:pb-28`}>
-        <Reveal
-          as="h2"
-          variant="fade-up"
-          className="text-center font-display text-[clamp(1.6rem,3vw,2.1rem)] leading-tight text-ink"
-        >
-          What the conversation is.
-        </Reveal>
-
-        <div className="relative mx-auto mt-14 max-w-[1080px]">
-          {/* Hairline dotted joiner across the three circles, behind them */}
-          <div
-            className="pointer-events-none absolute left-[16%] right-[16%] top-[22px] hidden h-px md:block"
-            style={{
-              backgroundImage:
-                "linear-gradient(to right, rgba(10,15,31,0.22) 0 4px, transparent 4px 10px)",
-              backgroundSize: "10px 1px",
-              backgroundRepeat: "repeat-x",
-            }}
-            aria-hidden="true"
-          />
-          <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-8">
-            {steps.map((s, i) => (
-              <Reveal
-                key={s.n}
-                variant="fade-up"
-                delay={i * 120}
-                className="relative flex flex-col items-center text-center"
-              >
-                <div
-                  className="relative z-[1] flex h-11 w-11 items-center justify-center rounded-full border bg-paper font-mono text-[13px]"
-                  style={{ borderColor: ROYAL, color: ROYAL }}
-                >
-                  {i + 1}
-                </div>
-                <p className="mt-6 font-display text-[1.35rem]" style={{ color: ROYAL }}>
-                  {s.n}
-                </p>
-                <p className="mt-1 font-display text-[1.15rem] text-ink">{s.title}</p>
-                <p className="mt-3 max-w-[28ch] text-[13.5px] leading-[1.7] text-ink/65">
-                  {s.body}
-                </p>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-
+      <div className={`${container} pt-14 pb-8 lg:pt-16 lg:pb-10`}>
         <Reveal
           as="p"
           variant="fade-up"
-          delay={420}
-          className="mx-auto mt-16 max-w-[60ch] text-center text-[14px] leading-[1.8] text-ink/70"
+          className="mx-auto max-w-[60ch] text-center text-[14.5px] leading-[1.8] text-ink/70"
         >
-          No pressure to decide on the call. No follow-up hounding. If the timing is right, we keep talking. If it is not, the work is waiting when it is.
+          One 30-minute conversation. We listen first, then tell you honestly what we see.
         </Reveal>
       </div>
     </section>
   );
 }
 
-/* -------------------- SECTION 3 - Form + Reassurance -------------------- */
-const NAME_MAX = 100;
-const EMAIL_MAX = 255;
-const STUCK_MAX = 1000;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/* -------------------- SECTION 3 - Immersive intake -------------------- */
 const CONTACT_EMAIL = "tai@trusttai.com";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const REFLECT_MIN = 25;
+const REFLECT_DEBOUNCE_MS = 1500;
+const PATH_D = "M22,64 C 200,30 300,82 400,52 S 560,24 658,34";
 
-type FieldErrors = { name?: string; email?: string; stuck?: string };
+type IntakeQuestion = {
+  key: string;
+  eyebrow: string;
+  before: string;
+  accent: string;
+  after: string;
+  placeholder: string;
+};
 
-function StartConversation() {
-  const [name, setName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [stuck, setStuck] = React.useState("");
-  const [errors, setErrors] = React.useState<FieldErrors>({});
-  const [status, setStatus] = React.useState<"idle" | "submitting" | "submitted" | "error">("idle");
+const QUESTIONS: IntakeQuestion[] = [
+  {
+    key: "current_state",
+    eyebrow: "01 / where you are",
+    before: "Tell us what you have built. ",
+    accent: "What is the business today",
+    after: ", in your words?",
+    placeholder: "Start anywhere. What you do, who you serve, how it runs now.",
+  },
+  {
+    key: "why_now",
+    eyebrow: "02 / why now",
+    before: "What brought you here. ",
+    accent: "What were you hoping to put on paper",
+    after: "?",
+    placeholder: "The thing that made today the day you started this.",
+  },
+  {
+    key: "the_weight",
+    eyebrow: "03 / the weight",
+    before: "Where does the business still run through you? ",
+    accent: "What moves only when you touch it",
+    after: "?",
+    placeholder: "The decisions, the approvals, the work that waits for you.",
+  },
+  {
+    key: "what_didnt_hold",
+    eyebrow: "04 / what did not hold",
+    before: "What have you tried before that did not hold? ",
+    accent: "What would make this time different",
+    after: "?",
+    placeholder: "Agencies, hires, tools. What happened, and what you took from it.",
+  },
+  {
+    key: "unbuilt_asset",
+    eyebrow: "05 / what you already have",
+    before: "What does the business already own that you have not built on yet? ",
+    accent: "A relationship base, a body of data, a credential, a position",
+    after: " you already sit in.",
+    placeholder: "Something you sit on top of that a competitor could not copy.",
+  },
+  {
+    key: "point_b",
+    eyebrow: "06 / where you need to be",
+    before: "Picture the business 24 months out, running the way it should. ",
+    accent: "What is true then that is not true now",
+    after: "?",
+    placeholder: "What you can see, what you can measure, what you stop carrying.",
+  },
+  {
+    key: "point_c",
+    eyebrow: "07 / if it could not fail",
+    before: "If you knew it could not fail, ",
+    accent: "what would you build",
+    after: "? Where is the energy when you think about this business?",
+    placeholder: "The version you would chase if fear was not in the room.",
+  },
+  {
+    key: "practical",
+    eyebrow: "08 / the practical",
+    before: "Last one. ",
+    accent: "Who else is part of this decision, and what timeline are you working toward",
+    after: "?",
+    placeholder: "Names, roles, and any date that matters.",
+  },
+];
 
-  const validate = (): FieldErrors => {
-    const e: FieldErrors = {};
-    const n = name.trim();
-    const em = email.trim();
-    const s = stuck.trim();
-    if (!n) e.name = "Please enter your name.";
-    else if (n.length > NAME_MAX) e.name = `Keep it under ${NAME_MAX} characters.`;
-    if (!em) e.email = "Please enter your email.";
-    else if (em.length > EMAIL_MAX) e.email = `Keep it under ${EMAIL_MAX} characters.`;
+type AnswerRecord = { response: string; reflected_offered: string | null };
+type ContactState = { name: string; business: string; website: string; email: string };
+type SubmitStatus = "idle" | "submitting" | "error";
+
+function IntakeExperience() {
+  const [step, setStep] = React.useState<number>(-1); // -1 intro, 0..7 questions, 8 review+contact, 9 sent
+  const [answers, setAnswers] = React.useState<Record<string, AnswerRecord>>({});
+  const [reflections, setReflections] = React.useState<Record<string, { state: "idle" | "loading" | "ready" | "error"; text: string }>>({});
+  const [contact, setContact] = React.useState<ContactState>({ name: "", business: "", website: "", email: "" });
+  const [consent, setConsent] = React.useState<boolean>(true);
+  const [contactErrors, setContactErrors] = React.useState<{ name?: string; email?: string }>({});
+  const [status, setStatus] = React.useState<SubmitStatus>("idle");
+
+  const total = QUESTIONS.length;
+  const progress = step < 0 ? 0 : Math.min(1, step / total);
+
+  const onAnswerChange = (key: string, value: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [key]: { response: value, reflected_offered: prev[key]?.reflected_offered ?? null },
+    }));
+  };
+
+  // Reflection debouncing per-question
+  const reflectTimers = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
+  React.useEffect(() => {
+    if (step < 0 || step >= total) return;
+    const q = QUESTIONS[step];
+    const value = answers[q.key]?.response ?? "";
+    const trimmed = value.trim();
+
+    // Clear existing timer
+    const existing = reflectTimers.current[q.key];
+    if (existing) clearTimeout(existing);
+
+    if (trimmed.length < REFLECT_MIN) {
+      setReflections((prev) => ({ ...prev, [q.key]: { state: "idle", text: "" } }));
+      return;
+    }
+
+    reflectTimers.current[q.key] = setTimeout(async () => {
+      setReflections((prev) => ({ ...prev, [q.key]: { state: "loading", text: prev[q.key]?.text ?? "" } }));
+      try {
+        const mod = await import("@/lib/intake.functions");
+        const res = await mod.reflectAnswer({
+          data: { question: `${q.before}${q.accent}${q.after}`, answer: trimmed },
+        });
+        const text = (res?.text ?? "").trim();
+        if (!text) {
+          setReflections((prev) => ({ ...prev, [q.key]: { state: "idle", text: "" } }));
+          return;
+        }
+        setReflections((prev) => ({ ...prev, [q.key]: { state: "ready", text } }));
+        setAnswers((prev) => ({
+          ...prev,
+          [q.key]: { response: prev[q.key]?.response ?? trimmed, reflected_offered: text },
+        }));
+      } catch (err) {
+        console.error("[intake] reflect failed", err);
+        setReflections((prev) => ({ ...prev, [q.key]: { state: "error", text: "" } }));
+      }
+    }, REFLECT_DEBOUNCE_MS);
+
+    return () => {
+      const t = reflectTimers.current[q.key];
+      if (t) clearTimeout(t);
+    };
+  }, [step, answers, total]);
+
+  const useReflectedWords = (key: string) => {
+    const text = reflections[key]?.text ?? "";
+    if (!text) return;
+    setAnswers((prev) => ({
+      ...prev,
+      [key]: { response: text, reflected_offered: text },
+    }));
+  };
+
+  const advance = () => {
+    if (step < total - 1) setStep(step + 1);
+    else setStep(total); // to review
+  };
+  const back = () => {
+    if (step > -1) setStep(step - 1);
+  };
+
+  const validateContact = () => {
+    const e: { name?: string; email?: string } = {};
+    if (!contact.name.trim()) e.name = "Please add your name.";
+    const em = contact.email.trim();
+    if (!em) e.email = "Please add your email.";
     else if (!EMAIL_RE.test(em)) e.email = "That email does not look right.";
-    if (s.length > STUCK_MAX) e.stuck = `Keep it under ${STUCK_MAX} characters.`;
     return e;
   };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (status === "submitting") return;
-    const next = validate();
-    setErrors(next);
-    if (Object.keys(next).length > 0) return;
+    const ce = validateContact();
+    setContactErrors(ce);
+    if (Object.keys(ce).length > 0) return;
+
     setStatus("submitting");
-    const correlationId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `roadmap-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const payload = {
+      name: contact.name.trim(),
+      business: contact.business.trim(),
+      website: contact.website.trim(),
+      email: contact.email.trim(),
+      authorizes_scan: consent && !!contact.website.trim(),
+      answers: QUESTIONS.map((q) => ({
+        key: q.key,
+        question: `${q.before}${q.accent}${q.after}`,
+        response: (answers[q.key]?.response ?? "").trim(),
+        reflected_offered: answers[q.key]?.reflected_offered ?? null,
+      })),
+    };
+
     try {
-      const res = await fetch("/api/public/hooks/build-roadmap-contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-correlation-id": correlationId,
-        },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          stuck: stuck.trim(),
-          correlationId,
-        }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setStatus("submitted");
+      const mod = await import("@/lib/intake.functions");
+      await mod.submitIntake({ data: payload });
+      setStep(total + 1);
+      setStatus("idle");
     } catch (err) {
-      console.error("[build-my-roadmap] submit failed", { correlationId, err });
+      console.error("[intake] submit failed", err);
       setStatus("error");
     }
   };
 
-  if (status === "submitted") {
-    return <SuccessSection />;
-  }
+  const firstName = contact.name.trim().split(/\s+/)[0] || "there";
+  const currentQuestion = step >= 0 && step < total ? QUESTIONS[step] : null;
+  const currentAnswerValue = currentQuestion ? answers[currentQuestion.key]?.response ?? "" : "";
+  const currentReflection = currentQuestion ? reflections[currentQuestion.key] : undefined;
 
   return (
     <section
@@ -273,163 +355,465 @@ function StartConversation() {
       className="relative"
       style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
     >
-      <div className={`${container} grid grid-cols-1 gap-14 py-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:py-28`}>
-        {/* LEFT - form */}
-        <div>
-          <Reveal as="h2" variant="fade-up" className="font-display text-[clamp(1.6rem,2.6vw,2rem)] text-ink">
-            Start the conversation.
-          </Reveal>
+      <div className={`${container} py-20 lg:py-24`}>
+        {/* Journey path */}
+        <JourneyPath progress={progress} reachedReview={step >= total} />
 
-          <form onSubmit={onSubmit} noValidate className="mt-8 space-y-5">
-            <Field label="Name" error={errors.name}>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (errors.name) setErrors((p) => ({ ...p, name: undefined }));
-                }}
-                maxLength={NAME_MAX}
-                aria-invalid={!!errors.name}
-                placeholder="Your name"
-                className={`w-full rounded-md border bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${errors.name ? "border-[#B91C1C]" : "border-rule"}`}
-              />
-            </Field>
-            <Field label="Email" error={errors.email}>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
-                }}
-                maxLength={EMAIL_MAX}
-                aria-invalid={!!errors.email}
-                placeholder="you@example.com"
-                className={`w-full rounded-md border bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${errors.email ? "border-[#B91C1C]" : "border-rule"}`}
-              />
-            </Field>
+        <div className="mx-auto mt-10 max-w-[760px]">
+          {step === -1 && (
+            <IntakeIntro onBegin={() => setStep(0)} />
+          )}
 
-            <div>
-              <div className="mb-2 flex items-baseline justify-between">
-                <label className="text-[13px] text-ink/75">
-                  In a sentence or two, where does your business feel stuck right now?
-                </label>
-                <span className="font-mono text-[10.5px] uppercase tracking-[0.2em] text-ink/45">
-                  (optional)
-                </span>
-              </div>
-              <textarea
-                value={stuck}
-                onChange={(e) => {
-                  setStuck(e.target.value);
-                  if (errors.stuck) setErrors((p) => ({ ...p, stuck: undefined }));
-                }}
-                rows={4}
-                maxLength={STUCK_MAX}
-                aria-invalid={!!errors.stuck}
-                placeholder="Tell us what is on your mind"
-                className={`w-full rounded-md border bg-white px-4 py-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${errors.stuck ? "border-[#B91C1C]" : "border-rule"}`}
-              />
-              <div className="mt-1.5 flex items-center justify-between">
-                {errors.stuck ? (
-                  <p className="text-[12px] text-[#B91C1C]">{errors.stuck}</p>
-                ) : <span />}
-                <span className="font-mono text-[10.5px] text-ink/40">{stuck.length}/{STUCK_MAX}</span>
-              </div>
-            </div>
+          {currentQuestion && (
+            <QuestionPanel
+              q={currentQuestion}
+              index={step}
+              total={total}
+              value={currentAnswerValue}
+              onChange={(v) => onAnswerChange(currentQuestion.key, v)}
+              reflection={currentReflection}
+              onUseReflected={() => useReflectedWords(currentQuestion.key)}
+              onBack={step > 0 ? back : undefined}
+              onNext={advance}
+            />
+          )}
 
+          {step === total && (
+            <ReviewAndContact
+              answers={answers}
+              contact={contact}
+              setContact={setContact}
+              consent={consent}
+              setConsent={setConsent}
+              contactErrors={contactErrors}
+              status={status}
+              onEdit={(i) => setStep(i)}
+              onBack={() => setStep(total - 1)}
+              onSubmit={onSubmit}
+            />
+          )}
 
-            {/* Divider */}
-            <div className="relative pt-2 pb-1 text-center">
-              <span className="relative z-[1] inline-block px-4 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/55" style={{ backgroundColor: "#F2F5F8" }}>
-                Or book a time that works
-              </span>
-              <span className="absolute left-0 right-0 top-1/2 -z-0 h-px bg-ink/10" aria-hidden="true" />
-            </div>
+          {step === total + 1 && <IntakeConfirmation firstName={firstName} />}
+        </div>
 
-            {/* Calendar block */}
-            <div className="flex flex-col items-start justify-between gap-4 rounded-md border border-rule bg-white px-5 py-4 sm:flex-row sm:items-center">
-              <div className="flex items-center gap-3">
-                <CalendarMark />
-                <div>
-                  <p className="text-[14px] text-ink">Find a time on our calendar</p>
-                  <p className="text-[12.5px] text-ink/60">Choose a 30-minute slot that works for you.</p>
-                </div>
-              </div>
-              <a
-                href="#availability"
-                className="group inline-flex items-center gap-2 rounded-full border border-royal px-4 py-2 text-[12.5px] font-medium text-royal transition-colors hover:bg-royal hover:text-white"
-              >
-                View Availability
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-              </a>
-            </div>
-
-            <button
-              type="submit"
-              disabled={status === "submitting"}
-              aria-busy={status === "submitting"}
-              className="group mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+        {step !== total + 1 && (
+          <p className="mx-auto mt-10 max-w-[760px] text-center font-mono text-[11px] uppercase tracking-[0.22em]">
+            <a
+              href="#availability"
+              className="underline decoration-royal/30 underline-offset-[5px] hover:decoration-royal"
+              style={{ color: ROYAL }}
             >
-              {status === "submitting" ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  <span>Sending…</span>
-                </>
-              ) : (
-                <>
-                  <span>Start the conversation</span>
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-                </>
-              )}
-            </button>
-
-            {status === "error" ? (
-              <p className="text-[12.5px] leading-[1.7] text-ink/70">
-                That did not send. Your words are still here. Try once more, or email{" "}
-                <a href={`mailto:${CONTACT_EMAIL}`} className="underline decoration-ink/30 underline-offset-2 hover:text-ink">
-                  {CONTACT_EMAIL}
-                </a>{" "}
-                directly.
-              </p>
-            ) : (
-              <p className="text-[12.5px] leading-[1.7] text-ink/55">
-                We reply within one business day. A real person, not a sequence.
-              </p>
-            )}
-          </form>
-        </div>
-
-        {/* RIGHT - reassurance */}
-        <div>
-          <Reveal as="h2" variant="fade-up" className="font-display text-[clamp(1.6rem,2.6vw,2rem)] text-ink">
-            Before you wonder.
-          </Reveal>
-          <ul className="mt-8 divide-y divide-ink/10">
-            <ReassureItem
-              mark={<RouteMarkA />}
-              title="You will not be hounded."
-              body="One reply, from a person. If you go quiet, we leave you be."
-            />
-            <ReassureItem
-              mark={<RouteMarkB />}
-              title="You will not be pitched."
-              body="The first conversation has no slides and no close. We listen."
-            />
-            <ReassureItem
-              mark={<RouteMarkC />}
-              title="You will not be the wrong fit in silence."
-              body="If we are not right for you, we say so on the call, and point you somewhere better."
-            />
-          </ul>
-        </div>
+              prefer to talk first? book a 30-minute call
+            </a>
+          </p>
+        )}
       </div>
     </section>
   );
 }
 
-/* -------------------- SUCCESS STATE -------------------- */
+function JourneyPath({ progress, reachedReview }: { progress: number; reachedReview: boolean }) {
+  const reduce = usePrefersReducedMotion();
+  // path length approx 680; draw stroke-dashoffset for progress
+  const LENGTH = 680;
+  const offset = reduce ? 0 : LENGTH * (1 - progress);
+  return (
+    <div className="mx-auto w-full max-w-[760px]">
+      <svg viewBox="0 0 680 100" className="block h-[80px] w-full" aria-hidden="true">
+        <defs>
+          <pattern id="intake-dotted" x="0" y="0" width="6" height="2" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.9" fill="rgba(10,15,31,0.18)" />
+          </pattern>
+        </defs>
+        {/* Faint dotted base */}
+        <path d={PATH_D} fill="none" stroke="rgba(10,15,31,0.18)" strokeWidth={1} strokeDasharray="2 5" />
+        {/* Drawn blue line */}
+        <path
+          d={PATH_D}
+          fill="none"
+          stroke={ROYAL}
+          strokeWidth={1.6}
+          strokeLinecap="round"
+          strokeDasharray={LENGTH}
+          strokeDashoffset={offset}
+          style={{ transition: reduce ? "none" : "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+        />
+        {/* Point A */}
+        <g transform="translate(22,64)">
+          <circle r="5.5" fill={ROYAL} />
+          <circle r="11" fill="none" stroke={ROYAL} strokeOpacity="0.25" />
+        </g>
+        {/* Point B */}
+        <g
+          transform="translate(658,34)"
+          style={{
+            opacity: reachedReview ? 1 : 0,
+            transition: reduce ? "none" : "opacity 500ms ease-out",
+          }}
+        >
+          <circle r="5.5" fill="#0A0F1F" />
+          <circle r="11" fill="none" stroke="#0A0F1F" strokeOpacity="0.25" />
+        </g>
+      </svg>
+      <div className="mt-1 flex justify-between font-mono text-[10px] uppercase tracking-[0.28em] text-ink/45">
+        <span>Point A</span>
+        <span style={{ opacity: reachedReview ? 1 : 0.35 }}>Point B</span>
+      </div>
+    </div>
+  );
+}
+
+function usePrefersReducedMotion() {
+  const [reduce, setReduce] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduce(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReduce(e.matches);
+    mq.addEventListener?.("change", handler);
+    return () => mq.removeEventListener?.("change", handler);
+  }, []);
+  return reduce;
+}
+
+function IntakeIntro({ onBegin }: { onBegin: () => void }) {
+  return (
+    <div className="text-center">
+      <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
+        the intake
+      </p>
+      <h2 className="mt-5 font-display text-[clamp(1.8rem,3vw,2.3rem)] leading-[1.15] tracking-[-0.018em] text-ink">
+        Eight questions. One at a time.<br />
+        <em className="italic font-normal" style={{ color: ROYAL }}>Write the way you talk.</em>
+      </h2>
+      <p className="mx-auto mt-6 max-w-[52ch] text-[14.5px] leading-[1.8] text-ink/70">
+        No forms to wade through. You write, you review, you send. A person reads it next.
+      </p>
+      <button
+        type="button"
+        onClick={onBegin}
+        className="group mt-10 inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
+      >
+        <span>Begin</span>
+        <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+      </button>
+    </div>
+  );
+}
+
+function QuestionPanel({
+  q,
+  index,
+  total,
+  value,
+  onChange,
+  reflection,
+  onUseReflected,
+  onBack,
+  onNext,
+}: {
+  q: IntakeQuestion;
+  index: number;
+  total: number;
+  value: string;
+  onChange: (v: string) => void;
+  reflection?: { state: "idle" | "loading" | "ready" | "error"; text: string };
+  onUseReflected: () => void;
+  onBack?: () => void;
+  onNext: () => void;
+}) {
+  const canAdvance = value.trim().length > 0;
+  const isLast = index === total - 1;
+  return (
+    <div>
+      <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/55">
+        {q.eyebrow}
+      </p>
+      <h2 className="mt-4 font-display text-[clamp(1.5rem,2.6vw,2rem)] leading-[1.25] tracking-[-0.015em] text-ink">
+        {q.before}
+        <em className="italic font-normal" style={{ color: ROYAL }}>{q.accent}</em>
+        {q.after}
+      </h2>
+
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={6}
+        placeholder={q.placeholder}
+        className="mt-8 w-full resize-none rounded-md border border-rule bg-white/70 px-5 py-4 text-[15px] leading-[1.7] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
+        autoFocus
+      />
+
+      <div className="min-h-[64px] mt-3">
+        {reflection?.state === "loading" && (
+          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/45">
+            reading that back&hellip;
+          </p>
+        )}
+        {reflection?.state === "ready" && reflection.text && (
+          <div>
+            <p
+              className="font-display italic text-[15px] leading-[1.7]"
+              style={{ color: "rgba(10,15,31,0.42)" }}
+            >
+              {reflection.text}
+            </p>
+            <button
+              type="button"
+              onClick={onUseReflected}
+              className="mt-2 font-mono text-[11px] uppercase tracking-[0.24em] underline decoration-royal/30 underline-offset-[5px] hover:decoration-royal"
+              style={{ color: ROYAL }}
+            >
+              use these words
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 flex items-center justify-between">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55 hover:text-ink"
+          >
+            ← back
+          </button>
+        ) : <span />}
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!canAdvance}
+          className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+        >
+          <span>{isLast ? "Review" : "Next"}</span>
+          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+        </button>
+      </div>
+
+      <p className="mt-6 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/40">
+        {String(index + 1).padStart(2, "0")} of {String(total).padStart(2, "0")}
+      </p>
+    </div>
+  );
+}
+
+function ReviewAndContact({
+  answers,
+  contact,
+  setContact,
+  consent,
+  setConsent,
+  contactErrors,
+  status,
+  onEdit,
+  onBack,
+  onSubmit,
+}: {
+  answers: Record<string, AnswerRecord>;
+  contact: ContactState;
+  setContact: React.Dispatch<React.SetStateAction<ContactState>>;
+  consent: boolean;
+  setConsent: (v: boolean) => void;
+  contactErrors: { name?: string; email?: string };
+  status: SubmitStatus;
+  onEdit: (index: number) => void;
+  onBack: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+}) {
+  return (
+    <div>
+      <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
+        here is what we heard
+      </p>
+      <h2 className="mt-4 font-display text-[clamp(1.6rem,2.8vw,2.1rem)] leading-[1.2] tracking-[-0.015em] text-ink">
+        Read it back. Change anything that is not true.
+      </h2>
+
+      <ul className="mt-10 divide-y divide-ink/10">
+        {QUESTIONS.map((q, i) => {
+          const a = answers[q.key]?.response?.trim() ?? "";
+          return (
+            <li key={q.key} className="py-6">
+              <div className="flex items-baseline justify-between gap-4">
+                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
+                  {q.eyebrow}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onEdit(i)}
+                  className="font-mono text-[11px] uppercase tracking-[0.24em] underline decoration-royal/30 underline-offset-[5px] hover:decoration-royal"
+                  style={{ color: ROYAL }}
+                >
+                  edit
+                </button>
+              </div>
+              <p className="mt-3 font-display text-[15.5px] leading-[1.55] text-ink/85">
+                {q.before}
+                <em className="italic font-normal" style={{ color: ROYAL }}>{q.accent}</em>
+                {q.after}
+              </p>
+              <p className="mt-3 whitespace-pre-wrap text-[14.5px] leading-[1.75] text-ink/75">
+                {a || <span className="italic text-ink/40">(nothing yet)</span>}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+
+      <form onSubmit={onSubmit} noValidate className="mt-12">
+        <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
+          where do we send this
+        </p>
+        <h3 className="mt-3 font-display text-[clamp(1.3rem,2.3vw,1.7rem)] leading-[1.25] tracking-[-0.015em] text-ink">
+          Four lines and we are done.
+        </h3>
+
+        <div className="mt-8 grid grid-cols-1 gap-7 sm:grid-cols-2">
+          <UnderlineField
+            label="Your name"
+            value={contact.name}
+            onChange={(v) => setContact((p) => ({ ...p, name: v }))}
+            error={contactErrors.name}
+            required
+            autoComplete="name"
+          />
+          <UnderlineField
+            label="Business name"
+            value={contact.business}
+            onChange={(v) => setContact((p) => ({ ...p, business: v }))}
+            autoComplete="organization"
+          />
+          <UnderlineField
+            label="Website"
+            value={contact.website}
+            onChange={(v) => setContact((p) => ({ ...p, website: v }))}
+            placeholder="https://"
+            autoComplete="url"
+          />
+          <UnderlineField
+            label="Email"
+            type="email"
+            value={contact.email}
+            onChange={(v) => setContact((p) => ({ ...p, email: v }))}
+            error={contactErrors.email}
+            required
+            autoComplete="email"
+          />
+        </div>
+
+        <label className="mt-8 flex items-start gap-3 text-[13px] leading-[1.7] text-ink/65">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            className="mt-[3px] h-4 w-4 accent-[#2563FF]"
+          />
+          <span>
+            You are welcome to look at our site before we talk. It helps us see where the business stands.
+          </span>
+        </label>
+
+        <div className="mt-10 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onBack}
+            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55 hover:text-ink"
+          >
+            ← back
+          </button>
+          <button
+            type="submit"
+            disabled={status === "submitting"}
+            aria-busy={status === "submitting"}
+            className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+          >
+            {status === "submitting" ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                <span>Sending&hellip;</span>
+              </>
+            ) : (
+              <>
+                <span>Send it</span>
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </>
+            )}
+          </button>
+        </div>
+
+        {status === "error" && (
+          <p className="mt-6 text-[13px] leading-[1.7] text-ink/70">
+            That did not send. Your words are still here. Try once more, or email{" "}
+            <a href={`mailto:${CONTACT_EMAIL}`} className="underline decoration-ink/30 underline-offset-2 hover:text-ink">
+              {CONTACT_EMAIL}
+            </a>{" "}
+            directly.
+          </p>
+        )}
+      </form>
+    </div>
+  );
+}
+
+function UnderlineField({
+  label,
+  value,
+  onChange,
+  error,
+  type = "text",
+  required,
+  placeholder,
+  autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  error?: string;
+  type?: string;
+  required?: boolean;
+  placeholder?: string;
+  autoComplete?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="block font-mono text-[10.5px] uppercase tracking-[0.24em] text-ink/55">
+        {label}{required && <span className="ml-1" style={{ color: ROYAL }}>*</span>}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        aria-invalid={!!error}
+        className={`mt-2 w-full border-0 border-b bg-transparent px-0 py-2 text-[15px] text-ink outline-none transition-colors placeholder:text-ink/30 focus:border-royal ${error ? "border-[#B91C1C]" : "border-ink/25"}`}
+      />
+      {error && <span className="mt-1.5 block text-[12px] text-[#B91C1C]">{error}</span>}
+    </label>
+  );
+}
+
+function IntakeConfirmation({ firstName }: { firstName: string }) {
+  return (
+    <div className="text-center">
+      <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
+        received
+      </p>
+      <h2 className="mt-5 font-display text-[clamp(1.9rem,3.2vw,2.5rem)] leading-[1.15] tracking-[-0.018em] text-ink">
+        We have it, {firstName}.<br />
+        <em className="italic font-normal" style={{ color: ROYAL }}>
+          A person reads this next, not a machine.
+        </em>
+      </h2>
+      <p className="mx-auto mt-8 max-w-[52ch] text-[14.5px] leading-[1.8] text-ink/70">
+        One reply, from a person. If you go quiet, we leave you be. The first conversation has no pitch.
+      </p>
+    </div>
+  );
+}
+
+/* -------------------- SUCCESS STATE (legacy, unused) -------------------- */
 function SuccessSection() {
   const steps = [
     {
