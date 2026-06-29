@@ -1204,25 +1204,27 @@ function QuestionPanel({
 
   return (
     <div>
-      {/* Centered eyebrow: question section label only */}
-      <p className="text-center font-mono text-[11px] uppercase tracking-[0.34em] text-ink/55">
-        {eyebrowTail && (
-          <span className="text-ink/70">{eyebrowTail}</span>
-        )}
-        {isOptional && (
-          <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/60">optional</span>
-        )}
-      </p>
+      {/* Centered eyebrow: chapter mark — hairline · label · hairline */}
+      <div className="flex items-center justify-center gap-3">
+        <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.36em] text-ink/60">
+          {eyebrowTail && <span>{eyebrowTail}</span>}
+          {isOptional && (
+            <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/55">optional</span>
+          )}
+        </p>
+        <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
+      </div>
 
 
-      <h2 className="mt-6 font-display text-[clamp(1.6rem,2.6vw,2.05rem)] leading-[1.25] tracking-[-0.015em] text-ink">
+      <h2 className="mx-auto mt-6 max-w-[760px] text-center font-display text-[clamp(1.55rem,2.4vw,1.95rem)] leading-[1.3] tracking-[-0.015em] text-ink">
         {q.before}
         <em className="italic font-normal" style={{ color: ROYAL }}>{q.accent}</em>
         {q.after}
       </h2>
 
-      {/* Writing surface — bright fill, soft border, blue focus */}
-      <div className="relative mt-6">
+      {/* Writing surface — layered shadow, ring focus, refined */}
+      <div className="relative mt-8">
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -1232,16 +1234,21 @@ function QuestionPanel({
           placeholder={q.placeholder}
           aria-invalid={showRequiredHint}
           aria-describedby={showRequiredHint ? `${q.key}-hint` : undefined}
-          className={`peer w-full resize-none rounded-2xl border bg-white px-6 py-5 pb-10 text-[16px] leading-[1.75] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-[#2563FF] ${showRequiredHint ? "border-[#B91C1C]/60" : "border-ink/12"}`}
-          style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)" }}
+          className={`peer w-full resize-none rounded-[20px] border bg-white px-6 py-5 pb-10 text-[16px] leading-[1.75] text-ink outline-none transition-all duration-200 placeholder:text-ink/35 focus:border-[rgba(37,99,255,0.35)] focus:ring-2 focus:ring-[rgba(37,99,255,0.18)] ${showRequiredHint ? "border-[#B91C1C]/60" : "border-ink/8"}`}
+          style={{
+            boxShadow:
+              "inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(10,15,31,0.04), 0 18px 40px -28px rgba(10,15,31,0.18)",
+          }}
           autoFocus
         />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-3 right-4 font-mono text-[11px] tracking-[0.04em] text-ink/35"
-        >
-          {charCount}/{charLimit}
-        </span>
+        {charCount > 200 && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-3 right-4 rounded-full bg-ink/5 px-2 py-[3px] font-mono text-[10.5px] tracking-[0.04em] text-ink/45"
+          >
+            {charCount}/{charLimit}
+          </span>
+        )}
       </div>
       {showRequiredHint && (
         <p id={`${q.key}-hint`} className="mt-2 font-mono text-[11px] normal-case tracking-[0.04em] text-[#B91C1C]">
@@ -1249,18 +1256,26 @@ function QuestionPanel({
         </p>
       )}
 
-      {/* Reflection — thoughtful note, not a tool box */}
+      {/* Reflection — ivory note with royal top accent */}
       <div
-        className="mt-6 rounded-2xl border px-6 py-6 transition-opacity duration-300"
+        className="relative mt-6 overflow-hidden rounded-[20px] border border-t-2 px-6 py-6 transition-opacity duration-300"
         style={{
-          backgroundColor: "rgba(255,255,255,0.55)",
-          borderColor: "rgba(37,99,255,0.18)",
+          backgroundColor: "rgba(255,253,247,0.85)",
+          borderColor: "rgba(10,15,31,0.08)",
+          borderTopColor: "rgba(37,99,255,0.38)",
           minHeight: 132,
           opacity: isLoading && hasMirror ? 0.94 : 1,
         }}
         aria-live="polite"
       >
-        <div className="flex items-start justify-between gap-4">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1 select-none font-display text-[64px] leading-none"
+          style={{ color: ROYAL, opacity: 0.14, fontStyle: "italic" }}
+        >
+          &ldquo;
+        </span>
+        <div className="relative flex items-start justify-between gap-4">
           <span className="font-mono text-[10.5px] uppercase tracking-[0.26em]" style={{ color: ROYAL }}>
             A clearer version, if it helps
           </span>
@@ -1277,10 +1292,10 @@ function QuestionPanel({
         </div>
 
         {hasMirror ? (
-          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+          <div className="relative mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
             <p
               className="font-display italic text-[16.5px] leading-[1.75] motion-safe:transition-opacity motion-safe:duration-[420ms] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
-              style={{ color: "rgba(10,15,31,0.78)", opacity: textOpacity }}
+              style={{ color: "rgba(10,15,31,0.82)", opacity: textOpacity }}
             >
               {displayedText}
             </p>
@@ -1288,8 +1303,11 @@ function QuestionPanel({
               <button
                 type="button"
                 onClick={onUseReflected}
-                className="inline-flex items-center rounded-full border bg-white px-3.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.22em] transition-colors hover:bg-[rgba(37,99,255,0.06)]"
-                style={{ color: ROYAL, borderColor: "rgba(37,99,255,0.35)" }}
+                className="inline-flex items-center rounded-full px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.22em] text-paper transition-all duration-200 hover:-translate-y-[1px]"
+                style={{
+                  backgroundColor: ROYAL,
+                  boxShadow: "0 8px 20px -10px rgba(37,99,255,0.55)",
+                }}
               >
                 use these words
               </button>
@@ -1301,7 +1319,7 @@ function QuestionPanel({
             </div>
           </div>
         ) : (
-          <p className="mt-3 font-display italic text-[15px] leading-[1.7] text-ink/45">
+          <p className="relative mt-3 font-display italic text-[15px] leading-[1.7] text-ink/45">
             {isLoading
               ? "Reading what you just wrote\u2026"
               : isError
@@ -1310,6 +1328,7 @@ function QuestionPanel({
           </p>
         )}
       </div>
+
 
       {/* Action row — Back outlined pill / Continue solid navy pill */}
       <div className="mt-8 flex items-center justify-between">
