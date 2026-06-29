@@ -870,7 +870,10 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             <ReviewAndContact
               answers={answers}
               contact={contact}
-              setContact={setContact}
+              setContact={(updater) => {
+                setContact(updater);
+                setSaveState((s) => (s === "error" ? s : "saving"));
+              }}
               consent={consent}
               setConsent={setConsent}
               contactErrors={contactErrors}
