@@ -982,6 +982,7 @@ function JourneyPath({
   step,
   progress,
   milestoneStates,
+  milestoneLabels,
   furthestStep,
   onJump,
   atReview,
@@ -989,6 +990,7 @@ function JourneyPath({
   step: number;
   progress: number;
   milestoneStates: MilestoneState[];
+  milestoneLabels: string[];
   furthestStep: number;
   onJump: (i: number) => void;
   atReview: boolean;
@@ -1000,8 +1002,34 @@ function JourneyPath({
   const points = Array.from({ length: STOPS }, (_, i) => pointOnPath(i / (STOPS - 1)));
   const bg = "oklch(0.97 0.02 255)";
   const pct = Math.round(progress * 100);
+
+  // Active label tracks the currently focused milestone — past, current, skipped, or review.
+  const activeLabel = React.useMemo(() => {
+    if (step < 0) return "begin";
+    if (atReview || step >= STOPS) return "review";
+    return milestoneLabels[step] ?? "";
+  }, [step, atReview, STOPS, milestoneLabels]);
+  const rightLabel = atReview ? "review" : "point B";
+
   return (
     <div className="mx-auto w-full max-w-[620px]">
+      <style>{`
+        .jp-dot { transition: transform 220ms cubic-bezier(0.22,1,0.36,1); transform-box: fill-box; transform-origin: center; outline: none; }
+        .jp-dot[data-jumpable="true"]:hover, .jp-dot[data-jumpable="true"]:focus-visible { transform: scale(1.18); }
+        .jp-hover-ring { opacity: 0; transition: opacity 220ms ease; pointer-events: none; }
+        .jp-dot[data-jumpable="true"]:hover .jp-hover-ring,
+        .jp-dot[data-jumpable="true"]:focus-visible .jp-hover-ring { opacity: 0.55; }
+        @keyframes jpActivePop { 0% { transform: scale(0.55); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes jpActiveBreathe { 0%, 100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.06); opacity: 0.75; } }
+        .jp-active-ring { transform-box: fill-box; transform-origin: center; animation: jpActivePop 420ms cubic-bezier(0.22,1,0.36,1) both, jpActiveBreathe 2.4s ease-in-out 420ms infinite; }
+        .jp-active-core { transform-box: fill-box; transform-origin: center; animation: jpActivePop 360ms cubic-bezier(0.22,1,0.36,1) both; }
+        @media (prefers-reduced-motion: reduce) {
+          .jp-dot, .jp-hover-ring, .jp-active-ring, .jp-active-core { transition: none !important; animation: none !important; }
+        }
+        .jp-label { transition: color 220ms ease; }
+        .jp-label-anim { animation: jpLabelIn 360ms cubic-bezier(0.22,1,0.36,1) both; display: inline-block; }
+        @keyframes jpLabelIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
       <svg viewBox="0 0 680 100" className="block h-[64px] w-full">
         <defs>
           <filter id="intake-glow" x="-20%" y="-50%" width="140%" height="200%">
@@ -1042,11 +1070,13 @@ function JourneyPath({
           return (
             <g
               key={i}
+              className="jp-dot"
+              data-jumpable={canJump ? "true" : "false"}
               transform={`translate(${p.x},${p.y})`}
               role={canJump ? "button" : undefined}
               tabIndex={canJump ? 0 : -1}
-              aria-label={canJump ? `Go to question ${i + 1}` : undefined}
-              style={{ cursor: canJump ? "pointer" : "default", outline: "none" }}
+              aria-label={canJump ? `Go to ${milestoneLabels[i] ?? `question ${i + 1}`}` : undefined}
+              style={{ cursor: canJump ? "pointer" : "default" }}
               onClick={() => { if (canJump) onJump(i); }}
               onKeyDown={(e) => {
                 if (!canJump) return;
@@ -1055,40 +1085,19 @@ function JourneyPath({
             >
               {/* Generous transparent hit target */}
               <circle r={14} fill="transparent" />
+              {/* Hover/focus ring */}
+              <circle className="jp-hover-ring" r={11} fill="none" stroke={ROYAL} strokeWidth={1} />
               {isCurrent ? (
-                <>
-                  <circle
-                    r={8}
-                    fill="none"
-                    stroke={ROYAL}
-                    strokeWidth={1.75}
-                    style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
-                  />
-                  <circle r={4} fill={ROYAL} />
-                </>
+                <g key={`active-${step}`}>
+                  <circle className="jp-active-ring" r={8} fill="none" stroke={ROYAL} strokeWidth={1.75} />
+                  <circle className="jp-active-core" r={4} fill={ROYAL} />
+                </g>
               ) : isAnswered ? (
-                <circle
-                  r={4.5}
-                  fill={ROYAL}
-                  style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
-                />
+                <circle r={4.5} fill={ROYAL} />
               ) : isSkipped ? (
-                <circle
-                  r={4.5}
-                  fill={bg}
-                  stroke={ROYAL}
-                  strokeOpacity={0.55}
-                  strokeWidth={1.25}
-                  style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
-                />
+                <circle r={4.5} fill={bg} stroke={ROYAL} strokeOpacity={0.55} strokeWidth={1.25} />
               ) : (
-                <circle
-                  r={4.5}
-                  fill={bg}
-                  stroke="rgba(10,15,31,0.22)"
-                  strokeWidth={1}
-                  style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
-                />
+                <circle r={4.5} fill={bg} stroke="rgba(10,15,31,0.22)" strokeWidth={1} />
               )}
             </g>
           );
@@ -1100,10 +1109,10 @@ function JourneyPath({
           return (
             <g transform={`translate(${end.x + 14},${end.y})`}>
               {filled ? (
-                <>
-                  <circle r={8} fill="none" stroke={ROYAL} strokeWidth={1.75} />
-                  <circle r={4} fill={ROYAL} />
-                </>
+                <g key="review-active">
+                  <circle className="jp-active-ring" r={8} fill="none" stroke={ROYAL} strokeWidth={1.75} />
+                  <circle className="jp-active-core" r={4} fill={ROYAL} />
+                </g>
               ) : (
                 <circle r={5.5} fill={bg} stroke={ROYAL} strokeOpacity={0.55} strokeWidth={1.25} />
               )}
@@ -1113,13 +1122,16 @@ function JourneyPath({
 
       </svg>
       <div className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.32em]">
-        <span className="text-ink/45">Point A</span>
+        <span className="jp-label text-ink/70">
+          <span key={`label-${step}-${atReview ? "r" : "q"}`} className="jp-label-anim">{activeLabel}</span>
+        </span>
         <span className="inline-flex items-center gap-2 text-ink/45">
           <span className="rounded-full bg-ink/5 px-2 py-[3px] tracking-[0.22em] text-ink/65">{pct}%</span>
           <span aria-hidden="true" className="text-ink/25">·</span>
-          Point B
+          <span key={`right-${atReview ? "r" : "q"}`} className="jp-label-anim">{rightLabel}</span>
         </span>
       </div>
+
     </div>
   );
 }
