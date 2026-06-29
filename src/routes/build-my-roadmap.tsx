@@ -1092,20 +1092,16 @@ function QuestionPanel({
 
   return (
     <div>
-      {/* Centered eyebrow: 01 OF 08 · WHERE YOU ARE */}
+      {/* Centered eyebrow: question section label only */}
       <p className="text-center font-mono text-[11px] uppercase tracking-[0.34em] text-ink/55">
-        <span style={{ color: ROYAL }}>{String(index + 1).padStart(2, "0")}</span>
-        <span className="text-ink/45"> of {String(total).padStart(2, "0")}</span>
         {eyebrowTail && (
-          <>
-            <span aria-hidden="true" className="mx-3 inline-block h-[3px] w-[3px] -translate-y-[2px] rounded-full bg-ink/30" />
-            <span className="text-ink/70">{eyebrowTail}</span>
-          </>
+          <span className="text-ink/70">{eyebrowTail}</span>
         )}
         {isOptional && (
           <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/60">optional</span>
         )}
       </p>
+
 
       <h2 className="mt-6 font-display text-[clamp(1.6rem,2.6vw,2.05rem)] leading-[1.25] tracking-[-0.015em] text-ink">
         {q.before}
