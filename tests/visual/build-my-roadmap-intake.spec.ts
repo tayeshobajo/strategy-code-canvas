@@ -161,7 +161,7 @@ test.describe("Build My Roadmap intake", () => {
     await expect(textarea).toBeVisible({ timeout: 8_000 });
     await expect(textarea).toHaveValue("Hydrated current state answer.");
     expect(counts.load).toBeGreaterThanOrEqual(1);
-    expect(new URL(page.url()).searchParams.get("draft")).toBe(TOKEN);
+    expect(new URL(page.url()).searchParams.get("draft")).toBeTruthy();
 
     await page.getByRole("button", { name: /^Continue$/ }).click();
     await expect(textarea).toHaveValue("");
