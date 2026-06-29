@@ -435,6 +435,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           }
           setAutosaveError(false);
           setSaveState("saved");
+          setLastSavedAt(Date.now());
           track("intake_draft_saved", { resume_token: res?.resume_token ?? null, answers_count: payload.answers.length });
         } catch (err) {
           console.warn("[intake] autosave failed (non-blocking)", err);
