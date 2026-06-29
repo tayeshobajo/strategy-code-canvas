@@ -2191,22 +2191,15 @@ function BuildMyRoadmapPage() {
     }
   }, []);
 
-  // Initial mount: open the overlay if URL says so, or if a draft token exists.
+  // Initial mount: never auto-open. If the URL still carries ?write=open from a
+  // previous session, strip it silently so a refresh lands on the page, not the overlay.
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const url = new URL(window.location.href);
-      const writeParam = url.searchParams.get("write");
-      const fromUrl = url.searchParams.get("draft");
-      const fromLs = window.localStorage.getItem(STORAGE_KEY);
-      const hasDraft =
-        (fromUrl && UUID_RE.test(fromUrl)) || (fromLs && UUID_RE.test(fromLs));
-      if (writeParam === "open" || hasDraft) {
-        setIntakeOpen(true);
-        if (writeParam !== "open") {
-          url.searchParams.set("write", "open");
-          window.history.replaceState({}, "", url.toString());
-        }
+      if (url.searchParams.has("write")) {
+        url.searchParams.delete("write");
+        window.history.replaceState({}, "", url.toString());
       }
     } catch { /* noop */ }
   }, []);
