@@ -760,6 +760,7 @@ function ReviewAndContact({
             onChange={(v) => setContact((p) => ({ ...p, website: v }))}
             placeholder="https://"
             autoComplete="url"
+            error={contactErrors.website}
           />
           <UnderlineField
             label="Email"
@@ -772,17 +773,27 @@ function ReviewAndContact({
           />
         </div>
 
-        <label className="mt-8 flex items-start gap-3 text-[13px] leading-[1.7] text-ink/65">
+        <label
+          className={`mt-8 flex items-start gap-3 text-[13px] leading-[1.7] transition-opacity ${
+            contact.website.trim() ? "text-ink/65" : "text-ink/35 cursor-not-allowed"
+          }`}
+          title={contact.website.trim() ? undefined : "Add a website above to enable this"}
+        >
           <input
             type="checkbox"
-            checked={consent}
+            checked={consent && !!contact.website.trim()}
+            disabled={!contact.website.trim()}
             onChange={(e) => setConsent(e.target.checked)}
-            className="mt-[3px] h-4 w-4 accent-[#2563FF]"
+            className="mt-[3px] h-4 w-4 accent-[#2563FF] disabled:cursor-not-allowed"
           />
           <span>
             You are welcome to look at our site before we talk. It helps us see where the business stands.
+            {!contact.website.trim() && (
+              <span className="ml-1 italic text-ink/40">Add a website to enable.</span>
+            )}
           </span>
         </label>
+
 
         <div className="mt-10 flex items-center justify-between">
           <button
