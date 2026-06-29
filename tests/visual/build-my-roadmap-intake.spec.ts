@@ -27,6 +27,13 @@ function decodeFnName(url: string): string | null {
   } catch { return null; }
 }
 
+// TanStack server fns expect responses shaped as { result, context } so the
+// client middleware can unwrap `result`. Plain JSON works without the
+// `x-tss-serialized` header because our payloads only contain primitives.
+function envelope(result: unknown): string {
+  return JSON.stringify({ result, context: {} });
+}
+
 function stubFor(
   counts: Counts,
   draftPayload?: { answers: Array<{ key: string; question: string; response: string; reflected_offered: string | null }>; contact: Record<string, string> },
@@ -38,23 +45,23 @@ function stubFor(
     const body = (await req.postData()) ?? "";
     if (name.startsWith("reflectAnswer")) {
       counts.reflect++;
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ text: "" }) });
+      return route.fulfill({ status: 200, contentType: "application/json", body: envelope({ text: "" }) });
     }
     if (name.startsWith("saveDraft")) {
       counts.save++;
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ resume_token: "11111111-1111-4111-8111-111111111111" }) });
+      return route.fulfill({ status: 200, contentType: "application/json", body: envelope({ resume_token: "11111111-1111-4111-8111-111111111111" }) });
     }
     if (name.startsWith("loadDraft")) {
       counts.load++;
       const payload = draftPayload
         ? { found: true, answers: draftPayload.answers, contact: draftPayload.contact }
         : { found: false, answers: [], contact: {} };
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
+      return route.fulfill({ status: 200, contentType: "application/json", body: envelope(payload) });
     }
     if (name.startsWith("submitIntake")) {
       counts.submit++;
       counts.lastSubmitBody = body;
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+      return route.fulfill({ status: 200, contentType: "application/json", body: envelope({ ok: true }) });
     }
     return route.continue();
   };
