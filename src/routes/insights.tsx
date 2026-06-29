@@ -725,7 +725,6 @@ function InsightsPage() {
       <SiteHeader />
       <main>
         <Hero />
-        <FeaturedArgument />
         <ArticleList />
       </main>
       <SiteClosing
