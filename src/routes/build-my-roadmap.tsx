@@ -484,9 +484,13 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
     };
 
     reflectTimers.current[q.key] = setTimeout(async () => {
+      // Remember which value we're fetching for so the effect doesn't re-fire
+      // when setAnswers writes reflected_offered back into state.
+      lastFetchedFor.current[q.key] = trimmed;
       const ctrl = new AbortController();
       reflectAborts.current[q.key] = ctrl;
       const to = setTimeout(() => ctrl.abort(), REFLECT_TIMEOUT_MS);
+
       // Stale-while-revalidate: keep previous text visible, only flip state to "loading"
       // — and only once the founder has actually paused (lock window).
       commitState({ state: "loading", text: reflections[q.key]?.text ?? "" });
