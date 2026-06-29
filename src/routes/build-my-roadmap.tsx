@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Bookmark, Check, Loader2, LogOut } from "lucide-react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { SiteHeader } from "@/components/SiteHeader";
