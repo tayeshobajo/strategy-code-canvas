@@ -508,18 +508,76 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
         question: `${q.before}${q.accent}${q.after}`,
         response: (answers[q.key]?.response ?? "").trim(),
         reflected_offered: answers[q.key]?.reflected_offered ?? null,
-      })),
+      })).filter((a) => a.response.length > 0),
+      resume_token: resumeToken ?? undefined,
     };
 
     try {
       const mod = await import("@/lib/intake.functions");
-      await mod.submitIntake({ data: payload });
+      // Ensure any pending autosave settles first so the server has the latest draft state.
+      if (inflightSave.current) {
+        try { await inflightSave.current; } catch { /* ignore */ }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await mod.submitIntake({ data: payload } as any);
       clearDraft();
+      setResumeToken(null);
       setStep(total + 1);
       setStatus("idle");
     } catch (err) {
       console.error("[intake] submit failed", err);
       setStatus("error");
+    }
+  };
+
+  const onSaveAndComeBack = async () => {
+    if (typeof window === "undefined") return;
+    const email = contact.email.trim();
+    let token = resumeToken;
+    try {
+      if (inflightSave.current) {
+        try { await inflightSave.current; } catch { /* ignore */ }
+      }
+      if (!token) {
+        const mod = await import("@/lib/intake.functions");
+        const payload = {
+          answers: QUESTIONS.map((q) => ({
+            key: q.key,
+            question: `${q.before}${q.accent}${q.after}`,
+            response: (answers[q.key]?.response ?? "").trim(),
+            reflected_offered: answers[q.key]?.reflected_offered ?? null,
+          })).filter((a) => a.response.length > 0),
+          contact,
+        };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = await mod.saveDraft({ data: payload } as any);
+        token = res?.resume_token ?? null;
+        if (token) {
+          setResumeToken(token);
+          try { window.localStorage.setItem(STORAGE_KEY, token); } catch { /* noop */ }
+          const url = new URL(window.location.href);
+          url.searchParams.set("draft", token);
+          window.history.replaceState({}, "", url.toString());
+        }
+      }
+      if (!token) {
+        setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page." });
+        return;
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.set("draft", token);
+      const resumeUrl = url.toString();
+      if (email && EMAIL_RE.test(email)) {
+        const mod = await import("@/lib/intake.functions");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await mod.sendResumeLink({ data: { resume_token: token, email, resume_url: resumeUrl, name: contact.name.trim() } } as any);
+        setResumeNote({ kind: "sent", text: `a continue link is on its way to ${email}.` });
+      } else {
+        setResumeNote({ kind: "saved", text: "your progress is saved to this link. bookmark it and come back anytime." });
+      }
+    } catch (err) {
+      console.warn("[intake] save and come back failed", err);
+      setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page." });
     }
   };
 
