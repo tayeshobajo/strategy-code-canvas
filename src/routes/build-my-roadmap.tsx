@@ -587,10 +587,13 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
   const currentAnswerValue = currentQuestion ? answers[currentQuestion.key]?.response ?? "" : "";
   const currentReflection = currentQuestion ? reflections[currentQuestion.key] : undefined;
 
+  if (!open) return null;
+
   return (
     <section
-      id="cta"
-      className="relative"
+      id="intake"
+      ref={intakeRef}
+      className="relative scroll-mt-24"
       style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
     >
       <div className={`${container} py-20 lg:py-24`}>
@@ -634,16 +637,21 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
           {step === total + 1 && <IntakeConfirmation firstName={firstName} />}
         </div>
 
-        {step !== total + 1 && (
-          <p className="mx-auto mt-10 max-w-[760px] text-center font-mono text-[11px] uppercase tracking-[0.22em]">
-            <a
-              href="#availability"
-              className="underline decoration-royal/30 underline-offset-[5px] hover:decoration-royal"
-              style={{ color: ROYAL }}
+        {step >= 0 && step < total && (
+          <div className="mx-auto mt-12 max-w-[760px] text-center">
+            <button
+              type="button"
+              onClick={onSaveAndComeBack}
+              className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55 underline decoration-ink/20 underline-offset-[5px] hover:text-ink hover:decoration-ink/60"
             >
-              prefer to talk first? book a 30-minute call
-            </a>
-          </p>
+              save and come back later
+            </button>
+            {resumeNote && (
+              <p className="mt-3 font-mono text-[11px] normal-case tracking-[0.04em] text-ink/55">
+                {resumeNote.text}
+              </p>
+            )}
+          </div>
         )}
       </div>
     </section>
