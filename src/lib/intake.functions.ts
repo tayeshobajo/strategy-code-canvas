@@ -123,12 +123,19 @@ export const loadDraft = createServerFn({ method: "POST" })
       console.error("[load-draft] failed", error);
       throw new Error("Could not load draft");
     }
-    if (!row) return { found: false as const, answers: [] as Array<Record<string, unknown>>, contact: {} as Record<string, string> };
-    return {
-      found: true as const,
-      answers: (row.answers as Array<Record<string, unknown>>) ?? [],
-      contact: (row.contact as Record<string, string>) ?? {},
-    };
+    type AnswerOut = { key: string; question: string; response: string; reflected_offered: string | null };
+    if (!row) return { found: false as const, answers: [] as AnswerOut[], contact: {} as Record<string, string> };
+    const rawAnswers = Array.isArray(row.answers) ? (row.answers as Array<Record<string, unknown>>) : [];
+    const answers: AnswerOut[] = rawAnswers.map((a) => ({
+      key: String(a.key ?? ""),
+      question: String(a.question ?? ""),
+      response: String(a.response ?? ""),
+      reflected_offered: a.reflected_offered == null ? null : String(a.reflected_offered),
+    }));
+    const rawContact = (row.contact ?? {}) as Record<string, unknown>;
+    const contact: Record<string, string> = {};
+    for (const k of Object.keys(rawContact)) contact[k] = String(rawContact[k] ?? "");
+    return { found: true as const, answers, contact };
   });
 
 const SendResumeInput = z.object({
