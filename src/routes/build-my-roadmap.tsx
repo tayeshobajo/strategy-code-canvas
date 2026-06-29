@@ -375,7 +375,8 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
               email: String(c.email ?? p.email ?? ""),
             }));
             setResumeToken(token);
-            setStep(0);
+            // Do NOT advance step here. Begin must remain an explicit user click.
+            // The intro screen (step === -1) stays until the user presses Begin.
             try { window.localStorage.setItem(STORAGE_KEY, token); } catch { /* noop */ }
             // Ensure ?draft= is on the URL for shareability
             if (!url.searchParams.get("draft")) {
