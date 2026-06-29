@@ -913,11 +913,23 @@ function QuestionPanel({
   // Reset touched as the user moves between steps
   React.useEffect(() => { setTouched(false); }, [q.key]);
   const showRequiredHint = !isOptional && !hasText && touched;
+  // Parse the eyebrow ("01 / Where you are") so we can color the numeral royal.
+  const [eyebrowNum, ...eyebrowRest] = q.eyebrow.split(" / ");
+  const eyebrowTail = eyebrowRest.join(" / ");
+  const hasMirror = !!reflection?.text;
+  const isLoading = reflection?.state === "loading";
+  const isError = reflection?.state === "error";
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/55">
-        {q.eyebrow}
-        {isOptional && <span className="ml-3 text-ink/35 normal-case tracking-[0.04em]">optional</span>}
+      <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/70">
+        <span style={{ color: ROYAL }}>{eyebrowNum}</span>
+        {eyebrowTail && <span className="text-ink/40"> / </span>}
+        {eyebrowTail && <span>{eyebrowTail}</span>}
+        {isOptional && (
+          <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/60">
+            optional
+          </span>
+        )}
       </p>
       <h2 className="mt-4 font-display text-[clamp(1.5rem,2.6vw,2rem)] leading-[1.25] tracking-[-0.015em] text-ink">
         {q.before}
@@ -942,33 +954,65 @@ function QuestionPanel({
         </p>
       )}
 
-      <div className="min-h-[64px] mt-3">
-        {reflection?.state === "loading" && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/45">
-            reading that back&hellip;
-          </p>
-        )}
-        {reflection?.state === "ready" && reflection.text && (
-          <div>
+      {/* Mirror card — stale-while-revalidating, never empties once it has text. */}
+      <div
+        className="mt-5 rounded-2xl border px-6 py-6 transition-opacity duration-300"
+        style={{
+          backgroundColor: "#FBFAF6",
+          borderColor: "rgba(10,15,31,0.10)",
+          minHeight: 132,
+          opacity: isLoading && hasMirror ? 0.94 : 1,
+        }}
+        aria-live="polite"
+      >
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
+            <span aria-hidden="true" className="inline-block h-[14px] w-px" style={{ backgroundColor: ROYAL }} />
+            A reader hears
+          </span>
+          {isLoading && (
+            <span className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.24em] text-ink/55">
+              <span
+                aria-hidden="true"
+                className="inline-block h-[6px] w-[6px] rounded-full motion-safe:animate-pulse"
+                style={{ backgroundColor: ROYAL }}
+              />
+              refining
+            </span>
+          )}
+        </div>
+
+        {hasMirror ? (
+          <>
             <p
-              className="font-display italic text-[15px] leading-[1.7]"
-              style={{ color: "rgba(10,15,31,0.42)" }}
+              className="mt-3 font-display italic text-[16.5px] leading-[1.75]"
+              style={{ color: "rgba(10,15,31,0.78)" }}
             >
-              {reflection.text}
+              {reflection?.text}
             </p>
-            <button
-              type="button"
-              onClick={onUseReflected}
-              className="mt-2 font-mono text-[11px] uppercase tracking-[0.24em] underline decoration-royal/30 underline-offset-[5px] hover:decoration-royal"
-              style={{ color: ROYAL }}
-            >
-              use these words
-            </button>
-          </div>
-        )}
-        {reflection?.state === "error" && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/45">
-            we could not read that back. your words are fine as written.
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onUseReflected}
+                className="inline-flex items-center rounded-full border border-ink/15 bg-white px-3.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.24em] transition-colors hover:bg-[rgba(37,99,255,0.06)]"
+                style={{ color: ROYAL }}
+              >
+                use these words
+              </button>
+              {isError && (
+                <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/50">
+                  couldn&rsquo;t refine just now
+                </span>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="mt-3 font-display italic text-[15px] leading-[1.7] text-ink/45">
+            {isLoading
+              ? "Reading what you just wrote\u2026"
+              : isError
+                ? "We couldn\u2019t read that back. Your words are fine as written."
+                : "A mirror appears once you pause. Write the way you talk."}
           </p>
         )}
       </div>
@@ -979,7 +1023,7 @@ function QuestionPanel({
           <button
             type="button"
             onClick={onBack}
-            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55 hover:text-ink"
+            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/60 hover:text-ink"
           >
             ← back
           </button>
@@ -995,12 +1039,21 @@ function QuestionPanel({
         </button>
       </div>
 
-      <p className="mt-6 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/40">
-        {String(index + 1).padStart(2, "0")} of {String(total).padStart(2, "0")}
-      </p>
+      <div className="mt-6 flex items-center gap-3">
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/65">
+          {String(index + 1).padStart(2, "0")} of {String(total).padStart(2, "0")}
+        </span>
+        <span aria-hidden="true" className="relative inline-block h-px w-[44px] bg-ink/15">
+          <span
+            className="absolute inset-y-0 left-0 bg-ink/55"
+            style={{ width: `${Math.min(100, ((index + 1) / total) * 100)}%`, transition: "width 400ms ease-out" }}
+          />
+        </span>
+      </div>
     </div>
   );
 }
+
 
 function ReviewAndContact({
   answers,
