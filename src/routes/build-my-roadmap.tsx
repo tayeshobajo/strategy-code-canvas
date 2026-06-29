@@ -926,9 +926,8 @@ function QuestionPanel({
         {eyebrowTail && <span className="text-ink/40"> / </span>}
         {eyebrowTail && <span>{eyebrowTail}</span>}
         {isOptional && (
-          <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/60">
-            optional
-          </span>
+          <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/60">optional</span>
+
         )}
       </p>
       <h2 className="mt-4 font-display text-[clamp(1.5rem,2.6vw,2rem)] leading-[1.25] tracking-[-0.015em] text-ink">
