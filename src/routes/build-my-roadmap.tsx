@@ -795,17 +795,13 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       className="relative"
     >
       {/* Room header — Trust Tai mark / autosave status / exit */}
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-ink/8 pb-6">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-ink/8 pb-4">
         <div className="flex items-center gap-4">
           <img
             src={trustTaiLogoDark.url}
             alt="Trust Tai"
             className="h-7 w-auto sm:h-8 transition-opacity duration-200 hover:opacity-90"
           />
-          <span aria-hidden="true" className="hidden h-5 w-px bg-ink/15 sm:inline-block" />
-          <span className="hidden font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/55 sm:inline">
-            Roadmap intake
-          </span>
         </div>
         <div className="flex shrink-0 items-center gap-4 sm:gap-6">
           {saveLabel && (
@@ -832,11 +828,14 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           )}
           {onExit && (
             <>
-              <span aria-hidden="true" className="hidden h-[3px] w-[3px] rounded-full bg-ink/20 sm:inline-block" />
+              <span aria-hidden="true" className="hidden h-[3px] w-[3px] rounded-full bg-[#B91C1C]/30 sm:inline-block" />
               <button
                 type="button"
                 onClick={onExit}
-                className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink/65 transition-colors hover:text-ink"
+                className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] transition-colors"
+                style={{ color: "#B91C1C" }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#7F1D1D"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "#B91C1C"; }}
               >
                 <LogOut aria-hidden="true" className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-[2px]" />
                 <span className="hidden sm:inline">Exit and return home</span>
@@ -847,7 +846,12 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       </header>
 
 
-      <div className="pt-10 lg:pt-12">
+
+      <div className="pt-6 lg:pt-8">
+        {/* Section eyebrow above the journey dots */}
+        <p className="mb-4 text-center font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/55">
+          Roadmap intake
+        </p>
         {/* Journey path */}
         <JourneyPath
           step={step}
@@ -863,7 +867,8 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         />
 
 
-        <div className="mx-auto mt-12 max-w-[820px]">
+
+        <div className="mx-auto mt-8 max-w-[820px]">
           {step === -1 && (
             <IntakeIntro onBegin={() => { track("intake_started", {}); setStep(0); }} />
           )}
@@ -905,7 +910,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         </div>
 
         {step >= 0 && step < total && (
-          <div className="mx-auto mt-16 max-w-[560px] text-center">
+          <div className="mx-auto mt-10 max-w-[560px] text-center">
             <div className="flex items-center justify-center gap-4">
               <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
               <button
@@ -955,7 +960,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
         {/* Quiet bottom note — present across every step except the sent confirmation */}
         {step !== total + 1 && (
-          <p className="mx-auto mt-10 max-w-[640px] text-center font-display italic text-[13.5px] leading-[1.7] text-ink/55">
+          <p className="mx-auto mt-6 max-w-[640px] text-center font-display italic text-[13.5px] leading-[1.7] text-ink/55">
             A person reads every word. This is a note to understand you, not a form to qualify you.
           </p>
         )}
@@ -997,11 +1002,14 @@ function JourneyPath({
 }) {
   const reduce = usePrefersReducedMotion();
   const LENGTH = 680;
-  const offset = reduce ? 0 : LENGTH * (1 - progress);
   const STOPS = milestoneStates.length;
+  // Line tracks the active dot, not answered-required count.
+  const lineProgress = atReview ? 1 : step <= 0 ? 0 : Math.min(1, step / (STOPS - 1));
+  const offset = reduce ? 0 : LENGTH * (1 - lineProgress);
   const points = Array.from({ length: STOPS }, (_, i) => pointOnPath(i / (STOPS - 1)));
   const bg = "oklch(0.97 0.02 255)";
   const pct = Math.round(progress * 100);
+
 
   // Active label tracks the currently focused milestone — past, current, skipped, or review.
   const activeLabel = React.useMemo(() => {
@@ -2107,7 +2115,7 @@ function IntakeOverlay({
       role="dialog"
       aria-modal="true"
       aria-label="Leave a Roadmap note"
-      className="fixed inset-0 z-[80] overflow-y-auto"
+      className="fixed inset-0 z-[80] flex min-h-screen items-center justify-center overflow-y-auto px-3 py-4"
       style={{
         backgroundColor: "rgba(10,15,31,0.42)",
         backdropFilter: "blur(12px)",
@@ -2120,7 +2128,7 @@ function IntakeOverlay({
       }}
     >
       <div
-        className="mx-auto my-5 w-[min(100%-20px,1140px)] sm:my-10"
+        className="mx-auto w-[min(100%-12px,1140px)]"
         style={{
           opacity: reduce ? 1 : visible ? 1 : 0,
           transform: reduce ? "none" : visible ? "translateY(0)" : "translateY(14px)",
@@ -2130,7 +2138,7 @@ function IntakeOverlay({
         }}
       >
         <div
-          className="relative overflow-hidden rounded-[32px] border px-6 py-8 sm:px-12 sm:py-12 lg:px-20 lg:py-16"
+          className="relative overflow-hidden rounded-[28px] border px-6 py-6 sm:px-10 sm:py-8 lg:px-14 lg:py-10"
           style={{
             backgroundColor: "oklch(0.97 0.02 255)",
             borderColor: "rgba(10,15,31,0.10)",
@@ -2142,7 +2150,7 @@ function IntakeOverlay({
           {/* Soft top vignette for depth */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-[260px]"
+            className="pointer-events-none absolute inset-x-0 top-0 h-[220px]"
             style={{
               background:
                 "radial-gradient(ellipse 70% 100% at 50% 0%, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)",
@@ -2155,6 +2163,7 @@ function IntakeOverlay({
     </div>,
     document.body,
   );
+
 }
 
 
@@ -2191,22 +2200,15 @@ function BuildMyRoadmapPage() {
     }
   }, []);
 
-  // Initial mount: open the overlay if URL says so, or if a draft token exists.
+  // Initial mount: never auto-open. If the URL still carries ?write=open from a
+  // previous session, strip it silently so a refresh lands on the page, not the overlay.
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const url = new URL(window.location.href);
-      const writeParam = url.searchParams.get("write");
-      const fromUrl = url.searchParams.get("draft");
-      const fromLs = window.localStorage.getItem(STORAGE_KEY);
-      const hasDraft =
-        (fromUrl && UUID_RE.test(fromUrl)) || (fromLs && UUID_RE.test(fromLs));
-      if (writeParam === "open" || hasDraft) {
-        setIntakeOpen(true);
-        if (writeParam !== "open") {
-          url.searchParams.set("write", "open");
-          window.history.replaceState({}, "", url.toString());
-        }
+      if (url.searchParams.has("write")) {
+        url.searchParams.delete("write");
+        window.history.replaceState({}, "", url.toString());
       }
     } catch { /* noop */ }
   }, []);
