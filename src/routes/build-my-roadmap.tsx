@@ -166,6 +166,26 @@ const REFLECT_TIMEOUT_MS = 12000;
 const STORAGE_KEY = "tt:intake:token:v1";
 const PATH_D = "M22,64 C 200,30 300,82 400,52 S 560,24 658,34";
 
+// Lightweight analytics shim — fires to GTM dataLayer and gtag if present,
+// and always emits a CustomEvent so other listeners (Plausible, Segment shim,
+// tests) can subscribe without coupling to a vendor.
+type TrackPayload = Record<string, string | number | boolean | null | undefined>;
+function track(event: string, payload: TrackPayload = {}) {
+  if (typeof window === "undefined") return;
+  const data = { event, ...payload, ts: Date.now() };
+  try {
+    const w = window as unknown as {
+      dataLayer?: Array<Record<string, unknown>>;
+      gtag?: (...args: unknown[]) => void;
+    };
+    if (Array.isArray(w.dataLayer)) w.dataLayer.push(data);
+    if (typeof w.gtag === "function") w.gtag("event", event, payload);
+    window.dispatchEvent(new CustomEvent("tt:analytics", { detail: data }));
+  } catch {
+    /* analytics must never break the form */
+  }
+}
+
 type IntakeQuestion = {
   key: string;
   eyebrow: string;
@@ -264,6 +284,8 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
   const [hydrated, setHydrated] = React.useState(false);
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
   const [resumeNote, setResumeNote] = React.useState<{ kind: "sent" | "saved" | "error"; text: string } | null>(null);
+  const [autosaveError, setAutosaveError] = React.useState<boolean>(false);
+  const lastSubmitPayload = React.useRef<Record<string, unknown> | null>(null);
 
   const total = QUESTIONS.length;
   const requiredAnsweredCount = React.useMemo(
@@ -314,6 +336,7 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
               url.searchParams.set("draft", token);
               window.history.replaceState({}, "", url.toString());
             }
+            track("intake_draft_resumed", { resume_token: token, answers_count: Object.keys(rebuilt).length });
           } else {
             // stale token, drop it
             try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
@@ -363,8 +386,12 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
               window.history.replaceState({}, "", url.toString());
             } catch { /* noop */ }
           }
+          setAutosaveError(false);
+          track("intake_draft_saved", { resume_token: res?.resume_token ?? null, answers_count: payload.answers.length });
         } catch (err) {
           console.warn("[intake] autosave failed (non-blocking)", err);
+          setAutosaveError(true);
+          track("intake_draft_save_failed", { resume_token: resumeToken });
         }
       })();
     }, 900);
@@ -464,11 +491,26 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
   };
 
   const advance = () => {
+    if (step >= 0 && step < total) {
+      const q = QUESTIONS[step];
+      const filled = (answers[q.key]?.response ?? "").trim().length > 0;
+      track("intake_question_advanced", {
+        key: q.key,
+        index: step + 1,
+        optional: !!q.optional,
+        skipped: !!q.optional && !filled,
+        characters: (answers[q.key]?.response ?? "").length,
+      });
+      if (step === total - 1) track("intake_review_reached", {});
+    }
     if (step < total - 1) setStep(step + 1);
     else setStep(total); // to review
   };
   const back = () => {
-    if (step > -1) setStep(step - 1);
+    if (step > -1) {
+      track("intake_question_back", { from_index: step + 1 });
+      setStep(step - 1);
+    }
   };
 
   const validateContact = (state: ContactState = contact, consentState: boolean = consent) => {
@@ -495,7 +537,10 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
     if (status === "submitting") return;
     const ce = validateContact();
     setContactErrors(ce);
-    if (Object.keys(ce).length > 0) return;
+    if (Object.keys(ce).length > 0) {
+      track("intake_submit_validation_failed", { fields: Object.keys(ce).join(",") });
+      return;
+    }
 
     setStatus("submitting");
     const payload = {
@@ -512,6 +557,8 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
       })).filter((a) => a.response.length > 0),
       resume_token: resumeToken ?? undefined,
     };
+    lastSubmitPayload.current = payload;
+    track("intake_submit_started", { answers_count: payload.answers.length, resume_token: resumeToken });
 
     try {
       const mod = await import("@/lib/intake.functions");
@@ -525,10 +572,19 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
       setResumeToken(null);
       setStep(total + 1);
       setStatus("idle");
+      track("intake_submit_success", { answers_count: payload.answers.length });
     } catch (err) {
       console.error("[intake] submit failed", err);
       setStatus("error");
+      track("intake_submit_failed", { message: (err as Error)?.message?.slice(0, 200) ?? "" });
     }
+  };
+
+  const onRetrySubmit = () => {
+    // Re-fires from the latest captured form state. Answers stay in React state, so nothing is lost.
+    const fakeEvent = { preventDefault: () => {} } as unknown as React.FormEvent;
+    track("intake_submit_retry", {});
+    void onSubmit(fakeEvent);
   };
 
   const onSaveAndComeBack = async () => {
@@ -573,12 +629,15 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await mod.sendResumeLink({ data: { resume_token: token, email, resume_url: resumeUrl, name: contact.name.trim() } } as any);
         setResumeNote({ kind: "sent", text: `a continue link is on its way to ${email}.` });
+        track("intake_resume_link_sent", { resume_token: token });
       } else {
         setResumeNote({ kind: "saved", text: "your progress is saved to this link. bookmark it and come back anytime." });
+        track("intake_draft_saved_manual", { resume_token: token });
       }
     } catch (err) {
       console.warn("[intake] save and come back failed", err);
-      setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page." });
+      setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page. try again, or copy this page URL to come back to." });
+      track("intake_save_and_come_back_failed", { message: (err as Error)?.message?.slice(0, 200) ?? "" });
     }
   };
 
@@ -603,7 +662,7 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
 
         <div className="mx-auto mt-10 max-w-[760px]">
           {step === -1 && (
-            <IntakeIntro onBegin={() => setStep(0)} />
+            <IntakeIntro onBegin={() => { track("intake_started", {}); setStep(0); }} />
           )}
 
           {currentQuestion && (
@@ -632,6 +691,7 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
               onEdit={(i) => setStep(i)}
               onBack={() => setStep(total - 1)}
               onSubmit={onSubmit}
+              onRetry={onRetrySubmit}
             />
           )}
 
@@ -648,8 +708,30 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
               save and come back later
             </button>
             {resumeNote && (
-              <p className="mt-3 font-mono text-[11px] normal-case tracking-[0.04em] text-ink/55">
+              <p
+                role={resumeNote.kind === "error" ? "alert" : undefined}
+                className={`mt-3 font-mono text-[11px] normal-case tracking-[0.04em] ${
+                  resumeNote.kind === "error" ? "text-[#B91C1C]" : "text-ink/55"
+                }`}
+              >
                 {resumeNote.text}
+                {resumeNote.kind === "error" && (
+                  <>
+                    {" "}
+                    <button
+                      type="button"
+                      onClick={onSaveAndComeBack}
+                      className="underline decoration-[#B91C1C]/40 underline-offset-[4px] hover:decoration-[#B91C1C]"
+                    >
+                      try again
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
+            {autosaveError && !resumeNote && (
+              <p role="status" className="mt-3 font-mono text-[11px] normal-case tracking-[0.04em] text-ink/45">
+                autosave paused. your words stay on this page. we will retry as you type.
               </p>
             )}
           </div>
@@ -774,6 +856,10 @@ function QuestionPanel({
   const canAdvance = isOptional || hasText;
   const isLast = index === total - 1;
   const primaryLabel = isLast ? "Review" : isOptional && !hasText ? "Skip" : "Continue";
+  const [touched, setTouched] = React.useState(false);
+  // Reset touched as the user moves between steps
+  React.useEffect(() => { setTouched(false); }, [q.key]);
+  const showRequiredHint = !isOptional && !hasText && touched;
   return (
     <div>
       <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/55">
@@ -789,11 +875,19 @@ function QuestionPanel({
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={() => setTouched(true)}
         rows={6}
         placeholder={q.placeholder}
-        className="mt-8 w-full resize-none rounded-md border border-rule bg-white/70 px-5 py-4 text-[15px] leading-[1.7] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
+        aria-invalid={showRequiredHint}
+        aria-describedby={showRequiredHint ? `${q.key}-hint` : undefined}
+        className={`mt-8 w-full resize-none rounded-md border bg-white/70 px-5 py-4 text-[15px] leading-[1.7] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${showRequiredHint ? "border-[#B91C1C]/60" : "border-rule"}`}
         autoFocus
       />
+      {showRequiredHint && (
+        <p id={`${q.key}-hint`} className="mt-2 font-mono text-[11px] normal-case tracking-[0.04em] text-[#B91C1C]">
+          this one is required. a sentence or two is plenty.
+        </p>
+      )}
 
       <div className="min-h-[64px] mt-3">
         {reflection?.state === "loading" && (
@@ -866,6 +960,7 @@ function ReviewAndContact({
   onEdit,
   onBack,
   onSubmit,
+  onRetry,
 }: {
   answers: Record<string, AnswerRecord>;
   contact: ContactState;
@@ -877,6 +972,7 @@ function ReviewAndContact({
   onEdit: (index: number) => void;
   onBack: () => void;
   onSubmit: (e: React.FormEvent) => void;
+  onRetry: () => void;
 }) {
   return (
     <div>
@@ -1011,13 +1107,25 @@ function ReviewAndContact({
         </div>
 
         {status === "error" && (
-          <p className="mt-6 text-[13px] leading-[1.7] text-ink/70">
-            That did not send. Your words are still here. Try once more, or email{" "}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="underline decoration-ink/30 underline-offset-2 hover:text-ink">
-              {CONTACT_EMAIL}
-            </a>{" "}
-            directly.
-          </p>
+          <div
+            role="alert"
+            className="mt-6 rounded-md border border-[#B91C1C]/30 bg-[#B91C1C]/5 p-4 text-[13px] leading-[1.7] text-ink/80"
+          >
+            <p>
+              That did not send. Your words are still here. Try once more, or email{" "}
+              <a href={`mailto:${CONTACT_EMAIL}`} className="underline decoration-ink/30 underline-offset-2 hover:text-ink">
+                {CONTACT_EMAIL}
+              </a>{" "}
+              directly.
+            </p>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-ink/25 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-ink hover:border-ink/60"
+            >
+              Try again
+            </button>
+          </div>
         )}
       </form>
     </div>
