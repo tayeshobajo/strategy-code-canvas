@@ -122,14 +122,36 @@ function ConversationLead() {
     <section className="bg-paper">
       <div className={`${container} pt-14 pb-8 lg:pt-16 lg:pb-10`}>
         <Reveal
-          as="p"
+          as="div"
           variant="fade-up"
-          className="mx-auto max-w-[60ch] text-center text-[14.5px] leading-[1.8] text-ink/70"
+          className="mx-auto flex max-w-[60ch] items-start justify-center gap-4"
         >
-          One 30-minute conversation. We listen first, then tell you honestly what we see.
+          <span
+            aria-hidden="true"
+            className="mt-[2px] inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border"
+            style={{ borderColor: "rgba(37,99,255,0.35)" }}
+          >
+            <ClockGlyph />
+          </span>
+          <p className="text-[14.5px] leading-[1.8] text-ink/75">
+            <span className="font-medium text-ink">One 30-minute conversation.</span>
+            <br />
+            No slides, no pitch, no obligation.
+          </p>
         </Reveal>
       </div>
     </section>
+  );
+}
+
+function ClockGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.2} strokeLinecap="round">
+        <circle cx={12} cy={12} r={8} />
+        <path d="M 12 7 L 12 12 L 16 14" />
+      </g>
+    </svg>
   );
 }
 
