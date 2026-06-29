@@ -101,6 +101,27 @@ export type Database = {
         }
         Relationships: []
       }
+      intake_drafts: {
+        Row: {
+          answers: Json
+          contact: Json
+          resume_token: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          contact?: Json
+          resume_token?: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          contact?: Json
+          resume_token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       intake_submissions: {
         Row: {
           answers: Json
