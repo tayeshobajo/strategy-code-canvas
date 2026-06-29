@@ -537,7 +537,10 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
     if (status === "submitting") return;
     const ce = validateContact();
     setContactErrors(ce);
-    if (Object.keys(ce).length > 0) return;
+    if (Object.keys(ce).length > 0) {
+      track("intake_submit_validation_failed", { fields: Object.keys(ce).join(",") });
+      return;
+    }
 
     setStatus("submitting");
     const payload = {
@@ -554,6 +557,8 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
       })).filter((a) => a.response.length > 0),
       resume_token: resumeToken ?? undefined,
     };
+    lastSubmitPayload.current = payload;
+    track("intake_submit_started", { answers_count: payload.answers.length, resume_token: resumeToken });
 
     try {
       const mod = await import("@/lib/intake.functions");
@@ -567,10 +572,19 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
       setResumeToken(null);
       setStep(total + 1);
       setStatus("idle");
+      track("intake_submit_success", { answers_count: payload.answers.length });
     } catch (err) {
       console.error("[intake] submit failed", err);
       setStatus("error");
+      track("intake_submit_failed", { message: (err as Error)?.message?.slice(0, 200) ?? "" });
     }
+  };
+
+  const onRetrySubmit = () => {
+    // Re-fires from the latest captured form state. Answers stay in React state, so nothing is lost.
+    const fakeEvent = { preventDefault: () => {} } as unknown as React.FormEvent;
+    track("intake_submit_retry", {});
+    void onSubmit(fakeEvent);
   };
 
   const onSaveAndComeBack = async () => {
