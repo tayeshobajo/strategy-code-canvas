@@ -2250,7 +2250,7 @@ function TwoDoors({
                   </p>
                   <ul className="mt-6 space-y-2.5 text-left">
                     {[
-                      "Four questions, four more if you want",
+                      "Four questions are enough to begin. Four more help us see deeper.",
                       "Keep it rough, we read with care",
                       "Save and come back anytime",
                     ].map((t) => (
