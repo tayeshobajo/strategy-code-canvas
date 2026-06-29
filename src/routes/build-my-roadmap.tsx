@@ -847,9 +847,9 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
 
 
-      <div className="pt-6 lg:pt-8">
+      <div className="pt-4 lg:pt-5">
         {/* Section eyebrow above the journey dots */}
-        <p className="mb-4 text-center font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/55">
+        <p className="mb-3 text-center font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/55">
           Roadmap intake
         </p>
         {/* Journey path */}
@@ -868,7 +868,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
 
 
-        <div className="mx-auto mt-8 max-w-[820px]">
+        <div className="mx-auto mt-6 max-w-[820px]">
           {step === -1 && (
             <IntakeIntro onBegin={() => { track("intake_started", {}); setStep(0); }} />
           )}
@@ -910,7 +910,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         </div>
 
         {step >= 0 && step < total && (
-          <div className="mx-auto mt-10 max-w-[560px] text-center">
+          <div className="mx-auto mt-6 max-w-[560px] text-center">
             <div className="flex items-center justify-center gap-4">
               <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
               <button
@@ -960,7 +960,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
         {/* Quiet bottom note — present across every step except the sent confirmation */}
         {step !== total + 1 && (
-          <p className="mx-auto mt-6 max-w-[640px] text-center font-display italic text-[13.5px] leading-[1.7] text-ink/55">
+          <p className="mx-auto mt-4 max-w-[640px] text-center font-display italic text-[13px] leading-[1.65] text-ink/55">
             A person reads every word. This is a note to understand you, not a form to qualify you.
           </p>
         )}
@@ -1001,11 +1001,37 @@ function JourneyPath({
   atReview: boolean;
 }) {
   const reduce = usePrefersReducedMotion();
-  const LENGTH = 680;
   const STOPS = milestoneStates.length;
+  // Build a cumulative arc-length table so the drawn line ends exactly on each milestone dot.
+  const arc = React.useMemo(() => {
+    const N = 240;
+    const cum: number[] = [0];
+    let total = 0;
+    let prev = pointOnPath(0);
+    for (let i = 1; i <= N; i++) {
+      const p = pointOnPath(i / N);
+      total += Math.hypot(p.x - prev.x, p.y - prev.y);
+      cum.push(total);
+      prev = p;
+    }
+    return { cum, total, N };
+  }, []);
+  const lengthAt = React.useCallback(
+    (t: number) => {
+      const clamped = Math.max(0, Math.min(1, t));
+      const idx = clamped * arc.N;
+      const lo = Math.floor(idx);
+      const hi = Math.min(arc.N, lo + 1);
+      const f = idx - lo;
+      return arc.cum[lo] + (arc.cum[hi] - arc.cum[lo]) * f;
+    },
+    [arc],
+  );
+  const LENGTH = arc.total;
   // Line tracks the active dot, not answered-required count.
-  const lineProgress = atReview ? 1 : step <= 0 ? 0 : Math.min(1, step / (STOPS - 1));
-  const offset = reduce ? 0 : LENGTH * (1 - lineProgress);
+  const lineT = atReview ? 1 : step <= 0 ? 0 : Math.min(1, step / (STOPS - 1));
+  const drawn = lengthAt(lineT);
+  const offset = reduce ? 0 : LENGTH - drawn;
   const points = Array.from({ length: STOPS }, (_, i) => pointOnPath(i / (STOPS - 1)));
   const bg = "oklch(0.97 0.02 255)";
   const pct = Math.round(progress * 100);
@@ -2138,7 +2164,7 @@ function IntakeOverlay({
         }}
       >
         <div
-          className="relative overflow-hidden rounded-[28px] border px-6 py-6 sm:px-10 sm:py-8 lg:px-14 lg:py-10"
+          className="relative overflow-hidden rounded-[28px] border px-6 py-5 sm:px-10 sm:py-6 lg:px-14 lg:py-8"
           style={{
             backgroundColor: "oklch(0.97 0.02 255)",
             borderColor: "rgba(10,15,31,0.10)",
