@@ -252,7 +252,7 @@ type AnswerRecord = { response: string; reflected_offered: string | null };
 type ContactState = { name: string; business: string; website: string; email: string };
 type SubmitStatus = "idle" | "submitting" | "error";
 
-function IntakeExperience() {
+function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React.RefObject<HTMLDivElement | null> }) {
   const [step, setStep] = React.useState<number>(-1); // -1 intro, 0..7 questions, 8 review+contact, 9 sent
   const [answers, setAnswers] = React.useState<Record<string, AnswerRecord>>({});
   const [reflections, setReflections] = React.useState<Record<string, { state: "idle" | "loading" | "ready" | "error"; text: string }>>({});
@@ -261,48 +261,122 @@ function IntakeExperience() {
   const [contactErrors, setContactErrors] = React.useState<{ name?: string; email?: string; website?: string }>({});
   const [status, setStatus] = React.useState<SubmitStatus>("idle");
   const [hydrated, setHydrated] = React.useState(false);
+  const [resumeToken, setResumeToken] = React.useState<string | null>(null);
+  const [resumeNote, setResumeNote] = React.useState<{ kind: "sent" | "saved" | "error"; text: string } | null>(null);
 
   const total = QUESTIONS.length;
-  const progress = step < 0 ? 0 : Math.min(1, step / total);
+  const requiredAnsweredCount = React.useMemo(
+    () => REQUIRED_KEYS.filter((k) => (answers[k]?.response ?? "").trim().length > 0).length,
+    [answers],
+  );
+  const progress = step < 0 ? 0 : Math.min(1, requiredAnsweredCount / REQUIRED_KEYS.length);
 
-  // Hydrate from localStorage on mount
+  // Hydrate from URL ?draft= or localStorage token on mount
   React.useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as {
-          answers?: Record<string, AnswerRecord>;
-          contact?: Partial<ContactState>;
-          consent?: boolean;
-        };
-        if (parsed.answers && typeof parsed.answers === "object") setAnswers(parsed.answers);
-        if (parsed.contact) setContact((p) => ({ ...p, ...parsed.contact }));
-        if (typeof parsed.consent === "boolean") setConsent(parsed.consent);
+    let cancelled = false;
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        let token = url.searchParams.get("draft");
+        if (!token) {
+          try { token = window.localStorage.getItem(STORAGE_KEY); } catch { /* noop */ }
+        }
+        if (token && UUID_RE.test(token)) {
+          const mod = await import("@/lib/intake.functions");
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const res = await mod.loadDraft({ data: { resume_token: token } } as any);
+          if (cancelled) return;
+          if (res?.found) {
+            const rebuilt: Record<string, AnswerRecord> = {};
+            for (const a of res.answers ?? []) {
+              if (a && typeof a.key === "string") {
+                rebuilt[a.key] = {
+                  response: String(a.response ?? ""),
+                  reflected_offered: a.reflected_offered == null ? null : String(a.reflected_offered),
+                };
+              }
+            }
+            setAnswers(rebuilt);
+            const c = res.contact ?? {};
+            setContact((p) => ({
+              name: String(c.name ?? p.name ?? ""),
+              business: String(c.business ?? p.business ?? ""),
+              website: String(c.website ?? p.website ?? ""),
+              email: String(c.email ?? p.email ?? ""),
+            }));
+            setResumeToken(token);
+            try { window.localStorage.setItem(STORAGE_KEY, token); } catch { /* noop */ }
+            // Ensure ?draft= is on the URL for shareability
+            if (!url.searchParams.get("draft")) {
+              url.searchParams.set("draft", token);
+              window.history.replaceState({}, "", url.toString());
+            }
+          } else {
+            // stale token, drop it
+            try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+          }
+        }
+      } catch (err) {
+        console.warn("[intake] could not restore draft", err);
+      } finally {
+        if (!cancelled) setHydrated(true);
       }
-    } catch (err) {
-      console.warn("[intake] could not restore draft", err);
-    } finally {
-      setHydrated(true);
-    }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  // Persist on change
+  // Debounced server-side autosave through save-draft. Browser never writes to the table.
+  const saveTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const inflightSave = React.useRef<Promise<void> | null>(null);
   React.useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ answers, contact, consent }),
-      );
-    } catch {
-      // quota or privacy mode - silently ignore
-    }
-  }, [answers, contact, consent, hydrated]);
+    const hasAny =
+      Object.values(answers).some((a) => (a?.response ?? "").trim().length > 0) ||
+      contact.name.trim() || contact.email.trim() || contact.website.trim() || contact.business.trim();
+    if (!hasAny) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const payload = {
+        resume_token: resumeToken ?? undefined,
+        answers: QUESTIONS.map((q) => ({
+          key: q.key,
+          question: `${q.before}${q.accent}${q.after}`,
+          response: (answers[q.key]?.response ?? "").trim(),
+          reflected_offered: answers[q.key]?.reflected_offered ?? null,
+        })).filter((a) => a.response.length > 0),
+        contact,
+      };
+      inflightSave.current = (async () => {
+        try {
+          const mod = await import("@/lib/intake.functions");
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const res = await mod.saveDraft({ data: payload } as any);
+          if (res?.resume_token && res.resume_token !== resumeToken) {
+            setResumeToken(res.resume_token);
+            try { window.localStorage.setItem(STORAGE_KEY, res.resume_token); } catch { /* noop */ }
+            try {
+              const url = new URL(window.location.href);
+              url.searchParams.set("draft", res.resume_token);
+              window.history.replaceState({}, "", url.toString());
+            } catch { /* noop */ }
+          }
+        } catch (err) {
+          console.warn("[intake] autosave failed (non-blocking)", err);
+        }
+      })();
+    }, 900);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [answers, contact, resumeToken, hydrated]);
 
   const clearDraft = () => {
     if (typeof window === "undefined") return;
     try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("draft");
+      window.history.replaceState({}, "", url.toString());
+    } catch { /* noop */ }
   };
 
   const onAnswerChange = (key: string, value: string) => {
@@ -311,6 +385,17 @@ function IntakeExperience() {
       [key]: { response: value, reflected_offered: prev[key]?.reflected_offered ?? null },
     }));
   };
+
+  // When the door opens, scroll the intake into view.
+  React.useEffect(() => {
+    if (!open) return;
+    if (typeof window === "undefined") return;
+    const t = setTimeout(() => {
+      intakeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [open, intakeRef]);
+
 
   // Reflection debouncing per-question (with timeout + abort)
   const reflectTimers = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
