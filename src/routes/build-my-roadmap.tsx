@@ -275,7 +275,7 @@ type AnswerRecord = { response: string; reflected_offered: string | null };
 type ContactState = { name: string; business: string; website: string; email: string };
 type SubmitStatus = "idle" | "submitting" | "error";
 
-function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React.RefObject<HTMLDivElement | null> }) {
+function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRef: React.RefObject<HTMLDivElement | null>; onExit?: () => void }) {
   const [step, setStep] = React.useState<number>(-1); // -1 intro, 0..7 questions, 8 review+contact, 9 sent
   const [answers, setAnswers] = React.useState<Record<string, AnswerRecord>>({});
   const [reflections, setReflections] = React.useState<Record<string, { state: "idle" | "loading" | "ready" | "error"; text: string }>>({});
