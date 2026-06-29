@@ -436,14 +436,25 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
   const reflectAborts = React.useRef<Record<string, AbortController | undefined>>({});
   const lastKeystrokeAt = React.useRef<Record<string, number>>({});
   const commitTimers = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
+  // Track the last response value we actually fetched a reflection for, per
+  // question. Without this, any setAnswers call from inside the effect (e.g.
+  // committing `reflected_offered`) re-triggers the effect, restamps
+  // lastKeystrokeAt, and fires another fetch — an infinite token burn.
+  const lastFetchedFor = React.useRef<Record<string, string>>({});
   React.useEffect(() => {
     if (step < 0 || step >= total) return;
     const q = QUESTIONS[step];
     const value = answers[q.key]?.response ?? "";
     const trimmed = value.trim();
 
+    // If the response text hasn't changed since the last run, this effect was
+    // triggered by something else (e.g. reflected_offered being stored). Do
+    // nothing — no keystroke stamp, no fetch, no "refining" flicker.
+    if (lastFetchedFor.current[q.key] === trimmed) return;
+
     // Mark this keystroke; any pending commit will wait for the lock window.
     lastKeystrokeAt.current[q.key] = Date.now();
+
 
     const existing = reflectTimers.current[q.key];
     if (existing) clearTimeout(existing);
