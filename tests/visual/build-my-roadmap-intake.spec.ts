@@ -1,148 +1,213 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Route } from "@playwright/test";
 
 /**
- * End-to-end walk through the Build My Roadmap intake:
- *  - eight questions, one at a time
- *  - Point A always visible, Point B reveals at the review screen
- *  - the progress polyline (stroke-dashoffset) shrinks as the user advances
- *  - review screen lists every answer
- *  - submit screen renders the confirmation copy
+ * Build My Roadmap intake — behavioral coverage.
  *
- * Server functions (`reflectAnswer`, `submitIntake`) are stubbed so the
- * test never hits Anthropic or the database.
+ * Verifies:
+ *  - Required (4) vs optional (4) question gating: muted "optional" label,
+ *    Skip ↔ Continue toggle, progress line only tracks required answers.
+ *  - Final submit posts to submitIntake server fn and renders the
+ *    personalized confirmation screen.
+ *  - ?draft=<uuid> hydrates the intake from loadDraft and resumes at q1
+ *    with prior responses pre-filled.
+ *
+ * All server fns are stubbed so the test never touches Anthropic or the DB.
  */
 
-const ANSWERS = [
-  "We run a boutique strategy practice for founder-led teams.",
-  "We want a single page that captures the next twelve months clearly.",
-  "Hiring decisions and pricing changes still wait for me.",
-  "We hired an agency last year; the work did not stick after delivery.",
-  "A long client list and a podcast audience that already trusts us.",
-  "Revenue is steadier, the team owns delivery, and I am out of the day-to-day.",
-  "A productized engagement that other operators can deliver alongside me.",
-  "My partner and our head of ops, aiming for a launch by Q4.",
-];
+const REQUIRED_INDICES = [0, 2, 5, 7]; // current_state, the_weight, point_b, practical
+const OPTIONAL_INDICES = [1, 3, 4, 6]; // why_now, what_didnt_hold, unbuilt_asset, point_c
+const REQUIRED_TEXT = "Required answer body, written with care.";
+
+type StubCounts = {
+  reflect: number;
+  save: number;
+  load: number;
+  submit: number;
+  lastSubmitBody: string | null;
+};
+
+async function installServerFnStubs(
+  route: Route,
+  counts: StubCounts,
+  draftPayload?: { answers: Array<{ key: string; question: string; response: string; reflected_offered: string | null }>; contact: Record<string, string> },
+) {
+  const req = route.request();
+  if (req.method() !== "POST") return route.continue();
+  const url = req.url();
+  // TanStack server fn calls go through /_serverFn/ or query include the fn name.
+  // The function identifier appears in the URL or the post body; match either.
+  const body = (await req.postData()) ?? "";
+  const tag = (name: string) => url.includes(name) || body.includes(name);
+
+  if (tag("reflectAnswer")) {
+    counts.reflect += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ result: { text: "" }, text: "" }),
+    });
+  }
+  if (tag("saveDraft")) {
+    counts.save += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        result: { resume_token: "11111111-1111-4111-8111-111111111111" },
+        resume_token: "11111111-1111-4111-8111-111111111111",
+      }),
+    });
+  }
+  if (tag("loadDraft")) {
+    counts.load += 1;
+    const found = !!draftPayload;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        result: found
+          ? { found: true, answers: draftPayload!.answers, contact: draftPayload!.contact }
+          : { found: false, answers: [], contact: {} },
+      }),
+    });
+  }
+  if (tag("submitIntake")) {
+    counts.submit += 1;
+    counts.lastSubmitBody = body;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ result: { ok: true }, ok: true }),
+    });
+  }
+  return route.continue();
+}
 
 test.describe("Build My Roadmap intake", () => {
-  test.beforeEach(async ({ page }) => {
-    // Stub every TanStack server function POST so the flow is hermetic.
-    await page.route("**/*", async (route) => {
-      const req = route.request();
-      const url = req.url();
-      const isServerFn = url.includes("_serverFn") || url.includes("/api/") === false && req.method() === "POST" && url.includes("intake");
-      if (req.method() === "POST" && (url.includes("_serverFn") || isServerFn)) {
-        const body = (await req.postData()) ?? "";
-        if (body.includes("reflectAnswer") || url.includes("reflectAnswer")) {
-          return route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({ result: { text: "" }, text: "" }),
-          });
-        }
-        if (body.includes("submitIntake") || url.includes("submitIntake")) {
-          return route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({ result: { ok: true }, ok: true }),
-          });
-        }
-      }
-      return route.continue();
+  test("required gating, skip/continue toggle, progress, and submit", async ({ page, context }) => {
+    await context.clearCookies();
+    await page.addInitScript(() => {
+      try { window.localStorage.clear(); } catch { /* noop */ }
     });
+
+    const counts: StubCounts = { reflect: 0, save: 0, load: 0, submit: 0, lastSubmitBody: null };
+    await page.route("**/*", (route) => installServerFnStubs(route, counts));
 
     await page.goto("/build-my-roadmap", { waitUntil: "domcontentloaded" });
     await page.addStyleTag({
-      content: `*, *::before, *::after {
-        animation-duration: 0s !important;
-        transition-duration: 0s !important;
-      }`,
+      content: `*, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }`,
     });
-  });
 
-  test("walks all eight questions, reaches review and confirmation", async ({ page }) => {
-    // Begin
     await page.getByRole("button", { name: /^Begin$/ }).click();
 
-    // Capture initial dashoffset on the progress line (drawn blue path)
     const progressPath = page.locator("svg path[stroke='#2563FF']").first();
     const initialOffset = await progressPath.evaluate(
       (el) => Number((el as SVGPathElement).getAttribute("stroke-dashoffset")) || 0,
     );
 
-    for (let i = 0; i < ANSWERS.length; i++) {
-      const textarea = page.locator("textarea");
-      await expect(textarea).toBeVisible();
-      await textarea.fill(ANSWERS[i]);
+    // Walk q0..q7. Required (0,2,5,7): must show "Continue", fill required text.
+    // Optional (1,3,4,6): show "optional" label, button starts as "Skip", we skip them.
+    for (let i = 0; i < 8; i++) {
+      const isOptional = OPTIONAL_INDICES.includes(i);
+      const isLast = i === 7;
+      await expect(page.getByText(`${String(i + 1).padStart(2, "0")} of 08`)).toBeVisible();
 
-      // Counter "0X of 08"
-      await expect(
-        page.getByText(`${String(i + 1).padStart(2, "0")} of 08`, { exact: false }),
-      ).toBeVisible();
+      const optionalLabel = page.locator('span', { hasText: /^optional$/ });
+      if (isOptional) {
+        await expect(optionalLabel.first()).toBeVisible();
+        // Empty optional → Skip
+        await expect(page.getByRole("button", { name: /^Skip$/ })).toBeVisible();
+      } else {
+        await expect(optionalLabel).toHaveCount(0);
+        // Required + empty → Continue disabled
+        const continueBtn = page.getByRole("button", { name: isLast ? /^Review$/ : /^Continue$/ });
+        await expect(continueBtn).toBeDisabled();
+        await page.locator("textarea").fill(REQUIRED_TEXT);
+        await expect(continueBtn).toBeEnabled();
+      }
 
-      const label = i === ANSWERS.length - 1 ? /^Review$/ : /^Next$/;
-      await page.getByRole("button", { name: label }).click();
+      // After typing into an optional q the button must flip Skip → Continue.
+      if (i === 1) {
+        await page.locator("textarea").fill("some optional content");
+        await expect(page.getByRole("button", { name: /^Continue$/ })).toBeVisible();
+        // Clear it back to empty → Skip returns
+        await page.locator("textarea").fill("");
+        await expect(page.getByRole("button", { name: /^Skip$/ })).toBeVisible();
+      }
+
+      const nextLabel = isLast ? /^Review$/ : isOptional ? /^Skip$/ : /^Continue$/;
+      await page.getByRole("button", { name: nextLabel }).click();
     }
 
-    // Review screen
-    await expect(
-      page.getByRole("heading", { name: /Read it back/i }),
-    ).toBeVisible();
-
-    // Each prior answer should appear verbatim
-    for (const a of ANSWERS) {
-      await expect(page.getByText(a, { exact: false }).first()).toBeVisible();
-    }
-
-    // Progress line has advanced (offset shrunk) and Point B is now opaque
+    // Progress: 4 required answered → line advanced to Point B.
     const finalOffset = await progressPath.evaluate(
       (el) => Number((el as SVGPathElement).getAttribute("stroke-dashoffset")) || 0,
     );
     expect(finalOffset).toBeLessThan(initialOffset);
+    expect(finalOffset).toBeLessThanOrEqual(0.5); // fully drawn (dasharray 1)
 
-    const pointBLabel = page.getByText("Point B", { exact: false });
-    await expect(pointBLabel).toBeVisible();
-    const pointBOpacity = await pointBLabel.evaluate(
-      (el) => window.getComputedStyle(el).opacity,
-    );
-    expect(Number(pointBOpacity)).toBeGreaterThan(0.9);
+    // Review screen
+    await expect(page.getByRole("heading", { name: /Read it back/i })).toBeVisible();
+    // Required answers visible; optional q (skipped) shows "(nothing yet)"
+    await expect(page.getByText(REQUIRED_TEXT).first()).toBeVisible();
+    await expect(page.getByText(/\(nothing yet\)/).first()).toBeVisible();
 
-    // Client-side validation: submit with empty contact fields
-    await page.getByRole("button", { name: /^Send it$/ }).click();
-    await expect(page.getByText("Please add your name.")).toBeVisible();
-    await expect(page.getByText("Please add your email.")).toBeVisible();
-
-    // Fill contact, leave website empty -> consent checkbox should be disabled
+    // Fill contact + website + consent and submit
     await page.getByLabel(/Your name/i).fill("Jordan Tester");
     await page.getByLabel(/^Email/i).fill("jordan@example.com");
     const consent = page.locator('input[type="checkbox"]');
     await expect(consent).toBeDisabled();
-
-    // Add a website -> consent enables
     await page.getByLabel(/Website/i).fill("https://example.com");
     await expect(consent).toBeEnabled();
 
-    // Submit -> confirmation
     await page.getByRole("button", { name: /^Send it$/ }).click();
-    await expect(
-      page.getByRole("heading", { name: /We have it, Jordan/i }),
-    ).toBeVisible({ timeout: 10_000 });
+
+    await expect(page.getByRole("heading", { name: /We have it, Jordan/i })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    expect(counts.submit).toBe(1);
+    expect(counts.lastSubmitBody).toContain("jordan@example.com");
+    // Only the 4 required answers should be in the payload (optional skipped).
+    const payload = JSON.parse(counts.lastSubmitBody!);
+    const answers = payload?.data?.answers ?? payload?.answers ?? [];
+    expect(Array.isArray(answers)).toBe(true);
+    expect(answers.length).toBe(4);
   });
 
-  test("persists answers across reload before submission", async ({ page }) => {
-    await page.getByRole("button", { name: /^Begin$/ }).click();
-    await page.locator("textarea").fill(ANSWERS[0]);
-    await page.getByRole("button", { name: /^Next$/ }).click();
-    await page.locator("textarea").fill(ANSWERS[1]);
+  test("hydrates from ?draft=<uuid> via loadDraft", async ({ page, context }) => {
+    await context.clearCookies();
+    const TOKEN = "22222222-2222-4222-8222-222222222222";
+    const draftPayload = {
+      answers: [
+        { key: "current_state", question: "q1", response: "Hydrated current state answer.", reflected_offered: null },
+        { key: "the_weight", question: "q3", response: "Hydrated weight answer.", reflected_offered: null },
+      ],
+      contact: { name: "Resumed Founder", business: "", website: "", email: "resumed@example.com" },
+    };
 
-    // Reload mid-flow
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: /^Begin$/ }).click();
+    const counts: StubCounts = { reflect: 0, save: 0, load: 0, submit: 0, lastSubmitBody: null };
+    await page.route("**/*", (route) => installServerFnStubs(route, counts, draftPayload));
 
-    // The first question's draft should be restored
-    await expect(page.locator("textarea")).toHaveValue(ANSWERS[0]);
+    await page.goto(`/build-my-roadmap?draft=${TOKEN}`, { waitUntil: "domcontentloaded" });
+    await page.addStyleTag({
+      content: `*, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }`,
+    });
 
-    // Advance to question 2 - draft should also persist there
-    await page.getByRole("button", { name: /^Next$/ }).click();
-    await expect(page.locator("textarea")).toHaveValue(ANSWERS[1]);
+    // loadDraft jumps to step 0 with prior response prefilled.
+    const textarea = page.locator("textarea");
+    await expect(textarea).toBeVisible({ timeout: 8_000 });
+    await expect(textarea).toHaveValue("Hydrated current state answer.");
+    expect(counts.load).toBeGreaterThanOrEqual(1);
+
+    // URL retains the draft token.
+    expect(new URL(page.url()).searchParams.get("draft")).toBe(TOKEN);
+
+    // Skip optional q2, q3 is the_weight (required) and should already be filled.
+    await page.getByRole("button", { name: /^Continue$/ }).click(); // q0 already has text
+    // q1 (optional) - empty by default → Skip
+    await page.getByRole("button", { name: /^Skip$/ }).click();
+    // q2 (required: the_weight) prefilled
+    await expect(textarea).toHaveValue("Hydrated weight answer.");
   });
 });
