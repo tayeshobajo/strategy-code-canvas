@@ -691,6 +691,7 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
               onEdit={(i) => setStep(i)}
               onBack={() => setStep(total - 1)}
               onSubmit={onSubmit}
+              onRetry={onRetrySubmit}
             />
           )}
 
@@ -707,8 +708,30 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
               save and come back later
             </button>
             {resumeNote && (
-              <p className="mt-3 font-mono text-[11px] normal-case tracking-[0.04em] text-ink/55">
+              <p
+                role={resumeNote.kind === "error" ? "alert" : undefined}
+                className={`mt-3 font-mono text-[11px] normal-case tracking-[0.04em] ${
+                  resumeNote.kind === "error" ? "text-[#B91C1C]" : "text-ink/55"
+                }`}
+              >
                 {resumeNote.text}
+                {resumeNote.kind === "error" && (
+                  <>
+                    {" "}
+                    <button
+                      type="button"
+                      onClick={onSaveAndComeBack}
+                      className="underline decoration-[#B91C1C]/40 underline-offset-[4px] hover:decoration-[#B91C1C]"
+                    >
+                      try again
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
+            {autosaveError && !resumeNote && (
+              <p role="status" className="mt-3 font-mono text-[11px] normal-case tracking-[0.04em] text-ink/45">
+                autosave paused. your words stay on this page. we will retry as you type.
               </p>
             )}
           </div>
