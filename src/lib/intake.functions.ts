@@ -54,6 +54,125 @@ const AnswerSchema = z.object({
   reflected_offered: z.string().max(4000).nullable().optional(),
 });
 
+const ContactSchema = z.object({
+  name: z.string().trim().max(120).optional().default(""),
+  business: z.string().trim().max(200).optional().default(""),
+  website: z.string().trim().max(500).optional().default(""),
+  email: z.string().trim().max(255).optional().default(""),
+});
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SaveDraftInput = z.object({
+  resume_token: z.string().regex(UUID_RE).optional(),
+  answers: z.array(AnswerSchema).max(20).default([]),
+  contact: ContactSchema.default({ name: "", business: "", website: "", email: "" }),
+});
+
+export const saveDraft = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => SaveDraftInput.parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const row = {
+      answers: data.answers,
+      contact: data.contact,
+      updated_at: new Date().toISOString(),
+    };
+    if (data.resume_token) {
+      const { error } = await (supabaseAdmin.from("intake_drafts") as unknown as {
+        upsert: (r: Record<string, unknown>) => Promise<{ error: unknown }>;
+      }).upsert({ resume_token: data.resume_token, ...row });
+      if (error) {
+        console.error("[save-draft] upsert failed", error);
+        throw new Error("Could not save draft");
+      }
+      return { resume_token: data.resume_token };
+    }
+    const { data: inserted, error } = await (supabaseAdmin.from("intake_drafts") as unknown as {
+      insert: (r: Record<string, unknown>) => {
+        select: (s: string) => { single: () => Promise<{ data: { resume_token: string } | null; error: unknown }> };
+      };
+    })
+      .insert(row)
+      .select("resume_token")
+      .single();
+    if (error || !inserted) {
+      console.error("[save-draft] insert failed", error);
+      throw new Error("Could not create draft");
+    }
+    return { resume_token: inserted.resume_token };
+  });
+
+const LoadDraftInput = z.object({ resume_token: z.string().regex(UUID_RE) });
+
+export const loadDraft = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => LoadDraftInput.parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await (supabaseAdmin.from("intake_drafts") as unknown as {
+      select: (s: string) => {
+        eq: (c: string, v: string) => {
+          maybeSingle: () => Promise<{ data: { answers: unknown; contact: unknown } | null; error: unknown }>;
+        };
+      };
+    })
+      .select("answers, contact")
+      .eq("resume_token", data.resume_token)
+      .maybeSingle();
+    if (error) {
+      console.error("[load-draft] failed", error);
+      throw new Error("Could not load draft");
+    }
+    type AnswerOut = { key: string; question: string; response: string; reflected_offered: string | null };
+    if (!row) return { found: false as const, answers: [] as AnswerOut[], contact: {} as Record<string, string> };
+    const rawAnswers = Array.isArray(row.answers) ? (row.answers as Array<Record<string, unknown>>) : [];
+    const answers: AnswerOut[] = rawAnswers.map((a) => ({
+      key: String(a.key ?? ""),
+      question: String(a.question ?? ""),
+      response: String(a.response ?? ""),
+      reflected_offered: a.reflected_offered == null ? null : String(a.reflected_offered),
+    }));
+    const rawContact = (row.contact ?? {}) as Record<string, unknown>;
+    const contact: Record<string, string> = {};
+    for (const k of Object.keys(rawContact)) contact[k] = String(rawContact[k] ?? "");
+    return { found: true as const, answers, contact };
+  });
+
+const SendResumeInput = z.object({
+  resume_token: z.string().regex(UUID_RE),
+  email: z.string().trim().email().max(255),
+  resume_url: z.string().url().max(1000),
+  name: z.string().trim().max(120).optional().default(""),
+});
+
+export const sendResumeLink = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => SendResumeInput.parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const idempotencyKey = `intake-resume-${data.resume_token}`;
+    const { error } = await (supabaseAdmin.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ error: unknown }>)("enqueue_email", {
+      queue_name: "transactional_emails",
+      payload: {
+        template_name: "intake-resume-link",
+        recipient_email: data.email,
+        idempotency_key: idempotencyKey,
+        correlation_id: data.resume_token,
+        template_data: {
+          name: data.name,
+          resume_url: data.resume_url,
+        },
+      },
+    });
+    if (error) {
+      console.error("[send-resume-link] enqueue failed", error);
+      throw new Error("Could not send resume link");
+    }
+    return { ok: true as const };
+  });
+
 const SubmitInput = z.object({
   name: z.string().trim().min(1).max(120),
   business: z.string().trim().max(200).optional().default(""),
@@ -61,6 +180,7 @@ const SubmitInput = z.object({
   email: z.string().trim().email().max(255),
   authorizes_scan: z.boolean(),
   answers: z.array(AnswerSchema).min(1).max(20),
+  resume_token: z.string().regex(UUID_RE).optional(),
 });
 
 export const submitIntake = createServerFn({ method: "POST" })
@@ -80,6 +200,16 @@ export const submitIntake = createServerFn({ method: "POST" })
     if (error) {
       console.error("[submit-intake] insert failed", error);
       throw new Error("Could not save submission");
+    }
+    if (data.resume_token) {
+      const { error: delErr } = await (supabaseAdmin.from("intake_drafts") as unknown as {
+        delete: () => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+      })
+        .delete()
+        .eq("resume_token", data.resume_token);
+      if (delErr) {
+        console.warn("[submit-intake] draft cleanup failed (non-blocking)", delErr);
+      }
     }
     return { ok: true as const };
   });

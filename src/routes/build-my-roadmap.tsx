@@ -122,14 +122,36 @@ function ConversationLead() {
     <section className="bg-paper">
       <div className={`${container} pt-14 pb-8 lg:pt-16 lg:pb-10`}>
         <Reveal
-          as="p"
+          as="div"
           variant="fade-up"
-          className="mx-auto max-w-[60ch] text-center text-[14.5px] leading-[1.8] text-ink/70"
+          className="mx-auto flex max-w-[60ch] items-start justify-center gap-4"
         >
-          One 30-minute conversation. We listen first, then tell you honestly what we see.
+          <span
+            aria-hidden="true"
+            className="mt-[2px] inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border"
+            style={{ borderColor: "rgba(37,99,255,0.35)" }}
+          >
+            <ClockGlyph />
+          </span>
+          <p className="text-[14.5px] leading-[1.8] text-ink/75">
+            <span className="font-medium text-ink">One 30-minute conversation.</span>
+            <br />
+            No slides, no pitch, no obligation.
+          </p>
         </Reveal>
       </div>
     </section>
+  );
+}
+
+function ClockGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.2} strokeLinecap="round">
+        <circle cx={12} cy={12} r={8} />
+        <path d="M 12 7 L 12 12 L 16 14" />
+      </g>
+    </svg>
   );
 }
 
@@ -137,10 +159,11 @@ function ConversationLead() {
 const CONTACT_EMAIL = "tai@trusttai.com";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_RE = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REFLECT_MIN = 25;
 const REFLECT_DEBOUNCE_MS = 1500;
 const REFLECT_TIMEOUT_MS = 12000;
-const STORAGE_KEY = "tt:intake:v1";
+const STORAGE_KEY = "tt:intake:token:v1";
 const PATH_D = "M22,64 C 200,30 300,82 400,52 S 560,24 658,34";
 
 type IntakeQuestion = {
@@ -150,6 +173,7 @@ type IntakeQuestion = {
   accent: string;
   after: string;
   placeholder: string;
+  optional?: boolean;
 };
 
 const QUESTIONS: IntakeQuestion[] = [
@@ -163,6 +187,7 @@ const QUESTIONS: IntakeQuestion[] = [
   },
   {
     key: "why_now",
+    optional: true,
     eyebrow: "02 / why now",
     before: "What brought you here. ",
     accent: "What were you hoping to put on paper",
@@ -179,6 +204,7 @@ const QUESTIONS: IntakeQuestion[] = [
   },
   {
     key: "what_didnt_hold",
+    optional: true,
     eyebrow: "04 / what did not hold",
     before: "What have you tried before that did not hold? ",
     accent: "What would make this time different",
@@ -187,6 +213,7 @@ const QUESTIONS: IntakeQuestion[] = [
   },
   {
     key: "unbuilt_asset",
+    optional: true,
     eyebrow: "05 / what you already have",
     before: "What does the business already own that you have not built on yet? ",
     accent: "A relationship base, a body of data, a credential, a position",
@@ -203,6 +230,7 @@ const QUESTIONS: IntakeQuestion[] = [
   },
   {
     key: "point_c",
+    optional: true,
     eyebrow: "07 / if it could not fail",
     before: "If you knew it could not fail, ",
     accent: "what would you build",
@@ -219,11 +247,13 @@ const QUESTIONS: IntakeQuestion[] = [
   },
 ];
 
+const REQUIRED_KEYS = QUESTIONS.filter((q) => !q.optional).map((q) => q.key);
+
 type AnswerRecord = { response: string; reflected_offered: string | null };
 type ContactState = { name: string; business: string; website: string; email: string };
 type SubmitStatus = "idle" | "submitting" | "error";
 
-function IntakeExperience() {
+function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React.RefObject<HTMLDivElement | null> }) {
   const [step, setStep] = React.useState<number>(-1); // -1 intro, 0..7 questions, 8 review+contact, 9 sent
   const [answers, setAnswers] = React.useState<Record<string, AnswerRecord>>({});
   const [reflections, setReflections] = React.useState<Record<string, { state: "idle" | "loading" | "ready" | "error"; text: string }>>({});
@@ -232,48 +262,123 @@ function IntakeExperience() {
   const [contactErrors, setContactErrors] = React.useState<{ name?: string; email?: string; website?: string }>({});
   const [status, setStatus] = React.useState<SubmitStatus>("idle");
   const [hydrated, setHydrated] = React.useState(false);
+  const [resumeToken, setResumeToken] = React.useState<string | null>(null);
+  const [resumeNote, setResumeNote] = React.useState<{ kind: "sent" | "saved" | "error"; text: string } | null>(null);
 
   const total = QUESTIONS.length;
-  const progress = step < 0 ? 0 : Math.min(1, step / total);
+  const requiredAnsweredCount = React.useMemo(
+    () => REQUIRED_KEYS.filter((k) => (answers[k]?.response ?? "").trim().length > 0).length,
+    [answers],
+  );
+  const progress = step < 0 ? 0 : Math.min(1, requiredAnsweredCount / REQUIRED_KEYS.length);
 
-  // Hydrate from localStorage on mount
+  // Hydrate from URL ?draft= or localStorage token on mount
   React.useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as {
-          answers?: Record<string, AnswerRecord>;
-          contact?: Partial<ContactState>;
-          consent?: boolean;
-        };
-        if (parsed.answers && typeof parsed.answers === "object") setAnswers(parsed.answers);
-        if (parsed.contact) setContact((p) => ({ ...p, ...parsed.contact }));
-        if (typeof parsed.consent === "boolean") setConsent(parsed.consent);
+    let cancelled = false;
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        let token = url.searchParams.get("draft");
+        if (!token) {
+          try { token = window.localStorage.getItem(STORAGE_KEY); } catch { /* noop */ }
+        }
+        if (token && UUID_RE.test(token)) {
+          const mod = await import("@/lib/intake.functions");
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const res = await mod.loadDraft({ data: { resume_token: token } } as any);
+          if (cancelled) return;
+          if (res?.found) {
+            const rebuilt: Record<string, AnswerRecord> = {};
+            for (const a of res.answers ?? []) {
+              if (a && typeof a.key === "string") {
+                rebuilt[a.key] = {
+                  response: String(a.response ?? ""),
+                  reflected_offered: a.reflected_offered == null ? null : String(a.reflected_offered),
+                };
+              }
+            }
+            setAnswers(rebuilt);
+            const c = res.contact ?? {};
+            setContact((p) => ({
+              name: String(c.name ?? p.name ?? ""),
+              business: String(c.business ?? p.business ?? ""),
+              website: String(c.website ?? p.website ?? ""),
+              email: String(c.email ?? p.email ?? ""),
+            }));
+            setResumeToken(token);
+            setStep(0);
+            try { window.localStorage.setItem(STORAGE_KEY, token); } catch { /* noop */ }
+            // Ensure ?draft= is on the URL for shareability
+            if (!url.searchParams.get("draft")) {
+              url.searchParams.set("draft", token);
+              window.history.replaceState({}, "", url.toString());
+            }
+          } else {
+            // stale token, drop it
+            try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+          }
+        }
+      } catch (err) {
+        console.warn("[intake] could not restore draft", err);
+      } finally {
+        if (!cancelled) setHydrated(true);
       }
-    } catch (err) {
-      console.warn("[intake] could not restore draft", err);
-    } finally {
-      setHydrated(true);
-    }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  // Persist on change
+  // Debounced server-side autosave through save-draft. Browser never writes to the table.
+  const saveTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const inflightSave = React.useRef<Promise<void> | null>(null);
   React.useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ answers, contact, consent }),
-      );
-    } catch {
-      // quota or privacy mode - silently ignore
-    }
-  }, [answers, contact, consent, hydrated]);
+    const hasAny =
+      Object.values(answers).some((a) => (a?.response ?? "").trim().length > 0) ||
+      contact.name.trim() || contact.email.trim() || contact.website.trim() || contact.business.trim();
+    if (!hasAny) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const payload = {
+        resume_token: resumeToken ?? undefined,
+        answers: QUESTIONS.map((q) => ({
+          key: q.key,
+          question: `${q.before}${q.accent}${q.after}`,
+          response: (answers[q.key]?.response ?? "").trim(),
+          reflected_offered: answers[q.key]?.reflected_offered ?? null,
+        })).filter((a) => a.response.length > 0),
+        contact,
+      };
+      inflightSave.current = (async () => {
+        try {
+          const mod = await import("@/lib/intake.functions");
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const res = await mod.saveDraft({ data: payload } as any);
+          if (res?.resume_token && res.resume_token !== resumeToken) {
+            setResumeToken(res.resume_token);
+            try { window.localStorage.setItem(STORAGE_KEY, res.resume_token); } catch { /* noop */ }
+            try {
+              const url = new URL(window.location.href);
+              url.searchParams.set("draft", res.resume_token);
+              window.history.replaceState({}, "", url.toString());
+            } catch { /* noop */ }
+          }
+        } catch (err) {
+          console.warn("[intake] autosave failed (non-blocking)", err);
+        }
+      })();
+    }, 900);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [answers, contact, resumeToken, hydrated]);
 
   const clearDraft = () => {
     if (typeof window === "undefined") return;
     try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("draft");
+      window.history.replaceState({}, "", url.toString());
+    } catch { /* noop */ }
   };
 
   const onAnswerChange = (key: string, value: string) => {
@@ -282,6 +387,17 @@ function IntakeExperience() {
       [key]: { response: value, reflected_offered: prev[key]?.reflected_offered ?? null },
     }));
   };
+
+  // When the door opens, scroll the intake into view.
+  React.useEffect(() => {
+    if (!open) return;
+    if (typeof window === "undefined") return;
+    const t = setTimeout(() => {
+      intakeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [open, intakeRef]);
+
 
   // Reflection debouncing per-question (with timeout + abort)
   const reflectTimers = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
@@ -393,18 +509,76 @@ function IntakeExperience() {
         question: `${q.before}${q.accent}${q.after}`,
         response: (answers[q.key]?.response ?? "").trim(),
         reflected_offered: answers[q.key]?.reflected_offered ?? null,
-      })),
+      })).filter((a) => a.response.length > 0),
+      resume_token: resumeToken ?? undefined,
     };
 
     try {
       const mod = await import("@/lib/intake.functions");
-      await mod.submitIntake({ data: payload });
+      // Ensure any pending autosave settles first so the server has the latest draft state.
+      if (inflightSave.current) {
+        try { await inflightSave.current; } catch { /* ignore */ }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await mod.submitIntake({ data: payload } as any);
       clearDraft();
+      setResumeToken(null);
       setStep(total + 1);
       setStatus("idle");
     } catch (err) {
       console.error("[intake] submit failed", err);
       setStatus("error");
+    }
+  };
+
+  const onSaveAndComeBack = async () => {
+    if (typeof window === "undefined") return;
+    const email = contact.email.trim();
+    let token = resumeToken;
+    try {
+      if (inflightSave.current) {
+        try { await inflightSave.current; } catch { /* ignore */ }
+      }
+      if (!token) {
+        const mod = await import("@/lib/intake.functions");
+        const payload = {
+          answers: QUESTIONS.map((q) => ({
+            key: q.key,
+            question: `${q.before}${q.accent}${q.after}`,
+            response: (answers[q.key]?.response ?? "").trim(),
+            reflected_offered: answers[q.key]?.reflected_offered ?? null,
+          })).filter((a) => a.response.length > 0),
+          contact,
+        };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = await mod.saveDraft({ data: payload } as any);
+        token = res?.resume_token ?? null;
+        if (token) {
+          setResumeToken(token);
+          try { window.localStorage.setItem(STORAGE_KEY, token); } catch { /* noop */ }
+          const url = new URL(window.location.href);
+          url.searchParams.set("draft", token);
+          window.history.replaceState({}, "", url.toString());
+        }
+      }
+      if (!token) {
+        setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page." });
+        return;
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.set("draft", token);
+      const resumeUrl = url.toString();
+      if (email && EMAIL_RE.test(email)) {
+        const mod = await import("@/lib/intake.functions");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await mod.sendResumeLink({ data: { resume_token: token, email, resume_url: resumeUrl, name: contact.name.trim() } } as any);
+        setResumeNote({ kind: "sent", text: `a continue link is on its way to ${email}.` });
+      } else {
+        setResumeNote({ kind: "saved", text: "your progress is saved to this link. bookmark it and come back anytime." });
+      }
+    } catch (err) {
+      console.warn("[intake] save and come back failed", err);
+      setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page." });
     }
   };
 
@@ -414,10 +588,13 @@ function IntakeExperience() {
   const currentAnswerValue = currentQuestion ? answers[currentQuestion.key]?.response ?? "" : "";
   const currentReflection = currentQuestion ? reflections[currentQuestion.key] : undefined;
 
+  if (!open) return null;
+
   return (
     <section
-      id="cta"
-      className="relative"
+      id="intake"
+      ref={intakeRef}
+      className="relative scroll-mt-24"
       style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
     >
       <div className={`${container} py-20 lg:py-24`}>
@@ -461,16 +638,21 @@ function IntakeExperience() {
           {step === total + 1 && <IntakeConfirmation firstName={firstName} />}
         </div>
 
-        {step !== total + 1 && (
-          <p className="mx-auto mt-10 max-w-[760px] text-center font-mono text-[11px] uppercase tracking-[0.22em]">
-            <a
-              href="#availability"
-              className="underline decoration-royal/30 underline-offset-[5px] hover:decoration-royal"
-              style={{ color: ROYAL }}
+        {step >= 0 && step < total && (
+          <div className="mx-auto mt-12 max-w-[760px] text-center">
+            <button
+              type="button"
+              onClick={onSaveAndComeBack}
+              className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55 underline decoration-ink/20 underline-offset-[5px] hover:text-ink hover:decoration-ink/60"
             >
-              prefer to talk first? book a 30-minute call
-            </a>
-          </p>
+              save and come back later
+            </button>
+            {resumeNote && (
+              <p className="mt-3 font-mono text-[11px] normal-case tracking-[0.04em] text-ink/55">
+                {resumeNote.text}
+              </p>
+            )}
+          </div>
         )}
       </div>
     </section>
@@ -587,12 +769,16 @@ function QuestionPanel({
   onBack?: () => void;
   onNext: () => void;
 }) {
-  const canAdvance = value.trim().length > 0;
+  const isOptional = !!q.optional;
+  const hasText = value.trim().length > 0;
+  const canAdvance = isOptional || hasText;
   const isLast = index === total - 1;
+  const primaryLabel = isLast ? "Review" : isOptional && !hasText ? "Skip" : "Continue";
   return (
     <div>
       <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/55">
         {q.eyebrow}
+        {isOptional && <span className="ml-3 text-ink/35 normal-case tracking-[0.04em]">optional</span>}
       </p>
       <h2 className="mt-4 font-display text-[clamp(1.5rem,2.6vw,2rem)] leading-[1.25] tracking-[-0.015em] text-ink">
         {q.before}
@@ -657,7 +843,7 @@ function QuestionPanel({
           disabled={!canAdvance}
           className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
         >
-          <span>{isLast ? "Review" : "Next"}</span>
+          <span>{primaryLabel}</span>
           <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
         </button>
       </div>
@@ -1267,17 +1453,231 @@ function CloseSection() {
 
 /* -------------------- PAGE -------------------- */
 function BuildMyRoadmapPage() {
+  const [intakeOpen, setIntakeOpen] = React.useState(false);
+  const intakeRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Auto-open the write door if a resume token is in the URL or localStorage.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const fromUrl = new URL(window.location.href).searchParams.get("draft");
+      const fromLs = window.localStorage.getItem(STORAGE_KEY);
+      if ((fromUrl && UUID_RE.test(fromUrl)) || (fromLs && UUID_RE.test(fromLs))) {
+        setIntakeOpen(true);
+      }
+    } catch { /* noop */ }
+  }, []);
+
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
       <main>
         <Hero />
         <ConversationLead />
-        <IntakeExperience />
+        <TwoDoors onOpenWriteDoor={() => setIntakeOpen(true)} />
+        <IntakeExperience open={intakeOpen} intakeRef={intakeRef} />
         <FitList />
         <CloseSection />
       </main>
       <SiteFooter />
     </div>
+  );
+}
+
+/* -------------------- TWO DOORS -------------------- */
+function TwoDoors({ onOpenWriteDoor }: { onOpenWriteDoor: () => void }) {
+  return (
+    <section className="bg-paper">
+      <div className={`${container} pb-4 pt-2 lg:pb-6`}>
+        <div
+          className="rounded-2xl border px-6 py-12 lg:px-12 lg:py-16"
+          style={{
+            background: "linear-gradient(to right, #F6F9FE, #EEF5FF)",
+            borderColor: "rgba(37,99,255,0.18)",
+          }}
+        >
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-[2fr_1fr] lg:gap-16">
+            <div>
+              <div className="flex items-baseline gap-3">
+                <SparkGlyph />
+                <h2 className="font-display text-[clamp(1.4rem,2.4vw,1.85rem)] tracking-[-0.012em] text-ink">
+                  Two ways to begin.
+                </h2>
+              </div>
+              <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
+                Choose what feels easiest right now.
+              </p>
+
+              <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Door 1 - conversation (recommended, unchanged) */}
+                <div
+                  className="relative rounded-xl border-2 bg-white/80 p-7 text-center shadow-[0_20px_50px_-30px_rgba(10,15,31,0.25)]"
+                  style={{ borderColor: ROYAL }}
+                >
+                  <span
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-md px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-paper"
+                    style={{ backgroundColor: ROYAL }}
+                  >
+                    Recommended
+                  </span>
+                  <div className="mx-auto mt-2 flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: "rgba(37,99,255,0.10)" }}>
+                    <CalendarMark />
+                  </div>
+                  <h3 className="mt-5 font-display text-[1.2rem] text-ink">Start with a conversation.</h3>
+                  <p className="mt-3 text-[13.5px] leading-[1.7] text-ink/70">
+                    Thirty minutes. No pitch.<br />
+                    We listen first, then tell you<br />honestly what we see.
+                  </p>
+                  <ul className="mt-6 space-y-2.5 text-left">
+                    {[
+                      "Live conversation with a person",
+                      "No slides, no pitch deck",
+                      "You leave with clarity either way",
+                    ].map((t) => (
+                      <li key={t} className="flex items-start gap-2.5 text-[13px] leading-[1.6] text-ink/75">
+                        <span className="mt-[5px] shrink-0"><CheckMark small /></span>
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="#availability"
+                    className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
+                  >
+                    Book a 30-minute call
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </a>
+                  <p className="mt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
+                    View availability and pick a time
+                  </p>
+                </div>
+
+                {/* Door 2 - write (statement heading + honest bullets) */}
+                <div className="rounded-xl border border-rule bg-white/60 p-7 text-center">
+                  <div className="mx-auto mt-2 flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: "rgba(37,99,255,0.08)" }}>
+                    <PencilGlyph />
+                  </div>
+                  <h3 className="mt-5 font-display text-[1.2rem] text-ink">Or write it first.</h3>
+                  <p className="mt-3 text-[13.5px] leading-[1.7] text-ink/70">
+                    Answer a few questions in your<br />own words. You can keep it rough.<br />A person will read it.
+                  </p>
+                  <ul className="mt-6 space-y-2.5 text-left">
+                    {[
+                      "Four questions, four more if you want",
+                      "Keep it rough, we read with care",
+                      "Save and come back anytime",
+                    ].map((t) => (
+                      <li key={t} className="flex items-start gap-2.5 text-[13px] leading-[1.6] text-ink/75">
+                        <span className="mt-[5px] shrink-0"><CheckMark small /></span>
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={onOpenWriteDoor}
+                    className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-[13px] font-semibold transition-all duration-300 ease-out hover:-translate-y-[1px]"
+                    style={{ borderColor: ROYAL, color: ROYAL }}
+                  >
+                    Leave a Roadmap note
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </button>
+                  <p className="mt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
+                    We will read it with care
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right rail - before you wonder */}
+            <aside className="lg:border-l lg:border-ink/10 lg:pl-12">
+              <h3 className="font-display text-[clamp(1.25rem,1.9vw,1.5rem)] text-ink">Before you wonder.</h3>
+              <ul className="mt-7 space-y-7">
+                <ReassureRow
+                  icon={<PersonGlyph />}
+                  title="You will not be hounded."
+                  body={<>One reply, from a person.<br />If you go quiet, we leave you be.</>}
+                />
+                <ReassureRow
+                  icon={<NoPitchGlyph />}
+                  title="You will not be pitched."
+                  body={<>The first conversation has<br />no slides and no close.<br />We listen.</>}
+                />
+                <ReassureRow
+                  icon={<LeafGlyph />}
+                  title="You will not be the wrong fit in silence."
+                  body={<>If we are not right for you,<br />we say so on the call, and<br />point you somewhere better.</>}
+                />
+              </ul>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReassureRow({ icon, title, body }: { icon: React.ReactNode; title: string; body: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-4">
+      <span
+        className="mt-[2px] inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
+        style={{ borderColor: "rgba(37,99,255,0.25)" }}
+      >
+        {icon}
+      </span>
+      <div>
+        <p className="text-[13.5px] font-medium leading-[1.5]" style={{ color: ROYAL }}>{title}</p>
+        <p className="mt-1.5 text-[13px] leading-[1.7] text-ink/65">{body}</p>
+      </div>
+    </li>
+  );
+}
+
+function SparkGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true">
+      <path d="M10 2 L11.2 8.8 L18 10 L11.2 11.2 L10 18 L8.8 11.2 L2 10 L8.8 8.8 Z" fill={ROYAL} />
+    </svg>
+  );
+}
+function PencilGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 20 L8 19 L20 7 L17 4 L5 16 Z" />
+        <path d="M14 7 L17 10" />
+      </g>
+    </svg>
+  );
+}
+function PersonGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round">
+        <circle cx={12} cy={9} r={3.2} />
+        <path d="M5 19 C 6 15.5, 9 14, 12 14 C 15 14, 18 15.5, 19 19" />
+      </g>
+    </svg>
+  );
+}
+function NoPitchGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round">
+        <rect x={4} y={6} width={16} height={11} rx={1.5} />
+        <path d="M5 7 L19 16" />
+      </g>
+    </svg>
+  );
+}
+function LeafGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 19 C 5 11, 11 5, 19 5 C 19 13, 13 19, 5 19 Z" />
+        <path d="M5 19 L13 11" />
+      </g>
+    </svg>
   );
 }
