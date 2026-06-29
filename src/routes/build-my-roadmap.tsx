@@ -336,6 +336,7 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
               url.searchParams.set("draft", token);
               window.history.replaceState({}, "", url.toString());
             }
+            track("intake_draft_resumed", { resume_token: token, answers_count: Object.keys(rebuilt).length });
           } else {
             // stale token, drop it
             try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
