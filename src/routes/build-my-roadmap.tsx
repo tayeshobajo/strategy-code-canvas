@@ -168,6 +168,45 @@ const REFLECT_TIMEOUT_MS = 12000;
 const STORAGE_KEY = "tt:intake:token:v1";
 const PATH_D = "M22,64 C 200,30 300,82 400,52 S 560,24 658,34";
 
+function getBezierPoint(
+  t: number,
+  p0: { x: number; y: number },
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  p3: { x: number; y: number },
+) {
+  const u = 1 - t;
+  const u2 = u * u;
+  const u3 = u2 * u;
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return {
+    x: u3 * p0.x + 3 * u2 * t * p1.x + 3 * u * t2 * p2.x + t3 * p3.x,
+    y: u3 * p0.y + 3 * u2 * t * p1.y + 3 * u * t2 * p2.y + t3 * p3.y,
+  };
+}
+
+const SEG1: [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }] = [
+  { x: 22, y: 64 },
+  { x: 200, y: 30 },
+  { x: 300, y: 82 },
+  { x: 400, y: 52 },
+];
+const SEG2: [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }] = [
+  { x: 400, y: 52 },
+  { x: 500, y: 22 },
+  { x: 560, y: 24 },
+  { x: 658, y: 34 },
+];
+
+function pointOnPath(t: number) {
+  if (t <= 0.5) {
+    return getBezierPoint(t * 2, SEG1[0], SEG1[1], SEG1[2], SEG1[3]);
+  }
+  return getBezierPoint((t - 0.5) * 2, SEG2[0], SEG2[1], SEG2[2], SEG2[3]);
+}
+
+
 // Lightweight analytics shim — fires to GTM dataLayer and gtag if present,
 // and always emits a CustomEvent so other listeners (Plausible, Segment shim,
 // tests) can subscribe without coupling to a vendor.
@@ -770,7 +809,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
       <div className="pt-10 lg:pt-12">
         {/* Journey path */}
-        <JourneyPath progress={progress} reachedReview={step >= total} />
+        <JourneyPath step={step} progress={progress} />
 
         <div className="mx-auto mt-12 max-w-[820px]">
           {step === -1 && (
@@ -870,11 +909,13 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 }
 
 
-function JourneyPath({ progress, reachedReview }: { progress: number; reachedReview: boolean }) {
+function JourneyPath({ step, progress }: { step: number; progress: number }) {
   const reduce = usePrefersReducedMotion();
   const LENGTH = 680;
   const offset = reduce ? 0 : LENGTH * (1 - progress);
-  const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);
+  const STOPS = 8;
+  const points = Array.from({ length: STOPS }, (_, i) => pointOnPath(i / (STOPS - 1)));
+  const bg = "oklch(0.97 0.02 255)";
   return (
     <div className="mx-auto w-full max-w-[760px]">
       <svg viewBox="0 0 680 100" className="block h-[80px] w-full" aria-hidden="true">
@@ -883,9 +924,9 @@ function JourneyPath({ progress, reachedReview }: { progress: number; reachedRev
             <feGaussianBlur stdDeviation="2.4" />
           </filter>
         </defs>
-        {/* Faint dotted base — lifted contrast so the path reads */}
+        {/* Faint dotted base */}
         <path d={PATH_D} fill="none" stroke="rgba(10,15,31,0.28)" strokeWidth={1} strokeDasharray="2 5" />
-        {/* Soft glow underlay on the drawn segment only */}
+        {/* Soft glow underlay on the drawn segment */}
         {!reduce && (
           <path
             d={PATH_D}
@@ -911,50 +952,41 @@ function JourneyPath({ progress, reachedReview }: { progress: number; reachedRev
           strokeDashoffset={offset}
           style={{ transition: reduce ? "none" : "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
         />
-        {/* Point A — active */}
-        <g transform="translate(22,64)">
-          <circle r="6" fill={ROYAL} />
-          <circle r="12" fill="none" stroke={ROYAL} strokeOpacity="0.28" />
-        </g>
-        {/* Point B — pending or arrived */}
-        <g transform="translate(658,34)">
-          <circle
-            r="6"
-            fill={reachedReview ? "#0A0F1F" : "transparent"}
-            stroke="#0A0F1F"
-            strokeOpacity={reachedReview ? 1 : 0.55}
-            strokeWidth={reachedReview ? 0 : 1.5}
-            style={{ transition: reduce ? "none" : "fill 500ms ease-out, stroke-opacity 500ms ease-out" }}
-          />
-          <circle r="12" fill="none" stroke="#0A0F1F" strokeOpacity="0.18" />
-        </g>
+        {/* Question milestone dots */}
+        {points.map((p, i) => {
+          const isReached = step >= i;
+          const isCurrent = step === i;
+          return (
+            <g key={i} transform={`translate(${p.x},${p.y})`}>
+              {isCurrent && (
+                <circle
+                  r="10"
+                  fill="none"
+                  stroke={ROYAL}
+                  strokeOpacity="0.16"
+                  strokeWidth="1.5"
+                  style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+                />
+              )}
+              <circle
+                r={isCurrent ? 5.5 : 4}
+                fill={isReached ? ROYAL : bg}
+                stroke={isReached ? ROYAL : "rgba(10,15,31,0.35)"}
+                strokeWidth={isReached ? 0 : 1}
+                style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+              />
+            </g>
+          );
+        })}
       </svg>
-      <div className="mt-1 flex items-center justify-between font-mono text-[12px] uppercase tracking-[0.32em]">
-        <span className="inline-flex items-center gap-2 text-ink/70">
-          <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ backgroundColor: ROYAL }} />
-          Point A
-        </span>
-        <span className="inline-flex items-center gap-3">
-          <span className="font-mono text-[10.5px] tracking-[0.28em] text-ink/55">{pct}%</span>
-          <span
-            className={`inline-flex items-center gap-2 ${reachedReview ? "text-ink/90" : "text-ink/55"}`}
-            style={{ transition: "color 400ms ease-out" }}
-          >
-            <span
-              className="inline-block h-[6px] w-[6px] rounded-full"
-              style={{
-                backgroundColor: reachedReview ? "#0A0F1F" : "transparent",
-                boxShadow: reachedReview ? "none" : "inset 0 0 0 1.5px rgba(10,15,31,0.55)",
-                transition: "background-color 400ms ease-out",
-              }}
-            />
-            Point B
-          </span>
-        </span>
+      <div className="mt-1 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.32em]">
+        <span className="text-ink/70">Point A</span>
+        <span className="text-ink/70">Point B</span>
       </div>
     </div>
   );
 }
+
 
 
 function usePrefersReducedMotion() {
@@ -1060,20 +1092,16 @@ function QuestionPanel({
 
   return (
     <div>
-      {/* Centered eyebrow: 01 OF 08 · WHERE YOU ARE */}
+      {/* Centered eyebrow: question section label only */}
       <p className="text-center font-mono text-[11px] uppercase tracking-[0.34em] text-ink/55">
-        <span style={{ color: ROYAL }}>{String(index + 1).padStart(2, "0")}</span>
-        <span className="text-ink/45"> of {String(total).padStart(2, "0")}</span>
         {eyebrowTail && (
-          <>
-            <span aria-hidden="true" className="mx-3 inline-block h-[3px] w-[3px] -translate-y-[2px] rounded-full bg-ink/30" />
-            <span className="text-ink/70">{eyebrowTail}</span>
-          </>
+          <span className="text-ink/70">{eyebrowTail}</span>
         )}
         {isOptional && (
           <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/60">optional</span>
         )}
       </p>
+
 
       <h2 className="mt-6 font-display text-[clamp(1.6rem,2.6vw,2.05rem)] leading-[1.25] tracking-[-0.015em] text-ink">
         {q.before}
