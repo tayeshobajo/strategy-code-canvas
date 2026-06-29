@@ -1025,9 +1025,10 @@ function QuestionPanel({
   // Reset touched as the user moves between steps
   React.useEffect(() => { setTouched(false); }, [q.key]);
   const showRequiredHint = !isOptional && !hasText && touched;
-  // Parse the eyebrow ("01 / Where you are") so we can color the numeral royal.
-  const [eyebrowNum, ...eyebrowRest] = q.eyebrow.split(" / ");
+  // Parse the eyebrow ("01 / Where you are") so we can render the section label.
+  const eyebrowRest = q.eyebrow.split(" / ").slice(1);
   const eyebrowTail = eyebrowRest.join(" / ");
+
   const hasMirror = !!reflection?.text;
   const isLoading = reflection?.state === "loading";
   const isError = reflection?.state === "error";
