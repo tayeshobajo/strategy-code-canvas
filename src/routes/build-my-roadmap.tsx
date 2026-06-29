@@ -168,6 +168,45 @@ const REFLECT_TIMEOUT_MS = 12000;
 const STORAGE_KEY = "tt:intake:token:v1";
 const PATH_D = "M22,64 C 200,30 300,82 400,52 S 560,24 658,34";
 
+function getBezierPoint(
+  t: number,
+  p0: { x: number; y: number },
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  p3: { x: number; y: number },
+) {
+  const u = 1 - t;
+  const u2 = u * u;
+  const u3 = u2 * u;
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return {
+    x: u3 * p0.x + 3 * u2 * t * p1.x + 3 * u * t2 * p2.x + t3 * p3.x,
+    y: u3 * p0.y + 3 * u2 * t * p1.y + 3 * u * t2 * p2.y + t3 * p3.y,
+  };
+}
+
+const SEG1: [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }] = [
+  { x: 22, y: 64 },
+  { x: 200, y: 30 },
+  { x: 300, y: 82 },
+  { x: 400, y: 52 },
+];
+const SEG2: [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }] = [
+  { x: 400, y: 52 },
+  { x: 500, y: 22 },
+  { x: 560, y: 24 },
+  { x: 658, y: 34 },
+];
+
+function pointOnPath(t: number) {
+  if (t <= 0.5) {
+    return getBezierPoint(t * 2, SEG1[0], SEG1[1], SEG1[2], SEG1[3]);
+  }
+  return getBezierPoint((t - 0.5) * 2, SEG2[0], SEG2[1], SEG2[2], SEG2[3]);
+}
+
+
 // Lightweight analytics shim — fires to GTM dataLayer and gtag if present,
 // and always emits a CustomEvent so other listeners (Plausible, Segment shim,
 // tests) can subscribe without coupling to a vendor.
