@@ -2138,7 +2138,7 @@ function IntakeOverlay({
         }}
       >
         <div
-          className="relative overflow-hidden rounded-[28px] border px-6 py-6 sm:px-10 sm:py-8 lg:px-14 lg:py-10"
+          className="relative overflow-hidden rounded-[28px] border px-6 py-5 sm:px-10 sm:py-6 lg:px-14 lg:py-8"
           style={{
             backgroundColor: "oklch(0.97 0.02 255)",
             borderColor: "rgba(10,15,31,0.10)",
