@@ -903,23 +903,24 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         </div>
 
         {step >= 0 && step < total && (
-          <div className="mx-auto mt-10 max-w-[560px] text-center">
-            <div className="flex items-center gap-4">
-              <span aria-hidden="true" className="h-px flex-1 bg-ink/10" />
+          <div className="mx-auto mt-16 max-w-[560px] text-center">
+            <div className="flex items-center justify-center gap-4">
+              <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
               <button
                 type="button"
                 onClick={onSaveAndComeBack}
-                className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.04em] transition-colors"
+                className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] transition-colors hover:opacity-80"
                 style={{ color: ROYAL }}
               >
                 <Bookmark aria-hidden="true" className="h-3.5 w-3.5" />
                 <span>Save and come back later</span>
               </button>
-              <span aria-hidden="true" className="h-px flex-1 bg-ink/10" />
+              <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
             </div>
-            <p className="mt-2 font-mono text-[11px] tracking-[0.02em] text-ink/50">
+            <p className="mt-3 font-mono text-[12px] tracking-[0.02em] text-ink/45">
               We will save as you go. You will get a private link to return.
             </p>
+
             {resumeNote && (
               <p
                 role={resumeNote.kind === "error" ? "alert" : undefined}
