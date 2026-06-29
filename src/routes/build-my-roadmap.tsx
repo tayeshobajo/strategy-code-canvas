@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Bookmark, Check, Loader2, LogOut } from "lucide-react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -275,7 +275,7 @@ type AnswerRecord = { response: string; reflected_offered: string | null };
 type ContactState = { name: string; business: string; website: string; email: string };
 type SubmitStatus = "idle" | "submitting" | "error";
 
-function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React.RefObject<HTMLDivElement | null> }) {
+function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRef: React.RefObject<HTMLDivElement | null>; onExit?: () => void }) {
   const [step, setStep] = React.useState<number>(-1); // -1 intro, 0..7 questions, 8 review+contact, 9 sent
   const [answers, setAnswers] = React.useState<Record<string, AnswerRecord>>({});
   const [reflections, setReflections] = React.useState<Record<string, { state: "idle" | "loading" | "ready" | "error"; text: string }>>({});
@@ -287,6 +287,8 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
   const [resumeNote, setResumeNote] = React.useState<{ kind: "sent" | "saved" | "error"; text: string } | null>(null);
   const [autosaveError, setAutosaveError] = React.useState<boolean>(false);
+  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+
   const lastSubmitPayload = React.useRef<Record<string, unknown> | null>(null);
 
   const total = QUESTIONS.length;
@@ -374,6 +376,7 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
         })).filter((a) => a.response.length > 0),
         contact,
       };
+      setSaveState("saving");
       inflightSave.current = (async () => {
         try {
           const mod = await import("@/lib/intake.functions");
@@ -389,14 +392,17 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
             } catch { /* noop */ }
           }
           setAutosaveError(false);
+          setSaveState("saved");
           track("intake_draft_saved", { resume_token: res?.resume_token ?? null, answers_count: payload.answers.length });
         } catch (err) {
           console.warn("[intake] autosave failed (non-blocking)", err);
           setAutosaveError(true);
+          setSaveState("error");
           track("intake_draft_save_failed", { resume_token: resumeToken });
         }
       })();
     }, 900);
+
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, [answers, contact, resumeToken, hydrated]);
 
@@ -707,18 +713,66 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
 
   if (!open) return null;
 
+  const saveLabel =
+    saveState === "saving"
+      ? "Saving\u2026"
+      : saveState === "saved"
+        ? "All changes saved"
+        : saveState === "error"
+          ? "Save paused"
+          : null;
+
   return (
     <section
       id="intake"
       ref={intakeRef}
       className="relative"
     >
-      <div className={`${container} pt-10 pb-20 lg:pt-14 lg:pb-24`}>
+      {/* Room header — TRUST TAI / autosave status / exit */}
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+        <span className="truncate font-mono text-[11px] uppercase tracking-[0.34em] text-ink/75">
+          TRUST TAI
+        </span>
+        <div className="flex shrink-0 items-center gap-5 sm:gap-7">
+          {saveLabel && (
+            <span
+              aria-live="polite"
+              className="hidden items-center gap-2 font-mono text-[11px] tracking-[0.02em] text-ink/60 sm:inline-flex"
+            >
+              {saveState === "saving" ? (
+                <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin text-ink/45" />
+              ) : saveState === "error" ? (
+                <span aria-hidden="true" className="inline-block h-[7px] w-[7px] rounded-full bg-[#B91C1C]/70" />
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="inline-flex h-4 w-4 items-center justify-center rounded-full"
+                  style={{ backgroundColor: "rgba(16,150,90,0.12)" }}
+                >
+                  <Check className="h-3 w-3" style={{ color: "#10965A" }} />
+                </span>
+              )}
+              <span>{saveLabel}</span>
+            </span>
+          )}
+          {onExit && (
+            <button
+              type="button"
+              onClick={onExit}
+              className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.26em] text-ink/70 transition-colors hover:text-ink"
+            >
+              <LogOut aria-hidden="true" className="h-3.5 w-3.5" />
+              <span>Exit and return home</span>
+            </button>
+          )}
+        </div>
+      </header>
 
+      <div className="pt-10 lg:pt-12">
         {/* Journey path */}
         <JourneyPath progress={progress} reachedReview={step >= total} />
 
-        <div className="mx-auto mt-10 max-w-[760px]">
+        <div className="mx-auto mt-12 max-w-[820px]">
           {step === -1 && (
             <IntakeIntro onBegin={() => { track("intake_started", {}); setStep(0); }} />
           )}
@@ -757,14 +811,23 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
         </div>
 
         {step >= 0 && step < total && (
-          <div className="mx-auto mt-12 max-w-[760px] text-center">
-            <button
-              type="button"
-              onClick={onSaveAndComeBack}
-              className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55 underline decoration-ink/20 underline-offset-[5px] hover:text-ink hover:decoration-ink/60"
-            >
-              save and come back later
-            </button>
+          <div className="mx-auto mt-10 max-w-[560px] text-center">
+            <div className="flex items-center gap-4">
+              <span aria-hidden="true" className="h-px flex-1 bg-ink/10" />
+              <button
+                type="button"
+                onClick={onSaveAndComeBack}
+                className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.04em] transition-colors"
+                style={{ color: ROYAL }}
+              >
+                <Bookmark aria-hidden="true" className="h-3.5 w-3.5" />
+                <span>Save and come back later</span>
+              </button>
+              <span aria-hidden="true" className="h-px flex-1 bg-ink/10" />
+            </div>
+            <p className="mt-2 font-mono text-[11px] tracking-[0.02em] text-ink/50">
+              We will save as you go. You will get a private link to return.
+            </p>
             {resumeNote && (
               <p
                 role={resumeNote.kind === "error" ? "alert" : undefined}
@@ -794,10 +857,18 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
             )}
           </div>
         )}
+
+        {/* Quiet bottom note — present across every step except the sent confirmation */}
+        {step !== total + 1 && (
+          <p className="mx-auto mt-10 max-w-[640px] text-center font-display italic text-[13.5px] leading-[1.7] text-ink/55">
+            A person reads every word. This is a note to understand you, not a form to qualify you.
+          </p>
+        )}
       </div>
     </section>
   );
 }
+
 
 function JourneyPath({ progress, reachedReview }: { progress: number; reachedReview: boolean }) {
   const reduce = usePrefersReducedMotion();
@@ -954,9 +1025,10 @@ function QuestionPanel({
   // Reset touched as the user moves between steps
   React.useEffect(() => { setTouched(false); }, [q.key]);
   const showRequiredHint = !isOptional && !hasText && touched;
-  // Parse the eyebrow ("01 / Where you are") so we can color the numeral royal.
-  const [eyebrowNum, ...eyebrowRest] = q.eyebrow.split(" / ");
+  // Parse the eyebrow ("01 / Where you are") so we can render the section label.
+  const eyebrowRest = q.eyebrow.split(" / ").slice(1);
   const eyebrowTail = eyebrowRest.join(" / ");
+
   const hasMirror = !!reflection?.text;
   const isLoading = reflection?.state === "loading";
   const isError = reflection?.state === "error";
@@ -983,58 +1055,77 @@ function QuestionPanel({
     };
   }, [incoming, displayedText]);
 
+  const charLimit = 2000;
+  const charCount = value.length;
+
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/70">
-        <span style={{ color: ROYAL }}>{eyebrowNum}</span>
-        {eyebrowTail && <span className="text-ink/40"> / </span>}
-        {eyebrowTail && <span>{eyebrowTail}</span>}
+      {/* Centered eyebrow: 01 OF 08 · WHERE YOU ARE */}
+      <p className="text-center font-mono text-[11px] uppercase tracking-[0.34em] text-ink/55">
+        <span style={{ color: ROYAL }}>{String(index + 1).padStart(2, "0")}</span>
+        <span className="text-ink/45"> of {String(total).padStart(2, "0")}</span>
+        {eyebrowTail && (
+          <>
+            <span aria-hidden="true" className="mx-3 inline-block h-[3px] w-[3px] -translate-y-[2px] rounded-full bg-ink/30" />
+            <span className="text-ink/70">{eyebrowTail}</span>
+          </>
+        )}
         {isOptional && (
           <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/60">optional</span>
-
         )}
       </p>
-      <h2 className="mt-4 font-display text-[clamp(1.5rem,2.6vw,2rem)] leading-[1.25] tracking-[-0.015em] text-ink">
+
+      <h2 className="mt-6 font-display text-[clamp(1.6rem,2.6vw,2.05rem)] leading-[1.25] tracking-[-0.015em] text-ink">
         {q.before}
         <em className="italic font-normal" style={{ color: ROYAL }}>{q.accent}</em>
         {q.after}
       </h2>
 
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={() => setTouched(true)}
-        rows={6}
-        placeholder={q.placeholder}
-        aria-invalid={showRequiredHint}
-        aria-describedby={showRequiredHint ? `${q.key}-hint` : undefined}
-        className={`mt-8 w-full resize-none rounded-md border bg-white/70 px-5 py-4 text-[15px] leading-[1.7] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${showRequiredHint ? "border-[#B91C1C]/60" : "border-rule"}`}
-        autoFocus
-      />
+      {/* Writing surface — bright fill, soft border, blue focus */}
+      <div className="relative mt-6">
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={() => setTouched(true)}
+          rows={6}
+          maxLength={charLimit}
+          placeholder={q.placeholder}
+          aria-invalid={showRequiredHint}
+          aria-describedby={showRequiredHint ? `${q.key}-hint` : undefined}
+          className={`peer w-full resize-none rounded-2xl border bg-white px-6 py-5 pb-10 text-[16px] leading-[1.75] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-[#2563FF] ${showRequiredHint ? "border-[#B91C1C]/60" : "border-ink/12"}`}
+          style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)" }}
+          autoFocus
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-3 right-4 font-mono text-[11px] tracking-[0.04em] text-ink/35"
+        >
+          {charCount}/{charLimit}
+        </span>
+      </div>
       {showRequiredHint && (
         <p id={`${q.key}-hint`} className="mt-2 font-mono text-[11px] normal-case tracking-[0.04em] text-[#B91C1C]">
           this one is required. a sentence or two is plenty.
         </p>
       )}
 
-      {/* Mirror card — stale-while-revalidating, never empties once it has text. */}
+      {/* Reflection — thoughtful note, not a tool box */}
       <div
-        className="mt-5 rounded-2xl border px-6 py-6 transition-opacity duration-300"
+        className="mt-6 rounded-2xl border px-6 py-6 transition-opacity duration-300"
         style={{
-          backgroundColor: "#FBFAF6",
-          borderColor: "rgba(10,15,31,0.10)",
+          backgroundColor: "rgba(255,255,255,0.55)",
+          borderColor: "rgba(37,99,255,0.18)",
           minHeight: 132,
           opacity: isLoading && hasMirror ? 0.94 : 1,
         }}
         aria-live="polite"
       >
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
-            <span aria-hidden="true" className="inline-block h-[14px] w-px" style={{ backgroundColor: ROYAL }} />
-            A reader hears
+        <div className="flex items-start justify-between gap-4">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.26em]" style={{ color: ROYAL }}>
+            A clearer version, if it helps
           </span>
           {isLoading && (
-            <span className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.24em] text-ink/55">
+            <span className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/55">
               <span
                 aria-hidden="true"
                 className="inline-block h-[6px] w-[6px] rounded-full motion-safe:animate-pulse"
@@ -1046,20 +1137,19 @@ function QuestionPanel({
         </div>
 
         {hasMirror ? (
-          <>
+          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
             <p
-              className="mt-3 font-display italic text-[16.5px] leading-[1.75] motion-safe:transition-opacity motion-safe:duration-[420ms] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
+              className="font-display italic text-[16.5px] leading-[1.75] motion-safe:transition-opacity motion-safe:duration-[420ms] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
               style={{ color: "rgba(10,15,31,0.78)", opacity: textOpacity }}
             >
               {displayedText}
             </p>
-
-            <div className="mt-4 flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3">
               <button
                 type="button"
                 onClick={onUseReflected}
-                className="inline-flex items-center rounded-full border border-ink/15 bg-white px-3.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.24em] transition-colors hover:bg-[rgba(37,99,255,0.06)]"
-                style={{ color: ROYAL }}
+                className="inline-flex items-center rounded-full border bg-white px-3.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.22em] transition-colors hover:bg-[rgba(37,99,255,0.06)]"
+                style={{ color: ROYAL, borderColor: "rgba(37,99,255,0.35)" }}
               >
                 use these words
               </button>
@@ -1069,54 +1159,44 @@ function QuestionPanel({
                 </span>
               )}
             </div>
-          </>
+          </div>
         ) : (
           <p className="mt-3 font-display italic text-[15px] leading-[1.7] text-ink/45">
             {isLoading
               ? "Reading what you just wrote\u2026"
               : isError
                 ? "We couldn\u2019t read that back. Your words are fine as written."
-                : "A mirror appears once you pause. Write the way you talk."}
+                : "A clearer version will appear here once you pause. Write the way you talk."}
           </p>
         )}
       </div>
 
-
-      <div className="mt-6 flex items-center justify-between">
+      {/* Action row — Back outlined pill / Continue solid navy pill */}
+      <div className="mt-8 flex items-center justify-between">
         {onBack ? (
           <button
             type="button"
             onClick={onBack}
-            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/60 hover:text-ink"
+            className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink"
           >
-            ← back
+            <ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />
+            <span>Back</span>
           </button>
         ) : <span />}
         <button
           type="button"
           onClick={onNext}
           disabled={!canAdvance}
-          className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+          className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
         >
           <span>{primaryLabel}</span>
           <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
         </button>
       </div>
-
-      <div className="mt-6 flex items-center gap-3">
-        <span className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/65">
-          {String(index + 1).padStart(2, "0")} of {String(total).padStart(2, "0")}
-        </span>
-        <span aria-hidden="true" className="relative inline-block h-px w-[44px] bg-ink/15">
-          <span
-            className="absolute inset-y-0 left-0 bg-ink/55"
-            style={{ width: `${Math.min(100, ((index + 1) / total) * 100)}%`, transition: "width 400ms ease-out" }}
-          />
-        </span>
-      </div>
     </div>
   );
 }
+
 
 
 function ReviewAndContact({
@@ -1831,41 +1911,47 @@ function IntakeOverlay({
       role="dialog"
       aria-modal="true"
       aria-label="Leave a Roadmap note"
-      className="fixed inset-0 z-[80] overflow-y-auto bg-paper"
+      className="fixed inset-0 z-[80] overflow-y-auto"
       style={{
+        backgroundColor: "rgba(10,15,31,0.55)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
         opacity: reduce ? 1 : visible ? 1 : 0,
         transition: reduce ? "none" : "opacity 320ms cubic-bezier(0.32,0.72,0,1)",
       }}
+      onMouseDown={(e) => {
+        // Click outside the room closes the overlay (clicks inside the card stop propagation).
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="sticky top-0 z-10 border-b border-ink/10 bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/80">
-        <div className={`${container} flex h-14 items-center justify-between`}>
-          <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/70">
-            Trust Tai
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/60 underline decoration-ink/20 underline-offset-[5px] transition-colors hover:text-ink hover:decoration-ink/60"
-          >
-            exit and return home
-          </button>
-        </div>
-      </div>
       <div
+        className="mx-auto my-5 w-[min(100%-20px,1100px)] sm:my-10"
         style={{
           opacity: reduce ? 1 : visible ? 1 : 0,
-          transform: reduce ? "none" : visible ? "translateY(0)" : "translateY(8px)",
+          transform: reduce ? "none" : visible ? "translateY(0)" : "translateY(14px)",
           transition: reduce
             ? "none"
-            : "opacity 380ms cubic-bezier(0.32,0.72,0,1) 60ms, transform 380ms cubic-bezier(0.32,0.72,0,1) 60ms",
+            : "opacity 420ms cubic-bezier(0.32,0.72,0,1) 60ms, transform 420ms cubic-bezier(0.32,0.72,0,1) 60ms",
         }}
       >
-        {children}
+        <div
+          className="relative rounded-[28px] border px-6 py-8 sm:px-12 sm:py-12 lg:px-16 lg:py-14"
+          style={{
+            backgroundColor: "#FBF6EA",
+            borderColor: "rgba(10,15,31,0.10)",
+            boxShadow:
+              "0 40px 90px -30px rgba(10,15,31,0.55), 0 12px 28px -14px rgba(10,15,31,0.22), inset 0 1px 0 rgba(255,255,255,0.55)",
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
       </div>
     </div>,
     document.body,
   );
 }
+
 
 /* -------------------- PAGE -------------------- */
 function BuildMyRoadmapPage() {
@@ -1946,7 +2032,7 @@ function BuildMyRoadmapPage() {
       </main>
       <SiteFooter />
       <IntakeOverlay open={intakeOpen} onClose={closeIntake}>
-        <IntakeExperience open={intakeOpen} intakeRef={intakeRef} />
+        <IntakeExperience open={intakeOpen} intakeRef={intakeRef} onExit={closeIntake} />
       </IntakeOverlay>
     </div>
   );
