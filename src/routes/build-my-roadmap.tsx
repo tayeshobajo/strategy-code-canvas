@@ -2115,7 +2115,7 @@ function IntakeOverlay({
       role="dialog"
       aria-modal="true"
       aria-label="Leave a Roadmap note"
-      className="fixed inset-0 z-[80] overflow-y-auto"
+      className="fixed inset-0 z-[80] flex min-h-screen items-center justify-center overflow-y-auto px-3 py-4"
       style={{
         backgroundColor: "rgba(10,15,31,0.42)",
         backdropFilter: "blur(12px)",
@@ -2128,7 +2128,7 @@ function IntakeOverlay({
       }}
     >
       <div
-        className="mx-auto my-5 w-[min(100%-20px,1140px)] sm:my-10"
+        className="mx-auto w-[min(100%-12px,1140px)]"
         style={{
           opacity: reduce ? 1 : visible ? 1 : 0,
           transform: reduce ? "none" : visible ? "translateY(0)" : "translateY(14px)",
@@ -2138,7 +2138,7 @@ function IntakeOverlay({
         }}
       >
         <div
-          className="relative overflow-hidden rounded-[32px] border px-6 py-8 sm:px-12 sm:py-12 lg:px-20 lg:py-16"
+          className="relative overflow-hidden rounded-[28px] border px-6 py-6 sm:px-10 sm:py-8 lg:px-14 lg:py-10"
           style={{
             backgroundColor: "oklch(0.97 0.02 255)",
             borderColor: "rgba(10,15,31,0.10)",
@@ -2150,7 +2150,7 @@ function IntakeOverlay({
           {/* Soft top vignette for depth */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-[260px]"
+            className="pointer-events-none absolute inset-x-0 top-0 h-[220px]"
             style={{
               background:
                 "radial-gradient(ellipse 70% 100% at 50% 0%, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)",
@@ -2163,6 +2163,7 @@ function IntakeOverlay({
     </div>,
     document.body,
   );
+
 }
 
 
