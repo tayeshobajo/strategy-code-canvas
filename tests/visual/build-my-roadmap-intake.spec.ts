@@ -127,7 +127,7 @@ test.describe("Build My Roadmap intake", () => {
     await page.getByLabel(/^Email/i).fill("jordan@example.com");
     const consent = page.locator('input[type="checkbox"]');
     await expect(consent).toBeDisabled();
-    await page.getByLabel(/Website/i).fill("https://example.com");
+    await page.getByRole("textbox", { name: /^Website/i }).fill("https://example.com");
     await expect(consent).toBeEnabled();
 
     await page.getByRole("button", { name: /^Send it$/ }).click();
