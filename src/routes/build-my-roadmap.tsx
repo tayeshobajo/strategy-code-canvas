@@ -632,7 +632,13 @@ function QuestionPanel({
             </button>
           </div>
         )}
+        {reflection?.state === "error" && (
+          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/45">
+            we could not read that back. your words are fine as written.
+          </p>
+        )}
       </div>
+
 
       <div className="mt-6 flex items-center justify-between">
         {onBack ? (
