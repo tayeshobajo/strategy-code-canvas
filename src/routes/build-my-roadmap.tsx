@@ -284,6 +284,8 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
   const [hydrated, setHydrated] = React.useState(false);
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
   const [resumeNote, setResumeNote] = React.useState<{ kind: "sent" | "saved" | "error"; text: string } | null>(null);
+  const [autosaveError, setAutosaveError] = React.useState<boolean>(false);
+  const lastSubmitPayload = React.useRef<Record<string, unknown> | null>(null);
 
   const total = QUESTIONS.length;
   const requiredAnsweredCount = React.useMemo(
