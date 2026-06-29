@@ -427,16 +427,28 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
 
 
   // Reflection debouncing per-question (with timeout + abort)
+  // Reflection lock: never mutate the displayed mirror while the founder
+  // is actively typing. We track the last keystroke time per question and
+  // defer both the "refining" state and the final text swap until the
+  // founder has been idle for REFLECT_LOCK_MS.
+  const REFLECT_LOCK_MS = 500;
   const reflectTimers = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
   const reflectAborts = React.useRef<Record<string, AbortController | undefined>>({});
+  const lastKeystrokeAt = React.useRef<Record<string, number>>({});
+  const commitTimers = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
   React.useEffect(() => {
     if (step < 0 || step >= total) return;
     const q = QUESTIONS[step];
     const value = answers[q.key]?.response ?? "";
     const trimmed = value.trim();
 
+    // Mark this keystroke; any pending commit will wait for the lock window.
+    lastKeystrokeAt.current[q.key] = Date.now();
+
     const existing = reflectTimers.current[q.key];
     if (existing) clearTimeout(existing);
+    const pendingCommit = commitTimers.current[q.key];
+    if (pendingCommit) clearTimeout(pendingCommit);
     reflectAborts.current[q.key]?.abort();
 
     if (trimmed.length < REFLECT_MIN) {
@@ -448,15 +460,25 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
       return;
     }
 
+    const key = q.key;
+    const commitState = (next: { state: "idle" | "loading" | "ready" | "error"; text: string }) => {
+      const elapsed = Date.now() - (lastKeystrokeAt.current[key] ?? 0);
+      if (elapsed < REFLECT_LOCK_MS) {
+        const existingCommit = commitTimers.current[key];
+        if (existingCommit) clearTimeout(existingCommit);
+        commitTimers.current[key] = setTimeout(() => commitState(next), REFLECT_LOCK_MS - elapsed);
+        return;
+      }
+      setReflections((prev) => ({ ...prev, [key]: next }));
+    };
+
     reflectTimers.current[q.key] = setTimeout(async () => {
       const ctrl = new AbortController();
       reflectAborts.current[q.key] = ctrl;
       const to = setTimeout(() => ctrl.abort(), REFLECT_TIMEOUT_MS);
-      // Stale-while-revalidate: keep previous text visible, only flip state to "loading".
-      setReflections((prev) => ({
-        ...prev,
-        [q.key]: { state: "loading", text: prev[q.key]?.text ?? "" },
-      }));
+      // Stale-while-revalidate: keep previous text visible, only flip state to "loading"
+      // — and only once the founder has actually paused (lock window).
+      commitState({ state: "loading", text: reflections[q.key]?.text ?? "" });
       try {
         const mod = await import("@/lib/intake.functions");
         const res = await mod.reflectAnswer({
@@ -467,25 +489,29 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
         const text = (res?.text ?? "").trim();
         if (!text) {
           // No new mirror — preserve any previous one instead of blanking.
-          setReflections((prev) => ({
-            ...prev,
-            [q.key]: { state: prev[q.key]?.text ? "ready" : "idle", text: prev[q.key]?.text ?? "" },
-          }));
+          const prevText = reflections[q.key]?.text ?? "";
+          commitState({ state: prevText ? "ready" : "idle", text: prevText });
           return;
         }
-        setReflections((prev) => ({ ...prev, [q.key]: { state: "ready", text } }));
-        setAnswers((prev) => ({
-          ...prev,
-          [q.key]: { response: prev[q.key]?.response ?? trimmed, reflected_offered: text },
-        }));
+        commitState({ state: "ready", text });
+        // Only stash reflected_offered once the new mirror is actually committed.
+        const commitAnswer = () => {
+          const elapsed = Date.now() - (lastKeystrokeAt.current[key] ?? 0);
+          if (elapsed < REFLECT_LOCK_MS) {
+            setTimeout(commitAnswer, REFLECT_LOCK_MS - elapsed);
+            return;
+          }
+          setAnswers((prev) => ({
+            ...prev,
+            [key]: { response: prev[key]?.response ?? trimmed, reflected_offered: text },
+          }));
+        };
+        commitAnswer();
       } catch (err) {
         if ((err as { name?: string })?.name === "AbortError") return;
         console.warn("[intake] reflect failed (non-blocking)", err);
         // Keep the last good mirror visible; just mark error state.
-        setReflections((prev) => ({
-          ...prev,
-          [q.key]: { state: "error", text: prev[q.key]?.text ?? "" },
-        }));
+        commitState({ state: "error", text: reflections[q.key]?.text ?? "" });
       } finally {
         clearTimeout(to);
       }
@@ -495,8 +521,11 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
     return () => {
       const t = reflectTimers.current[q.key];
       if (t) clearTimeout(t);
+      const c = commitTimers.current[q.key];
+      if (c) clearTimeout(c);
     };
   }, [step, answers, total]);
+
 
   const useReflectedWords = (key: string) => {
     const text = reflections[key]?.text ?? "";
