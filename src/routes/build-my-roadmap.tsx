@@ -948,7 +948,20 @@ function ReviewAndContact({
   onEdit,
   onBack,
   onSubmit,
+  onRetry,
 }: {
+  answers: Record<string, AnswerRecord>;
+  contact: ContactState;
+  setContact: React.Dispatch<React.SetStateAction<ContactState>>;
+  consent: boolean;
+  setConsent: (v: boolean) => void;
+  contactErrors: { name?: string; email?: string; website?: string };
+  status: SubmitStatus;
+  onEdit: (index: number) => void;
+  onBack: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onRetry: () => void;
+}) {
   answers: Record<string, AnswerRecord>;
   contact: ContactState;
   setContact: React.Dispatch<React.SetStateAction<ContactState>>;
