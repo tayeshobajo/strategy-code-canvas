@@ -463,7 +463,28 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       ...prev,
       [key]: { response: value, reflected_offered: prev[key]?.reflected_offered ?? null },
     }));
+    // Optimistic indicator: show "Saving…" as soon as the user types,
+    // before the debounce window even starts.
+    setSaveState((s) => (s === "error" ? s : "saving"));
   };
+
+  // Track the furthest step the user has reached, so the journey dots
+  // know which milestones are visited (and therefore clickable).
+  React.useEffect(() => {
+    if (step > furthestStep) setFurthestStep(step);
+  }, [step, furthestStep]);
+
+  // Milestone states for the journey path: answered / skipped / current / future.
+  const milestoneStates = React.useMemo(() => {
+    return QUESTIONS.map((q, i) => {
+      if (step === i) return "current" as const;
+      const filled = (answers[q.key]?.response ?? "").trim().length > 0;
+      if (filled) return "answered" as const;
+      if (i <= furthestStep && q.optional) return "skipped" as const;
+      if (i < furthestStep) return "answered" as const; // visited but somehow empty required — treat as reached
+      return "future" as const;
+    });
+  }, [answers, step, furthestStep]);
 
   // (Scroll-into-view removed — intake now mounts inside a full-screen overlay
   // that owns the viewport, so there is nothing on the page to scroll to.)
