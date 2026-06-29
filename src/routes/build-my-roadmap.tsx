@@ -1911,41 +1911,47 @@ function IntakeOverlay({
       role="dialog"
       aria-modal="true"
       aria-label="Leave a Roadmap note"
-      className="fixed inset-0 z-[80] overflow-y-auto bg-paper"
+      className="fixed inset-0 z-[80] overflow-y-auto"
       style={{
+        backgroundColor: "rgba(10,15,31,0.55)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
         opacity: reduce ? 1 : visible ? 1 : 0,
         transition: reduce ? "none" : "opacity 320ms cubic-bezier(0.32,0.72,0,1)",
       }}
+      onMouseDown={(e) => {
+        // Click outside the room closes the overlay (clicks inside the card stop propagation).
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="sticky top-0 z-10 border-b border-ink/10 bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/80">
-        <div className={`${container} flex h-14 items-center justify-between`}>
-          <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/70">
-            Trust Tai
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/60 underline decoration-ink/20 underline-offset-[5px] transition-colors hover:text-ink hover:decoration-ink/60"
-          >
-            exit and return home
-          </button>
-        </div>
-      </div>
       <div
+        className="mx-auto my-5 w-[min(100%-20px,1100px)] sm:my-10"
         style={{
           opacity: reduce ? 1 : visible ? 1 : 0,
-          transform: reduce ? "none" : visible ? "translateY(0)" : "translateY(8px)",
+          transform: reduce ? "none" : visible ? "translateY(0)" : "translateY(14px)",
           transition: reduce
             ? "none"
-            : "opacity 380ms cubic-bezier(0.32,0.72,0,1) 60ms, transform 380ms cubic-bezier(0.32,0.72,0,1) 60ms",
+            : "opacity 420ms cubic-bezier(0.32,0.72,0,1) 60ms, transform 420ms cubic-bezier(0.32,0.72,0,1) 60ms",
         }}
       >
-        {children}
+        <div
+          className="relative rounded-[28px] border px-6 py-8 sm:px-12 sm:py-12 lg:px-16 lg:py-14"
+          style={{
+            backgroundColor: "#FBF6EA",
+            borderColor: "rgba(10,15,31,0.10)",
+            boxShadow:
+              "0 40px 90px -30px rgba(10,15,31,0.55), 0 12px 28px -14px rgba(10,15,31,0.22), inset 0 1px 0 rgba(255,255,255,0.55)",
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
       </div>
     </div>,
     document.body,
   );
 }
+
 
 /* -------------------- PAGE -------------------- */
 function BuildMyRoadmapPage() {
