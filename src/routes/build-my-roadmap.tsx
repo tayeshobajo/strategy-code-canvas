@@ -629,12 +629,15 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await mod.sendResumeLink({ data: { resume_token: token, email, resume_url: resumeUrl, name: contact.name.trim() } } as any);
         setResumeNote({ kind: "sent", text: `a continue link is on its way to ${email}.` });
+        track("intake_resume_link_sent", { resume_token: token });
       } else {
         setResumeNote({ kind: "saved", text: "your progress is saved to this link. bookmark it and come back anytime." });
+        track("intake_draft_saved_manual", { resume_token: token });
       }
     } catch (err) {
       console.warn("[intake] save and come back failed", err);
-      setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page." });
+      setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page. try again, or copy this page URL to come back to." });
+      track("intake_save_and_come_back_failed", { message: (err as Error)?.message?.slice(0, 200) ?? "" });
     }
   };
 
