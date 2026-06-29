@@ -685,7 +685,7 @@ function ReviewAndContact({
   setContact: React.Dispatch<React.SetStateAction<ContactState>>;
   consent: boolean;
   setConsent: (v: boolean) => void;
-  contactErrors: { name?: string; email?: string };
+  contactErrors: { name?: string; email?: string; website?: string };
   status: SubmitStatus;
   onEdit: (index: number) => void;
   onBack: () => void;
