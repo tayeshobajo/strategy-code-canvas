@@ -1452,17 +1452,231 @@ function CloseSection() {
 
 /* -------------------- PAGE -------------------- */
 function BuildMyRoadmapPage() {
+  const [intakeOpen, setIntakeOpen] = React.useState(false);
+  const intakeRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Auto-open the write door if a resume token is in the URL or localStorage.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const fromUrl = new URL(window.location.href).searchParams.get("draft");
+      const fromLs = window.localStorage.getItem(STORAGE_KEY);
+      if ((fromUrl && UUID_RE.test(fromUrl)) || (fromLs && UUID_RE.test(fromLs))) {
+        setIntakeOpen(true);
+      }
+    } catch { /* noop */ }
+  }, []);
+
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
       <main>
         <Hero />
         <ConversationLead />
-        <IntakeExperience />
+        <TwoDoors onOpenWriteDoor={() => setIntakeOpen(true)} />
+        <IntakeExperience open={intakeOpen} intakeRef={intakeRef} />
         <FitList />
         <CloseSection />
       </main>
       <SiteFooter />
     </div>
+  );
+}
+
+/* -------------------- TWO DOORS -------------------- */
+function TwoDoors({ onOpenWriteDoor }: { onOpenWriteDoor: () => void }) {
+  return (
+    <section className="bg-paper">
+      <div className={`${container} pb-4 pt-2 lg:pb-6`}>
+        <div
+          className="rounded-2xl border px-6 py-12 lg:px-12 lg:py-16"
+          style={{
+            background: "linear-gradient(to right, #F6F9FE, #EEF5FF)",
+            borderColor: "rgba(37,99,255,0.18)",
+          }}
+        >
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-[2fr_1fr] lg:gap-16">
+            <div>
+              <div className="flex items-baseline gap-3">
+                <SparkGlyph />
+                <h2 className="font-display text-[clamp(1.4rem,2.4vw,1.85rem)] tracking-[-0.012em] text-ink">
+                  Two ways to begin.
+                </h2>
+              </div>
+              <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
+                Choose what feels easiest right now.
+              </p>
+
+              <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Door 1 - conversation (recommended, unchanged) */}
+                <div
+                  className="relative rounded-xl border-2 bg-white/80 p-7 text-center shadow-[0_20px_50px_-30px_rgba(10,15,31,0.25)]"
+                  style={{ borderColor: ROYAL }}
+                >
+                  <span
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-md px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-paper"
+                    style={{ backgroundColor: ROYAL }}
+                  >
+                    Recommended
+                  </span>
+                  <div className="mx-auto mt-2 flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: "rgba(37,99,255,0.10)" }}>
+                    <CalendarMark />
+                  </div>
+                  <h3 className="mt-5 font-display text-[1.2rem] text-ink">Start with a conversation.</h3>
+                  <p className="mt-3 text-[13.5px] leading-[1.7] text-ink/70">
+                    Thirty minutes. No pitch.<br />
+                    We listen first, then tell you<br />honestly what we see.
+                  </p>
+                  <ul className="mt-6 space-y-2.5 text-left">
+                    {[
+                      "Live conversation with a person",
+                      "No slides, no pitch deck",
+                      "You leave with clarity either way",
+                    ].map((t) => (
+                      <li key={t} className="flex items-start gap-2.5 text-[13px] leading-[1.6] text-ink/75">
+                        <span className="mt-[5px] shrink-0"><CheckMark small /></span>
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="#availability"
+                    className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
+                  >
+                    Book a 30-minute call
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </a>
+                  <p className="mt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
+                    View availability and pick a time
+                  </p>
+                </div>
+
+                {/* Door 2 - write (statement heading + honest bullets) */}
+                <div className="rounded-xl border border-rule bg-white/60 p-7 text-center">
+                  <div className="mx-auto mt-2 flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: "rgba(37,99,255,0.08)" }}>
+                    <PencilGlyph />
+                  </div>
+                  <h3 className="mt-5 font-display text-[1.2rem] text-ink">Or write it first.</h3>
+                  <p className="mt-3 text-[13.5px] leading-[1.7] text-ink/70">
+                    Answer a few questions in your<br />own words. You can keep it rough.<br />A person will read it.
+                  </p>
+                  <ul className="mt-6 space-y-2.5 text-left">
+                    {[
+                      "Four questions, four more if you want",
+                      "Keep it rough, we read with care",
+                      "Save and come back anytime",
+                    ].map((t) => (
+                      <li key={t} className="flex items-start gap-2.5 text-[13px] leading-[1.6] text-ink/75">
+                        <span className="mt-[5px] shrink-0"><CheckMark small /></span>
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={onOpenWriteDoor}
+                    className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-[13px] font-semibold transition-all duration-300 ease-out hover:-translate-y-[1px]"
+                    style={{ borderColor: ROYAL, color: ROYAL }}
+                  >
+                    Leave a Roadmap note
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </button>
+                  <p className="mt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
+                    We will read it with care
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right rail - before you wonder */}
+            <aside className="lg:border-l lg:border-ink/10 lg:pl-12">
+              <h3 className="font-display text-[clamp(1.25rem,1.9vw,1.5rem)] text-ink">Before you wonder.</h3>
+              <ul className="mt-7 space-y-7">
+                <ReassureRow
+                  icon={<PersonGlyph />}
+                  title="You will not be hounded."
+                  body={<>One reply, from a person.<br />If you go quiet, we leave you be.</>}
+                />
+                <ReassureRow
+                  icon={<NoPitchGlyph />}
+                  title="You will not be pitched."
+                  body={<>The first conversation has<br />no slides and no close.<br />We listen.</>}
+                />
+                <ReassureRow
+                  icon={<LeafGlyph />}
+                  title="You will not be the wrong fit in silence."
+                  body={<>If we are not right for you,<br />we say so on the call, and<br />point you somewhere better.</>}
+                />
+              </ul>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReassureRow({ icon, title, body }: { icon: React.ReactNode; title: string; body: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-4">
+      <span
+        className="mt-[2px] inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
+        style={{ borderColor: "rgba(37,99,255,0.25)" }}
+      >
+        {icon}
+      </span>
+      <div>
+        <p className="text-[13.5px] font-medium leading-[1.5]" style={{ color: ROYAL }}>{title}</p>
+        <p className="mt-1.5 text-[13px] leading-[1.7] text-ink/65">{body}</p>
+      </div>
+    </li>
+  );
+}
+
+function SparkGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true">
+      <path d="M10 2 L11.2 8.8 L18 10 L11.2 11.2 L10 18 L8.8 11.2 L2 10 L8.8 8.8 Z" fill={ROYAL} />
+    </svg>
+  );
+}
+function PencilGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 20 L8 19 L20 7 L17 4 L5 16 Z" />
+        <path d="M14 7 L17 10" />
+      </g>
+    </svg>
+  );
+}
+function PersonGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round">
+        <circle cx={12} cy={9} r={3.2} />
+        <path d="M5 19 C 6 15.5, 9 14, 12 14 C 15 14, 18 15.5, 19 19" />
+      </g>
+    </svg>
+  );
+}
+function NoPitchGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round">
+        <rect x={4} y={6} width={16} height={11} rx={1.5} />
+        <path d="M5 7 L19 16" />
+      </g>
+    </svg>
+  );
+}
+function LeafGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 19 C 5 11, 11 5, 19 5 C 19 13, 13 19, 5 19 Z" />
+        <path d="M5 19 L13 11" />
+      </g>
+    </svg>
   );
 }
