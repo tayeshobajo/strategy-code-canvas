@@ -1037,10 +1037,6 @@ function JourneyPath({
           const isAnswered = state === "answered";
           const isSkipped = state === "skipped";
           const canJump = i <= Math.max(furthestStep, step);
-          const visibleR = isCurrent ? 7 : 4;
-          const fill = isAnswered || isCurrent ? ROYAL : bg;
-          const stroke = isAnswered || isCurrent ? ROYAL : isSkipped ? ROYAL : "rgba(10,15,31,0.35)";
-          const strokeWidth = isAnswered || isCurrent ? 0 : isSkipped ? 1.5 : 1;
           return (
             <g
               key={i}
@@ -1057,23 +1053,41 @@ function JourneyPath({
             >
               {/* Generous transparent hit target */}
               <circle r={14} fill="transparent" />
-              {isCurrent && (
+              {isCurrent ? (
+                <>
+                  <circle
+                    r={8}
+                    fill="none"
+                    stroke={ROYAL}
+                    strokeWidth={1.75}
+                    style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+                  />
+                  <circle r={4} fill={ROYAL} />
+                </>
+              ) : isAnswered ? (
                 <circle
-                  r={12}
-                  fill="none"
+                  r={4.5}
+                  fill={ROYAL}
+                  style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+                />
+              ) : isSkipped ? (
+                <circle
+                  r={4.5}
+                  fill={bg}
                   stroke={ROYAL}
-                  strokeOpacity={0.28}
-                  strokeWidth={1.5}
+                  strokeOpacity={0.55}
+                  strokeWidth={1.25}
+                  style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+                />
+              ) : (
+                <circle
+                  r={4.5}
+                  fill={bg}
+                  stroke="rgba(10,15,31,0.22)"
+                  strokeWidth={1}
                   style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
                 />
               )}
-              <circle
-                r={visibleR}
-                fill={fill}
-                stroke={stroke}
-                strokeWidth={strokeWidth}
-                style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
-              />
             </g>
           );
         })}
@@ -1083,10 +1097,18 @@ function JourneyPath({
           const filled = atReview;
           return (
             <g transform={`translate(${end.x + 14},${end.y})`}>
-              <circle r={5} fill={filled ? ROYAL : bg} stroke={ROYAL} strokeWidth={filled ? 0 : 1.5} />
+              {filled ? (
+                <>
+                  <circle r={8} fill="none" stroke={ROYAL} strokeWidth={1.75} />
+                  <circle r={4} fill={ROYAL} />
+                </>
+              ) : (
+                <circle r={5.5} fill={bg} stroke={ROYAL} strokeOpacity={0.55} strokeWidth={1.25} />
+              )}
             </g>
           );
         })()}
+
       </svg>
       <div className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.32em]">
         <span className="text-ink/45">Point A</span>
