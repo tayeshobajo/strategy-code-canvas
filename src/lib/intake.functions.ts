@@ -123,10 +123,10 @@ export const loadDraft = createServerFn({ method: "POST" })
       console.error("[load-draft] failed", error);
       throw new Error("Could not load draft");
     }
-    if (!row) return { found: false as const };
+    if (!row) return { found: false as const, answers: [] as Array<Record<string, unknown>>, contact: {} as Record<string, string> };
     return {
       found: true as const,
-      answers: (row.answers as unknown[]) ?? [],
+      answers: (row.answers as Array<Record<string, unknown>>) ?? [],
       contact: (row.contact as Record<string, string>) ?? {},
     };
   });
