@@ -307,6 +307,7 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
               email: String(c.email ?? p.email ?? ""),
             }));
             setResumeToken(token);
+            setStep(0);
             try { window.localStorage.setItem(STORAGE_KEY, token); } catch { /* noop */ }
             // Ensure ?draft= is on the URL for shareability
             if (!url.searchParams.get("draft")) {
