@@ -795,14 +795,24 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       className="relative"
     >
       {/* Room header — Trust Tai mark / autosave status / exit */}
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-        <TrustTaiLogo variant="dark" className="h-5 sm:h-6" />
-        <div className="flex shrink-0 items-center gap-3 sm:gap-7">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-ink/8 pb-6">
+        <div className="flex items-center gap-4">
+          <img
+            src={trustTaiLogoDark.url}
+            alt="Trust Tai"
+            className="h-7 w-auto sm:h-8 transition-opacity duration-200 hover:opacity-90"
+          />
+          <span aria-hidden="true" className="hidden h-5 w-px bg-ink/15 sm:inline-block" />
+          <span className="hidden font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/55 sm:inline">
+            Roadmap intake
+          </span>
+        </div>
+        <div className="flex shrink-0 items-center gap-4 sm:gap-6">
           {saveLabel && (
             <span
               aria-live="polite"
               title={saveState === "saved" ? savedTooltip : undefined}
-              className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.02em] text-ink/60"
+              className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.04em] text-ink/60"
             >
               {saveState === "saving" ? (
                 <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin text-ink/45" />
@@ -811,8 +821,8 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
               ) : (
                 <span
                   aria-hidden="true"
-                  className="inline-flex h-4 w-4 items-center justify-center rounded-full"
-                  style={{ backgroundColor: "rgba(16,150,90,0.12)" }}
+                  className="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full"
+                  style={{ backgroundColor: "rgba(16,150,90,0.10)" }}
                 >
                   <Check className="h-3 w-3" style={{ color: "#10965A" }} />
                 </span>
@@ -821,17 +831,21 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             </span>
           )}
           {onExit && (
-            <button
-              type="button"
-              onClick={onExit}
-              className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.26em] text-ink/70 transition-colors hover:text-ink"
-            >
-              <LogOut aria-hidden="true" className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Exit and return home</span>
-            </button>
+            <>
+              <span aria-hidden="true" className="hidden h-[3px] w-[3px] rounded-full bg-ink/20 sm:inline-block" />
+              <button
+                type="button"
+                onClick={onExit}
+                className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink/65 transition-colors hover:text-ink"
+              >
+                <LogOut aria-hidden="true" className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-[2px]" />
+                <span className="hidden sm:inline">Exit and return home</span>
+              </button>
+            </>
           )}
         </div>
       </header>
+
 
       <div className="pt-10 lg:pt-12">
         {/* Journey path */}
