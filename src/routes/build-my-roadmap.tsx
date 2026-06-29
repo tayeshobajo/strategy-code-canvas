@@ -161,7 +161,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_RE = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REFLECT_MIN = 25;
-const REFLECT_DEBOUNCE_MS = 1500;
+const REFLECT_DEBOUNCE_MS = 2200;
 const REFLECT_TIMEOUT_MS = 12000;
 const STORAGE_KEY = "tt:intake:token:v1";
 const PATH_D = "M22,64 C 200,30 300,82 400,52 S 560,24 658,34";
@@ -440,7 +440,11 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
     reflectAborts.current[q.key]?.abort();
 
     if (trimmed.length < REFLECT_MIN) {
-      setReflections((prev) => ({ ...prev, [q.key]: { state: "idle", text: "" } }));
+      // Below the threshold: clear to idle so the placeholder shows again.
+      setReflections((prev) => {
+        if (!prev[q.key] || (prev[q.key]?.state === "idle" && !prev[q.key]?.text)) return prev;
+        return { ...prev, [q.key]: { state: "idle", text: "" } };
+      });
       return;
     }
 
@@ -448,7 +452,11 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
       const ctrl = new AbortController();
       reflectAborts.current[q.key] = ctrl;
       const to = setTimeout(() => ctrl.abort(), REFLECT_TIMEOUT_MS);
-      setReflections((prev) => ({ ...prev, [q.key]: { state: "loading", text: prev[q.key]?.text ?? "" } }));
+      // Stale-while-revalidate: keep previous text visible, only flip state to "loading".
+      setReflections((prev) => ({
+        ...prev,
+        [q.key]: { state: "loading", text: prev[q.key]?.text ?? "" },
+      }));
       try {
         const mod = await import("@/lib/intake.functions");
         const res = await mod.reflectAnswer({
@@ -458,7 +466,11 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
         } as any);
         const text = (res?.text ?? "").trim();
         if (!text) {
-          setReflections((prev) => ({ ...prev, [q.key]: { state: "idle", text: "" } }));
+          // No new mirror — preserve any previous one instead of blanking.
+          setReflections((prev) => ({
+            ...prev,
+            [q.key]: { state: prev[q.key]?.text ? "ready" : "idle", text: prev[q.key]?.text ?? "" },
+          }));
           return;
         }
         setReflections((prev) => ({ ...prev, [q.key]: { state: "ready", text } }));
@@ -469,11 +481,16 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
       } catch (err) {
         if ((err as { name?: string })?.name === "AbortError") return;
         console.warn("[intake] reflect failed (non-blocking)", err);
-        setReflections((prev) => ({ ...prev, [q.key]: { state: "error", text: "" } }));
+        // Keep the last good mirror visible; just mark error state.
+        setReflections((prev) => ({
+          ...prev,
+          [q.key]: { state: "error", text: prev[q.key]?.text ?? "" },
+        }));
       } finally {
         clearTimeout(to);
       }
     }, REFLECT_DEBOUNCE_MS);
+
 
     return () => {
       const t = reflectTimers.current[q.key];
@@ -743,54 +760,90 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
 
 function JourneyPath({ progress, reachedReview }: { progress: number; reachedReview: boolean }) {
   const reduce = usePrefersReducedMotion();
-  // path length approx 680; draw stroke-dashoffset for progress
   const LENGTH = 680;
   const offset = reduce ? 0 : LENGTH * (1 - progress);
+  const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);
   return (
     <div className="mx-auto w-full max-w-[760px]">
       <svg viewBox="0 0 680 100" className="block h-[80px] w-full" aria-hidden="true">
         <defs>
-          <pattern id="intake-dotted" x="0" y="0" width="6" height="2" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="0.9" fill="rgba(10,15,31,0.18)" />
-          </pattern>
+          <filter id="intake-glow" x="-20%" y="-50%" width="140%" height="200%">
+            <feGaussianBlur stdDeviation="2.4" />
+          </filter>
         </defs>
-        {/* Faint dotted base */}
-        <path d={PATH_D} fill="none" stroke="rgba(10,15,31,0.18)" strokeWidth={1} strokeDasharray="2 5" />
-        {/* Drawn blue line */}
+        {/* Faint dotted base — lifted contrast so the path reads */}
+        <path d={PATH_D} fill="none" stroke="rgba(10,15,31,0.28)" strokeWidth={1} strokeDasharray="2 5" />
+        {/* Soft glow underlay on the drawn segment only */}
+        {!reduce && (
+          <path
+            d={PATH_D}
+            fill="none"
+            stroke={ROYAL}
+            strokeOpacity={0.22}
+            strokeWidth={4}
+            strokeLinecap="round"
+            strokeDasharray={LENGTH}
+            strokeDashoffset={offset}
+            filter="url(#intake-glow)"
+            style={{ transition: "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+          />
+        )}
+        {/* Drawn royal line */}
         <path
           d={PATH_D}
           fill="none"
           stroke={ROYAL}
-          strokeWidth={1.6}
+          strokeWidth={2}
           strokeLinecap="round"
           strokeDasharray={LENGTH}
           strokeDashoffset={offset}
           style={{ transition: reduce ? "none" : "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
         />
-        {/* Point A */}
+        {/* Point A — active */}
         <g transform="translate(22,64)">
-          <circle r="5.5" fill={ROYAL} />
-          <circle r="11" fill="none" stroke={ROYAL} strokeOpacity="0.25" />
+          <circle r="6" fill={ROYAL} />
+          <circle r="12" fill="none" stroke={ROYAL} strokeOpacity="0.28" />
         </g>
-        {/* Point B */}
-        <g
-          transform="translate(658,34)"
-          style={{
-            opacity: reachedReview ? 1 : 0,
-            transition: reduce ? "none" : "opacity 500ms ease-out",
-          }}
-        >
-          <circle r="5.5" fill="#0A0F1F" />
-          <circle r="11" fill="none" stroke="#0A0F1F" strokeOpacity="0.25" />
+        {/* Point B — pending or arrived */}
+        <g transform="translate(658,34)">
+          <circle
+            r="6"
+            fill={reachedReview ? "#0A0F1F" : "transparent"}
+            stroke="#0A0F1F"
+            strokeOpacity={reachedReview ? 1 : 0.55}
+            strokeWidth={reachedReview ? 0 : 1.5}
+            style={{ transition: reduce ? "none" : "fill 500ms ease-out, stroke-opacity 500ms ease-out" }}
+          />
+          <circle r="12" fill="none" stroke="#0A0F1F" strokeOpacity="0.18" />
         </g>
       </svg>
-      <div className="mt-1 flex justify-between font-mono text-[10px] uppercase tracking-[0.28em] text-ink/45">
-        <span>Point A</span>
-        <span style={{ opacity: reachedReview ? 1 : 0.35 }}>Point B</span>
+      <div className="mt-1 flex items-center justify-between font-mono text-[12px] uppercase tracking-[0.32em]">
+        <span className="inline-flex items-center gap-2 text-ink/70">
+          <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ backgroundColor: ROYAL }} />
+          Point A
+        </span>
+        <span className="inline-flex items-center gap-3">
+          <span className="font-mono text-[10.5px] tracking-[0.28em] text-ink/55">{pct}%</span>
+          <span
+            className={`inline-flex items-center gap-2 ${reachedReview ? "text-ink/90" : "text-ink/55"}`}
+            style={{ transition: "color 400ms ease-out" }}
+          >
+            <span
+              className="inline-block h-[6px] w-[6px] rounded-full"
+              style={{
+                backgroundColor: reachedReview ? "#0A0F1F" : "transparent",
+                boxShadow: reachedReview ? "none" : "inset 0 0 0 1.5px rgba(10,15,31,0.55)",
+                transition: "background-color 400ms ease-out",
+              }}
+            />
+            Point B
+          </span>
+        </span>
       </div>
     </div>
   );
 }
+
 
 function usePrefersReducedMotion() {
   const [reduce, setReduce] = React.useState(false);
@@ -860,11 +913,22 @@ function QuestionPanel({
   // Reset touched as the user moves between steps
   React.useEffect(() => { setTouched(false); }, [q.key]);
   const showRequiredHint = !isOptional && !hasText && touched;
+  // Parse the eyebrow ("01 / Where you are") so we can color the numeral royal.
+  const [eyebrowNum, ...eyebrowRest] = q.eyebrow.split(" / ");
+  const eyebrowTail = eyebrowRest.join(" / ");
+  const hasMirror = !!reflection?.text;
+  const isLoading = reflection?.state === "loading";
+  const isError = reflection?.state === "error";
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/55">
-        {q.eyebrow}
-        {isOptional && <span className="ml-3 text-ink/35 normal-case tracking-[0.04em]">optional</span>}
+      <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/70">
+        <span style={{ color: ROYAL }}>{eyebrowNum}</span>
+        {eyebrowTail && <span className="text-ink/40"> / </span>}
+        {eyebrowTail && <span>{eyebrowTail}</span>}
+        {isOptional && (
+          <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/60">optional</span>
+
+        )}
       </p>
       <h2 className="mt-4 font-display text-[clamp(1.5rem,2.6vw,2rem)] leading-[1.25] tracking-[-0.015em] text-ink">
         {q.before}
@@ -889,33 +953,65 @@ function QuestionPanel({
         </p>
       )}
 
-      <div className="min-h-[64px] mt-3">
-        {reflection?.state === "loading" && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/45">
-            reading that back&hellip;
-          </p>
-        )}
-        {reflection?.state === "ready" && reflection.text && (
-          <div>
+      {/* Mirror card — stale-while-revalidating, never empties once it has text. */}
+      <div
+        className="mt-5 rounded-2xl border px-6 py-6 transition-opacity duration-300"
+        style={{
+          backgroundColor: "#FBFAF6",
+          borderColor: "rgba(10,15,31,0.10)",
+          minHeight: 132,
+          opacity: isLoading && hasMirror ? 0.94 : 1,
+        }}
+        aria-live="polite"
+      >
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
+            <span aria-hidden="true" className="inline-block h-[14px] w-px" style={{ backgroundColor: ROYAL }} />
+            A reader hears
+          </span>
+          {isLoading && (
+            <span className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.24em] text-ink/55">
+              <span
+                aria-hidden="true"
+                className="inline-block h-[6px] w-[6px] rounded-full motion-safe:animate-pulse"
+                style={{ backgroundColor: ROYAL }}
+              />
+              refining
+            </span>
+          )}
+        </div>
+
+        {hasMirror ? (
+          <>
             <p
-              className="font-display italic text-[15px] leading-[1.7]"
-              style={{ color: "rgba(10,15,31,0.42)" }}
+              className="mt-3 font-display italic text-[16.5px] leading-[1.75]"
+              style={{ color: "rgba(10,15,31,0.78)" }}
             >
-              {reflection.text}
+              {reflection?.text}
             </p>
-            <button
-              type="button"
-              onClick={onUseReflected}
-              className="mt-2 font-mono text-[11px] uppercase tracking-[0.24em] underline decoration-royal/30 underline-offset-[5px] hover:decoration-royal"
-              style={{ color: ROYAL }}
-            >
-              use these words
-            </button>
-          </div>
-        )}
-        {reflection?.state === "error" && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/45">
-            we could not read that back. your words are fine as written.
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onUseReflected}
+                className="inline-flex items-center rounded-full border border-ink/15 bg-white px-3.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.24em] transition-colors hover:bg-[rgba(37,99,255,0.06)]"
+                style={{ color: ROYAL }}
+              >
+                use these words
+              </button>
+              {isError && (
+                <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/50">
+                  couldn&rsquo;t refine just now
+                </span>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="mt-3 font-display italic text-[15px] leading-[1.7] text-ink/45">
+            {isLoading
+              ? "Reading what you just wrote\u2026"
+              : isError
+                ? "We couldn\u2019t read that back. Your words are fine as written."
+                : "A mirror appears once you pause. Write the way you talk."}
           </p>
         )}
       </div>
@@ -926,7 +1022,7 @@ function QuestionPanel({
           <button
             type="button"
             onClick={onBack}
-            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55 hover:text-ink"
+            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/60 hover:text-ink"
           >
             ← back
           </button>
@@ -942,12 +1038,21 @@ function QuestionPanel({
         </button>
       </div>
 
-      <p className="mt-6 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/40">
-        {String(index + 1).padStart(2, "0")} of {String(total).padStart(2, "0")}
-      </p>
+      <div className="mt-6 flex items-center gap-3">
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/65">
+          {String(index + 1).padStart(2, "0")} of {String(total).padStart(2, "0")}
+        </span>
+        <span aria-hidden="true" className="relative inline-block h-px w-[44px] bg-ink/15">
+          <span
+            className="absolute inset-y-0 left-0 bg-ink/55"
+            style={{ width: `${Math.min(100, ((index + 1) / total) * 100)}%`, transition: "width 400ms ease-out" }}
+          />
+        </span>
+      </div>
     </div>
   );
 }
+
 
 function ReviewAndContact({
   answers,
