@@ -856,6 +856,10 @@ function QuestionPanel({
   const canAdvance = isOptional || hasText;
   const isLast = index === total - 1;
   const primaryLabel = isLast ? "Review" : isOptional && !hasText ? "Skip" : "Continue";
+  const [touched, setTouched] = React.useState(false);
+  // Reset touched as the user moves between steps
+  React.useEffect(() => { setTouched(false); }, [q.key]);
+  const showRequiredHint = !isOptional && !hasText && touched;
   return (
     <div>
       <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/55">
@@ -871,11 +875,19 @@ function QuestionPanel({
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={() => setTouched(true)}
         rows={6}
         placeholder={q.placeholder}
-        className="mt-8 w-full resize-none rounded-md border border-rule bg-white/70 px-5 py-4 text-[15px] leading-[1.7] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal"
+        aria-invalid={showRequiredHint}
+        aria-describedby={showRequiredHint ? `${q.key}-hint` : undefined}
+        className={`mt-8 w-full resize-none rounded-md border bg-white/70 px-5 py-4 text-[15px] leading-[1.7] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${showRequiredHint ? "border-[#B91C1C]/60" : "border-rule"}`}
         autoFocus
       />
+      {showRequiredHint && (
+        <p id={`${q.key}-hint`} className="mt-2 font-mono text-[11px] normal-case tracking-[0.04em] text-[#B91C1C]">
+          this one is required. a sentence or two is plenty.
+        </p>
+      )}
 
       <div className="min-h-[64px] mt-3">
         {reflection?.state === "loading" && (
