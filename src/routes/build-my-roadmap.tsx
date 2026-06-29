@@ -1054,58 +1054,77 @@ function QuestionPanel({
     };
   }, [incoming, displayedText]);
 
+  const charLimit = 2000;
+  const charCount = value.length;
+
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/70">
-        <span style={{ color: ROYAL }}>{eyebrowNum}</span>
-        {eyebrowTail && <span className="text-ink/40"> / </span>}
-        {eyebrowTail && <span>{eyebrowTail}</span>}
+      {/* Centered eyebrow: 01 OF 08 · WHERE YOU ARE */}
+      <p className="text-center font-mono text-[11px] uppercase tracking-[0.34em] text-ink/55">
+        <span style={{ color: ROYAL }}>{String(index + 1).padStart(2, "0")}</span>
+        <span className="text-ink/45"> of {String(total).padStart(2, "0")}</span>
+        {eyebrowTail && (
+          <>
+            <span aria-hidden="true" className="mx-3 inline-block h-[3px] w-[3px] -translate-y-[2px] rounded-full bg-ink/30" />
+            <span className="text-ink/70">{eyebrowTail}</span>
+          </>
+        )}
         {isOptional && (
           <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/60">optional</span>
-
         )}
       </p>
-      <h2 className="mt-4 font-display text-[clamp(1.5rem,2.6vw,2rem)] leading-[1.25] tracking-[-0.015em] text-ink">
+
+      <h2 className="mt-6 font-display text-[clamp(1.6rem,2.6vw,2.05rem)] leading-[1.25] tracking-[-0.015em] text-ink">
         {q.before}
         <em className="italic font-normal" style={{ color: ROYAL }}>{q.accent}</em>
         {q.after}
       </h2>
 
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={() => setTouched(true)}
-        rows={6}
-        placeholder={q.placeholder}
-        aria-invalid={showRequiredHint}
-        aria-describedby={showRequiredHint ? `${q.key}-hint` : undefined}
-        className={`mt-8 w-full resize-none rounded-md border bg-white/70 px-5 py-4 text-[15px] leading-[1.7] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-royal ${showRequiredHint ? "border-[#B91C1C]/60" : "border-rule"}`}
-        autoFocus
-      />
+      {/* Writing surface — bright fill, soft border, blue focus */}
+      <div className="relative mt-6">
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={() => setTouched(true)}
+          rows={6}
+          maxLength={charLimit}
+          placeholder={q.placeholder}
+          aria-invalid={showRequiredHint}
+          aria-describedby={showRequiredHint ? `${q.key}-hint` : undefined}
+          className={`peer w-full resize-none rounded-2xl border bg-white px-6 py-5 pb-10 text-[16px] leading-[1.75] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-[#2563FF] ${showRequiredHint ? "border-[#B91C1C]/60" : "border-ink/12"}`}
+          style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)" }}
+          autoFocus
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-3 right-4 font-mono text-[11px] tracking-[0.04em] text-ink/35"
+        >
+          {charCount}/{charLimit}
+        </span>
+      </div>
       {showRequiredHint && (
         <p id={`${q.key}-hint`} className="mt-2 font-mono text-[11px] normal-case tracking-[0.04em] text-[#B91C1C]">
           this one is required. a sentence or two is plenty.
         </p>
       )}
 
-      {/* Mirror card — stale-while-revalidating, never empties once it has text. */}
+      {/* Reflection — thoughtful note, not a tool box */}
       <div
-        className="mt-5 rounded-2xl border px-6 py-6 transition-opacity duration-300"
+        className="mt-6 rounded-2xl border px-6 py-6 transition-opacity duration-300"
         style={{
-          backgroundColor: "#FBFAF6",
-          borderColor: "rgba(10,15,31,0.10)",
+          backgroundColor: "rgba(255,255,255,0.55)",
+          borderColor: "rgba(37,99,255,0.18)",
           minHeight: 132,
           opacity: isLoading && hasMirror ? 0.94 : 1,
         }}
         aria-live="polite"
       >
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
-            <span aria-hidden="true" className="inline-block h-[14px] w-px" style={{ backgroundColor: ROYAL }} />
-            A reader hears
+        <div className="flex items-start justify-between gap-4">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.26em]" style={{ color: ROYAL }}>
+            A clearer version, if it helps
           </span>
           {isLoading && (
-            <span className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.24em] text-ink/55">
+            <span className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/55">
               <span
                 aria-hidden="true"
                 className="inline-block h-[6px] w-[6px] rounded-full motion-safe:animate-pulse"
@@ -1117,20 +1136,19 @@ function QuestionPanel({
         </div>
 
         {hasMirror ? (
-          <>
+          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
             <p
-              className="mt-3 font-display italic text-[16.5px] leading-[1.75] motion-safe:transition-opacity motion-safe:duration-[420ms] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
+              className="font-display italic text-[16.5px] leading-[1.75] motion-safe:transition-opacity motion-safe:duration-[420ms] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
               style={{ color: "rgba(10,15,31,0.78)", opacity: textOpacity }}
             >
               {displayedText}
             </p>
-
-            <div className="mt-4 flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3">
               <button
                 type="button"
                 onClick={onUseReflected}
-                className="inline-flex items-center rounded-full border border-ink/15 bg-white px-3.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.24em] transition-colors hover:bg-[rgba(37,99,255,0.06)]"
-                style={{ color: ROYAL }}
+                className="inline-flex items-center rounded-full border bg-white px-3.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.22em] transition-colors hover:bg-[rgba(37,99,255,0.06)]"
+                style={{ color: ROYAL, borderColor: "rgba(37,99,255,0.35)" }}
               >
                 use these words
               </button>
@@ -1140,54 +1158,44 @@ function QuestionPanel({
                 </span>
               )}
             </div>
-          </>
+          </div>
         ) : (
           <p className="mt-3 font-display italic text-[15px] leading-[1.7] text-ink/45">
             {isLoading
               ? "Reading what you just wrote\u2026"
               : isError
                 ? "We couldn\u2019t read that back. Your words are fine as written."
-                : "A mirror appears once you pause. Write the way you talk."}
+                : "A clearer version will appear here once you pause. Write the way you talk."}
           </p>
         )}
       </div>
 
-
-      <div className="mt-6 flex items-center justify-between">
+      {/* Action row — Back outlined pill / Continue solid navy pill */}
+      <div className="mt-8 flex items-center justify-between">
         {onBack ? (
           <button
             type="button"
             onClick={onBack}
-            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/60 hover:text-ink"
+            className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink"
           >
-            ← back
+            <ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />
+            <span>Back</span>
           </button>
         ) : <span />}
         <button
           type="button"
           onClick={onNext}
           disabled={!canAdvance}
-          className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+          className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
         >
           <span>{primaryLabel}</span>
           <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
         </button>
       </div>
-
-      <div className="mt-6 flex items-center gap-3">
-        <span className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/65">
-          {String(index + 1).padStart(2, "0")} of {String(total).padStart(2, "0")}
-        </span>
-        <span aria-hidden="true" className="relative inline-block h-px w-[44px] bg-ink/15">
-          <span
-            className="absolute inset-y-0 left-0 bg-ink/55"
-            style={{ width: `${Math.min(100, ((index + 1) / total) * 100)}%`, transition: "width 400ms ease-out" }}
-          />
-        </span>
-      </div>
     </div>
   );
 }
+
 
 
 function ReviewAndContact({
