@@ -4,7 +4,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { TrustTaiLogo } from "@/components/TrustTaiLogo";
+import trustTaiLogoDark from "@/assets/trust-tai-logo.png.asset.json";
 import { Reveal } from "@/hooks/use-reveal";
 import notebookImg from "@/assets/cta-book-cover-desk.png.asset.json";
 import heroMountain from "@/assets/roadmap-hero-mountain.png.asset.json";
@@ -795,14 +795,24 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       className="relative"
     >
       {/* Room header — Trust Tai mark / autosave status / exit */}
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-        <TrustTaiLogo variant="dark" className="h-5 sm:h-6" />
-        <div className="flex shrink-0 items-center gap-3 sm:gap-7">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-ink/8 pb-6">
+        <div className="flex items-center gap-4">
+          <img
+            src={trustTaiLogoDark.url}
+            alt="Trust Tai"
+            className="h-7 w-auto sm:h-8 transition-opacity duration-200 hover:opacity-90"
+          />
+          <span aria-hidden="true" className="hidden h-5 w-px bg-ink/15 sm:inline-block" />
+          <span className="hidden font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/55 sm:inline">
+            Roadmap intake
+          </span>
+        </div>
+        <div className="flex shrink-0 items-center gap-4 sm:gap-6">
           {saveLabel && (
             <span
               aria-live="polite"
               title={saveState === "saved" ? savedTooltip : undefined}
-              className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.02em] text-ink/60"
+              className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.04em] text-ink/60"
             >
               {saveState === "saving" ? (
                 <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin text-ink/45" />
@@ -811,8 +821,8 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
               ) : (
                 <span
                   aria-hidden="true"
-                  className="inline-flex h-4 w-4 items-center justify-center rounded-full"
-                  style={{ backgroundColor: "rgba(16,150,90,0.12)" }}
+                  className="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full"
+                  style={{ backgroundColor: "rgba(16,150,90,0.10)" }}
                 >
                   <Check className="h-3 w-3" style={{ color: "#10965A" }} />
                 </span>
@@ -821,17 +831,21 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             </span>
           )}
           {onExit && (
-            <button
-              type="button"
-              onClick={onExit}
-              className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.26em] text-ink/70 transition-colors hover:text-ink"
-            >
-              <LogOut aria-hidden="true" className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Exit and return home</span>
-            </button>
+            <>
+              <span aria-hidden="true" className="hidden h-[3px] w-[3px] rounded-full bg-ink/20 sm:inline-block" />
+              <button
+                type="button"
+                onClick={onExit}
+                className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink/65 transition-colors hover:text-ink"
+              >
+                <LogOut aria-hidden="true" className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-[2px]" />
+                <span className="hidden sm:inline">Exit and return home</span>
+              </button>
+            </>
           )}
         </div>
       </header>
+
 
       <div className="pt-10 lg:pt-12">
         {/* Journey path */}
@@ -889,23 +903,24 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         </div>
 
         {step >= 0 && step < total && (
-          <div className="mx-auto mt-10 max-w-[560px] text-center">
-            <div className="flex items-center gap-4">
-              <span aria-hidden="true" className="h-px flex-1 bg-ink/10" />
+          <div className="mx-auto mt-16 max-w-[560px] text-center">
+            <div className="flex items-center justify-center gap-4">
+              <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
               <button
                 type="button"
                 onClick={onSaveAndComeBack}
-                className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.04em] transition-colors"
+                className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] transition-colors hover:opacity-80"
                 style={{ color: ROYAL }}
               >
                 <Bookmark aria-hidden="true" className="h-3.5 w-3.5" />
                 <span>Save and come back later</span>
               </button>
-              <span aria-hidden="true" className="h-px flex-1 bg-ink/10" />
+              <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
             </div>
-            <p className="mt-2 font-mono text-[11px] tracking-[0.02em] text-ink/50">
+            <p className="mt-3 font-mono text-[12px] tracking-[0.02em] text-ink/45">
               We will save as you go. You will get a private link to return.
             </p>
+
             {resumeNote && (
               <p
                 role={resumeNote.kind === "error" ? "alert" : undefined}
@@ -1073,11 +1088,11 @@ function JourneyPath({
           );
         })()}
       </svg>
-      <div className="mt-1 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.32em]">
-        <span className="text-ink/70">Point A</span>
-        <span className="text-ink/70">
-          <span className="mr-2 text-ink/55">{pct}%</span>
-          <span aria-hidden="true" className="mr-2 text-ink/30">·</span>
+      <div className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.32em]">
+        <span className="text-ink/45">Point A</span>
+        <span className="inline-flex items-center gap-2 text-ink/45">
+          <span className="rounded-full bg-ink/5 px-2 py-[3px] tracking-[0.22em] text-ink/65">{pct}%</span>
+          <span aria-hidden="true" className="text-ink/25">·</span>
           Point B
         </span>
       </div>
@@ -1190,25 +1205,27 @@ function QuestionPanel({
 
   return (
     <div>
-      {/* Centered eyebrow: question section label only */}
-      <p className="text-center font-mono text-[11px] uppercase tracking-[0.34em] text-ink/55">
-        {eyebrowTail && (
-          <span className="text-ink/70">{eyebrowTail}</span>
-        )}
-        {isOptional && (
-          <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/60">optional</span>
-        )}
-      </p>
+      {/* Centered eyebrow: chapter mark — hairline · label · hairline */}
+      <div className="flex items-center justify-center gap-3">
+        <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.36em] text-ink/60">
+          {eyebrowTail && <span>{eyebrowTail}</span>}
+          {isOptional && (
+            <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/55">optional</span>
+          )}
+        </p>
+        <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
+      </div>
 
 
-      <h2 className="mt-6 font-display text-[clamp(1.6rem,2.6vw,2.05rem)] leading-[1.25] tracking-[-0.015em] text-ink">
+      <h2 className="mx-auto mt-6 max-w-[760px] text-center font-display text-[clamp(1.55rem,2.4vw,1.95rem)] leading-[1.3] tracking-[-0.015em] text-ink">
         {q.before}
         <em className="italic font-normal" style={{ color: ROYAL }}>{q.accent}</em>
         {q.after}
       </h2>
 
-      {/* Writing surface — bright fill, soft border, blue focus */}
-      <div className="relative mt-6">
+      {/* Writing surface — layered shadow, ring focus, refined */}
+      <div className="relative mt-8">
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -1218,16 +1235,21 @@ function QuestionPanel({
           placeholder={q.placeholder}
           aria-invalid={showRequiredHint}
           aria-describedby={showRequiredHint ? `${q.key}-hint` : undefined}
-          className={`peer w-full resize-none rounded-2xl border bg-white px-6 py-5 pb-10 text-[16px] leading-[1.75] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-[#2563FF] ${showRequiredHint ? "border-[#B91C1C]/60" : "border-ink/12"}`}
-          style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)" }}
+          className={`peer w-full resize-none rounded-[20px] border bg-white px-6 py-5 pb-10 text-[16px] leading-[1.75] text-ink outline-none transition-all duration-200 placeholder:text-ink/35 focus:border-[rgba(37,99,255,0.35)] focus:ring-2 focus:ring-[rgba(37,99,255,0.18)] ${showRequiredHint ? "border-[#B91C1C]/60" : "border-ink/8"}`}
+          style={{
+            boxShadow:
+              "inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(10,15,31,0.04), 0 18px 40px -28px rgba(10,15,31,0.18)",
+          }}
           autoFocus
         />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-3 right-4 font-mono text-[11px] tracking-[0.04em] text-ink/35"
-        >
-          {charCount}/{charLimit}
-        </span>
+        {charCount > 200 && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-3 right-4 rounded-full bg-ink/5 px-2 py-[3px] font-mono text-[10.5px] tracking-[0.04em] text-ink/45"
+          >
+            {charCount}/{charLimit}
+          </span>
+        )}
       </div>
       {showRequiredHint && (
         <p id={`${q.key}-hint`} className="mt-2 font-mono text-[11px] normal-case tracking-[0.04em] text-[#B91C1C]">
@@ -1235,18 +1257,26 @@ function QuestionPanel({
         </p>
       )}
 
-      {/* Reflection — thoughtful note, not a tool box */}
+      {/* Reflection — ivory note with royal top accent */}
       <div
-        className="mt-6 rounded-2xl border px-6 py-6 transition-opacity duration-300"
+        className="relative mt-6 overflow-hidden rounded-[20px] border border-t-2 px-6 py-6 transition-opacity duration-300"
         style={{
-          backgroundColor: "rgba(255,255,255,0.55)",
-          borderColor: "rgba(37,99,255,0.18)",
+          backgroundColor: "rgba(255,253,247,0.85)",
+          borderColor: "rgba(10,15,31,0.08)",
+          borderTopColor: "rgba(37,99,255,0.38)",
           minHeight: 132,
           opacity: isLoading && hasMirror ? 0.94 : 1,
         }}
         aria-live="polite"
       >
-        <div className="flex items-start justify-between gap-4">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1 select-none font-display text-[64px] leading-none"
+          style={{ color: ROYAL, opacity: 0.14, fontStyle: "italic" }}
+        >
+          &ldquo;
+        </span>
+        <div className="relative flex items-start justify-between gap-4">
           <span className="font-mono text-[10.5px] uppercase tracking-[0.26em]" style={{ color: ROYAL }}>
             A clearer version, if it helps
           </span>
@@ -1263,10 +1293,10 @@ function QuestionPanel({
         </div>
 
         {hasMirror ? (
-          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+          <div className="relative mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
             <p
               className="font-display italic text-[16.5px] leading-[1.75] motion-safe:transition-opacity motion-safe:duration-[420ms] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
-              style={{ color: "rgba(10,15,31,0.78)", opacity: textOpacity }}
+              style={{ color: "rgba(10,15,31,0.82)", opacity: textOpacity }}
             >
               {displayedText}
             </p>
@@ -1274,8 +1304,11 @@ function QuestionPanel({
               <button
                 type="button"
                 onClick={onUseReflected}
-                className="inline-flex items-center rounded-full border bg-white px-3.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.22em] transition-colors hover:bg-[rgba(37,99,255,0.06)]"
-                style={{ color: ROYAL, borderColor: "rgba(37,99,255,0.35)" }}
+                className="inline-flex items-center rounded-full px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.22em] text-paper transition-all duration-200 hover:-translate-y-[1px]"
+                style={{
+                  backgroundColor: ROYAL,
+                  boxShadow: "0 8px 20px -10px rgba(37,99,255,0.55)",
+                }}
               >
                 use these words
               </button>
@@ -1287,7 +1320,7 @@ function QuestionPanel({
             </div>
           </div>
         ) : (
-          <p className="mt-3 font-display italic text-[15px] leading-[1.7] text-ink/45">
+          <p className="relative mt-3 font-display italic text-[15px] leading-[1.7] text-ink/45">
             {isLoading
               ? "Reading what you just wrote\u2026"
               : isError
@@ -1296,6 +1329,7 @@ function QuestionPanel({
           </p>
         )}
       </div>
+
 
       {/* Action row — Back outlined pill / Continue solid navy pill */}
       <div className="mt-8 flex items-center justify-between">
@@ -2039,9 +2073,8 @@ function IntakeOverlay({
       aria-label="Leave a Roadmap note"
       className="fixed inset-0 z-[80] overflow-y-auto"
       style={{
-        backgroundColor: "rgba(10,15,31,0.55)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
+        backgroundColor: "rgba(10,15,31,0.42)",
+        backdropFilter: "blur(12px)",
         opacity: reduce ? 1 : visible ? 1 : 0,
         transition: reduce ? "none" : "opacity 320ms cubic-bezier(0.32,0.72,0,1)",
       }}
@@ -2051,7 +2084,7 @@ function IntakeOverlay({
       }}
     >
       <div
-        className="mx-auto my-5 w-[min(100%-20px,1100px)] sm:my-10"
+        className="mx-auto my-5 w-[min(100%-20px,1140px)] sm:my-10"
         style={{
           opacity: reduce ? 1 : visible ? 1 : 0,
           transform: reduce ? "none" : visible ? "translateY(0)" : "translateY(14px)",
@@ -2061,18 +2094,28 @@ function IntakeOverlay({
         }}
       >
         <div
-          className="relative rounded-[28px] border px-6 py-8 sm:px-12 sm:py-12 lg:px-16 lg:py-14"
+          className="relative overflow-hidden rounded-[32px] border px-6 py-8 sm:px-12 sm:py-12 lg:px-20 lg:py-16"
           style={{
             backgroundColor: "oklch(0.97 0.02 255)",
             borderColor: "rgba(10,15,31,0.10)",
             boxShadow:
-              "0 40px 90px -30px rgba(10,15,31,0.55), 0 12px 28px -14px rgba(10,15,31,0.22), inset 0 1px 0 rgba(255,255,255,0.55)",
+              "0 50px 110px -30px rgba(10,15,31,0.55), 0 14px 32px -16px rgba(10,15,31,0.22), inset 0 1px 0 rgba(255,255,255,0.6)",
           }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          {children}
+          {/* Soft top vignette for depth */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-[260px]"
+            style={{
+              background:
+                "radial-gradient(ellipse 70% 100% at 50% 0%, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)",
+            }}
+          />
+          <div className="relative">{children}</div>
         </div>
       </div>
+
     </div>,
     document.body,
   );
