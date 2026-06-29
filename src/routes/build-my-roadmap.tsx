@@ -662,7 +662,7 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
 
         <div className="mx-auto mt-10 max-w-[760px]">
           {step === -1 && (
-            <IntakeIntro onBegin={() => setStep(0)} />
+            <IntakeIntro onBegin={() => { track("intake_started", {}); setStep(0); }} />
           )}
 
           {currentQuestion && (
