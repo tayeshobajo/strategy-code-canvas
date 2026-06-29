@@ -172,11 +172,18 @@ type IntakeQuestion = {
   accent: string;
   after: string;
   placeholder: string;
+  optional?: boolean;
 };
 
 const QUESTIONS: IntakeQuestion[] = [
   {
     key: "current_state",
+    eyebrow: "01 / where you are",
+    before: "Tell us what you have built. ",
+    accent: "What is the business today",
+    after: ", in your words?",
+    placeholder: "Start anywhere. What you do, who you serve, how it runs now.",
+  },
     eyebrow: "01 / where you are",
     before: "Tell us what you have built. ",
     accent: "What is the business today",
