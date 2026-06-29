@@ -909,7 +909,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 }
 
 
-function JourneyPath({ step, progress, reachedReview }: { step: number; progress: number; reachedReview: boolean }) {
+function JourneyPath({ step, progress }: { step: number; progress: number }) {
   const reduce = usePrefersReducedMotion();
   const LENGTH = 680;
   const offset = reduce ? 0 : LENGTH * (1 - progress);
