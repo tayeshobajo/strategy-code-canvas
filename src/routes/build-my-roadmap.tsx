@@ -2032,7 +2032,7 @@ function BuildMyRoadmapPage() {
       </main>
       <SiteFooter />
       <IntakeOverlay open={intakeOpen} onClose={closeIntake}>
-        <IntakeExperience open={intakeOpen} intakeRef={intakeRef} />
+        <IntakeExperience open={intakeOpen} intakeRef={intakeRef} onExit={closeIntake} />
       </IntakeOverlay>
     </div>
   );
