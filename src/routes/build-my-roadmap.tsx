@@ -1088,11 +1088,11 @@ function JourneyPath({
           );
         })()}
       </svg>
-      <div className="mt-1 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.32em]">
-        <span className="text-ink/70">Point A</span>
-        <span className="text-ink/70">
-          <span className="mr-2 text-ink/55">{pct}%</span>
-          <span aria-hidden="true" className="mr-2 text-ink/30">·</span>
+      <div className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.32em]">
+        <span className="text-ink/45">Point A</span>
+        <span className="inline-flex items-center gap-2 text-ink/45">
+          <span className="rounded-full bg-ink/5 px-2 py-[3px] tracking-[0.22em] text-ink/65">{pct}%</span>
+          <span aria-hidden="true" className="text-ink/25">·</span>
           Point B
         </span>
       </div>
