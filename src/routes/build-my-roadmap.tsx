@@ -760,54 +760,90 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
 
 function JourneyPath({ progress, reachedReview }: { progress: number; reachedReview: boolean }) {
   const reduce = usePrefersReducedMotion();
-  // path length approx 680; draw stroke-dashoffset for progress
   const LENGTH = 680;
   const offset = reduce ? 0 : LENGTH * (1 - progress);
+  const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);
   return (
     <div className="mx-auto w-full max-w-[760px]">
       <svg viewBox="0 0 680 100" className="block h-[80px] w-full" aria-hidden="true">
         <defs>
-          <pattern id="intake-dotted" x="0" y="0" width="6" height="2" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="0.9" fill="rgba(10,15,31,0.18)" />
-          </pattern>
+          <filter id="intake-glow" x="-20%" y="-50%" width="140%" height="200%">
+            <feGaussianBlur stdDeviation="2.4" />
+          </filter>
         </defs>
-        {/* Faint dotted base */}
-        <path d={PATH_D} fill="none" stroke="rgba(10,15,31,0.18)" strokeWidth={1} strokeDasharray="2 5" />
-        {/* Drawn blue line */}
+        {/* Faint dotted base — lifted contrast so the path reads */}
+        <path d={PATH_D} fill="none" stroke="rgba(10,15,31,0.28)" strokeWidth={1} strokeDasharray="2 5" />
+        {/* Soft glow underlay on the drawn segment only */}
+        {!reduce && (
+          <path
+            d={PATH_D}
+            fill="none"
+            stroke={ROYAL}
+            strokeOpacity={0.22}
+            strokeWidth={4}
+            strokeLinecap="round"
+            strokeDasharray={LENGTH}
+            strokeDashoffset={offset}
+            filter="url(#intake-glow)"
+            style={{ transition: "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+          />
+        )}
+        {/* Drawn royal line */}
         <path
           d={PATH_D}
           fill="none"
           stroke={ROYAL}
-          strokeWidth={1.6}
+          strokeWidth={2}
           strokeLinecap="round"
           strokeDasharray={LENGTH}
           strokeDashoffset={offset}
           style={{ transition: reduce ? "none" : "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
         />
-        {/* Point A */}
+        {/* Point A — active */}
         <g transform="translate(22,64)">
-          <circle r="5.5" fill={ROYAL} />
-          <circle r="11" fill="none" stroke={ROYAL} strokeOpacity="0.25" />
+          <circle r="6" fill={ROYAL} />
+          <circle r="12" fill="none" stroke={ROYAL} strokeOpacity="0.28" />
         </g>
-        {/* Point B */}
-        <g
-          transform="translate(658,34)"
-          style={{
-            opacity: reachedReview ? 1 : 0,
-            transition: reduce ? "none" : "opacity 500ms ease-out",
-          }}
-        >
-          <circle r="5.5" fill="#0A0F1F" />
-          <circle r="11" fill="none" stroke="#0A0F1F" strokeOpacity="0.25" />
+        {/* Point B — pending or arrived */}
+        <g transform="translate(658,34)">
+          <circle
+            r="6"
+            fill={reachedReview ? "#0A0F1F" : "transparent"}
+            stroke="#0A0F1F"
+            strokeOpacity={reachedReview ? 1 : 0.55}
+            strokeWidth={reachedReview ? 0 : 1.5}
+            style={{ transition: reduce ? "none" : "fill 500ms ease-out, stroke-opacity 500ms ease-out" }}
+          />
+          <circle r="12" fill="none" stroke="#0A0F1F" strokeOpacity="0.18" />
         </g>
       </svg>
-      <div className="mt-1 flex justify-between font-mono text-[10px] uppercase tracking-[0.28em] text-ink/45">
-        <span>Point A</span>
-        <span style={{ opacity: reachedReview ? 1 : 0.35 }}>Point B</span>
+      <div className="mt-1 flex items-center justify-between font-mono text-[12px] uppercase tracking-[0.32em]">
+        <span className="inline-flex items-center gap-2 text-ink/70">
+          <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ backgroundColor: ROYAL }} />
+          Point A
+        </span>
+        <span className="inline-flex items-center gap-3">
+          <span className="font-mono text-[10.5px] tracking-[0.28em] text-ink/55">{pct}%</span>
+          <span
+            className={`inline-flex items-center gap-2 ${reachedReview ? "text-ink/90" : "text-ink/55"}`}
+            style={{ transition: "color 400ms ease-out" }}
+          >
+            <span
+              className="inline-block h-[6px] w-[6px] rounded-full"
+              style={{
+                backgroundColor: reachedReview ? "#0A0F1F" : "transparent",
+                boxShadow: reachedReview ? "none" : "inset 0 0 0 1.5px rgba(10,15,31,0.55)",
+                transition: "background-color 400ms ease-out",
+              }}
+            />
+            Point B
+          </span>
+        </span>
       </div>
     </div>
   );
 }
+
 
 function usePrefersReducedMotion() {
   const [reduce, setReduce] = React.useState(false);
