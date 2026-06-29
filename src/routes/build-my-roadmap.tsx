@@ -868,7 +868,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
 
 
-        <div className="mx-auto mt-12 max-w-[820px]">
+        <div className="mx-auto mt-8 max-w-[820px]">
           {step === -1 && (
             <IntakeIntro onBegin={() => { track("intake_started", {}); setStep(0); }} />
           )}
