@@ -786,22 +786,23 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           ? "Save paused"
           : null;
 
+  const savedTooltip = lastSavedAt ? `Saved ${formatRelativeTime(lastSavedAt)}` : undefined;
+
   return (
     <section
       id="intake"
       ref={intakeRef}
       className="relative"
     >
-      {/* Room header — TRUST TAI / autosave status / exit */}
+      {/* Room header — Trust Tai mark / autosave status / exit */}
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-        <span className="truncate font-mono text-[11px] uppercase tracking-[0.34em] text-ink/75">
-          TRUST TAI
-        </span>
-        <div className="flex shrink-0 items-center gap-5 sm:gap-7">
+        <TrustTaiLogo variant="dark" className="h-5 sm:h-6" />
+        <div className="flex shrink-0 items-center gap-3 sm:gap-7">
           {saveLabel && (
             <span
               aria-live="polite"
-              className="hidden items-center gap-2 font-mono text-[11px] tracking-[0.02em] text-ink/60 sm:inline-flex"
+              title={saveState === "saved" ? savedTooltip : undefined}
+              className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.02em] text-ink/60"
             >
               {saveState === "saving" ? (
                 <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin text-ink/45" />
@@ -816,7 +817,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
                   <Check className="h-3 w-3" style={{ color: "#10965A" }} />
                 </span>
               )}
-              <span>{saveLabel}</span>
+              <span className="hidden sm:inline">{saveLabel}</span>
             </span>
           )}
           {onExit && (
@@ -826,7 +827,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
               className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.26em] text-ink/70 transition-colors hover:text-ink"
             >
               <LogOut aria-hidden="true" className="h-3.5 w-3.5" />
-              <span>Exit and return home</span>
+              <span className="hidden sm:inline">Exit and return home</span>
             </button>
           )}
         </div>
@@ -834,7 +835,17 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
       <div className="pt-10 lg:pt-12">
         {/* Journey path */}
-        <JourneyPath step={step} progress={progress} />
+        <JourneyPath
+          step={step}
+          progress={step >= total ? 1 : progress}
+          milestoneStates={milestoneStates}
+          furthestStep={furthestStep}
+          onJump={(i) => {
+            track("intake_dot_jump", { to: i });
+            setStep(i);
+          }}
+          atReview={step >= total}
+        />
 
         <div className="mx-auto mt-12 max-w-[820px]">
           {step === -1 && (
