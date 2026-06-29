@@ -98,6 +98,8 @@ test.describe("Build My Roadmap intake", () => {
       content: `*, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }`,
     });
 
+    // Open the write door first; the intake panel mounts only when open.
+    await page.getByRole("button", { name: /Leave a Roadmap note/i }).click();
     await page.getByRole("button", { name: /^Begin$/ }).click();
 
     const progressPath = page.locator("svg path[stroke='#2563FF']").first();
