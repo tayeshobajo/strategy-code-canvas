@@ -960,7 +960,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
         {/* Quiet bottom note — present across every step except the sent confirmation */}
         {step !== total + 1 && (
-          <p className="mx-auto mt-10 max-w-[640px] text-center font-display italic text-[13.5px] leading-[1.7] text-ink/55">
+          <p className="mx-auto mt-6 max-w-[640px] text-center font-display italic text-[13.5px] leading-[1.7] text-ink/55">
             A person reads every word. This is a note to understand you, not a form to qualify you.
           </p>
         )}
