@@ -376,6 +376,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         })).filter((a) => a.response.length > 0),
         contact,
       };
+      setSaveState("saving");
       inflightSave.current = (async () => {
         try {
           const mod = await import("@/lib/intake.functions");
@@ -391,14 +392,17 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             } catch { /* noop */ }
           }
           setAutosaveError(false);
+          setSaveState("saved");
           track("intake_draft_saved", { resume_token: res?.resume_token ?? null, answers_count: payload.answers.length });
         } catch (err) {
           console.warn("[intake] autosave failed (non-blocking)", err);
           setAutosaveError(true);
+          setSaveState("error");
           track("intake_draft_save_failed", { resume_token: resumeToken });
         }
       })();
     }, 900);
+
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, [answers, contact, resumeToken, hydrated]);
 
