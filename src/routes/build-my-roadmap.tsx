@@ -1763,7 +1763,14 @@ function BuildMyRoadmapPage() {
 }
 
 /* -------------------- TWO DOORS -------------------- */
-function TwoDoors({ onOpenWriteDoor }: { onOpenWriteDoor: () => void }) {
+function TwoDoors({
+  onOpenWriteDoor,
+  onOpenCallDoor,
+}: {
+  onOpenWriteDoor: (opener: HTMLElement | null) => void;
+  onOpenCallDoor: () => void;
+}) {
+
   return (
     <section className="bg-paper">
       <div className={`${container} pb-4 pt-2 lg:pb-6`}>
