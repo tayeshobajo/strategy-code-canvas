@@ -1,68 +1,63 @@
+
 ## Scope
+All edits in `src/routes/build-my-roadmap.tsx` (plus a touch of `JourneyPath`). No backend or routing changes.
 
-All changes live in `src/routes/build-my-roadmap.tsx`. No backend, schema, or server‑function changes. Intake content, autosave, reflection, validation, and submit flow stay exactly as they are — they just render inside a full‑screen overlay instead of a page section.
+## 1. Swap "TRUST TAI" wordmark for the logo
+- In the overlay header (around line 770–774), replace the text `TRUST TAI` span with `<TrustTaiLogo variant="dark" />`.
+- Import `TrustTaiLogo` from `@/components/TrustTaiLogo`.
+- Keep the same row alignment; logo height stays at the component default (`h-6 sm:h-7`).
 
-## 1. Cal.com popup for the call door
+## 2. Update the write-door promise line
+- Line 2158: replace `"Four questions, four more if you want"` with `"Four questions are enough to begin. Four more help us see deeper."`
 
-- Add a tiny `useCalEmbed()` hook that lazily injects Cal.com's official embed script (`https://app.cal.com/embed/embed.js`) the first time it's needed, then exposes `window.Cal`.
-- Replace the call door's `<a href="#availability">` with a `<button>` that calls `Cal("modal", { calLink: "tai-shobajo-uzxa1b" })`. Native Cal.com popup over the page. No navigation, no route change. Card and copy unchanged.
-- Graceful fallback: if the script fails to load (offline, blocker), open `https://cal.com/tai-shobajo-uzxa1b` in a new tab so the door never dead‑ends.
+## 3. What to learn from reference image 1 (and apply)
+The reference is tighter and more legible than the current full-bleed layout. Apply only the things that improve craft without contradicting earlier decisions (background stays the chosen cool light blue, numbering "01 of 08" stays removed):
 
-## 2. Note door opens a full‑screen overlay
+- Tighter journey band. Reduce the SVG horizontal scale so dots aren't stretched edge-to-edge — clamp `JourneyPath` to `max-w-[620px]` and reduce vertical height (`h-[60px]`) so the path reads as a compact arc, like the reference.
+- Move "Point A / Point B" labels under each end of the curve (already there) and add a small percentage readout aligned to the right end, e.g. `25% · POINT B` in mono caps, driven by `progress`. This was in the reference and gives an at-a-glance status without re-introducing "01 of 08".
+- Header right cluster: keep "All changes saved" + check, but show it on mobile too (drop the `hidden sm:inline-flex`, fall back to icon-only under `sm`).
 
-- Remove the inline `<IntakeExperience />` rendered as a page section. The component stays — only its mount point changes.
-- New `<IntakeOverlay open onClose>` wrapper: `position: fixed; inset: 0; z-index: 80;` on a `bg-paper` surface that fully covers the page. The overlay portals to `document.body` so it escapes any parent stacking context.
-- Header inside the overlay: small Trust Tai wordmark left, an "Exit and return home" control on the right that triggers `onClose`. (No other site chrome — the marketing page sits beneath, unmounted from view but still in the DOM.)
-- The existing "Exit and return home" affordance inside the intake stays and routes through `onClose` so behavior is consistent whether the user exits from the top or the bottom.
-- Body lock: while `open`, set `document.body.style.overflow = "hidden"` and restore on close. Trap focus to the overlay; first focusable element receives focus on open; restore focus to the door button on close.
-- Accessibility: `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the overlay's hidden heading. `Esc` closes.
+These are the only reference cues that add value; the cream background, the "01 of 08" numbering, and the heavier shadowed card are intentionally not adopted.
 
-### Open transition (≈320ms, premium)
+## 4. Clickable, bigger active dots on the journey path
+Update `JourneyPath` (lines 912–988):
 
-- Backdrop fades from 0 to 1 over 320ms `cubic-bezier(0.32, 0.72, 0, 1)`.
-- Inner content (the intake column) translates from `translateY(8px)` + `opacity 0` to settled over 380ms with a 60ms delay so the room "settles in" rather than snapping.
-- Close runs in reverse over ~240ms.
-- `@media (prefers-reduced-motion: reduce)`: instant open/close, no transform, no fade.
+- Replace each `<g>` dot with a `<g>` that contains a transparent hit-circle (`r=14`, `fill="transparent"`, `cursor: pointer`) plus the visible circle, and add `role="button"`, `tabIndex={0}`, `aria-label="Go to question N"`, `onClick`, and `onKeyDown` (Enter/Space).
+- Make the active dot visibly bigger: current `r=5.5` → `r=7` for current, with a stronger glow ring (`r=12`, `strokeOpacity=0.28`). Reached non-current stays `r=4`. Hover state on any dot: scale ring fades in.
+- A dot is **clickable only if it represents an already-visited milestone** (i.e. index ≤ furthestStep) so users can't jump ahead and skip required questions. Track a new `furthestStep` ref/state alongside `step`; bump it in `advance` and never decrement on `back`. Click on a clickable dot calls `setStep(i)` and emits `track("intake_dot_jump", { to: i })`.
+- Pass `onJump` and `furthestStep` from the parent into `JourneyPath`.
 
-## 3. URL state — overlay lives in the URL
+## 5. Milestone state reflects skipped optional + review progress
+Today: dot `i` is "reached" purely from `step >= i`. Change to:
 
-Single source of truth: the URL query string. The component reads/writes it; nothing else.
+- Build a `milestoneStates: ("answered" | "skipped" | "current" | "future")[]` of length 8 in the parent (where `answers` and `QUESTIONS` are in scope), and pass to `JourneyPath`.
+  - `answered`: question has a non-empty `answers[key].response`.
+  - `skipped`: question is optional AND `furthestStep > i` AND response is empty.
+  - `current`: `step === i`.
+  - `future`: otherwise.
+- Dot styling:
+  - answered → solid `ROYAL` fill, no stroke.
+  - skipped → `ROYAL` outline, hollow fill (signals "passed but not answered").
+  - current → bigger `r=7` filled with halo ring.
+  - future → faint `rgba(10,15,31,0.35)` outline, hollow.
+- Review screen (`step === total`, i.e. 8): all 8 dots render their natural state and the trailing line draws fully; add a 9th "review" marker at the very end of the path that fills when `step >= total`. Reuse the same milestone visual language.
+- `progress` for the line stroke remains driven by required-answered ratio (already correct); on review/sent, force `progress = 1`.
 
-- **Open** → push `?write=open` (preserving any existing `?draft=<token>`).
-- **Draft created** → replace URL with `?write=open&draft=<token>` (the resume link).
-- **Close** (button, Esc, or backdrop) → replace URL back to `/build-my-roadmap` with `draft` preserved only when there is unsaved work the user might want to resume; otherwise stripped. Configurable, but default: keep `?draft=<token>` on close so the resume link in the email continues to work, drop `?write=open`.
-- **Browser back** → listen on `popstate`. If overlay is open and URL no longer contains `?write=open`, close the overlay (no navigation away from the page). This makes back behave like "close the modal" rather than "leave the site".
-- **Resume link** (`?write=open&draft=<token>`) → on mount, if `write=open` is present, open the overlay; existing draft hydration logic runs unchanged and lands the user on the saved step.
-- Use `window.history.pushState` to open and `replaceState` for in‑overlay URL updates (so we don't pollute history with autosave token writes).
+## 6. Clear "All changes saved" indicator after each autosave
+The state machine already exists (`saveState: idle | saving | saved | error`). Tighten the UX:
 
-URL helper lives in the page component, not the IntakeExperience, so the existing intake code only needs to call `onClose()` instead of routing.
+- After a successful `saveDraft`, set `saveState` to `"saved"` and timestamp it (`lastSavedAt`). Keep "All changes saved" persistent (do not auto-revert to idle) until the next keystroke flips it to `"saving"`. That way the indicator is always truthful.
+- On keystroke in any answer field, immediately set `saveState = "saving"` (don't wait for the debounce), so the user sees the transition Saving… → All changes saved within ~1s of stopping.
+- Show a relative timestamp tooltip on hover: `title={`Saved ${formatRelative(lastSavedAt)}`}` (e.g. "Saved just now", "Saved 2m ago"). Pure client-side helper, no deps.
+- Make the indicator visible on mobile too (remove `hidden ... sm:inline-flex`), but at <sm collapse the label and keep only the green check + the saving spinner / red dot.
+- `aria-live="polite"` already set — keep it.
 
-## 4. Mobile
+## Technical notes
+- All changes are presentational/state-local in `build-my-roadmap.tsx`. No new packages, no schema changes, no server-function edits.
+- `furthestStep` is `Math.max(step, prevFurthest)`; persist it in the same `localStorage` blob used for answers so refresh keeps the dot navigation intact.
+- Voice rules (sentence case, no em-dashes, no exclamation points) respected in all new strings.
 
-The overlay is already `inset: 0`, so mobile is full‑screen by construction. Same open transition (respecting reduced motion), same URL contract, same Esc/back behavior. The top "Exit and return home" control sits in a sticky header inside the overlay so it stays reachable while the user scrolls long answers.
-
-## 5. Cut the reassurance band
-
-- Delete the `<ConversationLead />` invocation from the page (the "One 30‑minute conversation. No slides, no pitch, no obligation." band between Hero and TwoDoors).
-- Replace with a vertical spacer (`pt-10 lg:pt-14` on TwoDoors, plus a little extra bottom padding on Hero) so the page breathes rather than reassuring a third time. Hero and the conversation card still carry the line.
-- Leave the `ConversationLead` component definition in place but unused — easy to restore if you change your mind. (If you'd rather I delete it outright, say so.)
-
-## Guardrails
-
-- Sentence case, no em‑dashes, no exclamation points anywhere new.
-- No DB writes from the browser, no model keys in client code — overlay is pure UI, all data calls still go through the existing server functions.
-- Keep every earlier intake fix: no AI label, no "we never send your words to a bot" line, trimmed reassurance, optional skips, reflection lock, editorial cross‑fade.
-
-## Files touched
-
-- `src/routes/build-my-roadmap.tsx` only.
-
-## Acceptance checks
-
-- Clicking "Book a 30‑minute call" opens the Cal.com modal in place; closing it returns to the unchanged page. Hard reload of the page mid‑modal does not leave a broken state.
-- Clicking "Leave a Roadmap note" opens the full‑screen overlay with the URL becoming `?write=open`. The marketing page is not navigated.
-- Closing via button or Esc restores the URL and returns focus to the door button.
-- Browser back, with the overlay open, closes the overlay and stays on `/build-my-roadmap`.
-- Visiting `/build-my-roadmap?write=open&draft=<valid-token>` directly opens the overlay onto the hydrated draft.
-- The "One 30‑minute conversation" band is gone; the hero‑to‑doors transition reads as breathing room, not silence.
-- `prefers-reduced-motion: reduce` skips fades/translates on both the overlay and any inner Cal.com handoff.
+## Out of scope
+- Background color (stays the cool light blue chosen earlier).
+- Re-introducing "01 of 08" numbering.
+- Any change to the underlying 8-question flow, validation, autosave debounce, or submit pipeline.

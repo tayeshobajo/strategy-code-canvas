@@ -4,6 +4,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { Reveal } from "@/hooks/use-reveal";
 import notebookImg from "@/assets/cta-book-cover-desk.png.asset.json";
 import heroMountain from "@/assets/roadmap-hero-mountain.png.asset.json";
@@ -327,6 +328,8 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
   const [resumeNote, setResumeNote] = React.useState<{ kind: "sent" | "saved" | "error"; text: string } | null>(null);
   const [autosaveError, setAutosaveError] = React.useState<boolean>(false);
   const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastSavedAt, setLastSavedAt] = React.useState<number | null>(null);
+  const [furthestStep, setFurthestStep] = React.useState<number>(-1);
 
   const lastSubmitPayload = React.useRef<Record<string, unknown> | null>(null);
 
@@ -432,6 +435,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           }
           setAutosaveError(false);
           setSaveState("saved");
+          setLastSavedAt(Date.now());
           track("intake_draft_saved", { resume_token: res?.resume_token ?? null, answers_count: payload.answers.length });
         } catch (err) {
           console.warn("[intake] autosave failed (non-blocking)", err);
@@ -460,7 +464,28 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       ...prev,
       [key]: { response: value, reflected_offered: prev[key]?.reflected_offered ?? null },
     }));
+    // Optimistic indicator: show "Saving…" as soon as the user types,
+    // before the debounce window even starts.
+    setSaveState((s) => (s === "error" ? s : "saving"));
   };
+
+  // Track the furthest step the user has reached, so the journey dots
+  // know which milestones are visited (and therefore clickable).
+  React.useEffect(() => {
+    if (step > furthestStep) setFurthestStep(step);
+  }, [step, furthestStep]);
+
+  // Milestone states for the journey path: answered / skipped / current / future.
+  const milestoneStates = React.useMemo(() => {
+    return QUESTIONS.map((q, i) => {
+      if (step === i) return "current" as const;
+      const filled = (answers[q.key]?.response ?? "").trim().length > 0;
+      if (filled) return "answered" as const;
+      if (i <= furthestStep && q.optional) return "skipped" as const;
+      if (i < furthestStep) return "answered" as const; // visited but somehow empty required — treat as reached
+      return "future" as const;
+    });
+  }, [answers, step, furthestStep]);
 
   // (Scroll-into-view removed — intake now mounts inside a full-screen overlay
   // that owns the viewport, so there is nothing on the page to scroll to.)
@@ -761,22 +786,23 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           ? "Save paused"
           : null;
 
+  const savedTooltip = lastSavedAt ? `Saved ${formatRelativeTime(lastSavedAt)}` : undefined;
+
   return (
     <section
       id="intake"
       ref={intakeRef}
       className="relative"
     >
-      {/* Room header — TRUST TAI / autosave status / exit */}
+      {/* Room header — Trust Tai mark / autosave status / exit */}
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-        <span className="truncate font-mono text-[11px] uppercase tracking-[0.34em] text-ink/75">
-          TRUST TAI
-        </span>
-        <div className="flex shrink-0 items-center gap-5 sm:gap-7">
+        <TrustTaiLogo variant="dark" className="h-5 sm:h-6" />
+        <div className="flex shrink-0 items-center gap-3 sm:gap-7">
           {saveLabel && (
             <span
               aria-live="polite"
-              className="hidden items-center gap-2 font-mono text-[11px] tracking-[0.02em] text-ink/60 sm:inline-flex"
+              title={saveState === "saved" ? savedTooltip : undefined}
+              className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.02em] text-ink/60"
             >
               {saveState === "saving" ? (
                 <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin text-ink/45" />
@@ -791,7 +817,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
                   <Check className="h-3 w-3" style={{ color: "#10965A" }} />
                 </span>
               )}
-              <span>{saveLabel}</span>
+              <span className="hidden sm:inline">{saveLabel}</span>
             </span>
           )}
           {onExit && (
@@ -801,7 +827,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
               className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.26em] text-ink/70 transition-colors hover:text-ink"
             >
               <LogOut aria-hidden="true" className="h-3.5 w-3.5" />
-              <span>Exit and return home</span>
+              <span className="hidden sm:inline">Exit and return home</span>
             </button>
           )}
         </div>
@@ -809,7 +835,17 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
       <div className="pt-10 lg:pt-12">
         {/* Journey path */}
-        <JourneyPath step={step} progress={progress} />
+        <JourneyPath
+          step={step}
+          progress={step >= total ? 1 : progress}
+          milestoneStates={milestoneStates}
+          furthestStep={furthestStep}
+          onJump={(i) => {
+            track("intake_dot_jump", { to: i });
+            setStep(i);
+          }}
+          atReview={step >= total}
+        />
 
         <div className="mx-auto mt-12 max-w-[820px]">
           {step === -1 && (
@@ -834,7 +870,10 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             <ReviewAndContact
               answers={answers}
               contact={contact}
-              setContact={setContact}
+              setContact={(updater) => {
+                setContact(updater);
+                setSaveState((s) => (s === "error" ? s : "saving"));
+              }}
               consent={consent}
               setConsent={setConsent}
               contactErrors={contactErrors}
@@ -909,24 +948,50 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 }
 
 
-function JourneyPath({ step, progress }: { step: number; progress: number }) {
+type MilestoneState = "answered" | "skipped" | "current" | "future";
+
+function formatRelativeTime(ts: number): string {
+  const diff = Math.max(0, Date.now() - ts);
+  const s = Math.floor(diff / 1000);
+  if (s < 5) return "just now";
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ago`;
+}
+
+function JourneyPath({
+  step,
+  progress,
+  milestoneStates,
+  furthestStep,
+  onJump,
+  atReview,
+}: {
+  step: number;
+  progress: number;
+  milestoneStates: MilestoneState[];
+  furthestStep: number;
+  onJump: (i: number) => void;
+  atReview: boolean;
+}) {
   const reduce = usePrefersReducedMotion();
   const LENGTH = 680;
   const offset = reduce ? 0 : LENGTH * (1 - progress);
-  const STOPS = 8;
+  const STOPS = milestoneStates.length;
   const points = Array.from({ length: STOPS }, (_, i) => pointOnPath(i / (STOPS - 1)));
   const bg = "oklch(0.97 0.02 255)";
+  const pct = Math.round(progress * 100);
   return (
-    <div className="mx-auto w-full max-w-[760px]">
-      <svg viewBox="0 0 680 100" className="block h-[80px] w-full" aria-hidden="true">
+    <div className="mx-auto w-full max-w-[620px]">
+      <svg viewBox="0 0 680 100" className="block h-[64px] w-full">
         <defs>
           <filter id="intake-glow" x="-20%" y="-50%" width="140%" height="200%">
             <feGaussianBlur stdDeviation="2.4" />
           </filter>
         </defs>
-        {/* Faint dotted base */}
         <path d={PATH_D} fill="none" stroke="rgba(10,15,31,0.28)" strokeWidth={1} strokeDasharray="2 5" />
-        {/* Soft glow underlay on the drawn segment */}
         {!reduce && (
           <path
             d={PATH_D}
@@ -941,7 +1006,6 @@ function JourneyPath({ step, progress }: { step: number; progress: number }) {
             style={{ transition: "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
           />
         )}
-        {/* Drawn royal line */}
         <path
           d={PATH_D}
           fill="none"
@@ -952,36 +1016,70 @@ function JourneyPath({ step, progress }: { step: number; progress: number }) {
           strokeDashoffset={offset}
           style={{ transition: reduce ? "none" : "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
         />
-        {/* Question milestone dots */}
         {points.map((p, i) => {
-          const isReached = step >= i;
-          const isCurrent = step === i;
+          const state = milestoneStates[i];
+          const isCurrent = state === "current";
+          const isAnswered = state === "answered";
+          const isSkipped = state === "skipped";
+          const canJump = i <= Math.max(furthestStep, step);
+          const visibleR = isCurrent ? 7 : 4;
+          const fill = isAnswered || isCurrent ? ROYAL : bg;
+          const stroke = isAnswered || isCurrent ? ROYAL : isSkipped ? ROYAL : "rgba(10,15,31,0.35)";
+          const strokeWidth = isAnswered || isCurrent ? 0 : isSkipped ? 1.5 : 1;
           return (
-            <g key={i} transform={`translate(${p.x},${p.y})`}>
+            <g
+              key={i}
+              transform={`translate(${p.x},${p.y})`}
+              role={canJump ? "button" : undefined}
+              tabIndex={canJump ? 0 : -1}
+              aria-label={canJump ? `Go to question ${i + 1}` : undefined}
+              style={{ cursor: canJump ? "pointer" : "default", outline: "none" }}
+              onClick={() => { if (canJump) onJump(i); }}
+              onKeyDown={(e) => {
+                if (!canJump) return;
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onJump(i); }
+              }}
+            >
+              {/* Generous transparent hit target */}
+              <circle r={14} fill="transparent" />
               {isCurrent && (
                 <circle
-                  r="10"
+                  r={12}
                   fill="none"
                   stroke={ROYAL}
-                  strokeOpacity="0.16"
-                  strokeWidth="1.5"
+                  strokeOpacity={0.28}
+                  strokeWidth={1.5}
                   style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
                 />
               )}
               <circle
-                r={isCurrent ? 5.5 : 4}
-                fill={isReached ? ROYAL : bg}
-                stroke={isReached ? ROYAL : "rgba(10,15,31,0.35)"}
-                strokeWidth={isReached ? 0 : 1}
+                r={visibleR}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
                 style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
               />
             </g>
           );
         })}
+        {/* Trailing review marker at the very end of the path */}
+        {(() => {
+          const end = pointOnPath(1);
+          const filled = atReview;
+          return (
+            <g transform={`translate(${end.x + 14},${end.y})`}>
+              <circle r={5} fill={filled ? ROYAL : bg} stroke={ROYAL} strokeWidth={filled ? 0 : 1.5} />
+            </g>
+          );
+        })()}
       </svg>
       <div className="mt-1 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.32em]">
         <span className="text-ink/70">Point A</span>
-        <span className="text-ink/70">Point B</span>
+        <span className="text-ink/70">
+          <span className="mr-2 text-ink/55">{pct}%</span>
+          <span aria-hidden="true" className="mr-2 text-ink/30">·</span>
+          Point B
+        </span>
       </div>
     </div>
   );
@@ -2155,7 +2253,7 @@ function TwoDoors({
                   </p>
                   <ul className="mt-6 space-y-2.5 text-left">
                     {[
-                      "Four questions, four more if you want",
+                      "Four questions are enough to begin. Four more help us see deeper.",
                       "Keep it rough, we read with care",
                       "Save and come back anytime",
                     ].map((t) => (
