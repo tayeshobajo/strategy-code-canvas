@@ -1036,11 +1036,12 @@ function QuestionPanel({
         {hasMirror ? (
           <>
             <p
-              className="mt-3 font-display italic text-[16.5px] leading-[1.75]"
-              style={{ color: "rgba(10,15,31,0.78)" }}
+              className="mt-3 font-display italic text-[16.5px] leading-[1.75] motion-safe:transition-opacity motion-safe:duration-[420ms] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
+              style={{ color: "rgba(10,15,31,0.78)", opacity: textOpacity }}
             >
-              {reflection?.text}
+              {displayedText}
             </p>
+
             <div className="mt-4 flex items-center gap-3">
               <button
                 type="button"
