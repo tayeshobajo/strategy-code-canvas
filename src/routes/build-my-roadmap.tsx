@@ -386,8 +386,12 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
               window.history.replaceState({}, "", url.toString());
             } catch { /* noop */ }
           }
+          setAutosaveError(false);
+          track("intake_draft_saved", { resume_token: res?.resume_token ?? null, answers_count: payload.answers.length });
         } catch (err) {
           console.warn("[intake] autosave failed (non-blocking)", err);
+          setAutosaveError(true);
+          track("intake_draft_save_failed", { resume_token: resumeToken });
         }
       })();
     }, 900);
