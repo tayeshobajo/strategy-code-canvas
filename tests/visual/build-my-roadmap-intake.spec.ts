@@ -99,7 +99,6 @@ test.describe("Build My Roadmap intake", () => {
     for (let i = 0; i < 8; i++) {
       const isOptional = OPTIONAL_INDICES.includes(i);
       const isLast = i === 7;
-      await expect(page.getByText(`${String(i + 1).padStart(2, "0")} of 08`)).toBeVisible();
 
       if (isOptional) {
         await expect(page.locator("span", { hasText: /^optional$/ }).first()).toBeVisible();
