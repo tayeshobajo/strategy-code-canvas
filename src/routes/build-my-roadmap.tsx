@@ -847,9 +847,9 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
 
 
-      <div className="pt-6 lg:pt-8">
+      <div className="pt-4 lg:pt-5">
         {/* Section eyebrow above the journey dots */}
-        <p className="mb-4 text-center font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/55">
+        <p className="mb-3 text-center font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/55">
           Roadmap intake
         </p>
         {/* Journey path */}
