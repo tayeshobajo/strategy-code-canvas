@@ -711,10 +711,10 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
     <section
       id="intake"
       ref={intakeRef}
-      className="relative scroll-mt-24"
-      style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
+      className="relative"
     >
-      <div className={`${container} py-20 lg:py-24`}>
+      <div className={`${container} pt-10 pb-20 lg:pt-14 lg:pb-24`}>
+
         {/* Journey path */}
         <JourneyPath progress={progress} reachedReview={step >= total} />
 
