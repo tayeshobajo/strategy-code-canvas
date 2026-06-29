@@ -1095,13 +1095,25 @@ function ReviewAndContact({
         </div>
 
         {status === "error" && (
-          <p className="mt-6 text-[13px] leading-[1.7] text-ink/70">
-            That did not send. Your words are still here. Try once more, or email{" "}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="underline decoration-ink/30 underline-offset-2 hover:text-ink">
-              {CONTACT_EMAIL}
-            </a>{" "}
-            directly.
-          </p>
+          <div
+            role="alert"
+            className="mt-6 rounded-md border border-[#B91C1C]/30 bg-[#B91C1C]/5 p-4 text-[13px] leading-[1.7] text-ink/80"
+          >
+            <p>
+              That did not send. Your words are still here. Try once more, or email{" "}
+              <a href={`mailto:${CONTACT_EMAIL}`} className="underline decoration-ink/30 underline-offset-2 hover:text-ink">
+                {CONTACT_EMAIL}
+              </a>{" "}
+              directly.
+            </p>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-ink/25 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-ink hover:border-ink/60"
+            >
+              Try again
+            </button>
+          </div>
         )}
       </form>
     </div>
