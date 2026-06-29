@@ -948,6 +948,29 @@ function QuestionPanel({
   const hasMirror = !!reflection?.text;
   const isLoading = reflection?.state === "loading";
   const isError = reflection?.state === "error";
+  // Editorial cross-fade: hold the previous mirror, dim out briefly, swap the
+  // text once it is off-screen, then ease the new line back in. Respects
+  // prefers-reduced-motion via the wrapper's motion-safe utilities.
+  const incoming = reflection?.text ?? "";
+  const [displayedText, setDisplayedText] = React.useState(incoming);
+  const [textOpacity, setTextOpacity] = React.useState(1);
+  React.useEffect(() => {
+    if (incoming === displayedText) return;
+    // If we have no current text, just set it without a fade (first paint).
+    if (!displayedText) {
+      setDisplayedText(incoming);
+      setTextOpacity(1);
+      return;
+    }
+    setTextOpacity(0);
+    const swap = setTimeout(() => setDisplayedText(incoming), 220);
+    const settle = setTimeout(() => setTextOpacity(1), 360);
+    return () => {
+      clearTimeout(swap);
+      clearTimeout(settle);
+    };
+  }, [incoming, displayedText]);
+
   return (
     <div>
       <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/70">
