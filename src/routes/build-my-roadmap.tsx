@@ -809,7 +809,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
       <div className="pt-10 lg:pt-12">
         {/* Journey path */}
-        <JourneyPath progress={progress} reachedReview={step >= total} />
+        <JourneyPath step={step} progress={progress} reachedReview={step >= total} />
 
         <div className="mx-auto mt-12 max-w-[820px]">
           {step === -1 && (
