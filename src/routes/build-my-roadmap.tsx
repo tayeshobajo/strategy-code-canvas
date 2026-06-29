@@ -1862,7 +1862,8 @@ function TwoDoors({
                   </ul>
                   <button
                     type="button"
-                    onClick={onOpenWriteDoor}
+                    onClick={(e) => onOpenWriteDoor(e.currentTarget)}
+
                     className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-[13px] font-semibold transition-all duration-300 ease-out hover:-translate-y-[1px]"
                     style={{ borderColor: ROYAL, color: ROYAL }}
                   >
