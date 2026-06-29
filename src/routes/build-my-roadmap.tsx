@@ -491,11 +491,26 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
   };
 
   const advance = () => {
+    if (step >= 0 && step < total) {
+      const q = QUESTIONS[step];
+      const filled = (answers[q.key]?.response ?? "").trim().length > 0;
+      track("intake_question_advanced", {
+        key: q.key,
+        index: step + 1,
+        optional: !!q.optional,
+        skipped: !!q.optional && !filled,
+        characters: (answers[q.key]?.response ?? "").length,
+      });
+      if (step === total - 1) track("intake_review_reached", {});
+    }
     if (step < total - 1) setStep(step + 1);
     else setStep(total); // to review
   };
   const back = () => {
-    if (step > -1) setStep(step - 1);
+    if (step > -1) {
+      track("intake_question_back", { from_index: step + 1 });
+      setStep(step - 1);
+    }
   };
 
   const validateContact = (state: ContactState = contact, consentState: boolean = consent) => {
