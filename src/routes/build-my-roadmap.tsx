@@ -136,8 +136,11 @@ function ConversationLead() {
 /* -------------------- SECTION 3 - Immersive intake -------------------- */
 const CONTACT_EMAIL = "tai@trusttai.com";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_RE = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
 const REFLECT_MIN = 25;
 const REFLECT_DEBOUNCE_MS = 1500;
+const REFLECT_TIMEOUT_MS = 12000;
+const STORAGE_KEY = "tt:intake:v1";
 const PATH_D = "M22,64 C 200,30 300,82 400,52 S 560,24 658,34";
 
 type IntakeQuestion = {
