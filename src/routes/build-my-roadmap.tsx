@@ -184,14 +184,9 @@ const QUESTIONS: IntakeQuestion[] = [
     after: ", in your words?",
     placeholder: "Start anywhere. What you do, who you serve, how it runs now.",
   },
-    eyebrow: "01 / where you are",
-    before: "Tell us what you have built. ",
-    accent: "What is the business today",
-    after: ", in your words?",
-    placeholder: "Start anywhere. What you do, who you serve, how it runs now.",
-  },
   {
     key: "why_now",
+    optional: true,
     eyebrow: "02 / why now",
     before: "What brought you here. ",
     accent: "What were you hoping to put on paper",
@@ -208,6 +203,7 @@ const QUESTIONS: IntakeQuestion[] = [
   },
   {
     key: "what_didnt_hold",
+    optional: true,
     eyebrow: "04 / what did not hold",
     before: "What have you tried before that did not hold? ",
     accent: "What would make this time different",
@@ -216,6 +212,7 @@ const QUESTIONS: IntakeQuestion[] = [
   },
   {
     key: "unbuilt_asset",
+    optional: true,
     eyebrow: "05 / what you already have",
     before: "What does the business already own that you have not built on yet? ",
     accent: "A relationship base, a body of data, a credential, a position",
@@ -232,6 +229,7 @@ const QUESTIONS: IntakeQuestion[] = [
   },
   {
     key: "point_c",
+    optional: true,
     eyebrow: "07 / if it could not fail",
     before: "If you knew it could not fail, ",
     accent: "what would you build",
@@ -247,6 +245,8 @@ const QUESTIONS: IntakeQuestion[] = [
     placeholder: "Names, roles, and any date that matters.",
   },
 ];
+
+const REQUIRED_KEYS = QUESTIONS.filter((q) => !q.optional).map((q) => q.key);
 
 type AnswerRecord = { response: string; reflected_offered: string | null };
 type ContactState = { name: string; business: string; website: string; email: string };
