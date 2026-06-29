@@ -768,12 +768,16 @@ function QuestionPanel({
   onBack?: () => void;
   onNext: () => void;
 }) {
-  const canAdvance = value.trim().length > 0;
+  const isOptional = !!q.optional;
+  const hasText = value.trim().length > 0;
+  const canAdvance = isOptional || hasText;
   const isLast = index === total - 1;
+  const primaryLabel = isLast ? "Review" : isOptional && !hasText ? "Skip" : "Continue";
   return (
     <div>
       <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/55">
         {q.eyebrow}
+        {isOptional && <span className="ml-3 text-ink/35 normal-case tracking-[0.04em]">optional</span>}
       </p>
       <h2 className="mt-4 font-display text-[clamp(1.5rem,2.6vw,2rem)] leading-[1.25] tracking-[-0.015em] text-ink">
         {q.before}
