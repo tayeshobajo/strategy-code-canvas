@@ -1,61 +1,68 @@
-## What's wrong today
+## Scope
 
-1. **The reflection flickers.** The effect that fires `reflectAnswer` depends on `[step, answers, total]`, so every keystroke cancels the inflight request and resets the panel between `idle → loading → ready`. The "reading that back…" label and the italic mirror text appear, vanish, and reappear as the user types or pauses.
-2. **The guide text is barely visible.** The mirror line is rendered at `rgba(10,15,31,0.42)` and the "reading that back…" / Point A / Point B labels at `text-ink/45` on a near-white surface. On a high-DPI screen this reads as a whisper, not a signal.
-3. **Point A and Point B feel incidental.** They are small mono labels under a faint SVG, with no real visual anchor. The journey is the spine of the experience and it does not feel like one.
-4. **The mirror itself is unframed.** A floating italic line below a textarea reads as a system message, not as a premium "a reader heard you say this" moment.
+All changes live in `src/routes/build-my-roadmap.tsx`. No backend, schema, or server‑function changes. Intake content, autosave, reflection, validation, and submit flow stay exactly as they are — they just render inside a full‑screen overlay instead of a page section.
 
-## What we'll change (visual + behavioral, no business logic)
+## 1. Cal.com popup for the call door
 
-### 1. Kill the flicker — stale-while-revalidating mirror
+- Add a tiny `useCalEmbed()` hook that lazily injects Cal.com's official embed script (`https://app.cal.com/embed/embed.js`) the first time it's needed, then exposes `window.Cal`.
+- Replace the call door's `<a href="#availability">` with a `<button>` that calls `Cal("modal", { calLink: "tai-shobajo-uzxa1b" })`. Native Cal.com popup over the page. No navigation, no route change. Card and copy unchanged.
+- Graceful fallback: if the script fails to load (offline, blocker), open `https://cal.com/tai-shobajo-uzxa1b` in a new tab so the door never dead‑ends.
 
-- Keep the previously rendered mirror text on screen while a new reflection is being computed. Never drop back to the empty "reading that back…" state once we have any text for this question.
-- Bump the debounce from `1500ms` to `2200ms` so the mirror only updates when the founder actually pauses, not mid-sentence.
-- Replace the "reading that back…" line with a small inline status (a 6px pulsing royal dot + `refining` micro-label) anchored to the top-right of the mirror card. The card body never empties; it just dims `~6%` while refining.
-- Only show the mirror card after the founder has typed at least `REFLECT_MIN` characters AND has paused once. Until then, reserve the space with a soft placeholder ("A mirror appears once you pause.") so the layout never jumps and there is no pop-in.
-- On error, keep the last good mirror visible and append a quiet `couldn't refine just now` note rather than replacing the card.
+## 2. Note door opens a full‑screen overlay
 
-### 2. Frame the mirror as a premium artifact
+- Remove the inline `<IntakeExperience />` rendered as a page section. The component stays — only its mount point changes.
+- New `<IntakeOverlay open onClose>` wrapper: `position: fixed; inset: 0; z-index: 80;` on a `bg-paper` surface that fully covers the page. The overlay portals to `document.body` so it escapes any parent stacking context.
+- Header inside the overlay: small Trust Tai wordmark left, an "Exit and return home" control on the right that triggers `onClose`. (No other site chrome — the marketing page sits beneath, unmounted from view but still in the DOM.)
+- The existing "Exit and return home" affordance inside the intake stays and routes through `onClose` so behavior is consistent whether the user exits from the top or the bottom.
+- Body lock: while `open`, set `document.body.style.overflow = "hidden"` and restore on close. Trap focus to the overlay; first focusable element receives focus on open; restore focus to the door button on close.
+- Accessibility: `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the overlay's hidden heading. `Esc` closes.
 
-- Wrap the reflection in a dedicated "Mirror" card directly under the textarea:
-  - Ivory surface (`#FBFAF6` over the cool-white page), 1px hairline rule in `rgba(10,15,31,0.10)`, 16px radius, generous `28px / 24px` padding.
-  - Eyebrow inside the card: mono `11px`, `0.28em` tracking, color `ROYAL`, text "A reader hears". Sits flush-left with a 1px x 14px royal tick to its left.
-  - Body: `font-display` italic, `16.5px`, line-height `1.75`, color `rgba(10,15,31,0.78)` — readable, still clearly distinct from the founder's own input above.
-  - Action row: "Use these words" becomes a small pill (`border border-ink/15, px-3.5 py-1.5, mono 10.5px, 0.24em tracking, ROYAL on hover fill ROYAL/8`) instead of a bare underlined link.
-  - Reserved `min-height: 132px` so the card occupies its space from the moment the question appears.
+### Open transition (≈320ms, premium)
 
-### 3. Lift Point A / Point B and the journey
+- Backdrop fades from 0 to 1 over 320ms `cubic-bezier(0.32, 0.72, 0, 1)`.
+- Inner content (the intake column) translates from `translateY(8px)` + `opacity 0` to settled over 380ms with a 60ms delay so the room "settles in" rather than snapping.
+- Close runs in reverse over ~240ms.
+- `@media (prefers-reduced-motion: reduce)`: instant open/close, no transform, no fade.
 
-- Promote both labels from `text-ink/45` to `text-ink/70`, and increase to `12px` with `0.32em` tracking.
-- Render each label with a small inline marker: filled royal 6px dot for Point A (active), hollow ink 6px ring for Point B (pending). When `reachedReview` flips, Point B fades to a filled ink dot and its label moves to `text-ink/90`.
-- Add a subtle progress percentage above Point B (`mono 10.5px, ink/55`, e.g. `38%`) tied to required-answer progress. Quiet, but it makes Point B feel earned.
-- Replace the dotted base path's `rgba(0.18)` stroke with `rgba(0.28)` so the unwalked path is legible without competing with the drawn royal line.
-- Thicken the drawn royal stroke from `1.6` to `2`, and add a soft glow filter (`drop-shadow(0 0 6px rgba(37,99,255,0.18))`) on the drawn segment only. Premium without being loud.
+## 3. URL state — overlay lives in the URL
 
-### 4. Quiet typography contrast pass on the question chrome
+Single source of truth: the URL query string. The component reads/writes it; nothing else.
 
-- Eyebrow ("01 / Where you are") goes from `text-ink/55` to `text-ink/70`, and the index numeral (`01`) becomes `ROYAL` to anchor the eye.
-- "Optional" pill becomes a real pill: `border border-ink/15, px-2 py-[3px], mono 10px, 0.22em tracking, text-ink/60`.
-- "X of 08" footer counter promoted to `text-ink/65` and paired with a 1px x 24px rule on its right that fills proportionally with required progress — a second, quieter progress hint that matches the journey path.
-- "Save and come back later" link gets a subtle royal underline on hover and `text-ink/70` resting color.
+- **Open** → push `?write=open` (preserving any existing `?draft=<token>`).
+- **Draft created** → replace URL with `?write=open&draft=<token>` (the resume link).
+- **Close** (button, Esc, or backdrop) → replace URL back to `/build-my-roadmap` with `draft` preserved only when there is unsaved work the user might want to resume; otherwise stripped. Configurable, but default: keep `?draft=<token>` on close so the resume link in the email continues to work, drop `?write=open`.
+- **Browser back** → listen on `popstate`. If overlay is open and URL no longer contains `?write=open`, close the overlay (no navigation away from the page). This makes back behave like "close the modal" rather than "leave the site".
+- **Resume link** (`?write=open&draft=<token>`) → on mount, if `write=open` is present, open the overlay; existing draft hydration logic runs unchanged and lands the user on the saved step.
+- Use `window.history.pushState` to open and `replaceState` for in‑overlay URL updates (so we don't pollute history with autosave token writes).
 
-### 5. Reduced-motion + accessibility
+URL helper lives in the page component, not the IntakeExperience, so the existing intake code only needs to call `onClose()` instead of routing.
 
-- All new transitions respect `prefers-reduced-motion` (no glow pulse, instant state swaps).
-- The pulsing "refining" dot is `aria-hidden`; the card itself carries `aria-live="polite"` so screen readers get the final mirror text once, not every interim state.
-- Color contrast for all promoted labels verified against the cool-white background at WCAG AA for small text.
+## 4. Mobile
+
+The overlay is already `inset: 0`, so mobile is full‑screen by construction. Same open transition (respecting reduced motion), same URL contract, same Esc/back behavior. The top "Exit and return home" control sits in a sticky header inside the overlay so it stays reachable while the user scrolls long answers.
+
+## 5. Cut the reassurance band
+
+- Delete the `<ConversationLead />` invocation from the page (the "One 30‑minute conversation. No slides, no pitch, no obligation." band between Hero and TwoDoors).
+- Replace with a vertical spacer (`pt-10 lg:pt-14` on TwoDoors, plus a little extra bottom padding on Hero) so the page breathes rather than reassuring a third time. Hero and the conversation card still carry the line.
+- Leave the `ConversationLead` component definition in place but unused — easy to restore if you change your mind. (If you'd rather I delete it outright, say so.)
+
+## Guardrails
+
+- Sentence case, no em‑dashes, no exclamation points anywhere new.
+- No DB writes from the browser, no model keys in client code — overlay is pure UI, all data calls still go through the existing server functions.
+- Keep every earlier intake fix: no AI label, no "we never send your words to a bot" line, trimmed reassurance, optional skips, reflection lock, editorial cross‑fade.
 
 ## Files touched
 
-- `src/routes/build-my-roadmap.tsx` only. Changes are scoped to:
-  - The reflection `useEffect` (debounce + stale-while-revalidating state machine).
-  - `JourneyPath` (stroke, glow, markers, percentage label).
-  - `QuestionPanel` (eyebrow contrast, optional pill, mirror card, footer counter).
+- `src/routes/build-my-roadmap.tsx` only.
 
-No changes to server functions, schema, analytics events, or submit flow.
+## Acceptance checks
 
-## Out of scope
-
-- No copy rewrites beyond the two new micro-labels (`A reader hears`, `refining`, `A mirror appears once you pause.`).
-- No layout reflow of the page outside the intake panel.
-- No new dependencies.
+- Clicking "Book a 30‑minute call" opens the Cal.com modal in place; closing it returns to the unchanged page. Hard reload of the page mid‑modal does not leave a broken state.
+- Clicking "Leave a Roadmap note" opens the full‑screen overlay with the URL becoming `?write=open`. The marketing page is not navigated.
+- Closing via button or Esc restores the URL and returns focus to the door button.
+- Browser back, with the overlay open, closes the overlay and stays on `/build-my-roadmap`.
+- Visiting `/build-my-roadmap?write=open&draft=<valid-token>` directly opens the overlay onto the hydrated draft.
+- The "One 30‑minute conversation" band is gone; the hero‑to‑doors transition reads as breathing room, not silence.
+- `prefers-reduced-motion: reduce` skips fades/translates on both the overlay and any inner Cal.com handoff.

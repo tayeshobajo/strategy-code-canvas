@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Loader2 } from "lucide-react";
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal } from "@/hooks/use-reveal";
 import notebookImg from "@/assets/cta-book-cover-desk.png.asset.json";
 import heroMountain from "@/assets/roadmap-hero-mountain.png.asset.json";
+
 
 export const Route = createFileRoute("/build-my-roadmap")({
   head: () => {
@@ -415,15 +417,10 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
     }));
   };
 
-  // When the door opens, scroll the intake into view.
-  React.useEffect(() => {
-    if (!open) return;
-    if (typeof window === "undefined") return;
-    const t = setTimeout(() => {
-      intakeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
-    return () => clearTimeout(t);
-  }, [open, intakeRef]);
+  // (Scroll-into-view removed — intake now mounts inside a full-screen overlay
+  // that owns the viewport, so there is nothing on the page to scroll to.)
+
+
 
 
   // Reflection debouncing per-question (with timeout + abort)
@@ -714,10 +711,10 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
     <section
       id="intake"
       ref={intakeRef}
-      className="relative scroll-mt-24"
-      style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
+      className="relative"
     >
-      <div className={`${container} py-20 lg:py-24`}>
+      <div className={`${container} pt-10 pb-20 lg:pt-14 lg:pb-24`}>
+
         {/* Journey path */}
         <JourneyPath progress={progress} reachedReview={step >= total} />
 
@@ -1732,21 +1729,206 @@ function CloseSection() {
   );
 }
 
+/* -------------------- CAL.COM POPUP -------------------- */
+const CAL_LINK = "tai-shobajo-uzxa1b";
+
+function useCalEmbed(calLink: string) {
+  const loadedRef = React.useRef(false);
+
+  const ensureBootstrap = React.useCallback(() => {
+    if (typeof window === "undefined") return false;
+    if (loadedRef.current) return true;
+    // Official Cal.com embed queue bootstrap (loads embed.js lazily).
+    /* eslint-disable */
+    (function (C: any, A: string, L: string) {
+      const p = function (a: any, ar: any) { a.q.push(ar); };
+      const d = C.document;
+      C.Cal = C.Cal || function () {
+        const cal = C.Cal; const ar = arguments;
+        if (!cal.loaded) {
+          cal.ns = {}; cal.q = cal.q || [];
+          d.head.appendChild(d.createElement("script")).src = A;
+          cal.loaded = true;
+        }
+        if (ar[0] === L) {
+          const api: any = function () { p(api, arguments); };
+          const namespace = ar[1];
+          api.q = api.q || [];
+          if (typeof namespace === "string") {
+            cal.ns[namespace] = cal.ns[namespace] || api;
+            p(cal.ns[namespace], ar); p(cal, ["initNamespace", namespace]);
+          } else { p(cal, ar); }
+          return;
+        }
+        p(cal, ar);
+      };
+    })(window as any, "https://app.cal.com/embed/embed.js", "init");
+    /* eslint-enable */
+    loadedRef.current = true;
+    return true;
+  }, []);
+
+  const open = React.useCallback(() => {
+    try {
+      ensureBootstrap();
+      const w = window as unknown as { Cal?: (cmd: string, opts?: unknown) => void };
+      if (!w.Cal) throw new Error("Cal not initialized");
+      w.Cal("init", { origin: "https://cal.com" });
+      w.Cal("modal", { calLink });
+    } catch {
+      if (typeof window !== "undefined") {
+        window.open(`https://cal.com/${calLink}`, "_blank", "noopener,noreferrer");
+      }
+    }
+  }, [calLink, ensureBootstrap]);
+
+  return { open };
+}
+
+/* -------------------- INTAKE OVERLAY -------------------- */
+function IntakeOverlay({
+  open,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const reduce = usePrefersReducedMotion();
+  const [mounted, setMounted] = React.useState(open);
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const id = window.requestAnimationFrame(() => setVisible(true));
+      return () => window.cancelAnimationFrame(id);
+    }
+    setVisible(false);
+    const t = window.setTimeout(() => setMounted(false), reduce ? 0 : 260);
+    return () => window.clearTimeout(t);
+  }, [open, reduce]);
+
+  React.useEffect(() => {
+    if (!mounted) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [mounted]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Leave a Roadmap note"
+      className="fixed inset-0 z-[80] overflow-y-auto bg-paper"
+      style={{
+        opacity: reduce ? 1 : visible ? 1 : 0,
+        transition: reduce ? "none" : "opacity 320ms cubic-bezier(0.32,0.72,0,1)",
+      }}
+    >
+      <div className="sticky top-0 z-10 border-b border-ink/10 bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/80">
+        <div className={`${container} flex h-14 items-center justify-between`}>
+          <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink/70">
+            Trust Tai
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/60 underline decoration-ink/20 underline-offset-[5px] transition-colors hover:text-ink hover:decoration-ink/60"
+          >
+            exit and return home
+          </button>
+        </div>
+      </div>
+      <div
+        style={{
+          opacity: reduce ? 1 : visible ? 1 : 0,
+          transform: reduce ? "none" : visible ? "translateY(0)" : "translateY(8px)",
+          transition: reduce
+            ? "none"
+            : "opacity 380ms cubic-bezier(0.32,0.72,0,1) 60ms, transform 380ms cubic-bezier(0.32,0.72,0,1) 60ms",
+        }}
+      >
+        {children}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 /* -------------------- PAGE -------------------- */
 function BuildMyRoadmapPage() {
   const [intakeOpen, setIntakeOpen] = React.useState(false);
+  const openerRef = React.useRef<HTMLElement | null>(null);
   const intakeRef = React.useRef<HTMLDivElement | null>(null);
+  const cal = useCalEmbed(CAL_LINK);
 
-  // Auto-open the write door if a resume token is in the URL or localStorage.
+  const openIntake = React.useCallback((opener: HTMLElement | null) => {
+    if (opener) openerRef.current = opener;
+    setIntakeOpen(true);
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("write") !== "open") {
+      url.searchParams.set("write", "open");
+      window.history.pushState({}, "", url.toString());
+    }
+  }, []);
+
+  const closeIntake = React.useCallback(() => {
+    setIntakeOpen(false);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("write")) {
+        url.searchParams.delete("write");
+        window.history.replaceState({}, "", url.toString());
+      }
+    }
+    const o = openerRef.current;
+    if (o && typeof o.focus === "function") {
+      window.setTimeout(() => o.focus(), 50);
+    }
+  }, []);
+
+  // Initial mount: open the overlay if URL says so, or if a draft token exists.
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const fromUrl = new URL(window.location.href).searchParams.get("draft");
+      const url = new URL(window.location.href);
+      const writeParam = url.searchParams.get("write");
+      const fromUrl = url.searchParams.get("draft");
       const fromLs = window.localStorage.getItem(STORAGE_KEY);
-      if ((fromUrl && UUID_RE.test(fromUrl)) || (fromLs && UUID_RE.test(fromLs))) {
+      const hasDraft =
+        (fromUrl && UUID_RE.test(fromUrl)) || (fromLs && UUID_RE.test(fromLs));
+      if (writeParam === "open" || hasDraft) {
         setIntakeOpen(true);
+        if (writeParam !== "open") {
+          url.searchParams.set("write", "open");
+          window.history.replaceState({}, "", url.toString());
+        }
       }
     } catch { /* noop */ }
+  }, []);
+
+  // Browser back syncs to the URL: if ?write=open disappears, close the overlay.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onPop = () => {
+      const writeParam = new URL(window.location.href).searchParams.get("write");
+      setIntakeOpen(writeParam === "open");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
 
   return (
@@ -1754,19 +1936,32 @@ function BuildMyRoadmapPage() {
       <SiteHeader />
       <main>
         <Hero />
-        <ConversationLead />
-        <TwoDoors onOpenWriteDoor={() => setIntakeOpen(true)} />
-        <IntakeExperience open={intakeOpen} intakeRef={intakeRef} />
+        {/* Reassurance band removed — the hero and the conversation card already carry it. */}
+        <TwoDoors
+          onOpenWriteDoor={openIntake}
+          onOpenCallDoor={cal.open}
+        />
         <FitList />
         <CloseSection />
       </main>
       <SiteFooter />
+      <IntakeOverlay open={intakeOpen} onClose={closeIntake}>
+        <IntakeExperience open={intakeOpen} intakeRef={intakeRef} />
+      </IntakeOverlay>
     </div>
   );
 }
 
+
 /* -------------------- TWO DOORS -------------------- */
-function TwoDoors({ onOpenWriteDoor }: { onOpenWriteDoor: () => void }) {
+function TwoDoors({
+  onOpenWriteDoor,
+  onOpenCallDoor,
+}: {
+  onOpenWriteDoor: (opener: HTMLElement | null) => void;
+  onOpenCallDoor: () => void;
+}) {
+
   return (
     <section className="bg-paper">
       <div className={`${container} pb-4 pt-2 lg:pb-6`}>
@@ -1821,13 +2016,15 @@ function TwoDoors({ onOpenWriteDoor }: { onOpenWriteDoor: () => void }) {
                       </li>
                     ))}
                   </ul>
-                  <a
-                    href="#availability"
+                  <button
+                    type="button"
+                    onClick={onOpenCallDoor}
                     className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
                   >
                     Book a 30-minute call
                     <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-                  </a>
+                  </button>
+
                   <p className="mt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
                     View availability and pick a time
                   </p>
@@ -1856,7 +2053,8 @@ function TwoDoors({ onOpenWriteDoor }: { onOpenWriteDoor: () => void }) {
                   </ul>
                   <button
                     type="button"
-                    onClick={onOpenWriteDoor}
+                    onClick={(e) => onOpenWriteDoor(e.currentTarget)}
+
                     className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-[13px] font-semibold transition-all duration-300 ease-out hover:-translate-y-[1px]"
                     style={{ borderColor: ROYAL, color: ROYAL }}
                   >
