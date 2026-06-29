@@ -713,18 +713,66 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
   if (!open) return null;
 
+  const saveLabel =
+    saveState === "saving"
+      ? "Saving\u2026"
+      : saveState === "saved"
+        ? "All changes saved"
+        : saveState === "error"
+          ? "Save paused"
+          : null;
+
   return (
     <section
       id="intake"
       ref={intakeRef}
       className="relative"
     >
-      <div className={`${container} pt-10 pb-20 lg:pt-14 lg:pb-24`}>
+      {/* Room header — TRUST TAI / autosave status / exit */}
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+        <span className="truncate font-mono text-[11px] uppercase tracking-[0.34em] text-ink/75">
+          TRUST TAI
+        </span>
+        <div className="flex shrink-0 items-center gap-5 sm:gap-7">
+          {saveLabel && (
+            <span
+              aria-live="polite"
+              className="hidden items-center gap-2 font-mono text-[11px] tracking-[0.02em] text-ink/60 sm:inline-flex"
+            >
+              {saveState === "saving" ? (
+                <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin text-ink/45" />
+              ) : saveState === "error" ? (
+                <span aria-hidden="true" className="inline-block h-[7px] w-[7px] rounded-full bg-[#B91C1C]/70" />
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="inline-flex h-4 w-4 items-center justify-center rounded-full"
+                  style={{ backgroundColor: "rgba(16,150,90,0.12)" }}
+                >
+                  <Check className="h-3 w-3" style={{ color: "#10965A" }} />
+                </span>
+              )}
+              <span>{saveLabel}</span>
+            </span>
+          )}
+          {onExit && (
+            <button
+              type="button"
+              onClick={onExit}
+              className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.26em] text-ink/70 transition-colors hover:text-ink"
+            >
+              <LogOut aria-hidden="true" className="h-3.5 w-3.5" />
+              <span>Exit and return home</span>
+            </button>
+          )}
+        </div>
+      </header>
 
+      <div className="pt-10 lg:pt-12">
         {/* Journey path */}
         <JourneyPath progress={progress} reachedReview={step >= total} />
 
-        <div className="mx-auto mt-10 max-w-[760px]">
+        <div className="mx-auto mt-12 max-w-[820px]">
           {step === -1 && (
             <IntakeIntro onBegin={() => { track("intake_started", {}); setStep(0); }} />
           )}
@@ -763,14 +811,23 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         </div>
 
         {step >= 0 && step < total && (
-          <div className="mx-auto mt-12 max-w-[760px] text-center">
-            <button
-              type="button"
-              onClick={onSaveAndComeBack}
-              className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55 underline decoration-ink/20 underline-offset-[5px] hover:text-ink hover:decoration-ink/60"
-            >
-              save and come back later
-            </button>
+          <div className="mx-auto mt-10 max-w-[560px] text-center">
+            <div className="flex items-center gap-4">
+              <span aria-hidden="true" className="h-px flex-1 bg-ink/10" />
+              <button
+                type="button"
+                onClick={onSaveAndComeBack}
+                className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.04em] transition-colors"
+                style={{ color: ROYAL }}
+              >
+                <Bookmark aria-hidden="true" className="h-3.5 w-3.5" />
+                <span>Save and come back later</span>
+              </button>
+              <span aria-hidden="true" className="h-px flex-1 bg-ink/10" />
+            </div>
+            <p className="mt-2 font-mono text-[11px] tracking-[0.02em] text-ink/50">
+              We will save as you go. You will get a private link to return.
+            </p>
             {resumeNote && (
               <p
                 role={resumeNote.kind === "error" ? "alert" : undefined}
@@ -800,10 +857,18 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             )}
           </div>
         )}
+
+        {/* Quiet bottom note — present across every step except the sent confirmation */}
+        {step !== total + 1 && (
+          <p className="mx-auto mt-10 max-w-[640px] text-center font-display italic text-[13.5px] leading-[1.7] text-ink/55">
+            A person reads every word. This is a note to understand you, not a form to qualify you.
+          </p>
+        )}
       </div>
     </section>
   );
 }
+
 
 function JourneyPath({ progress, reachedReview }: { progress: number; reachedReview: boolean }) {
   const reduce = usePrefersReducedMotion();
