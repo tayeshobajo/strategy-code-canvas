@@ -87,6 +87,12 @@ test.describe("Build My Roadmap intake", () => {
     }).toPass({ timeout: 10_000 });
     await page.getByRole("button", { name: /^Begin$/ }).click();
 
+    // Journey path renders 8 milestone dots and the Point A / Point B labels.
+    const journeySvg = page.locator("svg[viewBox='0 0 680 100']");
+    await expect(journeySvg.locator("g")).toHaveCount(8);
+    await expect(page.getByText("Point A")).toBeVisible();
+    await expect(page.getByText("Point B")).toBeVisible();
+
     const progressPath = page.locator("svg path[stroke='#2563FF']").first();
     const initialOffset = await progressPath.evaluate((el) => Number((el as SVGPathElement).getAttribute("stroke-dashoffset")) || 0);
 
