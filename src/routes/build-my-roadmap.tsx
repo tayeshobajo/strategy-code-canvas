@@ -440,7 +440,11 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
     reflectAborts.current[q.key]?.abort();
 
     if (trimmed.length < REFLECT_MIN) {
-      setReflections((prev) => ({ ...prev, [q.key]: { state: "idle", text: "" } }));
+      // Below the threshold: clear to idle so the placeholder shows again.
+      setReflections((prev) => {
+        if (!prev[q.key] || (prev[q.key]?.state === "idle" && !prev[q.key]?.text)) return prev;
+        return { ...prev, [q.key]: { state: "idle", text: "" } };
+      });
       return;
     }
 
@@ -448,7 +452,11 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
       const ctrl = new AbortController();
       reflectAborts.current[q.key] = ctrl;
       const to = setTimeout(() => ctrl.abort(), REFLECT_TIMEOUT_MS);
-      setReflections((prev) => ({ ...prev, [q.key]: { state: "loading", text: prev[q.key]?.text ?? "" } }));
+      // Stale-while-revalidate: keep previous text visible, only flip state to "loading".
+      setReflections((prev) => ({
+        ...prev,
+        [q.key]: { state: "loading", text: prev[q.key]?.text ?? "" },
+      }));
       try {
         const mod = await import("@/lib/intake.functions");
         const res = await mod.reflectAnswer({
@@ -458,7 +466,11 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
         } as any);
         const text = (res?.text ?? "").trim();
         if (!text) {
-          setReflections((prev) => ({ ...prev, [q.key]: { state: "idle", text: "" } }));
+          // No new mirror — preserve any previous one instead of blanking.
+          setReflections((prev) => ({
+            ...prev,
+            [q.key]: { state: prev[q.key]?.text ? "ready" : "idle", text: prev[q.key]?.text ?? "" },
+          }));
           return;
         }
         setReflections((prev) => ({ ...prev, [q.key]: { state: "ready", text } }));
@@ -469,11 +481,16 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
       } catch (err) {
         if ((err as { name?: string })?.name === "AbortError") return;
         console.warn("[intake] reflect failed (non-blocking)", err);
-        setReflections((prev) => ({ ...prev, [q.key]: { state: "error", text: "" } }));
+        // Keep the last good mirror visible; just mark error state.
+        setReflections((prev) => ({
+          ...prev,
+          [q.key]: { state: "error", text: prev[q.key]?.text ?? "" },
+        }));
       } finally {
         clearTimeout(to);
       }
     }, REFLECT_DEBOUNCE_MS);
+
 
     return () => {
       const t = reflectTimers.current[q.key];
