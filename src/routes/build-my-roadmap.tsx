@@ -945,24 +945,50 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 }
 
 
-function JourneyPath({ step, progress }: { step: number; progress: number }) {
+type MilestoneState = "answered" | "skipped" | "current" | "future";
+
+function formatRelativeTime(ts: number): string {
+  const diff = Math.max(0, Date.now() - ts);
+  const s = Math.floor(diff / 1000);
+  if (s < 5) return "just now";
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ago`;
+}
+
+function JourneyPath({
+  step,
+  progress,
+  milestoneStates,
+  furthestStep,
+  onJump,
+  atReview,
+}: {
+  step: number;
+  progress: number;
+  milestoneStates: MilestoneState[];
+  furthestStep: number;
+  onJump: (i: number) => void;
+  atReview: boolean;
+}) {
   const reduce = usePrefersReducedMotion();
   const LENGTH = 680;
   const offset = reduce ? 0 : LENGTH * (1 - progress);
-  const STOPS = 8;
+  const STOPS = milestoneStates.length;
   const points = Array.from({ length: STOPS }, (_, i) => pointOnPath(i / (STOPS - 1)));
   const bg = "oklch(0.97 0.02 255)";
+  const pct = Math.round(progress * 100);
   return (
-    <div className="mx-auto w-full max-w-[760px]">
-      <svg viewBox="0 0 680 100" className="block h-[80px] w-full" aria-hidden="true">
+    <div className="mx-auto w-full max-w-[620px]">
+      <svg viewBox="0 0 680 100" className="block h-[64px] w-full">
         <defs>
           <filter id="intake-glow" x="-20%" y="-50%" width="140%" height="200%">
             <feGaussianBlur stdDeviation="2.4" />
           </filter>
         </defs>
-        {/* Faint dotted base */}
         <path d={PATH_D} fill="none" stroke="rgba(10,15,31,0.28)" strokeWidth={1} strokeDasharray="2 5" />
-        {/* Soft glow underlay on the drawn segment */}
         {!reduce && (
           <path
             d={PATH_D}
@@ -977,7 +1003,6 @@ function JourneyPath({ step, progress }: { step: number; progress: number }) {
             style={{ transition: "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
           />
         )}
-        {/* Drawn royal line */}
         <path
           d={PATH_D}
           fill="none"
@@ -988,36 +1013,70 @@ function JourneyPath({ step, progress }: { step: number; progress: number }) {
           strokeDashoffset={offset}
           style={{ transition: reduce ? "none" : "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
         />
-        {/* Question milestone dots */}
         {points.map((p, i) => {
-          const isReached = step >= i;
-          const isCurrent = step === i;
+          const state = milestoneStates[i];
+          const isCurrent = state === "current";
+          const isAnswered = state === "answered";
+          const isSkipped = state === "skipped";
+          const canJump = i <= Math.max(furthestStep, step);
+          const visibleR = isCurrent ? 7 : 4;
+          const fill = isAnswered || isCurrent ? ROYAL : bg;
+          const stroke = isAnswered || isCurrent ? ROYAL : isSkipped ? ROYAL : "rgba(10,15,31,0.35)";
+          const strokeWidth = isAnswered || isCurrent ? 0 : isSkipped ? 1.5 : 1;
           return (
-            <g key={i} transform={`translate(${p.x},${p.y})`}>
+            <g
+              key={i}
+              transform={`translate(${p.x},${p.y})`}
+              role={canJump ? "button" : undefined}
+              tabIndex={canJump ? 0 : -1}
+              aria-label={canJump ? `Go to question ${i + 1}` : undefined}
+              style={{ cursor: canJump ? "pointer" : "default", outline: "none" }}
+              onClick={() => { if (canJump) onJump(i); }}
+              onKeyDown={(e) => {
+                if (!canJump) return;
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onJump(i); }
+              }}
+            >
+              {/* Generous transparent hit target */}
+              <circle r={14} fill="transparent" />
               {isCurrent && (
                 <circle
-                  r="10"
+                  r={12}
                   fill="none"
                   stroke={ROYAL}
-                  strokeOpacity="0.16"
-                  strokeWidth="1.5"
+                  strokeOpacity={0.28}
+                  strokeWidth={1.5}
                   style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
                 />
               )}
               <circle
-                r={isCurrent ? 5.5 : 4}
-                fill={isReached ? ROYAL : bg}
-                stroke={isReached ? ROYAL : "rgba(10,15,31,0.35)"}
-                strokeWidth={isReached ? 0 : 1}
+                r={visibleR}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
                 style={{ transition: reduce ? "none" : "all 500ms cubic-bezier(0.22, 1, 0.36, 1)" }}
               />
             </g>
           );
         })}
+        {/* Trailing review marker at the very end of the path */}
+        {(() => {
+          const end = pointOnPath(1);
+          const filled = atReview;
+          return (
+            <g transform={`translate(${end.x + 14},${end.y})`}>
+              <circle r={5} fill={filled ? ROYAL : bg} stroke={ROYAL} strokeWidth={filled ? 0 : 1.5} />
+            </g>
+          );
+        })()}
       </svg>
       <div className="mt-1 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.32em]">
         <span className="text-ink/70">Point A</span>
-        <span className="text-ink/70">Point B</span>
+        <span className="text-ink/70">
+          <span className="mr-2 text-ink/55">{pct}%</span>
+          <span aria-hidden="true" className="mr-2 text-ink/30">·</span>
+          Point B
+        </span>
       </div>
     </div>
   );
