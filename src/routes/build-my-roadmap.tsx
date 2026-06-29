@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
+import trustTaiLogoDark from "@/assets/trust-tai-logo.png.asset.json";
 import { Reveal } from "@/hooks/use-reveal";
 import notebookImg from "@/assets/cta-book-cover-desk.png.asset.json";
 import heroMountain from "@/assets/roadmap-hero-mountain.png.asset.json";
