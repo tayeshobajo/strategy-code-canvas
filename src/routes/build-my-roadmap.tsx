@@ -1002,11 +1002,14 @@ function JourneyPath({
 }) {
   const reduce = usePrefersReducedMotion();
   const LENGTH = 680;
-  const offset = reduce ? 0 : LENGTH * (1 - progress);
   const STOPS = milestoneStates.length;
+  // Line tracks the active dot, not answered-required count.
+  const lineProgress = atReview ? 1 : step <= 0 ? 0 : Math.min(1, step / (STOPS - 1));
+  const offset = reduce ? 0 : LENGTH * (1 - lineProgress);
   const points = Array.from({ length: STOPS }, (_, i) => pointOnPath(i / (STOPS - 1)));
   const bg = "oklch(0.97 0.02 255)";
   const pct = Math.round(progress * 100);
+
 
   // Active label tracks the currently focused milestone — past, current, skipped, or review.
   const activeLabel = React.useMemo(() => {
