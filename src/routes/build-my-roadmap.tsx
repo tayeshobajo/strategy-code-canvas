@@ -1937,7 +1937,7 @@ function IntakeOverlay({
         <div
           className="relative rounded-[28px] border px-6 py-8 sm:px-12 sm:py-12 lg:px-16 lg:py-14"
           style={{
-            backgroundColor: "#FBF6EA",
+            backgroundColor: "oklch(0.97 0.02 255)",
             borderColor: "rgba(10,15,31,0.10)",
             boxShadow:
               "0 40px 90px -30px rgba(10,15,31,0.55), 0 12px 28px -14px rgba(10,15,31,0.22), inset 0 1px 0 rgba(255,255,255,0.55)",
