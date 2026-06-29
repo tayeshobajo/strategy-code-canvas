@@ -75,10 +75,16 @@ test.describe("Build My Roadmap intake", () => {
     const counts: Counts = { reflect: 0, save: 0, load: 0, submit: 0, lastSubmitBody: null };
     await page.route("**/_serverFn/**", stubFor(counts));
 
-    await page.goto("/build-my-roadmap", { waitUntil: "domcontentloaded" });
+    await page.goto("/build-my-roadmap", { waitUntil: "networkidle" });
     await page.addStyleTag({ content: `*, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }` });
 
-    await page.getByRole("button", { name: /Leave a Roadmap note/i }).click();
+    const writeDoor = page.getByRole("button", { name: /Leave a Roadmap note/i });
+    await expect(writeDoor).toBeVisible();
+    // Retry the click until React has hydrated and the intro panel renders.
+    await expect(async () => {
+      await writeDoor.click();
+      await expect(page.getByRole("button", { name: /^Begin$/ })).toBeVisible({ timeout: 750 });
+    }).toPass({ timeout: 10_000 });
     await page.getByRole("button", { name: /^Begin$/ }).click();
 
     const progressPath = page.locator("svg path[stroke='#2563FF']").first();
