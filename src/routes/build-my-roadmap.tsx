@@ -795,17 +795,13 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       className="relative"
     >
       {/* Room header — Trust Tai mark / autosave status / exit */}
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-ink/8 pb-6">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-ink/8 pb-4">
         <div className="flex items-center gap-4">
           <img
             src={trustTaiLogoDark.url}
             alt="Trust Tai"
             className="h-7 w-auto sm:h-8 transition-opacity duration-200 hover:opacity-90"
           />
-          <span aria-hidden="true" className="hidden h-5 w-px bg-ink/15 sm:inline-block" />
-          <span className="hidden font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/55 sm:inline">
-            Roadmap intake
-          </span>
         </div>
         <div className="flex shrink-0 items-center gap-4 sm:gap-6">
           {saveLabel && (
@@ -832,11 +828,14 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           )}
           {onExit && (
             <>
-              <span aria-hidden="true" className="hidden h-[3px] w-[3px] rounded-full bg-ink/20 sm:inline-block" />
+              <span aria-hidden="true" className="hidden h-[3px] w-[3px] rounded-full bg-[#B91C1C]/30 sm:inline-block" />
               <button
                 type="button"
                 onClick={onExit}
-                className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink/65 transition-colors hover:text-ink"
+                className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] transition-colors"
+                style={{ color: "#B91C1C" }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#7F1D1D"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "#B91C1C"; }}
               >
                 <LogOut aria-hidden="true" className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-[2px]" />
                 <span className="hidden sm:inline">Exit and return home</span>
@@ -845,6 +844,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           )}
         </div>
       </header>
+
 
 
       <div className="pt-10 lg:pt-12">
