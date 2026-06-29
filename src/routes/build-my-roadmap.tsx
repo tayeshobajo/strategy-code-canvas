@@ -417,15 +417,10 @@ function IntakeExperience({ open, intakeRef }: { open: boolean; intakeRef: React
     }));
   };
 
-  // When the door opens, scroll the intake into view.
-  React.useEffect(() => {
-    if (!open) return;
-    if (typeof window === "undefined") return;
-    const t = setTimeout(() => {
-      intakeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
-    return () => clearTimeout(t);
-  }, [open, intakeRef]);
+  // (Scroll-into-view removed — intake now mounts inside a full-screen overlay
+  // that owns the viewport, so there is nothing on the page to scroll to.)
+
+
 
 
   // Reflection debouncing per-question (with timeout + abort)
