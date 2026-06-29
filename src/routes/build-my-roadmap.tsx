@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Loader2 } from "lucide-react";
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Reveal } from "@/hooks/use-reveal";
 import notebookImg from "@/assets/cta-book-cover-desk.png.asset.json";
 import heroMountain from "@/assets/roadmap-hero-mountain.png.asset.json";
+
 
 export const Route = createFileRoute("/build-my-roadmap")({
   head: () => {
