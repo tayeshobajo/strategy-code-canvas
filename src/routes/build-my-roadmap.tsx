@@ -1001,11 +1001,37 @@ function JourneyPath({
   atReview: boolean;
 }) {
   const reduce = usePrefersReducedMotion();
-  const LENGTH = 680;
   const STOPS = milestoneStates.length;
+  // Build a cumulative arc-length table so the drawn line ends exactly on each milestone dot.
+  const arc = React.useMemo(() => {
+    const N = 240;
+    const cum: number[] = [0];
+    let total = 0;
+    let prev = pointOnPath(0);
+    for (let i = 1; i <= N; i++) {
+      const p = pointOnPath(i / N);
+      total += Math.hypot(p.x - prev.x, p.y - prev.y);
+      cum.push(total);
+      prev = p;
+    }
+    return { cum, total, N };
+  }, []);
+  const lengthAt = React.useCallback(
+    (t: number) => {
+      const clamped = Math.max(0, Math.min(1, t));
+      const idx = clamped * arc.N;
+      const lo = Math.floor(idx);
+      const hi = Math.min(arc.N, lo + 1);
+      const f = idx - lo;
+      return arc.cum[lo] + (arc.cum[hi] - arc.cum[lo]) * f;
+    },
+    [arc],
+  );
+  const LENGTH = arc.total;
   // Line tracks the active dot, not answered-required count.
-  const lineProgress = atReview ? 1 : step <= 0 ? 0 : Math.min(1, step / (STOPS - 1));
-  const offset = reduce ? 0 : LENGTH * (1 - lineProgress);
+  const lineT = atReview ? 1 : step <= 0 ? 0 : Math.min(1, step / (STOPS - 1));
+  const drawn = lengthAt(lineT);
+  const offset = reduce ? 0 : LENGTH - drawn;
   const points = Array.from({ length: STOPS }, (_, i) => pointOnPath(i / (STOPS - 1)));
   const bg = "oklch(0.97 0.02 255)";
   const pct = Math.round(progress * 100);
