@@ -2073,9 +2073,8 @@ function IntakeOverlay({
       aria-label="Leave a Roadmap note"
       className="fixed inset-0 z-[80] overflow-y-auto"
       style={{
-        backgroundColor: "rgba(10,15,31,0.55)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
+        backgroundColor: "rgba(10,15,31,0.42)",
+        backdropFilter: "blur(12px)",
         opacity: reduce ? 1 : visible ? 1 : 0,
         transition: reduce ? "none" : "opacity 320ms cubic-bezier(0.32,0.72,0,1)",
       }}
@@ -2085,7 +2084,7 @@ function IntakeOverlay({
       }}
     >
       <div
-        className="mx-auto my-5 w-[min(100%-20px,1100px)] sm:my-10"
+        className="mx-auto my-5 w-[min(100%-20px,1140px)] sm:my-10"
         style={{
           opacity: reduce ? 1 : visible ? 1 : 0,
           transform: reduce ? "none" : visible ? "translateY(0)" : "translateY(14px)",
@@ -2095,18 +2094,28 @@ function IntakeOverlay({
         }}
       >
         <div
-          className="relative rounded-[28px] border px-6 py-8 sm:px-12 sm:py-12 lg:px-16 lg:py-14"
+          className="relative overflow-hidden rounded-[32px] border px-6 py-8 sm:px-12 sm:py-12 lg:px-20 lg:py-16"
           style={{
             backgroundColor: "oklch(0.97 0.02 255)",
             borderColor: "rgba(10,15,31,0.10)",
             boxShadow:
-              "0 40px 90px -30px rgba(10,15,31,0.55), 0 12px 28px -14px rgba(10,15,31,0.22), inset 0 1px 0 rgba(255,255,255,0.55)",
+              "0 50px 110px -30px rgba(10,15,31,0.55), 0 14px 32px -16px rgba(10,15,31,0.22), inset 0 1px 0 rgba(255,255,255,0.6)",
           }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          {children}
+          {/* Soft top vignette for depth */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-[260px]"
+            style={{
+              background:
+                "radial-gradient(ellipse 70% 100% at 50% 0%, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)",
+            }}
+          />
+          <div className="relative">{children}</div>
         </div>
       </div>
+
     </div>,
     document.body,
   );
