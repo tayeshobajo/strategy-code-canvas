@@ -853,6 +853,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           step={step}
           progress={step >= total ? 1 : progress}
           milestoneStates={milestoneStates}
+          milestoneLabels={QUESTIONS.map((q) => q.eyebrow.split("/").slice(1).join("/").trim() || q.key)}
           furthestStep={furthestStep}
           onJump={(i) => {
             track("intake_dot_jump", { to: i });
@@ -860,6 +861,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           }}
           atReview={step >= total}
         />
+
 
         <div className="mx-auto mt-12 max-w-[820px]">
           {step === -1 && (
