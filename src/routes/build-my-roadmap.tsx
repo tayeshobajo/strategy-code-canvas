@@ -166,6 +166,26 @@ const REFLECT_TIMEOUT_MS = 12000;
 const STORAGE_KEY = "tt:intake:token:v1";
 const PATH_D = "M22,64 C 200,30 300,82 400,52 S 560,24 658,34";
 
+// Lightweight analytics shim — fires to GTM dataLayer and gtag if present,
+// and always emits a CustomEvent so other listeners (Plausible, Segment shim,
+// tests) can subscribe without coupling to a vendor.
+type TrackPayload = Record<string, string | number | boolean | null | undefined>;
+function track(event: string, payload: TrackPayload = {}) {
+  if (typeof window === "undefined") return;
+  const data = { event, ...payload, ts: Date.now() };
+  try {
+    const w = window as unknown as {
+      dataLayer?: Array<Record<string, unknown>>;
+      gtag?: (...args: unknown[]) => void;
+    };
+    if (Array.isArray(w.dataLayer)) w.dataLayer.push(data);
+    if (typeof w.gtag === "function") w.gtag("event", event, payload);
+    window.dispatchEvent(new CustomEvent("tt:analytics", { detail: data }));
+  } catch {
+    /* analytics must never break the form */
+  }
+}
+
 type IntakeQuestion = {
   key: string;
   eyebrow: string;
