@@ -311,7 +311,8 @@ function IntakeExperience() {
         const res = await mod.reflectAnswer({
           data: { question: `${q.before}${q.accent}${q.after}`, answer: trimmed },
           signal: ctrl.signal,
-        } as Parameters<typeof mod.reflectAnswer>[0]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
         const text = (res?.text ?? "").trim();
         if (!text) {
           setReflections((prev) => ({ ...prev, [q.key]: { state: "idle", text: "" } }));
