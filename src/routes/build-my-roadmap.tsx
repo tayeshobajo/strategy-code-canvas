@@ -910,7 +910,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         </div>
 
         {step >= 0 && step < total && (
-          <div className="mx-auto mt-16 max-w-[560px] text-center">
+          <div className="mx-auto mt-10 max-w-[560px] text-center">
             <div className="flex items-center justify-center gap-4">
               <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
               <button
