@@ -101,6 +101,45 @@ export type Database = {
         }
         Relationships: []
       }
+      intake_submissions: {
+        Row: {
+          answers: Json
+          authorizes_scan: boolean
+          business: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          source: string
+          status: string
+          website: string | null
+        }
+        Insert: {
+          answers?: Json
+          authorizes_scan?: boolean
+          business?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          source?: string
+          status?: string
+          website?: string | null
+        }
+        Update: {
+          answers?: Json
+          authorizes_scan?: boolean
+          business?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          source?: string
+          status?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
