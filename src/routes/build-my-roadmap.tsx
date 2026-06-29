@@ -1825,13 +1825,15 @@ function TwoDoors({
                       </li>
                     ))}
                   </ul>
-                  <a
-                    href="#availability"
+                  <button
+                    type="button"
+                    onClick={onOpenCallDoor}
                     className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
                   >
                     Book a 30-minute call
                     <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-                  </a>
+                  </button>
+
                   <p className="mt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
                     View availability and pick a time
                   </p>
