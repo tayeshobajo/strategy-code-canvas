@@ -59,6 +59,10 @@ const ContactSchema = z.object({
   business: z.string().trim().max(200).optional().default(""),
   website: z.string().trim().max(500).optional().default(""),
   email: z.string().trim().max(255).optional().default(""),
+  role: z.string().trim().max(200).optional().default(""),
+  timeline: z.string().trim().max(200).optional().default(""),
+  decision_makers: z.string().trim().max(400).optional().default(""),
+  reply_preference: z.string().trim().max(40).optional().default(""),
 });
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
