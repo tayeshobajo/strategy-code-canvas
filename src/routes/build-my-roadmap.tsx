@@ -327,6 +327,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
   const [resumeNote, setResumeNote] = React.useState<{ kind: "sent" | "saved" | "error"; text: string } | null>(null);
   const [autosaveError, setAutosaveError] = React.useState<boolean>(false);
+  const [savingResume, setSavingResume] = React.useState<boolean>(false);
   const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = React.useState<number | null>(null);
   const [furthestStep, setFurthestStep] = React.useState<number>(-1);
@@ -718,6 +719,9 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
   const onSaveAndComeBack = async () => {
     if (typeof window === "undefined") return;
+    if (savingResume) return;
+    setSavingResume(true);
+    setResumeNote(null);
     const email = contact.email.trim();
     let token = resumeToken;
     try {
@@ -757,16 +761,30 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         const mod = await import("@/lib/intake.functions");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await mod.sendResumeLink({ data: { resume_token: token, email, resume_url: resumeUrl, name: contact.name.trim() } } as any);
-        setResumeNote({ kind: "sent", text: `a continue link is on its way to ${email}.` });
+        setResumeNote({ kind: "sent", text: `saved. a continue link is on its way to ${email}.` });
         track("intake_resume_link_sent", { resume_token: token });
       } else {
-        setResumeNote({ kind: "saved", text: "your progress is saved to this link. bookmark it and come back anytime." });
-        track("intake_draft_saved_manual", { resume_token: token });
+        let copied = false;
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(resumeUrl);
+            copied = true;
+          }
+        } catch { /* ignore clipboard failure */ }
+        setResumeNote({
+          kind: "saved",
+          text: copied
+            ? "saved. your private link is copied to the clipboard. paste it somewhere safe, or add your email above to have it sent."
+            : "saved. this page URL is now your private link — bookmark it, or add your email above to have it sent.",
+        });
+        track("intake_draft_saved_manual", { resume_token: token, link_copied: copied });
       }
     } catch (err) {
       console.warn("[intake] save and come back failed", err);
       setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page. try again, or copy this page URL to come back to." });
       track("intake_save_and_come_back_failed", { message: (err as Error)?.message?.slice(0, 200) ?? "" });
+    } finally {
+      setSavingResume(false);
     }
   };
 
@@ -917,11 +935,17 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
               <button
                 type="button"
                 onClick={onSaveAndComeBack}
-                className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] transition-colors hover:opacity-80"
+                disabled={savingResume}
+                aria-busy={savingResume}
+                className="group inline-flex items-center gap-2 rounded-full border border-[color:var(--royal,#2563FF)]/25 bg-white/70 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.22em] shadow-[0_1px_0_rgba(37,99,255,0.08)] transition-all hover:border-[color:var(--royal,#2563FF)]/60 hover:bg-white hover:shadow-[0_2px_8px_rgba(37,99,255,0.12)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--royal,#2563FF)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ color: ROYAL }}
               >
-                <Bookmark aria-hidden="true" className="h-3.5 w-3.5" />
-                <span>Save and come back later</span>
+                {savingResume ? (
+                  <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Bookmark aria-hidden="true" className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-px" />
+                )}
+                <span>{savingResume ? "Saving…" : "Save and come back later"}</span>
               </button>
               <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
             </div>
