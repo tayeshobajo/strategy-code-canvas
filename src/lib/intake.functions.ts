@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { buildRoadmapReviewArtifact, buildRoadmapReviewArtifactAnswer } from "./roadmap-review";
 
 const ReflectInput = z.object({
   question: z.string().trim().min(1).max(500),
@@ -83,20 +84,26 @@ export const saveDraft = createServerFn({ method: "POST" })
       updated_at: new Date().toISOString(),
     };
     if (data.resume_token) {
-      const { error } = await (supabaseAdmin.from("intake_drafts") as unknown as {
-        upsert: (r: Record<string, unknown>) => Promise<{ error: unknown }>;
-      }).upsert({ resume_token: data.resume_token, ...row });
+      const { error } = await (
+        supabaseAdmin.from("intake_drafts") as unknown as {
+          upsert: (r: Record<string, unknown>) => Promise<{ error: unknown }>;
+        }
+      ).upsert({ resume_token: data.resume_token, ...row });
       if (error) {
         console.error("[save-draft] upsert failed", error);
         throw new Error("Could not save draft");
       }
       return { resume_token: data.resume_token };
     }
-    const { data: inserted, error } = await (supabaseAdmin.from("intake_drafts") as unknown as {
-      insert: (r: Record<string, unknown>) => {
-        select: (s: string) => { single: () => Promise<{ data: { resume_token: string } | null; error: unknown }> };
-      };
-    })
+    const { data: inserted, error } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        insert: (r: Record<string, unknown>) => {
+          select: (s: string) => {
+            single: () => Promise<{ data: { resume_token: string } | null; error: unknown }>;
+          };
+        };
+      }
+    )
       .insert(row)
       .select("resume_token")
       .single();
@@ -113,13 +120,21 @@ export const loadDraft = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => LoadDraftInput.parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await (supabaseAdmin.from("intake_drafts") as unknown as {
-      select: (s: string) => {
-        eq: (c: string, v: string) => {
-          maybeSingle: () => Promise<{ data: { answers: unknown; contact: unknown } | null; error: unknown }>;
+    const { data: row, error } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        select: (s: string) => {
+          eq: (
+            c: string,
+            v: string,
+          ) => {
+            maybeSingle: () => Promise<{
+              data: { answers: unknown; contact: unknown } | null;
+              error: unknown;
+            }>;
+          };
         };
-      };
-    })
+      }
+    )
       .select("answers, contact")
       .eq("resume_token", data.resume_token)
       .maybeSingle();
@@ -127,9 +142,21 @@ export const loadDraft = createServerFn({ method: "POST" })
       console.error("[load-draft] failed", error);
       throw new Error("Could not load draft");
     }
-    type AnswerOut = { key: string; question: string; response: string; reflected_offered: string | null };
-    if (!row) return { found: false as const, answers: [] as AnswerOut[], contact: {} as Record<string, string> };
-    const rawAnswers = Array.isArray(row.answers) ? (row.answers as Array<Record<string, unknown>>) : [];
+    type AnswerOut = {
+      key: string;
+      question: string;
+      response: string;
+      reflected_offered: string | null;
+    };
+    if (!row)
+      return {
+        found: false as const,
+        answers: [] as AnswerOut[],
+        contact: {} as Record<string, string>,
+      };
+    const rawAnswers = Array.isArray(row.answers)
+      ? (row.answers as Array<Record<string, unknown>>)
+      : [];
     const answers: AnswerOut[] = rawAnswers.map((a) => ({
       key: String(a.key ?? ""),
       question: String(a.question ?? ""),
@@ -154,10 +181,12 @@ export const sendResumeLink = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const idempotencyKey = `intake-resume-${data.resume_token}`;
-    const { error } = await (supabaseAdmin.rpc as unknown as (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => Promise<{ error: unknown }>)("enqueue_email", {
+    const { error } = await (
+      supabaseAdmin.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: unknown }>
+    )("enqueue_email", {
       queue_name: "transactional_emails",
       payload: {
         template_name: "intake-resume-link",
@@ -201,33 +230,77 @@ export const submitIntake = createServerFn({ method: "POST" })
       decision_makers: data.decision_makers || null,
       reply_preference: data.reply_preference || null,
     };
+    const artifact = buildRoadmapReviewArtifact({
+      contact: {
+        name: data.name,
+        business: data.business,
+        website: data.website,
+        email: data.email,
+        role: data.role,
+        timeline: data.timeline,
+        decision_makers: data.decision_makers,
+        reply_preference: data.reply_preference,
+      },
+      answers: data.answers,
+    });
     const answersWithMeta = [
       ...data.answers,
-      { key: "_contact_meta", question: "Contact details", response: JSON.stringify(contactExtras), reflected_offered: null },
+      {
+        key: "_contact_meta",
+        question: "Contact details",
+        response: JSON.stringify(contactExtras),
+        reflected_offered: null,
+      },
+      buildRoadmapReviewArtifactAnswer(artifact),
     ];
-    const { error } = await supabaseAdmin.from("intake_submissions").insert({
-      source: "website/build-my-roadmap",
-      name: data.name,
-      business: data.business || null,
-      website: data.website || null,
-      email: data.email,
-      authorizes_scan: data.authorizes_scan && !!data.website.trim(),
-      answers: answersWithMeta,
-      status: "new",
-    });
-    if (error) {
+    const { data: inserted, error } = await supabaseAdmin
+      .from("intake_submissions")
+      .insert({
+        source: "website/build-my-roadmap",
+        name: data.name,
+        business: data.business || null,
+        website: data.website || null,
+        email: data.email,
+        authorizes_scan: data.authorizes_scan && !!data.website.trim(),
+        answers: answersWithMeta,
+        status: "review_pending",
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) {
       console.error("[submit-intake] insert failed", error);
       throw new Error("Could not save submission");
     }
-    if (data.resume_token) {
-      const { error: delErr } = await (supabaseAdmin.from("intake_drafts") as unknown as {
-        delete: () => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+
+    const { data: review, error: reviewErr } = await supabaseAdmin
+      .from("roadmap_intake_reviews")
+      .insert({
+        submission_id: inserted.id,
+        status: "needs_review",
+        artifact,
+        approval_required: true,
+        outbound_blocked: true,
       })
+      .select("id")
+      .single();
+    if (reviewErr || !review) {
+      console.warn("[submit-intake] review queue insert failed; artifact stored on intake", {
+        submission_id: inserted.id,
+        error: reviewErr,
+      });
+    }
+
+    if (data.resume_token) {
+      const { error: delErr } = await (
+        supabaseAdmin.from("intake_drafts") as unknown as {
+          delete: () => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+        }
+      )
         .delete()
         .eq("resume_token", data.resume_token);
       if (delErr) {
         console.warn("[submit-intake] draft cleanup failed (non-blocking)", delErr);
       }
     }
-    return { ok: true as const };
+    return { ok: true as const, submission_id: inserted.id, review_id: review?.id ?? null };
   });
