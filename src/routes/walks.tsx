@@ -79,11 +79,30 @@ type Walk = {
   activeIndex?: number;
   stat: string;
   walkingSince: string;
+  image: { url: string };
 };
 
 const WALKS: Walk[] = [
   {
     slug: "leadership-education",
+    bucket: "Foundations",
+    category: "Leadership Education",
+    subcategory: "Founder led",
+    headline: ["1,250+ learners now move through", "cohorts the founder never touches."],
+    blurb:
+      "From deep IP and no platform to a live learning experience with enrolled learners.",
+    milestones: [
+      "Point A",
+      "Converting\nWebsite",
+      "Connected\nCRM",
+      "Learning\nPlatform",
+      "Cohort &\nProgress\nSystem",
+      "AI Support\nAssistant",
+      "Live platform,\nactive\nlearners",
+    ],
+    stat: "06 Milestones",
+    walkingSince: "Walking since 2024",
+    image: imgLeadership,
     bucket: "Foundations",
     category: "Leadership Education",
     subcategory: "Founder led",
