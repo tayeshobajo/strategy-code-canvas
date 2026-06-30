@@ -1,18 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Linkedin, Instagram } from "lucide-react";
 import { NAV } from "@/components/SiteHeader";
 import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 
-const NAVY = "#0A0F1F";
-const container = "mx-auto max-w-[1240px] px-6 sm:px-8 lg:px-10";
-
-function XIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
-      <path d="M18.244 2H21.5l-7.5 8.57L23 22h-6.844l-5.36-6.99L4.6 22H1.34l8.02-9.165L1 2h7.02l4.84 6.39L18.244 2Zm-1.2 18h1.9L7.04 4H5.05l11.994 16Z" />
-    </svg>
-  );
-}
 
 /* Faint topographic texture for footer band */
 function FooterContour() {
