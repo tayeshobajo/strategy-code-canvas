@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
 
@@ -78,6 +79,11 @@ const CheckoutRoadmapRoute = CheckoutRoadmapRouteImport.update({
   path: '/checkout/roadmap',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/checkout/return',
+  path: '/checkout/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/walks/$slug': typeof WalksSlugRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/walks/$slug': typeof WalksSlugRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights_/$slug': typeof InsightsSlugRoute
   '/walks_/$slug': typeof WalksSlugRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
     | '/walks/$slug'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
     | '/walks/$slug'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights_/$slug'
     | '/walks_/$slug'
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WalksRoute: typeof WalksRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
   WalksSlugRoute: typeof WalksSlugRoute
@@ -280,6 +293,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutRoadmapRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout/return': {
+      id: '/checkout/return'
+      path: '/checkout/return'
+      fullPath: '/checkout/return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -306,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WalksRoute: WalksRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
+  CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutRoadmapRoute: CheckoutRoadmapRoute,
   InsightsSlugRoute: InsightsSlugRoute,
   WalksSlugRoute: WalksSlugRoute,
