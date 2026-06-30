@@ -195,6 +195,16 @@ export const submitIntake = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => SubmitInput.parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const contactExtras = {
+      role: data.role || null,
+      timeline: data.timeline || null,
+      decision_makers: data.decision_makers || null,
+      reply_preference: data.reply_preference || null,
+    };
+    const answersWithMeta = [
+      ...data.answers,
+      { key: "_contact_meta", question: "Contact details", response: JSON.stringify(contactExtras), reflected_offered: null },
+    ];
     const { error } = await supabaseAdmin.from("intake_submissions").insert({
       source: "website/build-my-roadmap",
       name: data.name,
@@ -202,7 +212,7 @@ export const submitIntake = createServerFn({ method: "POST" })
       website: data.website || null,
       email: data.email,
       authorizes_scan: data.authorizes_scan && !!data.website.trim(),
-      answers: data.answers,
+      answers: answersWithMeta,
       status: "new",
     });
     if (error) {
