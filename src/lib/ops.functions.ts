@@ -145,14 +145,15 @@ export const getQueueStats = createServerFn({ method: "POST" })
     requireOperatorContext(context.claims as Record<string, unknown> | undefined);
     const intake = await loadIntake();
 
-    async function count(filter: (q: ReturnType<SupabaseClient["from"]>) => unknown): Promise<number> {
-      const head = intake.from("roadmap_intake_reviews").select("id", { count: "exact", head: true });
-      const { count: c, error } = (await filter(head)) as {
-        count: number | null;
-        error: unknown;
-      };
+    async function countStatus(status: ReviewStatus, sinceISO?: string): Promise<number> {
+      let q = intake
+        .from("roadmap_intake_reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("status", status);
+      if (sinceISO) q = q.gte("decided_at", sinceISO);
+      const { count: c, error } = await q;
       if (error) {
-        console.warn("[ops.getQueueStats] count failed", error);
+        console.warn("[ops.getQueueStats] count failed", { status, error });
         return 0;
       }
       return c ?? 0;
@@ -160,10 +161,10 @@ export const getQueueStats = createServerFn({ method: "POST" })
 
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const [needs_review, in_review, approved_week, archived] = await Promise.all([
-      count((q) => q.eq("status", "needs_review")),
-      count((q) => q.eq("status", "in_review")),
-      count((q) => q.eq("status", "approved").gte("decided_at", weekAgo)),
-      count((q) => q.eq("status", "archived")),
+      countStatus("needs_review"),
+      countStatus("in_review"),
+      countStatus("approved", weekAgo),
+      countStatus("archived"),
     ]);
 
     return { needs_review, in_review, approved_week, archived };
