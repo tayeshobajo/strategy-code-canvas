@@ -764,6 +764,9 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await mod.sendResumeLink({ data: { resume_token: token, email, resume_url: resumeUrl, name: contact.name.trim() } } as any);
         setResumeNote({ kind: "sent", text: `saved. a continue link is on its way to ${email}.` });
+        toast.success("Continue link sent", {
+          description: `A private link to ${email}.\n${resumeUrl}`,
+        });
         track("intake_resume_link_sent", { resume_token: token });
       } else {
         let copied = false;
@@ -779,6 +782,15 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             ? "saved. your private link is copied to the clipboard. paste it somewhere safe, or add your email above to have it sent."
             : "saved. this page URL is now your private link — bookmark it, or add your email above to have it sent.",
         });
+        if (copied) {
+          toast.success("Private link copied", {
+            description: resumeUrl,
+          });
+        } else {
+          toast.success("Private link saved", {
+            description: `Copy this URL to return:\n${resumeUrl}`,
+          });
+        }
         track("intake_draft_saved_manual", { resume_token: token, link_copied: copied });
       }
     } catch (err) {
