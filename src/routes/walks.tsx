@@ -5,6 +5,12 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { Reveal } from "@/hooks/use-reveal";
 import heroArt from "@/assets/walks-hero-bg.png.asset.json";
+import imgLeadership from "@/assets/walks/leadership-education.jpg.asset.json";
+import imgPrivate from "@/assets/walks/private-milestone.jpg.asset.json";
+import imgFinancial from "@/assets/walks/financial-advisory.jpg.asset.json";
+import imgFounder from "@/assets/walks/founder-led.jpg.asset.json";
+import imgHealth from "@/assets/walks/health-wellness.jpg.asset.json";
+import imgEcom from "@/assets/walks/ecommerce-brand.jpg.asset.json";
 
 export const Route = createFileRoute("/walks")({
   head: () => {
@@ -73,6 +79,7 @@ type Walk = {
   activeIndex?: number;
   stat: string;
   walkingSince: string;
+  image: { url: string };
 };
 
 const WALKS: Walk[] = [
@@ -95,6 +102,7 @@ const WALKS: Walk[] = [
     ],
     stat: "06 Milestones",
     walkingSince: "Walking since 2024",
+    image: imgLeadership,
   },
   {
     slug: "private-milestone-build",
@@ -107,7 +115,9 @@ const WALKS: Walk[] = [
     milestones: ["Point A", "Scope &\nPlan", "Build", "Test & Ship"],
     stat: "04 Milestones",
     walkingSince: "Completed in 3 days",
+    image: imgPrivate,
   },
+
   {
     slug: "financial-advisory-firm",
     bucket: "Operating Systems",
@@ -126,7 +136,9 @@ const WALKS: Walk[] = [
     ],
     stat: "06 Milestones",
     walkingSince: "Walking since 2023",
+    image: imgFinancial,
   },
+
   {
     slug: "founder-led-business",
     bucket: "Operating Systems",
@@ -138,7 +150,9 @@ const WALKS: Walk[] = [
     milestones: ["Point A", "Map", "CRM", "Workflows", "Knowledge\nBase"],
     stat: "05 Milestones",
     walkingSince: "Active",
+    image: imgFounder,
   },
+
   {
     slug: "health-and-wellness",
     bucket: "Long Walks",
@@ -158,7 +172,9 @@ const WALKS: Walk[] = [
     ],
     stat: "07 Milestones",
     walkingSince: "Walking since 2023",
+    image: imgHealth,
   },
+
   {
     slug: "e-commerce-brand",
     bucket: "Growth Engines",
@@ -177,7 +193,9 @@ const WALKS: Walk[] = [
     ],
     stat: "06 Milestones",
     walkingSince: "Walking since 2024",
+    image: imgEcom,
   },
+
 ];
 
 const FILTERS = ["All", "Foundations", "Growth Engines", "Operating Systems", "Long Walks"] as const;
@@ -526,23 +544,29 @@ function WalkRow({
       className="group row-interactive border-t border-rule focus:outline-none focus-visible:ring-2 focus-visible:ring-royal/40"
     >
       <div
-        className={`${container} grid grid-cols-1 gap-6 py-10 md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1.1fr)_170px] md:gap-8`}
+        className={`${container} grid grid-cols-1 gap-6 py-8 md:grid-cols-[260px_minmax(0,1.1fr)_minmax(0,1.1fr)_150px] md:items-center md:gap-8`}
       >
-        {/* Left: category */}
-        <div>
-          <p className="eyebrow leading-tight">{walk.category}</p>
-          <p className="mt-1 text-[12.5px] text-ink/55">{walk.subcategory}</p>
+        {/* Featured image */}
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-ink/5 md:aspect-[5/4]">
+          <img
+            src={walk.image.url}
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          />
         </div>
 
-        {/* Lead stat + journey context */}
-        <div>
-          <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[42px]">
+        {/* Category + headline + blurb */}
+        <div className="min-w-0">
+          <p className="eyebrow leading-tight">{walk.category}</p>
+          <p className="mt-1 text-[12.5px] text-ink/55">{walk.subcategory}</p>
+          <p className="mt-5 font-display text-[32px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[38px]">
             {walk.headline.join(" ")}
           </p>
           <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
             Verified outcome
           </p>
-          <p className="mt-5 max-w-[40ch] text-[12.5px] leading-[1.7] text-ink/65">
+          <p className="mt-4 max-w-[40ch] text-[12.5px] leading-[1.7] text-ink/65">
             {walk.blurb}
           </p>
         </div>
@@ -551,6 +575,7 @@ function WalkRow({
         <div className="relative h-[170px] w-full">
           <WalkRoute labels={walk.milestones} rowIndex={index} />
         </div>
+
 
         {/* Right: stats + link */}
         <div className="flex flex-col justify-between gap-6 md:items-end md:text-right">
