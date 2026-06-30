@@ -19,7 +19,10 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
+import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
 
 const WhatWeBuildRoute = WhatWeBuildRouteImport.update({
@@ -72,10 +75,26 @@ const InsightsSlugRoute = InsightsSlugRouteImport.update({
   path: '/insights/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutRoadmapRoute = CheckoutRoadmapRouteImport.update({
+  id: '/checkout/roadmap',
+  path: '/checkout/roadmap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/checkout/return',
+  path: '/checkout/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
     path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksBuildRoadmapContactRoute =
@@ -94,9 +113,12 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/checkout/return': typeof CheckoutReturnRoute
+  '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
@@ -108,9 +130,12 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/checkout/return': typeof CheckoutReturnRoute
+  '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
@@ -123,9 +148,12 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/checkout/return': typeof CheckoutReturnRoute
+  '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights_/$slug': typeof InsightsSlugRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
@@ -139,9 +167,12 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/checkout/return'
+    | '/checkout/roadmap'
     | '/insights/$slug'
     | '/walks/$slug'
     | '/api/public/hooks/build-roadmap-contact'
+    | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -153,9 +184,12 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/checkout/return'
+    | '/checkout/roadmap'
     | '/insights/$slug'
     | '/walks/$slug'
     | '/api/public/hooks/build-roadmap-contact'
+    | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
   id:
     | '__root__'
@@ -167,9 +201,12 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/checkout/return'
+    | '/checkout/roadmap'
     | '/insights_/$slug'
     | '/walks_/$slug'
     | '/api/public/hooks/build-roadmap-contact'
+    | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
@@ -182,9 +219,12 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WalksRoute: typeof WalksRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
+  CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
   WalksSlugRoute: typeof WalksSlugRoute
   ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
@@ -260,11 +300,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InsightsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout/roadmap': {
+      id: '/checkout/roadmap'
+      path: '/checkout/roadmap'
+      fullPath: '/checkout/roadmap'
+      preLoaderRoute: typeof CheckoutRoadmapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/return': {
+      id: '/checkout/return'
+      path: '/checkout/return'
+      fullPath: '/checkout/return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
       fullPath: '/lovable/email/queue/process'
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/build-roadmap-contact': {
@@ -286,10 +347,13 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WalksRoute: WalksRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
+  CheckoutReturnRoute: CheckoutReturnRoute,
+  CheckoutRoadmapRoute: CheckoutRoadmapRoute,
   InsightsSlugRoute: InsightsSlugRoute,
   WalksSlugRoute: WalksSlugRoute,
   ApiPublicHooksBuildRoadmapContactRoute:
     ApiPublicHooksBuildRoadmapContactRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
