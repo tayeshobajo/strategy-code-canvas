@@ -59,6 +59,10 @@ const ContactSchema = z.object({
   business: z.string().trim().max(200).optional().default(""),
   website: z.string().trim().max(500).optional().default(""),
   email: z.string().trim().max(255).optional().default(""),
+  role: z.string().trim().max(200).optional().default(""),
+  timeline: z.string().trim().max(200).optional().default(""),
+  decision_makers: z.string().trim().max(400).optional().default(""),
+  reply_preference: z.string().trim().max(40).optional().default(""),
 });
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -179,6 +183,10 @@ const SubmitInput = z.object({
   website: z.string().trim().max(500).optional().default(""),
   email: z.string().trim().email().max(255),
   authorizes_scan: z.boolean(),
+  role: z.string().trim().max(200).optional().default(""),
+  timeline: z.string().trim().max(200).optional().default(""),
+  decision_makers: z.string().trim().max(400).optional().default(""),
+  reply_preference: z.string().trim().max(40).optional().default(""),
   answers: z.array(AnswerSchema).min(1).max(20),
   resume_token: z.string().regex(UUID_RE).optional(),
 });
@@ -187,6 +195,16 @@ export const submitIntake = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => SubmitInput.parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const contactExtras = {
+      role: data.role || null,
+      timeline: data.timeline || null,
+      decision_makers: data.decision_makers || null,
+      reply_preference: data.reply_preference || null,
+    };
+    const answersWithMeta = [
+      ...data.answers,
+      { key: "_contact_meta", question: "Contact details", response: JSON.stringify(contactExtras), reflected_offered: null },
+    ];
     const { error } = await supabaseAdmin.from("intake_submissions").insert({
       source: "website/build-my-roadmap",
       name: data.name,
@@ -194,7 +212,7 @@ export const submitIntake = createServerFn({ method: "POST" })
       website: data.website || null,
       email: data.email,
       authorizes_scan: data.authorizes_scan && !!data.website.trim(),
-      answers: data.answers,
+      answers: answersWithMeta,
       status: "new",
     });
     if (error) {

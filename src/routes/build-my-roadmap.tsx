@@ -236,7 +236,8 @@ type IntakeQuestion = {
   before: string;
   accent: string;
   after: string;
-  placeholder: string;
+  helper: string;
+  placeholder?: string;
   optional?: boolean;
 };
 
@@ -245,85 +246,107 @@ const QUESTIONS: IntakeQuestion[] = [
     key: "current_state",
     eyebrow: "01 / where you are",
     before: "Tell us what you have built. ",
-    accent: "What is the business today",
-    after: ", in your words?",
-    placeholder: "Start anywhere. What you do, who you serve, how it runs now.",
+    accent: "What is the business today, in your words",
+    after: "?",
+    helper: "Start anywhere. What do you do, who do you serve, and how does the business run right now?",
+  },
+  {
+    key: "the_weight",
+    eyebrow: "02 / the weight",
+    before: "What feels heavier than it should? ",
+    accent: "What keeps showing up no matter how many times you work around it",
+    after: "?",
+    helper: "This could be a system, a decision, a bottleneck, a team issue, a client experience, or something you keep carrying yourself.",
+  },
+  {
+    key: "point_b",
+    eyebrow: "03 / where you need to be",
+    before: "Where do you need the business to be in 24 months? ",
+    accent: "What would be different if it finally worked the way it should",
+    after: "?",
+    helper: "Think in outcomes. Time, clients, team, delivery, money, freedom, quality, or calm.",
+  },
+  {
+    key: "practical",
+    eyebrow: "04 / the first move",
+    before: "What would need to change first? ",
+    accent: "What is the move you already suspect matters most",
+    after: "?",
+    helper: "You do not need the full answer. Name the place your attention keeps returning to.",
   },
   {
     key: "why_now",
     optional: true,
-    eyebrow: "02 / why now",
-    before: "What brought you here. ",
-    accent: "What were you hoping to put on paper",
+    eyebrow: "05 / why now",
+    before: "What brought you here now? ",
+    accent: "What made today the day to put this on paper",
     after: "?",
-    placeholder: "The thing that made today the day you started this.",
-  },
-  {
-    key: "the_weight",
-    eyebrow: "03 / the weight",
-    before: "Where does the business still run through you? ",
-    accent: "What moves only when you touch it",
-    after: "?",
-    placeholder: "The decisions, the approvals, the work that waits for you.",
+    helper: "A moment, a frustration, a new opportunity, a deadline, or a quiet feeling that something needs to change.",
   },
   {
     key: "what_didnt_hold",
     optional: true,
-    eyebrow: "04 / what did not hold",
-    before: "What have you tried before that did not hold? ",
-    accent: "What would make this time different",
+    eyebrow: "06 / what did not hold",
+    before: "What have you already tried? ",
+    accent: "What looked like it would fix things, but did not hold",
     after: "?",
-    placeholder: "Agencies, hires, tools. What happened, and what you took from it.",
+    helper: "Websites, tools, hires, automations, agencies, consultants, internal systems, or your own workarounds.",
   },
   {
     key: "unbuilt_asset",
     optional: true,
-    eyebrow: "05 / what you already have",
-    before: "What does the business already own that you have not built on yet? ",
-    accent: "A relationship base, a body of data, a credential, a position",
-    after: " you already sit in.",
-    placeholder: "Something you sit on top of that a competitor could not copy.",
-  },
-  {
-    key: "point_b",
-    eyebrow: "06 / where you need to be",
-    before: "Picture the business 24 months out, running the way it should. ",
-    accent: "What is true then that is not true now",
-    after: "?",
-    placeholder: "What you can see, what you can measure, what you stop carrying.",
+    eyebrow: "07 / what you already have",
+    before: "",
+    accent: "What does the business already have that you have not fully built on",
+    after: "? A relationship base, a body of data, a credential you could issue, a position you already hold.",
+    helper: "Something already true about the business that could become far more than it is today. The Roadmap builds from what is real, it does not erase it.",
   },
   {
     key: "point_c",
     optional: true,
-    eyebrow: "07 / if it could not fail",
-    before: "If you knew it could not fail, ",
-    accent: "what would you build",
-    after: "? Where is the energy when you think about this business?",
-    placeholder: "The version you would chase if fear was not in the room.",
-  },
-  {
-    key: "practical",
-    eyebrow: "08 / the practical",
-    before: "Last one. ",
-    accent: "Who else is part of this decision, and what timeline are you working toward",
+    eyebrow: "08 / if it could not fail",
+    before: "If this could not fail, what would you finally build? ",
+    accent: "What would you stop postponing",
     after: "?",
-    placeholder: "Names, roles, and any date that matters.",
+    helper: "Say the version you usually edit down.",
   },
 ];
 
+const TOTAL_STEPS = 9; // 8 questions + 1 reply-details step (used for the 0N of 09 counter)
 const REQUIRED_KEYS = QUESTIONS.filter((q) => !q.optional).map((q) => q.key);
 
+
 type AnswerRecord = { response: string; reflected_offered: string | null };
-type ContactState = { name: string; business: string; website: string; email: string };
+type ContactState = {
+  name: string;
+  business: string;
+  website: string;
+  email: string;
+  role: string;
+  timeline: string;
+  decision_makers: string;
+  reply_preference: "" | "email" | "call" | "either";
+};
 type SubmitStatus = "idle" | "submitting" | "error";
+type ContactErrors = { name?: string; email?: string; business?: string; website?: string };
 
 function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRef: React.RefObject<HTMLDivElement | null>; onExit?: () => void }) {
-  const [step, setStep] = React.useState<number>(-1); // -1 intro, 0..7 questions, 8 review+contact, 9 sent
+  // step semantics:
+  //   -1            intro
+  //    0..7         questions 01..08
+  //    QCOUNT       reply details (step 09)
+  //    QCOUNT + 1   review
+  //    QCOUNT + 2   consent
+  //    QCOUNT + 3   confirmation (sent)
+  const [step, setStep] = React.useState<number>(-1);
   const [answers, setAnswers] = React.useState<Record<string, AnswerRecord>>({});
   const [reflections, setReflections] = React.useState<Record<string, { state: "idle" | "loading" | "ready" | "error"; text: string }>>({});
-  const [contact, setContact] = React.useState<ContactState>({ name: "", business: "", website: "", email: "" });
-  const [consent, setConsent] = React.useState<boolean>(true);
-  const [contactErrors, setContactErrors] = React.useState<{ name?: string; email?: string; website?: string }>({});
+  const [contact, setContact] = React.useState<ContactState>({
+    name: "", business: "", website: "", email: "",
+    role: "", timeline: "", decision_makers: "", reply_preference: "",
+  });
+  const [consent, setConsent] = React.useState<boolean>(false);
+  const [contactErrors, setContactErrors] = React.useState<ContactErrors>({});
   const [status, setStatus] = React.useState<SubmitStatus>("idle");
   const [hydrated, setHydrated] = React.useState(false);
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
@@ -372,10 +395,17 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             setAnswers(rebuilt);
             const c = res.contact ?? {};
             setContact((p) => ({
+              ...p,
               name: String(c.name ?? p.name ?? ""),
               business: String(c.business ?? p.business ?? ""),
               website: String(c.website ?? p.website ?? ""),
               email: String(c.email ?? p.email ?? ""),
+              role: String(c.role ?? p.role ?? ""),
+              timeline: String(c.timeline ?? p.timeline ?? ""),
+              decision_makers: String(c.decision_makers ?? p.decision_makers ?? ""),
+              reply_preference: ((["email", "call", "either"] as const).includes(String(c.reply_preference ?? "") as never)
+                ? (String(c.reply_preference) as ContactState["reply_preference"])
+                : p.reply_preference) ,
             }));
             setResumeToken(token);
             // Do NOT advance step here. Begin must remain an explicit user click.
@@ -480,16 +510,25 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
   }, [step, furthestStep]);
 
   // Milestone states for the journey path: answered / skipped / current / future.
-  const milestoneStates = React.useMemo(() => {
-    return QUESTIONS.map((q, i) => {
-      if (step === i) return "current" as const;
+  // Nine dots total — the eight questions plus the reply-details step.
+  const milestoneStates = React.useMemo<MilestoneState[]>(() => {
+    const qs: MilestoneState[] = QUESTIONS.map((q, i) => {
+      if (step === i) return "current";
       const filled = (answers[q.key]?.response ?? "").trim().length > 0;
-      if (filled) return "answered" as const;
-      if (i <= furthestStep && q.optional) return "skipped" as const;
-      if (i < furthestStep) return "answered" as const; // visited but somehow empty required — treat as reached
-      return "future" as const;
+      if (filled) return "answered";
+      if (i <= furthestStep && q.optional) return "skipped";
+      if (i < furthestStep) return "answered"; // visited but somehow empty required — treat as reached
+      return "future";
     });
-  }, [answers, step, furthestStep]);
+    // Reply-details dot
+    const replyHasAll =
+      contact.name.trim() && contact.email.trim() && EMAIL_RE.test(contact.email.trim()) && contact.business.trim();
+    let replyState: MilestoneState = "future";
+    if (step === total) replyState = "current";
+    else if (step > total) replyState = replyHasAll ? "answered" : "skipped";
+    else if (furthestStep >= total) replyState = replyHasAll ? "answered" : "skipped";
+    return [...qs, replyState];
+  }, [answers, step, furthestStep, contact, total]);
 
   // (Scroll-into-view removed — intake now mounts inside a full-screen overlay
   // that owns the viewport, so there is nothing on the page to scroll to.)
@@ -622,6 +661,11 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
     }));
   };
 
+  const STEP_REPLY = total;       // 8 → step 09 (reply details)
+  const STEP_REVIEW = total + 1;  // 9
+  const STEP_CONSENT = total + 2; // 10
+  const STEP_SENT = total + 3;    // 11
+
   const advance = () => {
     if (step >= 0 && step < total) {
       const q = QUESTIONS[step];
@@ -633,10 +677,20 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         skipped: !!q.optional && !filled,
         characters: (answers[q.key]?.response ?? "").length,
       });
-      if (step === total - 1) track("intake_review_reached", {});
     }
-    if (step < total - 1) setStep(step + 1);
-    else setStep(total); // to review
+    if (step < STEP_REPLY) setStep(step + 1);
+    else if (step === STEP_REPLY) {
+      const ce = validateContact();
+      setContactErrors(ce);
+      if (Object.keys(ce).length > 0) {
+        track("intake_reply_validation_failed", { fields: Object.keys(ce).join(",") });
+        return;
+      }
+      track("intake_review_reached", {});
+      setStep(STEP_REVIEW);
+    } else if (step === STEP_REVIEW) {
+      setStep(STEP_CONSENT);
+    }
   };
   const back = () => {
     if (step > -1) {
@@ -645,15 +699,15 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
     }
   };
 
-  const validateContact = (state: ContactState = contact, consentState: boolean = consent) => {
-    const e: { name?: string; email?: string; website?: string } = {};
+  const validateContact = (state: ContactState = contact): ContactErrors => {
+    const e: ContactErrors = {};
     if (!state.name.trim()) e.name = "Please add your name.";
     const em = state.email.trim();
     if (!em) e.email = "Please add your email.";
     else if (!EMAIL_RE.test(em)) e.email = "That email does not look right.";
+    if (!state.business.trim()) e.business = "Please add your business name.";
     const site = state.website.trim();
     if (site && !URL_RE.test(site)) e.website = "That URL does not look right.";
-    if (consentState && !site) e.website = "Add a website, or uncheck the box below.";
     return e;
   };
 
@@ -662,7 +716,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
     if (Object.keys(contactErrors).length === 0) return;
     setContactErrors(validateContact());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contact, consent]);
+  }, [contact]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -671,6 +725,12 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
     setContactErrors(ce);
     if (Object.keys(ce).length > 0) {
       track("intake_submit_validation_failed", { fields: Object.keys(ce).join(",") });
+      // Jump back to the reply-details step so the user can fix it.
+      setStep(STEP_REPLY);
+      return;
+    }
+    if (!consent) {
+      track("intake_consent_missing", {});
       return;
     }
 
@@ -680,7 +740,11 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       business: contact.business.trim(),
       website: contact.website.trim(),
       email: contact.email.trim(),
-      authorizes_scan: consent && !!contact.website.trim(),
+      role: contact.role.trim(),
+      timeline: contact.timeline.trim(),
+      decision_makers: contact.decision_makers.trim(),
+      reply_preference: contact.reply_preference,
+      authorizes_scan: false,
       answers: QUESTIONS.map((q) => ({
         key: q.key,
         question: `${q.before}${q.accent}${q.after}`,
@@ -702,7 +766,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       await mod.submitIntake({ data: payload } as any);
       clearDraft();
       setResumeToken(null);
-      setStep(total + 1);
+      setStep(STEP_SENT);
       setStatus("idle");
       track("intake_submit_success", { answers_count: payload.answers.length });
     } catch (err) {
@@ -780,7 +844,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           kind: "saved",
           text: copied
             ? "saved. your private link is copied to the clipboard. paste it somewhere safe, or add your email above to have it sent."
-            : "saved. this page URL is now your private link — bookmark it, or add your email above to have it sent.",
+            : "saved. this page URL is now your private link. bookmark it, or add your email above to have it sent.",
         });
         if (copied) {
           toast.success("Private link copied", {
@@ -803,7 +867,6 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
   };
 
 
-  const firstName = contact.name.trim().split(/\s+/)[0] || "there";
   const currentQuestion = step >= 0 && step < total ? QUESTIONS[step] : null;
   const currentAnswerValue = currentQuestion ? answers[currentQuestion.key]?.response ?? "" : "";
   const currentReflection = currentQuestion ? reflections[currentQuestion.key] : undefined;
@@ -888,15 +951,22 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         {/* Journey path */}
         <JourneyPath
           step={step}
-          progress={step >= total ? 1 : progress}
+          progress={step >= STEP_REVIEW ? 1 : progress}
           milestoneStates={milestoneStates}
-          milestoneLabels={QUESTIONS.map((q) => q.eyebrow.split("/").slice(1).join("/").trim() || q.key)}
+          milestoneLabels={[
+            ...QUESTIONS.map((q) => q.eyebrow.split("/").slice(1).join("/").trim() || q.key),
+            "reply details",
+          ]}
           furthestStep={furthestStep}
           onJump={(i) => {
-            track("intake_dot_jump", { to: i });
-            setStep(i);
+            // i is 0..total. Dots 0..total-1 are questions; dot at index total is reply details.
+            const target = i <= total ? i : total;
+            // Only allow jumping to a milestone the user has visited.
+            if (target > Math.max(furthestStep, step)) return;
+            track("intake_dot_jump", { to: target });
+            setStep(target);
           }}
-          atReview={step >= total}
+          atReview={step >= STEP_REVIEW}
         />
 
 
@@ -920,29 +990,45 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             />
           )}
 
-          {step === total && (
-            <ReviewAndContact
-              answers={answers}
+          {step === STEP_REPLY && (
+            <ReplyDetailsStep
               contact={contact}
               setContact={(updater) => {
                 setContact(updater);
                 setSaveState((s) => (s === "error" ? s : "saving"));
               }}
+              errors={contactErrors}
+              onBack={() => setStep(total - 1)}
+              onNext={advance}
+            />
+          )}
+
+          {step === STEP_REVIEW && (
+            <ReviewStep
+              answers={answers}
+              contact={contact}
+              onEdit={(i) => setStep(i)}
+              onEditReply={() => setStep(STEP_REPLY)}
+              onBack={() => setStep(STEP_REPLY)}
+              onNext={() => setStep(STEP_CONSENT)}
+            />
+          )}
+
+          {step === STEP_CONSENT && (
+            <ConsentStep
               consent={consent}
               setConsent={setConsent}
-              contactErrors={contactErrors}
               status={status}
-              onEdit={(i) => setStep(i)}
-              onBack={() => setStep(total - 1)}
+              onBack={() => setStep(STEP_REVIEW)}
               onSubmit={onSubmit}
               onRetry={onRetrySubmit}
             />
           )}
 
-          {step === total + 1 && <IntakeConfirmation firstName={firstName} />}
+          {step === STEP_SENT && <IntakeConfirmation />}
         </div>
 
-        {step >= 0 && step < total && (
+        {step >= 0 && step <= STEP_REPLY && (
           <div className="mx-auto mt-6 max-w-[560px] text-center">
             <div className="flex items-center justify-center gap-4">
               <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
@@ -998,7 +1084,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         )}
 
         {/* Quiet bottom note — present across every step except the sent confirmation */}
-        {step !== total + 1 && (
+        {step !== STEP_SENT && (
           <p className="mx-auto mt-4 max-w-[640px] text-center font-display italic text-[13px] leading-[1.65] text-ink/55">
             A person reads every word. This is a note to understand you, not a form to qualify you.
           </p>
@@ -1231,11 +1317,11 @@ function IntakeIntro({ onBegin }: { onBegin: () => void }) {
         the intake
       </p>
       <h2 className="mt-5 font-display text-[clamp(1.8rem,3vw,2.3rem)] leading-[1.15] tracking-[-0.018em] text-ink">
-        Eight questions. One at a time.<br />
-        <em className="italic font-normal" style={{ color: ROYAL }}>Write the way you talk.</em>
+        Four questions are enough to begin.<br />
+        <em className="italic font-normal" style={{ color: ROYAL }}>Four more help us see deeper.</em>
       </h2>
       <p className="mx-auto mt-6 max-w-[52ch] text-[14.5px] leading-[1.8] text-ink/70">
-        No forms to wade through. You write, you review, you send. A person reads it next.
+        You write, you review, you send. A person reads it next.
       </p>
       <button
         type="button"
@@ -1273,15 +1359,16 @@ function QuestionPanel({
   const isOptional = !!q.optional;
   const hasText = value.trim().length > 0;
   const canAdvance = isOptional || hasText;
-  const isLast = index === total - 1;
-  const primaryLabel = isLast ? "Review" : isOptional && !hasText ? "Skip" : "Continue";
+  // Spec: Continue when there is text, Skip when optional and empty. Never "Review".
+  const primaryLabel = isOptional && !hasText ? "Skip" : "Continue";
   const [touched, setTouched] = React.useState(false);
   // Reset touched as the user moves between steps
   React.useEffect(() => { setTouched(false); }, [q.key]);
   const showRequiredHint = !isOptional && !hasText && touched;
-  // Parse the eyebrow ("01 / Where you are") so we can render the section label.
+  // Parse the eyebrow ("01 / where you are") so we can render the section label.
   const eyebrowRest = q.eyebrow.split(" / ").slice(1);
   const eyebrowTail = eyebrowRest.join(" / ");
+  const counter = `${String(index + 1).padStart(2, "0")} of ${String(TOTAL_STEPS).padStart(2, "0")}`;
 
   const hasMirror = !!reflection?.text;
   const isLoading = reflection?.state === "loading";
@@ -1318,7 +1405,8 @@ function QuestionPanel({
       <div className="flex items-center justify-center gap-3">
         <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
         <p className="font-mono text-[10.5px] uppercase tracking-[0.36em] text-ink/60">
-          {eyebrowTail && <span>{eyebrowTail}</span>}
+          <span className="text-ink/40">{counter}</span>
+          {eyebrowTail && <span className="ml-3">· {eyebrowTail}</span>}
           {isOptional && (
             <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/55">optional</span>
           )}
@@ -1332,6 +1420,12 @@ function QuestionPanel({
         <em className="italic font-normal" style={{ color: ROYAL }}>{q.accent}</em>
         {q.after}
       </h2>
+
+      {q.helper && (
+        <p className="mx-auto mt-4 max-w-[60ch] text-center text-[14px] leading-[1.7] text-ink/55">
+          {q.helper}
+        </p>
+      )}
 
       {/* Writing surface — layered shadow, ring focus, refined */}
       <div className="relative mt-8">
@@ -1419,7 +1513,7 @@ function QuestionPanel({
                   boxShadow: "0 8px 20px -10px rgba(37,99,255,0.55)",
                 }}
               >
-                use these words
+                Use these words
               </button>
               {isError && (
                 <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/50">
@@ -1468,48 +1562,218 @@ function QuestionPanel({
 
 
 
-function ReviewAndContact({
-  answers,
+/* -------------------- REPLY DETAILS (step 09) -------------------- */
+function ReplyDetailsStep({
   contact,
   setContact,
-  consent,
-  setConsent,
-  contactErrors,
-  status,
-  onEdit,
+  errors,
   onBack,
-  onSubmit,
-  onRetry,
+  onNext,
 }: {
-  answers: Record<string, AnswerRecord>;
   contact: ContactState;
   setContact: React.Dispatch<React.SetStateAction<ContactState>>;
-  consent: boolean;
-  setConsent: (v: boolean) => void;
-  contactErrors: { name?: string; email?: string; website?: string };
-  status: SubmitStatus;
-  onEdit: (index: number) => void;
+  errors: ContactErrors;
   onBack: () => void;
-  onSubmit: (e: React.FormEvent) => void;
-  onRetry: () => void;
+  onNext: () => void;
 }) {
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
-        here is what we heard
-      </p>
-      <h2 className="mt-4 font-display text-[clamp(1.6rem,2.8vw,2.1rem)] leading-[1.2] tracking-[-0.015em] text-ink">
-        Read it back. Change anything that is not true.
+      {/* Counter + eyebrow */}
+      <div className="flex items-center justify-center gap-3">
+        <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.36em] text-ink/60">
+          09 of 09 · reply details
+        </p>
+        <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
+      </div>
+
+      <h2 className="mx-auto mt-6 max-w-[760px] text-center font-display text-[clamp(1.55rem,2.4vw,1.95rem)] leading-[1.3] tracking-[-0.015em] text-ink">
+        Where should we send the reply?
       </h2>
+      <p className="mx-auto mt-4 max-w-[60ch] text-center text-[14.5px] leading-[1.75] text-ink/65">
+        A few details so a real person can read this in context and respond properly.
+      </p>
+
+      <form
+        onSubmit={(e) => { e.preventDefault(); onNext(); }}
+        noValidate
+        className="mt-10"
+      >
+        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2">
+          <UnderlineField
+            label="Your name"
+            value={contact.name}
+            onChange={(v) => setContact((p) => ({ ...p, name: v }))}
+            error={errors.name}
+            required
+            autoComplete="name"
+          />
+          <UnderlineField
+            label="Email"
+            type="email"
+            value={contact.email}
+            onChange={(v) => setContact((p) => ({ ...p, email: v }))}
+            error={errors.email}
+            required
+            autoComplete="email"
+          />
+          <UnderlineField
+            label="Business name"
+            value={contact.business}
+            onChange={(v) => setContact((p) => ({ ...p, business: v }))}
+            error={errors.business}
+            required
+            autoComplete="organization"
+          />
+          <div>
+            <UnderlineField
+              label="Website"
+              value={contact.website}
+              onChange={(v) => setContact((p) => ({ ...p, website: v }))}
+              placeholder="https://"
+              autoComplete="url"
+              error={errors.website}
+            />
+            {contact.website.trim() && !errors.website && (
+              <p className="mt-2 font-mono text-[11px] normal-case tracking-[0.04em] text-ink/50">
+                You are welcome to look at our site before we talk.
+              </p>
+            )}
+          </div>
+          <UnderlineField
+            label="Your role"
+            value={contact.role}
+            onChange={(v) => setContact((p) => ({ ...p, role: v }))}
+            placeholder="Founder, CEO, Operator, Creative Director..."
+          />
+          <UnderlineField
+            label="Timeline you are working toward"
+            value={contact.timeline}
+            onChange={(v) => setContact((p) => ({ ...p, timeline: v }))}
+            placeholder="No rush, this quarter, next 90 days, before a launch..."
+          />
+          <div className="sm:col-span-2">
+            <UnderlineField
+              label="Anyone else part of this decision?"
+              value={contact.decision_makers}
+              onChange={(v) => setContact((p) => ({ ...p, decision_makers: v }))}
+              placeholder="Co-founder, spouse, partner, leadership team, no one else..."
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <span className="block font-mono text-[10.5px] uppercase tracking-[0.24em] text-ink/55">
+              Best way to reply
+            </span>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {([
+                { value: "email", label: "Email" },
+                { value: "call", label: "Schedule a call" },
+                { value: "either", label: "Either is fine" },
+              ] as const).map((opt) => {
+                const selected = contact.reply_preference === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() =>
+                      setContact((p) => ({
+                        ...p,
+                        reply_preference: selected ? "" : opt.value,
+                      }))
+                    }
+                    className={`inline-flex items-center rounded-full border px-4 py-2 text-[12.5px] tracking-[0.02em] transition-colors ${
+                      selected
+                        ? "border-[color:var(--royal,#2563FF)] bg-[rgba(37,99,255,0.06)] text-ink"
+                        : "border-ink/15 bg-white/60 text-ink/70 hover:border-ink/35 hover:text-ink"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-10 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink"
+          >
+            <ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />
+            <span>Back</span>
+          </button>
+          <button
+            type="submit"
+            className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
+          >
+            <span>Review my note</span>
+            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/* -------------------- REVIEW SCREEN -------------------- */
+function ReviewStep({
+  answers,
+  contact,
+  onEdit,
+  onEditReply,
+  onBack,
+  onNext,
+}: {
+  answers: Record<string, AnswerRecord>;
+  contact: ContactState;
+  onEdit: (i: number) => void;
+  onEditReply: () => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  const replyRows: Array<{ label: string; value: string }> = [
+    { label: "Name", value: contact.name },
+    { label: "Email", value: contact.email },
+    { label: "Business", value: contact.business },
+    { label: "Website", value: contact.website },
+    { label: "Role", value: contact.role },
+    { label: "Timeline", value: contact.timeline },
+    { label: "Decision", value: contact.decision_makers },
+    {
+      label: "Best reply",
+      value:
+        contact.reply_preference === "email"
+          ? "Email"
+          : contact.reply_preference === "call"
+            ? "Schedule a call"
+            : contact.reply_preference === "either"
+              ? "Either is fine"
+              : "",
+    },
+  ];
+  return (
+    <div>
+      <h2 className="mt-2 font-display text-[clamp(1.6rem,2.8vw,2.1rem)] leading-[1.2] tracking-[-0.015em] text-ink">
+        Review your Roadmap note.
+      </h2>
+      <p className="mt-4 max-w-[60ch] text-[14.5px] leading-[1.75] text-ink/65">
+        Nothing has been sent yet. Read it once, adjust anything that needs adjusting, then send it when it feels true enough.
+      </p>
 
       <ul className="mt-10 divide-y divide-ink/10">
         {QUESTIONS.map((q, i) => {
           const a = answers[q.key]?.response?.trim() ?? "";
+          const isSkipped = !!q.optional && a.length === 0;
           return (
             <li key={q.key} className="py-6">
               <div className="flex items-baseline justify-between gap-4">
                 <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
                   {q.eyebrow}
+                  {q.optional && (
+                    <span className="ml-2 rounded-full border border-ink/15 px-2 py-[2px] font-mono text-[9.5px] normal-case tracking-[0.22em] text-ink/50">optional</span>
+                  )}
                 </p>
                 <button
                   type="button"
@@ -1526,128 +1790,155 @@ function ReviewAndContact({
                 {q.after}
               </p>
               <p className="mt-3 whitespace-pre-wrap text-[14.5px] leading-[1.75] text-ink/75">
-                {a || <span className="italic text-ink/40">(nothing yet)</span>}
+                {isSkipped ? (
+                  <span className="italic text-ink/40">Skipped</span>
+                ) : a ? a : <span className="italic text-ink/40">Skipped</span>}
               </p>
             </li>
           );
         })}
-      </ul>
 
-      <form onSubmit={onSubmit} noValidate className="mt-12">
-        <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
-          where do we send this
-        </p>
-        <h3 className="mt-3 font-display text-[clamp(1.3rem,2.3vw,1.7rem)] leading-[1.25] tracking-[-0.015em] text-ink">
-          Four lines and we are done.
-        </h3>
-
-        <div className="mt-8 grid grid-cols-1 gap-7 sm:grid-cols-2">
-          <UnderlineField
-            label="Your name"
-            value={contact.name}
-            onChange={(v) => setContact((p) => ({ ...p, name: v }))}
-            error={contactErrors.name}
-            required
-            autoComplete="name"
-          />
-          <UnderlineField
-            label="Business name"
-            value={contact.business}
-            onChange={(v) => setContact((p) => ({ ...p, business: v }))}
-            autoComplete="organization"
-          />
-          <UnderlineField
-            label="Website"
-            value={contact.website}
-            onChange={(v) => setContact((p) => ({ ...p, website: v }))}
-            placeholder="https://"
-            autoComplete="url"
-            error={contactErrors.website}
-          />
-          <UnderlineField
-            label="Email"
-            type="email"
-            value={contact.email}
-            onChange={(v) => setContact((p) => ({ ...p, email: v }))}
-            error={contactErrors.email}
-            required
-            autoComplete="email"
-          />
-        </div>
-
-        <label
-          className={`mt-8 flex items-start gap-3 text-[13px] leading-[1.7] transition-opacity ${
-            contact.website.trim() ? "text-ink/65" : "text-ink/35 cursor-not-allowed"
-          }`}
-          title={contact.website.trim() ? undefined : "Add a website above to enable this"}
-        >
-          <input
-            type="checkbox"
-            checked={consent && !!contact.website.trim()}
-            disabled={!contact.website.trim()}
-            onChange={(e) => setConsent(e.target.checked)}
-            className="mt-[3px] h-4 w-4 accent-[#2563FF] disabled:cursor-not-allowed"
-          />
-          <span>
-            You are welcome to look at our site before we talk. It helps us see where the business stands.
-            {!contact.website.trim() && (
-              <span className="ml-1 italic text-ink/40">Add a website to enable.</span>
-            )}
-          </span>
-        </label>
-
-
-        <div className="mt-10 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onBack}
-            className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55 hover:text-ink"
-          >
-            ← back
-          </button>
-          <button
-            type="submit"
-            disabled={status === "submitting"}
-            aria-busy={status === "submitting"}
-            className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-          >
-            {status === "submitting" ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                <span>Sending&hellip;</span>
-              </>
-            ) : (
-              <>
-                <span>Send it</span>
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-              </>
-            )}
-          </button>
-        </div>
-
-        {status === "error" && (
-          <div
-            role="alert"
-            className="mt-6 rounded-md border border-[#B91C1C]/30 bg-[#B91C1C]/5 p-4 text-[13px] leading-[1.7] text-ink/80"
-          >
-            <p>
-              That did not send. Your words are still here. Try once more, or email{" "}
-              <a href={`mailto:${CONTACT_EMAIL}`} className="underline decoration-ink/30 underline-offset-2 hover:text-ink">
-                {CONTACT_EMAIL}
-              </a>{" "}
-              directly.
+        <li className="py-6">
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
+              09 / reply details
             </p>
             <button
               type="button"
-              onClick={onRetry}
-              className="mt-3 inline-flex items-center gap-2 rounded-full border border-ink/25 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-ink hover:border-ink/60"
+              onClick={onEditReply}
+              className="font-mono text-[11px] uppercase tracking-[0.24em] underline decoration-royal/30 underline-offset-[5px] hover:decoration-royal"
+              style={{ color: ROYAL }}
             >
-              Try again
+              edit
             </button>
           </div>
-        )}
-      </form>
+          <dl className="mt-4 grid grid-cols-1 gap-y-2.5 text-[14px] leading-[1.6] sm:grid-cols-[160px_1fr]">
+            {replyRows.map((row) => (
+              <React.Fragment key={row.label}>
+                <dt className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/45">{row.label}</dt>
+                <dd className="text-ink/80">
+                  {row.value.trim() ? row.value : <span className="italic text-ink/40">Skipped</span>}
+                </dd>
+              </React.Fragment>
+            ))}
+          </dl>
+        </li>
+      </ul>
+
+      <div className="mt-10 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink"
+        >
+          <ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />
+          <span>Back to questions</span>
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
+        >
+          <span>Continue</span>
+          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+        </button>
+      </div>
     </div>
+  );
+}
+
+/* -------------------- CONSENT + SUBMIT -------------------- */
+function ConsentStep({
+  consent,
+  setConsent,
+  status,
+  onBack,
+  onSubmit,
+  onRetry,
+}: {
+  consent: boolean;
+  setConsent: (v: boolean) => void;
+  status: SubmitStatus;
+  onBack: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onRetry: () => void;
+}) {
+  return (
+    <form onSubmit={onSubmit} noValidate className="mx-auto max-w-[640px]">
+      <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
+        one last thing
+      </p>
+      <h2 className="mt-4 font-display text-[clamp(1.55rem,2.4vw,1.95rem)] leading-[1.25] tracking-[-0.015em] text-ink">
+        Ready when you are.
+      </h2>
+
+      <label className="mt-8 flex items-start gap-3 text-[14px] leading-[1.7] text-ink/75">
+        <input
+          type="checkbox"
+          checked={consent}
+          onChange={(e) => setConsent(e.target.checked)}
+          className="mt-[5px] h-4 w-4 accent-[#2563FF]"
+        />
+        <span>
+          I understand this note will be read by a person at Trust Tai so they can decide whether a 30-minute conversation makes sense.
+        </span>
+      </label>
+
+      <div className="mt-10 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink"
+        >
+          <ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />
+          <span>Back</span>
+        </button>
+        <button
+          type="submit"
+          disabled={status === "submitting" || !consent}
+          aria-busy={status === "submitting"}
+          className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+        >
+          {status === "submitting" ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              <span>Sending&hellip;</span>
+            </>
+          ) : (
+            <>
+              <span>Send my Roadmap note</span>
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </>
+          )}
+        </button>
+      </div>
+
+      <p className="mt-6 text-center font-mono text-[11px] normal-case tracking-[0.04em] text-ink/50">
+        A real person will read this. Not a sequence.
+      </p>
+
+      {status === "error" && (
+        <div
+          role="alert"
+          className="mt-6 rounded-md border border-[#B91C1C]/30 bg-[#B91C1C]/5 p-4 text-[13px] leading-[1.7] text-ink/80"
+        >
+          <p>
+            That did not send. Your words are still here. Try once more, or email{" "}
+            <a href={`mailto:${CONTACT_EMAIL}`} className="underline decoration-ink/30 underline-offset-2 hover:text-ink">
+              {CONTACT_EMAIL}
+            </a>{" "}
+            directly.
+          </p>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-3 inline-flex items-center gap-2 rounded-full border border-ink/25 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-ink hover:border-ink/60"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+    </form>
   );
 }
 
@@ -1684,26 +1975,56 @@ function UnderlineField({
         aria-invalid={!!error}
         className={`mt-2 w-full border-0 border-b bg-transparent px-0 py-2 text-[15px] text-ink outline-none transition-colors placeholder:text-ink/30 focus:border-royal ${error ? "border-[#B91C1C]" : "border-ink/25"}`}
       />
-      {error && <span className="mt-1.5 block text-[12px] text-[#B91C1C]">{error}</span>}
+      {error && (
+        <span className="mt-1.5 block font-mono text-[11px] normal-case tracking-[0.04em] text-ink/55">
+          {error}
+        </span>
+      )}
     </label>
   );
 }
 
-function IntakeConfirmation({ firstName }: { firstName: string }) {
+/* -------------------- CONFIRMATION -------------------- */
+function IntakeConfirmation() {
+  const steps = [
+    "Within one business day, you get one reply. From a person, by name. Not a sequence.",
+    "We read what you sent and tell you honestly whether a 30-minute conversation makes sense. If it does not, we say so.",
+    "If it does, we find a time that works for you. No pressure to decide on the call.",
+  ];
   return (
     <div className="text-center">
       <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
-        received
+        YOUR MESSAGE ARRIVED
       </p>
       <h2 className="mt-5 font-display text-[clamp(1.9rem,3.2vw,2.5rem)] leading-[1.15] tracking-[-0.018em] text-ink">
-        We have it, {firstName}.<br />
-        <em className="italic font-normal" style={{ color: ROYAL }}>
-          A person reads this next, not a machine.
-        </em>
+        We have it. Now you can{" "}
+        <em className="italic font-normal" style={{ color: ROYAL }}>put it down</em>.
       </h2>
-      <p className="mx-auto mt-8 max-w-[52ch] text-[14.5px] leading-[1.8] text-ink/70">
-        One reply, from a person. If you go quiet, we leave you be. The first conversation has no pitch.
+      <p className="mx-auto mt-6 max-w-[52ch] text-[14.5px] leading-[1.8] text-ink/70">
+        Your note is with a person, not a queue. Here is what happens next.
       </p>
+      <ol className="mx-auto mt-10 max-w-[58ch] space-y-5 text-left">
+        {steps.map((s, i) => (
+          <li key={i} className="flex items-start gap-4">
+            <span
+              className="mt-[2px] inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-[11px]"
+              style={{ borderColor: "rgba(37,99,255,0.35)", color: ROYAL }}
+            >
+              {i + 1}
+            </span>
+            <p className="text-[14.5px] leading-[1.7] text-ink/80">{s}</p>
+          </li>
+        ))}
+      </ol>
+      <p className="mx-auto mt-10 max-w-[52ch] text-[14px] leading-[1.7] text-ink/60">
+        Nothing is needed from you right now. The next move is ours.
+      </p>
+      <a
+        href="/"
+        className="mt-8 inline-flex items-center gap-2 rounded-full border border-ink/25 px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/50 hover:text-ink"
+      >
+        Return to Trust Tai
+      </a>
     </div>
   );
 }
