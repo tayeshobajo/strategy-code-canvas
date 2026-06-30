@@ -652,6 +652,11 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
     }));
   };
 
+  const STEP_REPLY = total;       // 8 → step 09 (reply details)
+  const STEP_REVIEW = total + 1;  // 9
+  const STEP_CONSENT = total + 2; // 10
+  const STEP_SENT = total + 3;    // 11
+
   const advance = () => {
     if (step >= 0 && step < total) {
       const q = QUESTIONS[step];
@@ -663,10 +668,20 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         skipped: !!q.optional && !filled,
         characters: (answers[q.key]?.response ?? "").length,
       });
-      if (step === total - 1) track("intake_review_reached", {});
     }
-    if (step < total - 1) setStep(step + 1);
-    else setStep(total); // to review
+    if (step < STEP_REPLY) setStep(step + 1);
+    else if (step === STEP_REPLY) {
+      const ce = validateContact();
+      setContactErrors(ce);
+      if (Object.keys(ce).length > 0) {
+        track("intake_reply_validation_failed", { fields: Object.keys(ce).join(",") });
+        return;
+      }
+      track("intake_review_reached", {});
+      setStep(STEP_REVIEW);
+    } else if (step === STEP_REVIEW) {
+      setStep(STEP_CONSENT);
+    }
   };
   const back = () => {
     if (step > -1) {
@@ -675,15 +690,15 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
     }
   };
 
-  const validateContact = (state: ContactState = contact, consentState: boolean = consent) => {
-    const e: { name?: string; email?: string; website?: string } = {};
+  const validateContact = (state: ContactState = contact): ContactErrors => {
+    const e: ContactErrors = {};
     if (!state.name.trim()) e.name = "Please add your name.";
     const em = state.email.trim();
     if (!em) e.email = "Please add your email.";
     else if (!EMAIL_RE.test(em)) e.email = "That email does not look right.";
+    if (!state.business.trim()) e.business = "Please add your business name.";
     const site = state.website.trim();
     if (site && !URL_RE.test(site)) e.website = "That URL does not look right.";
-    if (consentState && !site) e.website = "Add a website, or uncheck the box below.";
     return e;
   };
 
@@ -692,7 +707,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
     if (Object.keys(contactErrors).length === 0) return;
     setContactErrors(validateContact());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contact, consent]);
+  }, [contact]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -701,6 +716,12 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
     setContactErrors(ce);
     if (Object.keys(ce).length > 0) {
       track("intake_submit_validation_failed", { fields: Object.keys(ce).join(",") });
+      // Jump back to the reply-details step so the user can fix it.
+      setStep(STEP_REPLY);
+      return;
+    }
+    if (!consent) {
+      track("intake_consent_missing", {});
       return;
     }
 
@@ -710,7 +731,11 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       business: contact.business.trim(),
       website: contact.website.trim(),
       email: contact.email.trim(),
-      authorizes_scan: consent && !!contact.website.trim(),
+      role: contact.role.trim(),
+      timeline: contact.timeline.trim(),
+      decision_makers: contact.decision_makers.trim(),
+      reply_preference: contact.reply_preference,
+      authorizes_scan: false,
       answers: QUESTIONS.map((q) => ({
         key: q.key,
         question: `${q.before}${q.accent}${q.after}`,
@@ -732,7 +757,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       await mod.submitIntake({ data: payload } as any);
       clearDraft();
       setResumeToken(null);
-      setStep(total + 1);
+      setStep(STEP_SENT);
       setStatus("idle");
       track("intake_submit_success", { answers_count: payload.answers.length });
     } catch (err) {
