@@ -544,10 +544,10 @@ function WalkRow({
       className="group row-interactive border-t border-rule focus:outline-none focus-visible:ring-2 focus-visible:ring-royal/40"
     >
       <div
-        className={`${container} grid grid-cols-1 gap-6 py-8 md:grid-cols-[260px_minmax(0,1.1fr)_minmax(0,1.1fr)_150px] md:items-center md:gap-8`}
+        className={`${container} grid grid-cols-1 gap-6 py-8 md:grid-cols-2 md:gap-x-8 md:gap-y-6 lg:grid-cols-[240px_minmax(0,1.15fr)_minmax(0,1.1fr)_140px] lg:items-center lg:gap-8`}
       >
         {/* Featured image */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-ink/5 md:aspect-[5/4]">
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-ink/5 lg:aspect-[5/4]">
           <img
             src={walk.image.url}
             alt=""
@@ -560,7 +560,7 @@ function WalkRow({
         <div className="min-w-0">
           <p className="eyebrow leading-tight">{walk.category}</p>
           <p className="mt-1 text-[12.5px] text-ink/55">{walk.subcategory}</p>
-          <p className="mt-5 font-display text-[32px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[38px]">
+          <p className="mt-5 font-display text-[28px] leading-[1.08] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[32px] lg:text-[30px] xl:text-[34px]">
             {walk.headline.join(" ")}
           </p>
           <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
@@ -572,13 +572,13 @@ function WalkRow({
         </div>
 
         {/* SVG route */}
-        <div className="relative h-[170px] w-full">
+        <div className="relative h-[150px] w-full min-w-0 md:col-span-2 lg:col-span-1 lg:h-[170px]">
           <WalkRoute labels={walk.milestones} rowIndex={index} />
         </div>
 
 
         {/* Right: stats + link */}
-        <div className="flex flex-col justify-between gap-6 md:items-end md:text-right">
+        <div className="flex flex-col justify-between gap-6 md:col-span-2 md:flex-row md:items-center md:justify-between lg:col-span-1 lg:flex-col lg:items-end lg:text-right">
           <div className="font-mono text-[11px] leading-[1.8] tracking-[0.16em] text-ink/65">
             <p className="uppercase">{walk.stat}</p>
             <p className="mt-1 uppercase text-ink/50">{walk.walkingSince}</p>
