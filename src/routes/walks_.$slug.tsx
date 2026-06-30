@@ -427,7 +427,7 @@ export const Route = createFileRoute("/walks_/$slug")({
     const walk = slug ? DETAILS[slug] : undefined;
     const title = walk ? `${SUMMARY[walk.slug]?.category ?? "Walk"} | The Walks | Trust Tai` : "Walk | Trust Tai";
     const description = walk?.subhead ?? "A walk we have taken with a founder-led business.";
-    const url = `https://new.trusttai.com/walks/${walk?.slug ?? ""}`;
+    const url = `https://trusttai.com/walks/${walk?.slug ?? ""}`;
     return {
       meta: [
         { title },
@@ -453,13 +453,13 @@ export const Route = createFileRoute("/walks_/$slug")({
                 name: title,
                 description,
                 url,
-                isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+                isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://trusttai.com" },
               },
               {
                 "@type": "BreadcrumbList",
                 itemListElement: [
-                  { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
-                  { "@type": "ListItem", position: 2, name: "The Walks", item: "https://new.trusttai.com/walks" },
+                  { "@type": "ListItem", position: 1, name: "Home", item: "https://trusttai.com/" },
+                  { "@type": "ListItem", position: 2, name: "The Walks", item: "https://trusttai.com/walks" },
                   { "@type": "ListItem", position: 3, name: title, item: url },
                 ],
               },

@@ -65,8 +65,8 @@ export const Route = createFileRoute("/insights")({
               {
                 "@type": "BreadcrumbList",
                 itemListElement: [
-                  { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
-                  { "@type": "ListItem", position: 2, name: "Insights", item: "https://new.trusttai.com/insights" },
+                  { "@type": "ListItem", position: 1, name: "Home", item: "https://trusttai.com/" },
+                  { "@type": "ListItem", position: 2, name: "Insights", item: "https://trusttai.com/insights" },
                 ],
               },
             ],
@@ -578,7 +578,6 @@ function ArticleList() {
                             {/* Col 3: meta */}
                             <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:pt-[10px] sm:text-right">
                               <p>{a.read.replace(" read", "").toUpperCase()} READ</p>
-                              <p>{a.date.toUpperCase()}</p>
                             </div>
                             {/* Col 4: arrow */}
                             <span className="flex items-start justify-end pt-1 text-royal sm:pt-[10px]" aria-hidden="true">

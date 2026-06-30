@@ -83,10 +83,12 @@ export const Route = createFileRoute("/what-we-build")({
       { name: "description", content: "The milestones inside the map. Eight builds, one connected operating layer, sequenced by the order the business calls for." },
       { property: "og:title", content: "What We Build | Trust Tai" },
       { property: "og:description", content: "Eight milestones. One connected operating layer. Built for founders. Designed to compound." },
-      { property: "og:url", content: "https://new.trusttai.com/what-we-build" },
-      { property: "og:image", content: heroBook.url },
+      { property: "og:url", content: "https://trusttai.com/what-we-build" },
+      { property: "og:image", content: `https://trusttai.com${heroBook.url}` },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: `https://trusttai.com${heroBook.url}` },
     ],
-    links: [{ rel: "canonical", href: "https://new.trusttai.com/what-we-build" }],
+    links: [{ rel: "canonical", href: "https://trusttai.com/what-we-build" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -99,12 +101,12 @@ export const Route = createFileRoute("/what-we-build")({
               name: "What We Build | Trust Tai",
               description:
                 "Eight milestones. One connected operating layer. Built for founders. Designed to compound.",
-              url: "https://new.trusttai.com/what-we-build",
-              isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+              url: "https://trusttai.com/what-we-build",
+              isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://trusttai.com" },
               about: {
                 "@type": "Service",
                 name: "Business Operating Roadmap",
-                provider: { "@type": "Organization", name: "Trust Tai", url: "https://new.trusttai.com" },
+                provider: { "@type": "Organization", name: "Trust Tai", url: "https://trusttai.com" },
                 areaServed: "Global",
                 serviceType: "Strategy and operations consultancy",
               },
@@ -112,8 +114,8 @@ export const Route = createFileRoute("/what-we-build")({
             {
               "@type": "BreadcrumbList",
               itemListElement: [
-                { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
-                { "@type": "ListItem", position: 2, name: "What We Build", item: "https://new.trusttai.com/what-we-build" },
+                { "@type": "ListItem", position: 1, name: "Home", item: "https://trusttai.com/" },
+                { "@type": "ListItem", position: 2, name: "What We Build", item: "https://trusttai.com/what-we-build" },
               ],
             },
           ],
@@ -417,7 +419,7 @@ function SecondaryButton({
 function Hero() {
   return (
     <section className="relative w-full overflow-hidden bg-paper">
-      <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
+      <div className="flex flex-col-reverse lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
         <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
           <div className="relative z-10 max-w-[620px]">
@@ -437,7 +439,7 @@ function Hero() {
                 Build My Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
-              <a href="#" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
+              <a href="/investment" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
                 See the full investment page
               </a>
             </Reveal>
@@ -527,7 +529,7 @@ function MappedPath({ activePhase }: { activePhase: number }) {
           </Reveal>
           <Reveal variant="fade-up" delay={360}>
             <a
-              href="#"
+              href="/build-my-roadmap"
               className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80"
             >
               See how the map gets built

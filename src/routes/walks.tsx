@@ -18,13 +18,13 @@ export const Route = createFileRoute("/walks")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
-        { property: "og:url", content: "https://new.trusttai.com/walks" },
+        { property: "og:url", content: "https://trusttai.com/walks" },
         { property: "og:site_name", content: "Trust Tai" },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
       ],
-      links: [{ rel: "canonical", href: "https://new.trusttai.com/walks" }],
+      links: [{ rel: "canonical", href: "https://trusttai.com/walks" }],
       scripts: [
         {
           type: "application/ld+json",
@@ -36,14 +36,14 @@ export const Route = createFileRoute("/walks")({
                 "@type": "CollectionPage",
                 name: title,
                 description,
-                url: "https://new.trusttai.com/walks",
-                isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+                url: "https://trusttai.com/walks",
+                isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://trusttai.com" },
               },
               {
                 "@type": "BreadcrumbList",
                 itemListElement: [
-                  { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
-                  { "@type": "ListItem", position: 2, name: "Walks", item: "https://new.trusttai.com/walks" },
+                  { "@type": "ListItem", position: 1, name: "Home", item: "https://trusttai.com/" },
+                  { "@type": "ListItem", position: 2, name: "Walks", item: "https://trusttai.com/walks" },
                 ],
               },
             ],
@@ -537,7 +537,7 @@ function WalkRow({
         {/* Lead stat + journey context */}
         <div>
           <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[42px]">
-            {"{{OUTCOME}}"}
+            {walk.headline.join(" ")}
           </p>
           <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
             Verified outcome

@@ -528,13 +528,6 @@ function InsightArticlePage() {
                       By Tai Shobajo
                     </span>
                     <span className="text-ink/30" aria-hidden="true">·</span>
-                    <time
-                      dateTime={insight.publishedAt}
-                      className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/55"
-                    >
-                      {insight.date}
-                    </time>
-                    <span className="text-ink/30" aria-hidden="true">·</span>
                     <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/55">
                       {insight.read}
                     </span>

@@ -16,13 +16,13 @@ export const Route = createFileRoute("/investment")({
       { name: "description", content: "The price of a business that runs without you. Map, build, and the three walks, named before the engagement begins." },
       { property: "og:title", content: "Investment | Trust Tai" },
       { property: "og:description", content: "Every number on one page. The map, the build, the three walks." },
-      { property: "og:url", content: "https://new.trusttai.com/investment" },
-      { property: "og:image", content: heroDesk.url },
+      { property: "og:url", content: "https://trusttai.com/investment" },
+      { property: "og:image", content: `https://trusttai.com${heroDesk.url}` },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: heroDesk.url },
+      { name: "twitter:image", content: `https://trusttai.com${heroDesk.url}` },
     ],
     links: [
-      { rel: "canonical", href: "https://new.trusttai.com/investment" },
+      { rel: "canonical", href: "https://trusttai.com/investment" },
       // Preload only at desktop widths where the hero image actually renders.
       { rel: "preload", as: "image", href: heroDesk.url, fetchpriority: "high", media: "(min-width: 640px)" },
     ],
@@ -38,32 +38,32 @@ export const Route = createFileRoute("/investment")({
               name: "Investment | Trust Tai",
               description:
                 "The price of a business that runs without you. Map, build, and the three walks, named before the engagement begins.",
-              url: "https://new.trusttai.com/investment",
-              isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+              url: "https://trusttai.com/investment",
+              isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://trusttai.com" },
             },
             {
               "@type": "Service",
               name: "The Business Operating Roadmap",
               serviceType: "Strategy and operations consultancy",
-              provider: { "@type": "Organization", name: "Trust Tai", url: "https://new.trusttai.com" },
+              provider: { "@type": "Organization", name: "Trust Tai", url: "https://trusttai.com" },
               areaServed: "Global",
-              url: "https://new.trusttai.com/investment",
+              url: "https://trusttai.com/investment",
               description:
                 "A 24-month operating roadmap and the build that delivers it: Point A diagnosis, Point B definition, Point C horizon, build order, economics, and asset position.",
               offers: [
-                { "@type": "Offer", name: "Foundational Roadmap", description: "The diagnosis and the route to Point B.", price: "10000", priceCurrency: "USD", category: "Roadmap", url: "https://new.trusttai.com/investment#map", availability: "https://schema.org/InStock" },
-                { "@type": "Offer", name: "Standard Roadmap", description: "The full map, every pillar named.", price: "17500", priceCurrency: "USD", category: "Roadmap", url: "https://new.trusttai.com/investment#map", availability: "https://schema.org/InStock" },
-                { "@type": "Offer", name: "Comprehensive Roadmap", description: "Deep modeling for layered operations.", price: "25000", priceCurrency: "USD", category: "Roadmap", url: "https://new.trusttai.com/investment#map", availability: "https://schema.org/InStock" },
-                { "@type": "Offer", name: "Accelerated Pace", description: "Point B in twelve months. Heaviest team on the build.", price: "7500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "7500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://new.trusttai.com/investment", availability: "https://schema.org/InStock" },
-                { "@type": "Offer", name: "Balanced Pace", description: "Point B in eighteen months.", price: "4500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "4500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://new.trusttai.com/investment", availability: "https://schema.org/InStock" },
-                { "@type": "Offer", name: "Steady Pace", description: "Point B in twenty-four months. The walk most founders fund from operations.", price: "2500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "2500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://new.trusttai.com/investment", availability: "https://schema.org/InStock" },
+                { "@type": "Offer", name: "Foundational Roadmap", description: "The diagnosis and the route to Point B.", price: "10000", priceCurrency: "USD", category: "Roadmap", url: "https://trusttai.com/investment#map", availability: "https://schema.org/InStock" },
+                { "@type": "Offer", name: "Standard Roadmap", description: "The full map, every pillar named.", price: "17500", priceCurrency: "USD", category: "Roadmap", url: "https://trusttai.com/investment#map", availability: "https://schema.org/InStock" },
+                { "@type": "Offer", name: "Comprehensive Roadmap", description: "Deep modeling for layered operations.", price: "25000", priceCurrency: "USD", category: "Roadmap", url: "https://trusttai.com/investment#map", availability: "https://schema.org/InStock" },
+                { "@type": "Offer", name: "Accelerated Pace", description: "Point B in twelve months. Heaviest team on the build.", price: "7500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "7500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://trusttai.com/investment", availability: "https://schema.org/InStock" },
+                { "@type": "Offer", name: "Balanced Pace", description: "Point B in eighteen months.", price: "4500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "4500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://trusttai.com/investment", availability: "https://schema.org/InStock" },
+                { "@type": "Offer", name: "Steady Pace", description: "Point B in twenty-four months. The walk most founders fund from operations.", price: "2500", priceCurrency: "USD", priceSpecification: { "@type": "UnitPriceSpecification", price: "2500", priceCurrency: "USD", unitText: "MONTH" }, category: "Build engagement", url: "https://trusttai.com/investment", availability: "https://schema.org/InStock" },
               ],
             },
             {
               "@type": "BreadcrumbList",
               itemListElement: [
-                { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
-                { "@type": "ListItem", position: 2, name: "Investment", item: "https://new.trusttai.com/investment" },
+                { "@type": "ListItem", position: 1, name: "Home", item: "https://trusttai.com/" },
+                { "@type": "ListItem", position: 2, name: "Investment", item: "https://trusttai.com/investment" },
               ],
             },
           ],
@@ -111,7 +111,7 @@ function GhostCTA({ children = "Start with the map" }: { children?: React.ReactN
 function Hero() {
   return (
     <section id="overview" className="relative w-full overflow-hidden bg-paper">
-      <div className="lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
+      <div className="flex flex-col-reverse lg:grid lg:grid-cols-[48fr_52fr] lg:items-stretch">
         <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
           <div className="relative z-10 max-w-[620px]">
@@ -262,7 +262,7 @@ function MapSection() {
             <p>The diagnosis and the 24-month plan in one document. Point A, Point B, Point C, the build order, the economics, and the asset you already hold and have not built. You own it whether we walk together or you carry it to another partner.</p>
             <p>The fee sits inside the range by the scale of the operation. We name your number before the engagement begins, never after.</p>
           </div>
-          <a href="#cta" className="mt-6 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80">
+          <a href="#map" className="mt-6 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80">
             See what's inside the map <ArrowRight className="h-3.5 w-3.5" />
           </a>
         </div>
