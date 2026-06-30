@@ -144,12 +144,20 @@ export type AuditAction =
   | "reopened"
   | "notified_operator";
 
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 export type AuditRow = {
   id: string;
   submission_id: string;
   actor_email: string | null;
   action: AuditAction | string;
-  metadata: Record<string, unknown>;
+  metadata: JsonValue;
   created_at: string;
 };
 
