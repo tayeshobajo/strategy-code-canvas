@@ -23,10 +23,14 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as OpsQueueRouteImport } from './routes/ops/queue'
+import { Route as OpsInsightsRouteImport } from './routes/ops/insights'
+import { Route as OpsHistoryRouteImport } from './routes/ops/history'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
+import { Route as OpsSubmissionsIdRouteImport } from './routes/ops/submissions.$id'
+import { Route as OpsEditorIdRouteImport } from './routes/ops/editor.$id'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -102,6 +106,16 @@ const OpsQueueRoute = OpsQueueRouteImport.update({
   path: '/queue',
   getParentRoute: () => OpsRouteRoute,
 } as any)
+const OpsInsightsRoute = OpsInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => OpsRouteRoute,
+} as any)
+const OpsHistoryRoute = OpsHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => OpsRouteRoute,
+} as any)
 const InsightsSlugRoute = InsightsSlugRouteImport.update({
   id: '/insights_/$slug',
   path: '/insights/$slug',
@@ -121,6 +135,16 @@ const AuthenticatedPortalRoute = AuthenticatedPortalRouteImport.update({
   id: '/portal',
   path: '/portal',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const OpsSubmissionsIdRoute = OpsSubmissionsIdRouteImport.update({
+  id: '/submissions/$id',
+  path: '/submissions/$id',
+  getParentRoute: () => OpsRouteRoute,
+} as any)
+const OpsEditorIdRoute = OpsEditorIdRouteImport.update({
+  id: '/editor/$id',
+  path: '/editor/$id',
+  getParentRoute: () => OpsRouteRoute,
 } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
@@ -166,9 +190,13 @@ export interface FileRoutesByFullPath {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
+  '/ops/history': typeof OpsHistoryRoute
+  '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
+  '/ops/editor/$id': typeof OpsEditorIdRoute
+  '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -189,9 +217,13 @@ export interface FileRoutesByTo {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
+  '/ops/history': typeof OpsHistoryRoute
+  '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops': typeof OpsIndexRoute
+  '/ops/editor/$id': typeof OpsEditorIdRoute
+  '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -215,9 +247,13 @@ export interface FileRoutesById {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights_/$slug': typeof InsightsSlugRoute
+  '/ops/history': typeof OpsHistoryRoute
+  '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
+  '/ops/editor/$id': typeof OpsEditorIdRoute
+  '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -241,9 +277,13 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
+    | '/ops/history'
+    | '/ops/insights'
     | '/ops/queue'
     | '/walks/$slug'
     | '/ops/'
+    | '/ops/editor/$id'
+    | '/ops/submissions/$id'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -264,9 +304,13 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
+    | '/ops/history'
+    | '/ops/insights'
     | '/ops/queue'
     | '/walks/$slug'
     | '/ops'
+    | '/ops/editor/$id'
+    | '/ops/submissions/$id'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -289,9 +333,13 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights_/$slug'
+    | '/ops/history'
+    | '/ops/insights'
     | '/ops/queue'
     | '/walks_/$slug'
     | '/ops/'
+    | '/ops/editor/$id'
+    | '/ops/submissions/$id'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -422,6 +470,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpsQueueRouteImport
       parentRoute: typeof OpsRouteRoute
     }
+    '/ops/insights': {
+      id: '/ops/insights'
+      path: '/insights'
+      fullPath: '/ops/insights'
+      preLoaderRoute: typeof OpsInsightsRouteImport
+      parentRoute: typeof OpsRouteRoute
+    }
+    '/ops/history': {
+      id: '/ops/history'
+      path: '/history'
+      fullPath: '/ops/history'
+      preLoaderRoute: typeof OpsHistoryRouteImport
+      parentRoute: typeof OpsRouteRoute
+    }
     '/insights_/$slug': {
       id: '/insights_/$slug'
       path: '/insights/$slug'
@@ -449,6 +511,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/portal'
       preLoaderRoute: typeof AuthenticatedPortalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/ops/submissions/$id': {
+      id: '/ops/submissions/$id'
+      path: '/submissions/$id'
+      fullPath: '/ops/submissions/$id'
+      preLoaderRoute: typeof OpsSubmissionsIdRouteImport
+      parentRoute: typeof OpsRouteRoute
+    }
+    '/ops/editor/$id': {
+      id: '/ops/editor/$id'
+      path: '/editor/$id'
+      fullPath: '/ops/editor/$id'
+      preLoaderRoute: typeof OpsEditorIdRouteImport
+      parentRoute: typeof OpsRouteRoute
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -500,13 +576,21 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface OpsRouteRouteChildren {
+  OpsHistoryRoute: typeof OpsHistoryRoute
+  OpsInsightsRoute: typeof OpsInsightsRoute
   OpsQueueRoute: typeof OpsQueueRoute
   OpsIndexRoute: typeof OpsIndexRoute
+  OpsEditorIdRoute: typeof OpsEditorIdRoute
+  OpsSubmissionsIdRoute: typeof OpsSubmissionsIdRoute
 }
 
 const OpsRouteRouteChildren: OpsRouteRouteChildren = {
+  OpsHistoryRoute: OpsHistoryRoute,
+  OpsInsightsRoute: OpsInsightsRoute,
   OpsQueueRoute: OpsQueueRoute,
   OpsIndexRoute: OpsIndexRoute,
+  OpsEditorIdRoute: OpsEditorIdRoute,
+  OpsSubmissionsIdRoute: OpsSubmissionsIdRoute,
 }
 
 const OpsRouteRouteWithChildren = OpsRouteRoute._addFileChildren(
