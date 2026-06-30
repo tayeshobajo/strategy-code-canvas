@@ -6,7 +6,7 @@ import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 export type NavItem = { label: string; to: string; hash?: string };
 
 export const NAV: NavItem[] = [
-  { label: "The Roadmap", to: "/" },
+  { label: "The Roadmap", to: "/build-my-roadmap" },
   { label: "What We Build", to: "/what-we-build" },
   { label: "Investment", to: "/investment" },
   { label: "About", to: "/about" },
