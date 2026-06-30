@@ -14,7 +14,7 @@ function getSupabase() {
 }
 
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
-  const supabase = getSupabase();
+  const supabase = getSupabase() as any;
   await supabase.from("orders").upsert(
     {
       stripe_session_id: session.id,
@@ -33,7 +33,6 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     { onConflict: "stripe_session_id" },
   );
 
-  // Notify the inbox via the existing email queue.
   const email = session.customer_details?.email ?? session.customer_email;
   const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
   try {
