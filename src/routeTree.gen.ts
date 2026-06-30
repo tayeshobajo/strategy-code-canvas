@@ -22,6 +22,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
+import { Route as OpsQueueRouteImport } from './routes/ops/queue'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
@@ -96,6 +97,11 @@ const WalksSlugRoute = WalksSlugRouteImport.update({
   path: '/walks/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpsQueueRoute = OpsQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
+  getParentRoute: () => OpsRouteRoute,
+} as any)
 const InsightsSlugRoute = InsightsSlugRouteImport.update({
   id: '/insights_/$slug',
   path: '/insights/$slug',
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
+  '/ops/queue': typeof OpsQueueRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
+  '/ops/queue': typeof OpsQueueRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops': typeof OpsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -207,6 +215,7 @@ export interface FileRoutesById {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights_/$slug': typeof InsightsSlugRoute
+  '/ops/queue': typeof OpsQueueRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -232,6 +241,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
+    | '/ops/queue'
     | '/walks/$slug'
     | '/ops/'
     | '/api/public/hooks/build-roadmap-contact'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
+    | '/ops/queue'
     | '/walks/$slug'
     | '/ops'
     | '/api/public/hooks/build-roadmap-contact'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights_/$slug'
+    | '/ops/queue'
     | '/walks_/$slug'
     | '/ops/'
     | '/api/public/hooks/build-roadmap-contact'
@@ -403,6 +415,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalksSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ops/queue': {
+      id: '/ops/queue'
+      path: '/queue'
+      fullPath: '/ops/queue'
+      preLoaderRoute: typeof OpsQueueRouteImport
+      parentRoute: typeof OpsRouteRoute
+    }
     '/insights_/$slug': {
       id: '/insights_/$slug'
       path: '/insights/$slug'
@@ -481,10 +500,12 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface OpsRouteRouteChildren {
+  OpsQueueRoute: typeof OpsQueueRoute
   OpsIndexRoute: typeof OpsIndexRoute
 }
 
 const OpsRouteRouteChildren: OpsRouteRouteChildren = {
+  OpsQueueRoute: OpsQueueRoute,
   OpsIndexRoute: OpsIndexRoute,
 }
 

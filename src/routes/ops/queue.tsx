@@ -117,7 +117,7 @@ function QueuePage() {
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter")
-                  navigate({ search: (s) => ({ ...s, q: q || undefined }) });
+                  navigate({ search: (s: Record<string, unknown>) => ({ ...s, q: q || undefined }) });
               }}
               placeholder="Search by founder, company, email, or website..."
               className="w-full rounded-md border border-[#e0e0d8] bg-white pl-9 pr-3 py-2 text-sm outline-none focus:border-[#3a4fcf] focus:ring-2 focus:ring-[#3a4fcf]/15"
@@ -126,7 +126,7 @@ function QueuePage() {
           <select
             value={status}
             onChange={(e) =>
-              navigate({ search: (s) => ({ ...s, status: e.target.value || undefined }) })
+              navigate({ search: (s: Record<string, unknown>) => ({ ...s, status: e.target.value || undefined }) })
             }
             className="rounded-md border border-[#e0e0d8] bg-white px-3 py-2 text-sm"
           >
@@ -140,7 +140,7 @@ function QueuePage() {
             type="button"
             onClick={() =>
               navigate({
-                search: (s) => ({ ...s, sort: sort === "oldest" ? "newest" : "oldest" }),
+                search: (s: Record<string, unknown>) => ({ ...s, sort: sort === "oldest" ? "newest" : "oldest" }),
               })
             }
             className="inline-flex items-center gap-1.5 rounded-md border border-[#e0e0d8] bg-white px-3 py-2 text-sm text-[#171c38] hover:bg-[#f9f9f4]"
