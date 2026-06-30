@@ -14,7 +14,7 @@ import {
   Eye,
 } from "lucide-react";
 
-export const Route = createFileRoute("/_ops")({
+export const Route = createFileRoute("/ops")({
   ssr: false,
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
