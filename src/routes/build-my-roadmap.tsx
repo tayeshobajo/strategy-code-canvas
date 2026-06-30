@@ -442,6 +442,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
   const inflightSave = React.useRef<Promise<void> | null>(null);
   React.useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;
+    if (step >= total + 3) return;
     const hasAny =
       Object.values(answers).some((a) => (a?.response ?? "").trim().length > 0) ||
       contact.name.trim() || contact.email.trim() || contact.website.trim() || contact.business.trim();
@@ -487,7 +488,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
     }, 900);
 
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [answers, contact, resumeToken, hydrated]);
+  }, [answers, contact, resumeToken, hydrated, step, total]);
 
   const clearDraft = () => {
     if (typeof window === "undefined") return;
