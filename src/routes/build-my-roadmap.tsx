@@ -1513,7 +1513,7 @@ function QuestionPanel({
                   boxShadow: "0 8px 20px -10px rgba(37,99,255,0.55)",
                 }}
               >
-                use these words
+                Use these words
               </button>
               {isError && (
                 <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/50">
