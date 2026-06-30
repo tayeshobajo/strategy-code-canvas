@@ -935,11 +935,17 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
               <button
                 type="button"
                 onClick={onSaveAndComeBack}
-                className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] transition-colors hover:opacity-80"
+                disabled={savingResume}
+                aria-busy={savingResume}
+                className="group inline-flex items-center gap-2 rounded-full border border-[color:var(--royal,#2563FF)]/25 bg-white/70 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.22em] shadow-[0_1px_0_rgba(37,99,255,0.08)] transition-all hover:border-[color:var(--royal,#2563FF)]/60 hover:bg-white hover:shadow-[0_2px_8px_rgba(37,99,255,0.12)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--royal,#2563FF)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ color: ROYAL }}
               >
-                <Bookmark aria-hidden="true" className="h-3.5 w-3.5" />
-                <span>Save and come back later</span>
+                {savingResume ? (
+                  <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Bookmark aria-hidden="true" className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-px" />
+                )}
+                <span>{savingResume ? "Saving…" : "Save and come back later"}</span>
               </button>
               <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
             </div>
