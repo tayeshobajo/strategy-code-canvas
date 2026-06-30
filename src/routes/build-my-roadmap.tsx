@@ -867,7 +867,6 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
   };
 
 
-  const firstName = contact.name.trim().split(/\s+/)[0] || "there";
   const currentQuestion = step >= 0 && step < total ? QUESTIONS[step] : null;
   const currentAnswerValue = currentQuestion ? answers[currentQuestion.key]?.response ?? "" : "";
   const currentReflection = currentQuestion ? reflections[currentQuestion.key] : undefined;
