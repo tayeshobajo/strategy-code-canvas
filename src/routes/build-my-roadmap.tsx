@@ -1430,6 +1430,9 @@ function QuestionPanel({
       {/* Writing surface — layered shadow, ring focus, refined */}
       <div className="relative mt-8">
         <textarea
+          id={`intake-${q.key}`}
+          name={q.key}
+          aria-label={q.accent}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={() => setTouched(true)}
@@ -2375,7 +2378,7 @@ function CloseSection() {
           </Reveal>
           <Reveal as="div" variant="fade-up" delay={260} className="mt-8">
             <a
-              href="#cta"
+              href="#doors"
               className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(10,15,31,0.45)]"
             >
               Start the conversation
@@ -2642,7 +2645,7 @@ function TwoDoors({
 }) {
 
   return (
-    <section className="bg-paper">
+    <section id="doors" className="scroll-mt-32 bg-paper">
       <div className={`${container} pb-4 pt-2 lg:pb-6`}>
         <div
           className="rounded-2xl border px-6 py-12 lg:px-12 lg:py-16"
