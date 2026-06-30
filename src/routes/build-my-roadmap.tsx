@@ -719,6 +719,9 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
 
   const onSaveAndComeBack = async () => {
     if (typeof window === "undefined") return;
+    if (savingResume) return;
+    setSavingResume(true);
+    setResumeNote(null);
     const email = contact.email.trim();
     let token = resumeToken;
     try {
@@ -758,16 +761,30 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         const mod = await import("@/lib/intake.functions");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await mod.sendResumeLink({ data: { resume_token: token, email, resume_url: resumeUrl, name: contact.name.trim() } } as any);
-        setResumeNote({ kind: "sent", text: `a continue link is on its way to ${email}.` });
+        setResumeNote({ kind: "sent", text: `saved. a continue link is on its way to ${email}.` });
         track("intake_resume_link_sent", { resume_token: token });
       } else {
-        setResumeNote({ kind: "saved", text: "your progress is saved to this link. bookmark it and come back anytime." });
-        track("intake_draft_saved_manual", { resume_token: token });
+        let copied = false;
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(resumeUrl);
+            copied = true;
+          }
+        } catch { /* ignore clipboard failure */ }
+        setResumeNote({
+          kind: "saved",
+          text: copied
+            ? "saved. your private link is copied to the clipboard. paste it somewhere safe, or add your email above to have it sent."
+            : "saved. this page URL is now your private link — bookmark it, or add your email above to have it sent.",
+        });
+        track("intake_draft_saved_manual", { resume_token: token, link_copied: copied });
       }
     } catch (err) {
       console.warn("[intake] save and come back failed", err);
       setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page. try again, or copy this page URL to come back to." });
       track("intake_save_and_come_back_failed", { message: (err as Error)?.message?.slice(0, 200) ?? "" });
+    } finally {
+      setSavingResume(false);
     }
   };
 
