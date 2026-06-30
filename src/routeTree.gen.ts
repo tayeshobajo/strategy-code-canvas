@@ -19,6 +19,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
+import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
 
@@ -72,6 +73,11 @@ const InsightsSlugRoute = InsightsSlugRouteImport.update({
   path: '/insights/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutRoadmapRoute = CheckoutRoadmapRouteImport.update({
+  id: '/checkout/roadmap',
+  path: '/checkout/roadmap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights_/$slug': typeof InsightsSlugRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/checkout/roadmap'
     | '/insights/$slug'
     | '/walks/$slug'
     | '/api/public/hooks/build-roadmap-contact'
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/checkout/roadmap'
     | '/insights/$slug'
     | '/walks/$slug'
     | '/api/public/hooks/build-roadmap-contact'
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/checkout/roadmap'
     | '/insights_/$slug'
     | '/walks_/$slug'
     | '/api/public/hooks/build-roadmap-contact'
@@ -182,6 +194,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WalksRoute: typeof WalksRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
+  CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
   WalksSlugRoute: typeof WalksSlugRoute
   ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -260,6 +273,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InsightsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout/roadmap': {
+      id: '/checkout/roadmap'
+      path: '/checkout/roadmap'
+      fullPath: '/checkout/roadmap'
+      preLoaderRoute: typeof CheckoutRoadmapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -286,6 +306,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WalksRoute: WalksRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
+  CheckoutRoadmapRoute: CheckoutRoadmapRoute,
   InsightsSlugRoute: InsightsSlugRoute,
   WalksSlugRoute: WalksSlugRoute,
   ApiPublicHooksBuildRoadmapContactRoute:
