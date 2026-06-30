@@ -1191,12 +1191,12 @@ function CTABand() {
 
         {/* CTA */}
         <div className="mt-14 flex justify-center">
-          <a
-            href="/build-my-roadmap"
+          <Link
+            to="/build-my-roadmap"
             className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-paper px-7 text-[13.5px] font-semibold text-ink shadow-[0_0_40px_-10px_oklch(0.85_0.18_252/0.55)] transition-transform hover:scale-[1.02] sm:w-auto"
           >
             Build My Roadmap <ArrowRight className="h-4 w-4" />
-          </a>
+          </Link>
         </div>
       </div>
 
