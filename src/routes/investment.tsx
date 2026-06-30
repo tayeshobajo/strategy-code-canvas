@@ -17,9 +17,9 @@ export const Route = createFileRoute("/investment")({
       { property: "og:title", content: "Investment | Trust Tai" },
       { property: "og:description", content: "Every number on one page. The map, the build, the three walks." },
       { property: "og:url", content: "https://trusttai.com/investment" },
-      { property: "og:image", content: heroDesk.url },
+      { property: "og:image", content: `https://trusttai.com${heroDesk.url}` },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: heroDesk.url },
+      { name: "twitter:image", content: `https://trusttai.com${heroDesk.url}` },
     ],
     links: [
       { rel: "canonical", href: "https://trusttai.com/investment" },

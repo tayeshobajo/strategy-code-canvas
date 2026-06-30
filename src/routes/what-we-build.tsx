@@ -84,7 +84,9 @@ export const Route = createFileRoute("/what-we-build")({
       { property: "og:title", content: "What We Build | Trust Tai" },
       { property: "og:description", content: "Eight milestones. One connected operating layer. Built for founders. Designed to compound." },
       { property: "og:url", content: "https://trusttai.com/what-we-build" },
-      { property: "og:image", content: heroBook.url },
+      { property: "og:image", content: `https://trusttai.com${heroBook.url}` },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: `https://trusttai.com${heroBook.url}` },
     ],
     links: [{ rel: "canonical", href: "https://trusttai.com/what-we-build" }],
     scripts: [
