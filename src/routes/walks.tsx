@@ -5,6 +5,12 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { Reveal } from "@/hooks/use-reveal";
 import heroArt from "@/assets/walks-hero-bg.png.asset.json";
+import imgLeadership from "@/assets/walks/leadership-education.jpg.asset.json";
+import imgPrivate from "@/assets/walks/private-milestone.jpg.asset.json";
+import imgFinancial from "@/assets/walks/financial-advisory.jpg.asset.json";
+import imgFounder from "@/assets/walks/founder-led.jpg.asset.json";
+import imgHealth from "@/assets/walks/health-wellness.jpg.asset.json";
+import imgEcom from "@/assets/walks/ecommerce-brand.jpg.asset.json";
 
 export const Route = createFileRoute("/walks")({
   head: () => {
