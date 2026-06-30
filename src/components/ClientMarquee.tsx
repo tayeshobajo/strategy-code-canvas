@@ -69,11 +69,14 @@ export function ClientMarquee() {
                 <img
                   src={logo.src}
                   alt=""
+                  width={220}
+                  height={52}
                   loading="lazy"
                   decoding="async"
                   draggable={false}
-                  className="tt-marquee__logo max-h-full max-w-full object-contain transition-opacity duration-300"
+                  className="tt-marquee__logo h-auto max-h-full w-auto max-w-full object-contain transition-opacity duration-300"
                 />
+
               </li>
             ))}
           </ul>
