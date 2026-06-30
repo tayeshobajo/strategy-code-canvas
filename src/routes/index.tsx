@@ -79,7 +79,7 @@ export const Route = createFileRoute("/")({
           about: { "@type": "Organization", name: "Trust Tai" },
           primaryImageOfPage: {
             "@type": "ImageObject",
-            url: "https://storage.googleapis.com/gpt-engineer-file-uploads/5AF3iZ8RMUTUtcLFr34LH1XEPBM2/social-images/social-1782064559119-image_(6).webp",
+            url: `https://trusttai.com${heroAsset.url}`,
           },
         }),
       },
