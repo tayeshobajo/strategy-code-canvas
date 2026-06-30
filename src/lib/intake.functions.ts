@@ -183,6 +183,10 @@ const SubmitInput = z.object({
   website: z.string().trim().max(500).optional().default(""),
   email: z.string().trim().email().max(255),
   authorizes_scan: z.boolean(),
+  role: z.string().trim().max(200).optional().default(""),
+  timeline: z.string().trim().max(200).optional().default(""),
+  decision_makers: z.string().trim().max(400).optional().default(""),
+  reply_preference: z.string().trim().max(40).optional().default(""),
   answers: z.array(AnswerSchema).min(1).max(20),
   resume_token: z.string().regex(UUID_RE).optional(),
 });
