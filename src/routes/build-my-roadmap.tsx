@@ -319,13 +319,37 @@ type AnswerRecord = { response: string; reflected_offered: string | null };
 type ContactState = { name: string; business: string; website: string; email: string };
 type SubmitStatus = "idle" | "submitting" | "error";
 
+type AnswerRecord = { response: string; reflected_offered: string | null };
+type ContactState = {
+  name: string;
+  business: string;
+  website: string;
+  email: string;
+  role: string;
+  timeline: string;
+  decision_makers: string;
+  reply_preference: "" | "email" | "call" | "either";
+};
+type SubmitStatus = "idle" | "submitting" | "error";
+type ContactErrors = { name?: string; email?: string; business?: string; website?: string };
+
 function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRef: React.RefObject<HTMLDivElement | null>; onExit?: () => void }) {
-  const [step, setStep] = React.useState<number>(-1); // -1 intro, 0..7 questions, 8 review+contact, 9 sent
+  // step semantics:
+  //   -1            intro
+  //    0..7         questions 01..08
+  //    QCOUNT       reply details (step 09)
+  //    QCOUNT + 1   review
+  //    QCOUNT + 2   consent
+  //    QCOUNT + 3   confirmation (sent)
+  const [step, setStep] = React.useState<number>(-1);
   const [answers, setAnswers] = React.useState<Record<string, AnswerRecord>>({});
   const [reflections, setReflections] = React.useState<Record<string, { state: "idle" | "loading" | "ready" | "error"; text: string }>>({});
-  const [contact, setContact] = React.useState<ContactState>({ name: "", business: "", website: "", email: "" });
-  const [consent, setConsent] = React.useState<boolean>(true);
-  const [contactErrors, setContactErrors] = React.useState<{ name?: string; email?: string; website?: string }>({});
+  const [contact, setContact] = React.useState<ContactState>({
+    name: "", business: "", website: "", email: "",
+    role: "", timeline: "", decision_makers: "", reply_preference: "",
+  });
+  const [consent, setConsent] = React.useState<boolean>(false);
+  const [contactErrors, setContactErrors] = React.useState<ContactErrors>({});
   const [status, setStatus] = React.useState<SubmitStatus>("idle");
   const [hydrated, setHydrated] = React.useState(false);
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
