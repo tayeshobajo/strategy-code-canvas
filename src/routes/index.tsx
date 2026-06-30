@@ -1021,13 +1021,13 @@ function Pricing() {
 
         {/* Actions */}
         <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-          <a
-            href="/build-my-roadmap"
+          <Link
+            to="/build-my-roadmap"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
           >
             Build My Roadmap
             <ArrowRight className="h-4 w-4" />
-          </a>
+          </Link>
           <a
             href="/investment"
             className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-royal transition-colors hover:text-ink"
