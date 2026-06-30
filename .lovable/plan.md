@@ -1,108 +1,131 @@
-# Build My Roadmap intake — copy and logic update
+## Phase 2 — Trust Tai roadmap review console
 
-All work scoped to `src/routes/build-my-roadmap.tsx`. No schema changes, no new packages, no server changes. Existing autosave, draft resume, reflection backend, consent, submit, and confirmation plumbing all stay; this rewires copy, step structure, validation, and a few small UI rules on top of them.
+Private operator surface mounted at `/ops`, inside the existing project but with its own layout, its own auth gate, and its own read/write surface on the **dedicated intake Supabase project** (`yjslekqzjfdzakoqbzbw`). The public marketing site and Build My Roadmap intake stay exactly as they are.
 
-## 1. Step model: 9 steps + review + consent + confirmation
+### 1. Access control
 
-Today the intake is 8 questions then a combined review/contact panel. Split that into 9 explicit steps and keep review + consent + confirmation as their own screens after step 9.
+- Single allowlisted operator: `Tai@trust-tai.com` (case-insensitive, stored as a constant in `src/lib/ops/access.ts`).
+- Reuses the existing Lovable Cloud Supabase auth and the existing `/auth` magic-link route.
+- New pathless layout `src/routes/_ops/route.tsx`:
+  - `ssr: false` (Supabase session is in localStorage).
+  - `beforeLoad` calls `supabase.auth.getUser()`. If no user → redirect to `/auth?redirect=/ops/queue`. If user's email is not the allowlisted one → redirect to `/` with a toast.
+  - Renders the internal layout (sidebar + topbar) and `<Outlet />`.
+- All `/ops/*` routes live under this layout. No public link to `/ops` anywhere in the marketing site or footer.
 
-- Steps 1–4 required (textarea questions).
-- Steps 5–8 optional (textarea questions, Skip ↔ Continue toggle as today).
-- Step 9 is a new "Reply details" form step (no reflection).
-- Step 10 = review. Step 11 = consent + submit. Step 12 = confirmation.
-- Step counter displayed as `01 of 09 … 09 of 09` on steps 1–9. Hidden on review/consent/confirmation.
-- Journey path: keep 8 dots for the 8 question stops, plus the existing review marker. Step 9 (reply details) gets its own dot so the path advances all the way to 09 before review. Active-dot + connector-line logic from the existing implementation is reused unchanged.
+### 2. New tables on the intake project
 
-Progress meter on the right keeps counting required-answered, but the denominator becomes 5 (4 required questions + reply details step considered "answered" once all required reply fields validate).
+The intake project is separate from Lovable Cloud, so these are applied once via a one-off setup script (`scripts/intake/001_review_console.sql`) executed against the intake project using its service role key (`INTAKE_SUPABASE_SERVICE_ROLE_KEY`). All tables use service role only — no RLS policies needed because nothing on this project is reached by browser clients.
 
-## 2. Rewrite all step copy verbatim
+- `roadmap_drafts` — editable copy of the artifact:
+  `id, submission_id (fk, unique), review_id (fk), content (jsonb of editable sections: situation_summary, core_constraint, strategic_diagnosis, first_moves, ninety_day_sequence, risks, recommended_engagement, next_step), version int, last_edited_by text, created_at, updated_at`.
+- `review_notes` — append-only internal notes:
+  `id, submission_id (fk), author_email text, body text, created_at`.
+- `review_audit_log` — append-only timeline:
+  `id, submission_id (fk), actor_email text, action text (one of: opened, marked_in_review, note_added, draft_saved, approved, rejected, archived, reopened, notified_operator), metadata jsonb, created_at`.
+- Add columns to `roadmap_intake_reviews`: `reviewer_email text`, `decided_at timestamptz`, `internal_summary text` (short core-signal excerpt for the queue).
+- Indexes: `intake_submissions(created_at desc)`, `roadmap_intake_reviews(status, updated_at desc)`.
 
-Replace the existing question content with the user-provided copy for steps 01–08. Each step renders:
+Existing review status values stay: `needs_review`, `in_review`, `approved`, `rejected`, `archived`. Approval keeps `outbound_blocked = true`.
 
-- Eyebrow: `NN / TITLE` in the existing mono/uppercase/tracking style.
-- Optional badge (steps 05–08 only): the existing `optional` chip.
-- Question text: the question as one block, with the italic accent fragment wrapped in `<em>` for the italic serif treatment already used on reflections.
-- Helper text: small muted line under the question.
-- Large textarea (existing styling, character counter stays).
-- Reflection card behavior unchanged for 01–08; on 05–08 it only appears once the user types past the existing minimum-length threshold.
+### 3. Server functions (new file `src/lib/ops.functions.ts`)
 
-Copy used per step matches the user's spec exactly (Where you are / The weight / Where you need to be / The first move / Why now / What did not hold / What you already have / If it could not fail).
+All gated by a single helper `requireOperator()` that resolves the Supabase user via `requireSupabaseAuth` middleware and 403s if email ≠ allowlist. Every handler loads the intake service-role client (`getIntakeClient()`) and writes through that.
 
-Internal "Why this works" notes are not rendered on the surface.
+- `listSubmissions({ status?, search?, sort?, limit?, offset? })` — joins `intake_submissions` + `roadmap_intake_reviews`, returns paginated list with core_signal excerpt.
+- `getQueueStats()` — counts for `needs_review`, `in_review`, `approved` this week, `archived` (powers the stat cards on /ops/queue).
+- `getSubmission(id)` — submission + review + draft (if any) + notes + audit log.
+- `setReviewStatus({ id, status })` — updates `roadmap_intake_reviews.status`, stamps `reviewer_email`, writes audit entry.
+- `addNote({ submission_id, body })` — inserts into `review_notes`, writes audit.
+- `saveDraft({ submission_id, content })` — upserts `roadmap_drafts`, bumps `version`, writes audit (`draft_saved`).
+- `approveSubmission({ submission_id })` — sets status `approved`, stamps `decided_at`, writes audit, then enqueues an operator-notification email (see §5). Does **not** send to founder.
+- `rejectSubmission({ submission_id, reason })` — status `rejected`, audit.
+- `archiveSubmission({ submission_id })` / `reopenSubmission({ submission_id })` — status flips + audit.
+- `listHistory({ status?, range?, search?, page })` — for /ops/history.
+- `getAnalytics({ range })` — new submissions, review backlog, approval rate, avg time to decision, delivered (=approved) this week, status funnel, top problem keywords from intake answers, submissions over time (daily bucket).
 
-## 3. Step 09 — Reply details
+All return plain DTOs.
 
-New form step replacing the old combined contact panel. No reflection card.
+### 4. Routes & layout
 
-- Eyebrow: `09 / REPLY DETAILS`.
-- Heading: "Where should we send the reply?"
-- Subline: "A few details so a real person can read this in context and respond properly."
-- Fields, in order:
-  - Your name — required.
-  - Email — required, validated quietly with the existing `EMAIL_RE`.
-  - Business name — required.
-  - Website — optional, placeholder `https://`. When non-empty, render the quiet line "You are welcome to look at our site before we talk." beneath the input.
-  - Your role — optional, placeholder `Founder, CEO, Operator, Creative Director...`.
-  - Timeline you are working toward — optional, placeholder `No rush, this quarter, next 90 days, before a launch...`.
-  - Anyone else part of this decision? — optional, placeholder `Co-founder, spouse, partner, leadership team, no one else...`.
-  - Best way to reply — optional segmented control with `Email`, `Schedule a call`, `Either is fine`.
-- Buttons: primary `Review my note` (disabled until name + valid email + business name), secondary `Back`.
-- Validation: quiet inline hint under each missing required field. No red banners.
-- New fields (role / timeline / decision_makers / reply_preference) are kept in component state and included in the autosave + final submit payloads alongside the existing contact fields. Backend already accepts a JSON answers + contact bag, so they ride through as additional contact keys without schema changes.
+```
+src/routes/_ops/route.tsx           layout + auth gate
+src/routes/_ops/ops.tsx             redirect → /ops/queue
+src/routes/_ops/ops.queue.tsx       Review Queue
+src/routes/_ops/ops.submissions.$id.tsx   Detail / Review Workspace
+src/routes/_ops/ops.editor.$id.tsx        Roadmap Editor
+src/routes/_ops/ops.delivery.$id.tsx      Delivery Preview (approval gate)
+src/routes/_ops/ops.history.tsx           History
+src/routes/_ops/ops.insights.tsx          Analytics / Insights
+```
 
-## 4. Review screen
+Each `head()` sets `noindex, nofollow` and a "Trust Tai Console" title; sitemap.xml is unchanged (no /ops entries).
 
-Heading "Review your Roadmap note." with body "Nothing has been sent yet. Read it once, adjust anything that needs adjusting, then send it when it feels true enough."
+Layout (`src/components/ops/OpsShell.tsx`):
+- Left sidebar (dark ink panel `#0b0f1f`, white type, royal accents) with: Queue (with counts), In Review, Approved, Delivery Pending, History, Insights, Settings (placeholder).
+- Top right: signed-in operator email + Sign out.
+- Main content area: ivory background, denser typography, desktop-first (min-width 1100px; below that show a "Best viewed on desktop" notice but still usable).
+- Reuses existing brand tokens (ink, royal, ivory) — no new global palette.
 
-- Render all 8 question answers in step order. Skipped optional questions render the question label and a quiet `Skipped` chip in place of the answer.
-- Render the Step 09 reply details below the answers, grouped under "Reply details", with each filled field shown and empty optional fields hidden.
-- Each section has an "Edit" link that jumps back to that step (reusing the existing `goToStep`).
-- Buttons: primary `Continue` (advances to consent), secondary `Back to questions` (returns to step 9).
+### 5. Approval = notify Tai by email
 
-## 5. Consent + submit
+Uses the **existing Lovable Cloud email queue** (`enqueue_email` RPC, `transactional_emails` queue). New React Email template `src/lib/email-templates/ops-approval-notice.tsx` registered in `src/lib/email-templates/registry.ts`. Triggered server-side from `approveSubmission`, recipient hardcoded to `Tai@trust-tai.com`, contains: founder name, business, email, link back to `/ops/submissions/:id`, final edited roadmap content (rendered, not just JSON). Idempotency key `ops-approval-${submission_id}`. Outbound to the founder stays manual.
 
-New screen between review and confirmation.
+### 6. Page details
 
-- Single checkbox with copy: "I understand this note will be read by a person at Trust Tai so they can decide whether a 30-minute conversation makes sense."
-- Primary button `Send my Roadmap note` (disabled until checkbox is checked; existing submit handler runs unchanged, with the expanded contact payload).
-- Quiet line beneath: "A real person will read this. Not a sequence."
-- Secondary `Back` returns to review.
-- Existing submit error state (retry + preserve answers) is reused as-is.
+**/ops/queue** — Stat cards (Needs review / In review / Approved / Delivered this week from `getQueueStats`) + filters (status, search by founder/company/email/website, sort) + table (founder + email, business + website, submitted, status badge, core-signal excerpt, last updated, Open). Default filter: `needs_review` + `in_review`, sorted oldest first.
 
-The current consent live on the review screen and the "send it" button copy are removed in favor of this dedicated screen.
+**/ops/submissions/:id** — Three columns:
+- Left: founder summary, contact, business snapshot, original intake answers (collapsible accordions per question).
+- Center: rendered roadmap artifact (current draft if exists, else generated artifact) with section anchors.
+- Right: status badge, decision buttons (Mark in review / Approve / Reject / Archive / Open in editor), gap/risk flags (derived from `gap_analysis.missing_context`), internal notes thread with composer, audit timeline.
 
-## 6. Confirmation state
+**/ops/editor/:id** — Three-pane editor: left = source intake answers (read-only, collapsible), center = editable sections (Situation summary, Core constraint, Strategic diagnosis, First moves, 90-day sequence, Risks, Recommended engagement, Next step) rendered as labeled `Textarea`s, right = section nav + version history (from `roadmap_drafts.version` snapshots stored as audit metadata) + "draft quality" checklist (heuristic counts: word count, all sections non-empty, no founder-name placeholder). Autosave with 1.5s debounce → `saveDraft`. Buttons: "Save draft", "Preview delivery" → `/ops/delivery/:id`, "Back to review".
 
-Replace the existing success screen content:
+**/ops/delivery/:id** — Approval gate screen. Recipient card, channel = Email (only enabled option), final roadmap rendered as the founder would see it, "Final checklist" (reflects + the recommendation is specific, etc.), explicit "I have reviewed" checkbox → enables "Approve and notify Tai" button. No founder-facing send.
 
-- Kicker: `YOUR MESSAGE ARRIVED`
-- Headline: "We have it. Now you can put it down." with `put it down` wrapped in `<em>` italic serif.
-- Body: "Your note is with a person, not a queue. Here is what happens next."
-- Three numbered steps using the exact copy provided.
-- Close line: "Nothing is needed from you right now. The next move is ours."
-- Optional button: `Return to Trust Tai` linking to `/`.
+**/ops/history** — Filterable by status/date range/search; right-side detail drawer with timeline + Reopen action.
 
-Existing analytics `track("intake_submitted", …)` fires unchanged.
+**/ops/insights** — Cards (new submissions, review backlog, approval rate, avg time to decision, delivered this week) + line chart (submissions over time, simple SVG or Recharts) + funnel + bottleneck keyword frequencies derived from answers (top 8). Range selector.
 
-## 7. Save / resume + header rules
+### 7. Code structure (so it can be extracted later)
 
-- Footer keeps the `Save and come back later` button with supporting line "We will save as you go. You will get a private link to return." (replace current supporting copy).
-- Top-right of the header shows only the `All changes saved` indicator. Remove any duplicate save link / icon from that row.
-- Existing autosave debounce, manual save toast, and resume-link email flow remain.
+```
+src/lib/ops/
+  access.ts           OPERATOR_EMAILS allowlist + isOperator(email)
+  schema.ts           zod schemas for inputs/outputs
+  intake-types.ts     local types mirroring intake project rows
+src/lib/ops.functions.ts   all createServerFn entrypoints
+src/components/ops/
+  OpsShell.tsx, OpsSidebar.tsx, OpsTopbar.tsx
+  queue/...
+  submission/...
+  editor/...
+  delivery/...
+  history/...
+  insights/...
+src/routes/_ops/...
+scripts/intake/001_review_console.sql   one-off schema applied to intake project
+```
 
-## 8. Tone + surface guards
+No file under `src/components/ops/` or `src/lib/ops/` is imported from any public route. No public-route loader calls any `ops.functions.ts` server fn.
 
-A final pass over the new strings to enforce:
-- Sentence case for headings and labels.
-- No em dashes (use commas or periods).
-- No exclamation points.
-- No "AI" label anywhere on the surface. Reflection helper stays unnamed with the existing "A clearer version, if it helps" lead-in and `Use these words` button. Reflection rules (never auto-overwrite, preserve original, italic serif) are already enforced and stay.
-- No "Spirit First" copy on the surface.
+### 8. Public surface guarantees
 
-## Technical notes
+- `src/routes/build-my-roadmap.tsx`, `src/lib/intake.functions.ts`, `src/integrations/intake/client.server.ts`, `roadmap_intake_reviews.artifact` write path, and the `review_pending` / `needs_review` posture stay unchanged.
+- `outbound_blocked: true` stays in newly created review rows; nothing in /ops flips that.
+- No new route, link, sitemap entry, or nav item is added to the marketing site.
+- The existing `_authenticated/portal` route is untouched — it's the client portal, not this console.
 
-- Single-file edit in `src/routes/build-my-roadmap.tsx`. The existing `STOPS` constant, `IntakeExperience` step machine, `QuestionPanel`, `ReviewAndContact`, and `Confirmation` components are refactored: split `ReviewAndContact` into three components (`ReplyDetailsStep`, `ReviewStep`, `ConsentStep`) and grow the step enum from `0..7 | "review"` to `0..8 | "review" | "consent"`.
-- `JourneyPath` gets a 9th milestone so the line and labels track step 09 the same way they track step 01–08 today; the arc-length table and `lineProgress` math from `.lovable/plan.md` extend by one stop.
-- `intake_drafts` / `intake_submissions` JSON columns absorb the new contact fields (`role`, `timeline`, `decision_makers`, `reply_preference`) without migrations; `saveDraft`, `loadDraft`, and `submitIntake` already pass through the full contact object.
-- Analytics events keep their current names. New step indices flow into the existing `intake_step_view` / `intake_step_complete` payloads automatically.
-- Existing Playwright suite (`tests/visual/build-my-roadmap-intake.spec.ts`) needs label updates (new button text, new eyebrows, new confirmation heading, extra step), but its overall shape — fill required, skip optional, submit, hydrate from `?draft=` — still applies.
+### 9. Out of scope for v1 (noted, not built)
+
+Keyboard shortcuts, "Open next submission" triage button, diff between generated and edited artifact (just version history for now), automated outbound to founder, multi-operator workflow, mobile layout polish.
+
+### 10. Definition of done
+
+- Sign in as `Tai@trust-tai.com` at `/auth`, land on `/ops/queue`, see the real existing submission `b0a26f24…` in `needs_review`.
+- Click into it, mark in review, add a note, open editor, save a draft, return, approve.
+- An approval notice email is enqueued to Tai with the final edited roadmap.
+- History page shows the same submission as `approved` with full audit trail.
+- Insights page shows non-zero counts.
+- Any non-allowlisted account hitting `/ops/*` is bounced to `/`.
+- Public site, Build My Roadmap intake, and existing portal continue to work unchanged.
