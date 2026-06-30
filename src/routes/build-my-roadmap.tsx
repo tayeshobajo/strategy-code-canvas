@@ -395,10 +395,17 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             setAnswers(rebuilt);
             const c = res.contact ?? {};
             setContact((p) => ({
+              ...p,
               name: String(c.name ?? p.name ?? ""),
               business: String(c.business ?? p.business ?? ""),
               website: String(c.website ?? p.website ?? ""),
               email: String(c.email ?? p.email ?? ""),
+              role: String(c.role ?? p.role ?? ""),
+              timeline: String(c.timeline ?? p.timeline ?? ""),
+              decision_makers: String(c.decision_makers ?? p.decision_makers ?? ""),
+              reply_preference: ((["email", "call", "either"] as const).includes(String(c.reply_preference ?? "") as never)
+                ? (String(c.reply_preference) as ContactState["reply_preference"])
+                : p.reply_preference) ,
             }));
             setResumeToken(token);
             // Do NOT advance step here. Begin must remain an explicit user click.
