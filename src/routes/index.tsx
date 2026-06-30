@@ -606,9 +606,9 @@ function Header() {
             </a>
           ))}
         </nav>
-        <a href="/build-my-roadmap" className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-paper transition-transform hover:scale-[1.02]">
+        <Link to="/build-my-roadmap" className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-paper transition-transform hover:scale-[1.02]">
           Build My Roadmap <ArrowRight className="h-3.5 w-3.5" />
-        </a>
+        </Link>
       </div>
     </header>
   );
