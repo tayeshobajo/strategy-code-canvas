@@ -1359,15 +1359,16 @@ function QuestionPanel({
   const isOptional = !!q.optional;
   const hasText = value.trim().length > 0;
   const canAdvance = isOptional || hasText;
-  const isLast = index === total - 1;
-  const primaryLabel = isLast ? "Review" : isOptional && !hasText ? "Skip" : "Continue";
+  // Spec: Continue when there is text, Skip when optional and empty. Never "Review".
+  const primaryLabel = isOptional && !hasText ? "Skip" : "Continue";
   const [touched, setTouched] = React.useState(false);
   // Reset touched as the user moves between steps
   React.useEffect(() => { setTouched(false); }, [q.key]);
   const showRequiredHint = !isOptional && !hasText && touched;
-  // Parse the eyebrow ("01 / Where you are") so we can render the section label.
+  // Parse the eyebrow ("01 / where you are") so we can render the section label.
   const eyebrowRest = q.eyebrow.split(" / ").slice(1);
   const eyebrowTail = eyebrowRest.join(" / ");
+  const counter = `${String(index + 1).padStart(2, "0")} of ${String(TOTAL_STEPS).padStart(2, "0")}`;
 
   const hasMirror = !!reflection?.text;
   const isLoading = reflection?.state === "loading";
