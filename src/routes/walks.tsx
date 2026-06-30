@@ -116,6 +116,7 @@ const WALKS: Walk[] = [
     stat: "04 Milestones",
     walkingSince: "Completed in 3 days",
     image: imgPrivate,
+  },
 
   {
     slug: "financial-advisory-firm",
@@ -136,6 +137,7 @@ const WALKS: Walk[] = [
     stat: "06 Milestones",
     walkingSince: "Walking since 2023",
     image: imgFinancial,
+  },
 
   {
     slug: "founder-led-business",
@@ -149,6 +151,7 @@ const WALKS: Walk[] = [
     stat: "05 Milestones",
     walkingSince: "Active",
     image: imgFounder,
+  },
 
   {
     slug: "health-and-wellness",
@@ -170,6 +173,7 @@ const WALKS: Walk[] = [
     stat: "07 Milestones",
     walkingSince: "Walking since 2023",
     image: imgHealth,
+  },
 
   {
     slug: "e-commerce-brand",
@@ -190,6 +194,7 @@ const WALKS: Walk[] = [
     stat: "06 Milestones",
     walkingSince: "Walking since 2024",
     image: imgEcom,
+  },
 
 ];
 
