@@ -2509,7 +2509,7 @@ function IntakeOverlay({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Leave a Roadmap note"
+      aria-label="Write before we talk"
       className="fixed inset-0 z-[80] flex min-h-screen items-center justify-center overflow-y-auto px-3 py-4"
       style={{
         backgroundColor: "rgba(10,15,31,0.42)",
