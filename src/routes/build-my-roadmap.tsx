@@ -2634,7 +2634,7 @@ function BuildMyRoadmapPage() {
       </main>
       <SiteFooter />
       <IntakeOverlay open={intakeOpen} onClose={closeIntake}>
-        <IntakeExperience open={intakeOpen} intakeRef={intakeRef} onExit={closeIntake} />
+        {intakeOpen ? <IntakeExperience open={intakeOpen} intakeRef={intakeRef} onExit={closeIntake} /> : null}
       </IntakeOverlay>
     </div>
   );
