@@ -618,10 +618,11 @@ function Hero() {
         <div className="relative flex items-center px-6 py-14 pr-6 lg:py-20 lg:pl-10 lg:pr-12 xl:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <div className="hero-texture pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true" />
           <div className="relative z-10 max-w-[620px]">
-            <Reveal immediate variant="rise" delay={60} as="h1" className="font-display text-[3rem] leading-[1.04] tracking-tight text-ink sm:text-[3.5rem]">
+            <Reveal immediate variant="rise" delay={60} as="h1" className="font-display text-[2.125rem] leading-[1.08] tracking-tight text-ink sm:text-[3rem] sm:leading-[1.04] lg:text-[3.5rem]">
               We map the journey from where your business is to{" "}
-              <span className="italic text-royal drift inline-block">where it needs to be.</span>
+              <span className="italic text-royal drift inline">where it needs to be.</span>
             </Reveal>
+
             <span className="hero-hairline mt-5" aria-hidden="true" />
             <Reveal immediate variant="fade-up" delay={260} as="p" className="mt-6 max-w-[30rem] text-[15px] leading-relaxed text-ink/70">
               We map where your business is today, define where it needs to be next, and sequence the digital systems, tools, content, workflows, and milestones that can move it there with clarity.
