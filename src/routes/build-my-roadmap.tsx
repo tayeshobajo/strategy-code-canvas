@@ -1317,11 +1317,11 @@ function IntakeIntro({ onBegin }: { onBegin: () => void }) {
         the intake
       </p>
       <h2 className="mt-5 font-display text-[clamp(1.8rem,3vw,2.3rem)] leading-[1.15] tracking-[-0.018em] text-ink">
-        Eight questions. One at a time.<br />
-        <em className="italic font-normal" style={{ color: ROYAL }}>Write the way you talk.</em>
+        Four questions are enough to begin.<br />
+        <em className="italic font-normal" style={{ color: ROYAL }}>Four more help us see deeper.</em>
       </h2>
       <p className="mx-auto mt-6 max-w-[52ch] text-[14.5px] leading-[1.8] text-ink/70">
-        No forms to wade through. You write, you review, you send. A person reads it next.
+        You write, you review, you send. A person reads it next.
       </p>
       <button
         type="button"
