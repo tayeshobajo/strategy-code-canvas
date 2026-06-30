@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { INSIGHTS } from "@/lib/insights-data";
 
-const BASE_URL = "https://new.trusttai.com";
+const BASE_URL = "https://trusttai.com";
 
 interface SitemapEntry {
   path: string;

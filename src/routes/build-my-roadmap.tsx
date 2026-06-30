@@ -24,13 +24,13 @@ export const Route = createFileRoute("/build-my-roadmap")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
-        { property: "og:url", content: "https://new.trusttai.com/build-my-roadmap" },
+        { property: "og:url", content: "https://trusttai.com/build-my-roadmap" },
         { property: "og:site_name", content: "Trust Tai" },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
       ],
-      links: [{ rel: "canonical", href: "https://new.trusttai.com/build-my-roadmap" }],
+      links: [{ rel: "canonical", href: "https://trusttai.com/build-my-roadmap" }],
       scripts: [
         {
           type: "application/ld+json",
@@ -42,8 +42,8 @@ export const Route = createFileRoute("/build-my-roadmap")({
                 "@type": "ContactPage",
                 name: title,
                 description,
-                url: "https://new.trusttai.com/build-my-roadmap",
-                isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+                url: "https://trusttai.com/build-my-roadmap",
+                isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://trusttai.com" },
                 mainEntity: {
                   "@type": "Organization",
                   name: "Trust Tai",
@@ -58,8 +58,8 @@ export const Route = createFileRoute("/build-my-roadmap")({
               {
                 "@type": "BreadcrumbList",
                 itemListElement: [
-                  { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
-                  { "@type": "ListItem", position: 2, name: "Build My Roadmap", item: "https://new.trusttai.com/build-my-roadmap" },
+                  { "@type": "ListItem", position: 1, name: "Home", item: "https://trusttai.com/" },
+                  { "@type": "ListItem", position: 2, name: "Build My Roadmap", item: "https://trusttai.com/build-my-roadmap" },
                 ],
               },
             ],

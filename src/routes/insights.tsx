@@ -65,8 +65,8 @@ export const Route = createFileRoute("/insights")({
               {
                 "@type": "BreadcrumbList",
                 itemListElement: [
-                  { "@type": "ListItem", position: 1, name: "Home", item: "https://new.trusttai.com/" },
-                  { "@type": "ListItem", position: 2, name: "Insights", item: "https://new.trusttai.com/insights" },
+                  { "@type": "ListItem", position: 1, name: "Home", item: "https://trusttai.com/" },
+                  { "@type": "ListItem", position: 2, name: "Insights", item: "https://trusttai.com/insights" },
                 ],
               },
             ],

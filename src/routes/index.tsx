@@ -61,9 +61,9 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Trust Tai | The Business Operating Roadmap" },
       { property: "og:description", content: "A living plan from Point A to Point C. Built for founders who are done guessing." },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://new.trusttai.com/" },
+      { property: "og:url", content: "https://trusttai.com/" },
     ],
-    links: [{ rel: "canonical", href: "https://new.trusttai.com/" }],
+    links: [{ rel: "canonical", href: "https://trusttai.com/" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -74,8 +74,8 @@ export const Route = createFileRoute("/")({
           name: "Trust Tai | The Business Operating Roadmap",
           description:
             "We map the journey from where your business is today to where it needs to be, and build the first leg toward the position you could own in a decade.",
-          url: "https://new.trusttai.com/",
-          isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://new.trusttai.com" },
+          url: "https://trusttai.com/",
+          isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://trusttai.com" },
           about: { "@type": "Organization", name: "Trust Tai" },
           primaryImageOfPage: {
             "@type": "ImageObject",
