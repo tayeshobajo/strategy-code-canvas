@@ -952,15 +952,22 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
         {/* Journey path */}
         <JourneyPath
           step={step}
-          progress={step >= total ? 1 : progress}
+          progress={step >= STEP_REVIEW ? 1 : progress}
           milestoneStates={milestoneStates}
-          milestoneLabels={QUESTIONS.map((q) => q.eyebrow.split("/").slice(1).join("/").trim() || q.key)}
+          milestoneLabels={[
+            ...QUESTIONS.map((q) => q.eyebrow.split("/").slice(1).join("/").trim() || q.key),
+            "reply details",
+          ]}
           furthestStep={furthestStep}
           onJump={(i) => {
-            track("intake_dot_jump", { to: i });
-            setStep(i);
+            // i is 0..total. Dots 0..total-1 are questions; dot at index total is reply details.
+            const target = i <= total ? i : total;
+            // Only allow jumping to a milestone the user has visited.
+            if (target > Math.max(furthestStep, step)) return;
+            track("intake_dot_jump", { to: target });
+            setStep(target);
           }}
-          atReview={step >= total}
+          atReview={step >= STEP_REVIEW}
         />
 
 
@@ -984,29 +991,45 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             />
           )}
 
-          {step === total && (
-            <ReviewAndContact
-              answers={answers}
+          {step === STEP_REPLY && (
+            <ReplyDetailsStep
               contact={contact}
               setContact={(updater) => {
                 setContact(updater);
                 setSaveState((s) => (s === "error" ? s : "saving"));
               }}
+              errors={contactErrors}
+              onBack={() => setStep(total - 1)}
+              onNext={advance}
+            />
+          )}
+
+          {step === STEP_REVIEW && (
+            <ReviewStep
+              answers={answers}
+              contact={contact}
+              onEdit={(i) => setStep(i)}
+              onEditReply={() => setStep(STEP_REPLY)}
+              onBack={() => setStep(STEP_REPLY)}
+              onNext={() => setStep(STEP_CONSENT)}
+            />
+          )}
+
+          {step === STEP_CONSENT && (
+            <ConsentStep
               consent={consent}
               setConsent={setConsent}
-              contactErrors={contactErrors}
               status={status}
-              onEdit={(i) => setStep(i)}
-              onBack={() => setStep(total - 1)}
+              onBack={() => setStep(STEP_REVIEW)}
               onSubmit={onSubmit}
               onRetry={onRetrySubmit}
             />
           )}
 
-          {step === total + 1 && <IntakeConfirmation firstName={firstName} />}
+          {step === STEP_SENT && <IntakeConfirmation />}
         </div>
 
-        {step >= 0 && step < total && (
+        {step >= 0 && step <= STEP_REPLY && (
           <div className="mx-auto mt-6 max-w-[560px] text-center">
             <div className="flex items-center justify-center gap-4">
               <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
