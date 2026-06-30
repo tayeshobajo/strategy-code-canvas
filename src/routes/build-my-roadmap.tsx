@@ -236,7 +236,8 @@ type IntakeQuestion = {
   before: string;
   accent: string;
   after: string;
-  placeholder: string;
+  helper: string;
+  placeholder?: string;
   optional?: boolean;
 };
 
@@ -245,72 +246,73 @@ const QUESTIONS: IntakeQuestion[] = [
     key: "current_state",
     eyebrow: "01 / where you are",
     before: "Tell us what you have built. ",
-    accent: "What is the business today",
-    after: ", in your words?",
-    placeholder: "Start anywhere. What you do, who you serve, how it runs now.",
+    accent: "What is the business today, in your words",
+    after: "?",
+    helper: "Start anywhere. What do you do, who do you serve, and how does the business run right now?",
+  },
+  {
+    key: "the_weight",
+    eyebrow: "02 / the weight",
+    before: "What feels heavier than it should? ",
+    accent: "What keeps showing up no matter how many times you work around it",
+    after: "?",
+    helper: "This could be a system, a decision, a bottleneck, a team issue, a client experience, or something you keep carrying yourself.",
+  },
+  {
+    key: "point_b",
+    eyebrow: "03 / where you need to be",
+    before: "Where do you need the business to be in 24 months? ",
+    accent: "What would be different if it finally worked the way it should",
+    after: "?",
+    helper: "Think in outcomes. Time, clients, team, delivery, money, freedom, quality, or calm.",
+  },
+  {
+    key: "practical",
+    eyebrow: "04 / the first move",
+    before: "What would need to change first? ",
+    accent: "What is the move you already suspect matters most",
+    after: "?",
+    helper: "You do not need the full answer. Name the place your attention keeps returning to.",
   },
   {
     key: "why_now",
     optional: true,
-    eyebrow: "02 / why now",
-    before: "What brought you here. ",
-    accent: "What were you hoping to put on paper",
+    eyebrow: "05 / why now",
+    before: "What brought you here now? ",
+    accent: "What made today the day to put this on paper",
     after: "?",
-    placeholder: "The thing that made today the day you started this.",
-  },
-  {
-    key: "the_weight",
-    eyebrow: "03 / the weight",
-    before: "Where does the business still run through you? ",
-    accent: "What moves only when you touch it",
-    after: "?",
-    placeholder: "The decisions, the approvals, the work that waits for you.",
+    helper: "A moment, a frustration, a new opportunity, a deadline, or a quiet feeling that something needs to change.",
   },
   {
     key: "what_didnt_hold",
     optional: true,
-    eyebrow: "04 / what did not hold",
-    before: "What have you tried before that did not hold? ",
-    accent: "What would make this time different",
+    eyebrow: "06 / what did not hold",
+    before: "What have you already tried? ",
+    accent: "What looked like it would fix things, but did not hold",
     after: "?",
-    placeholder: "Agencies, hires, tools. What happened, and what you took from it.",
+    helper: "Websites, tools, hires, automations, agencies, consultants, internal systems, or your own workarounds.",
   },
   {
     key: "unbuilt_asset",
     optional: true,
-    eyebrow: "05 / what you already have",
-    before: "What does the business already own that you have not built on yet? ",
-    accent: "A relationship base, a body of data, a credential, a position",
-    after: " you already sit in.",
-    placeholder: "Something you sit on top of that a competitor could not copy.",
-  },
-  {
-    key: "point_b",
-    eyebrow: "06 / where you need to be",
-    before: "Picture the business 24 months out, running the way it should. ",
-    accent: "What is true then that is not true now",
-    after: "?",
-    placeholder: "What you can see, what you can measure, what you stop carrying.",
+    eyebrow: "07 / what you already have",
+    before: "",
+    accent: "What does the business already have that you have not fully built on",
+    after: "? A relationship base, a body of data, a credential you could issue, a position you already hold.",
+    helper: "Something already true about the business that could become far more than it is today. The Roadmap builds from what is real, it does not erase it.",
   },
   {
     key: "point_c",
     optional: true,
-    eyebrow: "07 / if it could not fail",
-    before: "If you knew it could not fail, ",
-    accent: "what would you build",
-    after: "? Where is the energy when you think about this business?",
-    placeholder: "The version you would chase if fear was not in the room.",
-  },
-  {
-    key: "practical",
-    eyebrow: "08 / the practical",
-    before: "Last one. ",
-    accent: "Who else is part of this decision, and what timeline are you working toward",
+    eyebrow: "08 / if it could not fail",
+    before: "If this could not fail, what would you finally build? ",
+    accent: "What would you stop postponing",
     after: "?",
-    placeholder: "Names, roles, and any date that matters.",
+    helper: "Say the version you usually edit down.",
   },
 ];
 
+const TOTAL_STEPS = 9; // 8 questions + 1 reply-details step (used for the 0N of 09 counter)
 const REQUIRED_KEYS = QUESTIONS.filter((q) => !q.optional).map((q) => q.key);
 
 type AnswerRecord = { response: string; reflected_offered: string | null };
