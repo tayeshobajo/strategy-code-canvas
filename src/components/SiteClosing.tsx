@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { SiteFooter } from "@/components/SiteFooter";
 
 const NAVY = "#0A0F1F";
