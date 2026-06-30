@@ -82,25 +82,26 @@ function Hero() {
     <section className="relative w-full overflow-hidden bg-white">
       <div className={`${container} flex flex-col-reverse items-center gap-10 pt-[140px] pb-10 lg:grid lg:grid-cols-[1.05fr_1fr] lg:pt-[160px] lg:pb-12`}>
         <div>
-          <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.28em]" >
+          <Reveal as="p" immediate variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.28em]" >
             <span style={{ color: ROYAL }}>Build My Roadmap</span>
           </Reveal>
           <Reveal
             as="h1"
+            immediate
             variant="rise"
-            delay={120}
+            delay={60}
             className="mt-5 font-display text-[clamp(2.4rem,5vw,3.6rem)] leading-[1.06] tracking-[-0.02em] text-ink"
           >
             Let&rsquo;s see where your<br />business needs to go.
           </Reveal>
-          <Reveal as="p" variant="fade-up" delay={240} className="mt-6 max-w-[34rem] text-[15px] leading-[1.75] text-ink/70">
+          <Reveal as="p" immediate variant="fade-up" delay={120} className="mt-6 max-w-[34rem] text-[15px] leading-[1.75] text-ink/70">
             This is a 30-minute conversation, not a pitch. We listen first. You leave with a clearer picture of your business whether we walk together or not.
           </Reveal>
-          <Reveal as="p" variant="fade-up" delay={320} className="mt-4 max-w-[34rem] text-[15px] leading-[1.75] text-ink/70">
+          <Reveal as="p" immediate variant="fade-up" delay={160} className="mt-4 max-w-[34rem] text-[15px] leading-[1.75] text-ink/70">
             If we are not the right partner, we will tell you, and point you to who is.
           </Reveal>
         </div>
-        <Reveal as="div" variant="fade-up" delay={200} className="relative">
+        <Reveal as="div" immediate variant="fade-up" delay={80} className="relative">
           <EngravedWorld />
         </Reveal>
       </div>
@@ -116,9 +117,14 @@ function EngravedWorld() {
       aria-hidden="true"
       className="block w-full h-auto select-none"
       draggable={false}
+      loading="eager"
+      decoding="async"
+      // @ts-expect-error fetchpriority is a valid HTML attribute
+      fetchpriority="high"
     />
   );
 }
+
 
 
 /* -------------------- SECTION 2 - Lead-in line -------------------- */

@@ -62,7 +62,7 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
           <div className="md:px-8">
             <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Connect</p>
             <ul className="mt-4 space-y-2 text-[13px] text-white/70">
-              <li>Murfreesboro, Tennessee</li>
+              <li>2615 Medical Center Pkwy<br />Murfreesboro, TN 37129</li>
               <li>
                 <a href="mailto:hello@trusttai.com" className="transition-colors hover:text-white">
                   hello@trusttai.com
