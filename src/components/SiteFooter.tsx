@@ -2,6 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { NAV } from "@/components/SiteHeader";
 import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 
+const NAVY = "#0A0F1F";
+const container = "mx-auto max-w-[1240px] px-6 sm:px-8 lg:px-10";
+
+
 
 /* Faint topographic texture for footer band */
 function FooterContour() {
