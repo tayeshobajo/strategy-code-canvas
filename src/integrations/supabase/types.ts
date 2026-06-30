@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_access: {
+        Row: {
+          created_at: string | null
+          email: string
+          granted_at: string
+          id: string
+          metadata: Json | null
+          revoked_at: string | null
+          source: string
+          stripe_session_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          granted_at?: string
+          id?: string
+          metadata?: Json | null
+          revoked_at?: string | null
+          source?: string
+          stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          granted_at?: string
+          id?: string
+          metadata?: Json | null
+          revoked_at?: string | null
+          source?: string
+          stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -209,6 +251,120 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_messages: {
+        Row: {
+          body: string
+          client_email: string
+          created_at: string
+          id: string
+          sender: string
+        }
+        Insert: {
+          body: string
+          client_email: string
+          created_at?: string
+          id?: string
+          sender: string
+        }
+        Update: {
+          body?: string
+          client_email?: string
+          created_at?: string
+          id?: string
+          sender?: string
+        }
+        Relationships: []
+      }
+      roadmap_documents: {
+        Row: {
+          body_md: string | null
+          client_email: string
+          created_at: string | null
+          file_url: string | null
+          id: string
+          published_at: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          body_md?: string | null
+          client_email: string
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          published_at?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          body_md?: string | null
+          client_email?: string
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          published_at?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          customer_email: string | null
+          environment: string
+          id: string
+          metadata: Json | null
+          pause_collection: string | null
+          price_id: string
+          product_id: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          customer_email?: string | null
+          environment?: string
+          id?: string
+          metadata?: Json | null
+          pause_collection?: string | null
+          price_id: string
+          product_id: string
+          status?: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          customer_email?: string | null
+          environment?: string
+          id?: string
+          metadata?: Json | null
+          pause_collection?: string | null
+          price_id?: string
+          product_id?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -246,6 +402,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      has_client_access: { Args: { _email: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
