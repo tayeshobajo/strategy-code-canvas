@@ -2723,34 +2723,21 @@ function TwoDoors({
                   <div className="mx-auto mt-2 flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: "rgba(37,99,255,0.08)" }}>
                     <PencilGlyph />
                   </div>
-                  <h3 className="mt-5 font-display text-[1.2rem] text-ink">Or write it first.</h3>
+                  <h3 className="mt-5 font-display text-[1.2rem] text-ink">Write before we talk.</h3>
                   <p className="mt-3 text-[13.5px] leading-[1.7] text-ink/70">
-                    Answer a few questions in your<br />own words. You can keep it rough.<br />A person will read it.
+                    Answer four questions in your own words. Four more if you want to go deeper. You can keep it rough. We read it with care.
                   </p>
-                  <ul className="mt-6 space-y-2.5 text-left">
-                    {[
-                      "Four questions are enough to begin. Four more help us see deeper.",
-                      "Keep it rough, we read with care",
-                      "Save and come back anytime",
-                    ].map((t) => (
-                      <li key={t} className="flex items-start gap-2.5 text-[13px] leading-[1.6] text-ink/75">
-                        <span className="mt-[5px] shrink-0"><CheckMark small /></span>
-                        <span>{t}</span>
-                      </li>
-                    ))}
-                  </ul>
                   <button
                     type="button"
                     onClick={(e) => onOpenWriteDoor(e.currentTarget)}
-
                     className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-[13px] font-semibold transition-all duration-300 ease-out hover:-translate-y-[1px]"
                     style={{ borderColor: ROYAL, color: ROYAL }}
                   >
-                    Leave a Roadmap note
+                    Start writing
                     <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
                   </button>
                   <p className="mt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
-                    We will read it with care
+                    Save and come back anytime.
                   </p>
                 </div>
               </div>
