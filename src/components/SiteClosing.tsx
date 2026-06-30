@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { SiteFooter } from "@/components/SiteFooter";
 
 const NAVY = "#0A0F1F";
@@ -37,13 +38,13 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
           <RouteAnimation />
 
           <div className="mt-2 flex flex-col items-center gap-4">
-            <a
-              href="/build-my-roadmap"
+            <Link
+              to="/build-my-roadmap"
               className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 text-[13.5px] font-semibold text-[#0A0F1F] transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.4)]"
             >
               Build My Roadmap
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
-            </a>
+            </Link>
             <p className="mx-auto max-w-[56ch] text-center text-[12px] leading-[1.75] text-white/50">
               A 30-minute conversation. If the timing is right, we should talk. If it is not, the work is waiting when it is.
             </p>

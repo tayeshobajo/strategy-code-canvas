@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   Target,
@@ -606,9 +606,9 @@ function Header() {
             </a>
           ))}
         </nav>
-        <a href="/build-my-roadmap" className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-paper transition-transform hover:scale-[1.02]">
+        <Link to="/build-my-roadmap" className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-paper transition-transform hover:scale-[1.02]">
           Build My Roadmap <ArrowRight className="h-3.5 w-3.5" />
-        </a>
+        </Link>
       </div>
     </header>
   );
@@ -631,10 +631,10 @@ function Hero() {
               We map where your business is today, define where it needs to be next, and sequence the digital systems, tools, content, workflows, and milestones that can move it there with clarity.
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <a href="/build-my-roadmap" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
+              <Link to="/build-my-roadmap" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
                 Build My Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </a>
+              </Link>
               <a href="#pricing" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
                 See what it costs
               </a>
@@ -1021,13 +1021,13 @@ function Pricing() {
 
         {/* Actions */}
         <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-          <a
-            href="/build-my-roadmap"
+          <Link
+            to="/build-my-roadmap"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
           >
             Build My Roadmap
             <ArrowRight className="h-4 w-4" />
-          </a>
+          </Link>
           <a
             href="/investment"
             className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-royal transition-colors hover:text-ink"
@@ -1191,12 +1191,12 @@ function CTABand() {
 
         {/* CTA */}
         <div className="mt-14 flex justify-center">
-          <a
-            href="/build-my-roadmap"
+          <Link
+            to="/build-my-roadmap"
             className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-paper px-7 text-[13.5px] font-semibold text-ink shadow-[0_0_40px_-10px_oklch(0.85_0.18_252/0.55)] transition-transform hover:scale-[1.02] sm:w-auto"
           >
             Build My Roadmap <ArrowRight className="h-4 w-4" />
-          </a>
+          </Link>
         </div>
       </div>
 
