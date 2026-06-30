@@ -62,6 +62,9 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "A living plan from Point A to Point C. Built for founders who are done guessing." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://trusttai.com/" },
+      { property: "og:image", content: `https://trusttai.com${heroAsset.url}` },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: `https://trusttai.com${heroAsset.url}` },
     ],
     links: [{ rel: "canonical", href: "https://trusttai.com/" }],
     scripts: [
