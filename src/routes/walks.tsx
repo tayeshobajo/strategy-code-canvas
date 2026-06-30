@@ -117,7 +117,7 @@ const WALKS: Walk[] = [
     walkingSince: "Completed in 3 days",
     image: imgPrivate,
   },
-
+
   {
     slug: "financial-advisory-firm",
     bucket: "Operating Systems",
@@ -138,7 +138,7 @@ const WALKS: Walk[] = [
     walkingSince: "Walking since 2023",
     image: imgFinancial,
   },
-
+
   {
     slug: "founder-led-business",
     bucket: "Operating Systems",
@@ -152,7 +152,7 @@ const WALKS: Walk[] = [
     walkingSince: "Active",
     image: imgFounder,
   },
-
+
   {
     slug: "health-and-wellness",
     bucket: "Long Walks",
@@ -174,7 +174,7 @@ const WALKS: Walk[] = [
     walkingSince: "Walking since 2023",
     image: imgHealth,
   },
-
+
   {
     slug: "e-commerce-brand",
     bucket: "Growth Engines",
@@ -195,7 +195,7 @@ const WALKS: Walk[] = [
     walkingSince: "Walking since 2024",
     image: imgEcom,
   },
-
+
 ];
 
 const FILTERS = ["All", "Foundations", "Growth Engines", "Operating Systems", "Long Walks"] as const;
