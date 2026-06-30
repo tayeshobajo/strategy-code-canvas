@@ -1405,7 +1405,8 @@ function QuestionPanel({
       <div className="flex items-center justify-center gap-3">
         <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
         <p className="font-mono text-[10.5px] uppercase tracking-[0.36em] text-ink/60">
-          {eyebrowTail && <span>{eyebrowTail}</span>}
+          <span className="text-ink/40">{counter}</span>
+          {eyebrowTail && <span className="ml-3">· {eyebrowTail}</span>}
           {isOptional && (
             <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/55">optional</span>
           )}
@@ -1419,6 +1420,12 @@ function QuestionPanel({
         <em className="italic font-normal" style={{ color: ROYAL }}>{q.accent}</em>
         {q.after}
       </h2>
+
+      {q.helper && (
+        <p className="mx-auto mt-4 max-w-[60ch] text-center text-[14px] leading-[1.7] text-ink/55">
+          {q.helper}
+        </p>
+      )}
 
       {/* Writing surface — layered shadow, ring focus, refined */}
       <div className="relative mt-8">
