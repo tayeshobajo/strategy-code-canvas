@@ -223,7 +223,8 @@ const SubmitInput = z.object({
 export const submitIntake = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => SubmitInput.parse(input))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getIntakeClient } = await import("@/integrations/intake/client.server");
+    const intake = getIntakeClient();
     const contactExtras = {
       role: data.role || null,
       timeline: data.timeline || null,
@@ -253,7 +254,7 @@ export const submitIntake = createServerFn({ method: "POST" })
       },
       buildRoadmapReviewArtifactAnswer(artifact),
     ];
-    const { data: inserted, error } = await supabaseAdmin
+    const { data: inserted, error } = await intake
       .from("intake_submissions")
       .insert({
         source: "website/build-my-roadmap",
@@ -266,13 +267,13 @@ export const submitIntake = createServerFn({ method: "POST" })
         status: "review_pending",
       })
       .select("id")
-      .single();
+      .single<{ id: string }>();
     if (error || !inserted) {
       console.error("[submit-intake] insert failed", error);
       throw new Error("Could not save submission");
     }
 
-    const { data: review, error: reviewErr } = await supabaseAdmin
+    const { data: review, error: reviewErr } = await intake
       .from("roadmap_intake_reviews")
       .insert({
         submission_id: inserted.id,
@@ -282,7 +283,7 @@ export const submitIntake = createServerFn({ method: "POST" })
         outbound_blocked: true,
       })
       .select("id")
-      .single();
+      .single<{ id: string }>();
     if (reviewErr || !review) {
       console.warn("[submit-intake] review queue insert failed; artifact stored on intake", {
         submission_id: inserted.id,
@@ -291,6 +292,7 @@ export const submitIntake = createServerFn({ method: "POST" })
     }
 
     if (data.resume_token) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { error: delErr } = await (
         supabaseAdmin.from("intake_drafts") as unknown as {
           delete: () => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
