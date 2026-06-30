@@ -315,9 +315,6 @@ const QUESTIONS: IntakeQuestion[] = [
 const TOTAL_STEPS = 9; // 8 questions + 1 reply-details step (used for the 0N of 09 counter)
 const REQUIRED_KEYS = QUESTIONS.filter((q) => !q.optional).map((q) => q.key);
 
-type AnswerRecord = { response: string; reflected_offered: string | null };
-type ContactState = { name: string; business: string; website: string; email: string };
-type SubmitStatus = "idle" | "submitting" | "error";
 
 type AnswerRecord = { response: string; reflected_offered: string | null };
 type ContactState = {
