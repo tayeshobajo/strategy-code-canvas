@@ -439,7 +439,7 @@ function Hero() {
                 Build My Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
-              <a href="#" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
+              <a href="/investment" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
                 See the full investment page
               </a>
             </Reveal>
@@ -529,7 +529,7 @@ function MappedPath({ activePhase }: { activePhase: number }) {
           </Reveal>
           <Reveal variant="fade-up" delay={360}>
             <a
-              href="#"
+              href="/build-my-roadmap"
               className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80"
             >
               See how the map gets built

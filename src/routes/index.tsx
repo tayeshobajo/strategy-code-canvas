@@ -1026,7 +1026,7 @@ function Pricing() {
             <ArrowRight className="h-4 w-4" />
           </a>
           <a
-            href="#cta"
+            href="/investment"
             className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-royal transition-colors hover:text-ink"
           >
             See the full Investment page <ArrowRight className="h-3.5 w-3.5" />

@@ -262,7 +262,7 @@ function MapSection() {
             <p>The diagnosis and the 24-month plan in one document. Point A, Point B, Point C, the build order, the economics, and the asset you already hold and have not built. You own it whether we walk together or you carry it to another partner.</p>
             <p>The fee sits inside the range by the scale of the operation. We name your number before the engagement begins, never after.</p>
           </div>
-          <a href="#cta" className="mt-6 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80">
+          <a href="#map" className="mt-6 inline-flex items-center gap-2 text-[13px] font-medium text-royal hover:text-royal/80">
             See what's inside the map <ArrowRight className="h-3.5 w-3.5" />
           </a>
         </div>
