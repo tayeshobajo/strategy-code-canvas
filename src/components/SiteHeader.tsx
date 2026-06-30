@@ -67,14 +67,14 @@ export function SiteHeader() {
             })}
           </nav>
           <div className="flex shrink-0 items-center gap-2">
-            <a
-              href="/build-my-roadmap"
+            <Link
+              to="/build-my-roadmap"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-3 py-2 text-[12px] font-medium text-paper transition-transform hover:scale-[1.02] sm:gap-2 sm:px-4 sm:text-[12.5px]"
             >
               <span className="sm:hidden">Build Roadmap</span>
               <span className="hidden sm:inline">Build My Roadmap</span>
               <ArrowRight className="h-3.5 w-3.5" />
-            </a>
+            </Link>
             <button
               type="button"
               aria-label={open ? "Close menu" : "Open menu"}
