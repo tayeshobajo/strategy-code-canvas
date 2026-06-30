@@ -88,8 +88,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Trust Tai" },
       { name: "twitter:description", content: "We map the journey from where your business is to where it needs to be." },
-      { property: "og:image", content: "https://trusttai.com/og-default.jpg" },
-      { name: "twitter:image", content: "https://trusttai.com/og-default.jpg" },
       { name: "google-site-verification", content: "_TaUWsl25k5RZVRt2KKgPzA2OhJM2rWz4MrBDAu33s8" },
 
     ],
