@@ -537,7 +537,7 @@ function WalkRow({
         {/* Lead stat + journey context */}
         <div>
           <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[42px]">
-            {"{{OUTCOME}}"}
+            {walk.outcome}
           </p>
           <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
             Verified outcome
