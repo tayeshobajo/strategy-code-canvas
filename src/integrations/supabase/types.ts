@@ -365,47 +365,6 @@ export type Database = {
         }
         Relationships: []
       }
-      roadmap_intake_reviews: {
-        Row: {
-          approval_required: boolean
-          artifact: Json
-          created_at: string
-          id: string
-          outbound_blocked: boolean
-          status: string
-          submission_id: string
-          updated_at: string
-        }
-        Insert: {
-          approval_required?: boolean
-          artifact?: Json
-          created_at?: string
-          id?: string
-          outbound_blocked?: boolean
-          status?: string
-          submission_id: string
-          updated_at?: string
-        }
-        Update: {
-          approval_required?: boolean
-          artifact?: Json
-          created_at?: string
-          id?: string
-          outbound_blocked?: boolean
-          status?: string
-          submission_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "roadmap_intake_reviews_submission_id_fkey"
-            columns: ["submission_id"]
-            isOneToOne: true
-            referencedRelation: "intake_submissions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       suppressed_emails: {
         Row: {
           created_at: string
