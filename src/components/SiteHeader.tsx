@@ -31,6 +31,7 @@ export function SiteHeader() {
   }, [open]);
 
   const isActive = (n: NavItem) => {
+    if (n.to === "/build-my-roadmap") return pathname === "/build-my-roadmap";
     if (n.to === "/what-we-build") return pathname === "/what-we-build";
     if (n.to === "/investment") return pathname === "/investment";
     if (n.to === "/about") return pathname === "/about";
