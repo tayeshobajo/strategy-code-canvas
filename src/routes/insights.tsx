@@ -578,7 +578,6 @@ function ArticleList() {
                             {/* Col 3: meta */}
                             <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:pt-[10px] sm:text-right">
                               <p>{a.read.replace(" read", "").toUpperCase()} READ</p>
-                              <p>{a.date.toUpperCase()}</p>
                             </div>
                             {/* Col 4: arrow */}
                             <span className="flex items-start justify-end pt-1 text-royal sm:pt-[10px]" aria-hidden="true">
