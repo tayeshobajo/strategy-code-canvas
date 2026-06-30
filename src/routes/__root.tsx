@@ -81,17 +81,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Trust Tai" },
       { name: "description", content: "We map the journey from where your business is to where it needs to be." },
-      { name: "author", content: "Lovable" },
+      { name: "author", content: "Trust Tai" },
       { property: "og:title", content: "Trust Tai" },
       { property: "og:description", content: "We map the journey from where your business is to where it needs to be." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Trust Tai" },
       { name: "twitter:description", content: "We map the journey from where your business is to where it needs to be." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/5AF3iZ8RMUTUtcLFr34LH1XEPBM2/social-images/social-1782064559119-image_(6).webp" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/5AF3iZ8RMUTUtcLFr34LH1XEPBM2/social-images/social-1782064559119-image_(6).webp" },
       { name: "google-site-verification", content: "_TaUWsl25k5RZVRt2KKgPzA2OhJM2rWz4MrBDAu33s8" },
+
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -118,7 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
               logo: "https://new.trusttai.com/favicon.ico",
               description:
                 "Consultancy + AI agency that maps the journey from where your business is to where it needs to be.",
-              founder: { "@type": "Person", name: "Tai Eshobajo" },
+              founder: { "@type": "Person", name: "Tai Shobajo" },
               contactPoint: {
                 "@type": "ContactPoint",
                 contactType: "customer support",

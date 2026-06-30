@@ -1,18 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { Linkedin, Instagram } from "lucide-react";
 import { NAV } from "@/components/SiteHeader";
 import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 
 const NAVY = "#0A0F1F";
 const container = "mx-auto max-w-[1240px] px-6 sm:px-8 lg:px-10";
 
-function XIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
-      <path d="M18.244 2H21.5l-7.5 8.57L23 22h-6.844l-5.36-6.99L4.6 22H1.34l8.02-9.165L1 2h7.02l4.84 6.39L18.244 2Zm-1.2 18h1.9L7.04 4H5.05l11.994 16Z" />
-    </svg>
-  );
-}
+
 
 /* Faint topographic texture for footer band */
 function FooterContour() {
@@ -75,36 +68,25 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
                   hello@trusttai.com
                 </a>
               </li>
-              <li>
-                <a href="#" target="_blank" rel="noreferrer" className="transition-colors hover:text-white">
-                  LinkedIn
-                </a>
-              </li>
             </ul>
           </div>
           <div className="md:pl-8">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Follow</p>
-            <div className="mt-4 flex items-center gap-3">
-              <a href="#" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white">
-                <Linkedin className="h-4 w-4" />
-              </a>
-              <a href="#" target="_blank" rel="noreferrer" aria-label="Instagram" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white">
-                <Instagram className="h-4 w-4" />
-              </a>
-              <a href="#" target="_blank" rel="noreferrer" aria-label="X" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white">
-                <XIcon className="h-3.5 w-3.5" />
-              </a>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Start</p>
+            <div className="mt-4">
+              <Link
+                to="/build-my-roadmap"
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-[12.5px] text-white/80 transition-colors hover:border-white/50 hover:text-white"
+              >
+                Build my Roadmap
+              </Link>
             </div>
           </div>
         </div>
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-6 text-[12px] text-white/45 sm:flex-row sm:items-center">
           <p>© 2026 Trust Tai. All rights reserved.</p>
-          <div className="flex gap-5">
-            <a href="#" className="hover:text-white">Privacy Policy</a>
-            <a href="#" className="hover:text-white">Terms of Service</a>
-          </div>
         </div>
+
       </div>
     </footer>
   );
