@@ -539,23 +539,29 @@ function WalkRow({
       className="group row-interactive border-t border-rule focus:outline-none focus-visible:ring-2 focus-visible:ring-royal/40"
     >
       <div
-        className={`${container} grid grid-cols-1 gap-6 py-10 md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1.1fr)_170px] md:gap-8`}
+        className={`${container} grid grid-cols-1 gap-6 py-8 md:grid-cols-[260px_minmax(0,1.1fr)_minmax(0,1.1fr)_150px] md:items-center md:gap-8`}
       >
-        {/* Left: category */}
-        <div>
-          <p className="eyebrow leading-tight">{walk.category}</p>
-          <p className="mt-1 text-[12.5px] text-ink/55">{walk.subcategory}</p>
+        {/* Featured image */}
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-ink/5 md:aspect-[5/4]">
+          <img
+            src={walk.image.url}
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          />
         </div>
 
-        {/* Lead stat + journey context */}
-        <div>
-          <p className="font-display text-[36px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[42px]">
+        {/* Category + headline + blurb */}
+        <div className="min-w-0">
+          <p className="eyebrow leading-tight">{walk.category}</p>
+          <p className="mt-1 text-[12.5px] text-ink/55">{walk.subcategory}</p>
+          <p className="mt-5 font-display text-[32px] leading-[1.05] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[38px]">
             {walk.headline.join(" ")}
           </p>
           <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
             Verified outcome
           </p>
-          <p className="mt-5 max-w-[40ch] text-[12.5px] leading-[1.7] text-ink/65">
+          <p className="mt-4 max-w-[40ch] text-[12.5px] leading-[1.7] text-ink/65">
             {walk.blurb}
           </p>
         </div>
@@ -564,6 +570,7 @@ function WalkRow({
         <div className="relative h-[170px] w-full">
           <WalkRoute labels={walk.milestones} rowIndex={index} />
         </div>
+
 
         {/* Right: stats + link */}
         <div className="flex flex-col justify-between gap-6 md:items-end md:text-right">
