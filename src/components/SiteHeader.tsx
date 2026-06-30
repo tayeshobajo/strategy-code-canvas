@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 
 export type NavItem = { label: string; to: string; hash?: string };
@@ -15,6 +16,19 @@ export const NAV: NavItem[] = [
 
 export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   const isActive = (n: NavItem) => {
     if (n.to === "/what-we-build") return pathname === "/what-we-build";
@@ -34,7 +48,7 @@ export function SiteHeader() {
             <TrustTaiLogo variant="dark" />
           </Link>
           <nav className="hidden items-center gap-8 text-[13px] text-ink/75 lg:flex">
-          {NAV.map((n) => {
+            {NAV.map((n) => {
               const active = isActive(n);
               return (
                 <Link
@@ -51,17 +65,51 @@ export function SiteHeader() {
               );
             })}
           </nav>
-          <a
-            href="/build-my-roadmap"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-3 py-2 text-[12px] font-medium text-paper transition-transform hover:scale-[1.02] sm:gap-2 sm:px-4 sm:text-[12.5px]"
-          >
-            <span className="sm:hidden">Build Roadmap</span>
-            <span className="hidden sm:inline">Build My Roadmap</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </a>
-
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href="/build-my-roadmap"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-3 py-2 text-[12px] font-medium text-paper transition-transform hover:scale-[1.02] sm:gap-2 sm:px-4 sm:text-[12.5px]"
+            >
+              <span className="sm:hidden">Build Roadmap</span>
+              <span className="hidden sm:inline">Build My Roadmap</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </a>
+            <button
+              type="button"
+              aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
+              aria-controls="mobile-nav"
+              onClick={() => setOpen((v) => !v)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rule/60 text-ink transition-colors hover:bg-ink/5 lg:hidden"
+            >
+              {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
       </header>
+
+      {open && (
+        <div
+          id="mobile-nav"
+          className="pointer-events-auto fixed inset-x-0 top-[68px] z-40 mx-2 rounded-2xl border border-rule/60 bg-paper/95 p-4 shadow-[0_20px_60px_-20px_rgba(10,23,51,0.25)] backdrop-blur-xl lg:hidden"
+        >
+          <nav className="flex flex-col">
+            {NAV.map((n) => {
+              const active = isActive(n);
+              return (
+                <Link
+                  key={n.label}
+                  to={n.to}
+                  hash={n.hash}
+                  className={`rounded-lg px-3 py-3 text-[15px] transition-colors hover:bg-ink/5 ${active ? "text-royal" : "text-ink/80"}`}
+                >
+                  {n.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      )}
     </div>
   );
 }
