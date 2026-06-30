@@ -844,7 +844,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           kind: "saved",
           text: copied
             ? "saved. your private link is copied to the clipboard. paste it somewhere safe, or add your email above to have it sent."
-            : "saved. this page URL is now your private link — bookmark it, or add your email above to have it sent.",
+            : "saved. this page URL is now your private link. bookmark it, or add your email above to have it sent.",
         });
         if (copied) {
           toast.success("Private link copied", {
