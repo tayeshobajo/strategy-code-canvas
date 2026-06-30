@@ -510,16 +510,25 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
   }, [step, furthestStep]);
 
   // Milestone states for the journey path: answered / skipped / current / future.
-  const milestoneStates = React.useMemo(() => {
-    return QUESTIONS.map((q, i) => {
-      if (step === i) return "current" as const;
+  // Nine dots total — the eight questions plus the reply-details step.
+  const milestoneStates = React.useMemo<MilestoneState[]>(() => {
+    const qs: MilestoneState[] = QUESTIONS.map((q, i) => {
+      if (step === i) return "current";
       const filled = (answers[q.key]?.response ?? "").trim().length > 0;
-      if (filled) return "answered" as const;
-      if (i <= furthestStep && q.optional) return "skipped" as const;
-      if (i < furthestStep) return "answered" as const; // visited but somehow empty required — treat as reached
-      return "future" as const;
+      if (filled) return "answered";
+      if (i <= furthestStep && q.optional) return "skipped";
+      if (i < furthestStep) return "answered"; // visited but somehow empty required — treat as reached
+      return "future";
     });
-  }, [answers, step, furthestStep]);
+    // Reply-details dot
+    const replyHasAll =
+      contact.name.trim() && contact.email.trim() && EMAIL_RE.test(contact.email.trim()) && contact.business.trim();
+    let replyState: MilestoneState = "future";
+    if (step === total) replyState = "current";
+    else if (step > total) replyState = replyHasAll ? "answered" : "skipped";
+    else if (furthestStep >= total) replyState = replyHasAll ? "answered" : "skipped";
+    return [...qs, replyState];
+  }, [answers, step, furthestStep, contact, total]);
 
   // (Scroll-into-view removed — intake now mounts inside a full-screen overlay
   // that owns the viewport, so there is nothing on the page to scroll to.)
