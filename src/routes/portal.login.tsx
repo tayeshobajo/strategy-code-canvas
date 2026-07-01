@@ -42,9 +42,6 @@ function PortalLoginPage() {
       <main className="flex-1 flex items-center justify-center px-6 py-16">
       <div className="w-full max-w-md rounded-2xl bg-card border border-border p-10">
         <div className="mb-8">
-          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal mb-3">
-            Trust Tai · Client Portal
-          </div>
           <h1 className="font-display text-3xl text-ink">
             Welcome back
           </h1>
