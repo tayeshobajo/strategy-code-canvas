@@ -5,6 +5,8 @@ import { requestPortalMagicLink } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const Route = createFileRoute("/portal/login")({
   head: () => ({
@@ -35,10 +37,9 @@ function PortalLoginPage() {
   }
 
   return (
-    <main
-      className="min-h-screen flex items-center justify-center px-6"
-      style={{ background: "#F7F3EC" }}
-    >
+    <div style={{ background: "#F7F3EC" }} className="min-h-screen flex flex-col">
+      <SiteHeader />
+      <main className="flex-1 flex items-center justify-center px-6 py-16">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-xl p-10 border border-black/5">
         <div className="mb-8">
           <div className="text-xs uppercase tracking-widest text-[#B08A3E] mb-3">
@@ -103,6 +104,8 @@ function PortalLoginPage() {
           form.
         </p>
       </div>
-    </main>
+      </main>
+      <SiteFooter />
+    </div>
   );
 }
