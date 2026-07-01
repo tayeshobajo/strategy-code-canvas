@@ -647,68 +647,186 @@ function AttachmentChip({
   );
 }
 
-function MessagePreviewModal({ file, onClose }: { file: FileMeta | null; onClose: () => void }) {
+// How long signed URLs are valid, and when to proactively refresh them.
+const PREVIEW_URL_TTL_SECONDS = 60 * 15; // 15 minutes
+const PREVIEW_URL_REFRESH_BUFFER_MS = 60 * 1000; // refresh 60s before expiry
+
+function MessagePreviewModal({
+  file,
+  onClose,
+}: {
+  file: FileMeta | null;
+  onClose: () => void;
+}) {
   const [url, setUrl] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const load = useCallback(
+    async (target: FileMeta) => {
+      setLoading(true);
+      setError(null);
+      const { data, error: e } = await supabase.storage
+        .from(target.bucket_id)
+        .createSignedUrl(target.storage_path, PREVIEW_URL_TTL_SECONDS);
+      if (e || !data?.signedUrl) {
+        setError(e?.message ?? "Could not load preview.");
+        setUrl(null);
+        setExpiresAt(null);
+      } else {
+        setUrl(data.signedUrl);
+        setExpiresAt(Date.now() + PREVIEW_URL_TTL_SECONDS * 1000);
+      }
+      setLoading(false);
+    },
+    [],
+  );
+
+  // (Re)load whenever the target file or manual retry attempt changes.
   useEffect(() => {
     if (!file) {
       setUrl(null);
+      setExpiresAt(null);
       setError(null);
       return;
     }
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    supabase.storage
-      .from(file.bucket_id)
-      .createSignedUrl(file.storage_path, 300)
-      .then(({ data, error: e }) => {
-        if (cancelled) return;
-        if (e || !data?.signedUrl) setError(e?.message ?? "Could not load preview.");
-        else setUrl(data.signedUrl);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    void load(file);
+  }, [file, attempt, load]);
+
+  // Proactively refresh the signed URL before it expires so the preview
+  // doesn't 403 mid-view (matters for PDFs the user leaves open).
+  useEffect(() => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+    if (!file || !expiresAt) return;
+    const delay = Math.max(0, expiresAt - Date.now() - PREVIEW_URL_REFRESH_BUFFER_MS);
+    refreshTimerRef.current = setTimeout(() => {
+      void load(file);
+    }, delay);
     return () => {
-      cancelled = true;
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
     };
-  }, [file]);
+  }, [file, expiresAt, load]);
 
   const kind = file ? isPreviewable(file) : null;
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
+
+  // Keyboard: R to retry after an error. Radix Dialog already handles Esc,
+  // focus trap, and focus return to the trigger — do not reimplement those.
+  useEffect(() => {
+    if (!file) return;
+    const handler = (e: KeyboardEvent) => {
+      if (error && (e.key === "r" || e.key === "R") && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        retry();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [file, error, retry]);
+
+  // Treat iframe/image load failures as expired URLs and offer retry.
+  const onMediaError = useCallback(() => {
+    setError("This preview link expired or failed to load.");
+  }, []);
 
   return (
     <Dialog open={!!file} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl w-[calc(100vw-2rem)] p-0 overflow-hidden bg-card">
-        <DialogHeader className="px-5 py-3 border-b border-rule-soft flex-row items-center justify-between gap-4 space-y-0">
-          <DialogTitle className="text-[14px] font-medium text-ink truncate">
-            {file?.file_name}
-          </DialogTitle>
-          {url && (
+      <DialogContent
+        className="max-w-4xl w-[calc(100vw-2rem)] p-0 overflow-hidden bg-card"
+        aria-describedby="attachment-preview-description"
+      >
+        <DialogHeader className="px-5 py-3 pr-12 border-b border-rule-soft flex-row items-center justify-between gap-4 space-y-0">
+          <div className="min-w-0 flex-1">
+            <DialogTitle className="text-[14px] font-medium text-ink truncate">
+              {file?.file_name ?? "Attachment"}
+            </DialogTitle>
+            <DialogDescription
+              id="attachment-preview-description"
+              className="sr-only"
+            >
+              Attachment preview. Press Escape to close.
+              {error ? " Press R to retry." : ""}
+            </DialogDescription>
+          </div>
+          {url && !error && (
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[12px] text-royal hover:underline inline-flex items-center gap-1 shrink-0 mr-6"
+              className="text-[12px] text-royal hover:underline inline-flex items-center gap-1 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal rounded-sm px-1"
             >
               Open in new tab <ExternalLink className="w-3 h-3" />
             </a>
           )}
         </DialogHeader>
-        <div className="bg-paper-soft min-h-[60vh] max-h-[75vh] overflow-auto flex items-center justify-center">
-          {loading && <Loader2 className="w-5 h-5 animate-spin text-ink/50" />}
+        <div
+          className="bg-paper-soft min-h-[60vh] max-h-[75vh] overflow-auto flex items-center justify-center"
+          role="region"
+          aria-label={file ? `Preview of ${file.file_name}` : "Preview"}
+          aria-busy={loading}
+        >
+          {loading && (
+            <div className="flex items-center gap-2 text-ink/60">
+              <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+              <span className="sr-only">Loading preview</span>
+            </div>
+          )}
           {!loading && error && (
-            <div className="text-center p-8">
-              <AlertCircle className="w-6 h-6 mx-auto mb-2 text-destructive" />
-              <p className="text-[13px] text-ink/70">{error}</p>
+            <div className="text-center p-8 max-w-sm" role="alert">
+              <AlertCircle className="w-6 h-6 mx-auto mb-2 text-destructive" aria-hidden="true" />
+              <p className="text-[13.5px] text-ink font-medium">Couldn't load preview</p>
+              <p className="text-[12.5px] text-ink/60 mt-1">{error}</p>
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <Button
+                  type="button"
+                  onClick={retry}
+                  variant="outline"
+                  className="border-ink/20 text-ink"
+                  autoFocus
+                >
+                  <RotateCw className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />
+                  Try again
+                </Button>
+                {file && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-ink/60"
+                    onClick={async () => {
+                      const { data } = await supabase.storage
+                        .from(file.bucket_id)
+                        .createSignedUrl(file.storage_path, 60);
+                      if (data?.signedUrl) {
+                        window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+                      } else {
+                        toast.error("Download unavailable.");
+                      }
+                    }}
+                  >
+                    <Download className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />
+                    Download
+                  </Button>
+                )}
+              </div>
+              <p className="mt-3 text-[11px] text-ink/40">
+                Tip: press R to retry, Esc to close.
+              </p>
             </div>
           )}
           {!loading && !error && url && kind === "image" && (
             <img
               src={url}
               alt={file?.file_name ?? ""}
+              onError={onMediaError}
               className="max-h-[75vh] w-auto object-contain"
             />
           )}
@@ -716,6 +834,7 @@ function MessagePreviewModal({ file, onClose }: { file: FileMeta | null; onClose
             <iframe
               src={url}
               title={file?.file_name ?? "Preview"}
+              onError={onMediaError}
               className="w-full h-[75vh] bg-white"
             />
           )}
@@ -724,7 +843,7 @@ function MessagePreviewModal({ file, onClose }: { file: FileMeta | null; onClose
               <p className="text-[13px] text-ink/70">Preview not available.</p>
               <Button asChild variant="outline" className="mt-3 border-ink/20 text-ink">
                 <a href={url} target="_blank" rel="noopener noreferrer">
-                  <Download className="w-4 h-4 mr-1.5" /> Download
+                  <Download className="w-4 h-4 mr-1.5" aria-hidden="true" /> Download
                 </a>
               </Button>
             </div>
@@ -734,6 +853,7 @@ function MessagePreviewModal({ file, onClose }: { file: FileMeta | null; onClose
     </Dialog>
   );
 }
+
 
 
 function AttachmentIcon({ mime, name }: { mime: string | null; name: string }) {
