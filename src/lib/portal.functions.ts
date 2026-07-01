@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  renderPortalMagicLinkHtml,
+  renderPortalMagicLinkText,
+} from "@/lib/email-templates/portal-magic-link-html";
 
 const OPERATOR_EMAILS = new Set([
   "hello@trust-tai.com",
@@ -109,13 +113,8 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
       `${Date.now()}-${Math.random()}`) as string;
     const unsubscribeToken = await ensureUnsubscribeToken(supabaseAdmin, email);
 
-    const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
-      <p>Welcome back.</p>
-      <p>Use the secure link below to sign in to your Trust Tai client portal. It expires in 60 minutes.</p>
-      <p><a href="${actionLink}" style="display:inline-block;background:#0B1E3B;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;">Enter your portal</a></p>
-      <p style="color:#6B7280;font-size:13px;">If you didn't request this, you can ignore this email.</p>
-      <p>— Tai</p>
-    </div>`;
+    const html = renderPortalMagicLinkHtml({ actionLink });
+    const text = renderPortalMagicLinkText(actionLink);
 
     const { error: enqError } = await (
       supabaseAdmin.rpc as unknown as (
@@ -132,7 +131,7 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
         sender_domain: "notify.trusttai.com",
         subject: "Your Trust Tai portal sign-in link",
         html,
-        text: `Sign in to your Trust Tai portal:\n\n${actionLink}\n\nThis link expires in 60 minutes.`,
+        text,
         label: "portal-magic-link",
         purpose: "transactional",
         idempotency_key: `portal-magic-${email}-${Date.now()}`,
@@ -400,13 +399,9 @@ async function sendWelcomeMagicLink(email: string) {
     `${Date.now()}-${Math.random()}`) as string;
   const unsubscribeToken = await ensureUnsubscribeToken(supabaseAdmin, normalized);
 
-  const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
-    <p>Welcome back.</p>
-    <p>Here is a fresh secure link to enter your Trust Tai client portal. It expires in 60 minutes.</p>
-    <p><a href="${actionLink}" style="display:inline-block;background:#0B1E3B;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;">Enter your portal</a></p>
-    <p style="color:#6B7280;font-size:13px;">If you didn't request this, you can ignore this email.</p>
-    <p>— Tai</p>
-  </div>`;
+  const intro = "Here is a fresh secure link to enter your Trust Tai client portal. It expires in 60 minutes.";
+  const html = renderPortalMagicLinkHtml({ actionLink, intro });
+  const text = renderPortalMagicLinkText(actionLink, intro);
 
   await (
     supabaseAdmin.rpc as unknown as (
@@ -423,7 +418,7 @@ async function sendWelcomeMagicLink(email: string) {
       sender_domain: "notify.trusttai.com",
       subject: "Your Trust Tai portal sign-in link",
       html,
-      text: `Sign in to your Trust Tai portal:\n\n${actionLink}\n\nThis link expires in 60 minutes.`,
+      text,
       label: "portal-welcome-resend",
       purpose: "transactional",
       idempotency_key: `portal-welcome-${normalized}-${Date.now()}`,
