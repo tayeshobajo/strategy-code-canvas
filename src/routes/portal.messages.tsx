@@ -134,6 +134,7 @@ function MessagesPage() {
   const [body, setBody] = useState("");
   const [tab, setTab] = useState<Tab>("all");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [previewFile, setPreviewFile] = useState<FileMeta | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
