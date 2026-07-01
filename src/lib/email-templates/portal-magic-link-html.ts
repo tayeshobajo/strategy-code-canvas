@@ -28,6 +28,8 @@ function escapeHtml(input: string): string {
     .replace(/'/g, "&#39;");
 }
 
+import { getPublicSiteUrl } from "@/lib/site-url";
+
 export interface PortalMagicLinkOptions {
   actionLink: string;
   /** Copy shown under the H1. */
@@ -40,6 +42,8 @@ export interface PortalMagicLinkOptions {
   heading?: string;
   /** Button label. */
   ctaLabel?: string;
+  /** Override site URL (defaults to getPublicSiteUrl()). */
+  siteUrl?: string;
 }
 
 export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string {
@@ -50,7 +54,10 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
     eyebrow = "Client portal",
     heading = "Welcome back",
     ctaLabel = "Enter your portal",
+    siteUrl = getPublicSiteUrl(),
   } = opts;
+
+  const LOGO_URL = `${siteUrl}${LOGO_PATH}`;
 
   const safeLink = escapeHtml(actionLink);
 
