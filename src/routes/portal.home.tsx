@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getPortalContext } from "@/lib/portal.functions";
+import { getPortalContext, resendPortalWelcome } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { Mail, Check } from "lucide-react";
 
 const portalCtxOptions = (fn: ReturnType<typeof useServerFn<typeof getPortalContext>>) =>
   queryOptions({
