@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, FileText, Folder, MessageSquare, CreditCard, User, LogOut } from "lucide-react";
+import { Home, FileText, Folder, MessageSquare, CreditCard, User, LogOut, Activity } from "lucide-react";
 import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 
 export const Route = createFileRoute("/portal")({
@@ -37,6 +37,7 @@ const NAV = [
   { to: "/portal/files", label: "Files", icon: Folder },
   { to: "/portal/messages", label: "Messages", icon: MessageSquare },
   { to: "/portal/billing", label: "Billing", icon: CreditCard },
+  { to: "/portal/activity", label: "Activity", icon: Activity },
   { to: "/portal/account", label: "Account", icon: User },
 ];
 

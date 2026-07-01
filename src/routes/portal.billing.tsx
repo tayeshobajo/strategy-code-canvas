@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CreditCard,
   CheckCircle2,
@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Download,
   FileText,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -100,11 +101,50 @@ function BillingPage() {
   const ctx = usePortalContext();
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
-  const { data, isLoading, isError, refetch } = useBilling(projectId);
+  const { data, isLoading, isError, refetch, dataUpdatedAt, isFetching } = useBilling(projectId);
   const qc = useQueryClient();
   const portalFn = useServerFn(createBillingPortalSession);
   const cancelFn = useServerFn(cancelSubscription);
   const reactivateFn = useServerFn(reactivateSubscription);
+
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "live" | "offline">(
+    "connecting",
+  );
+  const [nowTick, setNowTick] = useState(Date.now());
+  const prevStatusRef = useRef<Map<string, string>>(new Map());
+  const prevSubStatusRef = useRef<string | null>(null);
+
+  // Tick every 30s so "last updated" label stays fresh.
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Diff invoice/subscription statuses across refreshes and toast on change.
+  useEffect(() => {
+    if (!data) return;
+    const next = new Map<string, string>();
+    for (const inv of data.invoices) next.set(inv.id, inv.payment_status);
+    if (prevStatusRef.current.size > 0) {
+      for (const [id, status] of next) {
+        const prev = prevStatusRef.current.get(id);
+        if (prev && prev !== status) {
+          const inv = data.invoices.find((i) => i.id === id);
+          const label = inv?.stripe_invoice_id
+            ? `INV-${inv.stripe_invoice_id.slice(-8).toUpperCase()}`
+            : "Invoice";
+          toast.info(`${label} status updated: ${capitalize(status)}`);
+        }
+      }
+    }
+    prevStatusRef.current = next;
+
+    const subStatus = data.subscription?.status ?? null;
+    if (prevSubStatusRef.current && subStatus && prevSubStatusRef.current !== subStatus) {
+      toast.info(`Subscription status: ${capitalize(subStatus)}`);
+    }
+    prevSubStatusRef.current = subStatus;
+  }, [data]);
 
   const openBillingPortal = useMutation({
     mutationFn: async () => {
@@ -158,7 +198,11 @@ function BillingPage() {
 
   // Realtime: reflect Stripe webhook updates instantly.
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) {
+      setRealtimeStatus("offline");
+      return;
+    }
+    setRealtimeStatus("connecting");
     const channel = supabase
       .channel(`portal-billing-${projectId}`)
       .on(
@@ -176,7 +220,11 @@ function BillingPage() {
         { event: "*", schema: "public", table: "subscriptions" },
         () => qc.invalidateQueries({ queryKey: ["portal", "billing", projectId] }),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setRealtimeStatus("live");
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED")
+          setRealtimeStatus("offline");
+      });
     return () => {
       supabase.removeChannel(channel);
     };
@@ -189,11 +237,23 @@ function BillingPage() {
           <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal flex items-center gap-2">
             <CreditCard className="w-3.5 h-3.5" /> Billing
           </div>
-          <h1 className="font-display text-3xl text-ink mt-2">Billing</h1>
-          <p className="text-[15px] leading-[1.75] text-ink/70 mt-2">
-            Payment details, invoices, and engagement package.
-          </p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h1 className="font-display text-3xl text-ink">Billing</h1>
+              <p className="text-[15px] leading-[1.75] text-ink/70 mt-2">
+                Payment details, invoices, and engagement package.
+              </p>
+            </div>
+            <SyncIndicator
+              status={realtimeStatus}
+              lastUpdated={dataUpdatedAt}
+              nowTick={nowTick}
+              isFetching={isFetching}
+              onRefresh={() => refetch()}
+            />
+          </div>
         </header>
+
 
         {/* Package summary */}
         <section className="rounded-2xl bg-card border border-border shadow-sm p-6 lg:p-8">
@@ -634,3 +694,63 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
+function SyncIndicator({
+  status,
+  lastUpdated,
+  nowTick,
+  isFetching,
+  onRefresh,
+}: {
+  status: "connecting" | "live" | "offline";
+  lastUpdated: number;
+  nowTick: number;
+  isFetching: boolean;
+  onRefresh: () => void;
+}) {
+  const rel = relativeTime(lastUpdated, nowTick);
+  const dot =
+    status === "live"
+      ? "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
+      : status === "connecting"
+        ? "bg-amber-400"
+        : "bg-ink/30";
+  const label =
+    status === "live" ? "Live" : status === "connecting" ? "Connecting" : "Offline";
+  return (
+    <div className="inline-flex items-center gap-3 rounded-full border border-rule-soft bg-card px-3 py-1.5 text-[12px] text-ink/70">
+      <span className="inline-flex items-center gap-1.5">
+        <span className={`w-2 h-2 rounded-full ${dot} ${status === "live" ? "animate-pulse" : ""}`} />
+        <span className="font-medium text-ink/80">{label}</span>
+      </span>
+      {lastUpdated > 0 && (
+        <span className="text-ink/50" title={new Date(lastUpdated).toLocaleString()}>
+          Updated {rel}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={isFetching}
+        className="inline-flex items-center gap-1 text-royal hover:underline disabled:opacity-50"
+        aria-label="Refresh billing"
+      >
+        <RefreshCw className={`w-3 h-3 ${isFetching ? "animate-spin" : ""}`} />
+        Refresh
+      </button>
+    </div>
+  );
+}
+
+function relativeTime(ts: number, now: number) {
+  if (!ts) return "just now";
+  const diff = Math.max(0, Math.floor((now - ts) / 1000));
+  if (diff < 10) return "just now";
+  if (diff < 60) return `${diff}s ago`;
+  const m = Math.floor(diff / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return new Date(ts).toLocaleDateString();
+}
+
