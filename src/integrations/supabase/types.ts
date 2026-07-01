@@ -56,6 +56,588 @@ export type Database = {
         }
         Relationships: []
       }
+      client_portal_activity: {
+        Row: {
+          actor_email: string | null
+          actor_type: string
+          client_visible: boolean
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          project_id: string
+          summary: string
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_type: string
+          client_visible?: boolean
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          project_id: string
+          summary: string
+        }
+        Update: {
+          actor_email?: string | null
+          actor_type?: string
+          client_visible?: boolean
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          project_id?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portal_billing: {
+        Row: {
+          amount_total: number
+          created_at: string
+          currency: string
+          id: string
+          invoice_url: string | null
+          metadata: Json
+          next_payment_at: string | null
+          payment_confirmed_at: string | null
+          payment_status: string
+          project_id: string
+          purchased_package: string | null
+          receipt_url: string | null
+          stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_total?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_url?: string | null
+          metadata?: Json
+          next_payment_at?: string | null
+          payment_confirmed_at?: string | null
+          payment_status?: string
+          project_id: string
+          purchased_package?: string | null
+          receipt_url?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_total?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_url?: string | null
+          metadata?: Json
+          next_payment_at?: string | null
+          payment_confirmed_at?: string | null
+          payment_status?: string
+          project_id?: string
+          purchased_package?: string | null
+          receipt_url?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_billing_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portal_files: {
+        Row: {
+          bucket_id: string
+          category: string
+          client_visible: boolean
+          created_at: string
+          file_name: string
+          file_type: string | null
+          id: string
+          is_internal: boolean
+          linked_roadmap_document_id: string | null
+          metadata: Json
+          mime_type: string | null
+          project_id: string
+          size_bytes: number | null
+          storage_path: string
+          updated_at: string
+          uploaded_by_email: string | null
+          uploaded_by_role: string
+        }
+        Insert: {
+          bucket_id?: string
+          category?: string
+          client_visible?: boolean
+          created_at?: string
+          file_name: string
+          file_type?: string | null
+          id?: string
+          is_internal?: boolean
+          linked_roadmap_document_id?: string | null
+          metadata?: Json
+          mime_type?: string | null
+          project_id: string
+          size_bytes?: number | null
+          storage_path: string
+          updated_at?: string
+          uploaded_by_email?: string | null
+          uploaded_by_role?: string
+        }
+        Update: {
+          bucket_id?: string
+          category?: string
+          client_visible?: boolean
+          created_at?: string
+          file_name?: string
+          file_type?: string | null
+          id?: string
+          is_internal?: boolean
+          linked_roadmap_document_id?: string | null
+          metadata?: Json
+          mime_type?: string | null
+          project_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          updated_at?: string
+          uploaded_by_email?: string | null
+          uploaded_by_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_files_linked_roadmap_document_id_fkey"
+            columns: ["linked_roadmap_document_id"]
+            isOneToOne: false
+            referencedRelation: "roadmap_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portal_messages: {
+        Row: {
+          action_completed_at: string | null
+          action_required: boolean
+          author_email: string | null
+          body: string
+          created_at: string
+          id: string
+          message_type: string
+          metadata: Json
+          project_id: string
+          related_file_ids: string[]
+          related_roadmap_section: string | null
+          sender_type: string
+          subject: string | null
+          updated_at: string
+          visible_to_client: boolean
+        }
+        Insert: {
+          action_completed_at?: string | null
+          action_required?: boolean
+          author_email?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          metadata?: Json
+          project_id: string
+          related_file_ids?: string[]
+          related_roadmap_section?: string | null
+          sender_type: string
+          subject?: string | null
+          updated_at?: string
+          visible_to_client?: boolean
+        }
+        Update: {
+          action_completed_at?: string | null
+          action_required?: boolean
+          author_email?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          metadata?: Json
+          project_id?: string
+          related_file_ids?: string[]
+          related_roadmap_section?: string | null
+          sender_type?: string
+          subject?: string | null
+          updated_at?: string
+          visible_to_client?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portal_onboarding: {
+        Row: {
+          assets_docs: Json
+          business_basics: Json
+          completion_percent: number
+          created_at: string
+          current_state: Json
+          current_step: number
+          goals_priorities: Json
+          id: string
+          last_saved_at: string | null
+          project_id: string
+          review_submit: Json
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          assets_docs?: Json
+          business_basics?: Json
+          completion_percent?: number
+          created_at?: string
+          current_state?: Json
+          current_step?: number
+          goals_priorities?: Json
+          id?: string
+          last_saved_at?: string | null
+          project_id: string
+          review_submit?: Json
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assets_docs?: Json
+          business_basics?: Json
+          completion_percent?: number
+          created_at?: string
+          current_state?: Json
+          current_step?: number
+          goals_priorities?: Json
+          id?: string
+          last_saved_at?: string | null
+          project_id?: string
+          review_submit?: Json
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_onboarding_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portal_permissions: {
+        Row: {
+          can_message: boolean
+          can_upload_files: boolean
+          can_view_billing: boolean
+          can_view_roadmap: boolean
+          created_at: string
+          email: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          project_id: string
+          revoked_at: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          can_message?: boolean
+          can_upload_files?: boolean
+          can_view_billing?: boolean
+          can_view_roadmap?: boolean
+          created_at?: string
+          email: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          project_id: string
+          revoked_at?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          can_message?: boolean
+          can_upload_files?: boolean
+          can_view_billing?: boolean
+          can_view_roadmap?: boolean
+          created_at?: string
+          email?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          project_id?: string
+          revoked_at?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_permissions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portal_projects: {
+        Row: {
+          access_granted_at: string | null
+          access_revoked_at: string | null
+          approved_roadmap_id: string | null
+          company_name: string | null
+          contact_name: string | null
+          created_at: string
+          currency: string | null
+          current_phase: string
+          id: string
+          intake_submission_id: string | null
+          last_client_activity_at: string | null
+          metadata: Json
+          next_milestone: string | null
+          next_milestone_due_at: string | null
+          owner_email: string | null
+          package_name: string | null
+          payment_amount: number | null
+          payment_status: string
+          portal_status: string
+          primary_email: string
+          purchase_date: string | null
+          purchased_package: string | null
+          scheduling_url: string | null
+          stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_granted_at?: string | null
+          access_revoked_at?: string | null
+          approved_roadmap_id?: string | null
+          company_name?: string | null
+          contact_name?: string | null
+          created_at?: string
+          currency?: string | null
+          current_phase?: string
+          id?: string
+          intake_submission_id?: string | null
+          last_client_activity_at?: string | null
+          metadata?: Json
+          next_milestone?: string | null
+          next_milestone_due_at?: string | null
+          owner_email?: string | null
+          package_name?: string | null
+          payment_amount?: number | null
+          payment_status?: string
+          portal_status?: string
+          primary_email: string
+          purchase_date?: string | null
+          purchased_package?: string | null
+          scheduling_url?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_granted_at?: string | null
+          access_revoked_at?: string | null
+          approved_roadmap_id?: string | null
+          company_name?: string | null
+          contact_name?: string | null
+          created_at?: string
+          currency?: string | null
+          current_phase?: string
+          id?: string
+          intake_submission_id?: string | null
+          last_client_activity_at?: string | null
+          metadata?: Json
+          next_milestone?: string | null
+          next_milestone_due_at?: string | null
+          owner_email?: string | null
+          package_name?: string | null
+          payment_amount?: number | null
+          payment_status?: string
+          portal_status?: string
+          primary_email?: string
+          purchase_date?: string | null
+          purchased_package?: string | null
+          scheduling_url?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      client_portal_roadmaps: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by_email: string | null
+          approved_at: string | null
+          created_at: string
+          current_diagnosis: string | null
+          current_focus: string | null
+          executive_summary: string | null
+          id: string
+          metadata: Json
+          next_meeting_at: string | null
+          next_milestone: string | null
+          one_pager_file_id: string | null
+          owner_name: string | null
+          pdf_file_id: string | null
+          project_id: string
+          recommended_next_move: string | null
+          risks_dependencies: Json
+          roadmap_document_id: string | null
+          sequence_30_60_90: Json
+          share_url: string | null
+          source_review_id: string | null
+          source_submission_id: string | null
+          status: string
+          strategic_priorities: Json
+          supporting_notes: string | null
+          title: string
+          updated_at: string
+          version_label: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by_email?: string | null
+          approved_at?: string | null
+          created_at?: string
+          current_diagnosis?: string | null
+          current_focus?: string | null
+          executive_summary?: string | null
+          id?: string
+          metadata?: Json
+          next_meeting_at?: string | null
+          next_milestone?: string | null
+          one_pager_file_id?: string | null
+          owner_name?: string | null
+          pdf_file_id?: string | null
+          project_id: string
+          recommended_next_move?: string | null
+          risks_dependencies?: Json
+          roadmap_document_id?: string | null
+          sequence_30_60_90?: Json
+          share_url?: string | null
+          source_review_id?: string | null
+          source_submission_id?: string | null
+          status?: string
+          strategic_priorities?: Json
+          supporting_notes?: string | null
+          title: string
+          updated_at?: string
+          version_label?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by_email?: string | null
+          approved_at?: string | null
+          created_at?: string
+          current_diagnosis?: string | null
+          current_focus?: string | null
+          executive_summary?: string | null
+          id?: string
+          metadata?: Json
+          next_meeting_at?: string | null
+          next_milestone?: string | null
+          one_pager_file_id?: string | null
+          owner_name?: string | null
+          pdf_file_id?: string | null
+          project_id?: string
+          recommended_next_move?: string | null
+          risks_dependencies?: Json
+          roadmap_document_id?: string | null
+          sequence_30_60_90?: Json
+          share_url?: string | null
+          source_review_id?: string | null
+          source_submission_id?: string | null
+          status?: string
+          strategic_priorities?: Json
+          supporting_notes?: string | null
+          title?: string
+          updated_at?: string
+          version_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_roadmaps_one_pager_file_id_fkey"
+            columns: ["one_pager_file_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_pdf_file_id_fkey"
+            columns: ["pdf_file_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_roadmap_document_id_fkey"
+            columns: ["roadmap_document_id"]
+            isOneToOne: false
+            referencedRelation: "roadmap_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -394,6 +976,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      client_portal_is_operator: { Args: { _email: string }; Returns: boolean }
+      current_client_portal_project_id: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -404,6 +988,18 @@ export type Database = {
         Returns: number
       }
       has_client_access: { Args: { _email: string }; Returns: boolean }
+      log_client_portal_activity: {
+        Args: {
+          _actor_email: string
+          _actor_type: string
+          _client_visible?: boolean
+          _event_type: string
+          _metadata?: Json
+          _project_id: string
+          _summary: string
+        }
+        Returns: string
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -421,6 +1017,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      sync_client_access_user: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
