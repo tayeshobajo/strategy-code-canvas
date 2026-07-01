@@ -79,14 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Trust Tai" },
+      { title: "Trust Tai — The Business Operating Roadmap" },
       { name: "description", content: "We map the journey from where your business is to where it needs to be." },
       { name: "author", content: "Trust Tai" },
-      { property: "og:title", content: "Trust Tai" },
+      { property: "og:title", content: "Trust Tai — The Business Operating Roadmap" },
       { property: "og:description", content: "We map the journey from where your business is to where it needs to be." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Trust Tai" },
+      { name: "twitter:title", content: "Trust Tai — The Business Operating Roadmap" },
       { name: "twitter:description", content: "We map the journey from where your business is to where it needs to be." },
       { name: "google-site-verification", content: "_TaUWsl25k5RZVRt2KKgPzA2OhJM2rWz4MrBDAu33s8" },
 
