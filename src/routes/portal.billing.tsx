@@ -398,10 +398,54 @@ function BillingPage() {
               </>
             ) : (
               <>
-                Open Stripe Customer Portal <ExternalLink className="w-3.5 h-3.5 ml-2" />
+                Update plan · View invoices <ExternalLink className="w-3.5 h-3.5 ml-2" />
               </>
             )}
           </Button>
+          {isRecurringActive && (
+            <div className="mt-3">
+              {data?.subscription?.cancel_at_period_end ? (
+                <Button
+                  type="button"
+                  onClick={() => reactivate.mutate()}
+                  disabled={reactivate.isPending}
+                  variant="ghost"
+                  className="w-full text-royal hover:text-royal/80"
+                >
+                  {reactivate.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Reactivating…
+                    </>
+                  ) : (
+                    "Reactivate subscription"
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "Cancel at the end of your current billing period? You'll keep access until then.",
+                      )
+                    )
+                      cancel.mutate();
+                  }}
+                  disabled={cancel.isPending}
+                  variant="ghost"
+                  className="w-full text-ink/70 hover:text-destructive"
+                >
+                  {cancel.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Cancelling…
+                    </>
+                  ) : (
+                    "Cancel subscription"
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-rule-soft bg-paper-soft p-5 text-center">
