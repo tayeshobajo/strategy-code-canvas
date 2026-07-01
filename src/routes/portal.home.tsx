@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getPortalContext } from "@/lib/portal.functions";
+import { getPortalContext, resendPortalWelcome } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { Mail, Check } from "lucide-react";
 
 const portalCtxOptions = (fn: ReturnType<typeof useServerFn<typeof getPortalContext>>) =>
   queryOptions({
@@ -181,7 +182,69 @@ function PortalHome() {
           }
         />
       </section>
+
+      <ResendWelcomeCard />
     </div>
+  );
+}
+
+function ResendWelcomeCard() {
+  const resendFn = useServerFn(resendPortalWelcome);
+  const [sent, setSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const mutation = useMutation({
+    mutationFn: () => resendFn({}),
+    onSuccess: (res) => {
+      if (res.ok) {
+        setSent(true);
+        setErrorMsg(null);
+      } else {
+        setErrorMsg(
+          res.reason === "no_confirmed_access"
+            ? "We couldn't find a Stripe-confirmed engagement on this account."
+            : "That did not send. Please try again in a moment.",
+        );
+      }
+    },
+    onError: () => setErrorMsg("That did not send. Please try again in a moment."),
+  });
+
+  return (
+    <section className="rounded-xl bg-white border border-black/5 p-6 flex items-center justify-between gap-6">
+      <div>
+        <div className="text-[11px] uppercase tracking-widest text-slate-500">
+          Sign-in link
+        </div>
+        <div className="text-[#0B1E3B] mt-1 font-medium">
+          Need a fresh sign-in link?
+        </div>
+        <div className="text-xs text-slate-500 mt-1">
+          We'll email a new secure link to the address on your engagement. It
+          expires in 60 minutes.
+        </div>
+        {errorMsg && (
+          <div className="text-xs text-red-600 mt-2">{errorMsg}</div>
+        )}
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={mutation.isPending || sent}
+        onClick={() => mutation.mutate()}
+        className="border-[#0B1E3B]/20 text-[#0B1E3B]"
+      >
+        {sent ? (
+          <>
+            <Check className="w-4 h-4 mr-2" /> Sent
+          </>
+        ) : (
+          <>
+            <Mail className="w-4 h-4 mr-2" />
+            {mutation.isPending ? "Sending…" : "Resend welcome email"}
+          </>
+        )}
+      </Button>
+    </section>
   );
 }
 

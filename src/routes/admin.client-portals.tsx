@@ -6,6 +6,8 @@ import {
   adminListPortals,
   adminGetPortal,
   adminUpdatePortal,
+  adminSetClientAccessRevoked,
+  adminResendPortalWelcome,
 } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,6 +112,8 @@ function AdminClientPortals() {
 function PortalDetail({ id }: { id: string }) {
   const getFn = useServerFn(adminGetPortal);
   const updateFn = useServerFn(adminUpdatePortal);
+  const revokeFn = useServerFn(adminSetClientAccessRevoked);
+  const resendFn = useServerFn(adminResendPortalWelcome);
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "portal", id],
@@ -125,9 +129,42 @@ function PortalDetail({ id }: { id: string }) {
     },
   });
 
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  const revokeMutation = useMutation({
+    mutationFn: (revoked: boolean) =>
+      revokeFn({ data: { email: data!.project!.primary_email, revoked, project_id: id } }),
+    onSuccess: async (_res, revoked) => {
+      setActionMsg(revoked ? "Access revoked. Magic links are now blocked." : "Access restored.");
+      await qc.invalidateQueries({ queryKey: ["admin", "portal", id] });
+      await qc.invalidateQueries({ queryKey: ["admin", "portals"] });
+    },
+    onError: () => setActionMsg("That did not save."),
+  });
+
+  const resendMutation = useMutation({
+    mutationFn: () =>
+      resendFn({ data: { email: data!.project!.primary_email, project_id: id } }),
+    onSuccess: (res) => {
+      setActionMsg(
+        res.ok
+          ? "Welcome email queued."
+          : res.reason === "no_confirmed_access"
+            ? "No Stripe-confirmed access on file. Cannot send."
+            : "Could not generate a link.",
+      );
+    },
+    onError: () => setActionMsg("That did not send."),
+  });
+
   if (isLoading || !data) return <div className="p-8 text-white/60">Loading…</div>;
   const p = data.project;
   if (!p) return <div className="p-8 text-white/60">Not found.</div>;
+
+  const activePerm = data.permissions.find(
+    (perm) => (perm.email ?? "").toLowerCase() === p.primary_email.toLowerCase(),
+  );
+  const isRevoked = !!activePerm?.revoked_at;
 
   return (
     <div className="p-8 space-y-8">
@@ -143,6 +180,51 @@ function PortalDetail({ id }: { id: string }) {
           {p.primary_email}
         </div>
       </header>
+
+      <section className="rounded-lg bg-black/30 border border-white/10 p-4 flex flex-wrap items-center gap-3">
+        <span
+          className={`text-xs uppercase tracking-widest px-2.5 py-1 rounded-full border ${
+            isRevoked
+              ? "bg-red-500/10 text-red-300 border-red-400/30"
+              : "bg-emerald-500/10 text-emerald-300 border-emerald-400/30"
+          }`}
+        >
+          {isRevoked ? "Access revoked" : "Access active"}
+        </span>
+        <Button
+          type="button"
+          onClick={() => resendMutation.mutate()}
+          disabled={resendMutation.isPending}
+          className="bg-amber-500 hover:bg-amber-400 text-slate-900"
+        >
+          {resendMutation.isPending ? "Sending…" : "Resend welcome email"}
+        </Button>
+        {isRevoked ? (
+          <Button
+            type="button"
+            onClick={() => revokeMutation.mutate(false)}
+            disabled={revokeMutation.isPending}
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-900"
+          >
+            Restore access
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => {
+              if (confirm(`Revoke portal access for ${p.primary_email}? Magic-link sign-in will be blocked immediately.`)) {
+                revokeMutation.mutate(true);
+              }
+            }}
+            disabled={revokeMutation.isPending}
+          >
+            Revoke access
+          </Button>
+        )}
+        {actionMsg && <span className="text-xs text-white/70 ml-auto">{actionMsg}</span>}
+      </section>
+
 
       <section className="grid grid-cols-2 gap-6">
         <FieldSelect

@@ -25,6 +25,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
+import { Route as PortalRoadmapRouteImport } from './routes/portal.roadmap'
 import { Route as PortalLoginRouteImport } from './routes/portal.login'
 import { Route as PortalHomeRouteImport } from './routes/portal.home'
 import { Route as OpsQueueRouteImport } from './routes/ops/queue'
@@ -121,6 +122,11 @@ const WalksSlugRoute = WalksSlugRouteImport.update({
   id: '/walks_/$slug',
   path: '/walks/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoadmapRoute = PortalRoadmapRouteImport.update({
+  id: '/roadmap',
+  path: '/roadmap',
+  getParentRoute: () => PortalRoute,
 } as any)
 const PortalLoginRoute = PortalLoginRouteImport.update({
   id: '/login',
@@ -233,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/ops/queue': typeof OpsQueueRoute
   '/portal/home': typeof PortalHomeRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/roadmap': typeof PortalRoadmapRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
@@ -265,6 +272,7 @@ export interface FileRoutesByTo {
   '/ops/queue': typeof OpsQueueRoute
   '/portal/home': typeof PortalHomeRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/roadmap': typeof PortalRoadmapRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops': typeof OpsIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
@@ -300,6 +308,7 @@ export interface FileRoutesById {
   '/ops/queue': typeof OpsQueueRoute
   '/portal/home': typeof PortalHomeRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/roadmap': typeof PortalRoadmapRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
@@ -335,6 +344,7 @@ export interface FileRouteTypes {
     | '/ops/queue'
     | '/portal/home'
     | '/portal/login'
+    | '/portal/roadmap'
     | '/walks/$slug'
     | '/ops/'
     | '/portal/'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/ops/queue'
     | '/portal/home'
     | '/portal/login'
+    | '/portal/roadmap'
     | '/walks/$slug'
     | '/ops'
     | '/ops/editor/$id'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/ops/queue'
     | '/portal/home'
     | '/portal/login'
+    | '/portal/roadmap'
     | '/walks_/$slug'
     | '/ops/'
     | '/portal/'
@@ -551,6 +563,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/walks/$slug'
       preLoaderRoute: typeof WalksSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/portal/roadmap': {
+      id: '/portal/roadmap'
+      path: '/roadmap'
+      fullPath: '/portal/roadmap'
+      preLoaderRoute: typeof PortalRoadmapRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/portal/login': {
       id: '/portal/login'
@@ -720,12 +739,14 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 interface PortalRouteChildren {
   PortalHomeRoute: typeof PortalHomeRoute
   PortalLoginRoute: typeof PortalLoginRoute
+  PortalRoadmapRoute: typeof PortalRoadmapRoute
   PortalIndexRoute: typeof PortalIndexRoute
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
   PortalHomeRoute: PortalHomeRoute,
   PortalLoginRoute: PortalLoginRoute,
+  PortalRoadmapRoute: PortalRoadmapRoute,
   PortalIndexRoute: PortalIndexRoute,
 }
 
