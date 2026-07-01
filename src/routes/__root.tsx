@@ -163,11 +163,25 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function CanonicalDomainRedirect() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const legacy = ["trust-tai.com", "www.trust-tai.com", "www.trusttai.com", "new.trusttai.com"];
+    const host = window.location.hostname.toLowerCase();
+    if (legacy.includes(host)) {
+      const target = `https://trusttai.com${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.replace(target);
+    }
+  }, []);
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
+      <CanonicalDomainRedirect />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster position="bottom-center" richColors />
