@@ -33,6 +33,7 @@ import { Route as OpsHistoryRouteImport } from './routes/ops/history'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
+import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as OpsSubmissionsIdRouteImport } from './routes/ops/submissions.$id'
 import { Route as OpsEditorIdRouteImport } from './routes/ops/editor.$id'
@@ -161,6 +162,11 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminClientPortalsRoute = AdminClientPortalsRouteImport.update({
+  id: '/client-portals',
+  path: '/client-portals',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AuthenticatedPortalRoute = AuthenticatedPortalRouteImport.update({
   id: '/portal',
   path: '/portal',
@@ -209,7 +215,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ops': typeof OpsRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/admin/client-portals': typeof AdminClientPortalsRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -240,7 +247,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/portal': typeof PortalIndexRoute
+  '/admin/client-portals': typeof AdminClientPortalsRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -273,7 +281,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/ops': typeof OpsRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
+  '/admin/client-portals': typeof AdminClientPortalsRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights_/$slug': typeof InsightsSlugRoute
@@ -317,6 +326,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/admin/client-portals'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/walks'
     | '/what-we-build'
     | '/portal'
+    | '/admin/client-portals'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/walks'
     | '/what-we-build'
     | '/_authenticated/portal'
+    | '/admin/client-portals'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights_/$slug'
@@ -406,7 +418,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   OpsRouteRoute: typeof OpsRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   BuildMyRoadmapRoute: typeof BuildMyRoadmapRoute
   InsightsRoute: typeof InsightsRoute
@@ -596,6 +608,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/client-portals': {
+      id: '/admin/client-portals'
+      path: '/client-portals'
+      fullPath: '/admin/client-portals'
+      preLoaderRoute: typeof AdminClientPortalsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_authenticated/portal': {
       id: '/_authenticated/portal'
       path: '/portal'
@@ -688,6 +707,16 @@ const OpsRouteRouteWithChildren = OpsRouteRoute._addFileChildren(
   OpsRouteRouteChildren,
 )
 
+interface AdminRouteChildren {
+  AdminClientPortalsRoute: typeof AdminClientPortalsRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminClientPortalsRoute: AdminClientPortalsRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface PortalRouteChildren {
   PortalHomeRoute: typeof PortalHomeRoute
   PortalLoginRoute: typeof PortalLoginRoute
@@ -708,7 +737,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   OpsRouteRoute: OpsRouteRouteWithChildren,
   AboutRoute: AboutRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BuildMyRoadmapRoute: BuildMyRoadmapRoute,
   InsightsRoute: InsightsRoute,

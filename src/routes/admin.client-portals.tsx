@@ -202,9 +202,9 @@ function PortalDetail({ id }: { id: string }) {
             </span>
           </div>
           <div>
-            Completed steps:{" "}
+            Completion:{" "}
             <span className="text-white">
-              {(data.onboarding?.completed_steps as string[] | null)?.join(", ") || "—"}
+              {data.onboarding?.completion_percent ?? 0}%
             </span>
           </div>
         </div>
