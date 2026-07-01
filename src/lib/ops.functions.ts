@@ -473,7 +473,7 @@ export const approveSubmission = createServerFn({ method: "POST" })
     // queue + cron live), not on the intake project.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const messageId = (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`) as string;
-    const recipient = (process.env.OPS_NOTIFY_EMAIL ?? "tai@trust-tai.com").trim().toLowerCase();
+    const recipient = (process.env.OPS_NOTIFY_EMAIL ?? "tai@trusttai.com").trim().toLowerCase();
     const { error: enqErr } = await (
       supabaseAdmin.rpc as unknown as (
         fn: string,
