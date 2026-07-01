@@ -288,3 +288,207 @@ export const adminUpdatePortal = createServerFn({ method: "POST" })
 
     return { ok: true as const };
   });
+
+// -------------------- Roadmap documents (client-facing) --------------------
+export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const email = context.claims?.email as string | undefined;
+    if (!email) return { docs: [] as Array<Record<string, unknown>> };
+
+    // Confirm active access (no revoked_at) before returning content.
+    const { data: access } = await context.supabase
+      .from("client_access")
+      .select("id, revoked_at")
+      .ilike("email", email)
+      .is("revoked_at", null)
+      .limit(1);
+    if (!access || access.length === 0) {
+      return { docs: [] as Array<Record<string, unknown>>, revoked: true as const };
+    }
+
+    const { data, error } = await context.supabase
+      .from("roadmap_documents")
+      .select("id, title, body_md, file_url, published_at, updated_at")
+      .ilike("client_email", email)
+      .order("published_at", { ascending: false });
+    if (error) throw error;
+    return { docs: data ?? [] };
+  });
+
+// -------------------- Resend welcome/magic link (client self-serve) --------------------
+async function sendWelcomeMagicLink(email: string) {
+  const normalized = email.trim().toLowerCase();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Require Stripe-confirmed access (client_access row with a stripe_session_id, not revoked).
+  const { data: access } = await supabaseAdmin
+    .from("client_access")
+    .select("id, revoked_at, stripe_session_id")
+    .ilike("email", normalized)
+    .is("revoked_at", null)
+    .limit(1);
+
+  const row = access?.[0];
+  if (!row || !row.stripe_session_id) {
+    return { ok: false as const, reason: "no_confirmed_access" as const };
+  }
+
+  const redirectTo =
+    (process.env.PUBLIC_SITE_URL ?? "https://new.trusttai.com") + "/portal";
+  const { data: linkData, error: linkError } =
+    await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email: normalized,
+      options: { redirectTo },
+    });
+  if (linkError || !linkData?.properties?.action_link) {
+    console.error("[portal.resend-welcome] generateLink failed", linkError);
+    return { ok: false as const, reason: "generate_failed" as const };
+  }
+
+  const actionLink = linkData.properties.action_link;
+  const messageId =
+    (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`) as string;
+
+  const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
+    <p>Welcome back.</p>
+    <p>Here is a fresh secure link to enter your Trust Tai client portal. It expires in 60 minutes.</p>
+    <p><a href="${actionLink}" style="display:inline-block;background:#0B1E3B;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;">Enter your portal</a></p>
+    <p style="color:#6B7280;font-size:13px;">If you didn't request this, you can ignore this email.</p>
+    <p>— Tai</p>
+  </div>`;
+
+  await (supabaseAdmin.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ error: unknown }>)("enqueue_email", {
+    queue_name: "transactional_emails",
+    payload: {
+      message_id: messageId,
+      queued_at: new Date().toISOString(),
+      to: normalized,
+      from: "Trust Tai <hello@trusttai.com>",
+      sender_domain: "notify.trusttai.com",
+      subject: "Your Trust Tai portal sign-in link",
+      html,
+      text: `Sign in to your Trust Tai portal:\n\n${actionLink}\n\nThis link expires in 60 minutes.`,
+      label: "portal-welcome-resend",
+      purpose: "transactional",
+      idempotency_key: `portal-welcome-${normalized}-${Date.now()}`,
+    },
+  });
+
+  const { data: projects } = await supabaseAdmin
+    .from("client_portal_projects")
+    .select("id")
+    .ilike("primary_email", normalized)
+    .limit(1);
+  const projectId = projects?.[0]?.id;
+  if (projectId) {
+    await (supabaseAdmin.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ error: unknown }>)("log_client_portal_activity", {
+      _project_id: projectId,
+      _actor_type: "system",
+      _actor_email: normalized,
+      _event_type: "welcome_resent",
+      _summary: "Welcome / sign-in link re-sent",
+      _client_visible: false,
+      _metadata: {},
+    });
+  }
+
+  return { ok: true as const };
+}
+
+export const resendPortalWelcome = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const email = context.claims?.email as string | undefined;
+    if (!email) return { ok: false as const, reason: "no_session" as const };
+    return sendWelcomeMagicLink(email);
+  });
+
+export const adminResendPortalWelcome = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ email: z.string().email(), project_id: z.string().uuid().optional() }).parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertOperator(context);
+    return sendWelcomeMagicLink(data.email);
+  });
+
+// -------------------- Admin: revoke / restore client access --------------------
+export const adminSetClientAccessRevoked = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        email: z.string().email(),
+        revoked: z.boolean(),
+        project_id: z.string().uuid().optional(),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    const operatorEmail = await assertOperator(context);
+    const email = data.email.trim().toLowerCase();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    const revokedValue = data.revoked ? now : null;
+
+    const [caRes, permRes] = await Promise.all([
+      (supabaseAdmin.from("client_access") as unknown as {
+        update: (v: Record<string, unknown>) => {
+          ilike: (k: string, v: string) => Promise<{ error: unknown }>;
+        };
+      })
+        .update({ revoked_at: revokedValue, updated_at: now })
+        .ilike("email", email),
+      (supabaseAdmin.from("client_portal_permissions") as unknown as {
+        update: (v: Record<string, unknown>) => {
+          ilike: (k: string, v: string) => Promise<{ error: unknown }>;
+        };
+      })
+        .update({ revoked_at: revokedValue })
+        .ilike("email", email),
+    ]);
+    if (caRes.error) throw caRes.error as Error;
+    if (permRes.error) throw permRes.error as Error;
+
+    // If revoking, sign out all existing sessions for this user so the
+    // active browser session cannot continue past its current token.
+    if (data.revoked) {
+      try {
+        const { data: userLookup } = await supabaseAdmin.auth.admin.listUsers();
+        const target = userLookup?.users?.find(
+          (u) => (u.email ?? "").toLowerCase() === email,
+        );
+        if (target) await supabaseAdmin.auth.admin.signOut(target.id);
+      } catch (e) {
+        console.warn("[portal.revoke] signOut failed", e);
+      }
+    }
+
+    if (data.project_id) {
+      await (supabaseAdmin.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: unknown }>)("log_client_portal_activity", {
+        _project_id: data.project_id,
+        _actor_type: "tai",
+        _actor_email: operatorEmail,
+        _event_type: data.revoked ? "access_revoked" : "access_restored",
+        _summary: data.revoked
+          ? `Access revoked for ${email}`
+          : `Access restored for ${email}`,
+        _client_visible: false,
+        _metadata: {},
+      });
+    }
+
+    return { ok: true as const, revoked_at: revokedValue };
+  });
