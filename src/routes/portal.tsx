@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Home, FileText, Folder, MessageSquare, CreditCard, User, LogOut } from "lucide-react";
-import { TrustTaiLogo } from "@/components/TrustTaiLogo";
+import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 
 export const Route = createFileRoute("/portal")({
   ssr: false,
