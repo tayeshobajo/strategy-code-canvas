@@ -12,22 +12,28 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatWeBuildRouteImport } from './routes/what-we-build'
 import { Route as WalksRouteImport } from './routes/walks'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as BuildMyRoadmapRouteImport } from './routes/build-my-roadmap'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as OpsRouteRouteImport } from './routes/ops/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
+import { Route as PortalLoginRouteImport } from './routes/portal.login'
+import { Route as PortalHomeRouteImport } from './routes/portal.home'
 import { Route as OpsQueueRouteImport } from './routes/ops/queue'
 import { Route as OpsInsightsRouteImport } from './routes/ops/insights'
 import { Route as OpsHistoryRouteImport } from './routes/ops/history'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
+import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as OpsSubmissionsIdRouteImport } from './routes/ops/submissions.$id'
 import { Route as OpsEditorIdRouteImport } from './routes/ops/editor.$id'
@@ -52,6 +58,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InvestmentRoute = InvestmentRouteImport.update({
   id: '/investment',
   path: '/investment',
@@ -70,6 +81,11 @@ const BuildMyRoadmapRoute = BuildMyRoadmapRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -91,6 +107,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRoute,
+} as any)
 const OpsIndexRoute = OpsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -100,6 +121,16 @@ const WalksSlugRoute = WalksSlugRouteImport.update({
   id: '/walks_/$slug',
   path: '/walks/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PortalLoginRoute = PortalLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalHomeRoute = PortalHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => PortalRoute,
 } as any)
 const OpsQueueRoute = OpsQueueRouteImport.update({
   id: '/queue',
@@ -130,6 +161,11 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   id: '/checkout/return',
   path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminClientPortalsRoute = AdminClientPortalsRouteImport.update({
+  id: '/client-portals',
+  path: '/client-portals',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AuthenticatedPortalRoute = AuthenticatedPortalRouteImport.update({
   id: '/portal',
@@ -179,22 +215,27 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ops': typeof OpsRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
+  '/portal': typeof AuthenticatedPortalRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
-  '/portal': typeof AuthenticatedPortalRoute
+  '/admin/client-portals': typeof AdminClientPortalsRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
+  '/portal/home': typeof PortalHomeRoute
+  '/portal/login': typeof PortalLoginRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -206,6 +247,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
@@ -213,13 +255,16 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
-  '/portal': typeof AuthenticatedPortalRoute
+  '/portal': typeof PortalIndexRoute
+  '/admin/client-portals': typeof AdminClientPortalsRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
+  '/portal/home': typeof PortalHomeRoute
+  '/portal/login': typeof PortalLoginRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops': typeof OpsIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
@@ -236,22 +281,28 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/ops': typeof OpsRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
+  '/portal': typeof PortalRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
+  '/admin/client-portals': typeof AdminClientPortalsRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights_/$slug': typeof InsightsSlugRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
+  '/portal/home': typeof PortalHomeRoute
+  '/portal/login': typeof PortalLoginRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -266,22 +317,27 @@ export interface FileRouteTypes {
     | '/'
     | '/ops'
     | '/about'
+    | '/admin'
     | '/auth'
     | '/build-my-roadmap'
     | '/insights'
     | '/investment'
+    | '/portal'
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
-    | '/portal'
+    | '/admin/client-portals'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
+    | '/portal/home'
+    | '/portal/login'
     | '/walks/$slug'
     | '/ops/'
+    | '/portal/'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
     | '/api/public/hooks/build-roadmap-contact'
@@ -293,6 +349,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/admin'
     | '/auth'
     | '/build-my-roadmap'
     | '/insights'
@@ -301,12 +358,15 @@ export interface FileRouteTypes {
     | '/walks'
     | '/what-we-build'
     | '/portal'
+    | '/admin/client-portals'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
+    | '/portal/home'
+    | '/portal/login'
     | '/walks/$slug'
     | '/ops'
     | '/ops/editor/$id'
@@ -322,22 +382,28 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/ops'
     | '/about'
+    | '/admin'
     | '/auth'
     | '/build-my-roadmap'
     | '/insights'
     | '/investment'
+    | '/portal'
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
     | '/_authenticated/portal'
+    | '/admin/client-portals'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights_/$slug'
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
+    | '/portal/home'
+    | '/portal/login'
     | '/walks_/$slug'
     | '/ops/'
+    | '/portal/'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
     | '/api/public/hooks/build-roadmap-contact'
@@ -352,10 +418,12 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   OpsRouteRoute: typeof OpsRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   BuildMyRoadmapRoute: typeof BuildMyRoadmapRoute
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
+  PortalRoute: typeof PortalRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WalksRoute: typeof WalksRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
@@ -393,6 +461,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/investment': {
       id: '/investment'
       path: '/investment'
@@ -419,6 +494,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -449,6 +531,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/ops/': {
       id: '/ops/'
       path: '/'
@@ -462,6 +551,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/walks/$slug'
       preLoaderRoute: typeof WalksSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/portal/login': {
+      id: '/portal/login'
+      path: '/login'
+      fullPath: '/portal/login'
+      preLoaderRoute: typeof PortalLoginRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/home': {
+      id: '/portal/home'
+      path: '/home'
+      fullPath: '/portal/home'
+      preLoaderRoute: typeof PortalHomeRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/ops/queue': {
       id: '/ops/queue'
@@ -504,6 +607,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/checkout/return'
       preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/client-portals': {
+      id: '/admin/client-portals'
+      path: '/client-portals'
+      fullPath: '/admin/client-portals'
+      preLoaderRoute: typeof AdminClientPortalsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/_authenticated/portal': {
       id: '/_authenticated/portal'
@@ -597,15 +707,42 @@ const OpsRouteRouteWithChildren = OpsRouteRoute._addFileChildren(
   OpsRouteRouteChildren,
 )
 
+interface AdminRouteChildren {
+  AdminClientPortalsRoute: typeof AdminClientPortalsRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminClientPortalsRoute: AdminClientPortalsRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface PortalRouteChildren {
+  PortalHomeRoute: typeof PortalHomeRoute
+  PortalLoginRoute: typeof PortalLoginRoute
+  PortalIndexRoute: typeof PortalIndexRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalHomeRoute: PortalHomeRoute,
+  PortalLoginRoute: PortalLoginRoute,
+  PortalIndexRoute: PortalIndexRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   OpsRouteRoute: OpsRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BuildMyRoadmapRoute: BuildMyRoadmapRoute,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
+  PortalRoute: PortalRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WalksRoute: WalksRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
