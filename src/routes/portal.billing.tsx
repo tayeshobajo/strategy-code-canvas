@@ -101,11 +101,50 @@ function BillingPage() {
   const ctx = usePortalContext();
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
-  const { data, isLoading, isError, refetch } = useBilling(projectId);
+  const { data, isLoading, isError, refetch, dataUpdatedAt, isFetching } = useBilling(projectId);
   const qc = useQueryClient();
   const portalFn = useServerFn(createBillingPortalSession);
   const cancelFn = useServerFn(cancelSubscription);
   const reactivateFn = useServerFn(reactivateSubscription);
+
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "live" | "offline">(
+    "connecting",
+  );
+  const [nowTick, setNowTick] = useState(Date.now());
+  const prevStatusRef = useRef<Map<string, string>>(new Map());
+  const prevSubStatusRef = useRef<string | null>(null);
+
+  // Tick every 30s so "last updated" label stays fresh.
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Diff invoice/subscription statuses across refreshes and toast on change.
+  useEffect(() => {
+    if (!data) return;
+    const next = new Map<string, string>();
+    for (const inv of data.invoices) next.set(inv.id, inv.payment_status);
+    if (prevStatusRef.current.size > 0) {
+      for (const [id, status] of next) {
+        const prev = prevStatusRef.current.get(id);
+        if (prev && prev !== status) {
+          const inv = data.invoices.find((i) => i.id === id);
+          const label = inv?.stripe_invoice_id
+            ? `INV-${inv.stripe_invoice_id.slice(-8).toUpperCase()}`
+            : "Invoice";
+          toast.info(`${label} status updated: ${capitalize(status)}`);
+        }
+      }
+    }
+    prevStatusRef.current = next;
+
+    const subStatus = data.subscription?.status ?? null;
+    if (prevSubStatusRef.current && subStatus && prevSubStatusRef.current !== subStatus) {
+      toast.info(`Subscription status: ${capitalize(subStatus)}`);
+    }
+    prevSubStatusRef.current = subStatus;
+  }, [data]);
 
   const openBillingPortal = useMutation({
     mutationFn: async () => {
