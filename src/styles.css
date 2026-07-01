@@ -33,6 +33,8 @@
   --color-royal: var(--royal);
   --color-royal-soft: var(--royal-soft);
   --color-rule: var(--rule);
+  --color-paper-soft: var(--paper-soft);
+  --color-rule-soft: var(--rule-soft);
   --font-display: "Cormorant Garamond", "Times New Roman", serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
