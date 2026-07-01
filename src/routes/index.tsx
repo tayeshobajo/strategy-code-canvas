@@ -580,11 +580,13 @@ function Index() {
     <div className="min-h-screen bg-paper text-ink">
       <SiteHeader />
       <div className="h-20 sm:h-24" aria-hidden="true" />
-      <Hero />
-      <ClientMarquee />
-      <FeatureStrip />
-      <RoadmapSection />
-      <Pricing />
+      <main id="main">
+        <Hero />
+        <ClientMarquee />
+        <FeatureStrip />
+        <RoadmapSection />
+        <Pricing />
+      </main>
       <SiteClosing
         headline={<>The Roadmap is where the next two years <Accent>stop being a guess</Accent>.</>}
         supporting={<>One conversation. One document. The distance from where you are to where you need to be, drawn before the first build begins.</>}
