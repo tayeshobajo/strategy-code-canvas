@@ -694,3 +694,63 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
+function SyncIndicator({
+  status,
+  lastUpdated,
+  nowTick,
+  isFetching,
+  onRefresh,
+}: {
+  status: "connecting" | "live" | "offline";
+  lastUpdated: number;
+  nowTick: number;
+  isFetching: boolean;
+  onRefresh: () => void;
+}) {
+  const rel = relativeTime(lastUpdated, nowTick);
+  const dot =
+    status === "live"
+      ? "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
+      : status === "connecting"
+        ? "bg-amber-400"
+        : "bg-ink/30";
+  const label =
+    status === "live" ? "Live" : status === "connecting" ? "Connecting" : "Offline";
+  return (
+    <div className="inline-flex items-center gap-3 rounded-full border border-rule-soft bg-card px-3 py-1.5 text-[12px] text-ink/70">
+      <span className="inline-flex items-center gap-1.5">
+        <span className={`w-2 h-2 rounded-full ${dot} ${status === "live" ? "animate-pulse" : ""}`} />
+        <span className="font-medium text-ink/80">{label}</span>
+      </span>
+      {lastUpdated > 0 && (
+        <span className="text-ink/50" title={new Date(lastUpdated).toLocaleString()}>
+          Updated {rel}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={isFetching}
+        className="inline-flex items-center gap-1 text-royal hover:underline disabled:opacity-50"
+        aria-label="Refresh billing"
+      >
+        <RefreshCw className={`w-3 h-3 ${isFetching ? "animate-spin" : ""}`} />
+        Refresh
+      </button>
+    </div>
+  );
+}
+
+function relativeTime(ts: number, now: number) {
+  if (!ts) return "just now";
+  const diff = Math.max(0, Math.floor((now - ts) / 1000));
+  if (diff < 10) return "just now";
+  if (diff < 60) return `${diff}s ago`;
+  const m = Math.floor(diff / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return new Date(ts).toLocaleDateString();
+}
+
