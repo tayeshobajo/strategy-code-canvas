@@ -318,13 +318,15 @@ function WhatWeBuild() {
       <div className="relative z-10">
         <SiteHeader />
         <div className="h-20 sm:h-24" aria-hidden="true" />
-        <Hero />
-        <FeatureRow />
-        <MappedPath activePhase={activePhase} />
-        <Milestones activeIndex={activeIndex} onSelect={setActiveIndex} />
-        <IntelligenceLayer />
-        <StandardsRow />
-        <BeforeAfter />
+        <main id="main">
+          <Hero />
+          <FeatureRow />
+          <MappedPath activePhase={activePhase} />
+          <Milestones activeIndex={activeIndex} onSelect={setActiveIndex} />
+          <IntelligenceLayer />
+          <StandardsRow />
+          <BeforeAfter />
+        </main>
       </div>
       <SiteClosing
         headline={<>The build is never the point. <Accent>The position it earns you is.</Accent></>}
