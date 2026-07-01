@@ -131,7 +131,11 @@ function PortalLayout() {
       <footer className="bg-ink text-white/60">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-5 text-[12px] sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <TrustTaiLogo variant="white" className="h-5 w-auto opacity-80" />
+            <img
+              src={logoWhite.url}
+              alt="Trust Tai"
+              className="h-5 w-auto opacity-80"
+            />
             <span className="font-mono uppercase tracking-[0.22em] text-white/40">
               Client Portal · Secure
             </span>
