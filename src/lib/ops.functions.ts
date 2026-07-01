@@ -670,6 +670,10 @@ export const getAnalytics = createServerFn({ method: "POST" })
 
     return {
       range_days: data.range_days,
+      from: fromIso,
+      to: toIso,
+      outcome: data.outcome,
+
       totals: {
         new_submissions: totalSubmissions,
         review_backlog: backlog,
