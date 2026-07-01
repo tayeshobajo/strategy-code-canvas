@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
-import { ClipboardList, Users } from "lucide-react";
+import { ClipboardList, Users, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
