@@ -14,10 +14,10 @@ const brand = {
   sans: `Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif`,
 };
 
-// Absolute URL required for email clients. Uses the site's custom domain so
-// the image loads reliably in Gmail / Outlook / Apple Mail.
-const LOGO_URL =
-  "https://trusttai.com/__l5e/assets-v1/d439b2e1-d22d-4921-a689-edcde5334ba4/trust-tai-logo.png";
+// Absolute URL required for email clients. Built from the resolved site URL
+// so switching PUBLIC_SITE_URL updates the logo host with no code changes.
+const LOGO_PATH =
+  "/__l5e/assets-v1/d439b2e1-d22d-4921-a689-edcde5334ba4/trust-tai-logo.png";
 
 function escapeHtml(input: string): string {
   return input
