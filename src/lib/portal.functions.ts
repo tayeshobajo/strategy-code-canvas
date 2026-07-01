@@ -399,13 +399,9 @@ async function sendWelcomeMagicLink(email: string) {
     `${Date.now()}-${Math.random()}`) as string;
   const unsubscribeToken = await ensureUnsubscribeToken(supabaseAdmin, normalized);
 
-  const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
-    <p>Welcome back.</p>
-    <p>Here is a fresh secure link to enter your Trust Tai client portal. It expires in 60 minutes.</p>
-    <p><a href="${actionLink}" style="display:inline-block;background:#0B1E3B;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;">Enter your portal</a></p>
-    <p style="color:#6B7280;font-size:13px;">If you didn't request this, you can ignore this email.</p>
-    <p>— Tai</p>
-  </div>`;
+  const intro = "Here is a fresh secure link to enter your Trust Tai client portal. It expires in 60 minutes.";
+  const html = renderPortalMagicLinkHtml({ actionLink, intro });
+  const text = renderPortalMagicLinkText(actionLink, intro);
 
   await (
     supabaseAdmin.rpc as unknown as (
