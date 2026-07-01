@@ -66,35 +66,47 @@ function PortalLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-paper">
       <SiteHeader />
-      <div className="flex-1 flex pt-24">
-        <aside className="w-64 flex-shrink-0 bg-ink text-white flex flex-col">
-          <div className="px-6 py-7 border-b border-white/10">
+      <div className="flex-1 flex flex-col lg:flex-row pt-24">
+        {/* Sidebar: full-height on desktop, horizontal scroll strip on mobile */}
+        <aside className="lg:w-64 lg:flex-shrink-0 bg-ink text-white flex flex-col">
+          <div className="hidden lg:block px-6 py-7 border-b border-white/10">
             <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
               Trust Tai
             </div>
             <div className="font-display text-lg mt-1">Client Portal</div>
           </div>
-          <nav className="flex-1 px-3 py-6 space-y-1">
+          <nav
+            aria-label="Portal navigation"
+            className="flex lg:block overflow-x-auto lg:overflow-visible lg:flex-1 px-3 py-3 lg:py-6 gap-1 lg:gap-0 lg:space-y-1"
+          >
             {NAV.map((item) => {
-              const active = pathname === item.to || pathname.startsWith(item.to + "/");
+              const active =
+                pathname === item.to || pathname.startsWith(item.to + "/");
               const Icon = item.icon;
               return (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+                  aria-current={active ? "page" : undefined}
+                  className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-md text-sm whitespace-nowrap transition-colors ${
                     active
                       ? "bg-white/10 text-white"
                       : "text-white/70 hover:text-white hover:bg-white/5"
                   }`}
                 >
+                  <span
+                    aria-hidden
+                    className={`hidden lg:block absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
+                      active ? "bg-royal opacity-100" : "opacity-0 group-hover:opacity-40 bg-white"
+                    }`}
+                  />
                   <Icon className="w-4 h-4" />
                   {item.label}
                 </Link>
               );
             })}
           </nav>
-          <div className="px-4 py-5 border-t border-white/10 text-xs text-white/60">
+          <div className="hidden lg:block px-4 py-5 border-t border-white/10 text-xs text-white/60">
             <div className="truncate mb-2">{email}</div>
             <button
               onClick={signOut}
@@ -105,7 +117,7 @@ function PortalLayout() {
           </div>
         </aside>
 
-        <main className="flex-1 p-6 lg:p-10">
+        <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
           <Outlet />
         </main>
       </div>

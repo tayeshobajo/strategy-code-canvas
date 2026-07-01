@@ -12,6 +12,28 @@ function isOperator(email: string | null | undefined) {
   return !!email && OPERATOR_EMAILS.has(email.toLowerCase());
 }
 
+// Get-or-create an unsubscribe token for a recipient. Required by the
+// transactional email sender.
+async function ensureUnsubscribeToken(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseAdmin: any,
+  email: string,
+): Promise<string> {
+  const { data: existing } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .ilike("email", email)
+    .limit(1)
+    .maybeSingle();
+  if (existing?.token) return existing.token as string;
+  const token = (globalThis.crypto?.randomUUID?.() ??
+    `${Date.now()}-${Math.random()}`) as string;
+  await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .insert({ token, email });
+  return token;
+}
+
 // -------------------- Nav access check (client-facing) --------------------
 export type PortalAccessStatus = "active" | "revoked" | "none";
 export const checkPortalAccess = createServerFn({ method: "GET" })
@@ -85,6 +107,7 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
     const actionLink = linkData.properties.action_link;
     const messageId = (globalThis.crypto?.randomUUID?.() ??
       `${Date.now()}-${Math.random()}`) as string;
+    const unsubscribeToken = await ensureUnsubscribeToken(supabaseAdmin, email);
 
     const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
       <p>Welcome back.</p>
@@ -113,6 +136,7 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
         label: "portal-magic-link",
         purpose: "transactional",
         idempotency_key: `portal-magic-${email}-${Date.now()}`,
+        unsubscribe_token: unsubscribeToken,
       },
     });
 
@@ -374,6 +398,7 @@ async function sendWelcomeMagicLink(email: string) {
   const actionLink = linkData.properties.action_link;
   const messageId = (globalThis.crypto?.randomUUID?.() ??
     `${Date.now()}-${Math.random()}`) as string;
+  const unsubscribeToken = await ensureUnsubscribeToken(supabaseAdmin, normalized);
 
   const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
     <p>Welcome back.</p>
@@ -402,6 +427,7 @@ async function sendWelcomeMagicLink(email: string) {
       label: "portal-welcome-resend",
       purpose: "transactional",
       idempotency_key: `portal-welcome-${normalized}-${Date.now()}`,
+      unsubscribe_token: unsubscribeToken,
     },
   });
 
