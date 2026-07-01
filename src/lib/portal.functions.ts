@@ -331,6 +331,7 @@ export const getPortalContext = createServerFn({ method: "GET" })
       approvedRoadmap: roadmapRes.data?.[0] ?? null,
       billing: billingRes.data ?? [],
       isOperator: isOperator(email),
+      correlationId,
     };
   });
 
