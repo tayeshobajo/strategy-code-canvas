@@ -168,12 +168,60 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+// -------------------- Access telemetry --------------------
+async function logPortalAccessEvent(fields: {
+  event_type: string;
+  email?: string | null;
+  user_id?: string | null;
+  has_client_access?: boolean;
+  has_permission?: boolean;
+  has_project?: boolean;
+  project_id?: string | null;
+  route?: string | null;
+  correlation_id?: string | null;
+  metadata?: Record<string, unknown>;
+}) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let userAgent: string | null = null;
+    try {
+      const { getRequestHeader } = await import("@tanstack/react-start/server");
+      userAgent = getRequestHeader("user-agent") ?? null;
+    } catch {
+      // request context unavailable
+    }
+    await supabaseAdmin.from("portal_access_events").insert({
+      event_type: fields.event_type,
+      email: fields.email ?? null,
+      user_id: fields.user_id ?? null,
+      has_client_access: fields.has_client_access ?? null,
+      has_permission: fields.has_permission ?? null,
+      has_project: fields.has_project ?? null,
+      project_id: fields.project_id ?? null,
+      route: fields.route ?? null,
+      user_agent: userAgent,
+      correlation_id: fields.correlation_id ?? null,
+      metadata: fields.metadata ?? {},
+    });
+  } catch (err) {
+    console.error("[portal.telemetry] failed to log access event", err);
+  }
+}
+
 // -------------------- Client-facing context --------------------
 export const getPortalContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const email = context.claims?.email as string | undefined;
-    if (!email) return { hasAccess: false as const };
+    const userId = context.userId as string | undefined;
+    if (!email) {
+      await logPortalAccessEvent({
+        event_type: "missing_email_claim",
+        user_id: userId ?? null,
+        route: "getPortalContext",
+      });
+      return { hasAccess: false as const };
+    }
 
     const { data: project } = await context.supabase
       .from("client_portal_projects")
@@ -181,7 +229,44 @@ export const getPortalContext = createServerFn({ method: "GET" })
       .ilike("primary_email", email)
       .maybeSingle();
 
-    if (!project) return { hasAccess: false as const, email };
+    if (!project) {
+      // Diagnose: is there a client_access or permission row for this email?
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const [caRes, permRes] = await Promise.all([
+        supabaseAdmin
+          .from("client_access")
+          .select("id, revoked_at, stripe_session_id")
+          .ilike("email", email),
+        supabaseAdmin
+          .from("client_portal_permissions")
+          .select("id, revoked_at, project_id")
+          .ilike("email", email),
+      ]);
+      const caRows = caRes.data ?? [];
+      const permRows = permRes.data ?? [];
+      const hasClientAccess = caRows.some((r) => !r.revoked_at);
+      const hasPermission = permRows.some((r) => !r.revoked_at);
+      const eventType =
+        hasClientAccess || hasPermission
+          ? "missing_workspace" // access granted but no client_portal_projects row
+          : "unknown_email"; // signed in but no access row at all
+      await logPortalAccessEvent({
+        event_type: eventType,
+        email,
+        user_id: userId ?? null,
+        has_client_access: hasClientAccess,
+        has_permission: hasPermission,
+        has_project: false,
+        route: "getPortalContext",
+        metadata: {
+          client_access_rows: caRows.length,
+          client_access_stripe_confirmed: caRows.some((r) => !!r.stripe_session_id && !r.revoked_at),
+          permission_rows: permRows.length,
+          permission_project_ids: permRows.map((r) => r.project_id).filter(Boolean),
+        },
+      });
+      return { hasAccess: false as const, email };
+    }
 
     // Sync client_access user_id linkage
     await context.supabase.rpc("sync_client_access_user").throwOnError();
