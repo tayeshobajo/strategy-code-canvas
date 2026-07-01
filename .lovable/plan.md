@@ -1,56 +1,81 @@
 ## Goal
 
-Rebuild `/portal/home` (and share the same shell with `/portal/onboarding` and `/portal/access-denied`) around the selected "Premium editorial" direction so the sidebar, main card, and footer read as one system.
+Replace the four placeholder portal routes with fully functional pages backed by existing tables (`client_portal_messages`, `client_portal_files`, `client_portal_billing`, `client_portal_projects`, `subscriptions`) and Supabase auth. All pages share the existing `PortalPage` shell (ivory canvas, ink sidebar) and use the editorial visual language from the uploaded references — adapted, not copied pixel-for-pixel.
 
-## What changes
+## 1. Shared plumbing (`src/lib/portal.functions.ts`)
 
-### 1. Portal shell (`src/routes/portal.tsx` + `src/components/portal/PortalPage.tsx`)
+Add these `createServerFn` calls, all `.middleware([requireSupabaseAuth])` and scoped to the caller's project via `client_portal_permissions` (already used by `current_client_portal_project_id`):
 
-- Drop the top `SiteHeader`; the sidebar becomes the sole chrome inside the app frame.
-- Two-region layout: `<aside>` (ink sidebar) + `<main>` (ivory canvas). Below both, one shared ink footer band. No white gap between sidebar and footer — the ink color continues straight down.
-- Sidebar refinements:
-  - Compact 256px width, `bg-ink` with `border-r border-white/5`.
-  - Logo lockup at the top (existing Trust Tai logo asset) + small "Client Portal" eyebrow.
-  - Active nav item: `bg-royal/10` text-white with a 2px left border in royal blue. Inactive: slate-400 hover white.
-  - Sign-out block stays pinned at the bottom with a `border-t border-white/5` divider.
-- `PortalPage` becomes a single centered container (`max-w-3xl`) with generous vertical padding, so every portal page uses the same rhythm.
+- `getPortalContext()` → `{ project, permissions, profile }` — one call the shell can prime so every page shares project/phase info shown in the header strip.
+- `listPortalMessages()` → messages for the active project where `visible_to_client = true`, ordered by `created_at desc`.
+- `sendPortalMessage({ body, subject? })` → insert into `client_portal_messages` with `sender_type='client'`, `author_email=claims.email`, `visible_to_client=true`. (Distinct from the legacy `portal_messages` insert in `src/utils/portal.functions.ts`.)
+- `listPortalFiles()` → files for active project where `client_visible = true AND is_internal = false`.
+- `createPortalFileUploadUrl({ fileName, mimeType, sizeBytes })` → validate size/mime, call `storage.from('client-portal-files').createSignedUploadUrl(...)`, insert the `client_portal_files` row with `uploaded_by_role='client'`, return `{ signedUrl, token, path, fileId }`.
+- `createPortalFileDownloadUrl({ fileId })` → signed GET URL, permission-checked.
+- `getPortalBilling()` → latest `client_portal_billing` row + (if present) active `subscriptions` row for `claims.email`.
+- `updatePortalProfile({ fullName, companyName?, role?, website?, industry? })` → upsert into `client_access` metadata JSON (no schema change; use existing `metadata` column pattern).
 
-### 2. Pending-workspace card (`src/routes/portal.home.tsx` → `PendingWorkspacePanel`)
+Each function returns `{ error }` on failure instead of throwing so the UI can render inline error state.
 
-Replace the current stacked card with an editorial three-part card:
+## 2. Messages — `src/routes/portal.messages.tsx`
 
-- Header block (p-10): pulsing royal dot + eyebrow "Workspace setup in progress", Cormorant Garamond H1 "Welcome back, {name}. We're preparing your environment.", intro copy.
-- Stepper (p-10, absolute vertical hairline behind circles):
-  1. Access confirmed — filled royal circle with check.
-  2. Workspace being created — white circle, 2px royal border, royal "2", sub-copy "Estimated turnaround: one business day.".
-  3. Roadmap published — muted circle "3".
-  4. Engagement begins — muted circle "4".
-- Action bar (p-8, `bg-paper-soft` top-border): primary "Resend sign-in link" (ink bg) + secondary "Contact Tai" (white with border).
+Real inbox threaded by day. Layout:
 
-Keep the existing correlation-id logging, `resendPortalWelcome` action, and toast behavior — only the presentation changes.
+- Left/main column: grouped-by-date list of `client_portal_messages` cards showing sender avatar (Trust Tai monogram vs. client initials), timestamp, subject, body, `Update` / `Your reply` badge, and any `related_file_ids` chips linking to `/portal/files`.
+- Right rail (desktop only, hides <lg): conversation summary counts (updates, replies, open action items) derived client-side from the message list, plus "Attached files" (latest 3) and a help card.
+- Composer pinned to bottom of the main column with a Textarea + Send button wired to `sendPortalMessage`; optimistic append via `useMutation` + `queryClient.invalidateQueries`.
+- States: skeleton rows while loading; empty state ("No messages yet. Trust Tai will post updates here."); error state with retry that calls `router.invalidate()`.
+- Tabs (All / Updates from Trust Tai / Your replies / Action items) filter the in-memory list.
 
-### 3. Footer band
+## 3. Account — `src/routes/portal.account.tsx`
 
-- Replace the current `SiteFooter` inside portal routes with a slimmer variant matching the direction: ink background, 4-column grid (Trust Tai lockup + tagline, Navigate, Connect, Start CTA), hairline top border, muted uppercase column labels.
-- Reuse existing footer link data from `SiteFooter` so nothing goes missing; this is a visual reskin only.
+Two-column layout matching the reference:
 
-### 4. Applied across portal routes
+- Main column
+  - "Profile information" card: name, role, email (read-only), company, website, industry. Edit mode toggled by "Edit profile" button; save calls `updatePortalProfile`.
+  - "Login & Security" card: login method (Magic link via email), last login (from `auth.users.last_sign_in_at` via `supabase.auth.getUser()`), active sessions count (1, current device), "Resend login link" button calling the existing `resendPortalWelcome` action.
+  - "Notification preferences" card: three toggles (email updates, new messages, milestones). Persist to `client_access.notification_prefs` JSON via `updatePortalProfile`.
+- Right rail
+  - "Portal access" status card driven by `checkPortalAccess` (active/revoked badge, granted date from `client_portal_permissions.granted_at`, tied-to package from `client_portal_projects.package_name`).
+  - "Need help" card + Quick actions list (Resend login link, Update email → mailto, Sign out of all devices → `supabase.auth.signOut({ scope: 'global' })`).
 
-- `/portal/home` — new pending-workspace card + existing hydrated dashboard reskinned to the same card language (ivory canvas, elevated white card, ink header type).
-- `/portal/onboarding` and `/portal/access-denied` — inherit the shared `PortalPage` container and matching footer so they visually belong to the same system.
+## 4. Files — `src/routes/portal.files.tsx`
 
-### 5. Tokens
+- Header strip: search input, category filter, file-type filter, sort dropdown, list/grid toggle (grid = optional; ship list first).
+- Recent files row: horizontally scrollable cards for the 4 most recent files.
+- All files table: name (icon + title), category chip, uploaded by, date, size, download button, kebab menu (download + copy link). Download calls `createPortalFileDownloadUrl` then `window.open`.
+- Right rail: upload dropzone (drag/drop + "Choose files" button) using the two-step signed-upload pattern (`createPortalFileUploadUrl` → `PUT` to signed URL → refetch list). Enforce 100 MB client-side. Categories list with counts + storage bar (sum of `size_bytes` / configured quota, e.g. 10 GB).
+- States: skeleton table, empty state ("Nothing shared yet"), per-row upload progress, upload error toast, list error with retry.
+- Only render the upload card when `permissions.can_upload_files` is true.
 
-Add two helpers to `src/styles.css` under `@theme` (no palette changes):
+## 5. Billing — `src/routes/portal.billing.tsx`
 
-```css
---color-paper-soft: oklch(0.985 0.004 90);   /* card action-bar bg */
---color-rule-soft: oklch(0.92 0.005 90);     /* card border */
+- "Package summary" card: package cover (reuse `roadmap-hero-mountain` asset as the visual), package name from `client_portal_projects.package_name`, description, feature bullets from `client_portal_projects.metadata.features` (fallback to a hard-coded 4-bullet default), engagement status badge, current phase, next milestone.
+- "Payment overview" strip: four tiles (status, amount paid, payment date, receipt link) sourced from `client_portal_billing`.
+- "Invoice history" table: all `client_portal_billing` rows for the project.
+- Right rail: "Next payment" card (one-time vs. recurring — check for a matching `subscriptions` row; if `subscription.status='active'` show next period end, else "No upcoming payments"), "Manage your billing" card with a button that calls the existing `createBillingPortalSession` server fn and redirects to the returned Stripe URL, "Questions about billing" help card.
+- Footer strip: Stripe security notice.
+- States: skeleton, empty ("No billing on file yet"), error with retry. Hide the whole page and show a graceful message when `permissions.can_view_billing` is false.
+
+## 6. Data loading pattern
+
+Every page follows the TanStack Query + loader pattern already used elsewhere:
+
+```ts
+loader: ({ context }) => context.queryClient.ensureQueryData(portalMessagesQueryOptions())
+component: () => { const { data } = useSuspenseQuery(portalMessagesQueryOptions()); ... }
+errorComponent: RetryError
 ```
 
-All other colors reuse existing `ink`, `royal`, `paper`, `muted` tokens.
+Query keys: `['portal','messages', projectId]`, `['portal','files', projectId]`, `['portal','billing', projectId]`, `['portal','account']`.
+
+## 7. Storage bucket
+
+`client-portal-files` bucket already exists (private). Add RLS on `storage.objects` in a new migration allowing authenticated users to `SELECT`/`INSERT` objects whose `storage_path` maps to a `client_portal_files` row owned by their active project (via `current_client_portal_project_id()`). Signed URLs bypass RLS but still require the bucket policy for the initial upload token.
 
 ## Out of scope
 
-- No changes to auth, magic-link server functions, sidebar route list, or copy on other portal pages beyond what's needed to fit the shared container.
-- Email templates untouched.
+- Real-time subscriptions (poll on tab focus via React Query's default `refetchOnWindowFocus`).
+- Two-factor auth (surface as "Coming soon" per the reference).
+- Grid view for files (list view only in v1).
+- Editing/deleting messages after send.
