@@ -156,6 +156,32 @@ function BillingPage() {
   const latest = data?.invoices?.[0];
   const isRecurringActive = data?.subscription?.status === "active";
 
+  // Realtime: reflect Stripe webhook updates instantly.
+  useEffect(() => {
+    if (!projectId) return;
+    const channel = supabase
+      .channel(`portal-billing-${projectId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "client_portal_billing",
+          filter: `project_id=eq.${projectId}`,
+        },
+        () => qc.invalidateQueries({ queryKey: ["portal", "billing", projectId] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "subscriptions" },
+        () => qc.invalidateQueries({ queryKey: ["portal", "billing", projectId] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, qc]);
+
   return (
     <div className="max-w-6xl mx-auto grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-6">
