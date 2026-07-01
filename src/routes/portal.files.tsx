@@ -131,6 +131,7 @@ function FilesPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [queue, setQueue] = useState<UploadItem[]>([]);
+  const [preview, setPreview] = useState<FileRow | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const updateItem = useCallback((id: string, patch: Partial<UploadItem>) => {
