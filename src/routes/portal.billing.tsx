@@ -62,6 +62,8 @@ function useBilling(projectId?: string) {
   return useQuery({
     queryKey: ["portal", "billing", projectId],
     enabled: !!projectId,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
     queryFn: async (): Promise<{
       invoices: BillingRow[];
       subscription: SubscriptionRow | null;
