@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const OPERATOR_EMAILS = new Set(["hello@trust-tai.com"]);
+const OPERATOR_EMAILS = new Set([
+  "hello@trust-tai.com",
+  "tai@trust-tai.com",
+  "henry@trust-tai.com",
+]);
 
 function isOperator(email: string | null | undefined) {
   return !!email && OPERATOR_EMAILS.has(email.toLowerCase());
