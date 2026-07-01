@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { requestPortalMagicLink } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +27,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
+  const sendPortalLink = useServerFn(requestPortalMagicLink);
   const [email, setEmail] = useState(search.email ?? "");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -45,16 +48,14 @@ function AuthPage() {
     e.preventDefault();
     setErr(null);
     setBusy(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}${search.redirect || "/portal"}`,
-        shouldCreateUser: true,
-      },
-    });
-    setBusy(false);
-    if (error) setErr(error.message);
-    else setSent(true);
+    try {
+      await sendPortalLink({ data: { email: email.trim().toLowerCase() } });
+      setSent(true);
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
