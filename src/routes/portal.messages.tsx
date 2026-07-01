@@ -204,8 +204,9 @@ function MessagesPage() {
             className="border-t border-rule-soft p-4 sm:p-5 bg-paper-soft"
             onSubmit={(e) => {
               e.preventDefault();
-              if (!body.trim() || !projectId) return;
-              send.mutate();
+              const text = body.trim();
+              if (!text || !projectId) return;
+              send.mutate(text);
             }}
           >
             <Textarea
