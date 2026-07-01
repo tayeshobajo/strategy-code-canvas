@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -56,43 +58,54 @@ function AuthPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 bg-background">
-      <div className="w-full max-w-md space-y-6">
-        <header className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Sign in to your portal
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Enter the email you used when you purchased. We will send you a
-            one-time link.
-          </p>
-        </header>
+    <div style={{ background: "#F7F3EC" }} className="min-h-screen flex flex-col">
+      <SiteHeader />
+      <main className="flex-1 flex items-center justify-center px-6 py-16">
+        <div className="w-full max-w-md space-y-6">
+          <header className="space-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight text-[#0B1E3B]">
+              Sign in to your portal
+            </h1>
+            <p className="text-sm text-slate-600">
+              Enter the email you used when you purchased. We will send you a
+              one-time link.
+            </p>
+          </header>
 
-        {sent ? (
-          <div className="rounded-lg border bg-card p-4 text-sm">
-            Check {email}. The link signs you in.
-          </div>
-        ) : (
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-              />
+          {sent ? (
+            <div className="rounded-lg border border-black/5 bg-white p-4 text-sm text-[#0B1E3B]">
+              Check {email}. The link signs you in.
             </div>
-            {err && <p className="text-sm text-destructive">{err}</p>}
-            <Button type="submit" disabled={busy} className="w-full">
-              {busy ? "Sending…" : "Send link"}
-            </Button>
-          </form>
-        )}
-      </div>
-    </main>
+          ) : (
+            <form onSubmit={onSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-[#0B1E3B]">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  className="bg-white"
+                />
+              </div>
+              {err && <p className="text-sm text-red-600">{err}</p>}
+              <Button
+                type="submit"
+                disabled={busy}
+                className="w-full bg-[#0B1E3B] hover:bg-[#0B1E3B]/90 text-white"
+              >
+                {busy ? "Sending…" : "Send link"}
+              </Button>
+            </form>
+          )}
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
   );
 }
