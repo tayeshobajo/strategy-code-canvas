@@ -263,11 +263,12 @@ export const adminUpdatePortal = createServerFn({ method: "POST" })
     if (Object.keys(patch).length === 0) return { ok: true as const };
     patch.updated_at = new Date().toISOString();
 
-    const { error } = await context.supabase
-      .from("client_portal_projects")
+    const { error } = await (context.supabase.from("client_portal_projects") as unknown as {
+      update: (v: Record<string, unknown>) => { eq: (k: string, v: string) => Promise<{ error: unknown }> };
+    })
       .update(patch)
       .eq("id", data.id);
-    if (error) throw error;
+    if (error) throw error as Error;
 
     await context.supabase.rpc("log_client_portal_activity", {
       _project_id: data.id,
@@ -278,7 +279,7 @@ export const adminUpdatePortal = createServerFn({ method: "POST" })
         .filter((k) => k !== "updated_at")
         .join(", ")})`,
       _client_visible: false,
-      _metadata: patch as Record<string, unknown>,
+      _metadata: patch as unknown as never,
     });
 
     return { ok: true as const };
