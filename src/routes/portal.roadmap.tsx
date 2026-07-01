@@ -23,7 +23,7 @@ export const Route = createFileRoute("/portal/roadmap")({
 
 function Loading() {
   return (
-    <div className="rounded-xl bg-white/70 border border-black/5 p-10 text-slate-500">
+    <div className="rounded-xl bg-card border border-border p-10 text-ink/60">
       Loading your Roadmap…
     </div>
   );
@@ -40,19 +40,16 @@ function RoadmapView() {
 
   if (data.revoked) {
     return (
-      <div className="max-w-3xl rounded-2xl bg-white border border-black/5 p-10 shadow-sm">
-        <h1
-          className="text-2xl text-[#0B1E3B]"
-          style={{ fontFamily: "Georgia, serif" }}
-        >
+      <div className="max-w-3xl mx-auto rounded-2xl bg-card border border-border p-8 lg:p-10 shadow-sm">
+        <h1 className="font-display text-2xl text-ink">
           Portal access is paused.
         </h1>
-        <p className="text-slate-600 mt-3">
+        <p className="text-[15px] leading-[1.75] text-ink/70 mt-3">
           Reach out to Tai to reinstate access to your Roadmap.
         </p>
         <Button
           asChild
-          className="mt-6 bg-[#0B1E3B] hover:bg-[#0B1E3B]/90 text-white"
+          className="mt-6 bg-ink hover:bg-ink/90 text-white"
         >
           <Link to="/portal/messages">Contact Tai</Link>
         </Button>
@@ -62,17 +59,14 @@ function RoadmapView() {
 
   if (data.docs.length === 0) {
     return (
-      <div className="max-w-3xl rounded-2xl bg-white border border-black/5 p-10 shadow-sm">
-        <div className="text-[11px] uppercase tracking-widest text-[#B08A3E]">
+      <div className="max-w-3xl mx-auto rounded-2xl bg-card border border-border p-8 lg:p-10 shadow-sm">
+        <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
           Roadmap
         </div>
-        <h1
-          className="text-2xl text-[#0B1E3B] mt-2"
-          style={{ fontFamily: "Georgia, serif" }}
-        >
+        <h1 className="font-display text-2xl text-ink mt-2">
           Your Roadmap is not yet published.
         </h1>
-        <p className="text-slate-600 mt-3 leading-relaxed">
+        <p className="text-[15px] leading-[1.75] text-ink/70 mt-3">
           Once Tai finalizes your approved Roadmap, it will appear here for you to
           read, download, and revisit at any time.
         </p>
@@ -81,25 +75,22 @@ function RoadmapView() {
   }
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="max-w-3xl mx-auto space-y-8">
       {data.docs.map((doc) => (
         <article
           key={doc.id}
-          className="rounded-2xl bg-white border border-black/5 shadow-sm p-10"
+          className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10"
         >
           <div className="flex items-start justify-between gap-6 mb-6">
             <div>
-              <div className="text-[11px] uppercase tracking-widest text-[#B08A3E] flex items-center gap-2">
+              <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal flex items-center gap-2">
                 <FileText className="w-3.5 h-3.5" /> Approved Roadmap
               </div>
-              <h1
-                className="text-3xl text-[#0B1E3B] mt-2"
-                style={{ fontFamily: "Georgia, serif" }}
-              >
+              <h1 className="font-display text-3xl text-ink mt-2">
                 {doc.title}
               </h1>
               {doc.published_at && (
-                <div className="text-xs text-slate-500 mt-2">
+                <div className="text-[13px] text-ink/60 mt-2">
                   Published {new Date(doc.published_at).toLocaleDateString()}
                 </div>
               )}
@@ -108,7 +99,7 @@ function RoadmapView() {
               <Button
                 asChild
                 variant="outline"
-                className="border-[#0B1E3B]/20 text-[#0B1E3B]"
+                className="border-ink/20 text-ink"
               >
                 <a href={doc.file_url} target="_blank" rel="noreferrer">
                   <Download className="w-4 h-4 mr-2" /> Download
@@ -119,14 +110,14 @@ function RoadmapView() {
 
           {doc.body_md ? (
             <div
-              className="prose prose-slate max-w-none prose-headings:font-serif prose-headings:text-[#0B1E3B] prose-a:text-[#0B1E3B]"
-              style={{ fontFamily: "Georgia, serif" }}
+              className="prose prose-slate max-w-none prose-headings:font-display prose-headings:text-ink prose-a:text-ink"
+              style={{ fontFamily: "var(--font-display), Georgia, serif" }}
             >
               <ReactMarkdown>{doc.body_md}</ReactMarkdown>
             </div>
           ) : (
             !doc.file_url && (
-              <p className="text-slate-500 italic">
+              <p className="text-ink/60 italic">
                 This Roadmap has no written content yet.
               </p>
             )

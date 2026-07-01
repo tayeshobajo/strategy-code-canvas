@@ -64,23 +64,15 @@ function PortalLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#F7F3EC" }}>
+    <div className="min-h-screen flex flex-col bg-paper">
       <SiteHeader />
       <div className="flex-1 flex pt-24">
-        <aside
-          className="w-64 flex-shrink-0 text-white flex flex-col"
-          style={{ background: "#0B1E3B" }}
-        >
+        <aside className="w-64 flex-shrink-0 bg-ink text-white flex flex-col">
           <div className="px-6 py-7 border-b border-white/10">
-            <div className="text-xs uppercase tracking-widest text-[#D4A857]">
+            <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
               Trust Tai
             </div>
-            <div
-              className="text-lg mt-1"
-              style={{ fontFamily: "Georgia, serif" }}
-            >
-              Client Portal
-            </div>
+            <div className="font-display text-lg mt-1">Client Portal</div>
           </div>
           <nav className="flex-1 px-3 py-6 space-y-1">
             {NAV.map((item) => {
@@ -113,7 +105,7 @@ function PortalLayout() {
           </div>
         </aside>
 
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-6 lg:p-10">
           <Outlet />
         </main>
       </div>

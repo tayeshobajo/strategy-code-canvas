@@ -24,18 +24,15 @@ export const Route = createFileRoute("/portal/onboarding")({
 
 function OnboardingPage() {
   return (
-    <div className="max-w-3xl space-y-6">
-      <section className="rounded-2xl bg-white border border-black/5 shadow-sm p-10">
-        <div className="text-[11px] uppercase tracking-widest text-[#B08A3E]">
+    <div className="max-w-3xl mx-auto space-y-6">
+      <section className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10">
+        <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
           Onboarding
         </div>
-        <h1
-          className="text-3xl text-[#0B1E3B] mt-2"
-          style={{ fontFamily: "Georgia, serif" }}
-        >
+        <h1 className="font-display text-3xl text-ink mt-2">
           Let's begin.
         </h1>
-        <p className="text-slate-600 mt-4 leading-relaxed">
+        <p className="text-[15px] leading-[1.75] text-ink/70 mt-4">
           Your guided intake will appear here. Tai will reach out with the next
           step within one business day.
         </p>
