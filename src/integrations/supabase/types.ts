@@ -857,6 +857,27 @@ export type Database = {
         }
         Relationships: []
       }
+      processed_stripe_events: {
+        Row: {
+          environment: string
+          event_id: string
+          event_type: string
+          processed_at: string
+        }
+        Insert: {
+          environment: string
+          event_id: string
+          event_type: string
+          processed_at?: string
+        }
+        Update: {
+          environment?: string
+          event_id?: string
+          event_type?: string
+          processed_at?: string
+        }
+        Relationships: []
+      }
       roadmap_documents: {
         Row: {
           body_md: string | null
