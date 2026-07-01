@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  renderPortalMagicLinkHtml,
+  renderPortalMagicLinkText,
+} from "@/lib/email-templates/portal-magic-link-html";
 
 const OPERATOR_EMAILS = new Set([
   "hello@trust-tai.com",
