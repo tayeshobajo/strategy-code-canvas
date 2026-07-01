@@ -52,5 +52,12 @@ export const adminListAccessEvents = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await q;
     if (error) throw error;
-    return { rows: (rows ?? []) as PortalAccessEventRow[] };
+    const mapped: PortalAccessEventRow[] = (rows ?? []).map((r) => {
+      const { metadata, ...rest } = r as typeof r & { metadata: unknown };
+      return {
+        ...rest,
+        metadata_json: metadata == null ? null : JSON.stringify(metadata),
+      };
+    });
+    return { rows: mapped };
   });
