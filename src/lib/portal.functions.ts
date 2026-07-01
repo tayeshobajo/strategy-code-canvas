@@ -725,5 +725,5 @@ export const updatePortalProfile = createServerFn({ method: "POST" })
       console.warn("[portal.profile] client_access mirror failed", e);
     }
 
-    return { ok: true as const, profile: proj[0] };
+    return { ok: true as const, profile: row };
   });
