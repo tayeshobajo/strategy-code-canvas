@@ -24,8 +24,8 @@ export type PortalAccessEventRow = {
   route: string | null;
   user_agent: string | null;
   correlation_id: string | null;
-  // Serializable JSON — string-keyed with primitives, arrays, or nested objects
-  metadata: unknown;
+  // Stored as jsonb; serialize as a string so the DTO stays plain-serializable.
+  metadata_json: string | null;
 };
 
 export const adminListAccessEvents = createServerFn({ method: "POST" })
