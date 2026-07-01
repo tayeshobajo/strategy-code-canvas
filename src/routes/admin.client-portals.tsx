@@ -267,11 +267,11 @@ function PortalDetail({ id }: { id: string }) {
           {data.billing.map((b) => (
             <li key={b.id} className="px-4 py-2.5 flex justify-between">
               <span>
-                {b.kind} · {b.status}
+                {b.purchased_package ?? "payment"} · {b.payment_status}
               </span>
               <span className="text-white/70">
-                {b.amount_cents != null
-                  ? `$${(b.amount_cents / 100).toFixed(2)}`
+                {b.amount_total != null
+                  ? `$${(b.amount_total / 100).toFixed(2)} ${b.currency?.toUpperCase() ?? ""}`
                   : ""}
               </span>
             </li>
