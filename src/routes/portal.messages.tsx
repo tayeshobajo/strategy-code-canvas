@@ -346,7 +346,7 @@ function MessagesPage() {
               <div key={date} className="space-y-4">
                 <div className="text-center text-[12px] text-ink/50">{date}</div>
                 {msgs.map((m) => (
-                  <MessageCard key={m.id} m={m} fileMap={fileMap ?? {}} />
+                  <MessageCard key={m.id} m={m} fileMap={fileMap ?? {}} onPreview={setPreviewFile} />
                 ))}
               </div>
             ))}
