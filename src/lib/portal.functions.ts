@@ -5,6 +5,11 @@ import {
   renderPortalMagicLinkHtml,
   renderPortalMagicLinkText,
 } from "@/lib/email-templates/portal-magic-link-html";
+import {
+  diagnoseAccessMismatch,
+  generateCorrelationId,
+  normalizeCorrelationId,
+} from "@/lib/portal-access-diagnosis";
 
 const OPERATOR_EMAILS = new Set([
   "hello@trust-tai.com",
@@ -15,6 +20,20 @@ const OPERATOR_EMAILS = new Set([
 function isOperator(email: string | null | undefined) {
   return !!email && OPERATOR_EMAILS.has(email.toLowerCase());
 }
+
+// Read the inbound correlation ID from the request or mint a fresh one.
+// Used to trace one magic-link flow across every portal_access_events row.
+async function currentCorrelationId(): Promise<string> {
+  try {
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const inbound = normalizeCorrelationId(getRequestHeader("x-correlation-id"));
+    if (inbound) return inbound;
+  } catch {
+    // request context unavailable (unit tests, module load)
+  }
+  return generateCorrelationId();
+}
+
 
 // Get-or-create an unsubscribe token for a recipient. Required by the
 // transactional email sender.
