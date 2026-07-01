@@ -198,7 +198,11 @@ function BillingPage() {
 
   // Realtime: reflect Stripe webhook updates instantly.
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) {
+      setRealtimeStatus("offline");
+      return;
+    }
+    setRealtimeStatus("connecting");
     const channel = supabase
       .channel(`portal-billing-${projectId}`)
       .on(
@@ -216,7 +220,11 @@ function BillingPage() {
         { event: "*", schema: "public", table: "subscriptions" },
         () => qc.invalidateQueries({ queryKey: ["portal", "billing", projectId] }),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setRealtimeStatus("live");
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED")
+          setRealtimeStatus("offline");
+      });
     return () => {
       supabase.removeChannel(channel);
     };
