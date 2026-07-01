@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { checkPortalAccess, getPortalContext, resendPortalWelcome } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Suspense, useState } from "react";
-import { Mail, Check } from "lucide-react";
+import { Mail, Check, Loader2, LifeBuoy } from "lucide-react";
 
 const portalCtxOptions = (fn: ReturnType<typeof useServerFn<typeof getPortalContext>>) =>
   queryOptions({
@@ -17,11 +17,12 @@ export const Route = createFileRoute("/portal/home")({
   ssr: false,
   beforeLoad: async () => {
     const res = await checkPortalAccess();
+    // Only redirect for explicit rejection states. If access is "none" but the
+    // user is authenticated (portal layout already gated on that), fall through
+    // so PortalHome can render a friendly "we don't recognize this account"
+    // panel instead of bouncing the user back to /portal/login.
     if (res.status === "revoked") {
       throw redirect({ to: "/portal/access-denied" });
-    }
-    if (res.status === "none") {
-      throw redirect({ to: "/portal/login" });
     }
   },
   head: () => ({
@@ -39,8 +40,9 @@ export const Route = createFileRoute("/portal/home")({
 
 function LoadingCard() {
   return (
-    <div className="rounded-xl bg-card border border-border p-10 text-ink/60">
-      Loading your portal…
+    <div className="max-w-2xl mx-auto rounded-2xl bg-card border border-border p-10 flex items-center gap-3 text-ink/60">
+      <Loader2 className="w-4 h-4 animate-spin text-royal" />
+      <span>Loading your portal…</span>
     </div>
   );
 }
