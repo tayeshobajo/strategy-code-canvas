@@ -32,6 +32,7 @@ import { Route as PortalLoginRouteImport } from './routes/portal.login'
 import { Route as PortalHomeRouteImport } from './routes/portal.home'
 import { Route as PortalFilesRouteImport } from './routes/portal.files'
 import { Route as PortalBillingRouteImport } from './routes/portal.billing'
+import { Route as PortalActivityRouteImport } from './routes/portal.activity'
 import { Route as PortalAccountRouteImport } from './routes/portal.account'
 import { Route as PortalAccessDeniedRouteImport } from './routes/portal.access-denied'
 import { Route as OpsQueueRouteImport } from './routes/ops/queue'
@@ -166,6 +167,11 @@ const PortalBillingRoute = PortalBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalActivityRoute = PortalActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalAccountRoute = PortalAccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -289,6 +295,7 @@ export interface FileRoutesByFullPath {
   '/ops/queue': typeof OpsQueueRoute
   '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/account': typeof PortalAccountRoute
+  '/portal/activity': typeof PortalActivityRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/files': typeof PortalFilesRoute
   '/portal/home': typeof PortalHomeRoute
@@ -330,6 +337,7 @@ export interface FileRoutesByTo {
   '/ops/queue': typeof OpsQueueRoute
   '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/account': typeof PortalAccountRoute
+  '/portal/activity': typeof PortalActivityRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/files': typeof PortalFilesRoute
   '/portal/home': typeof PortalHomeRoute
@@ -374,6 +382,7 @@ export interface FileRoutesById {
   '/ops/queue': typeof OpsQueueRoute
   '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/account': typeof PortalAccountRoute
+  '/portal/activity': typeof PortalActivityRoute
   '/portal/billing': typeof PortalBillingRoute
   '/portal/files': typeof PortalFilesRoute
   '/portal/home': typeof PortalHomeRoute
@@ -418,6 +427,7 @@ export interface FileRouteTypes {
     | '/ops/queue'
     | '/portal/access-denied'
     | '/portal/account'
+    | '/portal/activity'
     | '/portal/billing'
     | '/portal/files'
     | '/portal/home'
@@ -459,6 +469,7 @@ export interface FileRouteTypes {
     | '/ops/queue'
     | '/portal/access-denied'
     | '/portal/account'
+    | '/portal/activity'
     | '/portal/billing'
     | '/portal/files'
     | '/portal/home'
@@ -502,6 +513,7 @@ export interface FileRouteTypes {
     | '/ops/queue'
     | '/portal/access-denied'
     | '/portal/account'
+    | '/portal/activity'
     | '/portal/billing'
     | '/portal/files'
     | '/portal/home'
@@ -709,6 +721,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalBillingRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/activity': {
+      id: '/portal/activity'
+      path: '/activity'
+      fullPath: '/portal/activity'
+      preLoaderRoute: typeof PortalActivityRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/portal/account': {
       id: '/portal/account'
       path: '/account'
@@ -895,6 +914,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 interface PortalRouteChildren {
   PortalAccessDeniedRoute: typeof PortalAccessDeniedRoute
   PortalAccountRoute: typeof PortalAccountRoute
+  PortalActivityRoute: typeof PortalActivityRoute
   PortalBillingRoute: typeof PortalBillingRoute
   PortalFilesRoute: typeof PortalFilesRoute
   PortalHomeRoute: typeof PortalHomeRoute
@@ -908,6 +928,7 @@ interface PortalRouteChildren {
 const PortalRouteChildren: PortalRouteChildren = {
   PortalAccessDeniedRoute: PortalAccessDeniedRoute,
   PortalAccountRoute: PortalAccountRoute,
+  PortalActivityRoute: PortalActivityRoute,
   PortalBillingRoute: PortalBillingRoute,
   PortalFilesRoute: PortalFilesRoute,
   PortalHomeRoute: PortalHomeRoute,
