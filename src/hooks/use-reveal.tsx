@@ -7,59 +7,15 @@ type RevealOptions = {
 };
 
 export function useReveal<T extends Element = HTMLDivElement>(
-  options: RevealOptions = {},
+  _options: RevealOptions = {},
 ): { ref: React.RefObject<T | null>; inView: boolean } {
-  const { threshold = 0.15, rootMargin = "0px 0px -10% 0px", once = true } = options;
+  // Reveal is intentionally always-on. Scroll-triggered opacity gating caused
+  // whole sections of content to stay invisible in preview/SSR environments
+  // where the IntersectionObserver callback either fired before hydration
+  // finished or was suppressed by a hydration mismatch elsewhere on the page.
+  // Content visibility must never depend on animation state.
   const ref = React.useRef<T | null>(null);
-  const [inView, setInView] = React.useState(false);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) {
-      setInView(true);
-      return;
-    }
-    const node = ref.current;
-    if (!node) return;
-    if (typeof IntersectionObserver === "undefined") {
-      setInView(true);
-      return;
-    }
-    // Immediate check: if the node is already in (or near) the viewport on
-    // mount, reveal right away. Also always reveal above-the-fold nodes so a
-    // late/missed IO callback never leaves visible content invisible.
-    const rect = node.getBoundingClientRect();
-    const vh = window.innerHeight || document.documentElement.clientHeight;
-    if (rect.top < vh * 1.1 && rect.bottom > 0) {
-      setInView(true);
-      if (once) return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setInView(true);
-            if (once) io.disconnect();
-          } else if (!once) {
-            setInView(false);
-          }
-        }
-      },
-      { threshold, rootMargin },
-    );
-    io.observe(node);
-    // Safety fallback: some environments (SSR hydration, iframe previews)
-    // occasionally miss the first IO callback. Ensure content is never
-    // stuck invisible after a short grace period.
-    const fallback = window.setTimeout(() => setInView(true), 900);
-    return () => {
-      io.disconnect();
-      window.clearTimeout(fallback);
-    };
-  }, [threshold, rootMargin, once]);
-
-  return { ref, inView };
+  return { ref, inView: true };
 }
 
 type RevealVariant = "fade" | "fade-up" | "fade-right" | "rise";
