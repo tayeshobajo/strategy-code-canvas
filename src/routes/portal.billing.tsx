@@ -237,11 +237,23 @@ function BillingPage() {
           <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal flex items-center gap-2">
             <CreditCard className="w-3.5 h-3.5" /> Billing
           </div>
-          <h1 className="font-display text-3xl text-ink mt-2">Billing</h1>
-          <p className="text-[15px] leading-[1.75] text-ink/70 mt-2">
-            Payment details, invoices, and engagement package.
-          </p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h1 className="font-display text-3xl text-ink">Billing</h1>
+              <p className="text-[15px] leading-[1.75] text-ink/70 mt-2">
+                Payment details, invoices, and engagement package.
+              </p>
+            </div>
+            <SyncIndicator
+              status={realtimeStatus}
+              lastUpdated={dataUpdatedAt}
+              nowTick={nowTick}
+              isFetching={isFetching}
+              onRefresh={() => refetch()}
+            />
+          </div>
         </header>
+
 
         {/* Package summary */}
         <section className="rounded-2xl bg-card border border-border shadow-sm p-6 lg:p-8">
