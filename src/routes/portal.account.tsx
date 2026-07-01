@@ -495,3 +495,141 @@ function InfoRow({
     </div>
   );
 }
+
+const PasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(10, "At least 10 characters")
+      .max(128, "Too long")
+      .regex(/[A-Za-z]/, "Include a letter")
+      .regex(/[0-9]/, "Include a number"),
+    confirm: z.string(),
+  })
+  .refine((v) => v.newPassword === v.confirm, {
+    message: "Passwords don't match",
+    path: ["confirm"],
+  });
+
+function PasswordSection() {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [errors, setErrors] = useState<{ newPassword?: string; confirm?: string }>({});
+  const [saving, setSaving] = useState(false);
+
+  const strength = scoreStrength(newPassword);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const parsed = PasswordSchema.safeParse({ newPassword, confirm });
+    if (!parsed.success) {
+      const next: { newPassword?: string; confirm?: string } = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as "newPassword" | "confirm";
+        if (!next[key]) next[key] = issue.message;
+      }
+      setErrors(next);
+      return;
+    }
+    setErrors({});
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message || "Couldn't update password.");
+      return;
+    }
+    toast.success("Password updated.");
+    setNewPassword("");
+    setConfirm("");
+  }
+
+  return (
+    <section className="rounded-2xl bg-card border border-border shadow-sm p-6 lg:p-8">
+      <div>
+        <h2 className="font-display text-xl text-ink">Password</h2>
+        <p className="text-[13px] text-ink/60 mt-1">
+          Set a password as an alternative to magic-link sign in.
+        </p>
+      </div>
+      <form onSubmit={onSubmit} className="mt-6 grid gap-4 sm:grid-cols-2 max-w-2xl">
+        <div>
+          <Label className="text-[12px] uppercase tracking-wider text-ink/50">
+            New password
+          </Label>
+          <Input
+            type="password"
+            autoComplete="new-password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="mt-1.5 bg-paper-soft border-rule-soft"
+          />
+          {errors.newPassword && (
+            <p className="text-[12px] text-destructive mt-1">{errors.newPassword}</p>
+          )}
+          {newPassword && !errors.newPassword && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <div className="h-1 flex-1 rounded-full bg-paper-soft overflow-hidden">
+                <div
+                  className={`h-full transition-all ${
+                    strength >= 3
+                      ? "bg-emerald-600"
+                      : strength === 2
+                        ? "bg-amber-500"
+                        : "bg-destructive"
+                  }`}
+                  style={{ width: `${(strength / 4) * 100}%` }}
+                />
+              </div>
+              <span className="text-[11px] text-ink/60">
+                {["Weak", "Weak", "Fair", "Strong", "Very strong"][strength]}
+              </span>
+            </div>
+          )}
+        </div>
+        <div>
+          <Label className="text-[12px] uppercase tracking-wider text-ink/50">
+            Confirm password
+          </Label>
+          <Input
+            type="password"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            className="mt-1.5 bg-paper-soft border-rule-soft"
+          />
+          {errors.confirm && (
+            <p className="text-[12px] text-destructive mt-1">{errors.confirm}</p>
+          )}
+        </div>
+        <div className="sm:col-span-2 pt-1">
+          <Button
+            type="submit"
+            disabled={saving || !newPassword || !confirm}
+            className="bg-ink hover:bg-ink/90 text-white"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Updating…
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" /> Update password
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function scoreStrength(pw: string) {
+  let s = 0;
+  if (pw.length >= 10) s++;
+  if (pw.length >= 14) s++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
+  if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++;
+  return Math.min(4, s);
+}
+
