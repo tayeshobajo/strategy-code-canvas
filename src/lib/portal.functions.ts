@@ -12,7 +12,24 @@ function isOperator(email: string | null | undefined) {
   return !!email && OPERATOR_EMAILS.has(email.toLowerCase());
 }
 
+// -------------------- Nav access check (client-facing) --------------------
+export const checkPortalAccess = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const email = context.claims?.email as string | undefined;
+    if (!email) return { hasAccess: false as const };
+
+    const { data } = await context.supabase
+      .from("client_portal_projects")
+      .select("id")
+      .ilike("primary_email", email)
+      .maybeSingle();
+
+    return { hasAccess: !!data };
+  });
+
 // -------------------- Magic link (public) --------------------
+
 export const requestPortalMagicLink = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) =>
     z.object({ email: z.string().email() }).parse(raw),
