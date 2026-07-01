@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { checkPortalAccess, getPortalContext, resendPortalWelcome } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Suspense, useState } from "react";
-import { Mail, Check } from "lucide-react";
+import { Mail, Check, Loader2, LifeBuoy } from "lucide-react";
 
 const portalCtxOptions = (fn: ReturnType<typeof useServerFn<typeof getPortalContext>>) =>
   queryOptions({
@@ -17,11 +17,12 @@ export const Route = createFileRoute("/portal/home")({
   ssr: false,
   beforeLoad: async () => {
     const res = await checkPortalAccess();
+    // Only redirect for explicit rejection states. If access is "none" but the
+    // user is authenticated (portal layout already gated on that), fall through
+    // so PortalHome can render a friendly "we don't recognize this account"
+    // panel instead of bouncing the user back to /portal/login.
     if (res.status === "revoked") {
       throw redirect({ to: "/portal/access-denied" });
-    }
-    if (res.status === "none") {
-      throw redirect({ to: "/portal/login" });
     }
   },
   head: () => ({
@@ -39,11 +40,112 @@ export const Route = createFileRoute("/portal/home")({
 
 function LoadingCard() {
   return (
-    <div className="rounded-xl bg-card border border-border p-10 text-ink/60">
-      Loading your portal…
+    <div className="max-w-2xl mx-auto rounded-2xl bg-card border border-border p-10 flex items-center gap-3 text-ink/60">
+      <Loader2 className="w-4 h-4 animate-spin text-royal" />
+      <span>Loading your portal…</span>
     </div>
   );
 }
+
+function PendingWorkspacePanel({ email }: { email?: string }) {
+  const resendFn = useServerFn(resendPortalWelcome);
+  const [sent, setSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const resend = useMutation({
+    mutationFn: () => resendFn({}),
+    onSuccess: (res) => {
+      if (res.ok) {
+        setSent(true);
+        setErrorMsg(null);
+      } else {
+        setErrorMsg(
+          res.reason === "no_confirmed_access"
+            ? "We couldn't match this email to a confirmed engagement. Email tai@trusttai.com and we'll sort it out."
+            : "That did not send. Try again in a moment, or email tai@trusttai.com.",
+        );
+      }
+    },
+    onError: () =>
+      setErrorMsg("That did not send. Try again in a moment, or email tai@trusttai.com."),
+  });
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <section className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10">
+        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          Workspace being set up
+        </div>
+        <h1 className="font-display text-3xl text-ink mt-3">
+          You're signed in{email ? ` as ${email}` : ""}.
+        </h1>
+        <p className="text-[15px] leading-[1.75] text-ink/75 mt-4">
+          Your engagement workspace isn't provisioned yet. As soon as Tai
+          publishes your project, your Roadmap, files, and next steps appear
+          here — no need to sign in again.
+        </p>
+        <p className="text-[13px] leading-[1.7] text-ink/60 mt-4">
+          Most workspaces are ready within one business day of purchase. If
+          you've been waiting longer, reach out and we'll unblock you.
+        </p>
+
+        <div className="mt-8 flex flex-col sm:flex-row gap-3">
+          <Button
+            type="button"
+            size="lg"
+            disabled={resend.isPending || sent}
+            onClick={() => resend.mutate()}
+            className="bg-ink hover:bg-ink/90 text-white"
+          >
+            {sent ? (
+              <>
+                <Check className="w-4 h-4 mr-2" /> Sign-in link sent
+              </>
+            ) : resend.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…
+              </>
+            ) : (
+              <>
+                <Mail className="w-4 h-4 mr-2" /> Resend sign-in link
+              </>
+            )}
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="border-ink/20 text-ink"
+          >
+            <a href="mailto:tai@trusttai.com?subject=Portal%20access">
+              <LifeBuoy className="w-4 h-4 mr-2" /> Contact Tai
+            </a>
+          </Button>
+        </div>
+
+        {errorMsg && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="text-[13px] text-destructive mt-4"
+          >
+            {errorMsg}
+          </div>
+        )}
+        {sent && !errorMsg && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="text-[13px] text-ink/70 mt-4"
+          >
+            A fresh sign-in link is on its way. It expires in 60 minutes.
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 
 const STATUS_COPY: Record<
   string,
@@ -115,36 +217,16 @@ function PortalHome() {
   const fetchCtx = useServerFn(getPortalContext);
   const { data } = useSuspenseQuery(portalCtxOptions(fetchCtx));
 
-  // Authenticated but no project record yet — show a friendly pending state
-  // instead of bouncing to /portal/login (which would look like a rejection).
+  // Authenticated but no project record yet. Two cases land here:
+  //   - Access exists (client_access row) but the project workspace isn't
+  //     provisioned in client_portal_projects yet.
+  //   - The signed-in email isn't recognized on any engagement.
+  // Either way, we keep the user on /portal/home with a clear explanation and
+  // prominent recovery actions instead of bouncing to /portal/login.
   if (!data.hasAccess) {
-    return (
-      <div className="max-w-2xl mx-auto">
-        <section className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10">
-          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-            Client portal
-          </div>
-          <h1 className="font-display text-3xl text-ink mt-2">
-            You're signed in.
-          </h1>
-          <p className="text-[15px] leading-[1.75] text-ink/70 mt-4">
-            Your engagement workspace is being set up. You'll see your Roadmap
-            and next steps here as soon as Tai provisions the project.
-          </p>
-          <p className="text-[13px] text-ink/60 mt-6">
-            Questions? Email{" "}
-            <a className="underline" href="mailto:tai@trusttai.com">
-              tai@trusttai.com
-            </a>
-            .
-          </p>
-        </section>
-        <div className="mt-6">
-          <ResendWelcomeCard />
-        </div>
-      </div>
-    );
+    return <PendingWorkspacePanel email={data.email} />;
   }
+
 
   const { project } = data;
   const copy = STATUS_COPY[project.portal_status] ?? STATUS_COPY.payment_confirmed;
