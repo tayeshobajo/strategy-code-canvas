@@ -24,7 +24,8 @@ export type PortalAccessEventRow = {
   route: string | null;
   user_agent: string | null;
   correlation_id: string | null;
-  metadata: Record<string, unknown> | null;
+  // Serializable JSON — string-keyed with primitives, arrays, or nested objects
+  metadata: unknown;
 };
 
 export const adminListAccessEvents = createServerFn({ method: "POST" })
