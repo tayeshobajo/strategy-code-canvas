@@ -12,6 +12,28 @@ function isOperator(email: string | null | undefined) {
   return !!email && OPERATOR_EMAILS.has(email.toLowerCase());
 }
 
+// Get-or-create an unsubscribe token for a recipient. Required by the
+// transactional email sender.
+async function ensureUnsubscribeToken(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseAdmin: any,
+  email: string,
+): Promise<string> {
+  const { data: existing } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .ilike("email", email)
+    .limit(1)
+    .maybeSingle();
+  if (existing?.token) return existing.token as string;
+  const token = (globalThis.crypto?.randomUUID?.() ??
+    `${Date.now()}-${Math.random()}`) as string;
+  await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .insert({ token, email });
+  return token;
+}
+
 // -------------------- Nav access check (client-facing) --------------------
 export type PortalAccessStatus = "active" | "revoked" | "none";
 export const checkPortalAccess = createServerFn({ method: "GET" })
