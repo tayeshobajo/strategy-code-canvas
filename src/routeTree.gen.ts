@@ -37,6 +37,7 @@ import { Route as OpsAccessEventsRouteImport } from './routes/ops/access-events'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
+import { Route as AdminConfigRouteImport } from './routes/admin.config'
 import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as OpsSubmissionsIdRouteImport } from './routes/ops/submissions.$id'
@@ -186,6 +187,11 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminConfigRoute = AdminConfigRouteImport.update({
+  id: '/config',
+  path: '/config',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminClientPortalsRoute = AdminClientPortalsRouteImport.update({
   id: '/client-portals',
   path: '/client-portals',
@@ -249,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
+  '/admin/config': typeof AdminConfigRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -285,6 +292,7 @@ export interface FileRoutesByTo {
   '/what-we-build': typeof WhatWeBuildRoute
   '/portal': typeof PortalIndexRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
+  '/admin/config': typeof AdminConfigRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -324,6 +332,7 @@ export interface FileRoutesById {
   '/what-we-build': typeof WhatWeBuildRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
+  '/admin/config': typeof AdminConfigRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights_/$slug': typeof InsightsSlugRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/walks'
     | '/what-we-build'
     | '/admin/client-portals'
+    | '/admin/config'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
@@ -399,6 +409,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/portal'
     | '/admin/client-portals'
+    | '/admin/config'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
@@ -437,6 +448,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/_authenticated/portal'
     | '/admin/client-portals'
+    | '/admin/config'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights_/$slug'
@@ -684,6 +696,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/config': {
+      id: '/admin/config'
+      path: '/config'
+      fullPath: '/admin/config'
+      preLoaderRoute: typeof AdminConfigRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/client-portals': {
       id: '/admin/client-portals'
       path: '/client-portals'
@@ -787,10 +806,12 @@ const OpsRouteRouteWithChildren = OpsRouteRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminClientPortalsRoute: typeof AdminClientPortalsRoute
+  AdminConfigRoute: typeof AdminConfigRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminClientPortalsRoute: AdminClientPortalsRoute,
+  AdminConfigRoute: AdminConfigRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
