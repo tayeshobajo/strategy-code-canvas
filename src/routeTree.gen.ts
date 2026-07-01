@@ -28,6 +28,7 @@ import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as PortalRoadmapRouteImport } from './routes/portal.roadmap'
 import { Route as PortalLoginRouteImport } from './routes/portal.login'
 import { Route as PortalHomeRouteImport } from './routes/portal.home'
+import { Route as PortalAccessDeniedRouteImport } from './routes/portal.access-denied'
 import { Route as OpsQueueRouteImport } from './routes/ops/queue'
 import { Route as OpsInsightsRouteImport } from './routes/ops/insights'
 import { Route as OpsHistoryRouteImport } from './routes/ops/history'
@@ -138,6 +139,11 @@ const PortalHomeRoute = PortalHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalAccessDeniedRoute = PortalAccessDeniedRouteImport.update({
+  id: '/access-denied',
+  path: '/access-denied',
+  getParentRoute: () => PortalRoute,
+} as any)
 const OpsQueueRoute = OpsQueueRouteImport.update({
   id: '/queue',
   path: '/queue',
@@ -237,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
+  '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/home': typeof PortalHomeRoute
   '/portal/login': typeof PortalLoginRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
@@ -270,6 +277,7 @@ export interface FileRoutesByTo {
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
+  '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/home': typeof PortalHomeRoute
   '/portal/login': typeof PortalLoginRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
+  '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/home': typeof PortalHomeRoute
   '/portal/login': typeof PortalLoginRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
@@ -342,6 +351,7 @@ export interface FileRouteTypes {
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
+    | '/portal/access-denied'
     | '/portal/home'
     | '/portal/login'
     | '/portal/roadmap'
@@ -375,6 +385,7 @@ export interface FileRouteTypes {
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
+    | '/portal/access-denied'
     | '/portal/home'
     | '/portal/login'
     | '/portal/roadmap'
@@ -410,6 +421,7 @@ export interface FileRouteTypes {
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
+    | '/portal/access-denied'
     | '/portal/home'
     | '/portal/login'
     | '/portal/roadmap'
@@ -585,6 +597,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalHomeRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/access-denied': {
+      id: '/portal/access-denied'
+      path: '/access-denied'
+      fullPath: '/portal/access-denied'
+      preLoaderRoute: typeof PortalAccessDeniedRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/ops/queue': {
       id: '/ops/queue'
       path: '/queue'
@@ -737,6 +756,7 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PortalRouteChildren {
+  PortalAccessDeniedRoute: typeof PortalAccessDeniedRoute
   PortalHomeRoute: typeof PortalHomeRoute
   PortalLoginRoute: typeof PortalLoginRoute
   PortalRoadmapRoute: typeof PortalRoadmapRoute
@@ -744,6 +764,7 @@ interface PortalRouteChildren {
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
+  PortalAccessDeniedRoute: PortalAccessDeniedRoute,
   PortalHomeRoute: PortalHomeRoute,
   PortalLoginRoute: PortalLoginRoute,
   PortalRoadmapRoute: PortalRoadmapRoute,
