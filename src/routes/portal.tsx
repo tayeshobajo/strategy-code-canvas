@@ -9,7 +9,6 @@ import {
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Home, FileText, Folder, MessageSquare, CreditCard, User, LogOut } from "lucide-react";
-import { SiteFooter } from "@/components/SiteFooter";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 
 export const Route = createFileRoute("/portal")({
