@@ -17,7 +17,7 @@ const brand = {
 // Absolute URL required for email clients. Uses the site's custom domain so
 // the image loads reliably in Gmail / Outlook / Apple Mail.
 const LOGO_URL =
-  "https://new.trusttai.com/__l5e/assets-v1/d439b2e1-d22d-4921-a689-edcde5334ba4/trust-tai-logo.png";
+  "https://trusttai.com/__l5e/assets-v1/d439b2e1-d22d-4921-a689-edcde5334ba4/trust-tai-logo.png";
 
 function escapeHtml(input: string): string {
   return input

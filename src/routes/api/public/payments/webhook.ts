@@ -201,7 +201,7 @@ async function sendWelcomeEmail(email: string, contactName?: string | null) {
   const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
     <p>${first}, welcome.</p>
     <p>Your Trust Tai engagement is confirmed. Your private client portal is ready.</p>
-    <p>Sign in with your email at <a href="https://new.trusttai.com/portal/login">new.trusttai.com/portal/login</a>. We'll email you a secure sign-in link — no passwords.</p>
+    <p>Sign in with your email at <a href="https://trusttai.com/portal/login">trusttai.com/portal/login</a>. We'll email you a secure sign-in link — no passwords.</p>
     <p>Within one business day, you get one reply. From a person, by name. Not a sequence.</p>
     <p>— Tai</p>
   </div>`;
@@ -216,7 +216,7 @@ async function sendWelcomeEmail(email: string, contactName?: string | null) {
         sender_domain: "notify.trusttai.com",
         subject: "Welcome to your Trust Tai portal",
         html,
-        text: `${first}, welcome.\n\nYour Trust Tai engagement is confirmed. Sign in at https://new.trusttai.com/portal/login.\n\n— Tai`,
+        text: `${first}, welcome.\n\nYour Trust Tai engagement is confirmed. Sign in at https://trusttai.com/portal/login.\n\n— Tai`,
         label: "portal-welcome",
         purpose: "transactional",
         idempotency_key: `portal-welcome-${email}`,

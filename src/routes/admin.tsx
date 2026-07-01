@@ -10,9 +10,9 @@ export const Route = createFileRoute("/admin")({
     if (error || !data.user) {
       throw redirect({ to: "/auth", search: { redirect: location.href } });
     }
-    // Include hello@trust-tai.com for portal admin
+    // Include hello@trusttai.com for portal admin
     const email = data.user.email?.toLowerCase() ?? "";
-    if (!isOperatorEmail(email) && email !== "hello@trust-tai.com") {
+    if (!isOperatorEmail(email) && email !== "hello@trusttai.com") {
       throw redirect({ to: "/" });
     }
     return { adminEmail: email };

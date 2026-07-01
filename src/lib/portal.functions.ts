@@ -119,7 +119,7 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
     }
 
     // Generate the magic link via Auth Admin (bypasses disable_signup for existing users).
-    const redirectTo = (process.env.PUBLIC_SITE_URL ?? "https://new.trusttai.com") + "/portal";
+    const redirectTo = (process.env.PUBLIC_SITE_URL ?? "https://trusttai.com") + "/portal";
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email,
@@ -504,7 +504,7 @@ async function sendWelcomeMagicLink(email: string) {
     return { ok: false as const, reason: "no_confirmed_access" as const };
   }
 
-  const redirectTo = (process.env.PUBLIC_SITE_URL ?? "https://new.trusttai.com") + "/portal";
+  const redirectTo = (process.env.PUBLIC_SITE_URL ?? "https://trusttai.com") + "/portal";
   const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
     type: "magiclink",
     email: normalized,
