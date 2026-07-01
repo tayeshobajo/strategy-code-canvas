@@ -26,6 +26,15 @@ export function useReveal<T extends Element = HTMLDivElement>(
       setInView(true);
       return;
     }
+    // Immediate check: if the node is already in (or near) the viewport on
+    // mount, reveal right away. Also always reveal above-the-fold nodes so a
+    // late/missed IO callback never leaves visible content invisible.
+    const rect = node.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    if (rect.top < vh * 1.1 && rect.bottom > 0) {
+      setInView(true);
+      if (once) return;
+    }
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -40,7 +49,14 @@ export function useReveal<T extends Element = HTMLDivElement>(
       { threshold, rootMargin },
     );
     io.observe(node);
-    return () => io.disconnect();
+    // Safety fallback: some environments (SSR hydration, iframe previews)
+    // occasionally miss the first IO callback. Ensure content is never
+    // stuck invisible after a short grace period.
+    const fallback = window.setTimeout(() => setInView(true), 900);
+    return () => {
+      io.disconnect();
+      window.clearTimeout(fallback);
+    };
   }, [threshold, rootMargin, once]);
 
   return { ref, inView };
