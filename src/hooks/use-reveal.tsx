@@ -46,15 +46,10 @@ export function Reveal({
   ...rest
 }: RevealProps) {
   const { ref, inView } = useReveal<HTMLElement>({ threshold, rootMargin, once });
-  const [mountReveal, setMountReveal] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!immediate) return;
-    const id = requestAnimationFrame(() => setMountReveal(true));
-    return () => cancelAnimationFrame(id);
-  }, [immediate]);
-
-  const revealed = immediate ? mountReveal : inView;
+  // Always reveal — see useReveal comment. `immediate` and scroll-triggered
+  // variants both resolve to visible so no content depends on effects running.
+  void immediate;
+  const revealed = inView;
   const Tag = as as React.ElementType;
 
   const dataProps: Record<string, string> = {
