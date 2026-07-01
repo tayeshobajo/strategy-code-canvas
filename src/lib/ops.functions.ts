@@ -568,7 +568,25 @@ export const getAnalytics = createServerFn({ method: "POST" })
     requireOperatorContext(context.claims as Record<string, unknown> | undefined);
     const intake = await loadIntake();
 
-    const since = new Date(Date.now() - data.range_days * 24 * 60 * 60 * 1000).toISOString();
+    // Resolve the analysis window. Explicit from/to (YYYY-MM-DD) wins over
+    // range_days; "to" is inclusive so we roll to the end of that day.
+    const now = Date.now();
+    const explicit = data.from && data.to;
+    const fromIso = explicit
+      ? new Date(`${data.from}T00:00:00.000Z`).toISOString()
+      : new Date(now - data.range_days * 24 * 60 * 60 * 1000).toISOString();
+    const toIso = explicit
+      ? new Date(`${data.to}T23:59:59.999Z`).toISOString()
+      : new Date(now).toISOString();
+
+    let reviewsQuery = intake
+      .from("roadmap_intake_reviews")
+      .select("status, created_at, updated_at, decided_at")
+      .gte("created_at", fromIso)
+      .lte("created_at", toIso);
+    if (data.outcome !== "all") {
+      reviewsQuery = reviewsQuery.eq("status", data.outcome);
+    }
 
     const [
       { data: submissions, error: sErr },
@@ -577,15 +595,14 @@ export const getAnalytics = createServerFn({ method: "POST" })
       intake
         .from("intake_submissions")
         .select("id, created_at, answers")
-        .gte("created_at", since)
+        .gte("created_at", fromIso)
+        .lte("created_at", toIso)
         .order("created_at", { ascending: true }),
-      intake
-        .from("roadmap_intake_reviews")
-        .select("status, created_at, updated_at, decided_at")
-        .gte("created_at", since),
+      reviewsQuery,
     ]);
     if (sErr) console.warn("[ops.getAnalytics] submissions warn", sErr);
     if (rErr) console.warn("[ops.getAnalytics] reviews warn", rErr);
+
 
     const totalSubmissions = submissions?.length ?? 0;
     const backlog = (reviews ?? []).filter((r) =>
@@ -653,6 +670,10 @@ export const getAnalytics = createServerFn({ method: "POST" })
 
     return {
       range_days: data.range_days,
+      from: fromIso,
+      to: toIso,
+      outcome: data.outcome,
+
       totals: {
         new_submissions: totalSubmissions,
         review_backlog: backlog,
