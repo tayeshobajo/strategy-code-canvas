@@ -7,43 +7,15 @@ type RevealOptions = {
 };
 
 export function useReveal<T extends Element = HTMLDivElement>(
-  options: RevealOptions = {},
+  _options: RevealOptions = {},
 ): { ref: React.RefObject<T | null>; inView: boolean } {
-  const { threshold = 0.15, rootMargin = "0px 0px -10% 0px", once = true } = options;
+  // Reveal is intentionally always-on. Scroll-triggered opacity gating caused
+  // whole sections of content to stay invisible in preview/SSR environments
+  // where the IntersectionObserver callback either fired before hydration
+  // finished or was suppressed by a hydration mismatch elsewhere on the page.
+  // Content visibility must never depend on animation state.
   const ref = React.useRef<T | null>(null);
-  const [inView, setInView] = React.useState(false);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) {
-      setInView(true);
-      return;
-    }
-    const node = ref.current;
-    if (!node) return;
-    if (typeof IntersectionObserver === "undefined") {
-      setInView(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setInView(true);
-            if (once) io.disconnect();
-          } else if (!once) {
-            setInView(false);
-          }
-        }
-      },
-      { threshold, rootMargin },
-    );
-    io.observe(node);
-    return () => io.disconnect();
-  }, [threshold, rootMargin, once]);
-
-  return { ref, inView };
+  return { ref, inView: true };
 }
 
 type RevealVariant = "fade" | "fade-up" | "fade-right" | "rise";
@@ -74,15 +46,10 @@ export function Reveal({
   ...rest
 }: RevealProps) {
   const { ref, inView } = useReveal<HTMLElement>({ threshold, rootMargin, once });
-  const [mountReveal, setMountReveal] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!immediate) return;
-    const id = requestAnimationFrame(() => setMountReveal(true));
-    return () => cancelAnimationFrame(id);
-  }, [immediate]);
-
-  const revealed = immediate ? mountReveal : inView;
+  // Always reveal — see useReveal comment. `immediate` and scroll-triggered
+  // variants both resolve to visible so no content depends on effects running.
+  void immediate;
+  const revealed = inView;
   const Tag = as as React.ElementType;
 
   const dataProps: Record<string, string> = {
