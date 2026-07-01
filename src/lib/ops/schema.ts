@@ -57,6 +57,21 @@ export const ListHistoryInput = z.object({
   page_size: z.number().int().min(1).max(100).default(25),
 });
 
-export const AnalyticsInput = z.object({
-  range_days: z.number().int().min(1).max(365).default(30),
-});
+export const AnalyticsInput = z
+  .object({
+    range_days: z.number().int().min(1).max(365).default(30),
+    // Optional explicit ISO window (YYYY-MM-DD). When both are set they win
+    // over range_days.
+    from: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    to: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    // Restrict decision-derived stats to a single outcome. "all" keeps the
+    // current behaviour.
+    outcome: z
+      .enum(["all", "approved", "rejected", "archived"])
+      .default("all"),
+  })
+  .refine((v) => !(v.from && v.to) || v.from <= v.to, {
+    message: "from must be on or before to",
+    path: ["from"],
+  });
+
