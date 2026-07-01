@@ -77,7 +77,7 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
       img { -ms-interpolation-mode:bicubic; }
       .btn:hover { background:${brand.royal} !important; }
       /* Fallback styling for the logo when images are blocked (Outlook, Gmail image-off) */
-      .logo-img { color:${brand.ink}; font-family:${brand.display}; font-size:22px; font-weight:600; letter-spacing:-0.01em; line-height:40px; }
+      .logo-img { color:${brand.ink}; font-family:${brand.display}; font-size:24px; font-weight:600; letter-spacing:-0.01em; line-height:64px; }
       @media (max-width:600px) {
         .outer { padding:16px 8px !important; }
         .shell { border-radius:0 !important; border-left:0 !important; border-right:0 !important; }
