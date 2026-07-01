@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import {
   User,
   Mail,
@@ -12,10 +13,14 @@ import {
   ExternalLink,
   Clock,
   Monitor,
+  Save,
+  Pencil,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { resendPortalWelcome } from "@/lib/portal.functions";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { resendPortalWelcome, updatePortalProfile } from "@/lib/portal.functions";
 import { usePortalContext } from "@/hooks/use-portal-context";
 import { toast } from "sonner";
 
@@ -29,12 +34,40 @@ export const Route = createFileRoute("/portal/account")({
   component: AccountPage,
 });
 
+const ProfileSchema = z.object({
+  contact_name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(120, "Name is too long"),
+  company_name: z
+    .string()
+    .trim()
+    .max(160, "Company name is too long")
+    .optional(),
+});
+
+type FormValues = z.infer<typeof ProfileSchema>;
+type FormErrors = Partial<Record<keyof FormValues, string>>;
+
 function AccountPage() {
   const navigate = useNavigate();
   const ctx = usePortalContext();
+  const qc = useQueryClient();
   const [email, setEmail] = useState<string | null>(null);
   const [lastSignInAt, setLastSignInAt] = useState<string | null>(null);
   const resendFn = useServerFn(resendPortalWelcome);
+  const updateFn = useServerFn(updatePortalProfile);
+
+  const project = ctx.data?.hasAccess ? ctx.data.project : null;
+  const isRevoked = ctx.data && !ctx.data.hasAccess;
+
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<FormValues>({
+    contact_name: "",
+    company_name: "",
+  });
+  const [errors, setErrors] = useState<FormErrors>({});
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -42,6 +75,15 @@ function AccountPage() {
       setLastSignInAt(data.user?.last_sign_in_at ?? null);
     });
   }, []);
+
+  useEffect(() => {
+    if (project) {
+      setForm({
+        contact_name: project.contact_name ?? "",
+        company_name: project.company_name ?? "",
+      });
+    }
+  }, [project?.contact_name, project?.company_name]);
 
   const resend = useMutation({
     mutationFn: () => resendFn({}),
@@ -52,13 +94,49 @@ function AccountPage() {
     onError: () => toast.error("Couldn't send. Try again in a moment."),
   });
 
+  const save = useMutation({
+    mutationFn: async (values: FormValues) => {
+      const parsed = ProfileSchema.safeParse(values);
+      if (!parsed.success) {
+        const fe: FormErrors = {};
+        for (const issue of parsed.error.issues) {
+          const key = issue.path[0] as keyof FormValues;
+          if (key && !fe[key]) fe[key] = issue.message;
+        }
+        setErrors(fe);
+        throw new Error("Please fix the highlighted fields.");
+      }
+      return updateFn({
+        data: {
+          contact_name: parsed.data.contact_name,
+          company_name: parsed.data.company_name ?? null,
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Profile updated.");
+      setEditing(false);
+      setErrors({});
+      qc.invalidateQueries({ queryKey: ["portal", "context"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Couldn't save."),
+  });
+
+  function validateField(key: keyof FormValues, value: string) {
+    const test = { ...form, [key]: value };
+    const parsed = ProfileSchema.safeParse(test);
+    if (parsed.success) {
+      setErrors((prev) => ({ ...prev, [key]: undefined }));
+    } else {
+      const issue = parsed.error.issues.find((i) => i.path[0] === key);
+      setErrors((prev) => ({ ...prev, [key]: issue?.message }));
+    }
+  }
+
   async function signOutEverywhere() {
     await supabase.auth.signOut({ scope: "global" });
     navigate({ to: "/portal/login", replace: true });
   }
-
-  const project = ctx.data?.hasAccess ? ctx.data.project : null;
-  const isRevoked = ctx.data && !ctx.data.hasAccess;
 
   return (
     <div className="max-w-6xl mx-auto grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -75,26 +153,139 @@ function AccountPage() {
 
         {/* Profile */}
         <section className="rounded-2xl bg-card border border-border shadow-sm p-6 lg:p-8">
-          <h2 className="font-display text-xl text-ink">Profile information</h2>
-          <p className="text-[13px] text-ink/60 mt-1">
-            Your basic information from your engagement.
-          </p>
-          <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8">
-            <Field label="Full name" value={project?.contact_name ?? "—"} />
-            <Field label="Email address" value={email ?? "—"} />
-            <Field label="Company" value={project?.company_name ?? "—"} />
-            <Field
-              label="Package"
-              value={project?.package_name ?? project?.purchased_package ?? "—"}
-            />
-          </dl>
-          <p className="text-[12px] text-ink/50 mt-6">
-            Need to change something? Email{" "}
-            <a href="mailto:tai@trusttai.com" className="underline hover:text-ink">
-              tai@trusttai.com
-            </a>{" "}
-            and we'll update it.
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-xl text-ink">Profile information</h2>
+              <p className="text-[13px] text-ink/60 mt-1">
+                Update the name and company we use across your workspace.
+              </p>
+            </div>
+            {!editing && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditing(true)}
+                className="border-ink/20 text-ink shrink-0"
+              >
+                <Pencil className="w-3.5 h-3.5 mr-2" /> Edit
+              </Button>
+            )}
+          </div>
+
+          {!editing ? (
+            <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8">
+              <Field label="Full name" value={project?.contact_name ?? "—"} />
+              <Field label="Email address" value={email ?? "—"} />
+              <Field label="Company" value={project?.company_name ?? "—"} />
+              <Field
+                label="Package"
+                value={project?.package_name ?? project?.purchased_package ?? "—"}
+              />
+            </dl>
+          ) : (
+            <form
+              className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                save.mutate(form);
+              }}
+            >
+              <div>
+                <Label htmlFor="contact_name" className="text-[12px] uppercase tracking-wider text-ink/50">
+                  Full name
+                </Label>
+                <Input
+                  id="contact_name"
+                  value={form.contact_name}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, contact_name: e.target.value }));
+                    validateField("contact_name", e.target.value);
+                  }}
+                  disabled={save.isPending}
+                  aria-invalid={!!errors.contact_name}
+                  className="mt-1.5 bg-paper-soft border-rule-soft"
+                />
+                {errors.contact_name && (
+                  <p className="text-[12px] text-destructive mt-1">{errors.contact_name}</p>
+                )}
+              </div>
+              <div>
+                <Label className="text-[12px] uppercase tracking-wider text-ink/50">
+                  Email address
+                </Label>
+                <Input
+                  value={email ?? ""}
+                  disabled
+                  className="mt-1.5 bg-paper-soft border-rule-soft opacity-70"
+                />
+                <p className="text-[11px] text-ink/50 mt-1">
+                  Email tai@trusttai.com to change your login email.
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="company_name" className="text-[12px] uppercase tracking-wider text-ink/50">
+                  Company
+                </Label>
+                <Input
+                  id="company_name"
+                  value={form.company_name ?? ""}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, company_name: e.target.value }));
+                    validateField("company_name", e.target.value);
+                  }}
+                  disabled={save.isPending}
+                  aria-invalid={!!errors.company_name}
+                  className="mt-1.5 bg-paper-soft border-rule-soft"
+                />
+                {errors.company_name && (
+                  <p className="text-[12px] text-destructive mt-1">{errors.company_name}</p>
+                )}
+              </div>
+              <div>
+                <Label className="text-[12px] uppercase tracking-wider text-ink/50">
+                  Package
+                </Label>
+                <Input
+                  value={project?.package_name ?? project?.purchased_package ?? ""}
+                  disabled
+                  className="mt-1.5 bg-paper-soft border-rule-soft opacity-70"
+                />
+              </div>
+              <div className="sm:col-span-2 flex items-center gap-3 pt-2">
+                <Button
+                  type="submit"
+                  disabled={save.isPending || Object.values(errors).some(Boolean)}
+                  className="bg-ink hover:bg-ink/90 text-white"
+                >
+                  {save.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" /> Save changes
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setForm({
+                      contact_name: project?.contact_name ?? "",
+                      company_name: project?.company_name ?? "",
+                    });
+                    setErrors({});
+                    setEditing(false);
+                  }}
+                  disabled={save.isPending}
+                  className="text-ink/70"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
         </section>
 
         {/* Login & Security */}
