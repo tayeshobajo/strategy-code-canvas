@@ -88,7 +88,7 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
         .body-copy { font-size:15px !important; }
         .cta-wrap { text-align:center !important; }
         .btn { display:block !important; width:100% !important; box-sizing:border-box !important; padding:16px 20px !important; font-size:15px !important; }
-        .logo-img { height:32px !important; line-height:32px !important; font-size:20px !important; }
+        .logo-img { height:52px !important; line-height:52px !important; font-size:22px !important; }
       }
       @media (max-width:380px) {
         .pad { padding-left:18px !important; padding-right:18px !important; }
