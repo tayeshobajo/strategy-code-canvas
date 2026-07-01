@@ -31,9 +31,7 @@ export const checkPortalAccess = createServerFn({ method: "GET" })
 // -------------------- Magic link (public) --------------------
 
 export const requestPortalMagicLink = createServerFn({ method: "POST" })
-  .inputValidator((raw: unknown) =>
-    z.object({ email: z.string().email() }).parse(raw),
-  )
+  .inputValidator((raw: unknown) => z.object({ email: z.string().email() }).parse(raw))
   .handler(async ({ data }) => {
     const email = data.email.trim().toLowerCase();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -62,14 +60,12 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
     }
 
     // Generate the magic link via Auth Admin (bypasses disable_signup for existing users).
-    const redirectTo =
-      (process.env.PUBLIC_SITE_URL ?? "https://new.trusttai.com") + "/portal";
-    const { data: linkData, error: linkError } =
-      await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email,
-        options: { redirectTo },
-      });
+    const redirectTo = (process.env.PUBLIC_SITE_URL ?? "https://new.trusttai.com") + "/portal";
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo },
+    });
 
     if (linkError || !linkData?.properties?.action_link) {
       console.error("[portal.magic-link] generateLink failed", linkError);
@@ -77,8 +73,8 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
     }
 
     const actionLink = linkData.properties.action_link;
-    const messageId =
-      (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`) as string;
+    const messageId = (globalThis.crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random()}`) as string;
 
     const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
       <p>Welcome back.</p>
@@ -88,10 +84,12 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
       <p>— Tai</p>
     </div>`;
 
-    const { error: enqError } = await (supabaseAdmin.rpc as unknown as (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => Promise<{ error: unknown }>)("enqueue_email", {
+    const { error: enqError } = await (
+      supabaseAdmin.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: unknown }>
+    )("enqueue_email", {
       queue_name: "transactional_emails",
       payload: {
         message_id: messageId,
@@ -118,10 +116,12 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
       .limit(1);
     const projectId = projects?.[0]?.id;
     if (projectId) {
-      await (supabaseAdmin.rpc as unknown as (
-        fn: string,
-        args: Record<string, unknown>,
-      ) => Promise<{ error: unknown }>)("log_client_portal_activity", {
+      await (
+        supabaseAdmin.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ error: unknown }>
+      )("log_client_portal_activity", {
         _project_id: projectId,
         _actor_type: "system",
         _actor_email: email,
@@ -186,10 +186,7 @@ export const getPortalContext = createServerFn({ method: "GET" })
   });
 
 // -------------------- Admin (operator) --------------------
-async function assertOperator(context: {
-  claims?: { email?: string };
-  supabase: unknown;
-}) {
+async function assertOperator(context: { claims?: { email?: string }; supabase: unknown }) {
   const email = context.claims?.email;
   if (!isOperator(email)) throw new Error("Forbidden");
   return email as string;
@@ -212,44 +209,34 @@ export const adminListPortals = createServerFn({ method: "GET" })
 
 export const adminGetPortal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) =>
-    z.object({ id: z.string().uuid() }).parse(raw),
-  )
+  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
   .handler(async ({ context, data }) => {
     await assertOperator(context);
-    const [proj, onboarding, roadmaps, activity, perms, billing] =
-      await Promise.all([
-        context.supabase
-          .from("client_portal_projects")
-          .select("*")
-          .eq("id", data.id)
-          .maybeSingle(),
-        context.supabase
-          .from("client_portal_onboarding")
-          .select("*")
-          .eq("project_id", data.id)
-          .maybeSingle(),
-        context.supabase
-          .from("client_portal_roadmaps")
-          .select("id, title, version_label, status, approved_at, created_at")
-          .eq("project_id", data.id)
-          .order("created_at", { ascending: false }),
-        context.supabase
-          .from("client_portal_activity")
-          .select("*")
-          .eq("project_id", data.id)
-          .order("created_at", { ascending: false })
-          .limit(30),
-        context.supabase
-          .from("client_portal_permissions")
-          .select("*")
-          .eq("project_id", data.id),
-        context.supabase
-          .from("client_portal_billing")
-          .select("*")
-          .eq("project_id", data.id)
-          .order("created_at", { ascending: false }),
-      ]);
+    const [proj, onboarding, roadmaps, activity, perms, billing] = await Promise.all([
+      context.supabase.from("client_portal_projects").select("*").eq("id", data.id).maybeSingle(),
+      context.supabase
+        .from("client_portal_onboarding")
+        .select("*")
+        .eq("project_id", data.id)
+        .maybeSingle(),
+      context.supabase
+        .from("client_portal_roadmaps")
+        .select("id, title, version_label, status, approved_at, created_at")
+        .eq("project_id", data.id)
+        .order("created_at", { ascending: false }),
+      context.supabase
+        .from("client_portal_activity")
+        .select("*")
+        .eq("project_id", data.id)
+        .order("created_at", { ascending: false })
+        .limit(30),
+      context.supabase.from("client_portal_permissions").select("*").eq("project_id", data.id),
+      context.supabase
+        .from("client_portal_billing")
+        .select("*")
+        .eq("project_id", data.id)
+        .order("created_at", { ascending: false }),
+    ]);
 
     return {
       project: proj.data,
@@ -284,9 +271,13 @@ export const adminUpdatePortal = createServerFn({ method: "POST" })
     if (Object.keys(patch).length === 0) return { ok: true as const };
     patch.updated_at = new Date().toISOString();
 
-    const { error } = await (context.supabase.from("client_portal_projects") as unknown as {
-      update: (v: Record<string, unknown>) => { eq: (k: string, v: string) => Promise<{ error: unknown }> };
-    })
+    const { error } = await (
+      context.supabase.from("client_portal_projects") as unknown as {
+        update: (v: Record<string, unknown>) => {
+          eq: (k: string, v: string) => Promise<{ error: unknown }>;
+        };
+      }
+    )
       .update(patch)
       .eq("id", data.id);
     if (error) throw error as Error;
@@ -359,22 +350,20 @@ async function sendWelcomeMagicLink(email: string) {
     return { ok: false as const, reason: "no_confirmed_access" as const };
   }
 
-  const redirectTo =
-    (process.env.PUBLIC_SITE_URL ?? "https://new.trusttai.com") + "/portal";
-  const { data: linkData, error: linkError } =
-    await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
-      email: normalized,
-      options: { redirectTo },
-    });
+  const redirectTo = (process.env.PUBLIC_SITE_URL ?? "https://new.trusttai.com") + "/portal";
+  const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    type: "magiclink",
+    email: normalized,
+    options: { redirectTo },
+  });
   if (linkError || !linkData?.properties?.action_link) {
     console.error("[portal.resend-welcome] generateLink failed", linkError);
     return { ok: false as const, reason: "generate_failed" as const };
   }
 
   const actionLink = linkData.properties.action_link;
-  const messageId =
-    (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`) as string;
+  const messageId = (globalThis.crypto?.randomUUID?.() ??
+    `${Date.now()}-${Math.random()}`) as string;
 
   const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
     <p>Welcome back.</p>
@@ -384,10 +373,12 @@ async function sendWelcomeMagicLink(email: string) {
     <p>— Tai</p>
   </div>`;
 
-  await (supabaseAdmin.rpc as unknown as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ error: unknown }>)("enqueue_email", {
+  await (
+    supabaseAdmin.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ error: unknown }>
+  )("enqueue_email", {
     queue_name: "transactional_emails",
     payload: {
       message_id: messageId,
@@ -411,10 +402,12 @@ async function sendWelcomeMagicLink(email: string) {
     .limit(1);
   const projectId = projects?.[0]?.id;
   if (projectId) {
-    await (supabaseAdmin.rpc as unknown as (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => Promise<{ error: unknown }>)("log_client_portal_activity", {
+    await (
+      supabaseAdmin.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: unknown }>
+    )("log_client_portal_activity", {
       _project_id: projectId,
       _actor_type: "system",
       _actor_email: normalized,
@@ -466,18 +459,22 @@ export const adminSetClientAccessRevoked = createServerFn({ method: "POST" })
     const revokedValue = data.revoked ? now : null;
 
     const [caRes, permRes] = await Promise.all([
-      (supabaseAdmin.from("client_access") as unknown as {
-        update: (v: Record<string, unknown>) => {
-          ilike: (k: string, v: string) => Promise<{ error: unknown }>;
-        };
-      })
+      (
+        supabaseAdmin.from("client_access") as unknown as {
+          update: (v: Record<string, unknown>) => {
+            ilike: (k: string, v: string) => Promise<{ error: unknown }>;
+          };
+        }
+      )
         .update({ revoked_at: revokedValue, updated_at: now })
         .ilike("email", email),
-      (supabaseAdmin.from("client_portal_permissions") as unknown as {
-        update: (v: Record<string, unknown>) => {
-          ilike: (k: string, v: string) => Promise<{ error: unknown }>;
-        };
-      })
+      (
+        supabaseAdmin.from("client_portal_permissions") as unknown as {
+          update: (v: Record<string, unknown>) => {
+            ilike: (k: string, v: string) => Promise<{ error: unknown }>;
+          };
+        }
+      )
         .update({ revoked_at: revokedValue })
         .ilike("email", email),
     ]);
@@ -489,9 +486,7 @@ export const adminSetClientAccessRevoked = createServerFn({ method: "POST" })
     if (data.revoked) {
       try {
         const { data: userLookup } = await supabaseAdmin.auth.admin.listUsers();
-        const target = userLookup?.users?.find(
-          (u) => (u.email ?? "").toLowerCase() === email,
-        );
+        const target = userLookup?.users?.find((u) => (u.email ?? "").toLowerCase() === email);
         if (target) await supabaseAdmin.auth.admin.signOut(target.id);
       } catch (e) {
         console.warn("[portal.revoke] signOut failed", e);
@@ -499,17 +494,17 @@ export const adminSetClientAccessRevoked = createServerFn({ method: "POST" })
     }
 
     if (data.project_id) {
-      await (supabaseAdmin.rpc as unknown as (
-        fn: string,
-        args: Record<string, unknown>,
-      ) => Promise<{ error: unknown }>)("log_client_portal_activity", {
+      await (
+        supabaseAdmin.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ error: unknown }>
+      )("log_client_portal_activity", {
         _project_id: data.project_id,
         _actor_type: "tai",
         _actor_email: operatorEmail,
         _event_type: data.revoked ? "access_revoked" : "access_restored",
-        _summary: data.revoked
-          ? `Access revoked for ${email}`
-          : `Access restored for ${email}`,
+        _summary: data.revoked ? `Access revoked for ${email}` : `Access restored for ${email}`,
         _client_visible: false,
         _metadata: {},
       });

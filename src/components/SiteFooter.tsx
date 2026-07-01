@@ -6,8 +6,6 @@ import { usePortalLink } from "@/hooks/use-portal-link";
 const NAVY = "#0A0F1F";
 const container = "mx-auto max-w-[1240px] px-6 sm:px-8 lg:px-10";
 
-
-
 /* Faint topographic texture for footer band */
 function FooterContour() {
   return (
@@ -36,10 +34,7 @@ function FooterContour() {
 export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean }) {
   const portalLink = usePortalLink();
   return (
-    <footer
-      className="relative overflow-hidden text-white"
-      style={{ backgroundColor: NAVY }}
-    >
+    <footer className="relative overflow-hidden text-white" style={{ backgroundColor: NAVY }}>
       {withTopTexture && <FooterContour />}
       <div className={`${container} relative pb-12 pt-16`}>
         <div className="grid grid-cols-1 gap-10 md:grid-cols-4 md:gap-0 md:divide-x md:divide-white/10">
@@ -60,10 +55,7 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
                 </li>
               ))}
               <li>
-                <Link
-                  to={portalLink.to}
-                  className="transition-colors hover:text-white"
-                >
+                <Link to={portalLink.to} className="transition-colors hover:text-white">
                   {portalLink.label}
                 </Link>
               </li>
@@ -72,7 +64,11 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
           <div className="md:px-8">
             <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Connect</p>
             <ul className="mt-4 space-y-2 text-[13px] text-white/70">
-              <li>2615 Medical Center Pkwy<br />Murfreesboro, TN 37129</li>
+              <li>
+                2615 Medical Center Pkwy
+                <br />
+                Murfreesboro, TN 37129
+              </li>
               <li>
                 <a href="mailto:hello@trusttai.com" className="transition-colors hover:text-white">
                   hello@trusttai.com
@@ -96,7 +92,6 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-6 text-[12px] text-white/45 sm:flex-row sm:items-center">
           <p>© 2026 Trust Tai. All rights reserved.</p>
         </div>
-
       </div>
     </footer>
   );
