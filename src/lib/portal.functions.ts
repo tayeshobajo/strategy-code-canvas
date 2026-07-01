@@ -136,6 +136,7 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
         label: "portal-magic-link",
         purpose: "transactional",
         idempotency_key: `portal-magic-${email}-${Date.now()}`,
+        unsubscribe_token: unsubscribeToken,
       },
     });
 
