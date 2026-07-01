@@ -5,6 +5,11 @@ import {
   renderPortalMagicLinkHtml,
   renderPortalMagicLinkText,
 } from "@/lib/email-templates/portal-magic-link-html";
+import {
+  diagnoseAccessMismatch,
+  generateCorrelationId,
+  normalizeCorrelationId,
+} from "@/lib/portal-access-diagnosis";
 
 const OPERATOR_EMAILS = new Set([
   "hello@trust-tai.com",
@@ -15,6 +20,20 @@ const OPERATOR_EMAILS = new Set([
 function isOperator(email: string | null | undefined) {
   return !!email && OPERATOR_EMAILS.has(email.toLowerCase());
 }
+
+// Read the inbound correlation ID from the request or mint a fresh one.
+// Used to trace one magic-link flow across every portal_access_events row.
+async function currentCorrelationId(): Promise<string> {
+  try {
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const inbound = normalizeCorrelationId(getRequestHeader("x-correlation-id"));
+    if (inbound) return inbound;
+  } catch {
+    // request context unavailable (unit tests, module load)
+  }
+  return generateCorrelationId();
+}
+
 
 // Get-or-create an unsubscribe token for a recipient. Required by the
 // transactional email sender.
@@ -181,6 +200,18 @@ async function logPortalAccessEvent(fields: {
   correlation_id?: string | null;
   metadata?: Record<string, unknown>;
 }) {
+  const row = {
+    event_type: fields.event_type,
+    email: fields.email ?? null,
+    user_id: fields.user_id ?? null,
+    has_client_access: fields.has_client_access ?? null,
+    has_permission: fields.has_permission ?? null,
+    has_project: fields.has_project ?? null,
+    project_id: fields.project_id ?? null,
+    route: fields.route ?? null,
+    correlation_id: fields.correlation_id ?? null,
+    metadata: fields.metadata ?? {},
+  };
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let userAgent: string | null = null;
@@ -190,21 +221,27 @@ async function logPortalAccessEvent(fields: {
     } catch {
       // request context unavailable
     }
-    await supabaseAdmin.from("portal_access_events").insert({
-      event_type: fields.event_type,
-      email: fields.email ?? null,
-      user_id: fields.user_id ?? null,
-      has_client_access: fields.has_client_access ?? null,
-      has_permission: fields.has_permission ?? null,
-      has_project: fields.has_project ?? null,
-      project_id: fields.project_id ?? null,
-      route: fields.route ?? null,
+    const { error } = await supabaseAdmin.from("portal_access_events").insert({
+      ...row,
       user_agent: userAgent,
-      correlation_id: fields.correlation_id ?? null,
-      metadata: (fields.metadata ?? {}) as never,
+      metadata: row.metadata as never,
     });
+    if (error) throw error;
   } catch (err) {
-    console.error("[portal.telemetry] failed to log access event", err);
+    // Never break the login flow if telemetry is down. Emit a structured line
+    // so ops can still recover the event from platform logs.
+    try {
+      console.error(
+        "[portal.telemetry.fallback] " +
+          JSON.stringify({
+            ...row,
+            error: err instanceof Error ? err.message : String(err),
+            logged_at: new Date().toISOString(),
+          }),
+      );
+    } catch {
+      // Absolute last resort: swallow. The user's flow must proceed.
+    }
   }
 }
 
@@ -212,6 +249,7 @@ async function logPortalAccessEvent(fields: {
 export const getPortalContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const correlationId = await currentCorrelationId();
     const email = context.claims?.email as string | undefined;
     const userId = context.userId as string | undefined;
     if (!email) {
@@ -219,8 +257,9 @@ export const getPortalContext = createServerFn({ method: "GET" })
         event_type: "missing_email_claim",
         user_id: userId ?? null,
         route: "getPortalContext",
+        correlation_id: correlationId,
       });
-      return { hasAccess: false as const };
+      return { hasAccess: false as const, correlationId };
     }
 
     const { data: project } = await context.supabase
@@ -242,30 +281,22 @@ export const getPortalContext = createServerFn({ method: "GET" })
           .select("id, revoked_at, project_id")
           .ilike("email", email),
       ]);
-      const caRows = caRes.data ?? [];
-      const permRows = permRes.data ?? [];
-      const hasClientAccess = caRows.some((r) => !r.revoked_at);
-      const hasPermission = permRows.some((r) => !r.revoked_at);
-      const eventType =
-        hasClientAccess || hasPermission
-          ? "missing_workspace" // access granted but no client_portal_projects row
-          : "unknown_email"; // signed in but no access row at all
+      const diagnosis = diagnoseAccessMismatch({
+        clientAccess: caRes.data ?? [],
+        permissions: permRes.data ?? [],
+      });
       await logPortalAccessEvent({
-        event_type: eventType,
+        event_type: diagnosis.event_type,
         email,
         user_id: userId ?? null,
-        has_client_access: hasClientAccess,
-        has_permission: hasPermission,
+        has_client_access: diagnosis.has_client_access,
+        has_permission: diagnosis.has_permission,
         has_project: false,
         route: "getPortalContext",
-        metadata: {
-          client_access_rows: caRows.length,
-          client_access_stripe_confirmed: caRows.some((r) => !!r.stripe_session_id && !r.revoked_at),
-          permission_rows: permRows.length,
-          permission_project_ids: permRows.map((r) => r.project_id).filter(Boolean),
-        },
+        correlation_id: correlationId,
+        metadata: diagnosis.metadata,
       });
-      return { hasAccess: false as const, email };
+      return { hasAccess: false as const, email, correlationId };
     }
 
     // Sync client_access user_id linkage
@@ -300,6 +331,7 @@ export const getPortalContext = createServerFn({ method: "GET" })
       approvedRoadmap: roadmapRes.data?.[0] ?? null,
       billing: billingRes.data ?? [],
       isOperator: isOperator(email),
+      correlationId,
     };
   });
 

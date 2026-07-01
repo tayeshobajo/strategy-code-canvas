@@ -33,6 +33,7 @@ import { Route as PortalAccessDeniedRouteImport } from './routes/portal.access-d
 import { Route as OpsQueueRouteImport } from './routes/ops/queue'
 import { Route as OpsInsightsRouteImport } from './routes/ops/insights'
 import { Route as OpsHistoryRouteImport } from './routes/ops/history'
+import { Route as OpsAccessEventsRouteImport } from './routes/ops/access-events'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
@@ -165,6 +166,11 @@ const OpsHistoryRoute = OpsHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => OpsRouteRoute,
 } as any)
+const OpsAccessEventsRoute = OpsAccessEventsRouteImport.update({
+  id: '/access-events',
+  path: '/access-events',
+  getParentRoute: () => OpsRouteRoute,
+} as any)
 const InsightsSlugRoute = InsightsSlugRouteImport.update({
   id: '/insights_/$slug',
   path: '/insights/$slug',
@@ -246,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
+  '/ops/access-events': typeof OpsAccessEventsRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
@@ -281,6 +288,7 @@ export interface FileRoutesByTo {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
+  '/ops/access-events': typeof OpsAccessEventsRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
@@ -319,6 +327,7 @@ export interface FileRoutesById {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights_/$slug': typeof InsightsSlugRoute
+  '/ops/access-events': typeof OpsAccessEventsRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
+    | '/ops/access-events'
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
+    | '/ops/access-events'
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
@@ -429,6 +440,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights_/$slug'
+    | '/ops/access-events'
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
@@ -644,6 +656,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpsHistoryRouteImport
       parentRoute: typeof OpsRouteRoute
     }
+    '/ops/access-events': {
+      id: '/ops/access-events'
+      path: '/access-events'
+      fullPath: '/ops/access-events'
+      preLoaderRoute: typeof OpsAccessEventsRouteImport
+      parentRoute: typeof OpsRouteRoute
+    }
     '/insights_/$slug': {
       id: '/insights_/$slug'
       path: '/insights/$slug'
@@ -743,6 +762,7 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface OpsRouteRouteChildren {
+  OpsAccessEventsRoute: typeof OpsAccessEventsRoute
   OpsHistoryRoute: typeof OpsHistoryRoute
   OpsInsightsRoute: typeof OpsInsightsRoute
   OpsQueueRoute: typeof OpsQueueRoute
@@ -752,6 +772,7 @@ interface OpsRouteRouteChildren {
 }
 
 const OpsRouteRouteChildren: OpsRouteRouteChildren = {
+  OpsAccessEventsRoute: OpsAccessEventsRoute,
   OpsHistoryRoute: OpsHistoryRoute,
   OpsInsightsRoute: OpsInsightsRoute,
   OpsQueueRoute: OpsQueueRoute,
