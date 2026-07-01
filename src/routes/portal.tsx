@@ -44,14 +44,23 @@ function PortalLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [email, setEmail] = useState<string>("");
 
+  const isPublicPage =
+    pathname === "/portal/login" || pathname === "/portal/access-denied";
+
   useEffect(() => {
+    if (isPublicPage) return;
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
-  }, []);
+  }, [isPublicPage]);
 
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/portal/login" });
   }
+
+  if (isPublicPage) {
+    return <Outlet />;
+  }
+
 
   return (
     <div className="min-h-screen flex" style={{ background: "#F7F3EC" }}>
