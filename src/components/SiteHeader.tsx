@@ -122,10 +122,11 @@ export function SiteHeader() {
             <div className="my-2 border-t border-rule/60" />
             <Link
               to={portalLink.to}
-              className="flex items-center gap-2 rounded-lg px-3 py-3 text-[15px] text-ink/80 transition-colors hover:bg-ink/5"
+              aria-busy={portalLink.state === "loading"}
+              className={`flex items-center gap-2 rounded-lg px-3 py-3 text-[15px] text-ink/80 transition-colors hover:bg-ink/5 ${portalLink.state === "loading" ? "opacity-60 animate-pulse" : ""}`}
             >
               <Lock className="h-4 w-4" />
-              {portalLink.label}
+              {portalLink.state === "loading" ? "Checking…" : portalLink.label}
             </Link>
             <Link
               to="/build-my-roadmap"
