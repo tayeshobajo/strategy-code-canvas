@@ -4,8 +4,10 @@ import { queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { checkPortalAccess, getPortalContext, resendPortalWelcome } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Suspense, useState } from "react";
 import { Mail, Check, Loader2, LifeBuoy } from "lucide-react";
+
 
 const portalCtxOptions = (fn: ReturnType<typeof useServerFn<typeof getPortalContext>>) =>
   queryOptions({
@@ -69,14 +71,27 @@ function PendingWorkspacePanel({ email }: { email?: string }) {
       setErrorMsg("That did not send. Try again in a moment, or email tai@trusttai.com."),
   });
 
+  const currentStep = 1; // 0 = access, 1 = workspace, 2 = roadmap, 3 = engagement
+  const progress = ((currentStep + 1) / 4) * 100;
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <section className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10">
+      {/* Live announcement region so screen readers broadcast the pending state */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        Workspace is being set up. You are signed in{email ? ` as ${email}` : ""}. 
+        Step 2 of 4: workspace being created. Most workspaces are ready within one business day.
+      </div>
+
+      <section
+        className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10"
+        aria-busy="true"
+        aria-labelledby="pending-workspace-title"
+      >
         <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
           Workspace being set up
         </div>
-        <h1 className="font-display text-3xl text-ink mt-3">
+        <h1 id="pending-workspace-title" className="font-display text-3xl text-ink mt-3">
           You're signed in{email ? ` as ${email}` : ""}.
         </h1>
         <p className="text-[15px] leading-[1.75] text-ink/75 mt-4">
@@ -84,10 +99,64 @@ function PendingWorkspacePanel({ email }: { email?: string }) {
           publishes your project, your Roadmap, files, and next steps appear
           here — no need to sign in again.
         </p>
-        <p className="text-[13px] leading-[1.7] text-ink/60 mt-4">
-          Most workspaces are ready within one business day of purchase. If
-          you've been waiting longer, reach out and we'll unblock you.
-        </p>
+
+        <div className="mt-6">
+          <div className="flex items-center justify-between text-[12px] text-ink/60 mb-2">
+            <span>Setup progress</span>
+            <span aria-hidden="true">Step {currentStep + 1} of 4</span>
+          </div>
+          <Progress value={progress} aria-label="Workspace setup progress" />
+        </div>
+
+        <ol
+          className="mt-6 space-y-0"
+          aria-label="Workspace setup timeline"
+        >
+          {[
+            { label: "Access confirmed", state: "complete" },
+            { label: "Workspace being created", state: "current" },
+            { label: "Roadmap published", state: "upcoming" },
+            { label: "Engagement begins", state: "upcoming" },
+          ].map((step, idx) => {
+            const isComplete = step.state === "complete";
+            const isCurrent = step.state === "current";
+            return (
+              <li
+                key={step.label}
+                className="flex items-start gap-3 py-3 border-b border-border last:border-b-0"
+                aria-current={isCurrent ? "step" : undefined}
+              >
+                <span
+                  className={`
+                    flex items-center justify-center shrink-0 w-6 h-6 rounded-full border text-[11px] mt-0.5
+                    ${isComplete ? "bg-royal border-royal text-white" : ""}
+                    ${isCurrent ? "border-royal text-royal" : "border-ink/20 text-ink/40"}
+                  `}
+                  aria-hidden="true"
+                >
+                  {isComplete ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <span>{idx + 1}</span>
+                  )}
+                </span>
+                <div className="flex-1">
+                  <div className={`text-[14px] ${isCurrent ? "text-ink font-medium" : "text-ink/70"}`}>
+                    {step.label}
+                    {isCurrent && (
+                      <span className="sr-only"> (current step)</span>
+                    )}
+                  </div>
+                  {isCurrent && (
+                    <div className="text-[12px] text-ink/60 mt-0.5">
+                      Most workspaces are ready within one business day.
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
 
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
           <Button
@@ -99,15 +168,15 @@ function PendingWorkspacePanel({ email }: { email?: string }) {
           >
             {sent ? (
               <>
-                <Check className="w-4 h-4 mr-2" /> Sign-in link sent
+                <Check className="w-4 h-4 mr-2" aria-hidden="true" /> Sign-in link sent
               </>
             ) : resend.isPending ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> Sending…
               </>
             ) : (
               <>
-                <Mail className="w-4 h-4 mr-2" /> Resend sign-in link
+                <Mail className="w-4 h-4 mr-2" aria-hidden="true" /> Resend sign-in link
               </>
             )}
           </Button>
@@ -118,15 +187,15 @@ function PendingWorkspacePanel({ email }: { email?: string }) {
             className="border-ink/20 text-ink"
           >
             <a href="mailto:tai@trusttai.com?subject=Portal%20access">
-              <LifeBuoy className="w-4 h-4 mr-2" /> Contact Tai
+              <LifeBuoy className="w-4 h-4 mr-2" aria-hidden="true" /> Contact Tai
             </a>
           </Button>
         </div>
 
         {errorMsg && (
           <div
-            role="status"
-            aria-live="polite"
+            role="alert"
+            aria-live="assertive"
             className="text-[13px] text-destructive mt-4"
           >
             {errorMsg}
@@ -145,6 +214,7 @@ function PendingWorkspacePanel({ email }: { email?: string }) {
     </div>
   );
 }
+
 
 
 const STATUS_COPY: Record<
