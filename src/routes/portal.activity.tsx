@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity as ActivityIcon,
   CreditCard,
@@ -13,6 +13,8 @@ import {
   MessageSquare,
   Folder,
   User as UserIcon,
+  Calendar as CalendarIcon,
+  Check,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePortalContext } from "@/hooks/use-portal-context";
@@ -22,6 +24,14 @@ import {
   PortalPageHeader,
 } from "@/components/portal/PortalPage";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Json } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/portal/activity")({
@@ -39,33 +49,74 @@ type ActivityRow = {
   created_at: string;
 };
 
-type Filter = "all" | "billing" | "subscription" | "other";
+type Category = "billing" | "subscription" | "other";
+const ALL_CATEGORIES: Category[] = ["billing", "subscription", "other"];
+
+type DateRange = "7d" | "30d" | "90d" | "all";
+const DATE_RANGE_LABEL: Record<DateRange, string> = {
+  "7d": "Last 7 days",
+  "30d": "Last 30 days",
+  "90d": "Last 90 days",
+  all: "All time",
+};
+
+const PAGE_SIZE = 50;
+
+function sinceIso(range: DateRange): string | null {
+  if (range === "all") return null;
+  const days = range === "7d" ? 7 : range === "30d" ? 30 : 90;
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString();
+}
 
 function ActivityPage() {
   const ctx = usePortalContext();
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
   const qc = useQueryClient();
-  const [filter, setFilter] = useState<Filter>("all");
 
-  const query = useQuery({
-    queryKey: ["portal", "activity", projectId],
+  const [categories, setCategories] = useState<Set<Category>>(
+    () => new Set(ALL_CATEGORIES),
+  );
+  const [range, setRange] = useState<DateRange>("30d");
+  const since = useMemo(() => sinceIso(range), [range]);
+
+  const queryKey = ["portal", "activity", projectId, range] as const;
+
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey,
     enabled: !!projectId,
-    queryFn: async () => {
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => {
       if (!projectId) return [] as ActivityRow[];
-      const { data, error } = await supabase
+      let q = supabase
         .from("client_portal_activity")
         .select("id, event_type, summary, actor_type, actor_email, metadata, created_at")
         .eq("project_id", projectId)
         .eq("client_visible", true)
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(PAGE_SIZE);
+      if (since) q = q.gte("created_at", since);
+      if (pageParam) q = q.lt("created_at", pageParam);
+      const { data: rows, error } = await q;
       if (error) throw error;
-      return (data ?? []) as ActivityRow[];
+      return (rows ?? []) as ActivityRow[];
     },
+    getNextPageParam: (last) =>
+      last.length === PAGE_SIZE ? last[last.length - 1].created_at : undefined,
   });
 
-  // Realtime: reflect new activity as it lands.
+  // Realtime: new events prepend at the top; refresh first page.
   useEffect(() => {
     if (!projectId) return;
     const channel = supabase
@@ -86,13 +137,47 @@ function ActivityPage() {
     };
   }, [projectId, qc]);
 
-  const events = query.data ?? [];
+  const allEvents = useMemo(
+    () => (data?.pages ?? []).flat() as ActivityRow[],
+    [data],
+  );
+
   const filtered = useMemo(() => {
-    if (filter === "all") return events;
-    return events.filter((e) => categoryOf(e.event_type) === filter);
-  }, [events, filter]);
+    if (categories.size === ALL_CATEGORIES.length) return allEvents;
+    return allEvents.filter((e) => categories.has(categoryOf(e.event_type)));
+  }, [allEvents, categories]);
 
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
+
+  // Sentinel-based infinite scroll.
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasNextPage) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) {
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const toggleCategory = useCallback((c: Category) => {
+    setCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(c)) next.delete(c);
+      else next.add(c);
+      // Never allow zero — treat empty as "all" reset for usability.
+      if (next.size === 0) return new Set(ALL_CATEGORIES);
+      return next;
+    });
+  }, []);
+
+  const allSelected = categories.size === ALL_CATEGORIES.length;
 
   return (
     <PortalPage width="4xl">
@@ -103,58 +188,82 @@ function ActivityPage() {
         right={
           <Button
             variant="outline"
-            onClick={() => query.refetch()}
-            disabled={query.isFetching}
+            onClick={() => refetch()}
+            disabled={isFetching}
             className="border-ink/20 text-ink"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 mr-1.5 ${query.isFetching ? "animate-spin" : ""}`}
+              className={`w-3.5 h-3.5 mr-1.5 ${isFetching ? "animate-spin" : ""}`}
             />
             Refresh
           </Button>
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2">
-        {(
-          [
-            { id: "all", label: "All" },
-            { id: "billing", label: "Billing" },
-            { id: "subscription", label: "Subscription" },
-            { id: "other", label: "Workspace" },
-          ] as { id: Filter; label: string }[]
-        ).map((f) => {
-          const active = filter === f.id;
-          return (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilter(f.id)}
-              className={`px-3 py-1.5 rounded-full text-[12.5px] border transition-colors ${
-                active
-                  ? "bg-ink text-white border-ink"
-                  : "bg-card text-ink/70 border-rule-soft hover:bg-paper-soft"
-              }`}
-            >
-              {f.label}
-            </button>
-          );
-        })}
+      {/* Filters */}
+      <div
+        className="flex flex-wrap items-center gap-2"
+        role="toolbar"
+        aria-label="Activity filters"
+      >
+        <FilterChip
+          active={allSelected}
+          onClick={() => setCategories(new Set(ALL_CATEGORIES))}
+          label="All"
+        />
+        {ALL_CATEGORIES.map((c) => (
+          <FilterChip
+            key={c}
+            active={!allSelected && categories.has(c)}
+            onClick={() => toggleCategory(c)}
+            label={categoryLabel(c)}
+          />
+        ))}
+
+        <div className="ml-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-rule-soft text-ink/80 h-8"
+                aria-label={`Date range: ${DATE_RANGE_LABEL[range]}`}
+              >
+                <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
+                {DATE_RANGE_LABEL[range]}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Date range</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {(Object.keys(DATE_RANGE_LABEL) as DateRange[]).map((r) => (
+                <DropdownMenuItem
+                  key={r}
+                  onSelect={() => setRange(r)}
+                  className="flex items-center justify-between"
+                >
+                  <span>{DATE_RANGE_LABEL[r]}</span>
+                  {range === r && <Check className="w-3.5 h-3.5 text-royal" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <PortalCard className="p-0 overflow-hidden">
-        {query.isLoading ? (
+        {isLoading ? (
           <div className="p-10 flex items-center justify-center text-ink/60">
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
-        ) : query.isError ? (
+        ) : isError ? (
           <div className="p-10 text-center">
             <AlertCircle className="w-6 h-6 mx-auto mb-2 text-destructive" />
             <p className="text-[13.5px] text-ink/70">Couldn't load activity.</p>
             <Button
               variant="outline"
               className="mt-3 border-ink/20 text-ink"
-              onClick={() => query.refetch()}
+              onClick={() => refetch()}
             >
               Try again
             </Button>
@@ -162,30 +271,87 @@ function ActivityPage() {
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
             <ActivityIcon className="w-6 h-6 mx-auto mb-2 text-ink/40" />
-            <p className="font-display text-lg text-ink">No activity yet</p>
+            <p className="font-display text-lg text-ink">No activity in this range</p>
             <p className="text-[13.5px] text-ink/60 mt-1">
-              Events will appear here as your engagement progresses.
+              Try widening the date range or clearing filters.
             </p>
           </div>
         ) : (
-          <ol className="divide-y divide-rule-soft">
-            {grouped.map(([date, rows]) => (
-              <li key={date}>
-                <div className="px-5 sm:px-8 py-3 bg-paper-soft/60 text-[11px] uppercase tracking-[0.24em] font-mono text-ink/50 border-b border-rule-soft">
-                  {date}
-                </div>
-                <ul className="relative">
-                  {rows.map((e, idx) => (
-                    <TimelineItem key={e.id} event={e} isLast={idx === rows.length - 1} />
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ol>
+          <>
+            <ol className="divide-y divide-rule-soft" aria-live="polite">
+              {grouped.map(([date, rows]) => (
+                <li key={date}>
+                  <div className="px-5 sm:px-8 py-3 bg-paper-soft/60 text-[11px] uppercase tracking-[0.24em] font-mono text-ink/50 border-b border-rule-soft">
+                    {date}
+                  </div>
+                  <ul className="relative">
+                    {rows.map((e, idx) => (
+                      <TimelineItem
+                        key={e.id}
+                        event={e}
+                        isLast={idx === rows.length - 1}
+                      />
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ol>
+
+            {/* Infinite scroll footer */}
+            <div
+              ref={sentinelRef}
+              className="px-5 sm:px-8 py-5 flex items-center justify-center text-[12px] text-ink/50 border-t border-rule-soft"
+            >
+              {isFetchingNextPage ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading more…
+                </span>
+              ) : hasNextPage ? (
+                <button
+                  type="button"
+                  onClick={() => fetchNextPage()}
+                  className="text-royal hover:underline"
+                >
+                  Load more
+                </button>
+              ) : (
+                <span>End of timeline · {filtered.length} events</span>
+              )}
+            </div>
+          </>
         )}
       </PortalCard>
     </PortalPage>
   );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`px-3 py-1.5 rounded-full text-[12.5px] border transition-colors ${
+        active
+          ? "bg-ink text-white border-ink"
+          : "bg-card text-ink/70 border-rule-soft hover:bg-paper-soft"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function categoryLabel(c: Category) {
+  return c === "billing" ? "Billing" : c === "subscription" ? "Subscription" : "Workspace";
 }
 
 function TimelineItem({ event, isLast }: { event: ActivityRow; isLast: boolean }) {
@@ -238,14 +404,14 @@ function TimelineItem({ event, isLast }: { event: ActivityRow; isLast: boolean }
   );
 }
 
-function categoryOf(eventType: string): Filter {
+function categoryOf(eventType: string): Category {
   const t = eventType.toLowerCase();
   if (t.includes("invoice") || t.includes("payment") || t.includes("billing")) return "billing";
   if (t.includes("subscription") || t.includes("plan")) return "subscription";
   return "other";
 }
 
-function iconFor(eventType: string, cat: Filter) {
+function iconFor(eventType: string, cat: Category) {
   const t = eventType.toLowerCase();
   if (t.includes("invoice") || t.includes("receipt")) return Receipt;
   if (cat === "billing") return CreditCard;
@@ -256,7 +422,7 @@ function iconFor(eventType: string, cat: Filter) {
   return ActivityIcon;
 }
 
-function toneFor(eventType: string, _cat: Filter) {
+function toneFor(eventType: string, _cat: Category) {
   const t = eventType.toLowerCase();
   if (t.includes("failed") || t.includes("revoked") || t.includes("canceled"))
     return { badge: "bg-destructive/10 text-destructive border-destructive/30" };
@@ -298,5 +464,4 @@ function groupByDate(rows: ActivityRow[]): [string, ActivityRow[]][] {
   return Array.from(map.entries());
 }
 
-// Silence unused warning when CheckCircle2 is not referenced yet.
 void CheckCircle2;
