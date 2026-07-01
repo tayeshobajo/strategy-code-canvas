@@ -47,6 +47,106 @@ function LoadingCard() {
   );
 }
 
+function PendingWorkspacePanel({ email }: { email?: string }) {
+  const resendFn = useServerFn(resendPortalWelcome);
+  const [sent, setSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const resend = useMutation({
+    mutationFn: () => resendFn({}),
+    onSuccess: (res) => {
+      if (res.ok) {
+        setSent(true);
+        setErrorMsg(null);
+      } else {
+        setErrorMsg(
+          res.reason === "no_confirmed_access"
+            ? "We couldn't match this email to a confirmed engagement. Email tai@trusttai.com and we'll sort it out."
+            : "That did not send. Try again in a moment, or email tai@trusttai.com.",
+        );
+      }
+    },
+    onError: () =>
+      setErrorMsg("That did not send. Try again in a moment, or email tai@trusttai.com."),
+  });
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <section className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10">
+        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          Workspace being set up
+        </div>
+        <h1 className="font-display text-3xl text-ink mt-3">
+          You're signed in{email ? ` as ${email}` : ""}.
+        </h1>
+        <p className="text-[15px] leading-[1.75] text-ink/75 mt-4">
+          Your engagement workspace isn't provisioned yet. As soon as Tai
+          publishes your project, your Roadmap, files, and next steps appear
+          here — no need to sign in again.
+        </p>
+        <p className="text-[13px] leading-[1.7] text-ink/60 mt-4">
+          Most workspaces are ready within one business day of purchase. If
+          you've been waiting longer, reach out and we'll unblock you.
+        </p>
+
+        <div className="mt-8 flex flex-col sm:flex-row gap-3">
+          <Button
+            type="button"
+            size="lg"
+            disabled={resend.isPending || sent}
+            onClick={() => resend.mutate()}
+            className="bg-ink hover:bg-ink/90 text-white"
+          >
+            {sent ? (
+              <>
+                <Check className="w-4 h-4 mr-2" /> Sign-in link sent
+              </>
+            ) : resend.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…
+              </>
+            ) : (
+              <>
+                <Mail className="w-4 h-4 mr-2" /> Resend sign-in link
+              </>
+            )}
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="border-ink/20 text-ink"
+          >
+            <a href="mailto:tai@trusttai.com?subject=Portal%20access">
+              <LifeBuoy className="w-4 h-4 mr-2" /> Contact Tai
+            </a>
+          </Button>
+        </div>
+
+        {errorMsg && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="text-[13px] text-destructive mt-4"
+          >
+            {errorMsg}
+          </div>
+        )}
+        {sent && !errorMsg && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="text-[13px] text-ink/70 mt-4"
+          >
+            A fresh sign-in link is on its way. It expires in 60 minutes.
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+
 const STATUS_COPY: Record<
   string,
   { title: string; body: string; cta: string; to: string }
