@@ -117,36 +117,16 @@ function PortalHome() {
   const fetchCtx = useServerFn(getPortalContext);
   const { data } = useSuspenseQuery(portalCtxOptions(fetchCtx));
 
-  // Authenticated but no project record yet — show a friendly pending state
-  // instead of bouncing to /portal/login (which would look like a rejection).
+  // Authenticated but no project record yet. Two cases land here:
+  //   - Access exists (client_access row) but the project workspace isn't
+  //     provisioned in client_portal_projects yet.
+  //   - The signed-in email isn't recognized on any engagement.
+  // Either way, we keep the user on /portal/home with a clear explanation and
+  // prominent recovery actions instead of bouncing to /portal/login.
   if (!data.hasAccess) {
-    return (
-      <div className="max-w-2xl mx-auto">
-        <section className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10">
-          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-            Client portal
-          </div>
-          <h1 className="font-display text-3xl text-ink mt-2">
-            You're signed in.
-          </h1>
-          <p className="text-[15px] leading-[1.75] text-ink/70 mt-4">
-            Your engagement workspace is being set up. You'll see your Roadmap
-            and next steps here as soon as Tai provisions the project.
-          </p>
-          <p className="text-[13px] text-ink/60 mt-6">
-            Questions? Email{" "}
-            <a className="underline" href="mailto:tai@trusttai.com">
-              tai@trusttai.com
-            </a>
-            .
-          </p>
-        </section>
-        <div className="mt-6">
-          <ResendWelcomeCard />
-        </div>
-      </div>
-    );
+    return <PendingWorkspacePanel email={data.email} />;
   }
+
 
   const { project } = data;
   const copy = STATUS_COPY[project.portal_status] ?? STATUS_COPY.payment_confirmed;
