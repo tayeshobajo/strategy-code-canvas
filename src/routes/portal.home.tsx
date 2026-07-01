@@ -112,20 +112,39 @@ const STATUS_COPY: Record<
 };
 
 function PortalHome() {
-  const navigate = useNavigate();
-  const qc = useQueryClient();
   const fetchCtx = useServerFn(getPortalContext);
   const { data } = useSuspenseQuery(portalCtxOptions(fetchCtx));
 
-  // If no portal access at all, redirect to login (should be blocked by layout but guard anyway)
-  useEffect(() => {
-    if (!data.hasAccess) {
-      qc.clear();
-      navigate({ to: "/portal/login" });
-    }
-  }, [data.hasAccess, navigate, qc]);
-
-  if (!data.hasAccess) return <LoadingCard />;
+  // Authenticated but no project record yet — show a friendly pending state
+  // instead of bouncing to /portal/login (which would look like a rejection).
+  if (!data.hasAccess) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <section className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10">
+          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+            Client portal
+          </div>
+          <h1 className="font-display text-3xl text-ink mt-2">
+            You're signed in.
+          </h1>
+          <p className="text-[15px] leading-[1.75] text-ink/70 mt-4">
+            Your engagement workspace is being set up. You'll see your Roadmap
+            and next steps here as soon as Tai provisions the project.
+          </p>
+          <p className="text-[13px] text-ink/60 mt-6">
+            Questions? Email{" "}
+            <a className="underline" href="mailto:tai@trusttai.com">
+              tai@trusttai.com
+            </a>
+            .
+          </p>
+        </section>
+        <div className="mt-6">
+          <ResendWelcomeCard />
+        </div>
+      </div>
+    );
+  }
 
   const { project } = data;
   const copy = STATUS_COPY[project.portal_status] ?? STATUS_COPY.payment_confirmed;
