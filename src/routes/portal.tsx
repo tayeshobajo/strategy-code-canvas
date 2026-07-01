@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Home, FileText, Folder, MessageSquare, CreditCard, User, LogOut } from "lucide-react";
-import { TrustTaiLogo } from "@/components/TrustTaiLogo";
+import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 
 export const Route = createFileRoute("/portal")({
   ssr: false,
@@ -69,7 +69,11 @@ function PortalLayout() {
         <aside className="lg:w-64 lg:flex-shrink-0 bg-ink text-white flex flex-col">
           <div className="hidden lg:flex px-6 py-6 border-b border-white/10 items-center">
             <Link to="/" aria-label="Trust Tai home" className="block">
-              <TrustTaiLogo variant="white" />
+              <img
+                src={logoWhite.url}
+                alt="Trust Tai | Consultancy + AI Agency"
+                className="h-9 w-auto"
+              />
             </Link>
           </div>
           <div className="hidden lg:block px-6 pt-5 pb-2">
@@ -127,7 +131,11 @@ function PortalLayout() {
       <footer className="bg-ink text-white/60">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-5 text-[12px] sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <TrustTaiLogo variant="white" className="h-5 w-auto opacity-80" />
+            <img
+              src={logoWhite.url}
+              alt="Trust Tai"
+              className="h-5 w-auto opacity-80"
+            />
             <span className="font-mono uppercase tracking-[0.22em] text-white/40">
               Client Portal · Secure
             </span>
