@@ -290,13 +290,21 @@ export const adminUpdatePortal = createServerFn({ method: "POST" })
   });
 
 // -------------------- Roadmap documents (client-facing) --------------------
+export type PortalRoadmapDoc = {
+  id: string;
+  title: string;
+  body_md: string | null;
+  file_url: string | null;
+  published_at: string | null;
+  updated_at: string | null;
+};
+
 export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const email = context.claims?.email as string | undefined;
-    if (!email) return { docs: [] as Array<Record<string, unknown>> };
+    if (!email) return { docs: [] as PortalRoadmapDoc[], revoked: false as const };
 
-    // Confirm active access (no revoked_at) before returning content.
     const { data: access } = await context.supabase
       .from("client_access")
       .select("id, revoked_at")
@@ -304,7 +312,7 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
       .is("revoked_at", null)
       .limit(1);
     if (!access || access.length === 0) {
-      return { docs: [] as Array<Record<string, unknown>>, revoked: true as const };
+      return { docs: [] as PortalRoadmapDoc[], revoked: true as const };
     }
 
     const { data, error } = await context.supabase
@@ -313,7 +321,7 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
       .ilike("client_email", email)
       .order("published_at", { ascending: false });
     if (error) throw error;
-    return { docs: data ?? [] };
+    return { docs: (data ?? []) as PortalRoadmapDoc[], revoked: false as const };
   });
 
 // -------------------- Resend welcome/magic link (client self-serve) --------------------
