@@ -14,10 +14,10 @@ const brand = {
   sans: `Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif`,
 };
 
-// Absolute URL required for email clients. Uses the site's custom domain so
-// the image loads reliably in Gmail / Outlook / Apple Mail.
-const LOGO_URL =
-  "https://trusttai.com/__l5e/assets-v1/d439b2e1-d22d-4921-a689-edcde5334ba4/trust-tai-logo.png";
+// Absolute URL required for email clients. Built from the resolved site URL
+// so switching PUBLIC_SITE_URL updates the logo host with no code changes.
+const LOGO_PATH =
+  "/__l5e/assets-v1/d439b2e1-d22d-4921-a689-edcde5334ba4/trust-tai-logo.png";
 
 function escapeHtml(input: string): string {
   return input
@@ -27,6 +27,8 @@ function escapeHtml(input: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+import { getPublicSiteUrl } from "@/lib/site-url";
 
 export interface PortalMagicLinkOptions {
   actionLink: string;
@@ -40,6 +42,8 @@ export interface PortalMagicLinkOptions {
   heading?: string;
   /** Button label. */
   ctaLabel?: string;
+  /** Override site URL (defaults to getPublicSiteUrl()). */
+  siteUrl?: string;
 }
 
 export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string {
@@ -50,7 +54,10 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
     eyebrow = "Client portal",
     heading = "Welcome back",
     ctaLabel = "Enter your portal",
+    siteUrl = getPublicSiteUrl(),
   } = opts;
+
+  const LOGO_URL = `${siteUrl}${LOGO_PATH}`;
 
   const safeLink = escapeHtml(actionLink);
 

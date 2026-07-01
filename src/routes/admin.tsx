@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
-import { ClipboardList, Users } from "lucide-react";
+import { ClipboardList, Users, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -35,6 +35,12 @@ function AdminLayout() {
             className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/client-portals") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
           >
             <Users className="w-4 h-4" /> Client portals
+          </Link>
+          <Link
+            to="/admin/config"
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/config") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <Settings className="w-4 h-4" /> Runtime config
           </Link>
           <Link
             to="/ops/queue"
