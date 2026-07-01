@@ -37,6 +37,12 @@ function AdminLayout() {
             <Users className="w-4 h-4" /> Client portals
           </Link>
           <Link
+            to="/admin/config"
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/config") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <Settings className="w-4 h-4" /> Runtime config
+          </Link>
+          <Link
             to="/ops/queue"
             className="flex items-center gap-2 px-3 py-2 text-sm rounded text-white/70 hover:bg-white/5"
           >
