@@ -705,6 +705,7 @@ export const updatePortalProfile = createServerFn({ method: "POST" })
       .select("id, contact_name, company_name");
     if (error) throw error as Error;
     if (!proj || proj.length === 0) throw new Error("Profile not found");
+    const row = proj[0] as { id: string; contact_name: string | null; company_name: string | null };
 
     // Mirror name into client_access.metadata for consistency across dashboards.
     try {
