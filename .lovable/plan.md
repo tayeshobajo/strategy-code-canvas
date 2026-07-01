@@ -1,148 +1,56 @@
-# Trust Tai Client Portal Plan
+## Goal
 
-## What I will build
+Rebuild `/portal/home` (and share the same shell with `/portal/onboarding` and `/portal/access-denied`) around the selected "Premium editorial" direction so the sidebar, main card, and footer read as one system.
 
-### 1. Portal access model and backend rules
-- Add dedicated portal tables for:
-  - client portal projects
-  - onboarding data
-  - messages
-  - files metadata
-  - activity log
-  - billing snapshot rows
-  - permissions/access state
-  - approved roadmap publication records
-- Reuse and extend existing data where it already fits:
-  - `client_access` remains the payment-gated access source of truth
-  - existing orders/subscriptions remain the Stripe-linked payment history
-  - existing roadmap documents/review data become the initial approved-roadmap source
-  - existing portal messages can be bridged or superseded with scoped portal messaging
-- Add strict row-level rules so clients only ever see their own portal project and client-safe records.
-- Keep internal notes, review artifacts, draft roadmap data, ops-only fields, and internal files separated from client-facing queries.
+## What changes
 
-### 2. Stripe-to-portal activation flow
-- Extend the existing Stripe webhook flow so successful payment:
-  - grants portal access idempotently
-  - creates or updates the client portal project
-  - stores Stripe linkage fields
-  - sets initial portal status
-  - logs activity
-  - triggers the welcome access email
-- Ensure duplicate Stripe events do not create duplicate portal records.
-- Keep access tied to purchaser email and confirmed payment only.
+### 1. Portal shell (`src/routes/portal.tsx` + `src/components/portal/PortalPage.tsx`)
 
-### 3. Magic-link portal login and route protection
-- Reuse the existing auth system.
-- Build `/portal/login` as a premium portal-specific experience.
-- After login, check portal access before allowing entry.
-- If the email has no active access, show the calm no-access message instead of exposing any portal content.
-- Add a dedicated authenticated portal layout for `/portal/*` with:
-  - deep navy sidebar
-  - warm off-white shell
-  - cream cards
-  - premium top bar
-  - no marketing footer
-- Add admin-only protection for `/admin/client-portals/*` using the allowlist you gave: `hello@trust-tai.com`.
+- Drop the top `SiteHeader`; the sidebar becomes the sole chrome inside the app frame.
+- Two-region layout: `<aside>` (ink sidebar) + `<main>` (ivory canvas). Below both, one shared ink footer band. No white gap between sidebar and footer — the ink color continues straight down.
+- Sidebar refinements:
+  - Compact 256px width, `bg-ink` with `border-r border-white/5`.
+  - Logo lockup at the top (existing Trust Tai logo asset) + small "Client Portal" eyebrow.
+  - Active nav item: `bg-royal/10` text-white with a 2px left border in royal blue. Inactive: slate-400 hover white.
+  - Sign-out block stays pinned at the bottom with a `border-t border-white/5` divider.
+- `PortalPage` becomes a single centered container (`max-w-3xl`) with generous vertical padding, so every portal page uses the same rhythm.
 
-### 4. Shared portal shell and design system
-- Create a reusable portal app shell for all client routes with:
-  - sidebar nav
-  - help card
-  - client identity block
-  - top status bar with current phase, package, status, and primary CTA slot
-- Match the approved mockup direction across all portal pages:
-  - editorial serif headings
-  - calm spacing rhythm
-  - restrained motion
-  - soft gold and electric blue accents
-  - reassuring copy
+### 2. Pending-workspace card (`src/routes/portal.home.tsx` → `PendingWorkspacePanel`)
 
-### 5. Client-facing portal routes
-Build these routes and their required v1 states:
+Replace the current stacked card with an editorial three-part card:
 
-- `/portal/home`
-  - paid + onboarding pending
-  - onboarding complete + roadmap in progress
-  - roadmap approved + ready
-- `/portal/onboarding`
-  - multi-section paid onboarding
-  - save and continue
-  - autosave
-  - progress tracker and completion state
-  - assets/docs upload step
-- `/portal/roadmap`
-  - roadmap not ready state
-  - approved roadmap state only
-  - acknowledge roadmap action logging
-- `/portal/files`
-  - empty state
-  - files available state
-  - client upload support scoped to the client project
-- `/portal/messages`
-  - updates/replies state
-  - empty state
-  - lightweight reply composer with activity logging
-- `/portal/billing`
-  - one paid invoice state
-  - no upcoming payments state
-  - Stripe-hosted billing links where available
-- `/portal/account`
-  - active access state
-  - profile, notification, and access summary
+- Header block (p-10): pulsing royal dot + eyebrow "Workspace setup in progress", Cormorant Garamond H1 "Welcome back, {name}. We're preparing your environment.", intro copy.
+- Stepper (p-10, absolute vertical hairline behind circles):
+  1. Access confirmed — filled royal circle with check.
+  2. Workspace being created — white circle, 2px royal border, royal "2", sub-copy "Estimated turnaround: one business day.".
+  3. Roadmap published — muted circle "3".
+  4. Engagement begins — muted circle "4".
+- Action bar (p-8, `bg-paper-soft` top-border): primary "Resend sign-in link" (ink bg) + secondary "Contact Tai" (white with border).
 
-### 6. Internal admin manager routes
-Build the internal control surface at:
-- `/admin/client-portals`
-  - client list / portal index
-- `/admin/client-portals/$id`
-  - client summary
-  - onboarding progress
-  - recent activity
-  - recent deliverables
-  - quick actions
-  - internal notes
-- `/admin/client-portals/$id/roadmap-builder`
-  - internal-only roadmap builder shell
-  - milestone/timeline/dependency structure
-  - internal controls not visible to clients
+Keep the existing correlation-id logging, `resendPortalWelcome` action, and toast behavior — only the presentation changes.
 
-### 7. Storage and file visibility model
-- Add a private storage bucket for client portal files.
-- Enforce file visibility by portal project and visibility flags.
-- Default client uploads to `Client Uploads`.
-- Prevent draft/internal-only assets from appearing in client routes.
-- Track file metadata separately from stored objects.
+### 3. Footer band
 
-### 8. Activity logging and cross-page behavior
-- Log the important client and admin lifecycle events you listed.
-- Surface selected safe activity on client Home and Messages.
-- Surface full activity in the internal manager.
-- Wire the primary CTA on Home from current portal status and pending client actions.
+- Replace the current `SiteFooter` inside portal routes with a slimmer variant matching the direction: ink background, 4-column grid (Trust Tai lockup + tagline, Navigate, Connect, Start CTA), hairline top border, muted uppercase column labels.
+- Reuse existing footer link data from `SiteFooter` so nothing goes missing; this is a visual reskin only.
 
-## Technical approach
-- Use database migrations for the new portal schema, RLS, helper functions, and any triggers.
-- Reuse TanStack Start server functions for app-internal reads/writes.
-- Keep the Stripe webhook at the existing public payments route and extend it rather than replacing it.
-- Reuse existing auth middleware and magic-link infrastructure.
-- Create dedicated portal/admin route groups and shared layout components.
-- Use existing roadmap review data as the approved client roadmap source in v1, while keeping the new internal roadmap builder as the admin workspace.
-- Preserve existing public site behavior and keep portal styling isolated from the marketing site.
+### 4. Applied across portal routes
 
-## Delivery order
-1. Schema + access model
-2. Webhook activation + welcome flow
-3. Portal login + protected shells
-4. Client routes with seeded/live states
-5. Internal admin manager
-6. File storage + uploads
-7. Approved roadmap publishing bridge
-8. Validation pass for access separation, idempotency, and route states
+- `/portal/home` — new pending-workspace card + existing hydrated dashboard reskinned to the same card language (ivory canvas, elevated white card, ink header type).
+- `/portal/onboarding` and `/portal/access-denied` — inherit the shared `PortalPage` container and matching footer so they visually belong to the same system.
 
-## Key guardrails
-- No public signup
-- No portal access before confirmed payment
-- Client sees only their own data
-- Admin-only routes remain separate
-- Approved roadmap only on client side
-- Drafts and internal notes never leak into client pages
-- Stripe billing management stays hosted where possible
+### 5. Tokens
+
+Add two helpers to `src/styles.css` under `@theme` (no palette changes):
+
+```css
+--color-paper-soft: oklch(0.985 0.004 90);   /* card action-bar bg */
+--color-rule-soft: oklch(0.92 0.005 90);     /* card border */
+```
+
+All other colors reuse existing `ink`, `royal`, `paper`, `muted` tokens.
+
+## Out of scope
+
+- No changes to auth, magic-link server functions, sidebar route list, or copy on other portal pages beyond what's needed to fit the shared container.
+- Email templates untouched.
