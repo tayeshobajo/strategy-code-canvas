@@ -513,6 +513,7 @@ function MessagesPage() {
           </Button>
         </RailCard>
       </aside>
+      <MessagePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
     </div>
   );
 }
