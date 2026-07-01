@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { NAV } from "@/components/SiteHeader";
 import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
+import { usePortalLink } from "@/hooks/use-portal-link";
 
 const NAVY = "#0A0F1F";
 const container = "mx-auto max-w-[1240px] px-6 sm:px-8 lg:px-10";
@@ -33,6 +34,7 @@ function FooterContour() {
  * directly on pages that supply their own closing section (e.g. /build-my-roadmap).
  */
 export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean }) {
+  const portalLink = usePortalLink();
   return (
     <footer
       className="relative overflow-hidden text-white"
@@ -57,6 +59,14 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link
+                  to={portalLink.to}
+                  className="transition-colors hover:text-white"
+                >
+                  {portalLink.label}
+                </Link>
+              </li>
             </ul>
           </div>
           <div className="md:px-8">
