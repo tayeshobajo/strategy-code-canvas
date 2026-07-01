@@ -69,20 +69,21 @@ function InsightsPage() {
 
   const setPreset = (p: Preset) =>
     navigate({
-      search: (prev) => ({
+      search: (prev: Record<string, unknown>) => ({
         ...prev,
         preset: p,
-        from: p === "custom" ? (prev.from ?? customFrom) : undefined,
-        to: p === "custom" ? (prev.to ?? customTo) : undefined,
+        from: p === "custom" ? ((prev.from as string | undefined) ?? customFrom) : undefined,
+        to: p === "custom" ? ((prev.to as string | undefined) ?? customTo) : undefined,
       }),
       replace: true,
     });
   const setOutcome = (o: Outcome) =>
-    navigate({ search: (prev) => ({ ...prev, outcome: o }), replace: true });
+    navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, outcome: o }), replace: true });
   const setCustomFrom = (v: string) =>
-    navigate({ search: (prev) => ({ ...prev, from: v }), replace: true });
+    navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, from: v }), replace: true });
   const setCustomTo = (v: string) =>
-    navigate({ search: (prev) => ({ ...prev, to: v }), replace: true });
+    navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, to: v }), replace: true });
+
 
   const query = useMemo(() => {
     const base: {
