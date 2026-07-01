@@ -96,7 +96,10 @@ function BillingPage() {
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
   const { data, isLoading, isError, refetch } = useBilling(projectId);
+  const qc = useQueryClient();
   const portalFn = useServerFn(createBillingPortalSession);
+  const cancelFn = useServerFn(cancelSubscription);
+  const reactivateFn = useServerFn(reactivateSubscription);
 
   const openBillingPortal = useMutation({
     mutationFn: async () => {
@@ -111,6 +114,36 @@ function BillingPage() {
     },
     onSuccess: (res) => {
       if ("url" in res) window.location.href = res.url;
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const cancel = useMutation({
+    mutationFn: async () => {
+      const res = await cancelFn({
+        data: { environment: getStripeEnvironment(), atPeriodEnd: true },
+      });
+      if ("error" in res) throw new Error(res.error);
+      return res;
+    },
+    onSuccess: () => {
+      toast.success("Your subscription will end at the current period.");
+      qc.invalidateQueries({ queryKey: ["portal", "billing", projectId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reactivate = useMutation({
+    mutationFn: async () => {
+      const res = await reactivateFn({
+        data: { environment: getStripeEnvironment() },
+      });
+      if ("error" in res) throw new Error(res.error);
+      return res;
+    },
+    onSuccess: () => {
+      toast.success("Subscription reactivated.");
+      qc.invalidateQueries({ queryKey: ["portal", "billing", projectId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
