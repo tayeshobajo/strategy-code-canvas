@@ -17,6 +17,7 @@ import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as BuildMyRoadmapRouteImport } from './routes/build-my-roadmap'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as OpsRouteRouteImport } from './routes/ops/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -79,6 +80,11 @@ const BuildMyRoadmapRoute = BuildMyRoadmapRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -203,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ops': typeof OpsRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
@@ -265,6 +273,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/ops': typeof OpsRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ops'
     | '/about'
+    | '/admin'
     | '/auth'
     | '/build-my-roadmap'
     | '/insights'
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/admin'
     | '/auth'
     | '/build-my-roadmap'
     | '/insights'
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/ops'
     | '/about'
+    | '/admin'
     | '/auth'
     | '/build-my-roadmap'
     | '/insights'
@@ -394,6 +406,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   OpsRouteRoute: typeof OpsRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   BuildMyRoadmapRoute: typeof BuildMyRoadmapRoute
   InsightsRoute: typeof InsightsRoute
@@ -469,6 +482,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -688,6 +708,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   OpsRouteRoute: OpsRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   BuildMyRoadmapRoute: BuildMyRoadmapRoute,
   InsightsRoute: InsightsRoute,
