@@ -21,6 +21,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as OpsRouteRouteImport } from './routes/ops/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as PortalLoginRouteImport } from './routes/portal.login'
@@ -97,6 +98,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRoute,
 } as any)
 const OpsIndexRoute = OpsIndexRouteImport.update({
   id: '/',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/portal/login': typeof PortalLoginRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -223,10 +230,10 @@ export interface FileRoutesByTo {
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
-  '/portal': typeof AuthenticatedPortalRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/portal': typeof PortalIndexRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -268,6 +275,7 @@ export interface FileRoutesById {
   '/portal/login': typeof PortalLoginRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -299,6 +307,7 @@ export interface FileRouteTypes {
     | '/portal/login'
     | '/walks/$slug'
     | '/ops/'
+    | '/portal/'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
     | '/api/public/hooks/build-roadmap-contact'
@@ -314,10 +323,10 @@ export interface FileRouteTypes {
     | '/build-my-roadmap'
     | '/insights'
     | '/investment'
-    | '/portal'
     | '/sitemap.xml'
     | '/walks'
     | '/what-we-build'
+    | '/portal'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/insights/$slug'
@@ -358,6 +367,7 @@ export interface FileRouteTypes {
     | '/portal/login'
     | '/walks_/$slug'
     | '/ops/'
+    | '/portal/'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
     | '/api/public/hooks/build-roadmap-contact'
@@ -476,6 +486,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/ops/': {
       id: '/ops/'
@@ -634,10 +651,12 @@ const OpsRouteRouteWithChildren = OpsRouteRoute._addFileChildren(
 
 interface PortalRouteChildren {
   PortalLoginRoute: typeof PortalLoginRoute
+  PortalIndexRoute: typeof PortalIndexRoute
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
   PortalLoginRoute: PortalLoginRoute,
+  PortalIndexRoute: PortalIndexRoute,
 }
 
 const PortalRouteWithChildren =
