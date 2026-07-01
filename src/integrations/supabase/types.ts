@@ -833,6 +833,54 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_access_events: {
+        Row: {
+          correlation_id: string | null
+          created_at: string
+          email: string | null
+          event_type: string
+          has_client_access: boolean | null
+          has_permission: boolean | null
+          has_project: boolean | null
+          id: string
+          metadata: Json
+          project_id: string | null
+          route: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string
+          email?: string | null
+          event_type: string
+          has_client_access?: boolean | null
+          has_permission?: boolean | null
+          has_project?: boolean | null
+          id?: string
+          metadata?: Json
+          project_id?: string | null
+          route?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string
+          email?: string | null
+          event_type?: string
+          has_client_access?: boolean | null
+          has_permission?: boolean | null
+          has_project?: boolean | null
+          id?: string
+          metadata?: Json
+          project_id?: string | null
+          route?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       portal_messages: {
         Row: {
           body: string
