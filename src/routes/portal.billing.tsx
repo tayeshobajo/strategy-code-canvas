@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useEffect } from "react";
 import {
   CreditCard,
   CheckCircle2,
@@ -11,6 +12,8 @@ import {
   Lock,
   Loader2,
   AlertCircle,
+  Download,
+  FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -59,6 +62,8 @@ function useBilling(projectId?: string) {
   return useQuery({
     queryKey: ["portal", "billing", projectId],
     enabled: !!projectId,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
     queryFn: async (): Promise<{
       invoices: BillingRow[];
       subscription: SubscriptionRow | null;
@@ -150,6 +155,32 @@ function BillingPage() {
 
   const latest = data?.invoices?.[0];
   const isRecurringActive = data?.subscription?.status === "active";
+
+  // Realtime: reflect Stripe webhook updates instantly.
+  useEffect(() => {
+    if (!projectId) return;
+    const channel = supabase
+      .channel(`portal-billing-${projectId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "client_portal_billing",
+          filter: `project_id=eq.${projectId}`,
+        },
+        () => qc.invalidateQueries({ queryKey: ["portal", "billing", projectId] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "subscriptions" },
+        () => qc.invalidateQueries({ queryKey: ["portal", "billing", projectId] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, qc]);
 
   return (
     <div className="max-w-6xl mx-auto grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -291,53 +322,93 @@ function BillingPage() {
             <div className="px-6 py-4 border-b border-rule-soft">
               <h2 className="font-display text-xl text-ink">Invoice history</h2>
             </div>
-            <table className="w-full text-[14px]">
-              <thead>
-                <tr className="text-left text-[12px] uppercase tracking-wider text-ink/50 border-b border-rule-soft">
-                  <th className="px-6 py-3 font-medium">Invoice</th>
-                  <th className="px-6 py-3 font-medium">Date</th>
-                  <th className="px-6 py-3 font-medium">Description</th>
-                  <th className="px-6 py-3 font-medium">Amount</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.invoices.map((inv) => (
-                  <tr key={inv.id} className="border-b border-rule-soft/60">
-                    <td className="px-6 py-3">
-                      {inv.invoice_url ? (
-                        <a
-                          href={inv.invoice_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-royal underline"
-                        >
-                          {inv.stripe_invoice_id?.slice(-8) ?? "Invoice"}
-                        </a>
-                      ) : (
-                        <span className="text-ink">
-                          {inv.stripe_invoice_id?.slice(-8) ?? "Invoice"}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3 text-ink/70">
-                      {new Date(inv.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-3 text-ink/70">
-                      {inv.purchased_package ?? project?.package_name ?? "—"}
-                    </td>
-                    <td className="px-6 py-3 text-ink">
-                      {formatMoney(inv.amount_total, inv.currency)}
-                    </td>
-                    <td className="px-6 py-3">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[12px]">
-                        <CheckCircle2 className="w-3 h-3" /> {capitalize(inv.payment_status)}
-                      </span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[14px]">
+                <thead>
+                  <tr className="text-left text-[12px] uppercase tracking-wider text-ink/50 border-b border-rule-soft">
+                    <th className="px-6 py-3 font-medium">Invoice</th>
+                    <th className="px-6 py-3 font-medium">Date</th>
+                    <th className="px-6 py-3 font-medium">Description</th>
+                    <th className="px-6 py-3 font-medium">Amount</th>
+                    <th className="px-6 py-3 font-medium">Status</th>
+                    <th className="px-6 py-3 font-medium text-right">Documents</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.invoices.map((inv) => {
+                    const label = inv.stripe_invoice_id
+                      ? `INV-${inv.stripe_invoice_id.slice(-8).toUpperCase()}`
+                      : `Payment ${inv.id.slice(0, 8)}`;
+                    return (
+                      <tr key={inv.id} className="border-b border-rule-soft/60 hover:bg-paper-soft/50">
+                        <td className="px-6 py-3 font-mono text-[12.5px] text-ink">
+                          {label}
+                        </td>
+                        <td className="px-6 py-3 text-ink/70">
+                          {new Date(
+                            inv.payment_confirmed_at ?? inv.created_at,
+                          ).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-6 py-3 text-ink/70">
+                          {inv.purchased_package ?? project?.package_name ?? "—"}
+                        </td>
+                        <td className="px-6 py-3 text-ink">
+                          {formatMoney(inv.amount_total, inv.currency)}
+                        </td>
+                        <td className="px-6 py-3">
+                          <StatusBadge status={inv.payment_status} />
+                        </td>
+                        <td className="px-6 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            {inv.invoice_url && (
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="ghost"
+                                className="text-ink hover:text-royal h-8"
+                              >
+                                <a
+                                  href={inv.invoice_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={`Download invoice ${label} as PDF`}
+                                >
+                                  <Download className="w-3.5 h-3.5 mr-1" /> PDF
+                                </a>
+                              </Button>
+                            )}
+                            {inv.receipt_url && (
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="ghost"
+                                className="text-ink/70 hover:text-royal h-8"
+                              >
+                                <a
+                                  href={inv.receipt_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={`View receipt for ${label}`}
+                                >
+                                  <FileText className="w-3.5 h-3.5 mr-1" /> Receipt
+                                </a>
+                              </Button>
+                            )}
+                            {!inv.invoice_url && !inv.receipt_url && (
+                              <span className="text-[12px] text-ink/40">—</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -539,4 +610,27 @@ function formatMoney(amountCents: number, currency: string) {
 
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const s = (status ?? "").toLowerCase();
+  const map: Record<string, { cls: string; label: string }> = {
+    paid: { cls: "bg-emerald-100 text-emerald-800", label: "Paid" },
+    succeeded: { cls: "bg-emerald-100 text-emerald-800", label: "Paid" },
+    open: { cls: "bg-amber-100 text-amber-800", label: "Open" },
+    pending: { cls: "bg-amber-100 text-amber-800", label: "Pending" },
+    failed: { cls: "bg-destructive/10 text-destructive", label: "Failed" },
+    refunded: { cls: "bg-paper-soft text-ink/70 border border-rule-soft", label: "Refunded" },
+    void: { cls: "bg-paper-soft text-ink/70 border border-rule-soft", label: "Void" },
+  };
+  const { cls, label } = map[s] ?? {
+    cls: "bg-paper-soft text-ink/70 border border-rule-soft",
+    label: capitalize(status),
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] ${cls}`}>
+      {(s === "paid" || s === "succeeded") && <CheckCircle2 className="w-3 h-3" />}
+      {label}
+    </span>
+  );
 }

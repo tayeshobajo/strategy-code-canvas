@@ -1,7 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Send, Loader2, AlertCircle, Paperclip } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  MessageSquare,
+  Send,
+  Loader2,
+  AlertCircle,
+  Paperclip,
+  X,
+  Download,
+  FileText,
+  FileImage,
+  FileSpreadsheet,
+  File as FileIcon,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +44,28 @@ type Message = {
   created_at: string;
 };
 
+type FileMeta = {
+  id: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  bucket_id: string;
+  storage_path: string;
+};
+
 type Tab = "all" | "updates" | "replies" | "actions";
+
+const BUCKET = "client-portal-files";
+const MAX_BYTES = 25 * 1024 * 1024;
+const ALLOWED_EXT = new Set([
+  "pdf","doc","docx","txt","md","rtf",
+  "xls","xlsx","csv",
+  "ppt","pptx","key",
+  "png","jpg","jpeg","gif","webp","svg","heic",
+  "zip","fig",
+  "mp4","mov","webm",
+  "json","yaml","yml",
+]);
 
 function useMessages(projectId: string | undefined) {
   return useQuery({
@@ -54,32 +87,145 @@ function useMessages(projectId: string | undefined) {
   });
 }
 
+function useMessageFiles(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ["portal", "message-files", projectId],
+    enabled: !!projectId,
+    queryFn: async (): Promise<Record<string, FileMeta>> => {
+      const { data, error } = await supabase
+        .from("client_portal_files")
+        .select("id, file_name, mime_type, size_bytes, bucket_id, storage_path")
+        .eq("project_id", projectId!);
+      if (error) throw new Error(error.message);
+      const map: Record<string, FileMeta> = {};
+      for (const f of (data ?? []) as FileMeta[]) map[f.id] = f;
+      return map;
+    },
+  });
+}
+
+type Attachment = {
+  clientId: string;
+  file: File;
+  status: "queued" | "uploading" | "success" | "error";
+  progress: number;
+  error?: string;
+  uploadedId?: string;
+};
+
+function validateAttachment(file: File): string | null {
+  if (file.size === 0) return "File is empty";
+  if (file.size > MAX_BYTES) return "File exceeds 25 MB";
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (!ext || !ALLOWED_EXT.has(ext)) return `.${ext || "unknown"} not allowed`;
+  return null;
+}
+
 function MessagesPage() {
   const ctx = usePortalContext();
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
   const { data: messages, isLoading, isError, refetch } = useMessages(projectId);
+  const { data: fileMap } = useMessageFiles(projectId);
   const qc = useQueryClient();
   const [body, setBody] = useState("");
   const [tab, setTab] = useState<Tab>("all");
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const email = ctx.data?.email ?? "";
 
+  const updateAttachment = useCallback((clientId: string, patch: Partial<Attachment>) => {
+    setAttachments((a) => a.map((it) => (it.clientId === clientId ? { ...it, ...patch } : it)));
+  }, []);
+
+  const uploadAttachment = useCallback(
+    async (att: Attachment) => {
+      if (!projectId) return;
+      const path = `${projectId}/messages/${crypto.randomUUID()}-${att.file.name}`;
+      updateAttachment(att.clientId, { status: "uploading", progress: 0, error: undefined });
+      const { error: upErr } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, att.file, {
+          upsert: false,
+          contentType: att.file.type || undefined,
+        });
+      if (upErr) {
+        updateAttachment(att.clientId, { status: "error", error: upErr.message });
+        return;
+      }
+      const { data: row, error: rowErr } = await supabase
+        .from("client_portal_files")
+        .insert({
+          project_id: projectId,
+          bucket_id: BUCKET,
+          storage_path: path,
+          file_name: att.file.name,
+          category: "message_attachments",
+          file_type: att.file.name.split(".").pop() ?? null,
+          mime_type: att.file.type || null,
+          size_bytes: att.file.size,
+          uploaded_by_email: email,
+          uploaded_by_role: "client",
+          client_visible: true,
+          is_internal: false,
+        })
+        .select("id")
+        .single();
+      if (rowErr || !row) {
+        await supabase.storage.from(BUCKET).remove([path]);
+        updateAttachment(att.clientId, { status: "error", error: rowErr?.message ?? "DB insert failed" });
+        return;
+      }
+      updateAttachment(att.clientId, { status: "success", progress: 100, uploadedId: row.id });
+      qc.invalidateQueries({ queryKey: ["portal", "message-files", projectId] });
+    },
+    [projectId, email, qc, updateAttachment],
+  );
+
+  const enqueueAttachments = useCallback(
+    (list: FileList | File[] | null) => {
+      if (!list) return;
+      const arr = Array.from(list);
+      const toAdd: Attachment[] = [];
+      for (const file of arr) {
+        const err = validateAttachment(file);
+        const clientId = crypto.randomUUID();
+        if (err) {
+          toast.error(`${file.name}: ${err}`);
+          toAdd.push({ clientId, file, status: "error", progress: 0, error: err });
+        } else {
+          toAdd.push({ clientId, file, status: "queued", progress: 0 });
+        }
+      }
+      setAttachments((prev) => [...prev, ...toAdd]);
+      toAdd.filter((a) => a.status === "queued").forEach((a) => void uploadAttachment(a));
+    },
+    [uploadAttachment],
+  );
+
+  const removeAttachment = useCallback((clientId: string) => {
+    setAttachments((a) => a.filter((x) => x.clientId !== clientId));
+  }, []);
+
+  const uploadsPending = attachments.some((a) => a.status === "uploading" || a.status === "queued");
+
   const send = useMutation({
-    mutationFn: async (text: string) => {
+    mutationFn: async (payload: { text: string; fileIds: string[] }) => {
       if (!projectId) throw new Error("No workspace yet");
       const { error } = await supabase.from("client_portal_messages").insert({
         project_id: projectId,
         sender_type: "client",
         author_email: email,
-        body: text,
+        body: payload.text,
         message_type: "reply",
         visible_to_client: true,
+        related_file_ids: payload.fileIds,
       });
       if (error) throw new Error(error.message);
     },
-    onMutate: async (text: string) => {
+    onMutate: async (payload) => {
       await qc.cancelQueries({ queryKey: ["portal", "messages", projectId] });
       const previous = qc.getQueryData<Message[]>(["portal", "messages", projectId]);
       const optimistic: Message = {
@@ -88,11 +234,11 @@ function MessagesPage() {
         sender_type: "client",
         author_email: email,
         subject: null,
-        body: text,
+        body: payload.text,
         message_type: "reply",
         action_required: false,
         action_completed_at: null,
-        related_file_ids: [],
+        related_file_ids: payload.fileIds,
         created_at: new Date().toISOString(),
       };
       qc.setQueryData<Message[]>(
@@ -100,9 +246,10 @@ function MessagesPage() {
         (prev) => [...(prev ?? []), optimistic],
       );
       setBody("");
+      setAttachments([]);
       return { previous };
     },
-    onError: (e: Error, _text, ctx) => {
+    onError: (e: Error, _p, ctx) => {
       if (ctx?.previous)
         qc.setQueryData(["portal", "messages", projectId], ctx.previous);
       toast.error(e.message || "Message did not send. Try again.");
@@ -137,6 +284,8 @@ function MessagesPage() {
   useEffect(() => {
     scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight });
   }, [filtered.length]);
+
+  const canSend = body.trim().length > 0 && !!projectId && !send.isPending && !uploadsPending;
 
   return (
     <div className="max-w-6xl mx-auto grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -193,7 +342,7 @@ function MessagesPage() {
               <div key={date} className="space-y-4">
                 <div className="text-center text-[12px] text-ink/50">{date}</div>
                 {msgs.map((m) => (
-                  <MessageCard key={m.id} m={m} />
+                  <MessageCard key={m.id} m={m} fileMap={fileMap ?? {}} />
                 ))}
               </div>
             ))}
@@ -206,7 +355,14 @@ function MessagesPage() {
               e.preventDefault();
               const text = body.trim();
               if (!text || !projectId) return;
-              send.mutate(text);
+              if (uploadsPending) {
+                toast.error("Wait for uploads to finish.");
+                return;
+              }
+              const fileIds = attachments
+                .filter((a) => a.status === "success" && a.uploadedId)
+                .map((a) => a.uploadedId!) as string[];
+              send.mutate({ text, fileIds });
             }}
           >
             <Textarea
@@ -217,23 +373,81 @@ function MessagesPage() {
               rows={2}
               className="resize-none bg-card border-rule-soft focus-visible:ring-royal/40"
             />
-            <div className="flex items-center justify-between mt-3">
-              <div className="text-[12px] text-ink/50 flex items-center gap-1.5">
-                <Paperclip className="w-3.5 h-3.5" />
-                Attach a file or reference from{" "}
-                <Link to="/portal/files" className="underline hover:text-ink">
-                  Files
-                </Link>
-                .
+
+            {attachments.length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {attachments.map((a) => (
+                  <li
+                    key={a.clientId}
+                    className={`inline-flex items-center gap-2 rounded-full border pl-3 pr-1.5 py-1 text-[12px] max-w-[280px] ${
+                      a.status === "error"
+                        ? "border-destructive/40 bg-destructive/10 text-destructive"
+                        : a.status === "success"
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                          : "border-rule-soft bg-card text-ink/70"
+                    }`}
+                    title={a.error ?? a.file.name}
+                  >
+                    {a.status === "uploading" || a.status === "queued" ? (
+                      <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                    ) : (
+                      <Paperclip className="w-3 h-3 shrink-0" />
+                    )}
+                    <span className="truncate">{a.file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(a.clientId)}
+                      className="p-0.5 rounded-full hover:bg-black/5"
+                      aria-label={`Remove ${a.file.name}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="flex items-center justify-between mt-3 gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  hidden
+                  onChange={(e) => {
+                    enqueueAttachments(e.target.files);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!projectId || send.isPending}
+                  className="text-ink/70 hover:text-ink"
+                >
+                  <Paperclip className="w-4 h-4 mr-1.5" /> Attach files
+                </Button>
+                <span className="text-[11px] text-ink/50">
+                  or reference existing in{" "}
+                  <Link to="/portal/files" className="underline hover:text-ink">
+                    Files
+                  </Link>
+                </span>
               </div>
               <Button
                 type="submit"
-                disabled={!body.trim() || send.isPending || !projectId}
+                disabled={!canSend}
                 className="bg-ink hover:bg-ink/90 text-white"
               >
                 {send.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…
+                  </>
+                ) : uploadsPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading…
                   </>
                 ) : (
                   <>
@@ -281,7 +495,7 @@ function MessagesPage() {
   );
 }
 
-function MessageCard({ m }: { m: Message }) {
+function MessageCard({ m, fileMap }: { m: Message; fileMap: Record<string, FileMeta> }) {
   const isClient = m.sender_type === "client";
   const initials = isClient
     ? (m.author_email ?? "?").slice(0, 2).toUpperCase()
@@ -290,6 +504,10 @@ function MessageCard({ m }: { m: Message }) {
     hour: "numeric",
     minute: "2-digit",
   });
+  const attachments = (m.related_file_ids ?? [])
+    .map((id) => fileMap[id])
+    .filter(Boolean) as FileMeta[];
+
   return (
     <article className="flex gap-4">
       <div
@@ -324,9 +542,63 @@ function MessageCard({ m }: { m: Message }) {
         <p className="mt-1 text-[14px] leading-[1.7] text-ink/80 whitespace-pre-wrap">
           {m.body}
         </p>
+        {attachments.length > 0 && (
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {attachments.map((f) => (
+              <li key={f.id}>
+                <AttachmentChip file={f} />
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </article>
   );
+}
+
+function AttachmentChip({ file }: { file: FileMeta }) {
+  const [busy, setBusy] = useState(false);
+  const open = async () => {
+    setBusy(true);
+    const { data, error } = await supabase.storage
+      .from(file.bucket_id)
+      .createSignedUrl(file.storage_path, 60);
+    setBusy(false);
+    if (error || !data?.signedUrl) {
+      toast.error("Could not open attachment.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+  return (
+    <button
+      type="button"
+      onClick={open}
+      disabled={busy}
+      className="inline-flex items-center gap-2 rounded-md border border-rule-soft bg-paper-soft/70 hover:bg-paper-soft px-2.5 py-1.5 text-[12.5px] text-ink transition-colors max-w-[260px]"
+      title={file.file_name}
+    >
+      <AttachmentIcon mime={file.mime_type} name={file.file_name} />
+      <span className="truncate">{file.file_name}</span>
+      {busy ? (
+        <Loader2 className="w-3 h-3 animate-spin text-ink/50 shrink-0" />
+      ) : (
+        <Download className="w-3 h-3 text-ink/50 shrink-0" />
+      )}
+    </button>
+  );
+}
+
+function AttachmentIcon({ mime, name }: { mime: string | null; name: string }) {
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  if (mime?.startsWith("image") || ["png","jpg","jpeg","gif","webp"].includes(ext))
+    return <FileImage className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+  if (ext === "pdf") return <FileText className="w-3.5 h-3.5 text-red-600 shrink-0" />;
+  if (["xls","xlsx","csv"].includes(ext))
+    return <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700 shrink-0" />;
+  if (["doc","docx","md","txt"].includes(ext))
+    return <FileText className="w-3.5 h-3.5 text-royal shrink-0" />;
+  return <FileIcon className="w-3.5 h-3.5 text-ink/60 shrink-0" />;
 }
 
 function RailCard({ title, children }: { title: string; children: React.ReactNode }) {

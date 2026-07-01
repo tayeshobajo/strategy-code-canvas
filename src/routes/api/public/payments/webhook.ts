@@ -385,6 +385,114 @@ async function handleSubscriptionDeleted(sub: any, env: StripeEnv) {
     .eq("environment", env);
 }
 
+async function resolveProjectIdForInvoice(invoice: any): Promise<string | null> {
+  const supabase = getSupabase() as any;
+  const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id ?? null;
+  const custId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null;
+  const email = (invoice.customer_email ?? invoice.customer_address?.email ?? null)?.toLowerCase() ?? null;
+
+  if (subId) {
+    const { data } = await supabase
+      .from("client_portal_projects")
+      .select("id")
+      .eq("stripe_subscription_id", subId)
+      .maybeSingle();
+    if (data?.id) return data.id as string;
+  }
+  if (custId) {
+    const { data } = await supabase
+      .from("client_portal_projects")
+      .select("id")
+      .eq("stripe_customer_id", custId)
+      .maybeSingle();
+    if (data?.id) return data.id as string;
+  }
+  if (email) {
+    const { data } = await supabase
+      .from("client_portal_projects")
+      .select("id")
+      .ilike("primary_email", email)
+      .maybeSingle();
+    if (data?.id) return data.id as string;
+  }
+  return null;
+}
+
+function mapInvoiceStatus(invoice: any, eventType: string): string {
+  if (eventType === "invoice.payment_failed") return "failed";
+  if (invoice.status === "paid" || invoice.paid === true) return "paid";
+  if (invoice.status === "open") return "open";
+  if (invoice.status === "draft") return "pending";
+  if (invoice.status === "void") return "void";
+  if (invoice.status === "uncollectible") return "failed";
+  return invoice.status ?? "pending";
+}
+
+async function handleInvoiceEvent(invoice: any, env: StripeEnv, eventType: string) {
+  const supabase = getSupabase() as any;
+  const projectId = await resolveProjectIdForInvoice(invoice);
+  if (!projectId) {
+    console.warn("[webhook] invoice event without matching project", invoice.id, eventType);
+    return;
+  }
+
+  const status = mapInvoiceStatus(invoice, eventType);
+  const paidAtSecs =
+    invoice.status_transitions?.paid_at ??
+    (invoice.paid ? invoice.created : null);
+  const nextAttempt = invoice.next_payment_attempt;
+  const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id ?? null;
+
+  await supabase.from("client_portal_billing").upsert(
+    {
+      project_id: projectId,
+      stripe_invoice_id: invoice.id,
+      stripe_customer_id: typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null,
+      stripe_subscription_id: subId,
+      amount_total: invoice.amount_paid ?? invoice.amount_due ?? invoice.total ?? 0,
+      currency: invoice.currency ?? "usd",
+      payment_status: status,
+      purchased_package:
+        invoice.lines?.data?.[0]?.description ??
+        invoice.metadata?.package_name ??
+        null,
+      receipt_url: invoice.hosted_invoice_url ?? null,
+      invoice_url: invoice.invoice_pdf ?? invoice.hosted_invoice_url ?? null,
+      payment_confirmed_at: paidAtSecs ? new Date(paidAtSecs * 1000).toISOString() : null,
+      next_payment_at: nextAttempt ? new Date(nextAttempt * 1000).toISOString() : null,
+      updated_at: new Date().toISOString(),
+      metadata: {
+        invoice_number: invoice.number ?? null,
+        hosted_invoice_url: invoice.hosted_invoice_url ?? null,
+        invoice_pdf: invoice.invoice_pdf ?? null,
+        event_type: eventType,
+        environment: env,
+      },
+    },
+    { onConflict: "stripe_invoice_id" },
+  );
+
+  // Log a portal-visible activity so clients see the update.
+  const summary =
+    eventType === "invoice.payment_failed"
+      ? "Payment failed on latest invoice"
+      : status === "paid"
+        ? `Invoice ${invoice.number ?? invoice.id.slice(-8)} paid`
+        : `Invoice ${invoice.number ?? invoice.id.slice(-8)} ${status}`;
+  await supabase.rpc("log_client_portal_activity", {
+    _project_id: projectId,
+    _actor_type: "system",
+    _actor_email: null,
+    _event_type: eventType,
+    _summary: summary,
+    _client_visible: status === "paid" || eventType === "invoice.payment_failed",
+    _metadata: {
+      stripe_invoice_id: invoice.id,
+      environment: env,
+    },
+  });
+}
+
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
 
@@ -405,6 +513,13 @@ async function handleWebhook(req: Request, env: StripeEnv) {
       break;
     case "customer.subscription.deleted":
       await handleSubscriptionDeleted(event.data.object, env);
+      break;
+    case "invoice.paid":
+    case "invoice.payment_succeeded":
+    case "invoice.finalized":
+    case "invoice.updated":
+    case "invoice.payment_failed":
+      await handleInvoiceEvent(event.data.object, env, event.type);
       break;
     default:
       console.log("Unhandled event:", event.type);
