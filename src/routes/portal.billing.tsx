@@ -611,3 +611,26 @@ function formatMoney(amountCents: number, currency: string) {
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
+
+function StatusBadge({ status }: { status: string }) {
+  const s = (status ?? "").toLowerCase();
+  const map: Record<string, { cls: string; label: string }> = {
+    paid: { cls: "bg-emerald-100 text-emerald-800", label: "Paid" },
+    succeeded: { cls: "bg-emerald-100 text-emerald-800", label: "Paid" },
+    open: { cls: "bg-amber-100 text-amber-800", label: "Open" },
+    pending: { cls: "bg-amber-100 text-amber-800", label: "Pending" },
+    failed: { cls: "bg-destructive/10 text-destructive", label: "Failed" },
+    refunded: { cls: "bg-paper-soft text-ink/70 border border-rule-soft", label: "Refunded" },
+    void: { cls: "bg-paper-soft text-ink/70 border border-rule-soft", label: "Void" },
+  };
+  const { cls, label } = map[s] ?? {
+    cls: "bg-paper-soft text-ink/70 border border-rule-soft",
+    label: capitalize(status),
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] ${cls}`}>
+      {(s === "paid" || s === "succeeded") && <CheckCircle2 className="w-3 h-3" />}
+      {label}
+    </span>
+  );
+}
