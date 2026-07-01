@@ -71,132 +71,161 @@ function PendingWorkspacePanel({ email }: { email?: string }) {
       setErrorMsg("That did not send. Try again in a moment, or email tai@trusttai.com."),
   });
 
-  const currentStep = 1; // 0 = access, 1 = workspace, 2 = roadmap, 3 = engagement
-  const progress = ((currentStep + 1) / 4) * 100;
+  const firstName = email ? email.split("@")[0].split(".")[0] : undefined;
+  const greeting = firstName
+    ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
+    : null;
+
+  const steps = [
+    { label: "Access confirmed", state: "complete" as const },
+    {
+      label: "Workspace being created",
+      state: "current" as const,
+      sub: "Estimated turnaround: one business day.",
+    },
+    { label: "Roadmap published", state: "upcoming" as const },
+    { label: "Engagement begins", state: "upcoming" as const },
+  ];
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto flex min-h-full max-w-3xl items-center justify-center py-6">
       {/* Live announcement region so screen readers broadcast the pending state */}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        Workspace is being set up. You are signed in{email ? ` as ${email}` : ""}. 
+        Workspace is being set up. You are signed in{email ? ` as ${email}` : ""}.
         Step 2 of 4: workspace being created. Most workspaces are ready within one business day.
       </div>
 
       <section
-        className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10"
+        className="w-full overflow-hidden rounded-2xl border border-rule-soft bg-card shadow-[0_8px_40px_-16px_rgba(23,28,56,0.08)]"
         aria-busy="true"
         aria-labelledby="pending-workspace-title"
       >
-        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
-          Workspace being set up
-        </div>
-        <h1 id="pending-workspace-title" className="font-display text-3xl text-ink mt-3">
-          You're signed in{email ? ` as ${email}` : ""}.
-        </h1>
-        <p className="text-[15px] leading-[1.75] text-ink/75 mt-4">
-          Your engagement workspace isn't provisioned yet. As soon as Tai
-          publishes your project, your Roadmap, files, and next steps appear
-          here — no need to sign in again.
-        </p>
-
-        <div className="mt-6">
-          <div className="flex items-center justify-between text-[12px] text-ink/60 mb-2">
-            <span>Setup progress</span>
-            <span aria-hidden="true">Step {currentStep + 1} of 4</span>
+        {/* Header block */}
+        <div className="px-8 pb-6 pt-10 sm:px-10">
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="inline-block h-2 w-2 animate-pulse rounded-full bg-royal"
+            />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-royal">
+              Workspace setup in progress
+            </span>
           </div>
-          <Progress value={progress} aria-label="Workspace setup progress" />
+          <h1
+            id="pending-workspace-title"
+            className="mt-6 font-display text-4xl font-light leading-[1.15] text-ink sm:text-[42px]"
+          >
+            {greeting ? `Welcome back, ${greeting}.` : "Welcome back."}
+            <br />
+            <span className="italic text-ink/85">We're preparing your environment.</span>
+          </h1>
+          <p className="mt-5 max-w-xl text-[15px] leading-[1.7] text-ink/60">
+            Your engagement workspace is being provisioned. Once live, your
+            Roadmap, deliverables, and secure communications appear here — no
+            need to sign in again.
+          </p>
         </div>
 
-        <ol
-          className="mt-6 space-y-0"
-          aria-label="Workspace setup timeline"
-        >
-          {[
-            { label: "Access confirmed", state: "complete" },
-            { label: "Workspace being created", state: "current" },
-            { label: "Roadmap published", state: "upcoming" },
-            { label: "Engagement begins", state: "upcoming" },
-          ].map((step, idx) => {
-            const isComplete = step.state === "complete";
-            const isCurrent = step.state === "current";
-            return (
-              <li
-                key={step.label}
-                className="flex items-start gap-3 py-3 border-b border-border last:border-b-0"
-                aria-current={isCurrent ? "step" : undefined}
-              >
-                <span
-                  className={`
-                    flex items-center justify-center shrink-0 w-6 h-6 rounded-full border text-[11px] mt-0.5
-                    ${isComplete ? "bg-royal border-royal text-white" : ""}
-                    ${isCurrent ? "border-royal text-royal" : "border-ink/20 text-ink/40"}
-                  `}
-                  aria-hidden="true"
+        {/* Stepper */}
+        <div className="px-8 pb-4 pt-6 sm:px-10">
+          <ol
+            className="relative space-y-7"
+            aria-label="Workspace setup timeline"
+          >
+            {/* Vertical hairline behind the circles */}
+            <span
+              aria-hidden="true"
+              className="absolute left-4 top-4 bottom-4 w-px bg-rule-soft"
+            />
+            {steps.map((step, idx) => {
+              const isComplete = step.state === "complete";
+              const isCurrent = step.state === "current";
+              return (
+                <li
+                  key={step.label}
+                  className="relative flex items-start gap-5"
+                  aria-current={isCurrent ? "step" : undefined}
                 >
-                  {isComplete ? (
-                    <Check className="w-3.5 h-3.5" />
-                  ) : (
-                    <span>{idx + 1}</span>
-                  )}
-                </span>
-                <div className="flex-1">
-                  <div className={`text-[14px] ${isCurrent ? "text-ink font-medium" : "text-ink/70"}`}>
-                    {step.label}
-                    {isCurrent && (
-                      <span className="sr-only"> (current step)</span>
+                  <span
+                    aria-hidden="true"
+                    className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-[0_0_0_4px_var(--card)] ${
+                      isComplete
+                        ? "bg-royal text-white"
+                        : isCurrent
+                          ? "border-2 border-royal bg-card text-royal"
+                          : "border border-rule-soft bg-paper-soft text-ink/30"
+                    }`}
+                  >
+                    {isComplete ? <Check className="h-4 w-4" /> : idx + 1}
+                  </span>
+                  <div className="pt-1">
+                    <div
+                      className={`text-[14px] ${
+                        isCurrent
+                          ? "font-medium text-ink"
+                          : isComplete
+                            ? "text-ink/80"
+                            : "text-ink/40"
+                      }`}
+                    >
+                      {step.label}
+                      {isCurrent && <span className="sr-only"> (current step)</span>}
+                    </div>
+                    {step.sub && (
+                      <div className="mt-1 text-[12.5px] text-ink/45">
+                        {step.sub}
+                      </div>
                     )}
                   </div>
-                  {isCurrent && (
-                    <div className="text-[12px] text-ink/60 mt-0.5">
-                      Most workspaces are ready within one business day.
-                    </div>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-3">
-          <Button
-            type="button"
-            size="lg"
-            disabled={resend.isPending || sent}
-            onClick={() => resend.mutate()}
-            className="bg-ink hover:bg-ink/90 text-white"
-          >
-            {sent ? (
-              <>
-                <Check className="w-4 h-4 mr-2" aria-hidden="true" /> Sign-in link sent
-              </>
-            ) : resend.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> Sending…
-              </>
-            ) : (
-              <>
-                <Mail className="w-4 h-4 mr-2" aria-hidden="true" /> Resend sign-in link
-              </>
-            )}
-          </Button>
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="border-ink/20 text-ink"
-          >
-            <a href="mailto:tai@trusttai.com?subject=Portal%20access">
-              <LifeBuoy className="w-4 h-4 mr-2" aria-hidden="true" /> Contact Tai
-            </a>
-          </Button>
+        {/* Action bar */}
+        <div className="flex flex-col gap-3 border-t border-rule-soft bg-paper-soft px-8 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-10">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button
+              type="button"
+              disabled={resend.isPending || sent}
+              onClick={() => resend.mutate()}
+              className="rounded-md bg-ink text-white hover:bg-ink/90"
+            >
+              {sent ? (
+                <>
+                  <Check className="mr-2 h-4 w-4" aria-hidden="true" /> Sign-in link sent
+                </>
+              ) : resend.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> Sending…
+                </>
+              ) : (
+                <>
+                  <Mail className="mr-2 h-4 w-4" aria-hidden="true" /> Resend sign-in link
+                </>
+              )}
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="rounded-md border-rule-soft bg-card text-ink hover:border-ink/30"
+            >
+              <a href="mailto:tai@trusttai.com?subject=Portal%20access">
+                <LifeBuoy className="mr-2 h-4 w-4" aria-hidden="true" /> Contact Tai
+              </a>
+            </Button>
+          </div>
+          <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-ink/40 sm:text-right">
+            Step 2 of 4
+          </div>
         </div>
 
         {errorMsg && (
           <div
             role="alert"
             aria-live="assertive"
-            className="text-[13px] text-destructive mt-4"
+            className="border-t border-rule-soft bg-destructive/5 px-8 py-4 text-[13px] text-destructive sm:px-10"
           >
             {errorMsg}
           </div>
@@ -205,7 +234,7 @@ function PendingWorkspacePanel({ email }: { email?: string }) {
           <div
             role="status"
             aria-live="polite"
-            className="text-[13px] text-ink/70 mt-4"
+            className="border-t border-rule-soft bg-card px-8 py-4 text-[13px] text-ink/70 sm:px-10"
           >
             A fresh sign-in link is on its way. It expires in 60 minutes.
           </div>
