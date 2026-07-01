@@ -12,6 +12,7 @@ import {
   LogOut,
   Send,
   Eye,
+  ShieldAlert,
 } from "lucide-react";
 
 export const Route = createFileRoute("/ops")({
