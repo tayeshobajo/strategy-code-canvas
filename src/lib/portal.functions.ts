@@ -131,7 +131,7 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
         sender_domain: "notify.trusttai.com",
         subject: "Your Trust Tai portal sign-in link",
         html,
-        text: `Sign in to your Trust Tai portal:\n\n${actionLink}\n\nThis link expires in 60 minutes.`,
+        text,
         label: "portal-magic-link",
         purpose: "transactional",
         idempotency_key: `portal-magic-${email}-${Date.now()}`,
