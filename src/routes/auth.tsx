@@ -58,28 +58,28 @@ function AuthPage() {
   }
 
   return (
-    <div style={{ background: "#F7F3EC" }} className="min-h-screen flex flex-col">
+    <div className="bg-paper min-h-screen flex flex-col">
       <SiteHeader />
       <main className="flex-1 flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-md space-y-6">
           <header className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-[#0B1E3B]">
+            <h1 className="font-display text-2xl text-ink">
               Sign in to your portal
             </h1>
-            <p className="text-sm text-slate-600">
+            <p className="text-[15px] leading-[1.75] text-ink/70">
               Enter the email you used when you purchased. We will send you a
               one-time link.
             </p>
           </header>
 
           {sent ? (
-            <div className="rounded-lg border border-black/5 bg-white p-4 text-sm text-[#0B1E3B]">
+            <div className="rounded-lg border border-border bg-card p-4 text-[15px] text-ink">
               Check {email}. The link signs you in.
             </div>
           ) : (
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[#0B1E3B]">
+                <Label htmlFor="email" className="text-ink">
                   Email
                 </Label>
                 <Input
@@ -90,14 +90,14 @@ function AuthPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
-                  className="bg-white"
+                  className="bg-background"
                 />
               </div>
-              {err && <p className="text-sm text-red-600">{err}</p>}
+              {err && <p className="text-sm text-destructive">{err}</p>}
               <Button
                 type="submit"
                 disabled={busy}
-                className="w-full bg-[#0B1E3B] hover:bg-[#0B1E3B]/90 text-white"
+                className="w-full bg-ink hover:bg-ink/90 text-white"
               >
                 {busy ? "Sending…" : "Send link"}
               </Button>

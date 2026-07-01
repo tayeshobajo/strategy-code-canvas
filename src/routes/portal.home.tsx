@@ -39,7 +39,7 @@ export const Route = createFileRoute("/portal/home")({
 
 function LoadingCard() {
   return (
-    <div className="rounded-xl bg-white/70 border border-black/5 p-10 text-slate-500">
+    <div className="rounded-xl bg-card border border-border p-10 text-ink/60">
       Loading your portal…
     </div>
   );
@@ -131,18 +131,15 @@ function PortalHome() {
   const copy = STATUS_COPY[project.portal_status] ?? STATUS_COPY.payment_confirmed;
 
   return (
-    <div className="max-w-4xl space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8">
       {/* Identity + status */}
-      <section className="rounded-2xl bg-white border border-black/5 shadow-sm p-10">
+      <section className="rounded-2xl bg-card border border-border shadow-sm p-8 lg:p-10">
         <div className="flex items-center justify-between gap-6 mb-6">
           <div>
-            <div className="text-[11px] uppercase tracking-widest text-[#B08A3E]">
+            <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
               {project.package_name ?? project.purchased_package ?? "Client engagement"}
             </div>
-            <h1
-              className="text-3xl text-[#0B1E3B] mt-2"
-              style={{ fontFamily: "Georgia, serif" }}
-            >
+            <h1 className="font-display text-3xl text-ink mt-2">
               {project.contact_name
                 ? `Hello, ${project.contact_name.split(" ")[0]}.`
                 : "Hello."}
@@ -151,19 +148,18 @@ function PortalHome() {
           <StatusPill status={project.portal_status} />
         </div>
 
-        <p
-          className="text-xl text-[#0B1E3B] mb-3"
-          style={{ fontFamily: "Georgia, serif" }}
-        >
+        <p className="font-display text-xl text-ink mt-4">
           {copy.title}
         </p>
-        <p className="text-slate-600 leading-relaxed max-w-2xl">{copy.body}</p>
+        <p className="text-[15px] leading-[1.75] text-ink/70 max-w-2xl mt-2">
+          {copy.body}
+        </p>
 
         <div className="mt-8">
           <Button
             asChild
             size="lg"
-            className="bg-[#0B1E3B] hover:bg-[#0B1E3B]/90 text-white"
+            className="bg-ink hover:bg-ink/90 text-white"
           >
             <Link to={copy.to}>{copy.cta}</Link>
           </Button>
@@ -220,20 +216,20 @@ function ResendWelcomeCard() {
   });
 
   return (
-    <section className="rounded-xl bg-white border border-black/5 p-6 flex items-center justify-between gap-6">
+    <section className="rounded-xl bg-card border border-border p-6 flex items-center justify-between gap-6">
       <div>
-        <div className="text-[11px] uppercase tracking-widest text-slate-500">
+        <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
           Sign-in link
         </div>
-        <div className="text-[#0B1E3B] mt-1 font-medium">
+        <div className="text-ink mt-1 font-medium">
           Need a fresh sign-in link?
         </div>
-        <div className="text-xs text-slate-500 mt-1">
+        <div className="text-[13px] leading-relaxed text-ink/60 mt-1">
           We'll email a new secure link to the address on your engagement. It
           expires in 60 minutes.
         </div>
         {errorMsg && (
-          <div className="text-xs text-red-600 mt-2">{errorMsg}</div>
+          <div className="text-xs text-destructive mt-2">{errorMsg}</div>
         )}
       </div>
       <Button
@@ -241,7 +237,7 @@ function ResendWelcomeCard() {
         variant="outline"
         disabled={mutation.isPending || sent}
         onClick={() => mutation.mutate()}
-        className="border-[#0B1E3B]/20 text-[#0B1E3B]"
+        className="border-ink/20 text-ink"
       >
         {sent ? (
           <>
@@ -268,12 +264,12 @@ function InfoCard({
   sub?: string;
 }) {
   return (
-    <div className="rounded-xl bg-white border border-black/5 p-5">
-      <div className="text-[11px] uppercase tracking-widest text-slate-500">
+    <div className="rounded-xl bg-card border border-border p-5">
+      <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
         {label}
       </div>
-      <div className="text-[#0B1E3B] mt-2 font-medium">{value}</div>
-      {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
+      <div className="text-ink mt-2 font-medium">{value}</div>
+      {sub && <div className="text-[13px] text-ink/60 mt-1">{sub}</div>}
     </div>
   );
 }
@@ -281,7 +277,7 @@ function InfoCard({
 function StatusPill({ status }: { status: string }) {
   const label = status.replace(/_/g, " ");
   return (
-    <span className="text-[11px] uppercase tracking-widest px-3 py-1.5 rounded-full bg-[#F7F3EC] text-[#0B1E3B] border border-[#D4A857]/30">
+    <span className="text-[11px] uppercase tracking-widest px-3 py-1.5 rounded-full bg-paper text-ink border border-royal/30">
       {label}
     </span>
   );
