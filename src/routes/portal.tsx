@@ -69,7 +69,11 @@ function PortalLayout() {
         <aside className="lg:w-64 lg:flex-shrink-0 bg-ink text-white flex flex-col">
           <div className="hidden lg:flex px-6 py-6 border-b border-white/10 items-center">
             <Link to="/" aria-label="Trust Tai home" className="block">
-              <TrustTaiLogo variant="white" />
+              <img
+                src={logoWhite.url}
+                alt="Trust Tai | Consultancy + AI Agency"
+                className="h-9 w-auto"
+              />
             </Link>
           </div>
           <div className="hidden lg:block px-6 pt-5 pb-2">
