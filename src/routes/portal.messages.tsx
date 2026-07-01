@@ -378,25 +378,43 @@ function MessagesPage() {
             />
 
             {attachments.length > 0 && (
-              <ul className="mt-3 flex flex-wrap gap-2">
+              <ul className="mt-3 flex flex-col gap-1.5">
                 {attachments.map((a) => (
                   <li
                     key={a.clientId}
-                    className={`inline-flex items-center gap-2 rounded-full border pl-3 pr-1.5 py-1 text-[12px] max-w-[280px] ${
+                    className={`flex items-center gap-2 rounded-lg border pl-3 pr-1.5 py-1.5 text-[12px] ${
                       a.status === "error"
                         ? "border-destructive/40 bg-destructive/10 text-destructive"
                         : a.status === "success"
                           ? "border-emerald-300 bg-emerald-50 text-emerald-800"
                           : "border-rule-soft bg-card text-ink/70"
                     }`}
-                    title={a.error ?? a.file.name}
                   >
                     {a.status === "uploading" || a.status === "queued" ? (
                       <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                    ) : a.status === "error" ? (
+                      <AlertCircle className="w-3 h-3 shrink-0" />
                     ) : (
                       <Paperclip className="w-3 h-3 shrink-0" />
                     )}
-                    <span className="truncate">{a.file.name}</span>
+                    <span className="truncate flex-1 min-w-0" title={a.file.name}>
+                      {a.file.name}
+                    </span>
+                    {a.status === "error" && a.error && (
+                      <span className="hidden sm:inline text-[11px] opacity-80 truncate max-w-[220px]">
+                        {a.error}
+                      </span>
+                    )}
+                    {a.status === "error" && (
+                      <button
+                        type="button"
+                        onClick={() => void uploadAttachment(a)}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive"
+                        aria-label={`Retry upload of ${a.file.name}`}
+                      >
+                        <RotateCw className="w-3 h-3" /> Retry
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => removeAttachment(a.clientId)}
