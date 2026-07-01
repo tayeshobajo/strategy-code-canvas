@@ -106,7 +106,7 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
             style="max-width:560px;width:100%;background:${brand.paper};border:1px solid ${brand.rule};border-radius:14px;overflow:hidden;">
             <tr>
               <td class="pad pad-top" style="padding:28px 36px 0;">
-                <img class="logo-img" src="${LOGO_URL}" alt="Trust Tai" width="140" height="40" style="display:block;height:40px;width:auto;max-width:180px;border:0;outline:none;text-decoration:none;" />
+                <img class="logo-img" src="${LOGO_URL}" alt="Trust Tai — Consultancy + AI Agency" width="352" height="64" style="display:block;height:64px;width:auto;max-width:100%;border:0;outline:none;text-decoration:none;" />
                 <div style="border-top:1px solid ${brand.rule};margin:20px 0 0;"></div>
               </td>
             </tr>
