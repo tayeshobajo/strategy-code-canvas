@@ -322,53 +322,93 @@ function BillingPage() {
             <div className="px-6 py-4 border-b border-rule-soft">
               <h2 className="font-display text-xl text-ink">Invoice history</h2>
             </div>
-            <table className="w-full text-[14px]">
-              <thead>
-                <tr className="text-left text-[12px] uppercase tracking-wider text-ink/50 border-b border-rule-soft">
-                  <th className="px-6 py-3 font-medium">Invoice</th>
-                  <th className="px-6 py-3 font-medium">Date</th>
-                  <th className="px-6 py-3 font-medium">Description</th>
-                  <th className="px-6 py-3 font-medium">Amount</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.invoices.map((inv) => (
-                  <tr key={inv.id} className="border-b border-rule-soft/60">
-                    <td className="px-6 py-3">
-                      {inv.invoice_url ? (
-                        <a
-                          href={inv.invoice_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-royal underline"
-                        >
-                          {inv.stripe_invoice_id?.slice(-8) ?? "Invoice"}
-                        </a>
-                      ) : (
-                        <span className="text-ink">
-                          {inv.stripe_invoice_id?.slice(-8) ?? "Invoice"}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3 text-ink/70">
-                      {new Date(inv.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-3 text-ink/70">
-                      {inv.purchased_package ?? project?.package_name ?? "—"}
-                    </td>
-                    <td className="px-6 py-3 text-ink">
-                      {formatMoney(inv.amount_total, inv.currency)}
-                    </td>
-                    <td className="px-6 py-3">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[12px]">
-                        <CheckCircle2 className="w-3 h-3" /> {capitalize(inv.payment_status)}
-                      </span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[14px]">
+                <thead>
+                  <tr className="text-left text-[12px] uppercase tracking-wider text-ink/50 border-b border-rule-soft">
+                    <th className="px-6 py-3 font-medium">Invoice</th>
+                    <th className="px-6 py-3 font-medium">Date</th>
+                    <th className="px-6 py-3 font-medium">Description</th>
+                    <th className="px-6 py-3 font-medium">Amount</th>
+                    <th className="px-6 py-3 font-medium">Status</th>
+                    <th className="px-6 py-3 font-medium text-right">Documents</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.invoices.map((inv) => {
+                    const label = inv.stripe_invoice_id
+                      ? `INV-${inv.stripe_invoice_id.slice(-8).toUpperCase()}`
+                      : `Payment ${inv.id.slice(0, 8)}`;
+                    return (
+                      <tr key={inv.id} className="border-b border-rule-soft/60 hover:bg-paper-soft/50">
+                        <td className="px-6 py-3 font-mono text-[12.5px] text-ink">
+                          {label}
+                        </td>
+                        <td className="px-6 py-3 text-ink/70">
+                          {new Date(
+                            inv.payment_confirmed_at ?? inv.created_at,
+                          ).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-6 py-3 text-ink/70">
+                          {inv.purchased_package ?? project?.package_name ?? "—"}
+                        </td>
+                        <td className="px-6 py-3 text-ink">
+                          {formatMoney(inv.amount_total, inv.currency)}
+                        </td>
+                        <td className="px-6 py-3">
+                          <StatusBadge status={inv.payment_status} />
+                        </td>
+                        <td className="px-6 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            {inv.invoice_url && (
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="ghost"
+                                className="text-ink hover:text-royal h-8"
+                              >
+                                <a
+                                  href={inv.invoice_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={`Download invoice ${label} as PDF`}
+                                >
+                                  <Download className="w-3.5 h-3.5 mr-1" /> PDF
+                                </a>
+                              </Button>
+                            )}
+                            {inv.receipt_url && (
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="ghost"
+                                className="text-ink/70 hover:text-royal h-8"
+                              >
+                                <a
+                                  href={inv.receipt_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={`View receipt for ${label}`}
+                                >
+                                  <FileText className="w-3.5 h-3.5 mr-1" /> Receipt
+                                </a>
+                              </Button>
+                            )}
+                            {!inv.invoice_url && !inv.receipt_url && (
+                              <span className="text-[12px] text-ink/40">—</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
