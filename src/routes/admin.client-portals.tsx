@@ -6,6 +6,8 @@ import {
   adminListPortals,
   adminGetPortal,
   adminUpdatePortal,
+  adminSetClientAccessRevoked,
+  adminResendPortalWelcome,
 } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
