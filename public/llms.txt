@@ -1,0 +1,18 @@
+# Trust Tai
+
+> Consultancy and AI agency that maps the journey from where a founder-led business is today to the position it could own in a decade, then builds the first leg.
+
+Trust Tai works with founder-led businesses to produce a Business Operating Roadmap: a living plan from Point A (how the business runs today) to Point B (a defined 24-month destination) toward Point C (the ten-year position). We then build the milestones the roadmap calls for — websites, CRMs, operating dashboards, learning platforms, AI assistants, workflow automation, and the connective operating layer.
+
+## Pages
+
+- [Home](/): The Business Operating Roadmap — overview, build order, and how a walk with Trust Tai works.
+- [What We Build](/what-we-build): The eight milestones inside the operating roadmap and how they compound.
+- [The Walks](/walks): Selected case studies of founder-led businesses we have walked with.
+- [Investment](/investment): Pacing tiers (Accelerated, Balanced, Steady) and what each includes.
+- [About](/about): Tai Shobajo and the thesis behind Trust Tai.
+- [Build My Roadmap](/build-my-roadmap): Start the intake for a roadmap conversation.
+
+## Optional
+
+- [Insights](/insights): Notes and essays on operating-layer strategy for founder-led businesses.

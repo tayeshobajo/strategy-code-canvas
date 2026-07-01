@@ -449,10 +449,13 @@ export const Route = createFileRoute("/walks_/$slug")({
             "@context": "https://schema.org",
             "@graph": [
               {
-                "@type": "WebPage",
-                name: title,
+                "@type": "Article",
+                headline: title,
                 description,
                 url,
+                mainEntityOfPage: url,
+                author: { "@type": "Organization", name: "Trust Tai", url: "https://trusttai.com" },
+                publisher: { "@type": "Organization", name: "Trust Tai", url: "https://trusttai.com" },
                 isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://trusttai.com" },
               },
               {

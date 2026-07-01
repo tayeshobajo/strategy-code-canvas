@@ -16,7 +16,7 @@ export const Route = createFileRoute("/walks")({
   head: () => {
     const title = "The Walks | Trust Tai";
     const description =
-      "Real businesses. Real routes. Real ground covered. A selection of walks we have taken with founder-led businesses - the milestones built, and where each business stands today.";
+      "Real businesses. Real routes. Real ground covered. A selection of walks with founder-led businesses, and where each one stands today.";
     return {
       meta: [
         { title },
