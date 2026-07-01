@@ -104,6 +104,8 @@ function PortalLoginPage() {
           form.
         </p>
       </div>
-    </main>
+      </main>
+      <SiteFooter />
+    </div>
   );
 }
