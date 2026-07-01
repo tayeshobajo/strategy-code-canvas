@@ -509,14 +509,28 @@ function FilesPage() {
                       </td>
                       <td className="px-5 py-3 text-ink/70">{formatBytes(f.size_bytes)}</td>
                       <td className="px-5 py-3 text-right">
-                        <Button
-                          onClick={() => download(f)}
-                          size="sm"
-                          variant="ghost"
-                          className="text-ink hover:text-royal"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          {isPreviewable(f) && (
+                            <Button
+                              onClick={() => setPreview(f)}
+                              size="sm"
+                              variant="ghost"
+                              className="text-ink hover:text-royal"
+                              aria-label={`Preview ${f.file_name}`}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            onClick={() => download(f)}
+                            size="sm"
+                            variant="ghost"
+                            className="text-ink hover:text-royal"
+                            aria-label={`Download ${f.file_name}`}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
