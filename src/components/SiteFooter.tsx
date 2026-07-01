@@ -55,8 +55,12 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
                 </li>
               ))}
               <li>
-                <Link to={portalLink.to} className="transition-colors hover:text-white">
-                  {portalLink.label}
+                <Link
+                  to={portalLink.to}
+                  aria-busy={portalLink.state === "loading"}
+                  className={`transition-colors hover:text-white ${portalLink.state === "loading" ? "opacity-60" : ""}`}
+                >
+                  {portalLink.state === "loading" ? "Checking…" : portalLink.label}
                 </Link>
               </li>
             </ul>

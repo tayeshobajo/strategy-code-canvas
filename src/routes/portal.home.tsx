@@ -1,8 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getPortalContext, resendPortalWelcome } from "@/lib/portal.functions";
+import { checkPortalAccess, getPortalContext, resendPortalWelcome } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Suspense, useEffect, useState } from "react";
 import { Mail, Check } from "lucide-react";
@@ -14,6 +14,16 @@ const portalCtxOptions = (fn: ReturnType<typeof useServerFn<typeof getPortalCont
   });
 
 export const Route = createFileRoute("/portal/home")({
+  ssr: false,
+  beforeLoad: async () => {
+    const res = await checkPortalAccess();
+    if (res.status === "revoked") {
+      throw redirect({ to: "/portal/access-denied" });
+    }
+    if (res.status === "none") {
+      throw redirect({ to: "/portal/login" });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Home — Trust Tai portal" },

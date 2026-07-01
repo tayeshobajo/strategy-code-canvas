@@ -5,7 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkPortalAccess } from "@/lib/portal.functions";
 import type { User } from "@supabase/supabase-js";
 
-export function usePortalLink() {
+export type PortalLinkState = "loading" | "error" | "ready";
+
+export type PortalLink = {
+  to: "/portal/home" | "/portal/login";
+  label: "Client Portal" | "Go to Portal";
+  state: PortalLinkState;
+  ready: boolean;
+};
+
+export function usePortalLink(): PortalLink {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const checkAccess = useServerFn(checkPortalAccess);
@@ -15,22 +24,32 @@ export function usePortalLink() {
       setUser(error ? null : data.user);
       setAuthChecked(true);
     });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+      setAuthChecked(true);
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["portal", "nav-access", user?.id],
     queryFn: () => checkAccess({}),
     enabled: !!user,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+    retry: 1,
   });
 
-  if (!authChecked || isLoading) {
-    return { to: "/portal/login", label: "Client Portal", ready: false };
+  if (!authChecked || (!!user && isLoading)) {
+    return { to: "/portal/login", label: "Client Portal", state: "loading", ready: false };
   }
 
-  if (user && data?.hasAccess) {
-    return { to: "/portal/home", label: "Go to Portal", ready: true };
+  if (isError) {
+    return { to: "/portal/login", label: "Client Portal", state: "error", ready: true };
   }
 
-  return { to: "/portal/login", label: "Client Portal", ready: true };
+  if (user && data?.status === "active") {
+    return { to: "/portal/home", label: "Go to Portal", state: "ready", ready: true };
+  }
+
+  return { to: "/portal/login", label: "Client Portal", state: "ready", ready: true };
 }

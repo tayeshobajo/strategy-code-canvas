@@ -13,19 +13,29 @@ function isOperator(email: string | null | undefined) {
 }
 
 // -------------------- Nav access check (client-facing) --------------------
+export type PortalAccessStatus = "active" | "revoked" | "none";
 export const checkPortalAccess = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<{ status: PortalAccessStatus; hasAccess: boolean }> => {
     const email = context.claims?.email as string | undefined;
-    if (!email) return { hasAccess: false as const };
+    if (!email) return { status: "none", hasAccess: false };
 
-    const { data } = await context.supabase
-      .from("client_portal_projects")
-      .select("id")
-      .ilike("primary_email", email)
-      .maybeSingle();
-
-    return { hasAccess: !!data };
+    // Check client_access + client_portal_permissions for any row (revoked or not).
+    const [caRes, permRes] = await Promise.all([
+      context.supabase
+        .from("client_access")
+        .select("id, revoked_at")
+        .ilike("email", email),
+      context.supabase
+        .from("client_portal_permissions")
+        .select("id, revoked_at")
+        .ilike("email", email),
+    ]);
+    const rows = [...(caRes.data ?? []), ...(permRes.data ?? [])];
+    if (rows.length === 0) return { status: "none", hasAccess: false };
+    const anyActive = rows.some((r) => !r.revoked_at);
+    if (anyActive) return { status: "active", hasAccess: true };
+    return { status: "revoked", hasAccess: false };
   });
 
 // -------------------- Magic link (public) --------------------
