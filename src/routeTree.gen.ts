@@ -22,6 +22,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
+import { Route as PortalLoginRouteImport } from './routes/portal.login'
 import { Route as OpsQueueRouteImport } from './routes/ops/queue'
 import { Route as OpsInsightsRouteImport } from './routes/ops/insights'
 import { Route as OpsHistoryRouteImport } from './routes/ops/history'
@@ -99,6 +100,11 @@ const OpsIndexRoute = OpsIndexRouteImport.update({
 const WalksSlugRoute = WalksSlugRouteImport.update({
   id: '/walks_/$slug',
   path: '/walks/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalLoginRoute = PortalLoginRouteImport.update({
+  id: '/portal/login',
+  path: '/portal/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OpsQueueRoute = OpsQueueRouteImport.update({
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
+  '/portal/login': typeof PortalLoginRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
@@ -220,6 +227,7 @@ export interface FileRoutesByTo {
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
+  '/portal/login': typeof PortalLoginRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/ops': typeof OpsIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
@@ -250,6 +258,7 @@ export interface FileRoutesById {
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
+  '/portal/login': typeof PortalLoginRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/ops/': typeof OpsIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
@@ -280,6 +289,7 @@ export interface FileRouteTypes {
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
+    | '/portal/login'
     | '/walks/$slug'
     | '/ops/'
     | '/ops/editor/$id'
@@ -307,6 +317,7 @@ export interface FileRouteTypes {
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
+    | '/portal/login'
     | '/walks/$slug'
     | '/ops'
     | '/ops/editor/$id'
@@ -336,6 +347,7 @@ export interface FileRouteTypes {
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
+    | '/portal/login'
     | '/walks_/$slug'
     | '/ops/'
     | '/ops/editor/$id'
@@ -362,6 +374,7 @@ export interface RootRouteChildren {
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
+  PortalLoginRoute: typeof PortalLoginRoute
   WalksSlugRoute: typeof WalksSlugRoute
   ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -461,6 +474,13 @@ declare module '@tanstack/react-router' {
       path: '/walks/$slug'
       fullPath: '/walks/$slug'
       preLoaderRoute: typeof WalksSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/login': {
+      id: '/portal/login'
+      path: '/portal/login'
+      fullPath: '/portal/login'
+      preLoaderRoute: typeof PortalLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ops/queue': {
@@ -612,6 +632,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutRoadmapRoute: CheckoutRoadmapRoute,
   InsightsSlugRoute: InsightsSlugRoute,
+  PortalLoginRoute: PortalLoginRoute,
   WalksSlugRoute: WalksSlugRoute,
   ApiPublicHooksBuildRoadmapContactRoute:
     ApiPublicHooksBuildRoadmapContactRoute,
