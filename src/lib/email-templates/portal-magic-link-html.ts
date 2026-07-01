@@ -14,6 +14,11 @@ const brand = {
   sans: `Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif`,
 };
 
+// Absolute URL required for email clients. Uses the site's custom domain so
+// the image loads reliably in Gmail / Outlook / Apple Mail.
+const LOGO_URL =
+  "https://new.trusttai.com/__l5e/assets-v1/d439b2e1-d22d-4921-a689-edcde5334ba4/trust-tai-logo.png";
+
 function escapeHtml(input: string): string {
   return input
     .replace(/&/g, "&amp;")
@@ -65,7 +70,11 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
       .btn:hover { background:${brand.royal} !important; }
       @media (max-width:600px) {
         .shell { border-radius:0 !important; border-left:0 !important; border-right:0 !important; }
-        .pad { padding-left:24px !important; padding-right:24px !important; }
+        .pad { padding-left:20px !important; padding-right:20px !important; }
+        .h1 { font-size:26px !important; line-height:1.18 !important; }
+        .cta-wrap { text-align:center !important; }
+        .btn { display:block !important; width:100% !important; box-sizing:border-box !important; padding:16px 20px !important; }
+        .logo { height:32px !important; }
       }
     </style>
   </head>
@@ -78,9 +87,7 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
             style="max-width:560px;width:100%;background:${brand.paper};border:1px solid ${brand.rule};border-radius:14px;overflow:hidden;">
             <tr>
               <td class="pad" style="padding:28px 36px 0;">
-                <span style="font-family:${brand.display};font-size:22px;font-weight:500;letter-spacing:0.02em;color:${brand.ink};">
-                  Trust<span style="color:${brand.royal};">Tai</span>
-                </span>
+                <img class="logo" src="${LOGO_URL}" alt="Trust Tai" height="40" style="display:block;height:40px;width:auto;border:0;outline:none;text-decoration:none;" />
                 <div style="border-top:1px solid ${brand.rule};margin:20px 0 0;"></div>
               </td>
             </tr>
@@ -89,13 +96,13 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
                 <p style="font-family:${brand.sans};font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:${brand.royal};margin:0 0 14px;">
                   ${escapeHtml(eyebrow)}
                 </p>
-                <h1 style="font-family:${brand.display};font-size:30px;line-height:1.15;font-weight:500;color:${brand.ink};margin:0 0 18px;letter-spacing:-0.01em;">
+                <h1 class="h1" style="font-family:${brand.display};font-size:30px;line-height:1.15;font-weight:500;color:${brand.ink};margin:0 0 18px;letter-spacing:-0.01em;">
                   ${escapeHtml(heading)}
                 </h1>
                 <p style="font-family:${brand.sans};font-size:15px;line-height:1.65;color:${brand.inkSoft};margin:0 0 22px;">
                   ${escapeHtml(intro)}
                 </p>
-                <p style="margin:8px 0 22px;">
+                <p class="cta-wrap" style="margin:8px 0 22px;">
                   <a class="btn" href="${safeLink}"
                     style="display:inline-block;background:${brand.ink};color:${brand.white};font-family:${brand.sans};font-size:14px;font-weight:600;letter-spacing:0.02em;border-radius:999px;padding:14px 28px;text-decoration:none;">
                     ${escapeHtml(ctaLabel)}
