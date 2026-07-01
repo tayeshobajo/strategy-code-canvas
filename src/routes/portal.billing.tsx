@@ -15,7 +15,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { usePortalContext } from "@/hooks/use-portal-context";
-import { createBillingPortalSession } from "@/utils/portal.functions";
+import {
+  createBillingPortalSession,
+  cancelSubscription,
+  reactivateSubscription,
+} from "@/utils/portal.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { toast } from "sonner";
 
