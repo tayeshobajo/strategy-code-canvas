@@ -427,6 +427,7 @@ async function sendWelcomeMagicLink(email: string) {
       label: "portal-welcome-resend",
       purpose: "transactional",
       idempotency_key: `portal-welcome-${normalized}-${Date.now()}`,
+      unsubscribe_token: unsubscribeToken,
     },
   });
 
