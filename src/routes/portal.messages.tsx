@@ -518,7 +518,15 @@ function MessagesPage() {
   );
 }
 
-function MessageCard({ m, fileMap }: { m: Message; fileMap: Record<string, FileMeta> }) {
+function MessageCard({
+  m,
+  fileMap,
+  onPreview,
+}: {
+  m: Message;
+  fileMap: Record<string, FileMeta>;
+  onPreview: (f: FileMeta) => void;
+}) {
   const isClient = m.sender_type === "client";
   const initials = isClient
     ? (m.author_email ?? "?").slice(0, 2).toUpperCase()
@@ -569,7 +577,7 @@ function MessageCard({ m, fileMap }: { m: Message; fileMap: Record<string, FileM
           <ul className="mt-3 flex flex-wrap gap-2">
             {attachments.map((f) => (
               <li key={f.id}>
-                <AttachmentChip file={f} />
+                <AttachmentChip file={f} onPreview={onPreview} />
               </li>
             ))}
           </ul>
@@ -579,9 +587,30 @@ function MessageCard({ m, fileMap }: { m: Message; fileMap: Record<string, FileM
   );
 }
 
-function AttachmentChip({ file }: { file: FileMeta }) {
+function isPreviewable(file: { mime_type: string | null; file_name: string }) {
+  const ext = file.file_name.split(".").pop()?.toLowerCase() ?? "";
+  if (file.mime_type?.startsWith("image/")) return "image" as const;
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) return "image" as const;
+  if (file.mime_type === "application/pdf" || ext === "pdf") return "pdf" as const;
+  if (file.mime_type?.startsWith("text/") || ["txt", "md", "json", "csv", "yaml", "yml"].includes(ext))
+    return "text" as const;
+  return null;
+}
+
+function AttachmentChip({
+  file,
+  onPreview,
+}: {
+  file: FileMeta;
+  onPreview: (f: FileMeta) => void;
+}) {
   const [busy, setBusy] = useState(false);
-  const open = async () => {
+  const kind = isPreviewable(file);
+  const handleClick = async () => {
+    if (kind) {
+      onPreview(file);
+      return;
+    }
     setBusy(true);
     const { data, error } = await supabase.storage
       .from(file.bucket_id)
@@ -596,10 +625,10 @@ function AttachmentChip({ file }: { file: FileMeta }) {
   return (
     <button
       type="button"
-      onClick={open}
+      onClick={handleClick}
       disabled={busy}
       className="inline-flex items-center gap-2 rounded-md border border-rule-soft bg-paper-soft/70 hover:bg-paper-soft px-2.5 py-1.5 text-[12.5px] text-ink transition-colors max-w-[260px]"
-      title={file.file_name}
+      title={kind ? `Preview ${file.file_name}` : file.file_name}
     >
       <AttachmentIcon mime={file.mime_type} name={file.file_name} />
       <span className="truncate">{file.file_name}</span>
@@ -611,6 +640,95 @@ function AttachmentChip({ file }: { file: FileMeta }) {
     </button>
   );
 }
+
+function MessagePreviewModal({ file, onClose }: { file: FileMeta | null; onClose: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setUrl(null);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    supabase.storage
+      .from(file.bucket_id)
+      .createSignedUrl(file.storage_path, 300)
+      .then(({ data, error: e }) => {
+        if (cancelled) return;
+        if (e || !data?.signedUrl) setError(e?.message ?? "Could not load preview.");
+        else setUrl(data.signedUrl);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [file]);
+
+  const kind = file ? isPreviewable(file) : null;
+
+  return (
+    <Dialog open={!!file} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-4xl w-[calc(100vw-2rem)] p-0 overflow-hidden bg-card">
+        <DialogHeader className="px-5 py-3 border-b border-rule-soft flex-row items-center justify-between gap-4 space-y-0">
+          <DialogTitle className="text-[14px] font-medium text-ink truncate">
+            {file?.file_name}
+          </DialogTitle>
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[12px] text-royal hover:underline inline-flex items-center gap-1 shrink-0 mr-6"
+            >
+              Open in new tab <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+        </DialogHeader>
+        <div className="bg-paper-soft min-h-[60vh] max-h-[75vh] overflow-auto flex items-center justify-center">
+          {loading && <Loader2 className="w-5 h-5 animate-spin text-ink/50" />}
+          {!loading && error && (
+            <div className="text-center p-8">
+              <AlertCircle className="w-6 h-6 mx-auto mb-2 text-destructive" />
+              <p className="text-[13px] text-ink/70">{error}</p>
+            </div>
+          )}
+          {!loading && !error && url && kind === "image" && (
+            <img
+              src={url}
+              alt={file?.file_name ?? ""}
+              className="max-h-[75vh] w-auto object-contain"
+            />
+          )}
+          {!loading && !error && url && (kind === "pdf" || kind === "text") && (
+            <iframe
+              src={url}
+              title={file?.file_name ?? "Preview"}
+              className="w-full h-[75vh] bg-white"
+            />
+          )}
+          {!loading && !error && url && !kind && (
+            <div className="text-center p-8">
+              <p className="text-[13px] text-ink/70">Preview not available.</p>
+              <Button asChild variant="outline" className="mt-3 border-ink/20 text-ink">
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  <Download className="w-4 h-4 mr-1.5" /> Download
+                </a>
+              </Button>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function AttachmentIcon({ mime, name }: { mime: string | null; name: string }) {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
