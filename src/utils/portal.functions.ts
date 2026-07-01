@@ -122,6 +122,56 @@ export const createBillingPortalSession = createServerFn({ method: "POST" })
     }
   });
 
+export const cancelSubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { environment: StripeEnv; atPeriodEnd?: boolean }) => d)
+  .handler(
+    async ({
+      data,
+      context,
+    }): Promise<Result<{ ok: true; cancel_at_period_end: boolean }>> => {
+      try {
+        const sub = await loadActiveSub(
+          context.supabase,
+          context.claims?.email,
+          data.environment,
+        );
+        const stripe = createStripeClient(data.environment);
+        const atPeriodEnd = data.atPeriodEnd !== false;
+        if (atPeriodEnd) {
+          await stripe.subscriptions.update(sub.stripe_subscription_id, {
+            cancel_at_period_end: true,
+          });
+        } else {
+          await stripe.subscriptions.cancel(sub.stripe_subscription_id);
+        }
+        return { ok: true, cancel_at_period_end: atPeriodEnd };
+      } catch (e) {
+        return { error: getStripeErrorMessage(e) };
+      }
+    },
+  );
+
+export const reactivateSubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { environment: StripeEnv }) => d)
+  .handler(async ({ data, context }): Promise<Result<{ ok: true }>> => {
+    try {
+      const sub = await loadActiveSub(
+        context.supabase,
+        context.claims?.email,
+        data.environment,
+      );
+      const stripe = createStripeClient(data.environment);
+      await stripe.subscriptions.update(sub.stripe_subscription_id, {
+        cancel_at_period_end: false,
+      });
+      return { ok: true };
+    } catch (e) {
+      return { error: getStripeErrorMessage(e) };
+    }
+  });
+
 export const sendPortalMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { body: string }) => {
