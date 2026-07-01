@@ -37,6 +37,7 @@ const NAV = [
   { to: "/portal/files", label: "Files", icon: Folder },
   { to: "/portal/messages", label: "Messages", icon: MessageSquare },
   { to: "/portal/billing", label: "Billing", icon: CreditCard },
+  { to: "/portal/activity", label: "Activity", icon: Activity },
   { to: "/portal/account", label: "Account", icon: User },
 ];
 
