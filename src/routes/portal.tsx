@@ -65,15 +65,18 @@ function PortalLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-paper">
-      <SiteHeader />
-      <div className="flex-1 flex flex-col lg:flex-row pt-24">
+      <div className="flex-1 flex flex-col lg:flex-row">
         {/* Sidebar: full-height on desktop, horizontal scroll strip on mobile */}
         <aside className="lg:w-64 lg:flex-shrink-0 bg-ink text-white flex flex-col">
-          <div className="hidden lg:block px-6 py-7 border-b border-white/10">
+          <div className="hidden lg:flex px-6 py-6 border-b border-white/10 items-center">
+            <Link to="/" aria-label="Trust Tai home" className="block">
+              <TrustTaiLogo variant="light" />
+            </Link>
+          </div>
+          <div className="hidden lg:block px-6 pt-5 pb-2">
             <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-              Trust Tai
+              Client Portal
             </div>
-            <div className="font-display text-lg mt-1">Client Portal</div>
           </div>
           <nav
             aria-label="Portal navigation"
