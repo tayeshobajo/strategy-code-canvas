@@ -398,6 +398,7 @@ async function sendWelcomeMagicLink(email: string) {
   const actionLink = linkData.properties.action_link;
   const messageId = (globalThis.crypto?.randomUUID?.() ??
     `${Date.now()}-${Math.random()}`) as string;
+  const unsubscribeToken = await ensureUnsubscribeToken(supabaseAdmin, normalized);
 
   const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
     <p>Welcome back.</p>
