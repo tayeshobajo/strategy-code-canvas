@@ -354,6 +354,8 @@ function AccountPage() {
             />
           </div>
         </section>
+
+        <PasswordSection />
       </div>
 
       {/* Right rail */}
