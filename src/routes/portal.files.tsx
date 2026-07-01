@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Folder,
   UploadCloud,
@@ -15,12 +15,30 @@ import {
   X,
   RotateCcw,
   CheckCircle2,
+  Eye,
+  ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { usePortalContext } from "@/hooks/use-portal-context";
 import { toast } from "sonner";
+
+function isPreviewable(row: { mime_type: string | null; file_name: string }) {
+  const ext = row.file_name.split(".").pop()?.toLowerCase() ?? "";
+  if (row.mime_type?.startsWith("image/")) return "image" as const;
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) return "image" as const;
+  if (row.mime_type === "application/pdf" || ext === "pdf") return "pdf" as const;
+  if (row.mime_type?.startsWith("text/") || ["txt", "md", "json", "csv", "yaml", "yml"].includes(ext))
+    return "text" as const;
+  return null;
+}
 
 export const Route = createFileRoute("/portal/files")({
   head: () => ({
