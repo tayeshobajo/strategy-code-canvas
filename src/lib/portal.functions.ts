@@ -201,7 +201,7 @@ async function logPortalAccessEvent(fields: {
       route: fields.route ?? null,
       user_agent: userAgent,
       correlation_id: fields.correlation_id ?? null,
-      metadata: fields.metadata ?? {},
+      metadata: (fields.metadata ?? {}) as never,
     });
   } catch (err) {
     console.error("[portal.telemetry] failed to log access event", err);
