@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Folder,
   UploadCloud,
@@ -12,6 +12,9 @@ import {
   FileSpreadsheet,
   FileImage,
   File as FileIcon,
+  X,
+  RotateCcw,
+  CheckCircle2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -44,9 +47,40 @@ type FileRow = {
   updated_at: string;
 };
 
+type UploadStatus = "queued" | "uploading" | "success" | "error";
+type UploadItem = {
+  id: string;
+  file: File;
+  status: UploadStatus;
+  progress: number;
+  error?: string;
+  xhr?: XMLHttpRequest;
+};
+
 const BUCKET = "client-portal-files";
 const MAX_BYTES = 100 * 1024 * 1024;
-const STORAGE_QUOTA = 10 * 1024 * 1024 * 1024; // 10 GB display quota
+const STORAGE_QUOTA = 10 * 1024 * 1024 * 1024;
+
+// Allowed types — extensions + mime prefixes. Broad by design (client work).
+const ALLOWED_EXT = new Set([
+  "pdf", "doc", "docx", "txt", "md", "rtf",
+  "xls", "xlsx", "csv", "numbers",
+  "ppt", "pptx", "key",
+  "png", "jpg", "jpeg", "gif", "webp", "svg", "heic",
+  "zip", "figma", "fig", "sketch",
+  "mp4", "mov", "webm",
+  "json", "yaml", "yml",
+]);
+
+function validateFile(file: File): string | null {
+  if (file.size === 0) return "File is empty.";
+  if (file.size > MAX_BYTES) return "File exceeds 100 MB limit.";
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (!ext || !ALLOWED_EXT.has(ext)) {
+    return `“.${ext || "unknown"}” files aren't allowed.`;
+  }
+  return null;
+}
 
 function useFiles(projectId?: string) {
   return useQuery({
@@ -72,13 +106,165 @@ function FilesPage() {
   const ctx = usePortalContext();
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
+  const email = ctx.data?.email ?? null;
   const { data: files, isLoading, isError, refetch } = useFiles(projectId);
   const qc = useQueryClient();
 
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
-  const [uploading, setUploading] = useState<string | null>(null);
+  const [queue, setQueue] = useState<UploadItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const updateItem = useCallback((id: string, patch: Partial<UploadItem>) => {
+    setQueue((q) => q.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+  }, []);
+
+  const uploadOne = useCallback(
+    async (item: UploadItem) => {
+      if (!projectId) {
+        updateItem(item.id, { status: "error", error: "Workspace not ready." });
+        return;
+      }
+      const path = `${projectId}/${crypto.randomUUID()}-${item.file.name}`;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (!token) {
+        updateItem(item.id, { status: "error", error: "Session expired. Sign in again." });
+        return;
+      }
+
+      updateItem(item.id, { status: "uploading", progress: 0, error: undefined });
+
+      // Upload to Supabase Storage via XHR so we can watch real byte progress.
+      await new Promise<void>((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(
+          "POST",
+          `${supabaseUrl}/storage/v1/object/${BUCKET}/${encodeURI(path)}`,
+        );
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.setRequestHeader("x-upsert", "false");
+        if (item.file.type) xhr.setRequestHeader("Content-Type", item.file.type);
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            updateItem(item.id, {
+              progress: Math.round((e.loaded / e.total) * 100),
+            });
+          }
+        };
+        xhr.onerror = () => {
+          updateItem(item.id, {
+            status: "error",
+            error: "Network error. Check your connection and retry.",
+          });
+          resolve();
+        };
+        xhr.onabort = () => {
+          updateItem(item.id, { status: "error", error: "Cancelled." });
+          resolve();
+        };
+        xhr.onload = async () => {
+          if (xhr.status < 200 || xhr.status >= 300) {
+            let msg = `Upload failed (${xhr.status}).`;
+            try {
+              const parsed = JSON.parse(xhr.responseText);
+              if (parsed?.message) msg = parsed.message;
+            } catch {
+              /* ignore */
+            }
+            updateItem(item.id, { status: "error", error: msg });
+            resolve();
+            return;
+          }
+          // Insert DB row.
+          const { error: rowErr } = await supabase.from("client_portal_files").insert({
+            project_id: projectId,
+            bucket_id: BUCKET,
+            storage_path: path,
+            file_name: item.file.name,
+            category: "client_uploads",
+            file_type: item.file.name.split(".").pop() ?? null,
+            mime_type: item.file.type || null,
+            size_bytes: item.file.size,
+            uploaded_by_email: email,
+            uploaded_by_role: "client",
+            client_visible: true,
+            is_internal: false,
+          });
+          if (rowErr) {
+            await supabase.storage.from(BUCKET).remove([path]);
+            updateItem(item.id, { status: "error", error: rowErr.message });
+            resolve();
+            return;
+          }
+          updateItem(item.id, { status: "success", progress: 100, xhr: undefined });
+          resolve();
+        };
+
+        updateItem(item.id, { xhr });
+        xhr.send(item.file);
+      });
+
+      qc.invalidateQueries({ queryKey: ["portal", "files", projectId] });
+    },
+    [projectId, email, qc, updateItem],
+  );
+
+  const enqueueFiles = useCallback(
+    (list: FileList | File[] | null) => {
+      if (!list) return;
+      const arr = Array.from(list);
+      const items: UploadItem[] = [];
+      let rejected = 0;
+      for (const file of arr) {
+        const err = validateFile(file);
+        const id = crypto.randomUUID();
+        if (err) {
+          rejected += 1;
+          items.push({ id, file, status: "error", progress: 0, error: err });
+        } else {
+          items.push({ id, file, status: "queued", progress: 0 });
+        }
+      }
+      if (rejected > 0) toast.error(`${rejected} file(s) rejected. See queue below.`);
+      setQueue((q) => [...items, ...q]);
+      // Fire uploads for the valid ones.
+      items
+        .filter((it) => it.status === "queued")
+        .forEach((it) => void uploadOne(it));
+    },
+    [uploadOne],
+  );
+
+  const retry = useCallback(
+    (id: string) => {
+      const it = queue.find((x) => x.id === id);
+      if (!it) return;
+      const err = validateFile(it.file);
+      if (err) {
+        updateItem(id, { status: "error", error: err, progress: 0 });
+        return;
+      }
+      updateItem(id, { status: "queued", progress: 0, error: undefined });
+      void uploadOne({ ...it, status: "queued", progress: 0, error: undefined });
+    },
+    [queue, updateItem, uploadOne],
+  );
+
+  const removeFromQueue = useCallback(
+    (id: string) => {
+      const it = queue.find((x) => x.id === id);
+      if (it?.status === "uploading") it.xhr?.abort();
+      setQueue((q) => q.filter((x) => x.id !== id));
+    },
+    [queue],
+  );
+
+  const clearFinished = useCallback(() => {
+    setQueue((q) => q.filter((x) => x.status !== "success"));
+  }, []);
 
   const categoryCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -101,43 +287,7 @@ function FilesPage() {
     [files],
   );
 
-  const upload = useMutation({
-    mutationFn: async (file: File) => {
-      if (!projectId) throw new Error("Workspace not ready.");
-      if (file.size > MAX_BYTES) throw new Error("Max file size is 100 MB.");
-      setUploading(file.name);
-      const path = `${projectId}/${crypto.randomUUID()}-${file.name}`;
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (upErr) throw new Error(upErr.message);
-      const { error: rowErr } = await supabase.from("client_portal_files").insert({
-        project_id: projectId,
-        bucket_id: BUCKET,
-        storage_path: path,
-        file_name: file.name,
-        category: "client_uploads",
-        file_type: file.name.split(".").pop() ?? null,
-        mime_type: file.type || null,
-        size_bytes: file.size,
-        uploaded_by_email: ctx.data?.email ?? null,
-        uploaded_by_role: "client",
-        client_visible: true,
-        is_internal: false,
-      });
-      if (rowErr) {
-        // best-effort cleanup of the orphan object
-        await supabase.storage.from(BUCKET).remove([path]);
-        throw new Error(rowErr.message);
-      }
-    },
-    onSuccess: () => {
-      toast.success("File uploaded.");
-      qc.invalidateQueries({ queryKey: ["portal", "files", projectId] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-    onSettled: () => setUploading(null),
-  });
+  const activeUploads = queue.filter((q) => q.status === "uploading" || q.status === "queued").length;
 
   async function download(row: FileRow) {
     const { data, error } = await supabase.storage
@@ -148,11 +298,6 @@ function FilesPage() {
       return;
     }
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-  }
-
-  function handleFiles(list: FileList | null) {
-    if (!list) return;
-    Array.from(list).forEach((f) => upload.mutate(f));
   }
 
   return (
@@ -168,8 +313,97 @@ function FilesPage() {
           </p>
         </header>
 
+        {/* Upload queue */}
+        {queue.length > 0 && (
+          <div className="rounded-2xl bg-card border border-border shadow-sm">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-rule-soft">
+              <div className="text-[13px] font-medium text-ink">
+                Uploads
+                {activeUploads > 0 && (
+                  <span className="ml-2 text-ink/60 font-normal">
+                    ({activeUploads} in progress)
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={clearFinished}
+                className="text-[12px] text-ink/60 hover:text-ink"
+              >
+                Clear completed
+              </button>
+            </div>
+            <ul className="divide-y divide-rule-soft">
+              {queue.map((it) => (
+                <li key={it.id} className="px-5 py-3">
+                  <div className="flex items-center gap-3">
+                    <FileTypeIcon mime={it.file.type} name={it.file.name} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13.5px] text-ink truncate">
+                          {it.file.name}
+                        </span>
+                        <span className="text-[11px] text-ink/50 shrink-0">
+                          {formatBytes(it.file.size)}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 h-1 rounded-full bg-paper-soft overflow-hidden">
+                        <div
+                          className={`h-full transition-all ${
+                            it.status === "error"
+                              ? "bg-destructive"
+                              : it.status === "success"
+                                ? "bg-emerald-600"
+                                : "bg-royal"
+                          }`}
+                          style={{ width: `${it.status === "error" ? 100 : it.progress}%` }}
+                        />
+                      </div>
+                      <div
+                        className={`text-[11px] mt-1 ${
+                          it.status === "error"
+                            ? "text-destructive"
+                            : "text-ink/60"
+                        }`}
+                      >
+                        {it.status === "uploading" && `Uploading… ${it.progress}%`}
+                        {it.status === "queued" && "Queued"}
+                        {it.status === "success" && "Uploaded"}
+                        {it.status === "error" && (it.error ?? "Upload failed")}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {it.status === "error" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => retry(it.id)}
+                          className="text-royal hover:text-royal"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 mr-1" /> Retry
+                        </Button>
+                      )}
+                      {it.status === "success" && (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mr-1" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeFromQueue(it.id)}
+                        className="p-1 text-ink/50 hover:text-ink"
+                        aria-label="Remove"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="rounded-2xl bg-card border border-border shadow-sm">
-          {/* Filters */}
           <div className="flex flex-wrap items-center gap-3 border-b border-rule-soft p-4">
             <div className="relative flex-1 min-w-[220px]">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" />
@@ -194,7 +428,6 @@ function FilesPage() {
             </select>
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto min-h-[280px]">
             {isLoading && <SkeletonRows />}
             {isError && (
@@ -285,25 +518,23 @@ function FilesPage() {
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
-              handleFiles(e.dataTransfer.files);
+              enqueueFiles(e.dataTransfer.files);
             }}
             className="rounded-xl border-2 border-dashed border-rule-soft bg-paper-soft p-6 text-center"
           >
             <div className="mx-auto h-10 w-10 rounded-full bg-card border border-rule-soft flex items-center justify-center mb-3">
-              {upload.isPending ? (
+              {activeUploads > 0 ? (
                 <Loader2 className="w-4 h-4 animate-spin text-royal" />
               ) : (
                 <UploadCloud className="w-4 h-4 text-ink/60" />
               )}
             </div>
-            <p className="text-[13px] text-ink/70">
-              {uploading ? `Uploading ${uploading}…` : "Drag & drop files here"}
-            </p>
+            <p className="text-[13px] text-ink/70">Drag & drop files here</p>
             <p className="text-[11px] text-ink/50 mt-1">or</p>
             <Button
               type="button"
               onClick={() => inputRef.current?.click()}
-              disabled={upload.isPending || !projectId}
+              disabled={!projectId}
               className="mt-3 bg-ink hover:bg-ink/90 text-white"
             >
               Choose files
@@ -313,9 +544,14 @@ function FilesPage() {
               type="file"
               multiple
               hidden
-              onChange={(e) => handleFiles(e.target.files)}
+              onChange={(e) => {
+                enqueueFiles(e.target.files);
+                if (inputRef.current) inputRef.current.value = "";
+              }}
             />
-            <p className="text-[11px] text-ink/50 mt-3">Max file size: 100 MB</p>
+            <p className="text-[11px] text-ink/50 mt-3">
+              Docs, images, video, archives. Max 100 MB.
+            </p>
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   CreditCard,
@@ -15,7 +15,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { usePortalContext } from "@/hooks/use-portal-context";
-import { createBillingPortalSession } from "@/utils/portal.functions";
+import {
+  createBillingPortalSession,
+  cancelSubscription,
+  reactivateSubscription,
+} from "@/utils/portal.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { toast } from "sonner";
 
@@ -92,7 +96,10 @@ function BillingPage() {
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
   const { data, isLoading, isError, refetch } = useBilling(projectId);
+  const qc = useQueryClient();
   const portalFn = useServerFn(createBillingPortalSession);
+  const cancelFn = useServerFn(cancelSubscription);
+  const reactivateFn = useServerFn(reactivateSubscription);
 
   const openBillingPortal = useMutation({
     mutationFn: async () => {
@@ -107,6 +114,36 @@ function BillingPage() {
     },
     onSuccess: (res) => {
       if ("url" in res) window.location.href = res.url;
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const cancel = useMutation({
+    mutationFn: async () => {
+      const res = await cancelFn({
+        data: { environment: getStripeEnvironment(), atPeriodEnd: true },
+      });
+      if ("error" in res) throw new Error(res.error);
+      return res;
+    },
+    onSuccess: () => {
+      toast.success("Your subscription will end at the current period.");
+      qc.invalidateQueries({ queryKey: ["portal", "billing", projectId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reactivate = useMutation({
+    mutationFn: async () => {
+      const res = await reactivateFn({
+        data: { environment: getStripeEnvironment() },
+      });
+      if ("error" in res) throw new Error(res.error);
+      return res;
+    },
+    onSuccess: () => {
+      toast.success("Subscription reactivated.");
+      qc.invalidateQueries({ queryKey: ["portal", "billing", projectId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -361,10 +398,54 @@ function BillingPage() {
               </>
             ) : (
               <>
-                Open Stripe Customer Portal <ExternalLink className="w-3.5 h-3.5 ml-2" />
+                Update plan · View invoices <ExternalLink className="w-3.5 h-3.5 ml-2" />
               </>
             )}
           </Button>
+          {isRecurringActive && (
+            <div className="mt-3">
+              {data?.subscription?.cancel_at_period_end ? (
+                <Button
+                  type="button"
+                  onClick={() => reactivate.mutate()}
+                  disabled={reactivate.isPending}
+                  variant="ghost"
+                  className="w-full text-royal hover:text-royal/80"
+                >
+                  {reactivate.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Reactivating…
+                    </>
+                  ) : (
+                    "Reactivate subscription"
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "Cancel at the end of your current billing period? You'll keep access until then.",
+                      )
+                    )
+                      cancel.mutate();
+                  }}
+                  disabled={cancel.isPending}
+                  variant="ghost"
+                  className="w-full text-ink/70 hover:text-destructive"
+                >
+                  {cancel.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Cancelling…
+                    </>
+                  ) : (
+                    "Cancel subscription"
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-rule-soft bg-paper-soft p-5 text-center">

@@ -664,3 +664,66 @@ export const adminSetClientAccessRevoked = createServerFn({ method: "POST" })
 
     return { ok: true as const, revoked_at: revokedValue };
   });
+
+// -------------------- Client profile update --------------------
+const PortalProfileInput = z.object({
+  contact_name: z.string().trim().min(1, "Name is required").max(120),
+  company_name: z.string().trim().max(160).optional().nullable(),
+  phone: z.string().trim().max(40).optional().nullable(),
+});
+
+export const updatePortalProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => PortalProfileInput.parse(raw))
+  .handler(async ({ context, data }) => {
+    const email = context.claims?.email as string | undefined;
+    if (!email) throw new Error("No session");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const patch = {
+      contact_name: data.contact_name.trim(),
+      company_name: data.company_name?.trim() || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: proj, error } = await (
+      supabaseAdmin.from("client_portal_projects") as unknown as {
+        update: (v: Record<string, unknown>) => {
+          ilike: (
+            k: string,
+            v: string,
+          ) => {
+            select: (
+              cols: string,
+            ) => Promise<{ data: Array<Record<string, unknown>> | null; error: unknown }>;
+          };
+        };
+      }
+    )
+      .update(patch)
+      .ilike("primary_email", email)
+      .select("id, contact_name, company_name");
+    if (error) throw error as Error;
+    if (!proj || proj.length === 0) throw new Error("Profile not found");
+    const row = proj[0] as { id: string; contact_name: string | null; company_name: string | null };
+
+    // Mirror name into client_access.metadata for consistency across dashboards.
+    try {
+      await (
+        supabaseAdmin.from("client_access") as unknown as {
+          update: (v: Record<string, unknown>) => {
+            ilike: (k: string, v: string) => Promise<{ error: unknown }>;
+          };
+        }
+      )
+        .update({
+          metadata: { contact_name: patch.contact_name, company_name: patch.company_name },
+          updated_at: patch.updated_at,
+        })
+        .ilike("email", email);
+    } catch (e) {
+      console.warn("[portal.profile] client_access mirror failed", e);
+    }
+
+    return { ok: true as const, profile: row };
+  });

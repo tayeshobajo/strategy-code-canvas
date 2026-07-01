@@ -67,10 +67,8 @@ function MessagesPage() {
   const email = ctx.data?.email ?? "";
 
   const send = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (text: string) => {
       if (!projectId) throw new Error("No workspace yet");
-      const text = body.trim();
-      if (!text) throw new Error("Message is empty");
       const { error } = await supabase.from("client_portal_messages").insert({
         project_id: projectId,
         sender_type: "client",
@@ -81,11 +79,40 @@ function MessagesPage() {
       });
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
+    onMutate: async (text: string) => {
+      await qc.cancelQueries({ queryKey: ["portal", "messages", projectId] });
+      const previous = qc.getQueryData<Message[]>(["portal", "messages", projectId]);
+      const optimistic: Message = {
+        id: `optimistic-${crypto.randomUUID()}`,
+        project_id: projectId ?? "",
+        sender_type: "client",
+        author_email: email,
+        subject: null,
+        body: text,
+        message_type: "reply",
+        action_required: false,
+        action_completed_at: null,
+        related_file_ids: [],
+        created_at: new Date().toISOString(),
+      };
+      qc.setQueryData<Message[]>(
+        ["portal", "messages", projectId],
+        (prev) => [...(prev ?? []), optimistic],
+      );
       setBody("");
+      return { previous };
+    },
+    onError: (e: Error, _text, ctx) => {
+      if (ctx?.previous)
+        qc.setQueryData(["portal", "messages", projectId], ctx.previous);
+      toast.error(e.message || "Message did not send. Try again.");
+    },
+    onSuccess: () => {
+      toast.success("Message sent.");
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["portal", "messages", projectId] });
     },
-    onError: (e: Error) => toast.error(e.message),
   });
 
   const filtered = useMemo(() => {
@@ -177,8 +204,9 @@ function MessagesPage() {
             className="border-t border-rule-soft p-4 sm:p-5 bg-paper-soft"
             onSubmit={(e) => {
               e.preventDefault();
-              if (!body.trim() || !projectId) return;
-              send.mutate();
+              const text = body.trim();
+              if (!text || !projectId) return;
+              send.mutate(text);
             }}
           >
             <Textarea
