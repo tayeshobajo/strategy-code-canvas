@@ -69,6 +69,8 @@ function MilestoneBriefPage() {
 
   const regenerate = async (section: string) => {
     if (!m) return;
+    if (!role.canRegenerate) { toast.error(role.editDeniedReason); return; }
+    if (m.approval_status === "approved") { toast.error("Reset approval before regenerating"); return; }
     setRegenerating(section);
     try {
       await regenFn({ data: { id: m.id, section: section as any } });
@@ -81,6 +83,29 @@ function MilestoneBriefPage() {
     }
   };
 
+  const recordItemDecision = async (
+    action: "accept" | "reject",
+    field: "dependencies" | "risks" | "history",
+    item: unknown,
+    index: number,
+  ) => {
+    try {
+      await recordDecisionFn({
+        data: {
+          memory_id: null,
+          project_id: projectId,
+          action,
+          before_state: { field, index, item, milestone_id: milestoneId },
+          after_state: { decided: action },
+          notes: `milestone:${milestoneId} · ${field}[${index}] · ${action}`,
+        },
+      });
+      toast.success(`Recorded ${action}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to record decision");
+    }
+  };
+
   if (q.isLoading || !m) return <div className="text-sm text-ink/60">Loading milestone…</div>;
 
   const criteria: any[] = Array.isArray(m.acceptance_criteria) ? m.acceptance_criteria : [];
@@ -88,6 +113,14 @@ function MilestoneBriefPage() {
   const isAI = (m.created_by_kind ?? "ai") === "ai";
   const approved = m.approval_status === "approved";
   const showTab = (t: Tab) => tab === "Overview" || tab === t;
+  const regenDisabled = approved || !role.canRegenerate;
+  const regenDisabledReason = !role.canRegenerate
+    ? role.editDeniedReason
+    : approved ? "Milestone is Approved — reset approval to regenerate." : undefined;
+  const editDisabled = approved || !role.canEdit;
+  const editDisabledReason = !role.canEdit
+    ? role.editDeniedReason
+    : approved ? "Milestone is Approved — reset approval to edit." : undefined;
 
   return (
     <div className="space-y-5 max-w-[1500px]">
