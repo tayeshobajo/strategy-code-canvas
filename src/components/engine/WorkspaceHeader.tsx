@@ -105,6 +105,20 @@ function Metric({
 export function WorkspaceToolbar({ projectId }: { projectId: string }) {
   return (
     <div className="flex items-center justify-end gap-2 flex-wrap">
+      <Link
+        to="/engine/projects/$projectId/intelligence-layer"
+        params={{ projectId }}
+        className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 hover:border-royal/50 text-ink"
+      >
+        <Sparkles className="w-3.5 h-3.5" /> Intelligence Layer
+      </Link>
+      <Link
+        to="/engine/projects/$projectId/agent"
+        params={{ projectId }}
+        className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 hover:border-royal/50 text-ink"
+      >
+        <Bot className="w-3.5 h-3.5" /> Project Agent
+      </Link>
       <button className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 hover:border-royal/50 text-ink">
         <ArrowRightLeft className="w-3.5 h-3.5" /> Switch Project
       </button>
