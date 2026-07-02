@@ -504,10 +504,10 @@ function MergeDuplicatesDialog({ items, onClose, onApply, pending }: { items: It
             <button onClick={onClose} className="text-xs px-3 py-1.5 rounded border border-border text-ink/70">Cancel</button>
             <button
               onClick={apply}
-              disabled={selected.size === 0}
+              disabled={selected.size === 0 || pending}
               className="text-xs px-3 py-1.5 rounded bg-royal text-white hover:bg-royal/90 disabled:opacity-40"
             >
-              Apply {selected.size} merge{selected.size === 1 ? "" : "s"}
+              {pending ? "Applying…" : `Apply ${selected.size} merge${selected.size === 1 ? "" : "s"}`}
             </button>
           </div>
         </footer>
@@ -515,6 +515,7 @@ function MergeDuplicatesDialog({ items, onClose, onApply, pending }: { items: It
     </div>
   );
 }
+
 
 // ─────────────────────────────────────────────────────────────
 // Clean & Optimize: drop low-confidence, unused, superseded items
