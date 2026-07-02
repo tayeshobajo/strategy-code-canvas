@@ -1,11 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { z } from "zod";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { FileText, Presentation } from "lucide-react";
+import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
+import { PresentationMode } from "@/components/engine/PresentationMode";
 
 export const Route = createFileRoute("/engine/projects/$projectId/preview")({
   component: ClientPreview,
+  validateSearch: z.object({ present: z.string().optional() }),
 });
 
 function ClientPreview() {
