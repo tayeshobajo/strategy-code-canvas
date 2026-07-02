@@ -306,6 +306,13 @@ export const applyAgentTask = createServerFn({ method: "POST" })
       if (!task) throw new Error("Task not found");
       if (!task.output) throw new Error("Task has no output to apply");
 
+      // Permission gate: applying agent output writes to a roadmap draft, so
+      // this maps to the `update_roadmap_drafts` action. `force` = Tai
+      // explicitly clicked Apply, which counts as approval.
+      await assertActionAllowed(sb, task.project_id, "update_roadmap_drafts", {
+        approve: data.force,
+      });
+
       const { data: proj } = await sb
         .from("engine_projects")
         .select("agent_permission_level,agent_allowed_modules")
@@ -316,6 +323,7 @@ export const applyAgentTask = createServerFn({ method: "POST" })
       if (allowed.length && !allowed.includes(data.module)) {
         throw new Error(`Module "${data.module}" is not in the agent's allowed list.`);
       }
+
 
       // draft_only: mark as pending, do not touch the module.
       if (level === "draft_only" && !data.force) {
