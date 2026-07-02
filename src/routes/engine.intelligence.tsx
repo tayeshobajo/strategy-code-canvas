@@ -59,7 +59,10 @@ function confidenceMeta(c: number) {
 
 function IntelligenceMemoryPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("All Memory");
-  const rows = tab === "All Memory" || tab === "Insights" ? ITEMS : ITEMS.filter((i) => i.type === tab);
+  const [items, setItems] = useState<Item[]>(ITEMS);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [cleanOpen, setCleanOpen] = useState(false);
+  const rows = tab === "All Memory" || tab === "Insights" ? items : items.filter((i) => i.type === tab);
 
   return (
     <div className="max-w-[1500px]">
