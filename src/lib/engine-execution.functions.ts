@@ -435,8 +435,8 @@ export const getAgentCosts = createServerFn({ method: "GET" })
       .select("id,name")
       .eq("project_id", data.projectId);
     const msList = (milestones ?? []) as Array<{ id: string; name: string }>;
-    const msMap = new Map<string, { id: string; name: string; cents: number; approved: number; unused: number }>();
-    for (const m of msList) msMap.set(m.name.toLowerCase(), { id: m.id, name: m.name, cents: 0, approved: 0, unused: 0 });
+    const msMap = new Map<string, { id: string; name: string; cents: number; approved_cents: number; approved_count: number; unused_cents: number }>();
+    for (const m of msList) msMap.set(m.name.toLowerCase(), { id: m.id, name: m.name, cents: 0, approved_cents: 0, approved_count: 0, unused_cents: 0 });
     let unattributedCents = 0;
     for (const t of list) {
       const key = String(t.related_module ?? "").toLowerCase();
@@ -444,15 +444,19 @@ export const getAgentCosts = createServerFn({ method: "GET" })
       const cents = t.cost_cents ?? 0;
       if (!bucket) { unattributedCents += cents; continue; }
       bucket.cents += cents;
-      if (t.status === "applied" || t.status === "saved_as_task") bucket.approved += cents;
-      else if (t.status === "draft" || t.status === "rejected") bucket.unused += cents;
+      if (t.status === "applied" || t.status === "saved_as_task") { bucket.approved_cents += cents; bucket.approved_count += 1; }
+      else if (t.status === "draft" || t.status === "rejected") bucket.unused_cents += cents;
     }
     const spendByMilestone = [...msMap.values()]
       .filter((b) => b.cents > 0)
       .sort((a, b) => b.cents - a.cents)
       .map((b) => ({
-        ...b,
-        costPerApproved: b.approved > 0 ? Math.round(b.cents / Math.max(1, Math.round(b.approved / Math.max(1, b.cents) * (approvedOutputs || 1)))) : 0,
+        id: b.id,
+        name: b.name,
+        cents: b.cents,
+        approved_cents: b.approved_cents,
+        unused_cents: b.unused_cents,
+        cost_per_approved: b.approved_count > 0 ? Math.round(b.cents / b.approved_count) : 0,
       }));
 
     return {
