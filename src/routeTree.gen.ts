@@ -68,6 +68,7 @@ import { Route as EngineProjectsProjectIdPointBRouteImport } from './routes/engi
 import { Route as EngineProjectsProjectIdPointARouteImport } from './routes/engine.projects.$projectId.point-a'
 import { Route as EngineProjectsProjectIdOverviewRouteImport } from './routes/engine.projects.$projectId.overview'
 import { Route as EngineProjectsProjectIdInvestmentRouteImport } from './routes/engine.projects.$projectId.investment'
+import { Route as EngineProjectsProjectIdIntelligenceLayerRouteImport } from './routes/engine.projects.$projectId.intelligence-layer'
 import { Route as EngineProjectsProjectIdIntelligenceRouteImport } from './routes/engine.projects.$projectId.intelligence'
 import { Route as EngineProjectsProjectIdHiddenAssetsRouteImport } from './routes/engine.projects.$projectId.hidden-assets'
 import { Route as EngineProjectsProjectIdGapMapRouteImport } from './routes/engine.projects.$projectId.gap-map'
@@ -381,6 +382,12 @@ const EngineProjectsProjectIdInvestmentRoute =
     path: '/investment',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdIntelligenceLayerRoute =
+  EngineProjectsProjectIdIntelligenceLayerRouteImport.update({
+    id: '/intelligence-layer',
+    path: '/intelligence-layer',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdIntelligenceRoute =
   EngineProjectsProjectIdIntelligenceRouteImport.update({
     id: '/intelligence',
@@ -500,6 +507,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
   '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
   '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
+  '/engine/projects/$projectId/intelligence-layer': typeof EngineProjectsProjectIdIntelligenceLayerRoute
   '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
@@ -566,6 +574,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
   '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
   '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
+  '/engine/projects/$projectId/intelligence-layer': typeof EngineProjectsProjectIdIntelligenceLayerRoute
   '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
@@ -638,6 +647,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
   '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
   '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
+  '/engine/projects/$projectId/intelligence-layer': typeof EngineProjectsProjectIdIntelligenceLayerRoute
   '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
@@ -709,6 +719,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/gap-map'
     | '/engine/projects/$projectId/hidden-assets'
     | '/engine/projects/$projectId/intelligence'
+    | '/engine/projects/$projectId/intelligence-layer'
     | '/engine/projects/$projectId/investment'
     | '/engine/projects/$projectId/overview'
     | '/engine/projects/$projectId/point-a'
@@ -775,6 +786,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/gap-map'
     | '/engine/projects/$projectId/hidden-assets'
     | '/engine/projects/$projectId/intelligence'
+    | '/engine/projects/$projectId/intelligence-layer'
     | '/engine/projects/$projectId/investment'
     | '/engine/projects/$projectId/overview'
     | '/engine/projects/$projectId/point-a'
@@ -846,6 +858,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/gap-map'
     | '/engine/projects/$projectId/hidden-assets'
     | '/engine/projects/$projectId/intelligence'
+    | '/engine/projects/$projectId/intelligence-layer'
     | '/engine/projects/$projectId/investment'
     | '/engine/projects/$projectId/overview'
     | '/engine/projects/$projectId/point-a'
@@ -1299,6 +1312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdInvestmentRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/intelligence-layer': {
+      id: '/engine/projects/$projectId/intelligence-layer'
+      path: '/intelligence-layer'
+      fullPath: '/engine/projects/$projectId/intelligence-layer'
+      preLoaderRoute: typeof EngineProjectsProjectIdIntelligenceLayerRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/intelligence': {
       id: '/engine/projects/$projectId/intelligence'
       path: '/intelligence'
@@ -1430,6 +1450,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdGapMapRoute: typeof EngineProjectsProjectIdGapMapRoute
   EngineProjectsProjectIdHiddenAssetsRoute: typeof EngineProjectsProjectIdHiddenAssetsRoute
   EngineProjectsProjectIdIntelligenceRoute: typeof EngineProjectsProjectIdIntelligenceRoute
+  EngineProjectsProjectIdIntelligenceLayerRoute: typeof EngineProjectsProjectIdIntelligenceLayerRoute
   EngineProjectsProjectIdInvestmentRoute: typeof EngineProjectsProjectIdInvestmentRoute
   EngineProjectsProjectIdOverviewRoute: typeof EngineProjectsProjectIdOverviewRoute
   EngineProjectsProjectIdPointARoute: typeof EngineProjectsProjectIdPointARoute
@@ -1454,6 +1475,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
       EngineProjectsProjectIdHiddenAssetsRoute,
     EngineProjectsProjectIdIntelligenceRoute:
       EngineProjectsProjectIdIntelligenceRoute,
+    EngineProjectsProjectIdIntelligenceLayerRoute:
+      EngineProjectsProjectIdIntelligenceLayerRoute,
     EngineProjectsProjectIdInvestmentRoute:
       EngineProjectsProjectIdInvestmentRoute,
     EngineProjectsProjectIdOverviewRoute: EngineProjectsProjectIdOverviewRoute,
