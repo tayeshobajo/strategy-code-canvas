@@ -62,6 +62,8 @@ const ALERTS = [
 ];
 
 function GlobalOperationsPage() {
+  const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
+  const [wizardOpen, setWizardOpen] = useState(false);
   return (
     <div className="max-w-[1500px]">
       <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">Ops</div>
