@@ -180,7 +180,9 @@ export const sendResumeLink = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => SendResumeInput.parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { ensureUnsubscribeToken } = await import("@/lib/email/unsubscribe-token.server");
     const idempotencyKey = `intake-resume-${data.resume_token}`;
+    const unsubscribeToken = await ensureUnsubscribeToken(data.email);
     const { error } = await (
       supabaseAdmin.rpc as unknown as (
         fn: string,
@@ -191,6 +193,7 @@ export const sendResumeLink = createServerFn({ method: "POST" })
       payload: {
         template_name: "intake-resume-link",
         recipient_email: data.email,
+        unsubscribe_token: unsubscribeToken,
         idempotency_key: idempotencyKey,
         correlation_id: data.resume_token,
         template_data: {
