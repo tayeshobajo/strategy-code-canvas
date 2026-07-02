@@ -51,7 +51,7 @@ const alertsQO = queryOptions({
 function ExecutionTrackerPage() {
   const [tab, setTab] = useState<Tab>("all");
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const { data: rawAlerts = [], isLoading, dataUpdatedAt } = useQuery(alertsQO);
+  const { data: rawAlerts = [], isLoading, isFetching, dataUpdatedAt, refetch } = useQuery(alertsQO);
   const alerts = rawAlerts.filter((a) => !dismissed.has(a.id));
 
   const counts = useMemo(() => {
@@ -66,6 +66,7 @@ function ExecutionTrackerPage() {
     if (a.severity !== b.severity) return a.severity === "high" ? -1 : 1;
     return b.age_days - a.age_days;
   });
+  const showAlertSkeleton = isLoading && rawAlerts.length === 0;
 
   return (
     <div className="max-w-[1500px]">
@@ -75,9 +76,18 @@ function ExecutionTrackerPage() {
           <h1 className="font-display text-4xl text-ink mt-1 mb-2">Execution Tracker</h1>
           <p className="text-ink/60">Live health from milestones, change events, and delivery follow-ups. Auto-refreshes every 30s.</p>
         </div>
-        <div className="text-[10px] font-mono uppercase text-ink/40 flex items-center gap-1">
-          {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-          {dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString()}` : ""}
+        <div className="flex items-center gap-3">
+          <div className="text-[10px] font-mono uppercase text-ink/40 flex items-center gap-1">
+            {isFetching ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+            {dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString()}` : ""}
+          </div>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="inline-flex items-center gap-1.5 text-xs border border-border rounded px-2.5 py-1.5 hover:border-royal/50 disabled:opacity-40"
+          >
+            <RefreshCw className={cn("w-3 h-3", isFetching && "animate-spin")} /> Refresh
+          </button>
         </div>
       </div>
 
