@@ -1924,6 +1924,15 @@ export type Database = {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: string
       }
+      admin_list_email_dlq: {
+        Args: { _limit?: number; _queue: string }
+        Returns: {
+          enqueued_at: string
+          message: Json
+          msg_id: number
+          read_ct: number
+        }[]
+      }
       admin_list_user_roles: {
         Args: never
         Returns: {
@@ -1934,6 +1943,10 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }[]
+      }
+      admin_retry_email_dlq: {
+        Args: { _dlq: string; _msg_id: number }
+        Returns: number
       }
       admin_revoke_role: {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }

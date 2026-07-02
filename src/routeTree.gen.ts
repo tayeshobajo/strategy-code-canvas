@@ -40,6 +40,7 @@ import { Route as PortalAccessDeniedRouteImport } from './routes/portal.access-d
 import { Route as OpsQueueRouteImport } from './routes/ops/queue'
 import { Route as OpsInsightsRouteImport } from './routes/ops/insights'
 import { Route as OpsHistoryRouteImport } from './routes/ops/history'
+import { Route as OpsEmailsRouteImport } from './routes/ops/emails'
 import { Route as OpsAccessEventsRouteImport } from './routes/ops/access-events'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as EngineTemplatesRouteImport } from './routes/engine.templates'
@@ -238,6 +239,11 @@ const OpsInsightsRoute = OpsInsightsRouteImport.update({
 const OpsHistoryRoute = OpsHistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => OpsRouteRoute,
+} as any)
+const OpsEmailsRoute = OpsEmailsRouteImport.update({
+  id: '/emails',
+  path: '/emails',
   getParentRoute: () => OpsRouteRoute,
 } as any)
 const OpsAccessEventsRoute = OpsAccessEventsRouteImport.update({
@@ -518,6 +524,7 @@ export interface FileRoutesByFullPath {
   '/engine/templates': typeof EngineTemplatesRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/ops/access-events': typeof OpsAccessEventsRoute
+  '/ops/emails': typeof OpsEmailsRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
@@ -592,6 +599,7 @@ export interface FileRoutesByTo {
   '/engine/templates': typeof EngineTemplatesRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/ops/access-events': typeof OpsAccessEventsRoute
+  '/ops/emails': typeof OpsEmailsRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
@@ -670,6 +678,7 @@ export interface FileRoutesById {
   '/engine/templates': typeof EngineTemplatesRoute
   '/insights_/$slug': typeof InsightsSlugRoute
   '/ops/access-events': typeof OpsAccessEventsRoute
+  '/ops/emails': typeof OpsEmailsRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/queue': typeof OpsQueueRoute
@@ -748,6 +757,7 @@ export interface FileRouteTypes {
     | '/engine/templates'
     | '/insights/$slug'
     | '/ops/access-events'
+    | '/ops/emails'
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
@@ -822,6 +832,7 @@ export interface FileRouteTypes {
     | '/engine/templates'
     | '/insights/$slug'
     | '/ops/access-events'
+    | '/ops/emails'
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
@@ -899,6 +910,7 @@ export interface FileRouteTypes {
     | '/engine/templates'
     | '/insights_/$slug'
     | '/ops/access-events'
+    | '/ops/emails'
     | '/ops/history'
     | '/ops/insights'
     | '/ops/queue'
@@ -1192,6 +1204,13 @@ declare module '@tanstack/react-router' {
       path: '/history'
       fullPath: '/ops/history'
       preLoaderRoute: typeof OpsHistoryRouteImport
+      parentRoute: typeof OpsRouteRoute
+    }
+    '/ops/emails': {
+      id: '/ops/emails'
+      path: '/emails'
+      fullPath: '/ops/emails'
+      preLoaderRoute: typeof OpsEmailsRouteImport
       parentRoute: typeof OpsRouteRoute
     }
     '/ops/access-events': {
@@ -1525,6 +1544,7 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface OpsRouteRouteChildren {
   OpsAccessEventsRoute: typeof OpsAccessEventsRoute
+  OpsEmailsRoute: typeof OpsEmailsRoute
   OpsHistoryRoute: typeof OpsHistoryRoute
   OpsInsightsRoute: typeof OpsInsightsRoute
   OpsQueueRoute: typeof OpsQueueRoute
@@ -1535,6 +1555,7 @@ interface OpsRouteRouteChildren {
 
 const OpsRouteRouteChildren: OpsRouteRouteChildren = {
   OpsAccessEventsRoute: OpsAccessEventsRoute,
+  OpsEmailsRoute: OpsEmailsRoute,
   OpsHistoryRoute: OpsHistoryRoute,
   OpsInsightsRoute: OpsInsightsRoute,
   OpsQueueRoute: OpsQueueRoute,
