@@ -42,7 +42,7 @@ function ReviewApprovalsPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const setSearch = (next: Partial<AuditSearch>) =>
-    navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
+    navigate({ search: (prev: AuditSearch) => ({ ...prev, ...next }), replace: true });
   const qc = useQueryClient();
   const { data, isLoading } = useQuery(reviewQO);
   const decideFn = useServerFn(decideReviewItem);
