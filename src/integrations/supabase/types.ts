@@ -1232,6 +1232,60 @@ export type Database = {
           },
         ]
       }
+      engine_intelligence_decisions: {
+        Row: {
+          action: string
+          actor_email: string
+          actor_user_id: string | null
+          after_state: Json
+          before_state: Json
+          created_at: string
+          id: string
+          memory_id: string | null
+          notes: string | null
+          project_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_email: string
+          actor_user_id?: string | null
+          after_state?: Json
+          before_state?: Json
+          created_at?: string
+          id?: string
+          memory_id?: string | null
+          notes?: string | null
+          project_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string
+          actor_user_id?: string | null
+          after_state?: Json
+          before_state?: Json
+          created_at?: string
+          id?: string
+          memory_id?: string | null
+          notes?: string | null
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_intelligence_decisions_memory_id_fkey"
+            columns: ["memory_id"]
+            isOneToOne: false
+            referencedRelation: "engine_intelligence_memory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_intelligence_decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_intelligence_memory: {
         Row: {
           archived_at: string | null
@@ -1239,10 +1293,14 @@ export type Database = {
           confidence: number
           created_at: string
           id: string
+          milestone_id: string | null
+          module_ref: string | null
           project_id: string | null
           promoted_by: string | null
+          signal_id: string | null
           source: string | null
           source_date: string | null
+          source_id: string | null
           summary: string | null
           tags: string[]
           title: string
@@ -1256,10 +1314,14 @@ export type Database = {
           confidence?: number
           created_at?: string
           id?: string
+          milestone_id?: string | null
+          module_ref?: string | null
           project_id?: string | null
           promoted_by?: string | null
+          signal_id?: string | null
           source?: string | null
           source_date?: string | null
+          source_id?: string | null
           summary?: string | null
           tags?: string[]
           title: string
@@ -1273,10 +1335,14 @@ export type Database = {
           confidence?: number
           created_at?: string
           id?: string
+          milestone_id?: string | null
+          module_ref?: string | null
           project_id?: string | null
           promoted_by?: string | null
+          signal_id?: string | null
           source?: string | null
           source_date?: string | null
+          source_id?: string | null
           summary?: string | null
           tags?: string[]
           title?: string
@@ -1286,10 +1352,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "engine_intelligence_memory_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "engine_milestones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "engine_intelligence_memory_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_intelligence_memory_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "engine_signals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_intelligence_memory_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "engine_sources"
             referencedColumns: ["id"]
           },
         ]
