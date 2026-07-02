@@ -128,29 +128,6 @@ function PortalLayout() {
           <Outlet />
         </main>
       </div>
-      {/* Slim editorial footer band — replaces the marketing SiteFooter inside the portal */}
-      <footer className="bg-ink text-white/60">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-5 text-[12px] sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <img
-              src={logoWhite.url}
-              alt="Trust Tai"
-              className="h-5 w-auto opacity-80"
-            />
-            <span className="font-mono uppercase tracking-[0.22em] text-white/40">
-              Client Portal · Secure
-            </span>
-          </div>
-          <div className="flex items-center gap-5">
-            <a href="mailto:hello@trusttai.com" className="hover:text-white">
-              hello@trusttai.com
-            </a>
-            <Link to="/" className="hover:text-white">
-              trusttai.com
-            </Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
