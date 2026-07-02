@@ -164,7 +164,17 @@ function ExecutionTrackerPage() {
             </div>
           }
         >
-          {sorted.length === 0 ? (
+          {showAlertSkeleton ? (
+            <ul className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <li key={i} className="border border-border rounded-lg p-3 space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-full" />
+                </li>
+              ))}
+            </ul>
+          ) : sorted.length === 0 ? (
             <div className="text-center py-10">
               <Check className="w-8 h-8 mx-auto text-[#1f6b3b] mb-1" />
               <div className="font-display text-lg text-ink">All clear</div>
