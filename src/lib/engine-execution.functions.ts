@@ -549,11 +549,11 @@ export const updateBudgetControls = createServerFn({ method: "POST" })
     z
       .object({
         projectId: z.string().uuid(),
-        monthly_cap_cents: z.number().int().min(0).optional(),
+        monthly_cap_cents: z.number().int().min(0).max(1_000_000).optional(),
         warning_threshold_pct: z.number().int().min(0).max(100).optional(),
         hard_stop_pct: z.number().int().min(0).max(200).optional(),
-        require_approval_above_cents: z.number().int().min(0).optional(),
-        preferred_model: z.string().optional(),
+        require_approval_above_cents: z.number().int().min(0).max(1_000_000).optional(),
+        preferred_model: z.string().max(120).optional(),
         auto_pause_when_exceeded: z.boolean().optional(),
       })
       .parse(raw),
@@ -561,6 +561,7 @@ export const updateBudgetControls = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
     const { projectId, ...patch } = data;
     await sb
       .from("engine_agent_permissions")
@@ -571,6 +572,14 @@ export const updateBudgetControls = createServerFn({ method: "POST" })
         .update({ agent_budget_monthly_cents: patch.monthly_cap_cents })
         .eq("id", projectId);
     }
+    await sb.from("engine_audit_log").insert({
+      project_id: projectId,
+      actor_email: email,
+      action: "budget_controls_updated",
+      summary: `Updated budget controls (${Object.keys(patch).join(", ")}).`,
+      affected_modules: ["permissions"],
+      metadata: patch,
+    });
     return { ok: true as const };
   });
 
