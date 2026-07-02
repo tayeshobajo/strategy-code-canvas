@@ -543,6 +543,18 @@ export const compareVersions = createServerFn({ method: "POST" })
       const bStr = bv ? JSON.stringify(bv, null, 2) : "";
       return { module: m, changed: aStr !== bStr, a: aStr, b: bStr };
     });
+    const email = (context as any).claims?.email ?? null;
+    const changedMods = diffs.filter((d) => d.changed).map((d) => d.module);
+    await logAudit(sb, {
+      project_id: a.project_id ?? b.project_id ?? "",
+      actor_email: email,
+      action: "version_compared",
+      summary: `Compared ${a.version} with ${b.version}. ${changedMods.length} module(s) differ.`,
+      version_id: b.id,
+      target_id: a.id,
+      affected_modules: changedMods,
+      metadata: { a: a.version, b: b.version },
+    });
     return { a, b, diffs };
   });
 
