@@ -1,90 +1,96 @@
-## Goal
+# Build Milestone Briefs, Agent Tasks, Costs, Version Review, Permissions
 
-Two new workspace pages per project, tied together by an "AI drafts, Tai reviews, approved versions stay locked" workflow:
+Five new workspace pages that turn intelligence into execution. All routes are admin-gated and wired into the existing engine workspace shell.
 
-1. `/engine/projects/$projectId/intelligence-layer` — Input Hub, AI Processing Timeline, Auto-Populated Outputs, Change Detection, Roadmap Versions.
-2. `/engine/projects/$projectId/agent` — Project Agent Console with prompt input, suggested prompts, recent agent outputs, and an Agent Control right rail.
+## Data model additions
 
-Everything is admin-only (matches existing `/engine` gating). Existing 14-step workspace stays intact; the new pages sit alongside it and drive the same JSONB modules already on `engine_projects`.
+New migration adds:
 
-## Data model (new tables)
+- `engine_milestones` — one row per roadmap milestone
+  - `id, project_id, name, phase, status, owner_email, priority, deadline_relevance, related_system_node, related_gap, related_hidden_asset, estimated_effort, estimated_cost_cents`
+  - `brief_md, acceptance_criteria jsonb[], developer_prompt, qa_checklist jsonb, dependencies jsonb, risks jsonb, decisions jsonb, client_safe_md`
+  - `approval_status ('draft'|'needs_review'|'approved'|'revision_requested'), approved_at, approved_by_email`
+- `engine_tasks` — agent-generated tasks
+  - `id, project_id, milestone_id, name, source, priority, owner_email, status, estimated_effort_hours, estimated_cost_cents, due_date, blocked_decision, acceptance_criteria jsonb, created_by ('agent'|'human')`
+- `engine_agent_permissions` — one row per project
+  - permission mode, per-action mode (allowed/needs_approval/blocked) as jsonb, safety rules jsonb, budget fields (warning threshold, hard stop, require_approval_above_cents, preferred_model, auto_pause)
+- Reuse existing `engine_agent_tasks.cost_cents` for cost center rollups; add `category` column for spend-by-category breakdown.
 
-All in `public`, admin-only RLS via `has_role(auth.uid(), 'admin')`, standard grants (`authenticated`, `service_role`), `updated_at` triggers.
+All tables: GRANT to authenticated/service_role, RLS enabled, admin-only policies via `has_role`.
 
-- `engine_sources` — the Input Hub row.
-  - `project_id`, `name`, `type` (enum: `transcript | brief | website_url | document | screenshot | email_note | research_note | competitor_url | previous_roadmap`), `storage_path` (nullable, uses existing private `engine-signals` bucket), `url` (nullable), `raw_text` (nullable), `status` (`queued | processing | processed | failed`), `signals_count`, `confidence` (0-100), `used_in_version` (nullable text), `error`, timestamps.
-- `engine_roadmap_versions` — versioned snapshot of the 12 JSONB modules on `engine_projects`.
-  - `project_id`, `version` (e.g. `v1.2`), `status` (`ai_generated | draft | needs_review | tai_edited | approved | client_facing | delivered | archived`), `created_by` (`ai | tai`), `source_ids` (uuid[]), `summary`, `payload` (jsonb snapshot of all 12 modules), `approved_by`, `approved_at`, timestamps. Unique `(project_id, version)`.
-- `engine_change_events` — Change Detection feed.
-  - `project_id`, `kind` (`new_info | conflict | opportunity | risk | deadline_change | scope_change | investment_impact | client_copy_affected`), `title`, `body`, `severity` (`info | warn | critical`), `source_id` (nullable), `version_id` (nullable), `resolved_at`, timestamps.
-- `engine_agent_tasks` — Recent agent outputs and console history.
-  - `project_id`, `kind` (`milestone_brief | acceptance_criteria | lovable_prompt | missing_decisions | update_from_source | version_compare | risk_estimate | client_summary | qa_checklist | free_form`), `prompt`, `output` (text), `related_module` (nullable text like `builder`, `blueprint`), `confidence`, `cost_cents`, `status` (`draft | applied | saved_as_task | rejected`), `created_by_email`, timestamps.
-- Extend `engine_projects` with agent-control fields: `agent_permission_level` (`draft_only | propose_updates | execute_approved`, default `propose_updates`), `agent_safety_rules` (jsonb), `agent_allowed_modules` (text[]).
+## Server functions (`src/lib/engine-execution.functions.ts`)
 
-Add `WORKSPACE_STEPS` entries for the two new routes and hide the old `intelligence` stub row (or replace it — see Open Question).
+- `getMilestoneBrief({ milestoneId })` — returns milestone + related roadmap context
+- `generateBriefSection({ milestoneId, section })` — AI-generates brief/criteria/prompt/QA/client-copy using existing `callLovableAi`
+- `updateMilestone`, `approveMilestone`, `requestMilestoneRevision`, `sendMilestoneToTasks`
+- `listAgentTasks({ projectId, filters })`, `updateTaskStatus`, `createTask`, `bulkGenerateTasks`
+- `getAgentCosts({ projectId, range })` — aggregates from `engine_agent_tasks` grouped by category/milestone; computes projected month-end spend
+- `getPermissions({ projectId })`, `updatePermissions({ projectId, patch })` — enforces safety rules server-side
+- `getVersionCompare({ approvedId, draftId })` — module-by-module diff with change categorization (added/modified/removed), impact heuristics, source evidence lookup from `engine_change_events`
+- `acceptChange`, `rejectChange`, `acceptAllSafe`, `approveAsNewOfficial`
 
-## Server functions (`src/lib/engine.functions.ts`)
+Safety rules enforced in server functions (not just UI): reject any write that violates AI cannot overwrite approved / publish / send / approve-own / change investment / mark delivered.
 
-All admin-gated via `requireSupabaseAuth` + `has_role` check.
+## Routes
 
-- Sources: `listSources`, `createSource` (URL/notes), `uploadSourceFile` (returns signed upload target in `engine-signals`), `reprocessSource`, `removeSource`.
-- Processing: `runIntelligencePipeline(projectId)` — calls Lovable AI (`google/gemini-3-flash-preview`) with the project's unprocessed sources + current module state, returns a structured draft for each of the 12 modules + a change-event list. Streams stage updates into `engine_activity` so the UI Timeline can subscribe.
-- Versions: `listVersions`, `createDraftVersion(payload, sourceIds, summary)`, `applyUpdatesToDraft(moduleKey)`, `approveVersion(versionId)` (locks; bumps `engine_projects.approved_version`), `restoreVersion`, `archiveVersion`, `compareVersions(a, b)`.
-- Change events: `listChangeEvents`, `resolveChangeEvent`.
-- Agent: `listAgentTasks`, `runAgentPrompt({ kind, prompt, useProjectContext, attachedSourceIds })` — dispatches to Lovable AI with a kind-specific system prompt; writes an `engine_agent_tasks` row; tracks `cost_cents` from usage; `applyAgentTask`, `saveAgentTaskAsTask`, `rejectAgentTask`.
-- Agent control: `updateAgentPermissions`, `updateAgentBudget`.
+1. `src/routes/engine.projects.$projectId.milestones.$milestoneId.brief.tsx`
+   - Milestone Overview strip (name, phase, status, owner, priority, deadline, related nodes/gaps/assets, effort, cost)
+   - Sections: Generated Brief, Acceptance Criteria (interactive checklist), Developer/Lovable Prompt (copy/export), QA Checklist, Dependencies, Risks & Decisions, Client-Safe Explanation
+   - Approval Gate footer: Approve Brief, Request Revision, Save Draft, Send to Tasks, Generate Updated Prompt
+   - Right rail: Milestone Intelligence (confidence, sources analyzed), Related To, Dependencies, Risks, Blocked Decisions, Version History
 
-Approval law enforced server-side: any write to a module JSONB only lands in the current `draft` version. `approved` versions are immutable; `approveVersion` copies draft into a new approved snapshot and updates `engine_projects.approved_version`. Client Preview and Delivery read from the approved snapshot.
+2. `src/routes/engine.projects.$projectId.agent.tasks.tsx`
+   - View switcher: Board (default, columns per status), List, Milestone, Owner, Priority, Calendar
+   - Top metrics row: totals per status, estimated effort, agent cost this month, blocked count
+   - Task cards show all requested fields; row actions: approve, assign, edit, archive, reject
+   - Right rail: Agent Operations summary, Next Best Action, Tasks by Priority/Milestone
 
-## UI
+3. `src/routes/engine.projects.$projectId.agent.costs.tsx`
+   - Top KPI strip (total spend, this month, budget remaining, projected month-end, cost/approved output, unused draft cost)
+   - Spend Overview line chart + Spend by Category donut (recharts, already installed)
+   - Spend by Milestone table; Value & Efficiency card (approved/rejected/reused, tasks, time-saved, cost per version)
+   - Budget Controls form (monthly cap, warning, hard stop, require approval above, model tier, auto-pause)
+   - Cost Intelligence side card (spike detection, highest cost driver, suggested actions)
+   - Recent Cost Activity table
 
-### `/engine/projects/$projectId/intelligence-layer`
+4. `src/routes/engine.projects.$projectId.versions.compare.tsx`
+   - Header with From (Approved) / To (AI Draft), source trigger, status
+   - KPI row: total changes, added, modified, removed, conflicts, modules affected
+   - Change Summary side card
+   - Left column: Review by Module (10 modules, change counts, tab filter for High Impact/Conflicts/Investment/Sequencing)
+   - Main table per module: Change | v1.0 (Current) | v1.2 (Draft) | Source Evidence | Impact | Actions (Accept/Edit/Reject)
+   - Approval Confirmation footer: Approve as new official version (blocked until reviewed or "Accept all safe")
 
-Reuses `WorkspaceHeader` and `WorkspaceStepper`. Five stacked sections built with `SectionCard`:
+5. `src/routes/engine.projects.$projectId.agent.permissions.tsx`
+   - Permission Mode radio (Draft only / Propose / Execute approved)
+   - Action Permissions table (10 actions × Allowed/Needs approval/Blocked)
+   - Safety Rules panel — 6 non-negotiable rules shown as locked toggles (always on, cannot disable)
+   - Budget & Approval Controls
+   - Save writes to `engine_agent_permissions`
 
-1. **Input Hub** — 5 quick-add tiles (Upload Source, Add URL, Paste Transcript, Add Brief / Notes, More). Table below with Source, Type, Date, Status pill, Signals, Confidence dial, Used in, row actions (View / Reprocess / Remove). File upload wired to `engine-signals` bucket with signed URLs.
-2. **AI Processing Timeline** — 11 stages (from spec) as a vertical checklist with per-stage timestamp + status, streamed from `engine_activity` filtered by `kind = 'pipeline_stage'`. "Run Intelligence Update" button top-right calls `runIntelligencePipeline`.
-3. **Auto-Populated Outputs** — 11 module cards (Signal Extraction → Client Preview). Each shows Generated/Draft/Approved pill, confidence, items count, needs-review count, `Open` (deep-links to the existing workspace route) and `Apply Updates` (moves draft payload into that module's JSONB on the current draft version).
-4. **Change Detection** — Feed of `engine_change_events` grouped by kind with severity coloring; each row links to the affected module + resolve action.
-5. **Roadmap Versions** — Table of `engine_roadmap_versions` with Version, Status pill, Created by, Sources, Changes summary, Date, Approved by, Actions (View / Compare / Restore / Archive). Approval Gate panel with "Apply All Safe Updates", "Review Changes One by One", "Save as New Draft", "Reject Updates", and the final "Approve & Create New Version" button — disabled until Tai confirms.
+## Navigation
 
-Right rail (Intelligence Control): current approved version, latest draft version, sources processed x/y, modules needing review, AI confidence score, conflicts detected, "Next Best Action" card, "Review Updates" CTA.
+Add links to `WorkspaceHeader` toolbar: Milestone Brief (per milestone context), Tasks, Costs, Compare, Permissions. Add "Agent" submenu to keep the toolbar clean.
 
-### `/engine/projects/$projectId/agent`
+## Files
 
-Header metrics row: Current roadmap version, Approved version, Agent tasks count, Modules needing review, Blocked decisions, Agent spend (this month), Budget remaining.
+**Created**
+- `supabase/migrations/<ts>_execution_milestones_tasks_permissions.sql`
+- `src/lib/engine-execution.functions.ts`
+- `src/components/engine/MilestoneBrief/*` (OverviewStrip, CriteriaChecklist, PromptBlock, QAChecklist, ApprovalGate)
+- `src/components/engine/AgentTasks/*` (BoardView, ListView, TaskCard, ViewSwitcher)
+- `src/components/engine/AgentCosts/*` (KpiStrip, SpendChart, CategoryDonut, BudgetControlsForm)
+- `src/components/engine/VersionCompare/*` (ModuleList, ChangeRow, ApprovalFooter)
+- `src/components/engine/AgentPermissions/*` (ModeSelector, ActionMatrix, SafetyRules)
+- Five route files above
 
-Layout: two-column with left main + right rail.
+**Edited**
+- `src/components/engine/WorkspaceHeader.tsx` — new toolbar links
+- `src/integrations/supabase/types.ts` — regenerated after migration
+- `src/routeTree.gen.ts` — regenerated
 
-- **Project Context card** — client name/logo, current phase, Point A / Point B one-liners, target date, critical deadline, last source processed, sources available. Reads from `engine_projects` + latest approved version.
-- **Ask the Agent** — big textarea, "Use project context" toggle, "Attach" (multi-select of sources), Send. Submits to `runAgentPrompt`.
-- **Popular Prompts** — 8 chip buttons prefilling the prompt with the kind-specific template.
-- **Recent Agent Outputs** — table of `engine_agent_tasks` with kind badge, confidence, cost, status, actions (View / Apply / Save as task / Reject). "View" opens a drawer with full output + Markdown render.
-- **Active Generation** panel — live progress bar sourced from the in-flight task's streamed activity, showing generation steps and estimated completion/cost.
-- **Live Activity** — latest `engine_activity` rows for the project.
+## Out of scope for this turn
 
-Right rail:
-- **Agent Control** — permission level selector (`Draft only | Propose updates | Execute approved`), granular checklist of allowed capabilities, `Manage permissions` link.
-- **Cost Tracker** — donut of `engine_agent_tasks.cost_cents` grouped by kind (Source Processing, Content Generation, Analysis, Version Compare), month spend, remaining, projected EOM.
-- **Pending Approvals** — top 3 unresolved change events / draft modules with impact badge, links to Intelligence Layer.
-- **Safety & Guardrails** — read-only summary of `agent_safety_rules`.
-
-## AI integration
-
-Uses the existing Lovable AI Gateway helper (`src/lib/ai-gateway.server.ts` if present, else create it per `ai-sdk-lovable-gateway`). Default model `google/gemini-3-flash-preview`. Structured output with the AI SDK `Output.object` API. Cost tracked from response usage where available; otherwise a small per-call estimate. All model calls happen inside server functions — no client-side AI calls, no user API keys.
-
-## Files to create
-
-- Migration for the 4 new tables + `engine_projects` column extensions + updated_at triggers.
-- `src/routes/engine.projects.$projectId.intelligence-layer.tsx`
-- `src/routes/engine.projects.$projectId.agent.tsx`
-- `src/components/engine/IntelligenceLayer/` — `InputHub.tsx`, `ProcessingTimeline.tsx`, `AutoOutputs.tsx`, `ChangeDetection.tsx`, `VersionsTable.tsx`, `IntelligenceControlRail.tsx`.
-- `src/components/engine/AgentConsole/` — `HeaderMetrics.tsx`, `ProjectContextCard.tsx`, `PromptComposer.tsx`, `PopularPrompts.tsx`, `RecentOutputsTable.tsx`, `ActiveGeneration.tsx`, `AgentControlRail.tsx`, `CostTracker.tsx`.
-- Extend `src/lib/engine.functions.ts` with the server functions above; add prompt templates in `src/lib/engine-agent-prompts.ts`.
-- Update `src/lib/engine-workspace.ts` to add both routes into `WORKSPACE_STEPS`.
-
-## Open questions before I build
-
-1. The existing `engine.projects.$projectId.intelligence.tsx` route is a placeholder — should the new `intelligence-layer` route replace it (I'll delete the old stub) or live alongside it?
-2. For file uploads in the Input Hub, is it fine to reuse the existing private `engine-signals` bucket (admin-only RLS), or do you want a new bucket dedicated to intelligence sources?
-3. Agent cost tracking — bill from Lovable AI Gateway usage tokens (approximate), or fixed per-kind estimate (e.g. milestone_brief = $0.05)?
+- Email/PDF delivery of briefs (existing pdf util already covers roadmap PDFs)
+- Calendar view integration with external calendars — placeholder month grid only
+- Bulk import of tasks from CSV — "Import Tasks" button stubbed

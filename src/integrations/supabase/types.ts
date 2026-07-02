@@ -763,11 +763,62 @@ export type Database = {
           },
         ]
       }
+      engine_agent_permissions: {
+        Row: {
+          action_permissions: Json
+          auto_pause_when_exceeded: boolean | null
+          hard_stop_pct: number | null
+          monthly_cap_cents: number | null
+          permission_mode: string
+          preferred_model: string | null
+          project_id: string
+          require_approval_above_cents: number | null
+          safety_rules: Json
+          updated_at: string
+          warning_threshold_pct: number | null
+        }
+        Insert: {
+          action_permissions?: Json
+          auto_pause_when_exceeded?: boolean | null
+          hard_stop_pct?: number | null
+          monthly_cap_cents?: number | null
+          permission_mode?: string
+          preferred_model?: string | null
+          project_id: string
+          require_approval_above_cents?: number | null
+          safety_rules?: Json
+          updated_at?: string
+          warning_threshold_pct?: number | null
+        }
+        Update: {
+          action_permissions?: Json
+          auto_pause_when_exceeded?: boolean | null
+          hard_stop_pct?: number | null
+          monthly_cap_cents?: number | null
+          permission_mode?: string
+          preferred_model?: string | null
+          project_id?: string
+          require_approval_above_cents?: number | null
+          safety_rules?: Json
+          updated_at?: string
+          warning_threshold_pct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_agent_permissions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_agent_tasks: {
         Row: {
           applied_at: string | null
           applied_module: string | null
           attached_source_ids: string[]
+          category: string | null
           confidence: number
           cost_cents: number
           created_at: string
@@ -790,6 +841,7 @@ export type Database = {
           applied_at?: string | null
           applied_module?: string | null
           attached_source_ids?: string[]
+          category?: string | null
           confidence?: number
           cost_cents?: number
           created_at?: string
@@ -812,6 +864,7 @@ export type Database = {
           applied_at?: string | null
           applied_module?: string | null
           attached_source_ids?: string[]
+          category?: string | null
           confidence?: number
           cost_cents?: number
           created_at?: string
@@ -992,6 +1045,110 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      engine_milestones: {
+        Row: {
+          acceptance_criteria: Json
+          approval_status: string
+          approved_at: string | null
+          approved_by_email: string | null
+          brief_md: string | null
+          client_safe_md: string | null
+          confidence: number | null
+          created_at: string
+          deadline_relevance: string | null
+          decisions: Json
+          dependencies: Json
+          developer_prompt: string | null
+          due_date: string | null
+          estimated_cost_cents: number | null
+          estimated_effort: string | null
+          id: string
+          name: string
+          owner_email: string | null
+          phase: string | null
+          priority: string | null
+          project_id: string
+          qa_checklist: Json
+          related_gap: string | null
+          related_hidden_asset: string | null
+          related_system_node: string | null
+          risks: Json
+          sort_index: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          acceptance_criteria?: Json
+          approval_status?: string
+          approved_at?: string | null
+          approved_by_email?: string | null
+          brief_md?: string | null
+          client_safe_md?: string | null
+          confidence?: number | null
+          created_at?: string
+          deadline_relevance?: string | null
+          decisions?: Json
+          dependencies?: Json
+          developer_prompt?: string | null
+          due_date?: string | null
+          estimated_cost_cents?: number | null
+          estimated_effort?: string | null
+          id?: string
+          name: string
+          owner_email?: string | null
+          phase?: string | null
+          priority?: string | null
+          project_id: string
+          qa_checklist?: Json
+          related_gap?: string | null
+          related_hidden_asset?: string | null
+          related_system_node?: string | null
+          risks?: Json
+          sort_index?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          acceptance_criteria?: Json
+          approval_status?: string
+          approved_at?: string | null
+          approved_by_email?: string | null
+          brief_md?: string | null
+          client_safe_md?: string | null
+          confidence?: number | null
+          created_at?: string
+          deadline_relevance?: string | null
+          decisions?: Json
+          dependencies?: Json
+          developer_prompt?: string | null
+          due_date?: string | null
+          estimated_cost_cents?: number | null
+          estimated_effort?: string | null
+          id?: string
+          name?: string
+          owner_email?: string | null
+          phase?: string | null
+          priority?: string | null
+          project_id?: string
+          qa_checklist?: Json
+          related_gap?: string | null
+          related_hidden_asset?: string | null
+          related_system_node?: string | null
+          risks?: Json
+          sort_index?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       engine_project_dates: {
         Row: {
@@ -1324,6 +1481,91 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "engine_sources_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_tasks: {
+        Row: {
+          acceptance_criteria: Json
+          agent_task_id: string | null
+          blocked_decision: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          estimated_cost_cents: number | null
+          estimated_effort_hours: number | null
+          id: string
+          milestone_id: string | null
+          name: string
+          owner_email: string | null
+          priority: string
+          project_id: string
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          acceptance_criteria?: Json
+          agent_task_id?: string | null
+          blocked_decision?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_cost_cents?: number | null
+          estimated_effort_hours?: number | null
+          id?: string
+          milestone_id?: string | null
+          name: string
+          owner_email?: string | null
+          priority?: string
+          project_id: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          acceptance_criteria?: Json
+          agent_task_id?: string | null
+          blocked_decision?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_cost_cents?: number | null
+          estimated_effort_hours?: number | null
+          id?: string
+          milestone_id?: string | null
+          name?: string
+          owner_email?: string | null
+          priority?: string
+          project_id?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_tasks_agent_task_id_fkey"
+            columns: ["agent_task_id"]
+            isOneToOne: false
+            referencedRelation: "engine_agent_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "engine_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "engine_projects"
