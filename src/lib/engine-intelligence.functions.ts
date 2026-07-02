@@ -456,6 +456,15 @@ export const approveVersion = createServerFn({ method: "POST" })
       body: email ? `Approved by ${email}` : null,
       severity: "success",
     });
+    await logAudit(sb, {
+      project_id: v.project_id,
+      actor_email: email,
+      action: "version_approved",
+      summary: `Approved ${v.version} and locked the approved snapshot.`,
+      version_id: v.id,
+      affected_modules: Object.keys(v.payload ?? {}),
+      metadata: { version: v.version },
+    });
     return { ok: true, version: v.version };
   });
 
