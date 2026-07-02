@@ -108,8 +108,8 @@ function RolesPage() {
     const copy = [...filtered];
     const dir = search.dir === "asc" ? 1 : -1;
     copy.sort((a, b) => {
-      const av = (a[search.sort] ?? "") as string;
-      const bv = (b[search.sort] ?? "") as string;
+      const av = String(a[search.sort] ?? "");
+      const bv = String(b[search.sort] ?? "");
       return av < bv ? -1 * dir : av > bv ? 1 * dir : 0;
     });
     return copy;
@@ -119,8 +119,9 @@ function RolesPage() {
   const currentPage = Math.min(search.page, totalPages);
   const pageRows = sorted.slice((currentPage - 1) * search.size, currentPage * search.size);
 
-  const setSearch = (patch: Partial<z.infer<typeof searchSchema>>) =>
-    navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
+  type SearchState = z.infer<typeof searchSchema>;
+  const setSearch = (patch: Partial<SearchState>) =>
+    navigate({ search: (prev: SearchState) => ({ ...prev, ...patch }), replace: true });
 
   const onSort = (key: SortKey) => {
     if (search.sort === key) setSearch({ dir: search.dir === "asc" ? "desc" : "asc", page: 1 });
