@@ -17,10 +17,16 @@ import {
   Sparkles,
   ShieldCheck,
   CheckCircle2,
+  XCircle,
   Archive,
   GitCompare,
   RotateCcw,
   X,
+  ChevronDown,
+  ChevronRight,
+  History,
+  AlertTriangle,
+  MinusCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
@@ -34,13 +40,17 @@ import {
   archiveVersion,
   compareVersions,
   restoreVersion,
+  restoreVersionSection,
   listChangeEvents,
   resolveChangeEvent,
   runIntelligencePipeline,
   createSourceUploadUrl,
+  listAuditLog,
   type EngineSource,
+  type EngineSourceStage,
   type EngineRoadmapVersion,
   type EngineChangeEvent,
+  type EngineAuditLog,
 } from "@/lib/engine-intelligence.functions";
 import { PIPELINE_STAGES } from "@/lib/engine-agent-prompts";
 
@@ -58,10 +68,16 @@ function IntelligenceLayerPage() {
   const listSourcesFn = useServerFn(listSources);
   const listVersionsFn = useServerFn(listVersions);
   const listChangesFn = useServerFn(listChangeEvents);
+  const listAuditFn = useServerFn(listAuditLog);
 
   const sourcesQ = useQuery({
     queryKey: ["engine", "sources", projectId],
     queryFn: () => listSourcesFn({ data: { projectId } }),
+    // Live-poll while any source is processing.
+    refetchInterval: (q) => {
+      const rows = ((q.state.data as any)?.rows ?? []) as EngineSource[];
+      return rows.some((r) => r.status === "processing") ? 1500 : false;
+    },
   });
   const versionsQ = useQuery({
     queryKey: ["engine", "versions", projectId],
@@ -70,6 +86,10 @@ function IntelligenceLayerPage() {
   const changesQ = useQuery({
     queryKey: ["engine", "changes", projectId],
     queryFn: () => listChangesFn({ data: { projectId } }),
+  });
+  const auditQ = useQuery({
+    queryKey: ["engine", "audit", projectId],
+    queryFn: () => listAuditFn({ data: { projectId, limit: 100 } }),
   });
 
   const runPipeline = useServerFn(runIntelligencePipeline);
@@ -85,6 +105,7 @@ function IntelligenceLayerPage() {
   const sources = (sourcesQ.data as any)?.rows ?? [];
   const versions = (versionsQ.data as any)?.rows ?? [];
   const changes = (changesQ.data as any)?.rows ?? [];
+  const auditRows = (auditQ.data as any)?.rows ?? [];
 
   const latestDraft = versions.find((v: EngineRoadmapVersion) => v.status !== "approved" && v.status !== "archived");
   const latestApproved = versions.find((v: EngineRoadmapVersion) => v.status === "approved");
