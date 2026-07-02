@@ -771,7 +771,7 @@ export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
       patch.acknowledged_by_email = email;
     }
     if (Object.keys(patch).length) {
-      await context.supabase.from("client_portal_roadmaps").update(patch).eq("id", cpr.id);
+      await context.supabase.from("client_portal_roadmaps").update(patch as never).eq("id", cpr.id);
     }
 
     // Client-visible activity in the portal timeline.
@@ -819,7 +819,7 @@ export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
           update.last_action = `${nextStatus.replace(/_/g, " ")} · ${new Date().toLocaleString()}`;
         }
         if (Object.keys(update).length) {
-          await supabaseAdmin.from("engine_delivery_items").update(update).eq("id", it.id);
+          await supabaseAdmin.from("engine_delivery_items").update(update as never).eq("id", it.id);
         }
         if (nextStatus && it.status !== nextStatus) {
           await supabaseAdmin.from("engine_delivery_history").insert({
