@@ -117,16 +117,74 @@ export const reprocessSource = createServerFn({ method: "POST" })
     return { ok: true, signals: r.signals, confidence: r.confidence };
   });
 
-/**
- * Per-source pipeline. Reads the source content (raw_text, URL fetch, or
- * downloaded file), asks the AI for structured signals, and updates the row
- * with `signals_count`, `confidence`, and status transitions.
- */
+/* ------------------------------------------------------------------
+ * Per-source stage tracking. Each stage has: key, label, status,
+ * started_at, finished_at, error. Written progressively so the UI
+ * polls and streams real progress.
+ * ------------------------------------------------------------------ */
+
+const SOURCE_STAGE_DEFS = [
+  { key: "queued", label: "Queued" },
+  { key: "fetch", label: "Fetching content" },
+  { key: "extract", label: "Extracting signals with AI" },
+  { key: "persist", label: "Persisting signals" },
+  { key: "complete", label: "Complete" },
+] as const;
+
+type StageStatus = "queued" | "running" | "completed" | "failed" | "skipped";
+type StageRow = {
+  key: string;
+  label: string;
+  status: StageStatus;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error?: string | null;
+  note?: string | null;
+};
+
+function initialStages(): StageRow[] {
+  return SOURCE_STAGE_DEFS.map((s) => ({ key: s.key, label: s.label, status: "queued" }));
+}
+
+async function writeStage(
+  sb: any,
+  sourceId: string,
+  stages: StageRow[],
+  key: string,
+  patch: Partial<StageRow>,
+  extra: Record<string, any> = {},
+) {
+  const idx = stages.findIndex((s) => s.key === key);
+  if (idx >= 0) stages[idx] = { ...stages[idx], ...patch };
+  await sb
+    .from("engine_sources")
+    .update({
+      processing_stages: stages,
+      current_stage: patch.status === "running" ? key : undefined,
+      ...extra,
+    })
+    .eq("id", sourceId);
+}
+
 async function processSingleSource(
   sb: any,
   sourceId: string,
 ): Promise<{ signals: number; confidence: number }> {
-  await sb.from("engine_sources").update({ status: "processing", error: null }).eq("id", sourceId);
+  const stages = initialStages();
+  const now = () => new Date().toISOString();
+
+  await sb
+    .from("engine_sources")
+    .update({
+      status: "processing",
+      error: null,
+      processing_stages: stages,
+      current_stage: "queued",
+      started_at: now(),
+      finished_at: null,
+    })
+    .eq("id", sourceId);
+
   const { data: src } = await sb
     .from("engine_sources")
     .select("id,project_id,name,type,url,raw_text,storage_path")
@@ -134,6 +192,10 @@ async function processSingleSource(
     .single();
   if (!src) throw new Error("Source not found");
 
+  await writeStage(sb, sourceId, stages, "queued", { status: "completed", finished_at: now() });
+
+  // Stage 1: fetch content
+  await writeStage(sb, sourceId, stages, "fetch", { status: "running", started_at: now() });
   let content = src.raw_text ?? "";
   try {
     if (!content && src.url) {
@@ -153,19 +215,35 @@ async function processSingleSource(
         }
       }
     }
+    await writeStage(sb, sourceId, stages, "fetch", {
+      status: "completed",
+      finished_at: now(),
+      note: content ? `${content.length.toLocaleString()} chars` : "no textual content",
+    });
   } catch (e: any) {
-    await sb.from("engine_sources").update({ status: "failed", error: e?.message ?? "fetch failed" }).eq("id", sourceId);
+    const msg = e?.message ?? "fetch failed";
+    await writeStage(sb, sourceId, stages, "fetch", { status: "failed", finished_at: now(), error: msg });
+    await sb
+      .from("engine_sources")
+      .update({ status: "failed", error: msg, finished_at: now() })
+      .eq("id", sourceId);
     throw e;
   }
 
   if (!content) {
+    await writeStage(sb, sourceId, stages, "extract", { status: "skipped" });
+    await writeStage(sb, sourceId, stages, "persist", { status: "skipped" });
+    await writeStage(sb, sourceId, stages, "complete", { status: "completed", finished_at: now() });
     await sb
       .from("engine_sources")
-      .update({ status: "processed", signals_count: 0, confidence: 30 })
+      .update({ status: "processed", signals_count: 0, confidence: 30, current_stage: null, finished_at: now() })
       .eq("id", sourceId);
     return { signals: 0, confidence: 30 };
   }
 
+  // Stage 2: extract with AI
+  await writeStage(sb, sourceId, stages, "extract", { status: "running", started_at: now() });
+  let parsed: { signals?: Array<{ text: string; module: string; importance?: string }>; confidence?: number };
   try {
     const { callLovableAi, parseJsonOutput } = await import("@/lib/engine-ai.server");
     const ai = await callLovableAi(
@@ -182,12 +260,29 @@ async function processSingleSource(
       ],
       { json: true, temperature: 0.2 },
     );
-    type Sig = { signals?: Array<{ text: string; module: string; importance?: string }>; confidence?: number };
-    const parsed = parseJsonOutput<Sig>(ai.text) ?? { signals: [], confidence: 40 };
-    const count = parsed.signals?.length ?? 0;
-    const confidence = Math.min(100, Math.max(0, parsed.confidence ?? 40));
-    await sb.from("engine_sources").update({ status: "processed", signals_count: count, confidence }).eq("id", sourceId);
-    // Persist extracted signals as change events so they surface in the timeline.
+    parsed = parseJsonOutput(ai.text) ?? { signals: [], confidence: 40 };
+    await writeStage(sb, sourceId, stages, "extract", {
+      status: "completed",
+      finished_at: now(),
+      note: `${parsed.signals?.length ?? 0} signals · confidence ${Math.round(parsed.confidence ?? 40)}%`,
+    });
+  } catch (e: any) {
+    const msg = e?.message ?? "ai failed";
+    await writeStage(sb, sourceId, stages, "extract", { status: "failed", finished_at: now(), error: msg });
+    await writeStage(sb, sourceId, stages, "persist", { status: "skipped" });
+    await writeStage(sb, sourceId, stages, "complete", { status: "failed", finished_at: now() });
+    await sb
+      .from("engine_sources")
+      .update({ status: "failed", error: msg, current_stage: null, finished_at: now() })
+      .eq("id", sourceId);
+    throw e;
+  }
+
+  // Stage 3: persist signals
+  await writeStage(sb, sourceId, stages, "persist", { status: "running", started_at: now() });
+  const count = parsed.signals?.length ?? 0;
+  const confidence = Math.min(100, Math.max(0, parsed.confidence ?? 40));
+  try {
     for (const s of (parsed.signals ?? []).slice(0, 25)) {
       await sb.from("engine_change_events").insert({
         project_id: src.project_id,
@@ -199,11 +294,35 @@ async function processSingleSource(
         source_id: src.id,
       });
     }
-    return { signals: count, confidence };
+    await writeStage(sb, sourceId, stages, "persist", {
+      status: "completed",
+      finished_at: now(),
+      note: `${count} change events written`,
+    });
   } catch (e: any) {
-    await sb.from("engine_sources").update({ status: "failed", error: e?.message ?? "ai failed" }).eq("id", sourceId);
+    const msg = e?.message ?? "persist failed";
+    await writeStage(sb, sourceId, stages, "persist", { status: "failed", finished_at: now(), error: msg });
+    await sb
+      .from("engine_sources")
+      .update({ status: "failed", error: msg, current_stage: null, finished_at: now() })
+      .eq("id", sourceId);
     throw e;
   }
+
+  // Stage 4: complete
+  await writeStage(sb, sourceId, stages, "complete", { status: "completed", finished_at: now() });
+  await sb
+    .from("engine_sources")
+    .update({
+      status: "processed",
+      signals_count: count,
+      confidence,
+      current_stage: null,
+      finished_at: now(),
+    })
+    .eq("id", sourceId);
+
+  return { signals: count, confidence };
 }
 
 
