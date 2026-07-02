@@ -284,7 +284,7 @@ function IntelligenceMemoryPage() {
                       <td className="px-3 py-3 text-xs text-ink/70">{it.usedIn}</td>
                       <td className="px-5 py-3 text-right">
                         <button
-                          onClick={() => bulkMut.mutate({ removeIds: [it.id], inserts: [] })}
+                          onClick={() => bulkMut.mutate({ action: 'clean', diff: { removeIds: [it.id], inserts: [] } })}
                           className="p-1 rounded hover:bg-paper-soft text-ink/60"
                           title="Archive item"
                         >
@@ -342,7 +342,7 @@ function IntelligenceMemoryPage() {
           items={items}
           pending={bulkMut.isPending}
           onClose={() => setMergeOpen(false)}
-          onApply={(diff) => bulkMut.mutate(diff)}
+          onApply={(diff) => bulkMut.mutate({ action: 'merge', diff })}
         />
       ) : null}
       {cleanOpen ? (
@@ -350,7 +350,7 @@ function IntelligenceMemoryPage() {
           items={items}
           pending={bulkMut.isPending}
           onClose={() => setCleanOpen(false)}
-          onApply={(diff) => bulkMut.mutate(diff)}
+          onApply={(diff) => bulkMut.mutate({ action: 'clean', diff })}
         />
       ) : null}
       {newOpen ? (
