@@ -158,25 +158,30 @@ function MilestoneBriefPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => sendTasks.mutate()}
-            disabled={sendTasks.isPending || !approved}
-            title={!approved ? "Approve the brief before sending to agent" : "Send acceptance criteria to the agent as tasks"}
-            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-50"
+            disabled={sendTasks.isPending || !approved || !role.canSendTasks}
+            title={
+              !role.canSendTasks ? role.approvalDeniedReason :
+              !approved ? "Approve the brief before sending to agent" :
+              "Send acceptance criteria to the agent as tasks"
+            }
+            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-3.5 h-3.5" /> Send to Agent
           </button>
           <button
             onClick={() => regenerate("brief_md")}
-            disabled={approved || !!regenerating}
-            title={approved ? "Reset approval before regenerating" : "Ask AI to redraft the brief"}
-            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-50"
+            disabled={regenDisabled || !!regenerating}
+            title={regenDisabledReason ?? "Ask AI to redraft the brief"}
+            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RotateCcw className={`w-3.5 h-3.5 ${regenerating === "brief_md" ? "animate-spin" : ""}`} />
             {regenerating === "brief_md" ? "Regenerating…" : "Regenerate Brief"}
           </button>
           <button
             onClick={() => approve.mutate()}
-            disabled={approve.isPending || approved}
-            className="text-xs bg-ink text-white rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:bg-ink/90 disabled:opacity-60"
+            disabled={approve.isPending || approved || !role.canApprove}
+            title={!role.canApprove ? role.approvalDeniedReason : (approved ? "Already approved" : "Approve this brief")}
+            className="text-xs bg-ink text-white rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:bg-ink/90 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <CheckCircle2 className="w-3.5 h-3.5" /> {approved ? "Approved" : "Approve Brief"}
           </button>
