@@ -83,9 +83,24 @@ export const transitionDelivery = createServerFn({ method: "POST" })
         insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
       };
     };
-    const { data: curr, error: readErr } = await sb.from("engine_delivery_items").select("status").eq("id", data.id).single();
+    const { data: curr, error: readErr } = await sb.from("engine_delivery_items").select("status,project_id,client,roadmap").eq("id", data.id).single();
     if (readErr) throw new Error(String((readErr as { message?: string }).message ?? readErr));
-    const from = (curr as { status: string } | null)?.status ?? null;
+    const cur = curr as { status: string; project_id: string | null; client: string; roadmap: string } | null;
+    const from = cur?.status ?? null;
+
+    // Gate: transitioning to "sent" or "execution" requires the linked project
+    // to have an approved snapshot. Prevents shipping unapproved roadmaps.
+    if ((data.to === "sent" || data.to === "execution") && cur?.project_id) {
+      const { data: proj } = await sb
+        .from("engine_projects")
+        .select("approved_snapshot")
+        .eq("id", cur.project_id)
+        .single() as unknown as { data: { approved_snapshot: Record<string, unknown> | null } | null };
+      if (!proj?.approved_snapshot || Object.keys(proj.approved_snapshot).length === 0) {
+        throw new Error(`Cannot move to "${data.to}": project has no approved roadmap version yet.`);
+      }
+    }
+
     const now = new Date();
     const stamp = now.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
     const labels: Record<string, string> = {
@@ -100,6 +115,17 @@ export const transitionDelivery = createServerFn({ method: "POST" })
     await sb.from("engine_delivery_history").insert({
       delivery_id: data.id, from_status: from, to_status: data.to, note: data.note ?? null, actor,
     });
+    if (cur?.project_id) {
+      await sb.from("engine_audit_log").insert({
+        project_id: cur.project_id,
+        actor_email: actor,
+        action: "delivery_transition",
+        summary: `Delivery for ${cur.client} · ${cur.roadmap}: ${from ?? "—"} → ${data.to}.`,
+        affected_modules: ["delivery"],
+        target_id: data.id,
+        metadata: { from, to: data.to, note: data.note ?? null },
+      });
+    }
     return { ok: true };
   });
 
