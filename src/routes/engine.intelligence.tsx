@@ -325,6 +325,26 @@ function IntelligenceMemoryPage() {
             </ul>
           </SectionCard>
 
+          <SectionCard title="Recent Decisions">
+            {decisionsQuery.isLoading ? (
+              <div className="text-xs text-ink/50">Loading…</div>
+            ) : (decisionsQuery.data ?? []).length === 0 ? (
+              <div className="text-xs text-ink/50">No decisions recorded yet.</div>
+            ) : (
+              <ul className="space-y-2 text-xs">
+                {(decisionsQuery.data ?? []).slice(0, 8).map((d) => (
+                  <li key={d.id} className="flex items-start justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0">
+                    <div className="min-w-0">
+                      <div className="text-ink font-medium capitalize">{d.action}</div>
+                      <div className="text-ink/60 truncate">{d.actor_email}</div>
+                    </div>
+                    <div className="text-[10px] text-ink/50 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+
           <SectionCard title="Quick Actions">
             <div className="grid grid-cols-2 gap-2">
               <QuickBtn icon={<Upload className="w-3.5 h-3.5" />} label="Import Source" />
