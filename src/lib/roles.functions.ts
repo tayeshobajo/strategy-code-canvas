@@ -20,11 +20,16 @@ export type UserRoleRow = {
 };
 
 async function assertAdmin(context: {
-  claims?: { email?: string };
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> };
+  claims?: Record<string, unknown>;
+  // Loosely typed so this helper works against the middleware's typed client.
+  supabase: { rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> };
 }) {
-  const email = context.claims?.email;
-  const ok = await hasRoleForEmail(context.supabase, email, "admin");
+  const email = (context.claims?.email as string | undefined) ?? undefined;
+  const ok = await hasRoleForEmail(
+    context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
+    email,
+    "admin",
+  );
   if (!ok) throw new Error("Forbidden: admin role required");
   return email!.toLowerCase();
 }
@@ -32,8 +37,8 @@ async function assertAdmin(context: {
 export const listUserRoles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ rows: UserRoleRow[] }> => {
-    await assertAdmin(context);
-    const { data, error } = await context.supabase.rpc("admin_list_user_roles", {});
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    const { data, error } = await context.supabase.rpc("admin_list_user_roles");
     if (error) throw new Error(error.message);
     return { rows: (data ?? []) as UserRoleRow[] };
   });
