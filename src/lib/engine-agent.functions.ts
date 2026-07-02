@@ -92,6 +92,7 @@ export const runAgentPrompt = createServerFn({ method: "POST" })
         useProjectContext: z.boolean().default(true),
         attachedSourceIds: z.array(z.string().uuid()).max(20).default([]),
         relatedModule: z.string().max(80).optional().nullable(),
+        approve: z.boolean().optional(),
       })
       .parse(raw),
   )
@@ -99,6 +100,13 @@ export const runAgentPrompt = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const sb = context.supabase as any;
     const email = (context as any).claims?.email ?? null;
+
+    // Permission gate: check the project's agent permission mode + per-action
+    // matrix before spending any budget. Blocked = hard stop; needs_approval
+    // requires `approve: true` from the caller (i.e. Tai clicked run/approve).
+    const actionKey = KIND_TO_ACTION[data.kind] ?? "generate_milestone_briefs";
+    await assertActionAllowed(sb, data.projectId, actionKey, { approve: data.approve });
+
 
     // Budget guard: block calls that would exceed the monthly cap.
     const { data: budgetRow } = await sb
