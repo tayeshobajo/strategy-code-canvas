@@ -139,6 +139,16 @@ export function StepEditor({
       )}
 
       {err ? <div className="text-xs text-red-700 mt-2">{err}</div> : null}
+      {fieldErrs.length > 0 ? (
+        <div className="mt-2 rounded border border-[#f3ced5] bg-[#fbe9ec] p-2 text-[11px] text-[#a4283c] space-y-1">
+          <div className="font-medium inline-flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Schema issues ({fieldErrs.length})</div>
+          <ul className="list-disc pl-4 space-y-0.5 max-h-32 overflow-auto">
+            {fieldErrs.map((f, i) => (
+              <li key={i}><span className="font-mono">{f.path}</span> — {f.message}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div className="mt-3 flex items-center gap-2">
         <button
           disabled={m.isPending}
