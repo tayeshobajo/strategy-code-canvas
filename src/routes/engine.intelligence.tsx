@@ -544,7 +544,7 @@ function FieldRow({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
-function _LegendRow({ color, label, value }: { color: string; label: string; value: number }) {
+function LegendRow({ color, label, value }: { color: string; label: string; value: number }) {
   return (
     <li className="flex items-center justify-between">
       <span className="flex items-center gap-2 text-ink/80"><span className="w-2 h-2 rounded-full" style={{ background: color }} />{label}</span>
