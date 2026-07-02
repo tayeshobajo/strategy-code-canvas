@@ -217,11 +217,12 @@ function MilestoneBriefPage() {
           {showTab("Brief") && (
             <SectionCard
               title={<span className="flex items-center gap-2"><FileText className="w-4 h-4" />Generated Brief</span>}
-              right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("brief_md")} regenerating={regenerating === "brief_md"} />}
+              right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("brief_md")} regenerating={regenerating === "brief_md"} disabled={regenDisabled} disabledReason={regenDisabledReason} />}
             >
               <EditableMarkdown
                 value={m.brief_md ?? ""}
-                approved={approved}
+                approved={editDisabled}
+                approvedReason={editDisabledReason}
                 onSave={(v) => patch.mutateAsync({ brief_md: v }).then(() => toast.success("Brief saved"))}
               />
             </SectionCard>
@@ -230,11 +231,11 @@ function MilestoneBriefPage() {
           {showTab("Acceptance Criteria") && (
             <SectionCard
               title={<span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />Acceptance Criteria</span>}
-              right={<span className="flex items-center gap-2 text-xs text-ink/60">{done}/{criteria.length} <AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("acceptance_criteria")} regenerating={regenerating === "acceptance_criteria"} /></span>}
+              right={<span className="flex items-center gap-2 text-xs text-ink/60">{done}/{criteria.length} <AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("acceptance_criteria")} regenerating={regenerating === "acceptance_criteria"} disabled={regenDisabled} disabledReason={regenDisabledReason} /></span>}
             >
               <CriteriaEditor
                 criteria={criteria}
-                approved={approved}
+                approved={editDisabled}
                 onSave={(next) => patch.mutateAsync({ acceptance_criteria: next })}
               />
             </SectionCard>
@@ -245,7 +246,7 @@ function MilestoneBriefPage() {
               title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4" />Developer / Lovable Prompt</span>}
               right={
                 <div className="flex items-center gap-2">
-                  <AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("developer_prompt")} regenerating={regenerating === "developer_prompt"} />
+                  <AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("developer_prompt")} regenerating={regenerating === "developer_prompt"} disabled={regenDisabled} disabledReason={regenDisabledReason} />
                   <button
                     onClick={() => { navigator.clipboard.writeText(m.developer_prompt ?? ""); toast.success("Copied"); }}
                     className="inline-flex items-center gap-1.5 text-xs text-royal hover:underline"
@@ -255,7 +256,8 @@ function MilestoneBriefPage() {
             >
               <EditablePrompt
                 value={m.developer_prompt ?? ""}
-                approved={approved}
+                approved={editDisabled}
+                approvedReason={editDisabledReason}
                 onSave={(v) => patch.mutateAsync({ developer_prompt: v }).then(() => toast.success("Prompt saved"))}
               />
             </SectionCard>
@@ -263,13 +265,14 @@ function MilestoneBriefPage() {
 
           {tab === "Overview" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <SectionCard title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4" />QA Checklist</span>} right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("qa_checklist")} regenerating={regenerating === "qa_checklist"} />}>
+              <SectionCard title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4" />QA Checklist</span>} right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("qa_checklist")} regenerating={regenerating === "qa_checklist"} disabled={regenDisabled} disabledReason={regenDisabledReason} />}>
                 <QAList items={m.qa_checklist ?? []} />
               </SectionCard>
-              <SectionCard title="Client-Safe Explanation" right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("client_safe_md")} regenerating={regenerating === "client_safe_md"} />}>
+              <SectionCard title="Client-Safe Explanation" right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("client_safe_md")} regenerating={regenerating === "client_safe_md"} disabled={regenDisabled} disabledReason={regenDisabledReason} />}>
                 <EditableMarkdown
                   value={m.client_safe_md ?? ""}
-                  approved={approved}
+                  approved={editDisabled}
+                  approvedReason={editDisabledReason}
                   onSave={(v) => patch.mutateAsync({ client_safe_md: v }).then(() => toast.success("Client copy saved"))}
                   compact
                 />
@@ -284,41 +287,105 @@ function MilestoneBriefPage() {
           )}
 
           {tab === "Dependencies" && (
-            <SectionCard title={<span className="flex items-center gap-2"><Link2 className="w-4 h-4" />Dependencies</span>}>
-              <DependencyList items={m.dependencies ?? []} />
+            <SectionCard
+              title={<span className="flex items-center gap-2"><Link2 className="w-4 h-4" />Dependencies</span>}
+              right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" />}
+            >
+              <StructuredListEditor
+                fieldLabel="Dependency"
+                fields={[
+                  { key: "name", label: "Name", type: "text", placeholder: "e.g. Auth service" },
+                  { key: "status", label: "Status", type: "select", options: ["pending", "in_progress", "blocked", "ready", "done"] },
+                  { key: "owner", label: "Owner", type: "text", placeholder: "email or team" },
+                  { key: "notes", label: "Notes", type: "textarea" },
+                ]}
+                items={Array.isArray(m.dependencies) ? m.dependencies : []}
+                disabled={editDisabled}
+                disabledReason={editDisabledReason}
+                onSave={(next) => patch.mutateAsync({ dependencies: next })}
+                onAccept={(item, i) => recordItemDecision("accept", "dependencies", item, i)}
+                onReject={(item, i) => recordItemDecision("reject", "dependencies", item, i)}
+                canDecide={role.canApprove}
+                decideDeniedReason={role.approvalDeniedReason}
+              />
             </SectionCard>
           )}
 
           {tab === "Risks & Decisions" && (
-            <SectionCard title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-[#c99a20]" />Risks</span>}>
-              <RiskList items={m.risks ?? []} />
+            <SectionCard
+              title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-[#c99a20]" />Risks</span>}
+              right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("risks")} regenerating={regenerating === "risks"} disabled={regenDisabled} disabledReason={regenDisabledReason} />}
+            >
+              <StructuredListEditor
+                fieldLabel="Risk"
+                fields={[
+                  { key: "text", label: "Risk", type: "textarea", placeholder: "Describe the risk" },
+                  { key: "severity", label: "Severity", type: "select", options: ["low", "medium", "high", "critical"] },
+                  { key: "likelihood", label: "Likelihood", type: "select", options: ["low", "medium", "high"] },
+                  { key: "mitigation", label: "Mitigation", type: "textarea" },
+                ]}
+                items={Array.isArray(m.risks) ? m.risks : []}
+                disabled={editDisabled}
+                disabledReason={editDisabledReason}
+                onSave={(next) => patch.mutateAsync({ risks: next })}
+                onAccept={(item, i) => recordItemDecision("accept", "risks", item, i)}
+                onReject={(item, i) => recordItemDecision("reject", "risks", item, i)}
+                canDecide={role.canApprove}
+                decideDeniedReason={role.approvalDeniedReason}
+              />
             </SectionCard>
           )}
 
           {tab === "History" && (
-            <SectionCard title={<span className="flex items-center gap-2"><HistoryIcon className="w-4 h-4" />Version History</span>}>
-              <ul className="space-y-2 text-sm text-ink/80">
-                <li className="flex items-center justify-between border-b border-border/60 pb-2">
-                  <span className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-ink/50">current</span>
-                    Milestone last updated
-                  </span>
-                  <span className="text-xs text-ink/50">{m.updated_at ? new Date(m.updated_at).toLocaleString() : "—"}</span>
-                </li>
-                <li className="flex items-center justify-between border-b border-border/60 pb-2">
-                  <span className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-ink/50">created</span>
-                    Milestone drafted
-                  </span>
-                  <span className="text-xs text-ink/50">{m.created_at ? new Date(m.created_at).toLocaleString() : "—"}</span>
-                </li>
-                {m.approval_status === "approved" && (
-                  <li className="flex items-center justify-between text-[#1f6b3b]">
-                    <span className="flex items-center gap-2"><ShieldCheck className="w-3.5 h-3.5" />Approved</span>
-                    <span className="text-xs">{m.approved_at ? new Date(m.approved_at).toLocaleString() : "—"}</span>
+            <SectionCard
+              title={<span className="flex items-center gap-2"><HistoryIcon className="w-4 h-4" />History & Decisions</span>}
+              right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" />}
+            >
+              <div className="space-y-4">
+                <ul className="space-y-2 text-sm text-ink/80">
+                  <li className="flex items-center justify-between border-b border-border/60 pb-2">
+                    <span className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-ink/50">current</span>
+                      Milestone last updated
+                    </span>
+                    <span className="text-xs text-ink/50">{m.updated_at ? new Date(m.updated_at).toLocaleString() : "—"}</span>
                   </li>
-                )}
-              </ul>
+                  <li className="flex items-center justify-between border-b border-border/60 pb-2">
+                    <span className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-ink/50">created</span>
+                      Milestone drafted
+                    </span>
+                    <span className="text-xs text-ink/50">{m.created_at ? new Date(m.created_at).toLocaleString() : "—"}</span>
+                  </li>
+                  {m.approval_status === "approved" && (
+                    <li className="flex items-center justify-between text-[#1f6b3b]">
+                      <span className="flex items-center gap-2"><ShieldCheck className="w-3.5 h-3.5" />Approved</span>
+                      <span className="text-xs">{m.approved_at ? new Date(m.approved_at).toLocaleString() : "—"}</span>
+                    </li>
+                  )}
+                </ul>
+                <div className="pt-3 border-t border-border">
+                  <div className="text-xs font-mono uppercase tracking-[0.2em] text-ink/50 mb-2">Decisions Log</div>
+                  <StructuredListEditor
+                    fieldLabel="Decision"
+                    fields={[
+                      { key: "title", label: "Decision", type: "text", placeholder: "e.g. Use Postgres FTS over Algolia" },
+                      { key: "rationale", label: "Rationale", type: "textarea" },
+                      { key: "status", label: "Status", type: "select", options: ["proposed", "accepted", "rejected", "superseded"] },
+                      { key: "decided_at", label: "Decided at", type: "text", placeholder: "YYYY-MM-DD" },
+                    ]}
+                    items={Array.isArray(m.decisions) ? m.decisions : []}
+                    disabled={editDisabled}
+                    disabledReason={editDisabledReason}
+                    onSave={(next) => patch.mutateAsync({ decisions: next })}
+                    onAccept={(item, i) => recordItemDecision("accept", "history", item, i)}
+                    onReject={(item, i) => recordItemDecision("reject", "history", item, i)}
+                    canDecide={role.canApprove}
+                    decideDeniedReason={role.approvalDeniedReason}
+                    readOnlyIfNoField
+                  />
+                </div>
+              </div>
             </SectionCard>
           )}
 
@@ -332,30 +399,42 @@ function MilestoneBriefPage() {
                 <p className="text-xs text-ink/60 mt-1">
                   Review the brief, acceptance criteria, and outputs before approving.
                 </p>
+                {!role.canApprove && (
+                  <p className="text-[11px] text-[#a4283c] mt-1">{role.approvalDeniedReason}</p>
+                )}
               </div>
               <div className="text-xs text-ink/60">Approval status: <span className="font-medium text-ink capitalize">{m.approval_status}</span></div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 onClick={() => approve.mutate()}
-                disabled={approve.isPending || approved}
-                className="text-sm bg-royal text-white rounded-md px-4 py-2 flex items-center gap-1.5 hover:bg-royal/90 disabled:opacity-60"
+                disabled={approve.isPending || approved || !role.canApprove}
+                title={!role.canApprove ? role.approvalDeniedReason : (approved ? "Already approved" : "")}
+                className="text-sm bg-royal text-white rounded-md px-4 py-2 flex items-center gap-1.5 hover:bg-royal/90 disabled:opacity-60 disabled:cursor-not-allowed"
               ><CheckCircle2 className="w-4 h-4" /> Approve Brief</button>
               <button
                 onClick={() => patch.mutate({ approval_status: "revision_requested" })}
-                className="text-sm border border-border rounded-md px-4 py-2 hover:border-royal/50"
+                disabled={!role.canApprove}
+                title={!role.canApprove ? role.approvalDeniedReason : ""}
+                className="text-sm border border-border rounded-md px-4 py-2 hover:border-royal/50 disabled:opacity-60 disabled:cursor-not-allowed"
               >Request Revision</button>
               <button
                 onClick={() => patch.mutate({ approval_status: "draft" })}
-                className="text-sm border border-border rounded-md px-4 py-2 hover:border-royal/50 flex items-center gap-1.5"
+                disabled={!role.canApprove}
+                title={!role.canApprove ? role.approvalDeniedReason : ""}
+                className="text-sm border border-border rounded-md px-4 py-2 hover:border-royal/50 flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Save className="w-3.5 h-3.5" /> Save as Draft
               </button>
               <button
                 onClick={() => sendTasks.mutate()}
-                disabled={sendTasks.isPending || !approved}
-                title={!approved ? "Approve the brief before sending tasks" : "Send acceptance criteria as tasks"}
-                className="text-sm border border-border rounded-md px-4 py-2 hover:border-royal/50 disabled:opacity-60"
+                disabled={sendTasks.isPending || !approved || !role.canSendTasks}
+                title={
+                  !role.canSendTasks ? role.approvalDeniedReason :
+                  !approved ? "Approve the brief before sending tasks" :
+                  "Send acceptance criteria as tasks"
+                }
+                className="text-sm border border-border rounded-md px-4 py-2 hover:border-royal/50 disabled:opacity-60 disabled:cursor-not-allowed"
               >Send to Tasks</button>
             </div>
           </div>
