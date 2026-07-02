@@ -221,6 +221,20 @@ export const decideReviewItem = createServerFn({ method: "POST" })
       routed_to: data.action === "approved" ? null : (SOURCE_ROUTE[it.item_type] ?? null),
       actor,
     });
+    // Also write to the global audit log so the project-level audit view sees it.
+    const { data: proj } = await sb.from("engine_projects")
+      .select("id").eq("name", it.project).single() as unknown as { data: { id: string } | null };
+    if (proj?.id) {
+      await sb.from("engine_audit_log").insert({
+        project_id: proj.id,
+        actor_email: actor,
+        action: `review_${data.action}`,
+        summary: `Review "${it.title}" (${it.item_type}) → ${data.action}${data.reason ? ` — ${data.reason}` : ""}.`,
+        affected_modules: ["review"],
+        target_id: data.id,
+        metadata: { item_type: it.item_type, action: data.action, reason: data.reason ?? null },
+      });
+    }
     return { ok: true };
   });
 
