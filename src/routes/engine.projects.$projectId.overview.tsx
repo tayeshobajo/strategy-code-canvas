@@ -163,9 +163,9 @@ function ProjectOverview() {
             ) : (
               <ul className="space-y-3 text-sm">
                 {d.dates.map((dd) => (
-                  <li key={d.id} className="flex items-baseline justify-between gap-3">
-                    <span className="text-ink">{d.label}</span>
-                    <span className="text-ink/60 text-xs whitespace-nowrap">{formatDate(d.due_on)}</span>
+                  <li key={dd.id} className="flex items-baseline justify-between gap-3">
+                    <span className="text-ink">{dd.label}</span>
+                    <span className="text-ink/60 text-xs whitespace-nowrap">{formatDate(dd.due_on)}</span>
                   </li>
                 ))}
               </ul>
