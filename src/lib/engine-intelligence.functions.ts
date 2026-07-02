@@ -517,7 +517,7 @@ export const compareVersions = createServerFn({ method: "POST" })
     const sb = context.supabase as any;
     const { data: rows } = await sb
       .from("engine_roadmap_versions")
-      .select("id,version,status,payload,created_by,created_at")
+      .select("id,project_id,version,status,payload,created_by,created_at")
       .in("id", [data.aId, data.bId]);
     const a = (rows ?? []).find((r: any) => r.id === data.aId);
     const b = (rows ?? []).find((r: any) => r.id === data.bId);
