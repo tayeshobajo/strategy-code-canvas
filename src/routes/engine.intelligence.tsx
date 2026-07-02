@@ -464,6 +464,86 @@ function CleanOptimizeDialog({ items, onClose, onApply }: { items: Item[]; onClo
 }
 
 function LegendRow({ color, label, value }: { color: string; label: string; value: number }) {
+
+// ─────────────────────────────────────────────────────────────
+// DiffPanel — field-by-field before/after diff for merge preview
+// ─────────────────────────────────────────────────────────────
+function DiffPanel({ before, after }: { before: Item[]; after: Item }) {
+  const primary = [...before].sort((a, b) => b.confidence - a.confidence)[0];
+  const allTitles = Array.from(new Set(before.map((b) => b.title)));
+  const allSummaries = Array.from(new Set(before.map((b) => b.summary)));
+  const beforeTags = Array.from(new Set(before.flatMap((b) => b.tags)));
+  const addedTags = after.tags.filter((t) => !primary.tags.includes(t));
+  const beforeUsed = Array.from(new Set(before.map((b) => b.usedIn).filter((u) => u && u !== "—")));
+  const confAvg = Math.round(before.reduce((s, b) => s + b.confidence, 0) / before.length);
+  const confDelta = after.confidence - confAvg;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+      <div className="p-3 border-r border-border bg-white">
+        <div className="text-[10px] font-mono uppercase tracking-wider text-[#a4283c] mb-2">Before ({before.length} items)</div>
+        <dl className="text-xs space-y-2">
+          <FieldRow label="TITLES">
+            <ul className="space-y-0.5">{allTitles.map((t, i) => <li key={i} className="text-ink">• {t}</li>)}</ul>
+          </FieldRow>
+          <FieldRow label="SUMMARIES">
+            <ul className="space-y-0.5">{allSummaries.map((s, i) => <li key={i} className="text-ink/70">• {s}</li>)}</ul>
+          </FieldRow>
+          <FieldRow label="TAGS">
+            <div className="flex flex-wrap gap-1">
+              {beforeTags.map((t) => <span key={t} className="text-[10px] bg-paper-soft border border-border rounded px-1.5 py-0.5">{t}</span>)}
+            </div>
+          </FieldRow>
+          <FieldRow label="CONFIDENCE">
+            <span className="text-ink">avg {confAvg}% <span className="text-ink/50">(range {Math.min(...before.map((b) => b.confidence))}–{Math.max(...before.map((b) => b.confidence))})</span></span>
+          </FieldRow>
+          <FieldRow label="USED IN">
+            <div className="text-ink/70">{beforeUsed.length > 0 ? beforeUsed.join(" · ") : "—"}</div>
+          </FieldRow>
+        </dl>
+      </div>
+      <div className="p-3 bg-[#f5fbf7]">
+        <div className="text-[10px] font-mono uppercase tracking-wider text-[#1f6b3b] mb-2">After (1 merged item)</div>
+        <dl className="text-xs space-y-2">
+          <FieldRow label="TITLE"><div className="text-ink font-medium">{after.title}</div></FieldRow>
+          <FieldRow label="SUMMARY"><div className="text-ink/70">{after.summary}</div></FieldRow>
+          <FieldRow label="TAGS">
+            <div className="flex flex-wrap gap-1">
+              {after.tags.map((t) => (
+                <span key={t} className={cn("text-[10px] rounded px-1.5 py-0.5 border",
+                  addedTags.includes(t) ? "bg-[#e6f5ec] border-[#c4e6d2] text-[#1f6b3b] font-medium" : "bg-paper-soft border-border")}>
+                  {addedTags.includes(t) ? "+" : ""}{t}
+                </span>
+              ))}
+            </div>
+          </FieldRow>
+          <FieldRow label="CONFIDENCE">
+            <span className="text-ink font-medium">{after.confidence}%</span>
+            {confDelta !== 0 ? (
+              <span className={cn("ml-1 text-[10px]", confDelta > 0 ? "text-[#1f6b3b]" : "text-[#a4283c]")}>
+                ({confDelta > 0 ? "+" : ""}{confDelta}%)
+              </span>
+            ) : null}
+          </FieldRow>
+          <FieldRow label="USED IN">
+            <div className="text-ink/70">{after.usedIn}</div>
+          </FieldRow>
+        </dl>
+      </div>
+    </div>
+  );
+}
+
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[70px_1fr] gap-2">
+      <dt className="text-[10px] font-mono uppercase tracking-wider text-ink/50 pt-0.5">{label}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
+function _LegendRow({ color, label, value }: { color: string; label: string; value: number }) {
   return (
     <li className="flex items-center justify-between">
       <span className="flex items-center gap-2 text-ink/80"><span className="w-2 h-2 rounded-full" style={{ background: color }} />{label}</span>
