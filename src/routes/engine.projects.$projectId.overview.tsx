@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState, formatDate, formatCents } from "@/components/engine/primitives";
-import { BrainCircuit, Layers, Eye, PackageCheck } from "lucide-react";
+import { BrainCircuit, Layers, Eye, PackageCheck, AlertCircle } from "lucide-react";
+import { getVersionCompareData } from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/overview")({
   component: ProjectOverview,
@@ -10,6 +13,17 @@ export const Route = createFileRoute("/engine/projects/$projectId/overview")({
 function ProjectOverview() {
   const { projectId } = Route.useParams();
   const { project: p, dates, activity } = useWorkspace(projectId);
+
+  const compareFn = useServerFn(getVersionCompareData);
+  const compareQ = useQuery({
+    queryKey: ["engine", "versions-compare", projectId],
+    queryFn: () => compareFn({ data: { projectId } }),
+    staleTime: 30_000,
+  });
+  const modulesNeedingReview: { key: string; label: string; count: number }[] =
+    ((compareQ.data as { modules?: { key: string; label: string; changes: unknown[] }[] } | undefined)?.modules ?? [])
+      .filter((m) => m.changes.length > 0)
+      .map((m) => ({ key: m.key, label: m.label, count: m.changes.length }));
 
   return (
     <div className="space-y-6">
@@ -34,6 +48,43 @@ function ProjectOverview() {
             </div>
           </SectionCard>
 
+          <SectionCard
+            title="Modules needing review"
+            right={
+              modulesNeedingReview.length > 0 ? (
+                <Link
+                  to="/engine/projects/$projectId/versions/compare"
+                  params={{ projectId }}
+                  className="text-royal hover:underline"
+                >
+                  Open version compare →
+                </Link>
+              ) : null
+            }
+          >
+            {compareQ.isLoading ? (
+              <div className="text-sm text-ink/50">Loading…</div>
+            ) : modulesNeedingReview.length === 0 ? (
+              <div className="text-sm text-ink/60">All modules are in sync with the approved roadmap.</div>
+            ) : (
+              <ul className="flex flex-wrap gap-2">
+                {modulesNeedingReview.map((m) => (
+                  <li key={m.key}>
+                    <Link
+                      to="/engine/projects/$projectId/versions/compare"
+                      params={{ projectId }}
+                      className="inline-flex items-center gap-1.5 text-xs rounded-full border border-[#f1e3b9] bg-[#fbf3e0] text-[#8a6713] px-2.5 py-1 hover:border-royal/50"
+                    >
+                      <AlertCircle className="w-3 h-3" />
+                      {m.label}
+                      <span className="font-mono text-[10px] bg-white/70 rounded px-1">{m.count}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+
           <SectionCard title="Recent activity">
             {activity.length === 0 ? (
               <EmptyState title="No activity yet" />
@@ -52,6 +103,7 @@ function ProjectOverview() {
             )}
           </SectionCard>
         </div>
+
 
         <div className="space-y-6">
           <SectionCard title="Critical dates">
