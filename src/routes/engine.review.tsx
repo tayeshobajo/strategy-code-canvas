@@ -39,12 +39,22 @@ const reviewQO = queryOptions({
 function ReviewApprovalsPage() {
   const [filter, setFilter] = useState<string>("All");
   const [rejecting, setRejecting] = useState<ReviewItem | null>(null);
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const setSearch = (next: Partial<AuditSearch>) =>
+    navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
   const qc = useQueryClient();
   const { data, isLoading } = useQuery(reviewQO);
   const decideFn = useServerFn(decideReviewItem);
   const decide = useMutation({
     mutationFn: (v: { id: string; action: "approved" | "sent_back"; reason?: string }) => decideFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["engine", "reviews"] }),
+    onError: (err, vars) => {
+      toast.error(vars.action === "approved" ? "Couldn't approve item" : "Couldn't send item back", {
+        description: (err as Error).message || "The backend rejected the change.",
+        action: { label: "Retry", onClick: () => decide.mutate(vars) },
+      });
+    },
   });
 
   const rows = data?.items ?? [];
@@ -54,6 +64,21 @@ function ReviewApprovalsPage() {
   const highImpact = rows.filter((r) => r.impact === "high" && (r.status === "pending" || r.status === "in_review")).length;
   const inReview = rows.filter((r) => r.status === "in_review").length;
   const sentBack = audit.filter((a) => a.action === "sent_back").length;
+
+  const actorOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of audit) if (a.actor) set.add(a.actor);
+    return Array.from(set).sort();
+  }, [audit]);
+  const q = (search.q ?? "").trim().toLowerCase();
+  const decisionFilter = search.decision ?? "all";
+  const actorFilter = search.actor ?? "";
+  const auditFiltered = audit.filter((a) => {
+    if (decisionFilter !== "all" && a.action !== decisionFilter) return false;
+    if (actorFilter && a.actor !== actorFilter) return false;
+    if (q && !(`${a.project} ${a.title} ${a.reason ?? ""}`.toLowerCase().includes(q))) return false;
+    return true;
+  });
 
   return (
     <div className="max-w-[1400px]">
