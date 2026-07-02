@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { hasRoleForEmail, isAdminEmail, isOperatorEmail } from "./ops/access";
+import { hasRoleForEmail, isAdminEmail, isOperatorEmail } from "./access";
 
 type RpcCall = { fn: string; args: Record<string, unknown> };
 
