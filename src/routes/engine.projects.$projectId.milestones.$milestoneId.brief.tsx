@@ -13,6 +13,7 @@ import { SectionCard, MetricCard, formatCents } from "@/components/engine/primit
 import { AIDraftBadge } from "@/components/engine/AIDraftBadge";
 import {
   getMilestoneBrief, updateMilestone, approveMilestone, sendMilestoneToTasks,
+  regenerateMilestoneSection,
 } from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/milestones/$milestoneId/brief")({
