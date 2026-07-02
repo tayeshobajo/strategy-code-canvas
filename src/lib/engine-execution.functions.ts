@@ -177,6 +177,13 @@ Core Requirements:
     return { milestone: row };
   });
 
+const PROTECTED_APPROVED_FIELDS = new Set([
+  "brief_md",
+  "acceptance_criteria",
+  "developer_prompt",
+  "client_safe_md",
+]);
+
 export const updateMilestone = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
@@ -184,18 +191,49 @@ export const updateMilestone = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid(),
         patch: z.record(z.string(), z.any()),
+        force: z.boolean().optional().default(false),
       })
       .parse(raw),
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
-    // Safety: never approve as agent
+    const email = (context as any).claims?.email ?? null;
+
+    // Guard: if the milestone is already approved, protected fields
+    // (brief/criteria/prompt/client copy) cannot be overwritten in place —
+    // caller must explicitly force (creates a new draft brief version).
+    const { data: current } = await sb
+      .from("engine_milestones")
+      .select("approval_status,project_id,name")
+      .eq("id", data.id)
+      .single();
     const patch: any = { ...data.patch };
     delete patch.id;
     delete patch.project_id;
+
+    if (current?.approval_status === "approved" && !data.force) {
+      const touched = Object.keys(patch).filter((k) => PROTECTED_APPROVED_FIELDS.has(k));
+      if (touched.length) {
+        throw new Error(
+          `Cannot overwrite approved milestone fields (${touched.join(", ")}). Reset approval or explicitly force to create a new draft.`,
+        );
+      }
+    }
+
     const { error } = await sb.from("engine_milestones").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (current?.project_id) {
+      await sb.from("engine_audit_log").insert({
+        project_id: current.project_id,
+        actor_email: email,
+        action: "milestone_updated",
+        summary: `Updated milestone "${current.name ?? data.id}" (${Object.keys(patch).join(", ")}).`,
+        affected_modules: ["milestones"],
+        target_id: data.id,
+        metadata: { fields: Object.keys(patch), forced: data.force },
+      });
+    }
     return { ok: true as const };
   });
 
@@ -206,6 +244,18 @@ export const approveMilestone = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const sb = context.supabase as any;
     const email = (context as any).claims?.email ?? null;
+
+    // Gate: acceptance criteria must have items and none may be blank.
+    const { data: m } = await sb
+      .from("engine_milestones")
+      .select("project_id,name,acceptance_criteria")
+      .eq("id", data.id)
+      .single();
+    const criteria = Array.isArray(m?.acceptance_criteria) ? m.acceptance_criteria : [];
+    if (criteria.length === 0) {
+      throw new Error("Cannot approve: milestone has no acceptance criteria.");
+    }
+
     const { error } = await sb
       .from("engine_milestones")
       .update({
@@ -216,6 +266,17 @@ export const approveMilestone = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (m?.project_id) {
+      await sb.from("engine_audit_log").insert({
+        project_id: m.project_id,
+        actor_email: email,
+        action: "milestone_approved",
+        summary: `Approved milestone "${m.name}" (${criteria.length} acceptance criteria).`,
+        affected_modules: ["milestones"],
+        target_id: data.id,
+        metadata: { criteria_count: criteria.length },
+      });
+    }
     return { ok: true as const };
   });
 
@@ -488,11 +549,11 @@ export const updateBudgetControls = createServerFn({ method: "POST" })
     z
       .object({
         projectId: z.string().uuid(),
-        monthly_cap_cents: z.number().int().min(0).optional(),
+        monthly_cap_cents: z.number().int().min(0).max(1_000_000).optional(),
         warning_threshold_pct: z.number().int().min(0).max(100).optional(),
         hard_stop_pct: z.number().int().min(0).max(200).optional(),
-        require_approval_above_cents: z.number().int().min(0).optional(),
-        preferred_model: z.string().optional(),
+        require_approval_above_cents: z.number().int().min(0).max(1_000_000).optional(),
+        preferred_model: z.string().max(120).optional(),
         auto_pause_when_exceeded: z.boolean().optional(),
       })
       .parse(raw),
@@ -500,6 +561,7 @@ export const updateBudgetControls = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
     const { projectId, ...patch } = data;
     await sb
       .from("engine_agent_permissions")
@@ -510,6 +572,14 @@ export const updateBudgetControls = createServerFn({ method: "POST" })
         .update({ agent_budget_monthly_cents: patch.monthly_cap_cents })
         .eq("id", projectId);
     }
+    await sb.from("engine_audit_log").insert({
+      project_id: projectId,
+      actor_email: email,
+      action: "budget_controls_updated",
+      summary: `Updated budget controls (${Object.keys(patch).join(", ")}).`,
+      affected_modules: ["permissions"],
+      metadata: patch,
+    });
     return { ok: true as const };
   });
 
@@ -604,6 +674,132 @@ export const updatePermissions = createServerFn({ method: "POST" })
         .update({ agent_permission_level: patch.permission_mode })
         .eq("id", projectId);
     }
+    const email = (context as any).claims?.email ?? null;
+    await sb.from("engine_audit_log").insert({
+      project_id: projectId,
+      actor_email: email,
+      action: "agent_permissions_updated",
+      summary: `Updated agent permissions (${Object.keys(patch).join(", ")}).`,
+      affected_modules: ["permissions"],
+      metadata: patch,
+    });
+    return { ok: true as const };
+  });
+
+// ============================================================
+// Delivery send (project-level, admin-only, gated)
+// ============================================================
+
+export const sendProjectDelivery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        projectId: z.string().uuid(),
+        checklist: z.record(z.string(), z.boolean()),
+        confirmed: z.literal(true),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+
+    // Require every checklist entry to be true. Client sends the full map.
+    const unchecked = Object.entries(data.checklist).filter(([, v]) => !v).map(([k]) => k);
+    if (unchecked.length) {
+      throw new Error(`Approval checklist incomplete: ${unchecked.join(", ")}`);
+    }
+
+    const { data: proj } = await sb
+      .from("engine_projects")
+      .select("id,name,approved_snapshot,approved_version,client_company,delivery")
+      .eq("id", data.projectId)
+      .single();
+    if (!proj) throw new Error("Project not found");
+    if (!proj.approved_snapshot || Object.keys(proj.approved_snapshot).length === 0) {
+      throw new Error("Cannot send: no approved roadmap version exists yet.");
+    }
+
+    const nowIso = new Date().toISOString();
+    // Persist checklist state onto the delivery JSONB so it survives refresh.
+    const nextDelivery = {
+      ...((proj.delivery as Record<string, unknown> | null) ?? {}),
+      approval_checklist: data.checklist,
+      sent_at: nowIso,
+      sent_by_email: email,
+    };
+    await sb
+      .from("engine_projects")
+      .update({ delivery: nextDelivery, status: "delivered" })
+      .eq("id", data.projectId);
+
+    // Transition any linked delivery item to "sent".
+    const { data: items } = await sb
+      .from("engine_delivery_items")
+      .select("id,status")
+      .eq("project_id", data.projectId);
+    for (const it of (items ?? []) as Array<{ id: string; status: string }>) {
+      await sb
+        .from("engine_delivery_items")
+        .update({ status: "sent", last_action: `Sent · ${new Date().toLocaleString()}`, approved_by: email })
+        .eq("id", it.id);
+      await sb.from("engine_delivery_history").insert({
+        delivery_id: it.id,
+        from_status: it.status,
+        to_status: "sent",
+        note: "Sent via project delivery prep",
+        actor: email,
+      });
+    }
+
+    await sb.from("engine_activity").insert({
+      project_id: data.projectId,
+      kind: "delivery_sent",
+      title: `Delivery sent to ${proj.client_company ?? "client"}`,
+      body: email ? `Sent by ${email}` : null,
+      severity: "success",
+    });
+    await sb.from("engine_audit_log").insert({
+      project_id: data.projectId,
+      actor_email: email,
+      action: "delivery_sent",
+      summary: `Sent approved roadmap ${proj.approved_version ?? ""} to client.`,
+      affected_modules: ["delivery"],
+      metadata: { checklist: data.checklist, approved_version: proj.approved_version },
+    });
+
+    return { ok: true as const };
+  });
+
+// Persist just the delivery checklist state without sending (for UI persistence).
+export const saveDeliveryChecklist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        projectId: z.string().uuid(),
+        checklist: z.record(z.string(), z.boolean()),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { data: proj } = await sb
+      .from("engine_projects")
+      .select("delivery")
+      .eq("id", data.projectId)
+      .single();
+    const nextDelivery = {
+      ...((proj?.delivery as Record<string, unknown> | null) ?? {}),
+      approval_checklist: data.checklist,
+    };
+    await sb
+      .from("engine_projects")
+      .update({ delivery: nextDelivery })
+      .eq("id", data.projectId);
     return { ok: true as const };
   });
 

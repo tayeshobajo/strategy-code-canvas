@@ -522,15 +522,36 @@ export const updateProjectStep = createServerFn({ method: "POST" })
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
     const col = STEP_COLUMNS[data.step as WorkspaceStepKey];
     if (!col) throw new Error("Unknown step");
+    const email = ((context as unknown as { claims?: { email?: string } }).claims?.email) ?? null;
     const sb = context.supabase as unknown as {
       from: (t: string) => {
         update: (v: Record<string, unknown>) => {
           eq: (c: string, v: string) => Promise<{ error: unknown }>;
         };
+        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
       };
     };
     const { error } = await sb.from("engine_projects").update({ [col]: data.data }).eq("id", data.id);
     if (error) throw new Error((error as { message?: string }).message ?? "update failed");
+
+    // High-impact steps get an audit row: investment shifts and client-preview
+    // publish must both be traceable back to the human who signed off.
+    const HIGH_IMPACT: Record<string, string> = {
+      investment: "investment_updated",
+      preview: "client_preview_updated",
+      delivery: "delivery_details_updated",
+    };
+    const action = HIGH_IMPACT[data.step];
+    if (action) {
+      await sb.from("engine_audit_log").insert({
+        project_id: data.id,
+        actor_email: email,
+        action,
+        summary: `Updated ${data.step.replace(/-/g, " ")} (human edit).`,
+        affected_modules: [col],
+        metadata: { step: data.step, keys: Object.keys(data.data ?? {}) },
+      });
+    }
     return { ok: true };
   });
 

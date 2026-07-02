@@ -277,8 +277,10 @@ const MODULE_KEYS = [
   "roadmap",
   "sequencing",
   "deadlines",
-  "investment",
-  "client_preview",
+  // NOTE: "investment" and "client_preview" are deliberately excluded — the
+  // agent cannot write to these modules under any permission mode. Investment
+  // and client-preview edits must go through updateProjectStep with an admin
+  // human in the loop (see engine.functions.ts).
 ] as const;
 
 export const applyAgentTask = createServerFn({ method: "POST" })

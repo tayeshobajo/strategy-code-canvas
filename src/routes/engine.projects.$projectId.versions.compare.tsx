@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ArrowRightLeft, ShieldCheck, Check, X, Edit3, CheckCircle2, AlertTriangle, FileText } from "lucide-react";
+import { ArrowRightLeft, ShieldCheck, Check, X, Edit3, CheckCircle2, AlertTriangle, FileText, Loader2 } from "lucide-react";
 import { SectionCard, MetricCard, formatCents } from "@/components/engine/primitives";
 import { getVersionCompareData } from "@/lib/engine-execution.functions";
+import { approveVersion } from "@/lib/engine-intelligence.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/versions/compare")({
   component: VersionComparePage,
@@ -17,6 +18,8 @@ export const Route = createFileRoute("/engine/projects/$projectId/versions/compa
 function VersionComparePage() {
   const { projectId } = Route.useParams();
   const fn = useServerFn(getVersionCompareData);
+  const approveFn = useServerFn(approveVersion);
+  const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["engine", "versions-compare", projectId],
     queryFn: () => fn({ data: { projectId } }),
@@ -30,6 +33,21 @@ function VersionComparePage() {
   const [activeModule, setActiveModule] = useState<string>(modules.find((m: any) => m.changes.length > 0)?.key ?? modules[0]?.key ?? "point_a");
   const [decisions, setDecisions] = useState<Record<string, "accept" | "reject" | "edit" | undefined>>({});
   const [confirmed, setConfirmed] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
+
+  const approveMut = useMutation({
+    mutationFn: async () => {
+      if (!draft?.id) throw new Error("No draft version to approve.");
+      return approveFn({ data: { id: draft.id } });
+    },
+    onSuccess: async () => {
+      setApproveError(null);
+      setConfirmed(false);
+      await qc.invalidateQueries({ queryKey: ["engine", "versions-compare", projectId] });
+      await qc.invalidateQueries({ queryKey: ["engine"] });
+    },
+    onError: (e: Error) => setApproveError(e.message),
+  });
 
   const activeMod = modules.find((m: any) => m.key === activeModule);
 
@@ -38,6 +56,7 @@ function VersionComparePage() {
 
   return (
     <div className="space-y-5 max-w-[1500px]">
+
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-3xl text-ink flex items-center gap-2">
@@ -50,7 +69,12 @@ function VersionComparePage() {
             <FileText className="w-3.5 h-3.5" /> View Full Versions
           </button>
           <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50">Restore Version</button>
-          <button className="text-xs bg-royal text-white rounded-md px-3 py-1.5 hover:bg-royal/90 disabled:opacity-60" disabled={!confirmed}>
+          <button
+            onClick={() => approveMut.mutate()}
+            disabled={!confirmed || approveMut.isPending || !draft?.id}
+            className="text-xs bg-royal text-white rounded-md px-3 py-1.5 hover:bg-royal/90 disabled:opacity-60 inline-flex items-center gap-1.5"
+          >
+            {approveMut.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
             Approve as New Official Version
           </button>
         </div>
@@ -240,10 +264,24 @@ function VersionComparePage() {
           I confirm these changes have been reviewed
         </label>
         <button
-          disabled={!confirmed}
-          className="text-sm bg-royal text-white rounded-md px-4 py-2 hover:bg-royal/90 disabled:opacity-40 disabled:cursor-not-allowed"
-        >Approve as v{draft?.version ?? "next"} Official Version</button>
+          onClick={() => approveMut.mutate()}
+          disabled={!confirmed || approveMut.isPending || !draft?.id}
+          className="text-sm bg-royal text-white rounded-md px-4 py-2 hover:bg-royal/90 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
+        >
+          {approveMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+          Approve as v{draft?.version ?? "next"} Official Version
+        </button>
       </div>
+      {approveError && (
+        <div className="rounded-md border border-[#f3ced5] bg-[#fbe9ec] text-[#a4283c] text-sm px-4 py-2">
+          {approveError}
+        </div>
+      )}
+      {approveMut.isSuccess && (
+        <div className="rounded-md border border-[#c4e6d2] bg-[#e6f5ec] text-[#1f6b3b] text-sm px-4 py-2">
+          Approved. This draft is now the official version.
+        </div>
+      )}
     </div>
   );
 }
