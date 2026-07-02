@@ -342,7 +342,7 @@ export const createProjectAgent = createServerFn({ method: "POST" })
     monthly_budget_cents: z.number().int().min(1000).max(500000),
   }).parse(raw))
   .handler(async ({ data, context }): Promise<ProjectAgent> => {
-    await assertOps(context as never);
+    await assertAdminEmail(context as never);
     const sb = context.supabase as never as {
       from: (t: string) => {
         insert: (v: Record<string, unknown>) => { select: (s: string) => { single: () => Promise<{ data: unknown; error: unknown }> } };
