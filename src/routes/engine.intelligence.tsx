@@ -195,12 +195,33 @@ function IntelligenceMemoryPage() {
             <div className="grid grid-cols-2 gap-2">
               <QuickBtn icon={<Upload className="w-3.5 h-3.5" />} label="Import Source" />
               <QuickBtn icon={<Download className="w-3.5 h-3.5" />} label="Export Memory" />
-              <QuickBtn icon={<GitMerge className="w-3.5 h-3.5" />} label="Merge Duplicates" />
-              <QuickBtn icon={<Sparkles className="w-3.5 h-3.5" />} label="Clean & Optimize" />
+              <QuickBtn icon={<GitMerge className="w-3.5 h-3.5" />} label="Merge Duplicates" onClick={() => setMergeOpen(true)} />
+              <QuickBtn icon={<Sparkles className="w-3.5 h-3.5" />} label="Clean & Optimize" onClick={() => setCleanOpen(true)} />
             </div>
           </SectionCard>
         </div>
       </div>
+
+      {mergeOpen ? (
+        <MergeDuplicatesDialog
+          items={items}
+          onClose={() => setMergeOpen(false)}
+          onApply={(nextItems) => {
+            setItems(nextItems);
+            setMergeOpen(false);
+          }}
+        />
+      ) : null}
+      {cleanOpen ? (
+        <CleanOptimizeDialog
+          items={items}
+          onClose={() => setCleanOpen(false)}
+          onApply={(nextItems) => {
+            setItems(nextItems);
+            setCleanOpen(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
