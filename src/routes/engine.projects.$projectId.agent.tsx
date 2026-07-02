@@ -356,13 +356,47 @@ function PromptConsole({
  * Recent outputs
  * ============================================================ */
 
+const APPLY_MODULES = [
+  "point_a",
+  "point_b",
+  "hidden_assets",
+  "gap_map",
+  "blueprint",
+  "roadmap",
+  "sequencing",
+  "deadlines",
+  "investment",
+  "client_preview",
+] as const;
+
 function RecentOutputs({ tasks, onChange }: { tasks: EngineAgentTask[]; onChange: () => void }) {
   const updateFn = useServerFn(updateAgentTaskStatus);
+  const applyFn = useServerFn(applyAgentTask);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [applyTarget, setApplyTarget] = useState<Record<string, string>>({});
 
   async function setStatus(id: string, status: EngineAgentTask["status"]) {
-    await updateFn({ data: { id, status } });
-    onChange();
+    try {
+      await updateFn({ data: { id, status } });
+      onChange();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function doApply(t: EngineAgentTask) {
+    const mod = (applyTarget[t.id] ?? t.related_module ?? "roadmap") as any;
+    try {
+      const r = (await applyFn({ data: { id: t.id, module: mod } })) as any;
+      if (r.status === "pending_approval") {
+        toast.success("Sent to pending approvals. Approve to apply.");
+      } else {
+        toast.success(`Applied to ${mod.replace(/_/g, " ")}`);
+      }
+      onChange();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   }
 
   return (
@@ -376,6 +410,7 @@ function RecentOutputs({ tasks, onChange }: { tasks: EngineAgentTask[]; onChange
         <ul className="space-y-2">
           {tasks.map((t) => {
             const open = openId === t.id;
+            const currentModule = applyTarget[t.id] ?? t.related_module ?? "roadmap";
             return (
               <li key={t.id} className="border border-border rounded-md">
                 <button
@@ -391,6 +426,11 @@ function RecentOutputs({ tasks, onChange }: { tasks: EngineAgentTask[]; onChange
                       {t.related_module ? (
                         <span className="text-[10px] text-royal">→ {t.related_module}</span>
                       ) : null}
+                      {t.pending_approval ? (
+                        <span className="inline-flex items-center rounded-full border border-[#f1e3b9] bg-[#fbf3e0] text-[#8a6713] px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                          Pending approval
+                        </span>
+                      ) : null}
                       <TaskStatus status={t.status} />
                     </div>
                     <p className="text-sm text-ink mt-1 truncate">{t.prompt}</p>
@@ -398,6 +438,9 @@ function RecentOutputs({ tasks, onChange }: { tasks: EngineAgentTask[]; onChange
                       <span>Confidence {t.confidence}%</span>
                       <span>Cost {formatCents(t.cost_cents)}</span>
                       <span>{new Date(t.created_at).toLocaleString()}</span>
+                      {t.applied_module ? (
+                        <span className="text-[#1f6b3b]">Applied → {t.applied_module}</span>
+                      ) : null}
                     </div>
                   </div>
                 </button>
@@ -410,10 +453,25 @@ function RecentOutputs({ tasks, onChange }: { tasks: EngineAgentTask[]; onChange
                         {t.output ?? "(no output)"}
                       </pre>
                     )}
-                    <div className="flex items-center gap-2 justify-end">
+                    <div className="flex items-center gap-2 justify-end flex-wrap">
+                      <label className="text-[11px] text-ink/60">Apply to</label>
+                      <select
+                        value={currentModule}
+                        onChange={(e) =>
+                          setApplyTarget((m) => ({ ...m, [t.id]: e.target.value }))
+                        }
+                        className="text-xs border border-border rounded px-2 py-1 bg-white"
+                      >
+                        {APPLY_MODULES.map((m) => (
+                          <option key={m} value={m}>
+                            {m.replace(/_/g, " ")}
+                          </option>
+                        ))}
+                      </select>
                       <button
-                        onClick={() => setStatus(t.id, "applied")}
-                        className="inline-flex items-center gap-1.5 text-xs bg-ink text-white rounded px-2.5 py-1 hover:bg-ink/90"
+                        onClick={() => doApply(t)}
+                        disabled={!t.output}
+                        className="inline-flex items-center gap-1.5 text-xs bg-ink text-white rounded px-2.5 py-1 hover:bg-ink/90 disabled:opacity-40"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" /> Apply
                       </button>
@@ -440,6 +498,7 @@ function RecentOutputs({ tasks, onChange }: { tasks: EngineAgentTask[]; onChange
     </SectionCard>
   );
 }
+
 
 function TaskStatus({ status }: { status: string }) {
   const map: Record<string, string> = {
