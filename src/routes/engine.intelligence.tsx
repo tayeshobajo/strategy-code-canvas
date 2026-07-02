@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
-import { Database, Link2, Lightbulb, Calendar, Clock, Gauge, Download, Upload, GitMerge, Sparkles, MoreHorizontal } from "lucide-react";
+import { Database, Link2, Lightbulb, Calendar, Clock, Gauge, Download, Upload, GitMerge, Sparkles, MoreHorizontal, X } from "lucide-react";
 
 export const Route = createFileRoute("/engine/intelligence")({
   component: IntelligenceMemoryPage,
@@ -35,6 +35,10 @@ const ITEMS: Item[] = [
   { id: "i8", title: "Parents will not use the platform", summary: "Platform is for students and schools only.", type: "Client Truth", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:18 AM", confidence: 91, tags: ["Users", "Access"], usedIn: "Feature Scope · User Roles" },
   { id: "i9", title: "Compliance and data privacy critical", summary: "Must meet school data requirements.", type: "Risk", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:27 PM", confidence: 89, tags: ["Compliance", "Security"], usedIn: "System Blueprint · Risk Register" },
   { id: "i10", title: "Mobile experience must be strong", summary: "Students will access mostly on mobile.", type: "Preference", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:19 AM", confidence: 70, tags: ["Mobile", "UX"], usedIn: "Design System · All Milestones" },
+  { id: "i11", title: "Launch target: Jan 1, 2026", summary: "Client confirmed the launch date is January 1st, 2026.", type: "Client Truth", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:14 PM", confidence: 88, tags: ["Launch", "Deadline"], usedIn: "Roadmap v1.2" },
+  { id: "i12", title: "Roughly 80 students in first cohort", summary: "First cohort will be about 80 students.", type: "Client Truth", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:16 PM", confidence: 84, tags: ["Students", "Phase 1"], usedIn: "Pre-Test MVP" },
+  { id: "i13", title: "Low-confidence: possibly needs SSO", summary: "One passing mention of maybe wanting SSO.", type: "Requirement", project: "Mental Dental Academy", source: "Slack thread", sourceDate: "May 12, 2025", captured: "May 12, 2025 · 4:02 PM", confidence: 42, tags: ["SSO"], usedIn: "—" },
+  { id: "i14", title: "Old constraint: prior budget cap $80k", summary: "Superseded by updated $100–150k range.", type: "Constraint", project: "Mental Dental Academy", source: "Kickoff notes", sourceDate: "Mar 1, 2025", captured: "Mar 1, 2025 · 9:00 AM", confidence: 55, tags: ["Budget"], usedIn: "—" },
 ];
 
 const TABS: (MemType | "All Memory" | "Insights")[] = ["All Memory", "Insights", "Client Truth", "Decision", "Constraint", "Opportunity", "Risk", "Preference"];
@@ -59,7 +63,10 @@ function confidenceMeta(c: number) {
 
 function IntelligenceMemoryPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("All Memory");
-  const rows = tab === "All Memory" || tab === "Insights" ? ITEMS : ITEMS.filter((i) => i.type === tab);
+  const [items, setItems] = useState<Item[]>(ITEMS);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [cleanOpen, setCleanOpen] = useState(false);
+  const rows = tab === "All Memory" || tab === "Insights" ? items : items.filter((i) => i.type === tab);
 
   return (
     <div className="max-w-[1500px]">
@@ -188,21 +195,281 @@ function IntelligenceMemoryPage() {
             <div className="grid grid-cols-2 gap-2">
               <QuickBtn icon={<Upload className="w-3.5 h-3.5" />} label="Import Source" />
               <QuickBtn icon={<Download className="w-3.5 h-3.5" />} label="Export Memory" />
-              <QuickBtn icon={<GitMerge className="w-3.5 h-3.5" />} label="Merge Duplicates" />
-              <QuickBtn icon={<Sparkles className="w-3.5 h-3.5" />} label="Clean & Optimize" />
+              <QuickBtn icon={<GitMerge className="w-3.5 h-3.5" />} label="Merge Duplicates" onClick={() => setMergeOpen(true)} />
+              <QuickBtn icon={<Sparkles className="w-3.5 h-3.5" />} label="Clean & Optimize" onClick={() => setCleanOpen(true)} />
             </div>
           </SectionCard>
         </div>
+      </div>
+
+      {mergeOpen ? (
+        <MergeDuplicatesDialog
+          items={items}
+          onClose={() => setMergeOpen(false)}
+          onApply={(nextItems) => {
+            setItems(nextItems);
+            setMergeOpen(false);
+          }}
+        />
+      ) : null}
+      {cleanOpen ? (
+        <CleanOptimizeDialog
+          items={items}
+          onClose={() => setCleanOpen(false)}
+          onApply={(nextItems) => {
+            setItems(nextItems);
+            setCleanOpen(false);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function QuickBtn({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
+  return (
+    <button onClick={onClick} className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-2 hover:border-royal/50 text-ink justify-center">
+      {icon}{label}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Merge Duplicates: cluster by shared tags + title Jaccard similarity
+// ─────────────────────────────────────────────────────────────
+function tokenize(s: string) {
+  return new Set(
+    s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length > 2),
+  );
+}
+function jaccard(a: Set<string>, b: Set<string>) {
+  const inter = [...a].filter((x) => b.has(x)).length;
+  const union = new Set([...a, ...b]).size;
+  return union === 0 ? 0 : inter / union;
+}
+
+type DupCluster = { key: string; items: Item[]; similarity: number };
+
+function findDuplicateClusters(items: Item[]): DupCluster[] {
+  const clusters: DupCluster[] = [];
+  const used = new Set<string>();
+  for (let i = 0; i < items.length; i++) {
+    if (used.has(items[i].id)) continue;
+    const base = items[i];
+    const baseTokens = tokenize(base.title + " " + base.summary);
+    const matches: Item[] = [base];
+    let bestSim = 0;
+    for (let j = i + 1; j < items.length; j++) {
+      const other = items[j];
+      if (used.has(other.id)) continue;
+      if (other.project !== base.project) continue;
+      const sharedTags = other.tags.filter((t) => base.tags.includes(t)).length;
+      const sim = jaccard(baseTokens, tokenize(other.title + " " + other.summary));
+      if ((sharedTags >= 1 && sim >= 0.2) || sim >= 0.4) {
+        matches.push(other);
+        bestSim = Math.max(bestSim, sim);
+      }
+    }
+    if (matches.length > 1) {
+      matches.forEach((m) => used.add(m.id));
+      clusters.push({ key: base.id, items: matches, similarity: bestSim });
+    }
+  }
+  return clusters;
+}
+
+function mergeCluster(cluster: Item[]): Item {
+  const primary = [...cluster].sort((a, b) => b.confidence - a.confidence)[0];
+  const allTags = new Set<string>();
+  cluster.forEach((c) => c.tags.forEach((t) => allTags.add(t)));
+  return {
+    ...primary,
+    summary: primary.summary,
+    tags: [...allTags],
+    confidence: Math.min(99, Math.round(cluster.reduce((s, c) => s + c.confidence, 0) / cluster.length) + 3),
+    usedIn: [...new Set(cluster.map((c) => c.usedIn).filter((u) => u && u !== "—"))].join(" · ") || primary.usedIn,
+  };
+}
+
+function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onClose: () => void; onApply: (next: Item[]) => void }) {
+  const clusters = useMemo(() => findDuplicateClusters(items), [items]);
+  const [selected, setSelected] = useState<Set<string>>(new Set(clusters.map((c) => c.key)));
+
+  const apply = () => {
+    const toRemove = new Set<string>();
+    const toAdd: Item[] = [];
+    for (const c of clusters) {
+      if (!selected.has(c.key)) continue;
+      c.items.forEach((it) => toRemove.add(it.id));
+      toAdd.push(mergeCluster(c.items));
+    }
+    const next = items.filter((it) => !toRemove.has(it.id)).concat(toAdd);
+    onApply(next);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-xl border border-border shadow-lg max-w-3xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <header className="flex items-center justify-between p-4 border-b border-border">
+          <div>
+            <div className="font-display text-lg text-ink">Merge Duplicates</div>
+            <div className="text-xs text-ink/60">Grouped by shared tags and title similarity. Review each merge before applying.</div>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
+        </header>
+        <div className="p-4 overflow-y-auto flex-1 space-y-4">
+          {clusters.length === 0 ? (
+            <div className="text-center py-10 text-ink/50 text-sm">No duplicate clusters detected.</div>
+          ) : (
+            clusters.map((c) => {
+              const merged = mergeCluster(c.items);
+              const isSel = selected.has(c.key);
+              return (
+                <div key={c.key} className={cn("border rounded-lg overflow-hidden", isSel ? "border-royal" : "border-border")}>
+                  <label className="flex items-center gap-2 p-3 bg-paper-soft border-b border-border cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isSel}
+                      onChange={(e) => {
+                        const next = new Set(selected);
+                        if (e.target.checked) next.add(c.key); else next.delete(c.key);
+                        setSelected(next);
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-ink">{c.items.length} similar items in {c.items[0].project}</div>
+                      <div className="text-xs text-ink/60">Similarity ~{Math.round(c.similarity * 100)}%</div>
+                    </div>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+                    <div className="p-3 border-r border-border">
+                      <div className="text-[10px] font-mono uppercase tracking-wider text-[#a4283c] mb-2">Before ({c.items.length})</div>
+                      <ul className="space-y-2">
+                        {c.items.map((it) => (
+                          <li key={it.id} className="text-xs border border-border rounded p-2 bg-white">
+                            <div className="font-medium text-ink">{it.title}</div>
+                            <div className="text-ink/60">{it.summary}</div>
+                            <div className="text-ink/50 mt-1">Confidence {it.confidence}% · {it.tags.join(", ")}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="p-3 bg-[#f5fbf7]">
+                      <div className="text-[10px] font-mono uppercase tracking-wider text-[#1f6b3b] mb-2">After (1 merged)</div>
+                      <div className="text-xs border border-[#c4e6d2] rounded p-2 bg-white">
+                        <div className="font-medium text-ink">{merged.title}</div>
+                        <div className="text-ink/60">{merged.summary}</div>
+                        <div className="text-ink/50 mt-1">Confidence {merged.confidence}% · {merged.tags.join(", ")}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+        <footer className="flex items-center justify-between p-4 border-t border-border">
+          <div className="text-xs text-ink/60">{selected.size} of {clusters.length} clusters selected</div>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="text-xs px-3 py-1.5 rounded border border-border text-ink/70">Cancel</button>
+            <button
+              onClick={apply}
+              disabled={selected.size === 0}
+              className="text-xs px-3 py-1.5 rounded bg-royal text-white hover:bg-royal/90 disabled:opacity-40"
+            >
+              Apply {selected.size} merge{selected.size === 1 ? "" : "s"}
+            </button>
+          </div>
+        </footer>
       </div>
     </div>
   );
 }
 
-function QuickBtn({ icon, label }: { icon: React.ReactNode; label: string }) {
+// ─────────────────────────────────────────────────────────────
+// Clean & Optimize: drop low-confidence, unused, superseded items
+// ─────────────────────────────────────────────────────────────
+type CleanAction = { item: Item; reason: string };
+
+function detectCleanActions(items: Item[]): CleanAction[] {
+  const out: CleanAction[] = [];
+  for (const it of items) {
+    if (it.confidence < 60) out.push({ item: it, reason: `Low confidence (${it.confidence}%)` });
+    else if ((!it.usedIn || it.usedIn === "—") && it.confidence < 75) out.push({ item: it, reason: "Never referenced anywhere" });
+    else if (/old|prior|superseded/i.test(it.title + " " + it.summary)) out.push({ item: it, reason: "Marked as superseded" });
+  }
+  return out;
+}
+
+function CleanOptimizeDialog({ items, onClose, onApply }: { items: Item[]; onClose: () => void; onApply: (next: Item[]) => void }) {
+  const actions = useMemo(() => detectCleanActions(items), [items]);
+  const [selected, setSelected] = useState<Set<string>>(new Set(actions.map((a) => a.item.id)));
+
+  const apply = () => {
+    onApply(items.filter((it) => !selected.has(it.id)));
+  };
+
   return (
-    <button className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-2 hover:border-royal/50 text-ink justify-center">
-      {icon}{label}
-    </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-xl border border-border shadow-lg max-w-2xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <header className="flex items-center justify-between p-4 border-b border-border">
+          <div>
+            <div className="font-display text-lg text-ink">Clean &amp; Optimize</div>
+            <div className="text-xs text-ink/60">Low-confidence, unused, and superseded items flagged for removal.</div>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
+        </header>
+        <div className="p-4 overflow-y-auto flex-1">
+          {actions.length === 0 ? (
+            <div className="text-center py-10 text-ink/50 text-sm">Memory is already clean.</div>
+          ) : (
+            <ul className="space-y-2">
+              {actions.map((a) => {
+                const isSel = selected.has(a.item.id);
+                return (
+                  <li key={a.item.id} className={cn("border rounded-lg p-3", isSel ? "border-[#a4283c] bg-[#fbe9ec]/40" : "border-border")}>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isSel}
+                        onChange={(e) => {
+                          const next = new Set(selected);
+                          if (e.target.checked) next.add(a.item.id); else next.delete(a.item.id);
+                          setSelected(next);
+                        }}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono uppercase tracking-wider text-[#a4283c]">Remove</span>
+                          <span className="text-[10px] bg-[#fbe9ec] border border-[#f3ced5] rounded px-1.5 py-0.5 text-[#a4283c]">{a.reason}</span>
+                        </div>
+                        <div className="text-sm font-medium text-ink mt-1 line-through opacity-60">{a.item.title}</div>
+                        <div className="text-xs text-ink/60 line-through opacity-60">{a.item.summary}</div>
+                        <div className="text-[10px] text-ink/50 mt-1">{a.item.project} · {a.item.type} · Confidence {a.item.confidence}%</div>
+                      </div>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+        <footer className="flex items-center justify-between p-4 border-t border-border">
+          <div className="text-xs text-ink/60">{selected.size} of {actions.length} flagged for removal</div>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="text-xs px-3 py-1.5 rounded border border-border text-ink/70">Cancel</button>
+            <button
+              onClick={apply}
+              disabled={selected.size === 0}
+              className="text-xs px-3 py-1.5 rounded bg-[#a4283c] text-white hover:bg-[#8a2033] disabled:opacity-40"
+            >
+              Remove {selected.size} item{selected.size === 1 ? "" : "s"}
+            </button>
+          </div>
+        </footer>
+      </div>
+    </div>
   );
 }
 
