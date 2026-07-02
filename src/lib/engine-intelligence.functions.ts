@@ -1254,3 +1254,76 @@ export const deleteIntelligenceMemory = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message ?? "archive failed");
     return { ok: true };
   });
+
+// ============================================================
+// Intelligence decisions audit ledger — persists merge/clean/reject
+// so refreshes preserve the history and RLS-scoped viewers can audit.
+// ============================================================
+export type IntelligenceDecisionRow = {
+  id: string;
+  memory_id: string | null;
+  project_id: string | null;
+  action: "merge" | "clean" | "reject" | "promote" | "archive" | "restore" | "accept";
+  actor_email: string;
+  before_state: Record<string, unknown>;
+  after_state: Record<string, unknown>;
+  notes: string | null;
+  created_at: string;
+};
+
+export const listIntelligenceDecisions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      memory_id: z.string().uuid().optional(),
+      project_id: z.string().uuid().optional(),
+      limit: z.number().int().min(1).max(500).optional(),
+    }).parse(raw ?? {}),
+  )
+  .handler(async ({ context, data }): Promise<IntelligenceDecisionRow[]> => {
+    await assertOpsOrAdmin(context);
+    const sb = context.supabase as any;
+    let q = sb
+      .from("engine_intelligence_decisions")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(data.limit ?? 200);
+    if (data.memory_id) q = q.eq("memory_id", data.memory_id);
+    if (data.project_id) q = q.eq("project_id", data.project_id);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message ?? "list decisions failed");
+    return (rows ?? []) as IntelligenceDecisionRow[];
+  });
+
+export const recordIntelligenceDecision = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      memory_id: z.string().uuid().nullable().optional(),
+      project_id: z.string().uuid().nullable().optional(),
+      action: z.enum(["merge", "clean", "reject", "promote", "archive", "restore", "accept"]),
+      before_state: z.record(z.string(), z.any()).optional(),
+      after_state: z.record(z.string(), z.any()).optional(),
+      notes: z.string().max(2000).nullable().optional(),
+    }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true; id: string }> => {
+    await assertOpsOrAdmin(context);
+    const sb = context.supabase as any;
+    const email = ((context as any).claims?.email as string | null) ?? "system";
+    const { data: r, error } = await sb
+      .from("engine_intelligence_decisions")
+      .insert({
+        memory_id: data.memory_id ?? null,
+        project_id: data.project_id ?? null,
+        action: data.action,
+        actor_email: email,
+        before_state: data.before_state ?? {},
+        after_state: data.after_state ?? {},
+        notes: data.notes ?? null,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message ?? "record decision failed");
+    return { ok: true, id: r.id };
+  });
