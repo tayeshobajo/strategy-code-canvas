@@ -305,6 +305,15 @@ export const applyAgentTask = createServerFn({ method: "POST" })
           severity: "warn",
           affected_module: data.module,
         });
+        await sb.from("engine_audit_log").insert({
+          project_id: task.project_id,
+          actor_email: email,
+          action: "agent_pending_approval",
+          summary: `Agent proposal queued for ${data.module.replace(/_/g, " ")}. Awaits Tai's approval.`,
+          affected_modules: [data.module],
+          target_id: task.id,
+          metadata: { permission_level: level, task_id: task.id },
+        });
         return { ok: true, status: "pending_approval" };
       }
 
@@ -327,6 +336,17 @@ export const applyAgentTask = createServerFn({ method: "POST" })
         title: `Agent output applied to ${data.module.replace(/_/g, " ")}`,
         body: email ? `Applied by ${email}` : null,
         severity: "success",
+      });
+      await sb.from("engine_audit_log").insert({
+        project_id: task.project_id,
+        actor_email: email,
+        action: "agent_applied",
+        summary: `Applied agent output to ${data.module.replace(/_/g, " ")} draft. ${
+          data.force ? "Forced override." : `Permission: ${level}.`
+        }`,
+        affected_modules: [data.module],
+        target_id: task.id,
+        metadata: { permission_level: level, task_id: task.id, forced: data.force },
       });
       return { ok: true, status: "applied" };
     },
