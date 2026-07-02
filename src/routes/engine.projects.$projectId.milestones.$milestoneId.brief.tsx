@@ -615,11 +615,12 @@ function EditableMarkdown({
 }
 
 function EditablePrompt({
-  value, onSave, approved,
+  value, onSave, approved, approvedReason,
 }: {
   value: string;
   onSave: (v: string) => Promise<unknown>;
   approved: boolean;
+  approvedReason?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
