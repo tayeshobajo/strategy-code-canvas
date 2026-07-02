@@ -1257,6 +1257,11 @@ export type Database = {
           approved_by: string | null
           channel: string
           client: string
+          client_acknowledged_at: string | null
+          client_acknowledged_by_email: string | null
+          client_downloaded_at: string | null
+          client_portal_roadmap_id: string | null
+          client_viewed_at: string | null
           created_at: string
           id: string
           last_action: string | null
@@ -1273,6 +1278,11 @@ export type Database = {
           approved_by?: string | null
           channel?: string
           client: string
+          client_acknowledged_at?: string | null
+          client_acknowledged_by_email?: string | null
+          client_downloaded_at?: string | null
+          client_portal_roadmap_id?: string | null
+          client_viewed_at?: string | null
           created_at?: string
           id?: string
           last_action?: string | null
@@ -1289,6 +1299,11 @@ export type Database = {
           approved_by?: string | null
           channel?: string
           client?: string
+          client_acknowledged_at?: string | null
+          client_acknowledged_by_email?: string | null
+          client_downloaded_at?: string | null
+          client_portal_roadmap_id?: string | null
+          client_viewed_at?: string | null
           created_at?: string
           id?: string
           last_action?: string | null
@@ -1302,6 +1317,20 @@ export type Database = {
           version?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_delivery_items_client_portal_roadmap_id_fkey"
+            columns: ["client_portal_roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_roadmaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_delivery_items_client_portal_roadmap_id_fkey"
+            columns: ["client_portal_roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "portal_roadmaps_v"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "engine_delivery_items_project_id_fkey"
             columns: ["project_id"]
