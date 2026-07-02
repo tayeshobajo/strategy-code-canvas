@@ -15,6 +15,8 @@ import {
   getMilestoneBrief, updateMilestone, approveMilestone, sendMilestoneToTasks,
   regenerateMilestoneSection,
 } from "@/lib/engine-execution.functions";
+import { recordIntelligenceDecision } from "@/lib/engine-intelligence.functions";
+import { useEngineRole } from "@/hooks/useEngineRole";
 
 export const Route = createFileRoute("/engine/projects/$projectId/milestones/$milestoneId/brief")({
   component: MilestoneBriefPage,
