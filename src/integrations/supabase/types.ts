@@ -765,6 +765,8 @@ export type Database = {
       }
       engine_agent_tasks: {
         Row: {
+          applied_at: string | null
+          applied_module: string | null
           attached_source_ids: string[]
           confidence: number
           cost_cents: number
@@ -774,6 +776,7 @@ export type Database = {
           id: string
           kind: Database["public"]["Enums"]["engine_agent_task_kind"]
           output: string | null
+          pending_approval: boolean
           project_id: string
           prompt: string
           related_module: string | null
@@ -784,6 +787,8 @@ export type Database = {
           used_project_context: boolean
         }
         Insert: {
+          applied_at?: string | null
+          applied_module?: string | null
           attached_source_ids?: string[]
           confidence?: number
           cost_cents?: number
@@ -793,6 +798,7 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["engine_agent_task_kind"]
           output?: string | null
+          pending_approval?: boolean
           project_id: string
           prompt: string
           related_module?: string | null
@@ -803,6 +809,8 @@ export type Database = {
           used_project_context?: boolean
         }
         Update: {
+          applied_at?: string | null
+          applied_module?: string | null
           attached_source_ids?: string[]
           confidence?: number
           cost_cents?: number
@@ -812,6 +820,7 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["engine_agent_task_kind"]
           output?: string | null
+          pending_approval?: boolean
           project_id?: string
           prompt?: string
           related_module?: string | null
@@ -980,6 +989,9 @@ export type Database = {
           agent_safety_rules: Json
           agent_spend_month_cents: number
           agent_status: string
+          approved_at: string | null
+          approved_by_email: string | null
+          approved_snapshot: Json
           approved_version: string | null
           blueprint: Json
           client_id: string
@@ -1016,6 +1028,9 @@ export type Database = {
           agent_safety_rules?: Json
           agent_spend_month_cents?: number
           agent_status?: string
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_snapshot?: Json
           approved_version?: string | null
           blueprint?: Json
           client_id: string
@@ -1052,6 +1067,9 @@ export type Database = {
           agent_safety_rules?: Json
           agent_spend_month_cents?: number
           agent_status?: string
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_snapshot?: Json
           approved_version?: string | null
           blueprint?: Json
           client_id?: string
@@ -1098,6 +1116,7 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          parent_version_id: string | null
           payload: Json
           project_id: string
           source_ids: string[]
@@ -1112,6 +1131,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          parent_version_id?: string | null
           payload?: Json
           project_id: string
           source_ids?: string[]
@@ -1126,6 +1146,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          parent_version_id?: string | null
           payload?: Json
           project_id?: string
           source_ids?: string[]
@@ -1135,6 +1156,13 @@ export type Database = {
           version?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_roadmap_versions_parent_version_id_fkey"
+            columns: ["parent_version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "engine_roadmap_versions_project_id_fkey"
             columns: ["project_id"]
