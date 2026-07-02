@@ -186,13 +186,200 @@ function GlobalOperationsPage() {
 
       <SectionCard title="Global Controls">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <ControlCard icon={<PlusCircle className="w-4 h-4 text-royal" />} title="Create New Project Agent" hint="Spin up a new agent for a client project." />
+          <button
+            onClick={() => setWizardOpen(true)}
+            className="text-left rounded-lg border border-royal bg-royal/5 hover:bg-royal/10 p-4 transition-colors"
+          >
+            <div className="flex items-center gap-2 mb-1.5"><PlusCircle className="w-4 h-4 text-royal" /><div className="font-medium text-ink text-sm">Create New Project Agent</div></div>
+            <div className="text-xs text-ink/60">Spin up a new agent for a client project.</div>
+          </button>
           <ControlCard icon={<LayoutGrid className="w-4 h-4 text-royal" />} title="Agent Templates" hint="Manage global agent templates." />
           <ControlCard icon={<DollarSign className="w-4 h-4 text-royal" />} title="Model & Cost Settings" hint="Configure models and global cost rules." />
           <ControlCard icon={<ShieldCheck className="w-4 h-4 text-royal" />} title="Permission Policies" hint="Set default permissions and safety rules." />
           <ControlCard icon={<ClipboardList className="w-4 h-4 text-royal" />} title="Audit Log" hint="View all system and agent activity logs." />
         </div>
       </SectionCard>
+
+      {wizardOpen ? (
+        <CreateAgentWizard
+          onClose={() => setWizardOpen(false)}
+          onCreate={(agent) => {
+            setAgents((prev) => [agent, ...prev]);
+            setWizardOpen(false);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function CreateAgentWizard({ onClose, onCreate }: { onClose: () => void; onCreate: (a: Agent) => void }) {
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [name, setName] = useState("");
+  const [template, setTemplate] = useState(TEMPLATES[0].id);
+  const [model, setModel] = useState(MODELS[0].id);
+  const [budget, setBudget] = useState(100);
+  const [policy, setPolicy] = useState<(typeof POLICIES)[number]>("Draft only");
+
+  const canNext = step === 1 ? name.trim().length >= 2 : true;
+  const templateObj = TEMPLATES.find((t) => t.id === template)!;
+  const modelObj = MODELS.find((m) => m.id === model)!;
+
+  function submit() {
+    onCreate({
+      name: name.trim(),
+      status: "Draft",
+      health: "Healthy",
+      tasks: 0,
+      approval: "—",
+      spend: "$0.00",
+      budget: `$${budget.toFixed(2)}`,
+      used: 0,
+      last: "Just created",
+      template: templateObj.name,
+      model: modelObj.name,
+      policy,
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-xl border border-border shadow-lg max-w-xl w-full" onClick={(e) => e.stopPropagation()}>
+        <header className="flex items-center justify-between p-4 border-b border-border">
+          <div>
+            <div className="text-[10px] font-mono uppercase tracking-wider text-royal">Step {step} of 4</div>
+            <div className="font-display text-lg text-ink">Create Project Agent</div>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
+        </header>
+
+        <div className="p-5 space-y-4">
+          <div className="flex gap-1">
+            {[1, 2, 3, 4].map((s) => (
+              <div key={s} className={cn("flex-1 h-1 rounded-full", s <= step ? "bg-royal" : "bg-border")} />
+            ))}
+          </div>
+
+          {step === 1 ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-mono uppercase tracking-wider text-ink/60">Agent name</label>
+                <input
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Castle Vineyard"
+                  className="mt-1 w-full text-sm border border-border rounded-md p-2 focus:outline-none focus:border-royal"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-mono uppercase tracking-wider text-ink/60">Template</label>
+                <div className="mt-1 space-y-1.5">
+                  {TEMPLATES.map((t) => (
+                    <label key={t.id} className={cn("flex items-start gap-2 border rounded-md p-2.5 cursor-pointer hover:bg-paper-soft", template === t.id ? "border-royal bg-royal/5" : "border-border")}>
+                      <input type="radio" name="tpl" checked={template === t.id} onChange={() => setTemplate(t.id)} className="mt-1" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-ink">{t.name}</div>
+                        <div className="text-xs text-ink/60">{t.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {step === 2 ? (
+            <div className="space-y-2">
+              <label className="text-xs font-mono uppercase tracking-wider text-ink/60">Default model</label>
+              {MODELS.map((m) => (
+                <label key={m.id} className={cn("flex items-start gap-2 border rounded-md p-2.5 cursor-pointer hover:bg-paper-soft", model === m.id ? "border-royal bg-royal/5" : "border-border")}>
+                  <input type="radio" name="model" checked={model === m.id} onChange={() => setModel(m.id)} className="mt-1" />
+                  <div>
+                    <div className="text-sm font-medium text-ink">{m.name}</div>
+                    <div className="text-xs text-ink/60 font-mono">{m.cost}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          ) : null}
+
+          {step === 3 ? (
+            <div className="space-y-3">
+              <label className="text-xs font-mono uppercase tracking-wider text-ink/60">Monthly budget (USD)</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={25}
+                  max={500}
+                  step={25}
+                  value={budget}
+                  onChange={(e) => setBudget(Number(e.target.value))}
+                  className="flex-1"
+                />
+                <div className="w-20 text-right font-display text-2xl text-ink">${budget}</div>
+              </div>
+              <div className="text-xs text-ink/60">Agent auto-pauses when budget threshold is reached.</div>
+            </div>
+          ) : null}
+
+          {step === 4 ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-mono uppercase tracking-wider text-ink/60">Initial permission policy</label>
+                <div className="mt-1 space-y-1.5">
+                  {POLICIES.map((p) => (
+                    <label key={p} className={cn("flex items-start gap-2 border rounded-md p-2.5 cursor-pointer hover:bg-paper-soft", policy === p ? "border-royal bg-royal/5" : "border-border")}>
+                      <input type="radio" name="pol" checked={policy === p} onChange={() => setPolicy(p)} className="mt-1" />
+                      <div>
+                        <div className="text-sm font-medium text-ink">{p}</div>
+                        <div className="text-xs text-ink/60">
+                          {p === "Draft only" ? "Agent produces drafts. Nothing takes effect without you." :
+                            p === "Propose updates" ? "Agent can push proposed changes into the review queue." :
+                              "Agent can execute pre-approved action types. Highest trust — review carefully."}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-md bg-paper-soft border border-border p-3 text-xs space-y-1">
+                <div className="text-ink/60 font-mono uppercase tracking-wider text-[10px]">Summary</div>
+                <div><span className="text-ink/60">Name:</span> <span className="text-ink font-medium">{name || "—"}</span></div>
+                <div><span className="text-ink/60">Template:</span> <span className="text-ink">{templateObj.name}</span></div>
+                <div><span className="text-ink/60">Model:</span> <span className="text-ink">{modelObj.name}</span></div>
+                <div><span className="text-ink/60">Budget:</span> <span className="text-ink">${budget}/mo</span></div>
+                <div><span className="text-ink/60">Policy:</span> <span className="text-ink">{policy}</span></div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <footer className="flex justify-between p-4 border-t border-border">
+          <button
+            onClick={() => (step === 1 ? onClose() : setStep((s) => (s - 1) as 1 | 2 | 3))}
+            className="text-xs px-3 py-1.5 rounded border border-border text-ink/70 hover:bg-paper-soft"
+          >
+            {step === 1 ? "Cancel" : "Back"}
+          </button>
+          {step < 4 ? (
+            <button
+              onClick={() => canNext && setStep((s) => (s + 1) as 2 | 3 | 4)}
+              disabled={!canNext}
+              className="text-xs px-3 py-1.5 rounded bg-ink text-white hover:bg-ink/90 disabled:opacity-40"
+            >
+              Continue
+            </button>
+          ) : (
+            <button
+              onClick={submit}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-royal text-white hover:bg-royal/90"
+            >
+              <Check className="w-3 h-3" /> Create agent
+            </button>
+          )}
+        </footer>
+      </div>
     </div>
   );
 }
