@@ -532,13 +532,14 @@ function detectCleanActions(items: Item[]): CleanAction[] {
   return out;
 }
 
-function CleanOptimizeDialog({ items, onClose, onApply }: { items: Item[]; onClose: () => void; onApply: (next: Item[]) => void }) {
+function CleanOptimizeDialog({ items, onClose, onApply, pending }: { items: Item[]; onClose: () => void; onApply: (diff: BulkDiff) => void; pending?: boolean }) {
   const actions = useMemo(() => detectCleanActions(items), [items]);
   const [selected, setSelected] = useState<Set<string>>(new Set(actions.map((a) => a.item.id)));
 
   const apply = () => {
-    onApply(items.filter((it) => !selected.has(it.id)));
+    onApply({ removeIds: [...selected], inserts: [] });
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
