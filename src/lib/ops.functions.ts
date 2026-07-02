@@ -60,28 +60,20 @@ async function writeAudit(
 
 type OperatorContext = { operatorEmail: string };
 
-function requireOperatorContext(claims: Record<string, unknown> | undefined): OperatorContext {
-  // Sync guard used by existing call sites. Kept as an allowlist fast-path;
-  // DB-backed role check runs in `assertOperatorRole` below where a Supabase
-  // client is available.
-  const email = operatorEmailFromClaims(claims);
-  if (!email || !isOperatorEmail(email)) {
-    throw new Error("Forbidden: operator access required");
-  }
-  return { operatorEmail: email };
-}
-
-async function assertOperatorRole(
+async function requireOperatorContext(
   claims: Record<string, unknown> | undefined,
   supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> },
 ): Promise<OperatorContext> {
   const email = operatorEmailFromClaims(claims);
   if (!email) throw new Error("Forbidden: operator access required");
-  const ok = await hasRoleForEmail(supabase, email, "operator");
+  // Sync allowlist fast-path; DB check is authoritative for anyone else.
+  if (isOperatorEmail(email)) return { operatorEmail: email };
+  const ok =
+    (await hasRoleForEmail(supabase, email, "operator")) ||
+    (await hasRoleForEmail(supabase, email, "admin"));
   if (!ok) throw new Error("Forbidden: operator access required");
   return { operatorEmail: email };
 }
-void assertOperatorRole;
 
 // ---------------------------------------------------------------------------
 // Queue list + stats
