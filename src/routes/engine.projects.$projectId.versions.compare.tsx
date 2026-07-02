@@ -284,12 +284,18 @@ function VersionComparePage() {
               onClick={() => {
                 const next: Record<string, "accept"> = {};
                 modules.forEach((m: any) => m.changes.forEach((_c: any, i: number) => {
-                  if (_c.impact !== "high") next[`${m.key}-${i}`] = "accept";
+                  const id = `${m.key}-${i}`;
+                  if (_c.impact !== "high" && decisions[id] !== "accept") {
+                    next[id] = "accept";
+                    if (draft?.id) recordMut.mutate({ module_key: m.key, change_id: id, decision: "accept" });
+                  }
                 }));
                 setDecisions((prev) => ({ ...prev, ...next }));
               }}
-              className="mt-3 w-full text-xs border border-royal text-royal rounded-md py-2 hover:bg-royal/5"
+              disabled={!draft?.id}
+              className="mt-3 w-full text-xs border border-royal text-royal rounded-md py-2 hover:bg-royal/5 disabled:opacity-50"
             >Accept all safe changes</button>
+
           </div>
         </aside>
       </div>
