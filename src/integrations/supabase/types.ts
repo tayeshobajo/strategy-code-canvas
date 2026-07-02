@@ -1046,6 +1046,103 @@ export type Database = {
         }
         Relationships: []
       }
+      engine_delivery_history: {
+        Row: {
+          actor: string | null
+          at: string
+          delivery_id: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string
+        }
+        Insert: {
+          actor?: string | null
+          at?: string
+          delivery_id: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status: string
+        }
+        Update: {
+          actor?: string | null
+          at?: string
+          delivery_id?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_delivery_history_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "engine_delivery_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_delivery_items: {
+        Row: {
+          approved_by: string | null
+          channel: string
+          client: string
+          created_at: string
+          id: string
+          last_action: string | null
+          prepared_by: string | null
+          project_id: string | null
+          recipient: string | null
+          recipient_role: string | null
+          roadmap: string
+          status: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          approved_by?: string | null
+          channel?: string
+          client: string
+          created_at?: string
+          id?: string
+          last_action?: string | null
+          prepared_by?: string | null
+          project_id?: string | null
+          recipient?: string | null
+          recipient_role?: string | null
+          roadmap: string
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          approved_by?: string | null
+          channel?: string
+          client?: string
+          created_at?: string
+          id?: string
+          last_action?: string | null
+          prepared_by?: string | null
+          project_id?: string | null
+          recipient?: string | null
+          recipient_role?: string | null
+          roadmap?: string
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_delivery_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_milestones: {
         Row: {
           acceptance_criteria: Json
@@ -1143,6 +1240,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "engine_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_project_agents: {
+        Row: {
+          approval_pct: number | null
+          created_at: string
+          health: string
+          id: string
+          last_active_at: string | null
+          model: string | null
+          monthly_budget_cents: number
+          name: string
+          policy: string
+          project_id: string | null
+          spend_month_cents: number
+          status: string
+          tasks_count: number
+          template: string | null
+          updated_at: string
+        }
+        Insert: {
+          approval_pct?: number | null
+          created_at?: string
+          health?: string
+          id?: string
+          last_active_at?: string | null
+          model?: string | null
+          monthly_budget_cents?: number
+          name: string
+          policy?: string
+          project_id?: string | null
+          spend_month_cents?: number
+          status?: string
+          tasks_count?: number
+          template?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approval_pct?: number | null
+          created_at?: string
+          health?: string
+          id?: string
+          last_active_at?: string | null
+          model?: string | null
+          monthly_budget_cents?: number
+          name?: string
+          policy?: string
+          project_id?: string | null
+          spend_month_cents?: number
+          status?: string
+          tasks_count?: number
+          template?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_agents_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "engine_projects"
@@ -1309,6 +1468,103 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "engine_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_review_audit: {
+        Row: {
+          action: string
+          actor: string | null
+          at: string
+          id: string
+          item_type: string
+          project: string
+          reason: string | null
+          review_item_id: string | null
+          routed_to: string | null
+          title: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          at?: string
+          id?: string
+          item_type: string
+          project: string
+          reason?: string | null
+          review_item_id?: string | null
+          routed_to?: string | null
+          title: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          at?: string
+          id?: string
+          item_type?: string
+          project?: string
+          reason?: string | null
+          review_item_id?: string | null
+          routed_to?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_review_audit_review_item_id_fkey"
+            columns: ["review_item_id"]
+            isOneToOne: false
+            referencedRelation: "engine_review_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_review_items: {
+        Row: {
+          created_at: string
+          id: string
+          impact: string
+          item_type: string
+          project: string
+          project_id: string | null
+          requested_by: string | null
+          source: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          impact?: string
+          item_type: string
+          project: string
+          project_id?: string | null
+          requested_by?: string | null
+          source?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          impact?: string
+          item_type?: string
+          project?: string
+          project_id?: string | null
+          requested_by?: string | null
+          source?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_review_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
         ]
