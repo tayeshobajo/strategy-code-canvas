@@ -142,13 +142,22 @@ function IntelligenceLayerPage() {
           </div>
         </div>
 
-        <InputHub projectId={projectId} sources={sources} onChange={() => sourcesQ.refetch()} />
-        <ProcessingTimeline running={runMut.isPending} />
+        <InputHub
+          projectId={projectId}
+          sources={sources}
+          onChange={() => sourcesQ.refetch()}
+        />
+        <ProcessingTimeline running={runMut.isPending} sources={sources} />
         <ChangeDetection changes={changes} onResolve={() => changesQ.refetch()} />
         <VersionsTable
           versions={versions}
-          onRefresh={() => versionsQ.refetch()}
+          projectId={projectId}
+          onRefresh={() => {
+            versionsQ.refetch();
+            auditQ.refetch();
+          }}
         />
+        <AuditLogSection rows={auditRows} loading={auditQ.isLoading} onRefresh={() => auditQ.refetch()} />
       </div>
 
       {/* Right rail */}
