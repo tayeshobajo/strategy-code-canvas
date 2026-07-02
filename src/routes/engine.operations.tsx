@@ -337,8 +337,15 @@ function CreateAgentWizard({ onClose }: { onClose: () => void }) {
                 <div><span className="text-ink/60">Policy:</span> <span className="text-ink">{policy}</span></div>
               </div>
               {create.error ? (
-                <div className="text-xs text-[#a4283c] bg-[#fbe9ec] border border-[#f3ced5] rounded p-2">
-                  {(create.error as Error).message}
+                <div className="text-xs text-[#a4283c] bg-[#fbe9ec] border border-[#f3ced5] rounded p-2 flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-medium">Couldn't create agent</div>
+                    <div className="text-[#a4283c]/80">{(create.error as Error).message}</div>
+                  </div>
+                  <button onClick={() => create.mutate()} disabled={create.isPending}
+                    className="shrink-0 text-[11px] px-2 py-1 rounded border border-[#a4283c] text-[#a4283c] hover:bg-white disabled:opacity-40">
+                    Retry
+                  </button>
                 </div>
               ) : null}
             </div>
