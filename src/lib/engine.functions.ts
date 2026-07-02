@@ -331,6 +331,28 @@ export const getProject = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .single();
     if (error) throw new Error((error as { message?: string }).message ?? "not found");
+    const project = p as {
+      id: string;
+      name: string;
+      client_id: string;
+      status: EngineProjectStatus;
+      current_step: string;
+      roadmap_version: string | null;
+      approved_version: string | null;
+      agent_status: string;
+      agent_budget_monthly_cents: number;
+      agent_spend_month_cents: number;
+      open_decisions: number;
+      next_action: string | null;
+      last_activity_at: string;
+      engine_clients: {
+        company: string;
+        industry: string | null;
+        owner_email: string | null;
+        primary_contact: string | null;
+        notes: string | null;
+      } | null;
+    };
 
     const { data: datesData } = await (context.supabase as unknown as {
       from: (t: string) => {
@@ -381,7 +403,7 @@ export const getProject = createServerFn({ method: "GET" })
       .limit(10);
 
     return {
-      project: p,
+      project,
       dates: (datesData ?? []) as Array<{ id: string; label: string; due_on: string; kind: string }>,
       signals: (signalData ?? []) as Array<{
         id: string;

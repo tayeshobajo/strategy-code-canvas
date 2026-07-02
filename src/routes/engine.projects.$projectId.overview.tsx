@@ -35,27 +35,32 @@ function ProjectOverview() {
   if (isLoading) return <div className="text-ink/50 text-sm">Loading…</div>;
   if (error) return <div className="text-red-700 text-sm">{(error as Error).message}</div>;
   if (!data) return null;
-
-  const p = data.project as {
-    id: string;
-    name: string;
-    status: EngineProjectStatus;
-    current_step: string;
-    roadmap_version: string | null;
-    approved_version: string | null;
-    agent_status: string;
-    agent_budget_monthly_cents: number;
-    agent_spend_month_cents: number;
-    open_decisions: number;
-    next_action: string | null;
-    engine_clients: {
-      company: string;
-      industry: string | null;
-      owner_email: string | null;
-      primary_contact: string | null;
-      notes: string | null;
-    } | null;
+  const d = data as {
+    project: {
+      id: string;
+      name: string;
+      status: EngineProjectStatus;
+      current_step: string;
+      roadmap_version: string | null;
+      approved_version: string | null;
+      agent_status: string;
+      agent_budget_monthly_cents: number;
+      agent_spend_month_cents: number;
+      open_decisions: number;
+      next_action: string | null;
+      engine_clients: {
+        company: string;
+        industry: string | null;
+        owner_email: string | null;
+        primary_contact: string | null;
+        notes: string | null;
+      } | null;
+    };
+    dates: Array<{ id: string; label: string; due_on: string; kind: string }>;
+    signals: Array<{ id: string; source: string | null; summary: string; received_at: string; triaged: boolean }>;
+    activity: Array<{ id: string; kind: string; title: string; body: string | null; severity: string; created_at: string }>;
   };
+  const p = d.project;
 
   const activeStep = STEPS.findIndex((s) => s.key === p.current_step);
 

@@ -46,7 +46,14 @@ export const Route = createFileRoute("/engine")({
   component: EngineLayout,
 });
 
-const NAV = [
+type NavItem = {
+  to: "/engine" | "/engine/projects" | "/engine/templates" | "/engine/review" | "/engine/delivery" | "/engine/execution" | "/engine/operations" | "/engine/intelligence";
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+};
+
+const NAV: NavItem[] = [
   { to: "/engine", label: "Command Center", icon: LayoutDashboard, exact: true },
   { to: "/engine/projects", label: "Projects", icon: FolderKanban },
   { to: "/engine/templates", label: "Templates", icon: FileStack },
@@ -55,7 +62,7 @@ const NAV = [
   { to: "/engine/execution", label: "Execution Tracker", icon: Activity },
   { to: "/engine/operations", label: "Global Operations", icon: Globe2 },
   { to: "/engine/intelligence", label: "Intelligence Memory", icon: BrainCircuit },
-] as const;
+];
 
 function EngineLayout() {
   const navigate = useNavigate();

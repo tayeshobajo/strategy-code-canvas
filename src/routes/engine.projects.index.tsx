@@ -77,7 +77,7 @@ function ProjectsPage() {
         {FILTERS.map((f) => (
           <button
             key={f.value}
-            onClick={() => navigate({ search: (prev) => ({ ...prev, filter: f.value }) })}
+            onClick={() => navigate({ search: (prev: { filter: string; q: string }) => ({ ...prev, filter: f.value }) })}
             className={`px-3 py-1.5 rounded-full text-xs border transition ${
               filter === f.value
                 ? "bg-ink text-white border-ink"
@@ -89,7 +89,7 @@ function ProjectsPage() {
         ))}
         <input
           value={q}
-          onChange={(e) => navigate({ search: (prev) => ({ ...prev, q: e.target.value }) })}
+          onChange={(e) => navigate({ search: (prev: { filter: string; q: string }) => ({ ...prev, q: e.target.value }) })}
           placeholder="Search client or project…"
           className="ml-auto px-3 py-1.5 rounded-md border border-border bg-card text-sm w-64"
         />
