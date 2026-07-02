@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
-import { Database, Link2, Lightbulb, Calendar, Clock, Gauge, Download, Upload, GitMerge, Sparkles, MoreHorizontal } from "lucide-react";
+import { Database, Link2, Lightbulb, Calendar, Clock, Gauge, Download, Upload, GitMerge, Sparkles, MoreHorizontal, X } from "lucide-react";
 
 export const Route = createFileRoute("/engine/intelligence")({
   component: IntelligenceMemoryPage,
