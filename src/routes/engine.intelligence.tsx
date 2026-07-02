@@ -341,28 +341,7 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
                       <div className="text-xs text-ink/60">Similarity ~{Math.round(c.similarity * 100)}%</div>
                     </div>
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-                    <div className="p-3 border-r border-border">
-                      <div className="text-[10px] font-mono uppercase tracking-wider text-[#a4283c] mb-2">Before ({c.items.length})</div>
-                      <ul className="space-y-2">
-                        {c.items.map((it) => (
-                          <li key={it.id} className="text-xs border border-border rounded p-2 bg-white">
-                            <div className="font-medium text-ink">{it.title}</div>
-                            <div className="text-ink/60">{it.summary}</div>
-                            <div className="text-ink/50 mt-1">Confidence {it.confidence}% · {it.tags.join(", ")}</div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="p-3 bg-[#f5fbf7]">
-                      <div className="text-[10px] font-mono uppercase tracking-wider text-[#1f6b3b] mb-2">After (1 merged)</div>
-                      <div className="text-xs border border-[#c4e6d2] rounded p-2 bg-white">
-                        <div className="font-medium text-ink">{merged.title}</div>
-                        <div className="text-ink/60">{merged.summary}</div>
-                        <div className="text-ink/50 mt-1">Confidence {merged.confidence}% · {merged.tags.join(", ")}</div>
-                      </div>
-                    </div>
-                  </div>
+                  <DiffPanel before={c.items} after={merged} />
                 </div>
               );
             })
