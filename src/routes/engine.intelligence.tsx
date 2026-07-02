@@ -1,12 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
-import { Database, Link2, Lightbulb, Calendar, Clock, Gauge, Download, Upload, GitMerge, Sparkles, MoreHorizontal, X } from "lucide-react";
+import { Database, Link2, Lightbulb, Calendar, Clock, Gauge, Download, Upload, GitMerge, Sparkles, MoreHorizontal, X, RefreshCw, Plus } from "lucide-react";
+import {
+  listIntelligenceMemory,
+  bulkReplaceIntelligenceMemory,
+  upsertIntelligenceMemory,
+  type MemoryRow,
+} from "@/lib/engine-intelligence.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/engine/intelligence")({
   component: IntelligenceMemoryPage,
 });
+
 
 type MemType = "Client Truth" | "Insight" | "Decision" | "Requirement" | "Opportunity" | "Constraint" | "Risk" | "Preference";
 
