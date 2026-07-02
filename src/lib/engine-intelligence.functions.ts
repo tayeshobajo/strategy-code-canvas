@@ -91,6 +91,8 @@ export const createSource = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message ?? "create source failed");
+    // Fire-and-forget: extract signals so the new source populates.
+    processSingleSource(sb, row.id).catch(() => null);
     return { id: row.id };
   });
 
@@ -108,16 +110,102 @@ export const removeSource = createServerFn({ method: "POST" })
 export const reprocessSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
-  .handler(async ({ context, data }): Promise<{ ok: true }> => {
+  .handler(async ({ context, data }): Promise<{ ok: true; signals: number; confidence: number }> => {
     await assertAdmin(context);
     const sb = context.supabase as any;
-    const { error } = await sb
-      .from("engine_sources")
-      .update({ status: "queued", error: null })
-      .eq("id", data.id);
-    if (error) throw new Error(error.message ?? "reprocess failed");
-    return { ok: true };
+    const r = await processSingleSource(sb, data.id);
+    return { ok: true, signals: r.signals, confidence: r.confidence };
   });
+
+/**
+ * Per-source pipeline. Reads the source content (raw_text, URL fetch, or
+ * downloaded file), asks the AI for structured signals, and updates the row
+ * with `signals_count`, `confidence`, and status transitions.
+ */
+async function processSingleSource(
+  sb: any,
+  sourceId: string,
+): Promise<{ signals: number; confidence: number }> {
+  await sb.from("engine_sources").update({ status: "processing", error: null }).eq("id", sourceId);
+  const { data: src } = await sb
+    .from("engine_sources")
+    .select("id,project_id,name,type,url,raw_text,storage_path")
+    .eq("id", sourceId)
+    .single();
+  if (!src) throw new Error("Source not found");
+
+  let content = src.raw_text ?? "";
+  try {
+    if (!content && src.url) {
+      const res = await fetch(src.url);
+      const t = await res.text();
+      content = t.slice(0, 60_000);
+      await sb.from("engine_sources").update({ raw_text: content }).eq("id", sourceId);
+    }
+    if (!content && src.storage_path) {
+      const { data: dl } = await sb.storage.from("engine-signals").download(src.storage_path);
+      if (dl) {
+        try {
+          content = (await dl.text()).slice(0, 60_000);
+          if (content) await sb.from("engine_sources").update({ raw_text: content }).eq("id", sourceId);
+        } catch {
+          content = `[binary asset ${src.name}]`;
+        }
+      }
+    }
+  } catch (e: any) {
+    await sb.from("engine_sources").update({ status: "failed", error: e?.message ?? "fetch failed" }).eq("id", sourceId);
+    throw e;
+  }
+
+  if (!content) {
+    await sb
+      .from("engine_sources")
+      .update({ status: "processed", signals_count: 0, confidence: 30 })
+      .eq("id", sourceId);
+    return { signals: 0, confidence: 30 };
+  }
+
+  try {
+    const { callLovableAi, parseJsonOutput } = await import("@/lib/engine-ai.server");
+    const ai = await callLovableAi(
+      [
+        {
+          role: "system",
+          content:
+            "Extract concrete business signals from source material for a client roadmap. Return strict JSON only. Never invent. Confidence 0-100 reflects how much signal is present.",
+        },
+        {
+          role: "user",
+          content: `SOURCE: ${src.name} (${src.type})\n\n${content.slice(0, 30_000)}\n\nReturn JSON:\n{\n  "signals": [ { "text": "", "module": "point_a|point_b|hidden_assets|gap_map|blueprint|roadmap|deadlines|investment|client_preview", "importance": "low|medium|high" } ],\n  "confidence": 0\n}`,
+        },
+      ],
+      { json: true, temperature: 0.2 },
+    );
+    type Sig = { signals?: Array<{ text: string; module: string; importance?: string }>; confidence?: number };
+    const parsed = parseJsonOutput<Sig>(ai.text) ?? { signals: [], confidence: 40 };
+    const count = parsed.signals?.length ?? 0;
+    const confidence = Math.min(100, Math.max(0, parsed.confidence ?? 40));
+    await sb.from("engine_sources").update({ status: "processed", signals_count: count, confidence }).eq("id", sourceId);
+    // Persist extracted signals as change events so they surface in the timeline.
+    for (const s of (parsed.signals ?? []).slice(0, 25)) {
+      await sb.from("engine_change_events").insert({
+        project_id: src.project_id,
+        kind: "new_info",
+        title: s.text.slice(0, 200),
+        body: `From: ${src.name}`,
+        severity: s.importance === "high" ? "warn" : "info",
+        affected_module: s.module ?? null,
+        source_id: src.id,
+      });
+    }
+    return { signals: count, confidence };
+  } catch (e: any) {
+    await sb.from("engine_sources").update({ status: "failed", error: e?.message ?? "ai failed" }).eq("id", sourceId);
+    throw e;
+  }
+}
+
 
 /* ============================================================
  * Versions
