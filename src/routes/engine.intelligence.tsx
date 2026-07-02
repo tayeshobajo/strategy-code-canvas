@@ -9,6 +9,8 @@ import {
   listIntelligenceMemory,
   bulkReplaceIntelligenceMemory,
   upsertIntelligenceMemory,
+  listIntelligenceDecisions,
+  recordIntelligenceDecision,
   type MemoryRow,
 } from "@/lib/engine-intelligence.functions";
 import { toast } from "sonner";
