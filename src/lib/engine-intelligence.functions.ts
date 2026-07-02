@@ -1265,8 +1265,8 @@ export type IntelligenceDecisionRow = {
   project_id: string | null;
   action: "merge" | "clean" | "reject" | "promote" | "archive" | "restore" | "accept";
   actor_email: string;
-  before_state: Record<string, unknown>;
-  after_state: Record<string, unknown>;
+  before_state: any;
+  after_state: any;
   notes: string | null;
   created_at: string;
 };

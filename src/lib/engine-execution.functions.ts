@@ -1012,7 +1012,7 @@ export const regenerateMilestoneSection = createServerFn({ method: "POST" })
       instructions: z.string().max(2000).optional(),
     }).parse(raw),
   )
-  .handler(async ({ context, data }): Promise<{ ok: true; value: unknown }> => {
+  .handler(async ({ context, data }): Promise<{ ok: true; value: any }> => {
     await assertAdmin(context);
     const sb = context.supabase as any;
     const email = (context as any).claims?.email ?? null;
