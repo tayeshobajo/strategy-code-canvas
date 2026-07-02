@@ -95,15 +95,15 @@ describe("hasRoleForEmail (allowlist + DB)", () => {
     expect(m.calls[0].args).toEqual({ _email: "mixed@case.com", _role: "user" });
   });
 
-  it("does not treat allow-listed operator as admin (role scoped)", async () => {
-    // Allow-list applies per-role. tai@ is on the operator list; asking for
-    // admin should still fall back to DB.
+  it("scopes allow-list checks by role and delegates unknown emails to DB", async () => {
+    // Not on either allowlist: falls back to DB.
     const m = mockClient({ data: false, error: null });
-    const ok = await hasRoleForEmail(m.supabase, "henry@trusttai.com", "admin");
-    expect(ok).toBe(false); // hello@ is admin, henry@ is operator only
-    // hello@ short-circuits true for admin
+    expect(await hasRoleForEmail(m.supabase, "stranger@example.com", "admin")).toBe(false);
+    expect(m.calls[0].args).toEqual({ _email: "stranger@example.com", _role: "admin" });
+    // hello@ short-circuits true for admin without a DB hit.
     const m2 = mockClient({ data: false, error: null });
     expect(await hasRoleForEmail(m2.supabase, "hello@trusttai.com", "admin")).toBe(true);
+    expect(m2.supabase.rpc).not.toHaveBeenCalled();
   });
 
   it("returns false for the 'user' role unless DB confirms", async () => {
