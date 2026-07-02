@@ -604,11 +604,12 @@ function CleanOptimizeDialog({ items, onClose, onApply, pending }: { items: Item
             <button onClick={onClose} className="text-xs px-3 py-1.5 rounded border border-border text-ink/70">Cancel</button>
             <button
               onClick={apply}
-              disabled={selected.size === 0}
+              disabled={selected.size === 0 || pending}
               className="text-xs px-3 py-1.5 rounded bg-[#a4283c] text-white hover:bg-[#8a2033] disabled:opacity-40"
             >
-              Remove {selected.size} item{selected.size === 1 ? "" : "s"}
+              {pending ? "Removing…" : `Remove ${selected.size} item${selected.size === 1 ? "" : "s"}`}
             </button>
+
           </div>
         </footer>
       </div>
