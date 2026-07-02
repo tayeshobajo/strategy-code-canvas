@@ -98,6 +98,13 @@ export type Database = {
             referencedRelation: "client_portal_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "client_portal_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
         ]
       }
       client_portal_billing: {
@@ -166,10 +173,19 @@ export type Database = {
             referencedRelation: "client_portal_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "client_portal_billing_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
         ]
       }
       client_portal_files: {
         Row: {
+          approved_at: string | null
+          approved_by_email: string | null
           bucket_id: string
           category: string
           client_visible: boolean
@@ -189,6 +205,8 @@ export type Database = {
           uploaded_by_role: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by_email?: string | null
           bucket_id?: string
           category?: string
           client_visible?: boolean
@@ -208,6 +226,8 @@ export type Database = {
           uploaded_by_role?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by_email?: string | null
           bucket_id?: string
           category?: string
           client_visible?: boolean
@@ -239,6 +259,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
             referencedColumns: ["id"]
           },
         ]
@@ -303,6 +330,13 @@ export type Database = {
             referencedRelation: "client_portal_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "client_portal_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
         ]
       }
       client_portal_onboarding: {
@@ -362,6 +396,13 @@ export type Database = {
             referencedRelation: "client_portal_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "client_portal_onboarding_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
         ]
       }
       client_portal_permissions: {
@@ -416,6 +457,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_permissions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
             referencedColumns: ["id"]
           },
         ]
@@ -540,6 +588,7 @@ export type Database = {
           share_url: string | null
           source_review_id: string | null
           source_submission_id: string | null
+          source_version_id: string | null
           status: string
           strategic_priorities: Json
           supporting_notes: string | null
@@ -570,6 +619,7 @@ export type Database = {
           share_url?: string | null
           source_review_id?: string | null
           source_submission_id?: string | null
+          source_version_id?: string | null
           status?: string
           strategic_priorities?: Json
           supporting_notes?: string | null
@@ -600,6 +650,7 @@ export type Database = {
           share_url?: string | null
           source_review_id?: string | null
           source_submission_id?: string | null
+          source_version_id?: string | null
           status?: string
           strategic_priorities?: Json
           supporting_notes?: string | null
@@ -616,10 +667,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "client_portal_roadmaps_one_pager_file_id_fkey"
+            columns: ["one_pager_file_id"]
+            isOneToOne: false
+            referencedRelation: "portal_files_v"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "client_portal_roadmaps_pdf_file_id_fkey"
             columns: ["pdf_file_id"]
             isOneToOne: false
             referencedRelation: "client_portal_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_pdf_file_id_fkey"
+            columns: ["pdf_file_id"]
+            isOneToOne: false
+            referencedRelation: "portal_files_v"
             referencedColumns: ["id"]
           },
           {
@@ -630,10 +695,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "client_portal_roadmaps_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "client_portal_roadmaps_roadmap_document_id_fkey"
             columns: ["roadmap_document_id"]
             isOneToOne: false
             referencedRelation: "roadmap_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_source_version_id_fkey"
+            columns: ["source_version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -2543,7 +2622,302 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      portal_activity_v: {
+        Row: {
+          actor_type: string | null
+          created_at: string | null
+          event_type: string | null
+          id: string | null
+          project_id: string | null
+          summary: string | null
+        }
+        Insert: {
+          actor_type?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          id?: string | null
+          project_id?: string | null
+          summary?: string | null
+        }
+        Update: {
+          actor_type?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          id?: string | null
+          project_id?: string | null
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_files_v: {
+        Row: {
+          bucket_id: string | null
+          category: string | null
+          created_at: string | null
+          file_name: string | null
+          file_type: string | null
+          id: string | null
+          linked_roadmap_document_id: string | null
+          mime_type: string | null
+          project_id: string | null
+          size_bytes: number | null
+          storage_path: string | null
+          updated_at: string | null
+          uploaded_by_role: string | null
+        }
+        Insert: {
+          bucket_id?: string | null
+          category?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          id?: string | null
+          linked_roadmap_document_id?: string | null
+          mime_type?: string | null
+          project_id?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          updated_at?: string | null
+          uploaded_by_role?: string | null
+        }
+        Update: {
+          bucket_id?: string | null
+          category?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          id?: string | null
+          linked_roadmap_document_id?: string | null
+          mime_type?: string | null
+          project_id?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          updated_at?: string | null
+          uploaded_by_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_files_linked_roadmap_document_id_fkey"
+            columns: ["linked_roadmap_document_id"]
+            isOneToOne: false
+            referencedRelation: "roadmap_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_project_v: {
+        Row: {
+          access_granted_at: string | null
+          access_revoked_at: string | null
+          company_name: string | null
+          contact_name: string | null
+          created_at: string | null
+          current_phase: string | null
+          id: string | null
+          last_client_activity_at: string | null
+          next_milestone: string | null
+          next_milestone_due_at: string | null
+          package_name: string | null
+          payment_status: string | null
+          portal_status: string | null
+          primary_email: string | null
+          purchase_date: string | null
+          scheduling_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_granted_at?: string | null
+          access_revoked_at?: string | null
+          company_name?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          current_phase?: string | null
+          id?: string | null
+          last_client_activity_at?: string | null
+          next_milestone?: string | null
+          next_milestone_due_at?: string | null
+          package_name?: string | null
+          payment_status?: string | null
+          portal_status?: string | null
+          primary_email?: string | null
+          purchase_date?: string | null
+          scheduling_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_granted_at?: string | null
+          access_revoked_at?: string | null
+          company_name?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          current_phase?: string | null
+          id?: string | null
+          last_client_activity_at?: string | null
+          next_milestone?: string | null
+          next_milestone_due_at?: string | null
+          package_name?: string | null
+          payment_status?: string | null
+          portal_status?: string | null
+          primary_email?: string | null
+          purchase_date?: string | null
+          scheduling_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      portal_roadmaps_v: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by_email: string | null
+          approved_at: string | null
+          created_at: string | null
+          current_diagnosis: string | null
+          current_focus: string | null
+          executive_summary: string | null
+          id: string | null
+          next_meeting_at: string | null
+          next_milestone: string | null
+          one_pager_file_id: string | null
+          owner_name: string | null
+          pdf_file_id: string | null
+          project_id: string | null
+          recommended_next_move: string | null
+          risks_dependencies: Json | null
+          sequence_30_60_90: Json | null
+          share_url: string | null
+          status: string | null
+          strategic_priorities: Json | null
+          supporting_notes: string | null
+          title: string | null
+          updated_at: string | null
+          version_label: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by_email?: string | null
+          approved_at?: string | null
+          created_at?: string | null
+          current_diagnosis?: string | null
+          current_focus?: string | null
+          executive_summary?: string | null
+          id?: string | null
+          next_meeting_at?: string | null
+          next_milestone?: string | null
+          one_pager_file_id?: string | null
+          owner_name?: string | null
+          pdf_file_id?: string | null
+          project_id?: string | null
+          recommended_next_move?: string | null
+          risks_dependencies?: Json | null
+          sequence_30_60_90?: Json | null
+          share_url?: string | null
+          status?: string | null
+          strategic_priorities?: Json | null
+          supporting_notes?: string | null
+          title?: string | null
+          updated_at?: string | null
+          version_label?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by_email?: string | null
+          approved_at?: string | null
+          created_at?: string | null
+          current_diagnosis?: string | null
+          current_focus?: string | null
+          executive_summary?: string | null
+          id?: string | null
+          next_meeting_at?: string | null
+          next_milestone?: string | null
+          one_pager_file_id?: string | null
+          owner_name?: string | null
+          pdf_file_id?: string | null
+          project_id?: string | null
+          recommended_next_move?: string | null
+          risks_dependencies?: Json | null
+          sequence_30_60_90?: Json | null
+          share_url?: string | null
+          status?: string | null
+          strategic_priorities?: Json | null
+          supporting_notes?: string | null
+          title?: string | null
+          updated_at?: string | null
+          version_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_roadmaps_one_pager_file_id_fkey"
+            columns: ["one_pager_file_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_one_pager_file_id_fkey"
+            columns: ["one_pager_file_id"]
+            isOneToOne: false
+            referencedRelation: "portal_files_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_pdf_file_id_fkey"
+            columns: ["pdf_file_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_pdf_file_id_fkey"
+            columns: ["pdf_file_id"]
+            isOneToOne: false
+            referencedRelation: "portal_files_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_grant_role: {
