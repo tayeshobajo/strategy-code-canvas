@@ -827,3 +827,171 @@ function RiskList({ items }: { items: any[] }) {
     </ul>
   );
 }
+
+// -- Structured list editor (Dependencies / Risks / Decisions) -----------
+type StructuredFieldDef = {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "select" | "number";
+  options?: string[];
+  placeholder?: string;
+};
+
+function StructuredListEditor({
+  fieldLabel,
+  fields,
+  items,
+  disabled,
+  disabledReason,
+  onSave,
+  onAccept,
+  onReject,
+  canDecide,
+  decideDeniedReason,
+  readOnlyIfNoField = false,
+}: {
+  fieldLabel: string;
+  fields: StructuredFieldDef[];
+  items: any[];
+  disabled: boolean;
+  disabledReason?: string;
+  onSave: (next: any[]) => Promise<unknown>;
+  onAccept: (item: any, index: number) => void | Promise<void>;
+  onReject: (item: any, index: number) => void | Promise<void>;
+  canDecide: boolean;
+  decideDeniedReason: string;
+  readOnlyIfNoField?: boolean;
+}) {
+  const normalized = useMemo<any[]>(
+    () => items.map((it) => (it && typeof it === "object" ? { ...it } : { value: String(it ?? "") })),
+    [items],
+  );
+  const [rows, setRows] = useState<any[]>(normalized);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [decidedIdx, setDecidedIdx] = useState<Record<number, "accept" | "reject">>({});
+  useEffect(() => { setRows(normalized); setDirty(false); setDecidedIdx({}); }, [normalized]);
+
+  const update = (i: number, key: string, v: unknown) => {
+    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [key]: v } : r)));
+    setDirty(true);
+  };
+  const addRow = () => {
+    const blank: any = {};
+    for (const f of fields) blank[f.key] = f.type === "number" ? 0 : "";
+    setRows((prev) => [...prev, blank]);
+    setDirty(true);
+  };
+  const removeRow = (i: number) => {
+    setRows((prev) => prev.filter((_, idx) => idx !== i));
+    setDirty(true);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await onSave(rows);
+      toast.success(`${fieldLabel}s saved`);
+      setDirty(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Save failed");
+    } finally { setSaving(false); }
+  };
+
+  const decide = async (i: number, kind: "accept" | "reject") => {
+    if (!canDecide) { toast.error(decideDeniedReason); return; }
+    const it = rows[i];
+    try {
+      if (kind === "accept") await onAccept(it, i); else await onReject(it, i);
+      setDecidedIdx((prev) => ({ ...prev, [i]: kind }));
+    } catch { /* toasts handled upstream */ }
+  };
+
+  if (readOnlyIfNoField && rows.length === 0 && disabled) {
+    return <div className="text-sm text-ink/50">No {fieldLabel.toLowerCase()}s recorded.</div>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <ul className="space-y-3">
+        {rows.map((row, i) => {
+          const decided = decidedIdx[i];
+          return (
+            <li key={i} className={`rounded-md border ${decided === "accept" ? "border-[#a7d3b7] bg-[#f4faf6]" : decided === "reject" ? "border-[#f3ced5] bg-[#fdf5f7]" : "border-border bg-white"} p-3`}>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink/50">{fieldLabel} #{i + 1}{decided ? ` · ${decided}ed` : ""}</div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => decide(i, "accept")}
+                    disabled={!canDecide}
+                    title={!canDecide ? decideDeniedReason : "Record accept in audit ledger"}
+                    className="text-[11px] border border-[#a7d3b7] text-[#1f6b3b] rounded px-2 py-0.5 hover:bg-[#e6f4ec] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >Accept</button>
+                  <button
+                    onClick={() => decide(i, "reject")}
+                    disabled={!canDecide}
+                    title={!canDecide ? decideDeniedReason : "Record reject in audit ledger"}
+                    className="text-[11px] border border-[#f3ced5] text-[#a4283c] rounded px-2 py-0.5 hover:bg-[#fbe9ec] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >Reject</button>
+                  <button
+                    onClick={() => removeRow(i)}
+                    disabled={disabled}
+                    title={disabled ? disabledReason : "Remove item"}
+                    className="text-ink/40 hover:text-[#a4283c] p-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Remove"
+                  ><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {fields.map((f) => {
+                  const val = row[f.key] ?? "";
+                  const common = "w-full text-sm border border-border rounded px-2 py-1.5 bg-white disabled:bg-paper-soft disabled:text-ink/60";
+                  return (
+                    <label key={f.key} className={f.type === "textarea" ? "sm:col-span-2 flex flex-col gap-1" : "flex flex-col gap-1"}>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink/50">{f.label}</span>
+                      {f.type === "textarea" ? (
+                        <textarea value={val} rows={2} disabled={disabled} onChange={(e) => update(i, f.key, e.target.value)} placeholder={f.placeholder} className={common} />
+                      ) : f.type === "select" ? (
+                        <select value={val} disabled={disabled} onChange={(e) => update(i, f.key, e.target.value)} className={common}>
+                          <option value="">—</option>
+                          {(f.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      ) : f.type === "number" ? (
+                        <input type="number" value={val} disabled={disabled} onChange={(e) => update(i, f.key, Number(e.target.value))} className={common} />
+                      ) : (
+                        <input type="text" value={val} disabled={disabled} onChange={(e) => update(i, f.key, e.target.value)} placeholder={f.placeholder} className={common} />
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </li>
+          );
+        })}
+        {rows.length === 0 && <li className="text-sm text-ink/50">No {fieldLabel.toLowerCase()}s yet.</li>}
+      </ul>
+      <div className="flex items-center gap-2 pt-2 border-t border-border">
+        <button
+          onClick={addRow}
+          disabled={disabled}
+          title={disabled ? disabledReason : `Add a ${fieldLabel.toLowerCase()}`}
+          className="inline-flex items-center gap-1 text-xs text-royal hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+        ><Plus className="w-3 h-3" /> Add {fieldLabel.toLowerCase()}</button>
+        {dirty && (
+          <>
+            <button
+              onClick={save}
+              disabled={saving || disabled}
+              title={disabled ? disabledReason : ""}
+              className="text-xs bg-royal text-white rounded-md px-3 py-1.5 hover:bg-royal/90 disabled:opacity-60 inline-flex items-center gap-1 disabled:cursor-not-allowed"
+            ><Save className="w-3 h-3" /> {saving ? "Saving…" : "Save changes"}</button>
+            <button onClick={() => { setRows(normalized); setDirty(false); }} className="text-xs text-ink/60 hover:text-ink">Discard</button>
+          </>
+        )}
+        {!canDecide && (
+          <span className="ml-auto text-[11px] text-ink/50" title={decideDeniedReason}>Accept/Reject disabled</span>
+        )}
+      </div>
+    </div>
+  );
+}
