@@ -86,9 +86,9 @@ export function exportClientRoadmapPdf(project: WorkspaceProject) {
   y += 4;
   kicker("Point B · Where we're going");
   para(point_b["24_month_destination"] ?? "—");
-  if (point_b["10_year_position"]) {
-    para(`Ten-year position: ${point_b["10_year_position"]}`, 10, MUTED);
-  }
+  // NOTE: `10_year_position` is internal-only long-range planning and is
+  // intentionally NOT included in the client-facing PDF. Do not add it back
+  // without an approved client-safe replacement field.
   rule();
 
   kicker("Phased roadmap");
@@ -110,6 +110,10 @@ export function exportClientRoadmapPdf(project: WorkspaceProject) {
 
   kicker("Milestones");
   roadmap.forEach((m, i) => {
+    // Skip milestones that have no explicit client-facing copy — never fall
+    // back to the internal `purpose` field, which can contain internal notes,
+    // risks, or unapproved framing.
+    if (!m.client_facing) return;
     ensure(40);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
@@ -117,7 +121,7 @@ export function exportClientRoadmapPdf(project: WorkspaceProject) {
     doc.text(`${i + 1}. ${m.name}`, margin, y);
     y += 14;
     if (m.phase) para(m.phase, 9, MUTED);
-    if (m.client_facing ?? m.purpose) para((m.client_facing ?? m.purpose)!);
+    para(m.client_facing);
   });
   rule();
 
