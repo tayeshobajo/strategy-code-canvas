@@ -29,9 +29,10 @@ function CostCenterPage() {
     queryFn: () => fn({ data: { projectId } }),
   });
   const d = q.data as any;
-  const totals = d?.totals ?? { totalSpend: 0, monthSpend: 0, budget: 0, remaining: 0, projected: 0, costPerApproved: 0, unusedDraftCost: 0, approvedOutputs: 0, rejectedOutputs: 0, draftOutputs: 0, tasksCreated: 0 };
+  const totals = d?.totals ?? { totalSpend: 0, monthSpend: 0, budget: 0, remaining: 0, projected: 0, costPerApproved: 0, unusedDraftCost: 0, approvedOutputs: 0, rejectedOutputs: 0, draftOutputs: 0, tasksCreated: 0, unattributedCents: 0 };
   const timeline = (d?.timeline ?? []).map((t: any) => ({ ...t, dollars: t.cents / 100 }));
   const categories = d?.spendByCategory ?? [];
+  const milestones = d?.spendByMilestone ?? [];
   const recent = d?.recent ?? [];
 
   const budgetPct = totals.budget > 0 ? Math.round((totals.monthSpend / totals.budget) * 100) : 0;
