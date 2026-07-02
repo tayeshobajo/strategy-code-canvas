@@ -402,32 +402,43 @@ function CleanOptimizeDialog({ items, onClose, onApply }: { items: Item[]; onClo
           {actions.length === 0 ? (
             <div className="text-center py-10 text-ink/50 text-sm">Memory is already clean.</div>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {actions.map((a) => {
                 const isSel = selected.has(a.item.id);
                 return (
-                  <li key={a.item.id} className={cn("border rounded-lg p-3", isSel ? "border-[#a4283c] bg-[#fbe9ec]/40" : "border-border")}>
-                    <label className="flex items-start gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isSel}
+                  <li key={a.item.id} className={cn("border rounded-lg overflow-hidden", isSel ? "border-[#a4283c]" : "border-border")}>
+                    <label className="flex items-center gap-2 p-3 bg-paper-soft border-b border-border cursor-pointer">
+                      <input type="checkbox" checked={isSel}
                         onChange={(e) => {
                           const next = new Set(selected);
                           if (e.target.checked) next.add(a.item.id); else next.delete(a.item.id);
                           setSelected(next);
-                        }}
-                        className="mt-1"
-                      />
+                        }} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono uppercase tracking-wider text-[#a4283c]">Remove</span>
-                          <span className="text-[10px] bg-[#fbe9ec] border border-[#f3ced5] rounded px-1.5 py-0.5 text-[#a4283c]">{a.reason}</span>
-                        </div>
-                        <div className="text-sm font-medium text-ink mt-1 line-through opacity-60">{a.item.title}</div>
-                        <div className="text-xs text-ink/60 line-through opacity-60">{a.item.summary}</div>
-                        <div className="text-[10px] text-ink/50 mt-1">{a.item.project} · {a.item.type} · Confidence {a.item.confidence}%</div>
+                        <div className="text-sm font-medium text-ink">{a.item.title}</div>
+                        <div className="text-xs text-ink/60">{a.item.project} · <span className="text-[#a4283c]">{a.reason}</span></div>
                       </div>
                     </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+                      <div className="p-3 border-r border-border">
+                        <div className="text-[10px] font-mono uppercase tracking-wider text-ink/60 mb-2">Before (kept)</div>
+                        <div className="text-xs border border-border rounded p-2 bg-white space-y-0.5">
+                          <div><span className="text-ink/50 font-mono text-[10px]">TITLE</span><div className="text-ink font-medium">{a.item.title}</div></div>
+                          <div><span className="text-ink/50 font-mono text-[10px]">SUMMARY</span><div className="text-ink/70">{a.item.summary}</div></div>
+                          <div className="flex gap-3"><span><span className="text-ink/50 font-mono text-[10px]">CONF</span> <span className="text-ink">{a.item.confidence}%</span></span>
+                            <span><span className="text-ink/50 font-mono text-[10px]">TAGS</span> <span className="text-ink">{a.item.tags.join(", ")}</span></span></div>
+                          <div><span className="text-ink/50 font-mono text-[10px]">USED IN</span> <span className="text-ink">{a.item.usedIn}</span></div>
+                        </div>
+                      </div>
+                      <div className="p-3 bg-[#fbe9ec]/40">
+                        <div className="text-[10px] font-mono uppercase tracking-wider text-[#a4283c] mb-2">After (removed)</div>
+                        <div className="text-xs border border-[#f3ced5] border-dashed rounded p-2 bg-white/50 text-ink/40">
+                          <div className="line-through">{a.item.title}</div>
+                          <div className="line-through">{a.item.summary}</div>
+                          <div className="mt-2 text-[#a4283c] font-mono uppercase tracking-wider text-[10px] not-italic">✕ Item deleted from memory</div>
+                        </div>
+                      </div>
+                    </div>
                   </li>
                 );
               })}
