@@ -19,6 +19,8 @@ import {
   CheckCircle2,
   Archive,
   GitCompare,
+  RotateCcw,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
@@ -30,6 +32,8 @@ import {
   listVersions,
   approveVersion,
   archiveVersion,
+  compareVersions,
+  restoreVersion,
   listChangeEvents,
   resolveChangeEvent,
   runIntelligencePipeline,
@@ -596,10 +600,49 @@ function VersionsTable({
 }) {
   const approveFn = useServerFn(approveVersion);
   const archiveFn = useServerFn(archiveVersion);
+  const restoreFn = useServerFn(restoreVersion);
+  const compareFn = useServerFn(compareVersions);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [diff, setDiff] = useState<any | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const toggle = (id: string) => {
+    setSelected((s) =>
+      s.includes(id) ? s.filter((x) => x !== id) : s.length >= 2 ? [s[1], id] : [...s, id],
+    );
+  };
+  const runCompare = async () => {
+    if (selected.length !== 2) {
+      toast.error("Pick two versions to compare.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await compareFn({ data: { aId: selected[0], bId: selected[1] } });
+      setDiff(res);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <SectionCard
       title={<span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-ink/60" />Roadmap Versions</span>}
-      right={<span>{versions.length} total</span>}
+      right={
+        <div className="flex items-center gap-2">
+          <span>{versions.length} total</span>
+          <button
+            disabled={selected.length !== 2 || busy}
+            onClick={runCompare}
+            className="text-xs inline-flex items-center gap-1 border border-border rounded px-2 py-1 disabled:opacity-40 hover:bg-ink/5"
+          >
+            <GitCompare className="w-3.5 h-3.5" />
+            Compare ({selected.length}/2)
+          </button>
+        </div>
+      }
     >
       {versions.length === 0 ? (
         <EmptyState title="No versions yet" hint="Run the intelligence update to draft v0.1." />
@@ -608,6 +651,7 @@ function VersionsTable({
           <table className="w-full text-sm">
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.18em] text-ink/50 border-b border-border">
+                <th className="w-6"></th>
                 <th className="text-left py-2">Version</th>
                 <th className="text-left">Status</th>
                 <th className="text-left">Created by</th>
@@ -621,6 +665,13 @@ function VersionsTable({
             <tbody>
               {versions.map((v) => (
                 <tr key={v.id} className="border-b border-border/60">
+                  <td className="py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(v.id)}
+                      onChange={() => toggle(v.id)}
+                    />
+                  </td>
                   <td className="py-2.5 font-mono text-ink">{v.version}</td>
                   <td>
                     <VersionStatus status={v.status} />
@@ -636,21 +687,45 @@ function VersionsTable({
                         <button
                           onClick={async () => {
                             if (!confirm(`Approve version ${v.version}? This locks the roadmap.`)) return;
-                            const r = (await approveFn({ data: { id: v.id } })) as any;
-                            toast.success(`Version ${r.version} approved`);
-                            onRefresh();
+                            try {
+                              const r = (await approveFn({ data: { id: v.id } })) as any;
+                              toast.success(`Version ${r.version} approved`);
+                              onRefresh();
+                            } catch (e) {
+                              toast.error((e as Error).message);
+                            }
                           }}
                           className="text-xs bg-ink text-white rounded px-2 py-1 hover:bg-ink/90"
                         >
                           Approve
                         </button>
                       ) : null}
-                      {v.status !== "archived" ? (
+                      <button
+                        title="Restore as new draft"
+                        onClick={async () => {
+                          if (!confirm(`Restore ${v.version} as a new draft?`)) return;
+                          try {
+                            const r = (await restoreFn({ data: { id: v.id } })) as any;
+                            toast.success(`Restored as ${r.version}`);
+                            onRefresh();
+                          } catch (e) {
+                            toast.error((e as Error).message);
+                          }
+                        }}
+                        className="p-1 hover:bg-ink/5 rounded"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                      {v.status !== "archived" && v.status !== "approved" ? (
                         <button
                           title="Archive"
                           onClick={async () => {
-                            await archiveFn({ data: { id: v.id } });
-                            onRefresh();
+                            try {
+                              await archiveFn({ data: { id: v.id } });
+                              onRefresh();
+                            } catch (e) {
+                              toast.error((e as Error).message);
+                            }
                           }}
                           className="p-1 hover:bg-ink/5 rounded"
                         >
@@ -665,9 +740,55 @@ function VersionsTable({
           </table>
         </div>
       )}
+      {diff ? <VersionDiffModal diff={diff} onClose={() => setDiff(null)} /> : null}
     </SectionCard>
   );
 }
+
+function VersionDiffModal({ diff, onClose }: { diff: any; onClose: () => void }) {
+  const changed = diff.diffs.filter((d: any) => d.changed);
+  return (
+    <div className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg border border-border shadow-xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="text-sm">
+            <span className="font-mono text-ink">{diff.a.version}</span>
+            <span className="text-ink/40 mx-2">→</span>
+            <span className="font-mono text-ink">{diff.b.version}</span>
+            <span className="text-ink/50 ml-3 text-xs">
+              {changed.length} of {diff.diffs.length} modules differ
+            </span>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-ink/5 rounded">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="overflow-auto p-4 space-y-4">
+          {changed.length === 0 ? (
+            <div className="text-sm text-ink/60">These versions are identical across tracked modules.</div>
+          ) : (
+            changed.map((d: any) => (
+              <div key={d.module} className="border border-border rounded overflow-hidden">
+                <div className="text-[11px] uppercase tracking-wider bg-ink/5 px-3 py-1.5 text-ink/70">
+                  {d.module.replace(/_/g, " ")}
+                </div>
+                <div className="grid grid-cols-2 text-xs font-mono">
+                  <pre className="p-3 bg-red-50/40 whitespace-pre-wrap break-words border-r border-border max-h-72 overflow-auto">
+                    {d.a || "(empty)"}
+                  </pre>
+                  <pre className="p-3 bg-green-50/40 whitespace-pre-wrap break-words max-h-72 overflow-auto">
+                    {d.b || "(empty)"}
+                  </pre>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function VersionStatus({ status }: { status: string }) {
   const map: Record<string, string> = {

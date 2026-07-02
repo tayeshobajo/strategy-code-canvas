@@ -91,6 +91,8 @@ export const createSource = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message ?? "create source failed");
+    // Fire-and-forget: extract signals so the new source populates.
+    processSingleSource(sb, row.id).catch(() => null);
     return { id: row.id };
   });
 
@@ -108,16 +110,102 @@ export const removeSource = createServerFn({ method: "POST" })
 export const reprocessSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
-  .handler(async ({ context, data }): Promise<{ ok: true }> => {
+  .handler(async ({ context, data }): Promise<{ ok: true; signals: number; confidence: number }> => {
     await assertAdmin(context);
     const sb = context.supabase as any;
-    const { error } = await sb
-      .from("engine_sources")
-      .update({ status: "queued", error: null })
-      .eq("id", data.id);
-    if (error) throw new Error(error.message ?? "reprocess failed");
-    return { ok: true };
+    const r = await processSingleSource(sb, data.id);
+    return { ok: true, signals: r.signals, confidence: r.confidence };
   });
+
+/**
+ * Per-source pipeline. Reads the source content (raw_text, URL fetch, or
+ * downloaded file), asks the AI for structured signals, and updates the row
+ * with `signals_count`, `confidence`, and status transitions.
+ */
+async function processSingleSource(
+  sb: any,
+  sourceId: string,
+): Promise<{ signals: number; confidence: number }> {
+  await sb.from("engine_sources").update({ status: "processing", error: null }).eq("id", sourceId);
+  const { data: src } = await sb
+    .from("engine_sources")
+    .select("id,project_id,name,type,url,raw_text,storage_path")
+    .eq("id", sourceId)
+    .single();
+  if (!src) throw new Error("Source not found");
+
+  let content = src.raw_text ?? "";
+  try {
+    if (!content && src.url) {
+      const res = await fetch(src.url);
+      const t = await res.text();
+      content = t.slice(0, 60_000);
+      await sb.from("engine_sources").update({ raw_text: content }).eq("id", sourceId);
+    }
+    if (!content && src.storage_path) {
+      const { data: dl } = await sb.storage.from("engine-signals").download(src.storage_path);
+      if (dl) {
+        try {
+          content = (await dl.text()).slice(0, 60_000);
+          if (content) await sb.from("engine_sources").update({ raw_text: content }).eq("id", sourceId);
+        } catch {
+          content = `[binary asset ${src.name}]`;
+        }
+      }
+    }
+  } catch (e: any) {
+    await sb.from("engine_sources").update({ status: "failed", error: e?.message ?? "fetch failed" }).eq("id", sourceId);
+    throw e;
+  }
+
+  if (!content) {
+    await sb
+      .from("engine_sources")
+      .update({ status: "processed", signals_count: 0, confidence: 30 })
+      .eq("id", sourceId);
+    return { signals: 0, confidence: 30 };
+  }
+
+  try {
+    const { callLovableAi, parseJsonOutput } = await import("@/lib/engine-ai.server");
+    const ai = await callLovableAi(
+      [
+        {
+          role: "system",
+          content:
+            "Extract concrete business signals from source material for a client roadmap. Return strict JSON only. Never invent. Confidence 0-100 reflects how much signal is present.",
+        },
+        {
+          role: "user",
+          content: `SOURCE: ${src.name} (${src.type})\n\n${content.slice(0, 30_000)}\n\nReturn JSON:\n{\n  "signals": [ { "text": "", "module": "point_a|point_b|hidden_assets|gap_map|blueprint|roadmap|deadlines|investment|client_preview", "importance": "low|medium|high" } ],\n  "confidence": 0\n}`,
+        },
+      ],
+      { json: true, temperature: 0.2 },
+    );
+    type Sig = { signals?: Array<{ text: string; module: string; importance?: string }>; confidence?: number };
+    const parsed = parseJsonOutput<Sig>(ai.text) ?? { signals: [], confidence: 40 };
+    const count = parsed.signals?.length ?? 0;
+    const confidence = Math.min(100, Math.max(0, parsed.confidence ?? 40));
+    await sb.from("engine_sources").update({ status: "processed", signals_count: count, confidence }).eq("id", sourceId);
+    // Persist extracted signals as change events so they surface in the timeline.
+    for (const s of (parsed.signals ?? []).slice(0, 25)) {
+      await sb.from("engine_change_events").insert({
+        project_id: src.project_id,
+        kind: "new_info",
+        title: s.text.slice(0, 200),
+        body: `From: ${src.name}`,
+        severity: s.importance === "high" ? "warn" : "info",
+        affected_module: s.module ?? null,
+        source_id: src.id,
+      });
+    }
+    return { signals: count, confidence };
+  } catch (e: any) {
+    await sb.from("engine_sources").update({ status: "failed", error: e?.message ?? "ai failed" }).eq("id", sourceId);
+    throw e;
+  }
+}
+
 
 /* ============================================================
  * Versions
@@ -167,16 +255,37 @@ export const approveVersion = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const sb = context.supabase as any;
     const email = (context as any).claims?.email ?? null;
+
+    // Guard: block approving if any critical change_event is still unresolved.
+    const { data: openCritical } = await sb
+      .from("engine_change_events")
+      .select("id")
+      .eq("project_id", (await sb.from("engine_roadmap_versions").select("project_id").eq("id", data.id).single()).data?.project_id)
+      .eq("severity", "critical")
+      .is("resolved_at", null);
+    if ((openCritical ?? []).length) {
+      throw new Error("Resolve open critical change events before approving.");
+    }
+
     const { data: v, error } = await sb
       .from("engine_roadmap_versions")
       .update({ status: "approved", approved_by: email, approved_at: new Date().toISOString() })
       .eq("id", data.id)
-      .select("project_id, version")
+      .select("id, project_id, version, payload")
       .single();
     if (error) throw new Error(error.message ?? "approve failed");
+
+    // Snapshot the approved payload immutably on the project so any further
+    // draft edits do not touch the last approved state.
     await sb
       .from("engine_projects")
-      .update({ approved_version: v.version, roadmap_version: v.version })
+      .update({
+        approved_version: v.version,
+        roadmap_version: v.version,
+        approved_snapshot: v.payload ?? {},
+        approved_at: new Date().toISOString(),
+        approved_by_email: email,
+      })
       .eq("id", v.project_id);
     await sb.from("engine_activity").insert({
       project_id: v.project_id,
@@ -188,12 +297,21 @@ export const approveVersion = createServerFn({ method: "POST" })
     return { ok: true, version: v.version };
   });
 
+
 export const archiveVersion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     await assertAdmin(context);
     const sb = context.supabase as any;
+    const { data: v } = await sb
+      .from("engine_roadmap_versions")
+      .select("status")
+      .eq("id", data.id)
+      .single();
+    if (v?.status === "approved") {
+      throw new Error("Cannot archive the currently approved version. Approve a newer draft first.");
+    }
     const { error } = await sb
       .from("engine_roadmap_versions")
       .update({ status: "archived" })
@@ -201,6 +319,122 @@ export const archiveVersion = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message ?? "archive failed");
     return { ok: true };
   });
+
+/* ============================================================
+ * Compare two versions module by module. Returns a per-module diff
+ * shaped for the UI: which modules changed, which are identical.
+ * ============================================================ */
+
+export const compareVersions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ aId: z.string().uuid(), bId: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { data: rows } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,version,status,payload,created_by,created_at")
+      .in("id", [data.aId, data.bId]);
+    const a = (rows ?? []).find((r: any) => r.id === data.aId);
+    const b = (rows ?? []).find((r: any) => r.id === data.bId);
+    if (!a || !b) throw new Error("Version(s) not found");
+
+    const modules = [
+      "extraction",
+      "point_a",
+      "point_b",
+      "hidden_assets",
+      "gap_map",
+      "blueprint",
+      "roadmap",
+      "sequencing",
+      "deadlines",
+      "investment",
+      "client_preview",
+    ];
+    const diffs = modules.map((m) => {
+      const av = a.payload?.[m];
+      const bv = b.payload?.[m];
+      const aStr = av ? JSON.stringify(av, null, 2) : "";
+      const bStr = bv ? JSON.stringify(bv, null, 2) : "";
+      return { module: m, changed: aStr !== bStr, a: aStr, b: bStr };
+    });
+    return { a, b, diffs };
+  });
+
+/* ============================================================
+ * Restore: create a new draft version from an older payload and
+ * repoint project drafts to it. Approved snapshot is untouched.
+ * ============================================================ */
+
+export const restoreVersion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }): Promise<{ ok: true; version: string }> => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+    const { data: src } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,project_id,version,payload,summary")
+      .eq("id", data.id)
+      .single();
+    if (!src) throw new Error("Version not found");
+
+    const { data: proj } = await sb
+      .from("engine_projects")
+      .select("roadmap_version,approved_version")
+      .eq("id", src.project_id)
+      .single();
+    const nextVersion = bumpVersion(proj?.roadmap_version ?? proj?.approved_version ?? null);
+
+    const { data: v, error } = await sb
+      .from("engine_roadmap_versions")
+      .insert({
+        project_id: src.project_id,
+        version: nextVersion,
+        status: "tai_edited",
+        created_by: email ?? "tai",
+        source_ids: [],
+        summary: `Restored from ${src.version}. ${src.summary ?? ""}`.trim(),
+        payload: src.payload,
+        parent_version_id: src.id,
+      })
+      .select("id,version")
+      .single();
+    if (error) throw new Error(error.message ?? "restore failed");
+
+    // Repoint draft module state without touching approved_snapshot.
+    const moduleUpdates: Record<string, any> = { roadmap_version: nextVersion };
+    for (const k of [
+      "extraction",
+      "point_a",
+      "point_b",
+      "hidden_assets",
+      "gap_map",
+      "blueprint",
+      "roadmap",
+      "sequencing",
+      "deadlines",
+      "investment",
+      "client_preview",
+    ]) {
+      if (src.payload?.[k]) moduleUpdates[k] = src.payload[k];
+    }
+    await sb.from("engine_projects").update(moduleUpdates).eq("id", src.project_id);
+
+    await sb.from("engine_activity").insert({
+      project_id: src.project_id,
+      kind: "version_restored",
+      title: `Restored ${src.version} as draft ${nextVersion}`,
+      body: email ? `By ${email}` : null,
+      severity: "info",
+    });
+    return { ok: true, version: v.version };
+  });
+
 
 /* ============================================================
  * Change events
