@@ -4,12 +4,30 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { systemPromptFor, type AgentTaskKind } from "@/lib/engine-agent-prompts";
+import { assertActionAllowed } from "@/lib/engine-execution.functions";
 
 async function assertAdmin(context: any) {
   const email = (context.claims?.email as string | undefined) ?? undefined;
   const ok = await hasRoleForEmail(context.supabase, email, "admin");
   if (!ok) throw new Error("Forbidden: admin role required");
 }
+
+// Map an agent task kind to a permission action key so the permissions matrix
+// (draft_only / propose_updates / execute_approved + blocked/needs_approval)
+// gates every generation call.
+const KIND_TO_ACTION: Record<string, string> = {
+  milestone_brief: "generate_milestone_briefs",
+  acceptance_criteria: "create_acceptance_criteria",
+  lovable_prompt: "draft_developer_prompts",
+  qa_checklist: "generate_milestone_briefs",
+  missing_decisions: "generate_milestone_briefs",
+  update_from_source: "update_roadmap_drafts",
+  version_compare: "compare_versions",
+  risk_estimate: "generate_milestone_briefs",
+  client_summary: "prepare_client_facing_copy",
+  free_form: "generate_milestone_briefs",
+};
+
 
 export type EngineAgentTask = {
   id: string;
