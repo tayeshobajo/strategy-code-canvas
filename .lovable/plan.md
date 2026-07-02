@@ -1,80 +1,90 @@
-## Project Roadmap Workspace — 14-step build
+## Goal
 
-Build the per-project workspace at `/engine/projects/$projectId/overview` (existing route) plus 13 sibling step pages, all sharing a workspace layout with breadcrumb + horizontal stepper. Steps stay scoped to the project — not in the global sidebar.
+Two new workspace pages per project, tied together by an "AI drafts, Tai reviews, approved versions stay locked" workflow:
 
-### Route structure
+1. `/engine/projects/$projectId/intelligence-layer` — Input Hub, AI Processing Timeline, Auto-Populated Outputs, Change Detection, Roadmap Versions.
+2. `/engine/projects/$projectId/agent` — Project Agent Console with prompt input, suggested prompts, recent agent outputs, and an Agent Control right rail.
 
-Convert the current `engine.projects.$projectId.overview.tsx` into a nested layout with per-step children:
+Everything is admin-only (matches existing `/engine` gating). Existing 14-step workspace stays intact; the new pages sit alongside it and drive the same JSONB modules already on `engine_projects`.
 
-```
-src/routes/
-  engine.projects.$projectId.tsx              (workspace layout: header, breadcrumb, stepper, <Outlet/>)
-  engine.projects.$projectId.overview.tsx     (Project Overview — step 0 / command center)
-  engine.projects.$projectId.intelligence.tsx (1)
-  engine.projects.$projectId.signal-room.tsx  (2)
-  engine.projects.$projectId.extraction.tsx   (3)
-  engine.projects.$projectId.point-a.tsx      (4)
-  engine.projects.$projectId.point-b.tsx      (5)
-  engine.projects.$projectId.hidden-assets.tsx(6)
-  engine.projects.$projectId.gap-map.tsx      (7)
-  engine.projects.$projectId.blueprint.tsx    (8)
-  engine.projects.$projectId.builder.tsx      (9)
-  engine.projects.$projectId.sequencing.tsx   (10)
-  engine.projects.$projectId.deadlines.tsx    (11)
-  engine.projects.$projectId.investment.tsx   (12)
-  engine.projects.$projectId.preview.tsx      (13)
-  engine.projects.$projectId.delivery.tsx     (14)
-```
+## Data model (new tables)
 
-Layout renders: breadcrumb (`Projects / <Client> / Roadmap Workspace / <Step>`), project header strip (client, status, health, progress, signals count, Project Settings), and a horizontal 14-step stepper with checkmark / active / numbered states linking to each sibling route. Sticky on scroll.
+All in `public`, admin-only RLS via `has_role(auth.uid(), 'admin')`, standard grants (`authenticated`, `service_role`), `updated_at` triggers.
 
-### Data model (migration)
+- `engine_sources` — the Input Hub row.
+  - `project_id`, `name`, `type` (enum: `transcript | brief | website_url | document | screenshot | email_note | research_note | competitor_url | previous_roadmap`), `storage_path` (nullable, uses existing private `engine-signals` bucket), `url` (nullable), `raw_text` (nullable), `status` (`queued | processing | processed | failed`), `signals_count`, `confidence` (0-100), `used_in_version` (nullable text), `error`, timestamps.
+- `engine_roadmap_versions` — versioned snapshot of the 12 JSONB modules on `engine_projects`.
+  - `project_id`, `version` (e.g. `v1.2`), `status` (`ai_generated | draft | needs_review | tai_edited | approved | client_facing | delivered | archived`), `created_by` (`ai | tai`), `source_ids` (uuid[]), `summary`, `payload` (jsonb snapshot of all 12 modules), `approved_by`, `approved_at`, timestamps. Unique `(project_id, version)`.
+- `engine_change_events` — Change Detection feed.
+  - `project_id`, `kind` (`new_info | conflict | opportunity | risk | deadline_change | scope_change | investment_impact | client_copy_affected`), `title`, `body`, `severity` (`info | warn | critical`), `source_id` (nullable), `version_id` (nullable), `resolved_at`, timestamps.
+- `engine_agent_tasks` — Recent agent outputs and console history.
+  - `project_id`, `kind` (`milestone_brief | acceptance_criteria | lovable_prompt | missing_decisions | update_from_source | version_compare | risk_estimate | client_summary | qa_checklist | free_form`), `prompt`, `output` (text), `related_module` (nullable text like `builder`, `blueprint`), `confidence`, `cost_cents`, `status` (`draft | applied | saved_as_task | rejected`), `created_by_email`, timestamps.
+- Extend `engine_projects` with agent-control fields: `agent_permission_level` (`draft_only | propose_updates | execute_approved`, default `propose_updates`), `agent_safety_rules` (jsonb), `agent_allowed_modules` (text[]).
 
-Add per-step JSONB storage on `engine_projects` so v1 works without 14 new tables:
+Add `WORKSPACE_STEPS` entries for the two new routes and hide the old `intelligence` stub row (or replace it — see Open Question).
 
-- `signal_room jsonb`, `extraction jsonb`, `point_a jsonb`, `point_b jsonb`, `hidden_assets jsonb`, `gap_map jsonb`, `blueprint jsonb`, `roadmap jsonb`, `sequencing jsonb`, `deadlines jsonb`, `investment jsonb`, `client_preview jsonb`, `delivery jsonb`
-- `current_step smallint default 1`, `progress_pct smallint default 0`
-- Seed the Mental Dental Academy row with realistic content matching the reference screenshot (Point A: 12 diagnosis cards; deadlines Oct 1 2025 + Jan 1 2026; blueprint node list; 3 investment phases)
+## Server functions (`src/lib/engine.functions.ts`)
 
-Admin-only RLS (reuse existing pattern on `engine_projects`).
+All admin-gated via `requireSupabaseAuth` + `has_role` check.
 
-### Server functions (`src/lib/engine.functions.ts`)
+- Sources: `listSources`, `createSource` (URL/notes), `uploadSourceFile` (returns signed upload target in `engine-signals`), `reprocessSource`, `removeSource`.
+- Processing: `runIntelligencePipeline(projectId)` — calls Lovable AI (`google/gemini-3-flash-preview`) with the project's unprocessed sources + current module state, returns a structured draft for each of the 12 modules + a change-event list. Streams stage updates into `engine_activity` so the UI Timeline can subscribe.
+- Versions: `listVersions`, `createDraftVersion(payload, sourceIds, summary)`, `applyUpdatesToDraft(moduleKey)`, `approveVersion(versionId)` (locks; bumps `engine_projects.approved_version`), `restoreVersion`, `archiveVersion`, `compareVersions(a, b)`.
+- Change events: `listChangeEvents`, `resolveChangeEvent`.
+- Agent: `listAgentTasks`, `runAgentPrompt({ kind, prompt, useProjectContext, attachedSourceIds })` — dispatches to Lovable AI with a kind-specific system prompt; writes an `engine_agent_tasks` row; tracks `cost_cents` from usage; `applyAgentTask`, `saveAgentTaskAsTask`, `rejectAgentTask`.
+- Agent control: `updateAgentPermissions`, `updateAgentBudget`.
 
-- `getProjectWorkspace({ projectId })` — returns project + all step JSON blobs + step completion booleans
-- `updateProjectStep({ projectId, step, data })` — admin-gated writer per step
-- `advanceProjectStep({ projectId, step })` — sets `current_step`, recomputes progress
+Approval law enforced server-side: any write to a module JSONB only lands in the current `draft` version. `approved` versions are immutable; `approveVersion` copies draft into a new approved snapshot and updates `engine_projects.approved_version`. Client Preview and Delivery read from the approved snapshot.
 
-### Page contents (all admin-gated, editable via forms; read-only when no data yet)
+## UI
 
-1. **Project Overview** — command-center grid matching spec: status, roadmap version, approved version, agent status, critical dates, health score, open decisions, modules needing review, latest source, next best action, recent activity feed, and 4 shortcut cards (Intelligence, Builder, Preview, Delivery).
-2. **Signal Room** — tabbed input surfaces for Transcript / Brief / URL / Uploads / Notes / Screenshots / Research / Previous roadmap.
-3. **Signal Extraction** — 10 extracted categories rendered as editable cards.
-4. **Point A Diagnosis** — 6 lens cards on top row (Business Stage, Primary Model, Core Audience, Revenue Model, Current Tech, Active Students) + 9 current-state category cards + Key Diagnosis quote + Business Health Score sidebar (matches screenshot).
-5. **Point B Definition** — 7 outcome sections.
-6. **Hidden Asset Map** — 8 category columns.
-7. **Gap Map** — 9 gap category cards.
-8. **System Blueprint** — 13-node grid for Mental Dental with connection lines.
-9. **Roadmap Builder** — milestone list with all 12 milestone fields per row (drawer editor).
-10. **Sequencing View** — critical path + parallel tracks + dependency matrix.
-11. **Deadline Plan** — Oct 1 + Jan 1 milestones with must-haves, owners, risks, fallbacks.
-12. **Investment Builder** — 3 phase cards with outcome, systems, timeline, range, risks, exclusions.
-13. **Client Preview** — clean render (Exec Summary → A→B Map → Phases → Blueprint → Investment) with "PDF" and "Presentation Mode" buttons; suppresses internal-only fields.
-14. **Delivery Prep** — recipient form, channel, attachments, personal note, approval checklist, "Send approved roadmap" (stub for now, writes `engine_activity`).
+### `/engine/projects/$projectId/intelligence-layer`
 
-### Shared primitives
+Reuses `WorkspaceHeader` and `WorkspaceStepper`. Five stacked sections built with `SectionCard`:
 
-Extend `src/components/engine/primitives.tsx`: add `WorkspaceStepper`, `WorkspaceBreadcrumb`, `ProjectHeaderStrip`, `CategoryCard`, `DiagnosisLensCard`, `HealthScoreDial`.
+1. **Input Hub** — 5 quick-add tiles (Upload Source, Add URL, Paste Transcript, Add Brief / Notes, More). Table below with Source, Type, Date, Status pill, Signals, Confidence dial, Used in, row actions (View / Reprocess / Remove). File upload wired to `engine-signals` bucket with signed URLs.
+2. **AI Processing Timeline** — 11 stages (from spec) as a vertical checklist with per-stage timestamp + status, streamed from `engine_activity` filtered by `kind = 'pipeline_stage'`. "Run Intelligence Update" button top-right calls `runIntelligencePipeline`.
+3. **Auto-Populated Outputs** — 11 module cards (Signal Extraction → Client Preview). Each shows Generated/Draft/Approved pill, confidence, items count, needs-review count, `Open` (deep-links to the existing workspace route) and `Apply Updates` (moves draft payload into that module's JSONB on the current draft version).
+4. **Change Detection** — Feed of `engine_change_events` grouped by kind with severity coloring; each row links to the affected module + resolve action.
+5. **Roadmap Versions** — Table of `engine_roadmap_versions` with Version, Status pill, Created by, Sources, Changes summary, Date, Approved by, Actions (View / Compare / Restore / Archive). Approval Gate panel with "Apply All Safe Updates", "Review Changes One by One", "Save as New Draft", "Reject Updates", and the final "Approve & Create New Version" button — disabled until Tai confirms.
 
-### Scope / non-goals for this pass
+Right rail (Intelligence Control): current approved version, latest draft version, sources processed x/y, modules needing review, AI confidence score, conflicts detected, "Next Best Action" card, "Review Updates" CTA.
 
-- v1 = full page structure, seeded Mental Dental data, read + edit for all 14 steps, working stepper navigation.
-- PDF export and Presentation Mode ship as buttons that render an inline print-friendly view (no external PDF service).
-- File uploads on Signal Room use existing Supabase storage bucket pattern; if none exists, stub with URL list and a follow-up plan.
-- No new global sidebar entries.
+### `/engine/projects/$projectId/agent`
 
-### Technical section
+Header metrics row: Current roadmap version, Approved version, Agent tasks count, Modules needing review, Blocked decisions, Agent spend (this month), Budget remaining.
 
-- Convert `overview.tsx` filename → move current logic into new nested layout + `.overview` leaf. `routeTree.gen.ts` regenerates automatically.
-- Server fns use `requireSupabaseAuth` + `has_role_email(..., 'admin')` check (same pattern as `getCommandCenter`).
-- All writes go through one `updateProjectStep` fn with a `step` discriminator + Zod schemas per step.
-- Stepper is a client component reading `current_step` and route match for active highlighting.
+Layout: two-column with left main + right rail.
+
+- **Project Context card** — client name/logo, current phase, Point A / Point B one-liners, target date, critical deadline, last source processed, sources available. Reads from `engine_projects` + latest approved version.
+- **Ask the Agent** — big textarea, "Use project context" toggle, "Attach" (multi-select of sources), Send. Submits to `runAgentPrompt`.
+- **Popular Prompts** — 8 chip buttons prefilling the prompt with the kind-specific template.
+- **Recent Agent Outputs** — table of `engine_agent_tasks` with kind badge, confidence, cost, status, actions (View / Apply / Save as task / Reject). "View" opens a drawer with full output + Markdown render.
+- **Active Generation** panel — live progress bar sourced from the in-flight task's streamed activity, showing generation steps and estimated completion/cost.
+- **Live Activity** — latest `engine_activity` rows for the project.
+
+Right rail:
+- **Agent Control** — permission level selector (`Draft only | Propose updates | Execute approved`), granular checklist of allowed capabilities, `Manage permissions` link.
+- **Cost Tracker** — donut of `engine_agent_tasks.cost_cents` grouped by kind (Source Processing, Content Generation, Analysis, Version Compare), month spend, remaining, projected EOM.
+- **Pending Approvals** — top 3 unresolved change events / draft modules with impact badge, links to Intelligence Layer.
+- **Safety & Guardrails** — read-only summary of `agent_safety_rules`.
+
+## AI integration
+
+Uses the existing Lovable AI Gateway helper (`src/lib/ai-gateway.server.ts` if present, else create it per `ai-sdk-lovable-gateway`). Default model `google/gemini-3-flash-preview`. Structured output with the AI SDK `Output.object` API. Cost tracked from response usage where available; otherwise a small per-call estimate. All model calls happen inside server functions — no client-side AI calls, no user API keys.
+
+## Files to create
+
+- Migration for the 4 new tables + `engine_projects` column extensions + updated_at triggers.
+- `src/routes/engine.projects.$projectId.intelligence-layer.tsx`
+- `src/routes/engine.projects.$projectId.agent.tsx`
+- `src/components/engine/IntelligenceLayer/` — `InputHub.tsx`, `ProcessingTimeline.tsx`, `AutoOutputs.tsx`, `ChangeDetection.tsx`, `VersionsTable.tsx`, `IntelligenceControlRail.tsx`.
+- `src/components/engine/AgentConsole/` — `HeaderMetrics.tsx`, `ProjectContextCard.tsx`, `PromptComposer.tsx`, `PopularPrompts.tsx`, `RecentOutputsTable.tsx`, `ActiveGeneration.tsx`, `AgentControlRail.tsx`, `CostTracker.tsx`.
+- Extend `src/lib/engine.functions.ts` with the server functions above; add prompt templates in `src/lib/engine-agent-prompts.ts`.
+- Update `src/lib/engine-workspace.ts` to add both routes into `WORKSPACE_STEPS`.
+
+## Open questions before I build
+
+1. The existing `engine.projects.$projectId.intelligence.tsx` route is a placeholder — should the new `intelligence-layer` route replace it (I'll delete the old stub) or live alongside it?
+2. For file uploads in the Input Hub, is it fine to reuse the existing private `engine-signals` bucket (admin-only RLS), or do you want a new bucket dedicated to intelligence sources?
+3. Agent cost tracking — bill from Lovable AI Gateway usage tokens (approximate), or fixed per-kind estimate (e.g. milestone_brief = $0.05)?

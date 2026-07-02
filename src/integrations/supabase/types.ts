@@ -763,6 +763,141 @@ export type Database = {
           },
         ]
       }
+      engine_agent_tasks: {
+        Row: {
+          attached_source_ids: string[]
+          confidence: number
+          cost_cents: number
+          created_at: string
+          created_by_email: string | null
+          error: string | null
+          id: string
+          kind: Database["public"]["Enums"]["engine_agent_task_kind"]
+          output: string | null
+          project_id: string
+          prompt: string
+          related_module: string | null
+          status: Database["public"]["Enums"]["engine_agent_task_status"]
+          tokens_in: number
+          tokens_out: number
+          updated_at: string
+          used_project_context: boolean
+        }
+        Insert: {
+          attached_source_ids?: string[]
+          confidence?: number
+          cost_cents?: number
+          created_at?: string
+          created_by_email?: string | null
+          error?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["engine_agent_task_kind"]
+          output?: string | null
+          project_id: string
+          prompt: string
+          related_module?: string | null
+          status?: Database["public"]["Enums"]["engine_agent_task_status"]
+          tokens_in?: number
+          tokens_out?: number
+          updated_at?: string
+          used_project_context?: boolean
+        }
+        Update: {
+          attached_source_ids?: string[]
+          confidence?: number
+          cost_cents?: number
+          created_at?: string
+          created_by_email?: string | null
+          error?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["engine_agent_task_kind"]
+          output?: string | null
+          project_id?: string
+          prompt?: string
+          related_module?: string | null
+          status?: Database["public"]["Enums"]["engine_agent_task_status"]
+          tokens_in?: number
+          tokens_out?: number
+          updated_at?: string
+          used_project_context?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_agent_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_change_events: {
+        Row: {
+          affected_module: string | null
+          body: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["engine_change_kind"]
+          project_id: string
+          resolved_at: string | null
+          severity: string
+          source_id: string | null
+          title: string
+          updated_at: string
+          version_id: string | null
+        }
+        Insert: {
+          affected_module?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["engine_change_kind"]
+          project_id: string
+          resolved_at?: string | null
+          severity?: string
+          source_id?: string | null
+          title: string
+          updated_at?: string
+          version_id?: string | null
+        }
+        Update: {
+          affected_module?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["engine_change_kind"]
+          project_id?: string
+          resolved_at?: string | null
+          severity?: string
+          source_id?: string | null
+          title?: string
+          updated_at?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_change_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_change_events_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "engine_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_change_events_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_clients: {
         Row: {
           company: string
@@ -839,7 +974,10 @@ export type Database = {
       }
       engine_projects: {
         Row: {
+          agent_allowed_modules: string[]
           agent_budget_monthly_cents: number
+          agent_permission_level: Database["public"]["Enums"]["engine_agent_permission"]
+          agent_safety_rules: Json
           agent_spend_month_cents: number
           agent_status: string
           approved_version: string | null
@@ -872,7 +1010,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agent_allowed_modules?: string[]
           agent_budget_monthly_cents?: number
+          agent_permission_level?: Database["public"]["Enums"]["engine_agent_permission"]
+          agent_safety_rules?: Json
           agent_spend_month_cents?: number
           agent_status?: string
           approved_version?: string | null
@@ -905,7 +1046,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agent_allowed_modules?: string[]
           agent_budget_monthly_cents?: number
+          agent_permission_level?: Database["public"]["Enums"]["engine_agent_permission"]
+          agent_safety_rules?: Json
           agent_spend_month_cents?: number
           agent_status?: string
           approved_version?: string | null
@@ -947,6 +1091,59 @@ export type Database = {
           },
         ]
       }
+      engine_roadmap_versions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          payload: Json
+          project_id: string
+          source_ids: string[]
+          status: Database["public"]["Enums"]["engine_version_status"]
+          summary: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          payload?: Json
+          project_id: string
+          source_ids?: string[]
+          status?: Database["public"]["Enums"]["engine_version_status"]
+          summary?: string | null
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          payload?: Json
+          project_id?: string
+          source_ids?: string[]
+          status?: Database["public"]["Enums"]["engine_version_status"]
+          summary?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_roadmap_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_signals: {
         Row: {
           created_at: string
@@ -978,6 +1175,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "engine_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_sources: {
+        Row: {
+          confidence: number
+          created_at: string
+          created_by_email: string | null
+          error: string | null
+          id: string
+          name: string
+          project_id: string
+          raw_text: string | null
+          signals_count: number
+          status: Database["public"]["Enums"]["engine_source_status"]
+          storage_path: string | null
+          type: Database["public"]["Enums"]["engine_source_type"]
+          updated_at: string
+          url: string | null
+          used_in_version: string | null
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          created_by_email?: string | null
+          error?: string | null
+          id?: string
+          name: string
+          project_id: string
+          raw_text?: string | null
+          signals_count?: number
+          status?: Database["public"]["Enums"]["engine_source_status"]
+          storage_path?: string | null
+          type: Database["public"]["Enums"]["engine_source_type"]
+          updated_at?: string
+          url?: string | null
+          used_in_version?: string | null
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          created_by_email?: string | null
+          error?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          raw_text?: string | null
+          signals_count?: number
+          status?: Database["public"]["Enums"]["engine_source_status"]
+          storage_path?: string | null
+          type?: Database["public"]["Enums"]["engine_source_type"]
+          updated_at?: string
+          url?: string | null
+          used_in_version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_sources_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "engine_projects"
@@ -1407,6 +1666,35 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "operator" | "user"
+      engine_agent_permission:
+        | "draft_only"
+        | "propose_updates"
+        | "execute_approved"
+      engine_agent_task_kind:
+        | "milestone_brief"
+        | "acceptance_criteria"
+        | "lovable_prompt"
+        | "missing_decisions"
+        | "update_from_source"
+        | "version_compare"
+        | "risk_estimate"
+        | "client_summary"
+        | "qa_checklist"
+        | "free_form"
+      engine_agent_task_status:
+        | "draft"
+        | "applied"
+        | "saved_as_task"
+        | "rejected"
+      engine_change_kind:
+        | "new_info"
+        | "conflict"
+        | "opportunity"
+        | "risk"
+        | "deadline_change"
+        | "scope_change"
+        | "investment_impact"
+        | "client_copy_affected"
       engine_project_status:
         | "active"
         | "draft"
@@ -1415,6 +1703,26 @@ export type Database = {
         | "delivered"
         | "in_execution"
         | "blocked"
+        | "archived"
+      engine_source_status: "queued" | "processing" | "processed" | "failed"
+      engine_source_type:
+        | "transcript"
+        | "brief"
+        | "website_url"
+        | "document"
+        | "screenshot"
+        | "email_note"
+        | "research_note"
+        | "competitor_url"
+        | "previous_roadmap"
+      engine_version_status:
+        | "ai_generated"
+        | "draft"
+        | "needs_review"
+        | "tai_edited"
+        | "approved"
+        | "client_facing"
+        | "delivered"
         | "archived"
     }
     CompositeTypes: {
@@ -1544,6 +1852,39 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "operator", "user"],
+      engine_agent_permission: [
+        "draft_only",
+        "propose_updates",
+        "execute_approved",
+      ],
+      engine_agent_task_kind: [
+        "milestone_brief",
+        "acceptance_criteria",
+        "lovable_prompt",
+        "missing_decisions",
+        "update_from_source",
+        "version_compare",
+        "risk_estimate",
+        "client_summary",
+        "qa_checklist",
+        "free_form",
+      ],
+      engine_agent_task_status: [
+        "draft",
+        "applied",
+        "saved_as_task",
+        "rejected",
+      ],
+      engine_change_kind: [
+        "new_info",
+        "conflict",
+        "opportunity",
+        "risk",
+        "deadline_change",
+        "scope_change",
+        "investment_impact",
+        "client_copy_affected",
+      ],
       engine_project_status: [
         "active",
         "draft",
@@ -1552,6 +1893,28 @@ export const Constants = {
         "delivered",
         "in_execution",
         "blocked",
+        "archived",
+      ],
+      engine_source_status: ["queued", "processing", "processed", "failed"],
+      engine_source_type: [
+        "transcript",
+        "brief",
+        "website_url",
+        "document",
+        "screenshot",
+        "email_note",
+        "research_note",
+        "competitor_url",
+        "previous_roadmap",
+      ],
+      engine_version_status: [
+        "ai_generated",
+        "draft",
+        "needs_review",
+        "tai_edited",
+        "approved",
+        "client_facing",
+        "delivered",
         "archived",
       ],
     },
