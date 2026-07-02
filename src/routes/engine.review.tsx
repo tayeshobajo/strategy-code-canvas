@@ -174,11 +174,54 @@ function ReviewApprovalsPage() {
         </SectionCard>
 
         <SectionCard title="Audit History">
+          <div className="space-y-2 mb-3">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-ink/40" />
+              <input
+                value={search.q ?? ""}
+                onChange={(e) => setSearch({ q: e.target.value || undefined })}
+                placeholder="Search project, title, reason…"
+                className="w-full text-xs border border-border rounded pl-7 pr-2 py-1.5 focus:outline-none focus:border-royal"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={decisionFilter}
+                onChange={(e) => setSearch({ decision: e.target.value as AuditSearch["decision"] })}
+                className="text-xs border border-border rounded px-2 py-1.5 bg-white"
+              >
+                <option value="all">All decisions</option>
+                <option value="approved">Approved</option>
+                <option value="sent_back">Sent back</option>
+              </select>
+              <select
+                value={actorFilter}
+                onChange={(e) => setSearch({ actor: e.target.value || undefined })}
+                className="text-xs border border-border rounded px-2 py-1.5 bg-white"
+              >
+                <option value="">All actors</option>
+                {actorOptions.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+            {(q || actorFilter || decisionFilter !== "all") ? (
+              <button
+                onClick={() => setSearch({ q: undefined, actor: undefined, decision: "all" })}
+                className="text-[10px] text-royal hover:underline"
+              >
+                Clear filters
+              </button>
+            ) : null}
+            <div className="text-[10px] font-mono uppercase tracking-wider text-ink/40">
+              {auditFiltered.length} of {audit.length} entries
+            </div>
+          </div>
           {audit.length === 0 ? (
             <div className="text-sm text-ink/50">No approvals or rejections yet.</div>
+          ) : auditFiltered.length === 0 ? (
+            <div className="text-sm text-ink/50">No entries match these filters.</div>
           ) : (
             <ol className="space-y-3 text-sm max-h-[600px] overflow-y-auto -mr-2 pr-2">
-              {audit.map((a) => (
+              {auditFiltered.map((a) => (
                 <li key={a.id} className="border-l-2 pl-3"
                     style={{ borderColor: a.action === "approved" ? "#1f6b3b" : "#a4283c" }}>
                   <div className="flex items-center gap-2">
@@ -205,6 +248,7 @@ function ReviewApprovalsPage() {
           )}
         </SectionCard>
       </div>
+
 
       {rejecting ? (
         <RejectDialog item={rejecting} onClose={() => setRejecting(null)}
