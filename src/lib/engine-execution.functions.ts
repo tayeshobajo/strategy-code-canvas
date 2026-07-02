@@ -177,6 +177,13 @@ Core Requirements:
     return { milestone: row };
   });
 
+const PROTECTED_APPROVED_FIELDS = new Set([
+  "brief_md",
+  "acceptance_criteria",
+  "developer_prompt",
+  "client_safe_md",
+]);
+
 export const updateMilestone = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
@@ -184,18 +191,49 @@ export const updateMilestone = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid(),
         patch: z.record(z.string(), z.any()),
+        force: z.boolean().optional().default(false),
       })
       .parse(raw),
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
-    // Safety: never approve as agent
+    const email = (context as any).claims?.email ?? null;
+
+    // Guard: if the milestone is already approved, protected fields
+    // (brief/criteria/prompt/client copy) cannot be overwritten in place —
+    // caller must explicitly force (creates a new draft brief version).
+    const { data: current } = await sb
+      .from("engine_milestones")
+      .select("approval_status,project_id,name")
+      .eq("id", data.id)
+      .single();
     const patch: any = { ...data.patch };
     delete patch.id;
     delete patch.project_id;
+
+    if (current?.approval_status === "approved" && !data.force) {
+      const touched = Object.keys(patch).filter((k) => PROTECTED_APPROVED_FIELDS.has(k));
+      if (touched.length) {
+        throw new Error(
+          `Cannot overwrite approved milestone fields (${touched.join(", ")}). Reset approval or explicitly force to create a new draft.`,
+        );
+      }
+    }
+
     const { error } = await sb.from("engine_milestones").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (current?.project_id) {
+      await sb.from("engine_audit_log").insert({
+        project_id: current.project_id,
+        actor_email: email,
+        action: "milestone_updated",
+        summary: `Updated milestone "${current.name ?? data.id}" (${Object.keys(patch).join(", ")}).`,
+        affected_modules: ["milestones"],
+        target_id: data.id,
+        metadata: { fields: Object.keys(patch), forced: data.force },
+      });
+    }
     return { ok: true as const };
   });
 
@@ -206,6 +244,18 @@ export const approveMilestone = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const sb = context.supabase as any;
     const email = (context as any).claims?.email ?? null;
+
+    // Gate: acceptance criteria must have items and none may be blank.
+    const { data: m } = await sb
+      .from("engine_milestones")
+      .select("project_id,name,acceptance_criteria")
+      .eq("id", data.id)
+      .single();
+    const criteria = Array.isArray(m?.acceptance_criteria) ? m.acceptance_criteria : [];
+    if (criteria.length === 0) {
+      throw new Error("Cannot approve: milestone has no acceptance criteria.");
+    }
+
     const { error } = await sb
       .from("engine_milestones")
       .update({
@@ -216,6 +266,17 @@ export const approveMilestone = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (m?.project_id) {
+      await sb.from("engine_audit_log").insert({
+        project_id: m.project_id,
+        actor_email: email,
+        action: "milestone_approved",
+        summary: `Approved milestone "${m.name}" (${criteria.length} acceptance criteria).`,
+        affected_modules: ["milestones"],
+        target_id: data.id,
+        metadata: { criteria_count: criteria.length },
+      });
+    }
     return { ok: true as const };
   });
 
