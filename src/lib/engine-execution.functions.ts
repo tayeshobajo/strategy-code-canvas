@@ -764,7 +764,7 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
 
     const { data: proj } = await sb
       .from("engine_projects")
-      .select("id,name,approved_snapshot,approved_version,client_company,delivery")
+      .select("id,name,client_id,approved_snapshot,approved_version,delivery,roadmap,point_a,point_b")
       .eq("id", data.projectId)
       .single();
     if (!proj) throw new Error("Project not found");
@@ -772,20 +772,160 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
       throw new Error("Cannot send: no approved roadmap version exists yet.");
     }
 
+    // Resolve the approved engine version (required to satisfy the portal FK trigger).
+    const { data: approvedVersion } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,version,payload,approved_at")
+      .eq("project_id", data.projectId)
+      .not("approved_at", "is", null)
+      .order("approved_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!approvedVersion?.id) {
+      throw new Error("Cannot send: no approved roadmap version row found in engine_roadmap_versions.");
+    }
+
+    // Resolve client + recipient.
+    const { data: client } = await sb
+      .from("engine_clients")
+      .select("company,contact_email")
+      .eq("id", proj.client_id)
+      .maybeSingle();
+    const deliveryPrev = (proj.delivery as Record<string, any> | null) ?? {};
+    const recipientEmail: string | undefined = (
+      deliveryPrev.recipient_email || client?.contact_email || ""
+    )
+      .toString()
+      .trim()
+      .toLowerCase() || undefined;
+    if (!recipientEmail) {
+      throw new Error("Cannot send: no recipient email on delivery or client record.");
+    }
+
     const nowIso = new Date().toISOString();
-    // Persist checklist state onto the delivery JSONB so it survives refresh.
+
+    // -------- Portal handoff: portal project, roadmap_document, client_portal_roadmap --------
+    // Find or create the client portal project keyed by primary_email.
+    let { data: portalProject } = await sb
+      .from("client_portal_projects")
+      .select("id,portal_status")
+      .ilike("primary_email", recipientEmail)
+      .maybeSingle();
+    if (!portalProject) {
+      const { data: created, error: cpErr } = await sb
+        .from("client_portal_projects")
+        .insert({
+          primary_email: recipientEmail,
+          contact_name: deliveryPrev.recipient_name ?? null,
+          company_name: client?.company ?? null,
+          portal_status: "roadmap_delivered",
+          current_phase: "Roadmap delivered",
+          owner_email: email,
+          access_granted_at: nowIso,
+        })
+        .select("id,portal_status")
+        .single();
+      if (cpErr) throw cpErr;
+      portalProject = created;
+    }
+    const portalProjectId = portalProject!.id as string;
+
+    // Build a minimal client-safe body_md from the approved snapshot.
+    const snap = (proj.approved_snapshot as Record<string, any>) ?? {};
+    const priorities: any[] = Array.isArray(snap.roadmap?.priorities)
+      ? snap.roadmap.priorities
+      : Array.isArray(proj.roadmap?.priorities)
+        ? (proj.roadmap as any).priorities
+        : [];
+    const execSummary: string =
+      snap.client_preview?.executive_summary ||
+      snap.roadmap?.summary ||
+      (proj.roadmap as any)?.summary ||
+      "";
+    const bodyMd = [
+      `# ${proj.name}`,
+      execSummary ? `\n${execSummary}\n` : "",
+      priorities.length
+        ? "## Strategic priorities\n" +
+          priorities
+            .map((p: any, i: number) =>
+              `- **${p.title ?? p.name ?? `Priority ${i + 1}`}** — ${p.summary ?? p.description ?? ""}`,
+            )
+            .join("\n")
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    // Insert the client-facing roadmap document (keyed to recipient email).
+    const { data: doc, error: docErr } = await sb
+      .from("roadmap_documents")
+      .insert({
+        client_email: recipientEmail,
+        title: `${proj.name} — Approved Roadmap ${approvedVersion.version ?? ""}`.trim(),
+        body_md: bodyMd,
+        published_at: nowIso,
+      })
+      .select("id")
+      .single();
+    if (docErr) throw docErr;
+
+    // Insert the client_portal_roadmaps row linked to the approved engine version.
+    const { data: cpr, error: cprErr } = await sb
+      .from("client_portal_roadmaps")
+      .insert({
+        project_id: portalProjectId,
+        source_version_id: approvedVersion.id,
+        roadmap_document_id: doc.id,
+        title: `${proj.name} — Roadmap ${approvedVersion.version ?? ""}`.trim(),
+        version_label: approvedVersion.version ?? "Version 1",
+        status: "delivered",
+        approved_at: nowIso,
+        executive_summary: execSummary || null,
+        strategic_priorities: priorities as any,
+      })
+      .select("id")
+      .single();
+    if (cprErr) throw cprErr;
+    const portalRoadmapId = cpr.id as string;
+
+    // Bump the portal project state.
+    await sb
+      .from("client_portal_projects")
+      .update({
+        portal_status: "roadmap_delivered",
+        approved_roadmap_id: portalRoadmapId,
+        last_client_activity_at: nowIso,
+      })
+      .eq("id", portalProjectId);
+
+    // Client-visible activity in the portal timeline.
+    await sb.rpc("log_client_portal_activity", {
+      _project_id: portalProjectId,
+      _actor_type: "tai",
+      _actor_email: email,
+      _event_type: "roadmap_delivered",
+      _summary: "Your approved roadmap has been delivered.",
+      _client_visible: true,
+      _metadata: { source_version_id: approvedVersion.id, portal_roadmap_id: portalRoadmapId } as any,
+    });
+
+    // Persist checklist state + delivery marker onto the engine project.
     const nextDelivery = {
-      ...((proj.delivery as Record<string, unknown> | null) ?? {}),
+      ...deliveryPrev,
       approval_checklist: data.checklist,
       sent_at: nowIso,
       sent_by_email: email,
+      portal_roadmap_id: portalRoadmapId,
+      portal_project_id: portalProjectId,
+      recipient_email: recipientEmail,
     };
     await sb
       .from("engine_projects")
       .update({ delivery: nextDelivery, status: "delivered" })
       .eq("id", data.projectId);
 
-    // Transition any linked delivery item to "sent".
+    // Transition every linked delivery item to "uploaded_to_portal" and link the portal roadmap.
     const { data: items } = await sb
       .from("engine_delivery_items")
       .select("id,status")
@@ -793,13 +933,18 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
     for (const it of (items ?? []) as Array<{ id: string; status: string }>) {
       await sb
         .from("engine_delivery_items")
-        .update({ status: "sent", last_action: `Sent · ${new Date().toLocaleString()}`, approved_by: email })
+        .update({
+          status: "uploaded_to_portal",
+          client_portal_roadmap_id: portalRoadmapId,
+          last_action: `Uploaded to portal · ${new Date().toLocaleString()}`,
+          approved_by: email,
+        })
         .eq("id", it.id);
       await sb.from("engine_delivery_history").insert({
         delivery_id: it.id,
         from_status: it.status,
-        to_status: "sent",
-        note: "Sent via project delivery prep",
+        to_status: "uploaded_to_portal",
+        note: `Published approved roadmap ${approvedVersion.version ?? ""} to client portal`,
         actor: email,
       });
     }
@@ -807,7 +952,7 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
     await sb.from("engine_activity").insert({
       project_id: data.projectId,
       kind: "delivery_sent",
-      title: `Delivery sent to ${proj.client_company ?? "client"}`,
+      title: `Delivery uploaded to portal for ${client?.company ?? recipientEmail}`,
       body: email ? `Sent by ${email}` : null,
       severity: "success",
     });
@@ -815,12 +960,18 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
       project_id: data.projectId,
       actor_email: email,
       action: "delivery_sent",
-      summary: `Sent approved roadmap ${proj.approved_version ?? ""} to client.`,
-      affected_modules: ["delivery"],
-      metadata: { checklist: data.checklist, approved_version: proj.approved_version },
+      summary: `Published approved roadmap ${approvedVersion.version ?? ""} to client portal.`,
+      affected_modules: ["delivery", "client_portal"],
+      metadata: {
+        checklist: data.checklist,
+        approved_version: proj.approved_version,
+        portal_project_id: portalProjectId,
+        portal_roadmap_id: portalRoadmapId,
+        source_version_id: approvedVersion.id,
+      },
     });
 
-    return { ok: true as const };
+    return { ok: true as const, portalRoadmapId, portalProjectId };
   });
 
 // Persist just the delivery checklist state without sending (for UI persistence).
