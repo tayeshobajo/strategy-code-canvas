@@ -304,6 +304,14 @@ export const archiveVersion = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     await assertAdmin(context);
     const sb = context.supabase as any;
+    const { data: v } = await sb
+      .from("engine_roadmap_versions")
+      .select("status")
+      .eq("id", data.id)
+      .single();
+    if (v?.status === "approved") {
+      throw new Error("Cannot archive the currently approved version. Approve a newer draft first.");
+    }
     const { error } = await sb
       .from("engine_roadmap_versions")
       .update({ status: "archived" })
@@ -311,6 +319,122 @@ export const archiveVersion = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message ?? "archive failed");
     return { ok: true };
   });
+
+/* ============================================================
+ * Compare two versions module by module. Returns a per-module diff
+ * shaped for the UI: which modules changed, which are identical.
+ * ============================================================ */
+
+export const compareVersions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ aId: z.string().uuid(), bId: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { data: rows } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,version,status,payload,created_by,created_at")
+      .in("id", [data.aId, data.bId]);
+    const a = (rows ?? []).find((r: any) => r.id === data.aId);
+    const b = (rows ?? []).find((r: any) => r.id === data.bId);
+    if (!a || !b) throw new Error("Version(s) not found");
+
+    const modules = [
+      "extraction",
+      "point_a",
+      "point_b",
+      "hidden_assets",
+      "gap_map",
+      "blueprint",
+      "roadmap",
+      "sequencing",
+      "deadlines",
+      "investment",
+      "client_preview",
+    ];
+    const diffs = modules.map((m) => {
+      const av = a.payload?.[m];
+      const bv = b.payload?.[m];
+      const aStr = av ? JSON.stringify(av, null, 2) : "";
+      const bStr = bv ? JSON.stringify(bv, null, 2) : "";
+      return { module: m, changed: aStr !== bStr, a: aStr, b: bStr };
+    });
+    return { a, b, diffs };
+  });
+
+/* ============================================================
+ * Restore: create a new draft version from an older payload and
+ * repoint project drafts to it. Approved snapshot is untouched.
+ * ============================================================ */
+
+export const restoreVersion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }): Promise<{ ok: true; version: string }> => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+    const { data: src } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,project_id,version,payload,summary")
+      .eq("id", data.id)
+      .single();
+    if (!src) throw new Error("Version not found");
+
+    const { data: proj } = await sb
+      .from("engine_projects")
+      .select("roadmap_version,approved_version")
+      .eq("id", src.project_id)
+      .single();
+    const nextVersion = bumpVersion(proj?.roadmap_version ?? proj?.approved_version ?? null);
+
+    const { data: v, error } = await sb
+      .from("engine_roadmap_versions")
+      .insert({
+        project_id: src.project_id,
+        version: nextVersion,
+        status: "tai_edited",
+        created_by: email ?? "tai",
+        source_ids: [],
+        summary: `Restored from ${src.version}. ${src.summary ?? ""}`.trim(),
+        payload: src.payload,
+        parent_version_id: src.id,
+      })
+      .select("id,version")
+      .single();
+    if (error) throw new Error(error.message ?? "restore failed");
+
+    // Repoint draft module state without touching approved_snapshot.
+    const moduleUpdates: Record<string, any> = { roadmap_version: nextVersion };
+    for (const k of [
+      "extraction",
+      "point_a",
+      "point_b",
+      "hidden_assets",
+      "gap_map",
+      "blueprint",
+      "roadmap",
+      "sequencing",
+      "deadlines",
+      "investment",
+      "client_preview",
+    ]) {
+      if (src.payload?.[k]) moduleUpdates[k] = src.payload[k];
+    }
+    await sb.from("engine_projects").update(moduleUpdates).eq("id", src.project_id);
+
+    await sb.from("engine_activity").insert({
+      project_id: src.project_id,
+      kind: "version_restored",
+      title: `Restored ${src.version} as draft ${nextVersion}`,
+      body: email ? `By ${email}` : null,
+      severity: "info",
+    });
+    return { ok: true, version: v.version };
+  });
+
 
 /* ============================================================
  * Change events
