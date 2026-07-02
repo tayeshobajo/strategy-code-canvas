@@ -2,8 +2,9 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import type { z } from "zod";
 import { updateProjectStep } from "@/lib/engine.functions";
-import { Loader2, Save, PencilLine, X, Plus, Trash2, Code2, LayoutList } from "lucide-react";
+import { Loader2, Save, PencilLine, X, Plus, Trash2, Code2, LayoutList, AlertCircle } from "lucide-react";
 import type { WorkspaceStepKey, Json } from "@/lib/engine-workspace";
 
 type Mode = "form" | "json";
@@ -12,10 +13,13 @@ export function StepEditor({
   projectId,
   step,
   data,
+  schema,
 }: {
   projectId: string;
   step: Exclude<WorkspaceStepKey, "intelligence">;
   data: Json;
+  /** Optional zod schema used for inline validation before save. */
+  schema?: z.ZodType<unknown>;
 }) {
   const [open, setOpen] = useState(false);
   const initial = useMemo(() => data ?? {}, [data]);
@@ -23,6 +27,7 @@ export function StepEditor({
   const [jsonText, setJsonText] = useState(() => JSON.stringify(initial, null, 2));
   const [mode, setMode] = useState<Mode>(() => (isEditable(initial) ? "form" : "json"));
   const [err, setErr] = useState<string | null>(null);
+  const [fieldErrs, setFieldErrs] = useState<Array<{ path: string; message: string }>>([]);
   const qc = useQueryClient();
   const fn = useServerFn(updateProjectStep);
   const m = useMutation({
@@ -43,6 +48,7 @@ export function StepEditor({
           setJsonText(JSON.stringify(initial, null, 2));
           setMode(isEditable(initial) ? "form" : "json");
           setErr(null);
+          setFieldErrs([]);
           setOpen(true);
         }}
         className="inline-flex items-center gap-1.5 text-xs text-royal hover:underline"
@@ -52,16 +58,28 @@ export function StepEditor({
     );
   }
 
+  const validate = (payload: unknown): boolean => {
+    if (!schema) { setFieldErrs([]); return true; }
+    const r = schema.safeParse(payload);
+    if (r.success) { setFieldErrs([]); return true; }
+    setFieldErrs(
+      r.error.issues.slice(0, 20).map((i) => ({ path: i.path.join(".") || "(root)", message: i.message })),
+    );
+    return false;
+  };
+
   const save = () => {
     setErr(null);
     if (mode === "json") {
       try {
         const parsed = JSON.parse(jsonText);
+        if (!validate(parsed)) { setErr("Fix validation errors before saving."); return; }
         m.mutate(parsed);
       } catch (e) {
         setErr((e as Error).message);
       }
     } else {
+      if (!validate(value)) { setErr("Fix validation errors before saving."); return; }
       m.mutate(value);
     }
   };
