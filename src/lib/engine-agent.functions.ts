@@ -225,11 +225,110 @@ export const updateAgentTaskStatus = createServerFn({ method: "POST" })
     const sb = context.supabase as any;
     const { error } = await sb
       .from("engine_agent_tasks")
-      .update({ status: data.status })
+      .update({ status: data.status, pending_approval: false })
       .eq("id", data.id);
     if (error) throw new Error(error.message ?? "update failed");
     return { ok: true };
   });
+
+/**
+ * Apply an agent output into a specific roadmap module. Behavior depends on
+ * the project's `agent_permission_level`:
+ *   - draft_only     -> marks the task as pending_approval (Tai must apply).
+ *   - propose_updates -> writes to the draft module immediately, logs a change event.
+ *   - execute_approved -> writes directly and marks the task as applied.
+ * Approved snapshot is never overwritten. Only draft state changes.
+ */
+const MODULE_KEYS = [
+  "point_a",
+  "point_b",
+  "hidden_assets",
+  "gap_map",
+  "blueprint",
+  "roadmap",
+  "sequencing",
+  "deadlines",
+  "investment",
+  "client_preview",
+] as const;
+
+export const applyAgentTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        module: z.enum(MODULE_KEYS),
+        force: z.boolean().optional().default(false),
+      })
+      .parse(raw),
+  )
+  .handler(
+    async ({ context, data }): Promise<{ ok: true; status: "applied" | "pending_approval" }> => {
+      await assertAdmin(context);
+      const sb = context.supabase as any;
+      const email = (context as any).claims?.email ?? null;
+
+      const { data: task } = await sb
+        .from("engine_agent_tasks")
+        .select("id,project_id,output,related_module,status,pending_approval")
+        .eq("id", data.id)
+        .single();
+      if (!task) throw new Error("Task not found");
+      if (!task.output) throw new Error("Task has no output to apply");
+
+      const { data: proj } = await sb
+        .from("engine_projects")
+        .select("agent_permission_level,agent_allowed_modules")
+        .eq("id", task.project_id)
+        .single();
+      const level = proj?.agent_permission_level ?? "draft_only";
+      const allowed: string[] = proj?.agent_allowed_modules ?? [];
+      if (allowed.length && !allowed.includes(data.module)) {
+        throw new Error(`Module "${data.module}" is not in the agent's allowed list.`);
+      }
+
+      // draft_only: mark as pending, do not touch the module.
+      if (level === "draft_only" && !data.force) {
+        await sb
+          .from("engine_agent_tasks")
+          .update({ pending_approval: true, related_module: data.module })
+          .eq("id", task.id);
+        await sb.from("engine_change_events").insert({
+          project_id: task.project_id,
+          kind: "new_info",
+          title: `Agent proposal for ${data.module.replace(/_/g, " ")}`,
+          body: (task.output as string).slice(0, 400),
+          severity: "warn",
+          affected_module: data.module,
+        });
+        return { ok: true, status: "pending_approval" };
+      }
+
+      // propose_updates or execute_approved (or forced by Tai): write to draft.
+      const patch: Record<string, any> = {};
+      patch[data.module] = { source: "agent", note: task.output };
+      await sb.from("engine_projects").update(patch).eq("id", task.project_id);
+      await sb
+        .from("engine_agent_tasks")
+        .update({
+          status: "applied",
+          pending_approval: false,
+          applied_module: data.module,
+          applied_at: new Date().toISOString(),
+        })
+        .eq("id", task.id);
+      await sb.from("engine_activity").insert({
+        project_id: task.project_id,
+        kind: "agent_applied",
+        title: `Agent output applied to ${data.module.replace(/_/g, " ")}`,
+        body: email ? `Applied by ${email}` : null,
+        severity: "success",
+      });
+      return { ok: true, status: "applied" };
+    },
+  );
+
 
 export const updateAgentControls = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
