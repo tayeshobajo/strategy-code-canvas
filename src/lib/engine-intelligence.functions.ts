@@ -10,9 +10,48 @@ async function assertAdmin(context: any) {
   if (!ok) throw new Error("Forbidden: admin role required");
 }
 
+async function logAudit(
+  sb: any,
+  args: {
+    project_id: string;
+    actor_email: string | null;
+    action: string;
+    summary?: string | null;
+    affected_modules?: string[];
+    version_id?: string | null;
+    target_id?: string | null;
+    metadata?: Record<string, any>;
+  },
+) {
+  try {
+    await sb.from("engine_audit_log").insert({
+      project_id: args.project_id,
+      actor_email: args.actor_email,
+      action: args.action,
+      summary: args.summary ?? null,
+      affected_modules: args.affected_modules ?? [],
+      version_id: args.version_id ?? null,
+      target_id: args.target_id ?? null,
+      metadata: args.metadata ?? {},
+    });
+  } catch {
+    /* audit failures never break the action */
+  }
+}
+
 /* ============================================================
  * Sources
  * ============================================================ */
+
+export type EngineSourceStage = {
+  key: string;
+  label: string;
+  status: "queued" | "running" | "completed" | "failed" | "skipped";
+  started_at?: string | null;
+  finished_at?: string | null;
+  error?: string | null;
+  note?: string | null;
+};
 
 export type EngineSource = {
   id: string;
@@ -27,6 +66,10 @@ export type EngineSource = {
   confidence: number;
   used_in_version: string | null;
   error: string | null;
+  current_stage: string | null;
+  processing_stages: EngineSourceStage[];
+  started_at: string | null;
+  finished_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -117,16 +160,74 @@ export const reprocessSource = createServerFn({ method: "POST" })
     return { ok: true, signals: r.signals, confidence: r.confidence };
   });
 
-/**
- * Per-source pipeline. Reads the source content (raw_text, URL fetch, or
- * downloaded file), asks the AI for structured signals, and updates the row
- * with `signals_count`, `confidence`, and status transitions.
- */
+/* ------------------------------------------------------------------
+ * Per-source stage tracking. Each stage has: key, label, status,
+ * started_at, finished_at, error. Written progressively so the UI
+ * polls and streams real progress.
+ * ------------------------------------------------------------------ */
+
+const SOURCE_STAGE_DEFS = [
+  { key: "queued", label: "Queued" },
+  { key: "fetch", label: "Fetching content" },
+  { key: "extract", label: "Extracting signals with AI" },
+  { key: "persist", label: "Persisting signals" },
+  { key: "complete", label: "Complete" },
+] as const;
+
+type StageStatus = "queued" | "running" | "completed" | "failed" | "skipped";
+type StageRow = {
+  key: string;
+  label: string;
+  status: StageStatus;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error?: string | null;
+  note?: string | null;
+};
+
+function initialStages(): StageRow[] {
+  return SOURCE_STAGE_DEFS.map((s) => ({ key: s.key, label: s.label, status: "queued" }));
+}
+
+async function writeStage(
+  sb: any,
+  sourceId: string,
+  stages: StageRow[],
+  key: string,
+  patch: Partial<StageRow>,
+  extra: Record<string, any> = {},
+) {
+  const idx = stages.findIndex((s) => s.key === key);
+  if (idx >= 0) stages[idx] = { ...stages[idx], ...patch };
+  await sb
+    .from("engine_sources")
+    .update({
+      processing_stages: stages,
+      current_stage: patch.status === "running" ? key : undefined,
+      ...extra,
+    })
+    .eq("id", sourceId);
+}
+
 async function processSingleSource(
   sb: any,
   sourceId: string,
 ): Promise<{ signals: number; confidence: number }> {
-  await sb.from("engine_sources").update({ status: "processing", error: null }).eq("id", sourceId);
+  const stages = initialStages();
+  const now = () => new Date().toISOString();
+
+  await sb
+    .from("engine_sources")
+    .update({
+      status: "processing",
+      error: null,
+      processing_stages: stages,
+      current_stage: "queued",
+      started_at: now(),
+      finished_at: null,
+    })
+    .eq("id", sourceId);
+
   const { data: src } = await sb
     .from("engine_sources")
     .select("id,project_id,name,type,url,raw_text,storage_path")
@@ -134,6 +235,10 @@ async function processSingleSource(
     .single();
   if (!src) throw new Error("Source not found");
 
+  await writeStage(sb, sourceId, stages, "queued", { status: "completed", finished_at: now() });
+
+  // Stage 1: fetch content
+  await writeStage(sb, sourceId, stages, "fetch", { status: "running", started_at: now() });
   let content = src.raw_text ?? "";
   try {
     if (!content && src.url) {
@@ -153,19 +258,35 @@ async function processSingleSource(
         }
       }
     }
+    await writeStage(sb, sourceId, stages, "fetch", {
+      status: "completed",
+      finished_at: now(),
+      note: content ? `${content.length.toLocaleString()} chars` : "no textual content",
+    });
   } catch (e: any) {
-    await sb.from("engine_sources").update({ status: "failed", error: e?.message ?? "fetch failed" }).eq("id", sourceId);
+    const msg = e?.message ?? "fetch failed";
+    await writeStage(sb, sourceId, stages, "fetch", { status: "failed", finished_at: now(), error: msg });
+    await sb
+      .from("engine_sources")
+      .update({ status: "failed", error: msg, finished_at: now() })
+      .eq("id", sourceId);
     throw e;
   }
 
   if (!content) {
+    await writeStage(sb, sourceId, stages, "extract", { status: "skipped" });
+    await writeStage(sb, sourceId, stages, "persist", { status: "skipped" });
+    await writeStage(sb, sourceId, stages, "complete", { status: "completed", finished_at: now() });
     await sb
       .from("engine_sources")
-      .update({ status: "processed", signals_count: 0, confidence: 30 })
+      .update({ status: "processed", signals_count: 0, confidence: 30, current_stage: null, finished_at: now() })
       .eq("id", sourceId);
     return { signals: 0, confidence: 30 };
   }
 
+  // Stage 2: extract with AI
+  await writeStage(sb, sourceId, stages, "extract", { status: "running", started_at: now() });
+  let parsed: { signals?: Array<{ text: string; module: string; importance?: string }>; confidence?: number };
   try {
     const { callLovableAi, parseJsonOutput } = await import("@/lib/engine-ai.server");
     const ai = await callLovableAi(
@@ -182,12 +303,29 @@ async function processSingleSource(
       ],
       { json: true, temperature: 0.2 },
     );
-    type Sig = { signals?: Array<{ text: string; module: string; importance?: string }>; confidence?: number };
-    const parsed = parseJsonOutput<Sig>(ai.text) ?? { signals: [], confidence: 40 };
-    const count = parsed.signals?.length ?? 0;
-    const confidence = Math.min(100, Math.max(0, parsed.confidence ?? 40));
-    await sb.from("engine_sources").update({ status: "processed", signals_count: count, confidence }).eq("id", sourceId);
-    // Persist extracted signals as change events so they surface in the timeline.
+    parsed = parseJsonOutput(ai.text) ?? { signals: [], confidence: 40 };
+    await writeStage(sb, sourceId, stages, "extract", {
+      status: "completed",
+      finished_at: now(),
+      note: `${parsed.signals?.length ?? 0} signals · confidence ${Math.round(parsed.confidence ?? 40)}%`,
+    });
+  } catch (e: any) {
+    const msg = e?.message ?? "ai failed";
+    await writeStage(sb, sourceId, stages, "extract", { status: "failed", finished_at: now(), error: msg });
+    await writeStage(sb, sourceId, stages, "persist", { status: "skipped" });
+    await writeStage(sb, sourceId, stages, "complete", { status: "failed", finished_at: now() });
+    await sb
+      .from("engine_sources")
+      .update({ status: "failed", error: msg, current_stage: null, finished_at: now() })
+      .eq("id", sourceId);
+    throw e;
+  }
+
+  // Stage 3: persist signals
+  await writeStage(sb, sourceId, stages, "persist", { status: "running", started_at: now() });
+  const count = parsed.signals?.length ?? 0;
+  const confidence = Math.min(100, Math.max(0, parsed.confidence ?? 40));
+  try {
     for (const s of (parsed.signals ?? []).slice(0, 25)) {
       await sb.from("engine_change_events").insert({
         project_id: src.project_id,
@@ -199,11 +337,35 @@ async function processSingleSource(
         source_id: src.id,
       });
     }
-    return { signals: count, confidence };
+    await writeStage(sb, sourceId, stages, "persist", {
+      status: "completed",
+      finished_at: now(),
+      note: `${count} change events written`,
+    });
   } catch (e: any) {
-    await sb.from("engine_sources").update({ status: "failed", error: e?.message ?? "ai failed" }).eq("id", sourceId);
+    const msg = e?.message ?? "persist failed";
+    await writeStage(sb, sourceId, stages, "persist", { status: "failed", finished_at: now(), error: msg });
+    await sb
+      .from("engine_sources")
+      .update({ status: "failed", error: msg, current_stage: null, finished_at: now() })
+      .eq("id", sourceId);
     throw e;
   }
+
+  // Stage 4: complete
+  await writeStage(sb, sourceId, stages, "complete", { status: "completed", finished_at: now() });
+  await sb
+    .from("engine_sources")
+    .update({
+      status: "processed",
+      signals_count: count,
+      confidence,
+      current_stage: null,
+      finished_at: now(),
+    })
+    .eq("id", sourceId);
+
+  return { signals: count, confidence };
 }
 
 
@@ -294,6 +456,15 @@ export const approveVersion = createServerFn({ method: "POST" })
       body: email ? `Approved by ${email}` : null,
       severity: "success",
     });
+    await logAudit(sb, {
+      project_id: v.project_id,
+      actor_email: email,
+      action: "version_approved",
+      summary: `Approved ${v.version} and locked the approved snapshot.`,
+      version_id: v.id,
+      affected_modules: Object.keys(v.payload ?? {}),
+      metadata: { version: v.version },
+    });
     return { ok: true, version: v.version };
   });
 
@@ -304,9 +475,10 @@ export const archiveVersion = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     await assertAdmin(context);
     const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
     const { data: v } = await sb
       .from("engine_roadmap_versions")
-      .select("status")
+      .select("id,project_id,version,status")
       .eq("id", data.id)
       .single();
     if (v?.status === "approved") {
@@ -317,6 +489,16 @@ export const archiveVersion = createServerFn({ method: "POST" })
       .update({ status: "archived" })
       .eq("id", data.id);
     if (error) throw new Error(error.message ?? "archive failed");
+    if (v) {
+      await logAudit(sb, {
+        project_id: v.project_id,
+        actor_email: email,
+        action: "version_archived",
+        summary: `Archived ${v.version}.`,
+        version_id: v.id,
+        metadata: { version: v.version },
+      });
+    }
     return { ok: true };
   });
 
@@ -335,7 +517,7 @@ export const compareVersions = createServerFn({ method: "POST" })
     const sb = context.supabase as any;
     const { data: rows } = await sb
       .from("engine_roadmap_versions")
-      .select("id,version,status,payload,created_by,created_at")
+      .select("id,project_id,version,status,payload,created_by,created_at")
       .in("id", [data.aId, data.bId]);
     const a = (rows ?? []).find((r: any) => r.id === data.aId);
     const b = (rows ?? []).find((r: any) => r.id === data.bId);
@@ -360,6 +542,18 @@ export const compareVersions = createServerFn({ method: "POST" })
       const aStr = av ? JSON.stringify(av, null, 2) : "";
       const bStr = bv ? JSON.stringify(bv, null, 2) : "";
       return { module: m, changed: aStr !== bStr, a: aStr, b: bStr };
+    });
+    const email = (context as any).claims?.email ?? null;
+    const changedMods = diffs.filter((d) => d.changed).map((d) => d.module);
+    await logAudit(sb, {
+      project_id: a.project_id ?? b.project_id ?? "",
+      actor_email: email,
+      action: "version_compared",
+      summary: `Compared ${a.version} with ${b.version}. ${changedMods.length} module(s) differ.`,
+      version_id: b.id,
+      target_id: a.id,
+      affected_modules: changedMods,
+      metadata: { a: a.version, b: b.version },
     });
     return { a, b, diffs };
   });
@@ -432,7 +626,104 @@ export const restoreVersion = createServerFn({ method: "POST" })
       body: email ? `By ${email}` : null,
       severity: "info",
     });
+    await logAudit(sb, {
+      project_id: src.project_id,
+      actor_email: email,
+      action: "version_restored",
+      summary: `Restored ${src.version} as new draft ${nextVersion}.`,
+      version_id: v.id,
+      target_id: src.id,
+      affected_modules: Object.keys(src.payload ?? {}),
+      metadata: { from: src.version, to: nextVersion },
+    });
     return { ok: true, version: v.version };
+  });
+
+/* ============================================================
+ * Restore a single module (section) from a source version into the
+ * project's current draft. Approved snapshot untouched.
+ * ============================================================ */
+
+export const restoreVersionSection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        sourceVersionId: z.string().uuid(),
+        module: z.string().min(1).max(80),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true }> => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+    const { data: src } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,project_id,version,payload")
+      .eq("id", data.sourceVersionId)
+      .single();
+    if (!src) throw new Error("Version not found");
+    const value = src.payload?.[data.module];
+    if (value === undefined) throw new Error(`Module "${data.module}" is empty in ${src.version}.`);
+
+    const patch: Record<string, any> = {};
+    patch[data.module] = value;
+    const { error } = await sb.from("engine_projects").update(patch).eq("id", src.project_id);
+    if (error) throw new Error(error.message ?? "restore section failed");
+
+    await sb.from("engine_activity").insert({
+      project_id: src.project_id,
+      kind: "section_restored",
+      title: `Restored ${data.module.replace(/_/g, " ")} from ${src.version}`,
+      body: email ? `By ${email}` : null,
+      severity: "info",
+    });
+    await logAudit(sb, {
+      project_id: src.project_id,
+      actor_email: email,
+      action: "section_restored",
+      summary: `Restored the ${data.module.replace(/_/g, " ")} section from ${src.version} into the current draft.`,
+      version_id: src.id,
+      affected_modules: [data.module],
+      metadata: { from: src.version, module: data.module },
+    });
+    return { ok: true };
+  });
+
+/* ============================================================
+ * Audit log listing (admin-only via RLS + role check)
+ * ============================================================ */
+
+export type EngineAuditLog = {
+  id: string;
+  project_id: string;
+  actor_email: string | null;
+  action: string;
+  summary: string | null;
+  affected_modules: string[];
+  version_id: string | null;
+  target_id: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+};
+
+export const listAuditLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ projectId: z.string().uuid(), limit: z.number().int().min(1).max(200).default(100) }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ rows: EngineAuditLog[] }> => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { data: rows, error } = await sb
+      .from("engine_audit_log")
+      .select("*")
+      .eq("project_id", data.projectId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message ?? "list audit failed");
+    return { rows: (rows ?? []) as EngineAuditLog[] };
   });
 
 

@@ -17,10 +17,16 @@ import {
   Sparkles,
   ShieldCheck,
   CheckCircle2,
+  XCircle,
   Archive,
   GitCompare,
   RotateCcw,
   X,
+  ChevronDown,
+  ChevronRight,
+  History,
+  AlertTriangle,
+  MinusCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
@@ -34,13 +40,17 @@ import {
   archiveVersion,
   compareVersions,
   restoreVersion,
+  restoreVersionSection,
   listChangeEvents,
   resolveChangeEvent,
   runIntelligencePipeline,
   createSourceUploadUrl,
+  listAuditLog,
   type EngineSource,
+  type EngineSourceStage,
   type EngineRoadmapVersion,
   type EngineChangeEvent,
+  type EngineAuditLog,
 } from "@/lib/engine-intelligence.functions";
 import { PIPELINE_STAGES } from "@/lib/engine-agent-prompts";
 
@@ -58,10 +68,16 @@ function IntelligenceLayerPage() {
   const listSourcesFn = useServerFn(listSources);
   const listVersionsFn = useServerFn(listVersions);
   const listChangesFn = useServerFn(listChangeEvents);
+  const listAuditFn = useServerFn(listAuditLog);
 
   const sourcesQ = useQuery({
     queryKey: ["engine", "sources", projectId],
     queryFn: () => listSourcesFn({ data: { projectId } }),
+    // Live-poll while any source is processing.
+    refetchInterval: (q) => {
+      const rows = ((q.state.data as any)?.rows ?? []) as EngineSource[];
+      return rows.some((r) => r.status === "processing") ? 1500 : false;
+    },
   });
   const versionsQ = useQuery({
     queryKey: ["engine", "versions", projectId],
@@ -70,6 +86,10 @@ function IntelligenceLayerPage() {
   const changesQ = useQuery({
     queryKey: ["engine", "changes", projectId],
     queryFn: () => listChangesFn({ data: { projectId } }),
+  });
+  const auditQ = useQuery({
+    queryKey: ["engine", "audit", projectId],
+    queryFn: () => listAuditFn({ data: { projectId, limit: 100 } }),
   });
 
   const runPipeline = useServerFn(runIntelligencePipeline);
@@ -85,6 +105,7 @@ function IntelligenceLayerPage() {
   const sources = (sourcesQ.data as any)?.rows ?? [];
   const versions = (versionsQ.data as any)?.rows ?? [];
   const changes = (changesQ.data as any)?.rows ?? [];
+  const auditRows = (auditQ.data as any)?.rows ?? [];
 
   const latestDraft = versions.find((v: EngineRoadmapVersion) => v.status !== "approved" && v.status !== "archived");
   const latestApproved = versions.find((v: EngineRoadmapVersion) => v.status === "approved");
@@ -121,13 +142,22 @@ function IntelligenceLayerPage() {
           </div>
         </div>
 
-        <InputHub projectId={projectId} sources={sources} onChange={() => sourcesQ.refetch()} />
-        <ProcessingTimeline running={runMut.isPending} />
+        <InputHub
+          projectId={projectId}
+          sources={sources}
+          onChange={() => sourcesQ.refetch()}
+        />
+        <ProcessingTimeline running={runMut.isPending} sources={sources} />
         <ChangeDetection changes={changes} onResolve={() => changesQ.refetch()} />
         <VersionsTable
           versions={versions}
-          onRefresh={() => versionsQ.refetch()}
+          projectId={projectId}
+          onRefresh={() => {
+            versionsQ.refetch();
+            auditQ.refetch();
+          }}
         />
+        <AuditLogSection rows={auditRows} loading={auditQ.isLoading} onRefresh={() => auditQ.refetch()} />
       </div>
 
       {/* Right rail */}
@@ -421,61 +451,142 @@ function SourceRow({ row, onChange }: { row: EngineSource; onChange: () => void 
   const removeFn = useServerFn(removeSource);
   const reprocessFn = useServerFn(reprocessSource);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const isProcessing = row.status === "processing";
+  const isFailed = row.status === "failed";
+  const stages = (row.processing_stages ?? []) as EngineSourceStage[];
+
+  const reprocess = async () => {
+    setBusy(true);
+    setOpen(true);
+    try {
+      await reprocessFn({ data: { id: row.id } });
+      toast.success(`Reprocessed "${row.name}"`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+      onChange();
+    }
+  };
+
   return (
-    <tr className="border-b border-border/60">
-      <td className="py-2.5">
-        <div className="font-medium text-ink text-sm">{row.name}</div>
-        {row.url ? (
-          <a
-            href={row.url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs text-royal hover:underline inline-flex items-center gap-1"
-          >
-            {row.url.slice(0, 48)} <ExternalLink className="w-3 h-3" />
-          </a>
-        ) : null}
-      </td>
-      <td className="text-ink/70 capitalize">{row.type.replace(/_/g, " ")}</td>
-      <td className="text-ink/60 text-xs">{new Date(row.created_at).toLocaleDateString()}</td>
-      <td>
-        <StatusPill status={row.status} />
-      </td>
-      <td className="text-right text-ink/80">{row.signals_count}</td>
-      <td className="text-right">
-        <ConfidenceDial value={row.confidence} />
-      </td>
-      <td className="pl-4 text-ink/70 text-xs">{row.used_in_version ?? "—"}</td>
-      <td className="text-right">
-        <div className="inline-flex items-center gap-1">
-          <button
-            title="Reprocess"
-            onClick={async () => {
-              setBusy(true);
-              await reprocessFn({ data: { id: row.id } });
-              setBusy(false);
-              onChange();
-            }}
-            disabled={busy}
-            className="p-1 hover:bg-ink/5 rounded"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${busy ? "animate-spin" : ""}`} />
-          </button>
-          <button
-            title="Remove"
-            onClick={async () => {
-              if (!confirm(`Remove "${row.name}"?`)) return;
-              await removeFn({ data: { id: row.id } });
-              onChange();
-            }}
-            className="p-1 hover:bg-ink/5 rounded"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </td>
-    </tr>
+    <>
+      <tr className="border-b border-border/60">
+        <td className="py-2.5">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="p-0.5 hover:bg-ink/5 rounded"
+              aria-label={open ? "Collapse stages" : "Expand stages"}
+            >
+              {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+            <div className="min-w-0">
+              <div className="font-medium text-ink text-sm truncate">{row.name}</div>
+              {row.url ? (
+                <a
+                  href={row.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-royal hover:underline inline-flex items-center gap-1"
+                >
+                  {row.url.slice(0, 48)} <ExternalLink className="w-3 h-3" />
+                </a>
+              ) : null}
+              {isFailed && row.error ? (
+                <div className="text-[11px] text-[#a4283c] mt-0.5 truncate max-w-[320px]">{row.error}</div>
+              ) : null}
+            </div>
+          </div>
+        </td>
+        <td className="text-ink/70 capitalize">{row.type.replace(/_/g, " ")}</td>
+        <td className="text-ink/60 text-xs">{new Date(row.created_at).toLocaleDateString()}</td>
+        <td>
+          <StatusPill status={row.status} />
+        </td>
+        <td className="text-right text-ink/80">{row.signals_count}</td>
+        <td className="text-right">
+          <ConfidenceDial value={row.confidence} />
+        </td>
+        <td className="pl-4 text-ink/70 text-xs">{row.used_in_version ?? "—"}</td>
+        <td className="text-right">
+          <div className="inline-flex items-center gap-1">
+            <button
+              title="Reprocess this source"
+              onClick={reprocess}
+              disabled={busy || isProcessing}
+              className="p-1 hover:bg-ink/5 rounded disabled:opacity-40"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${busy || isProcessing ? "animate-spin" : ""}`} />
+            </button>
+            <button
+              title="Remove"
+              onClick={async () => {
+                if (!confirm(`Remove "${row.name}"?`)) return;
+                await removeFn({ data: { id: row.id } });
+                onChange();
+              }}
+              className="p-1 hover:bg-ink/5 rounded"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </td>
+      </tr>
+      {open ? (
+        <tr className="bg-canvas/60 border-b border-border/60">
+          <td colSpan={8} className="px-3 py-3">
+            <StagePanel stages={stages} isProcessing={isProcessing} />
+          </td>
+        </tr>
+      ) : null}
+    </>
   );
+}
+
+function StagePanel({
+  stages,
+  isProcessing,
+}: {
+  stages: EngineSourceStage[];
+  isProcessing: boolean;
+}) {
+  if (!stages.length) {
+    return (
+      <div className="text-xs text-ink/60">
+        {isProcessing
+          ? "Starting…"
+          : "Not yet processed. Click the refresh icon to run the pipeline for this source."}
+      </div>
+    );
+  }
+  return (
+    <ol className="grid grid-cols-1 md:grid-cols-5 gap-2">
+      {stages.map((s) => (
+        <li
+          key={s.key}
+          className="rounded-md border border-border bg-white px-3 py-2 flex items-start gap-2"
+        >
+          <StageIcon status={s.status} />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs text-ink font-medium">{s.label}</div>
+            <div className="text-[10px] uppercase tracking-wide text-ink/50">{s.status}</div>
+            {s.note ? <div className="text-[11px] text-ink/70 mt-0.5 truncate">{s.note}</div> : null}
+            {s.error ? <div className="text-[11px] text-[#a4283c] mt-0.5 truncate">{s.error}</div> : null}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function StageIcon({ status }: { status: EngineSourceStage["status"] }) {
+  if (status === "running") return <Loader2 className="w-3.5 h-3.5 mt-0.5 text-royal animate-spin" />;
+  if (status === "completed") return <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-[#1f6b3b]" />;
+  if (status === "failed") return <XCircle className="w-3.5 h-3.5 mt-0.5 text-[#a4283c]" />;
+  if (status === "skipped") return <MinusCircle className="w-3.5 h-3.5 mt-0.5 text-ink/40" />;
+  return <span className="w-3.5 h-3.5 mt-0.5 rounded-full border border-ink/30 block" />;
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -503,13 +614,44 @@ function ConfidenceDial({ value }: { value: number }) {
  * Processing Timeline
  * ============================================================ */
 
-function ProcessingTimeline({ running }: { running: boolean }) {
+function ProcessingTimeline({
+  running,
+  sources,
+}: {
+  running: boolean;
+  sources: EngineSource[];
+}) {
+  // Aggregate per-stage status across all sources so Tai sees at a glance
+  // where the pipeline is spending time.
+  type Agg = { total: number; running: number; completed: number; failed: number; skipped: number };
+  const agg = new Map<string, Agg>();
+  for (const s of sources) {
+    for (const st of s.processing_stages ?? []) {
+      const cur = agg.get(st.key) ?? { total: 0, running: 0, completed: 0, failed: 0, skipped: 0 };
+      cur.total += 1;
+      if (st.status === "running") cur.running += 1;
+      else if (st.status === "completed") cur.completed += 1;
+      else if (st.status === "failed") cur.failed += 1;
+      else if (st.status === "skipped") cur.skipped += 1;
+      agg.set(st.key, cur);
+    }
+  }
+  const anyProcessing = sources.some((s) => s.status === "processing");
   return (
     <SectionCard
       title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-ink/60" />AI Processing Timeline</span>}
-      right={running ? <span className="text-royal">Running…</span> : <span>Idle</span>}
+      right={
+        running || anyProcessing ? (
+          <span className="text-royal inline-flex items-center gap-1">
+            <Loader2 className="w-3 h-3 animate-spin" /> Running
+          </span>
+        ) : (
+          <span>Idle</span>
+        )
+      }
     >
-      <ol className="space-y-2.5">
+      <div className="text-[11px] uppercase tracking-wider text-ink/50 mb-2">Pipeline stages</div>
+      <ol className="space-y-2 mb-4">
         {PIPELINE_STAGES.map((s, i) => (
           <li key={s.key} className="flex items-center gap-3 text-sm">
             <span
@@ -523,6 +665,32 @@ function ProcessingTimeline({ running }: { running: boolean }) {
           </li>
         ))}
       </ol>
+      {sources.length ? (
+        <>
+          <div className="text-[11px] uppercase tracking-wider text-ink/50 mb-2">
+            Per-source jobs
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {["queued", "fetch", "extract", "persist", "complete"].map((k) => {
+              const a = agg.get(k) ?? { total: 0, running: 0, completed: 0, failed: 0, skipped: 0 };
+              return (
+                <div key={k} className="rounded-md border border-border bg-white px-3 py-2">
+                  <div className="text-[11px] text-ink/60 capitalize">{k}</div>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap text-[11px]">
+                    {a.running ? <span className="text-royal">{a.running} running</span> : null}
+                    {a.completed ? (
+                      <span className="text-[#1f6b3b]">{a.completed} done</span>
+                    ) : null}
+                    {a.failed ? <span className="text-[#a4283c]">{a.failed} failed</span> : null}
+                    {a.skipped ? <span className="text-ink/40">{a.skipped} skipped</span> : null}
+                    {!a.total ? <span className="text-ink/40">—</span> : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
     </SectionCard>
   );
 }
@@ -593,9 +761,11 @@ function SeverityDot({ severity }: { severity: string }) {
 
 function VersionsTable({
   versions,
+  projectId,
   onRefresh,
 }: {
   versions: EngineRoadmapVersion[];
+  projectId: string;
   onRefresh: () => void;
 }) {
   const approveFn = useServerFn(approveVersion);
@@ -740,16 +910,85 @@ function VersionsTable({
           </table>
         </div>
       )}
-      {diff ? <VersionDiffModal diff={diff} onClose={() => setDiff(null)} /> : null}
+      {diff ? (
+        <VersionDiffModal
+          diff={diff}
+          projectId={projectId}
+          onClose={() => setDiff(null)}
+          onRestored={onRefresh}
+        />
+      ) : null}
     </SectionCard>
   );
 }
 
-function VersionDiffModal({ diff, onClose }: { diff: any; onClose: () => void }) {
+/* Simple LCS-based line diff. Small enough to inline; used only in the modal. */
+type DiffLine = { type: "eq" | "add" | "del"; text: string };
+function lineDiff(a: string, b: string): DiffLine[] {
+  const A = a.split("\n");
+  const B = b.split("\n");
+  const m = A.length;
+  const n = B.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const out: DiffLine[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < m && j < n) {
+    if (A[i] === B[j]) {
+      out.push({ type: "eq", text: A[i] });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      out.push({ type: "del", text: A[i] });
+      i++;
+    } else {
+      out.push({ type: "add", text: B[j] });
+      j++;
+    }
+  }
+  while (i < m) out.push({ type: "del", text: A[i++] });
+  while (j < n) out.push({ type: "add", text: B[j++] });
+  return out;
+}
+
+function VersionDiffModal({
+  diff,
+  projectId: _projectId,
+  onClose,
+  onRestored,
+}: {
+  diff: any;
+  projectId: string;
+  onClose: () => void;
+  onRestored: () => void;
+}) {
+  const restoreSectionFn = useServerFn(restoreVersionSection);
   const changed = diff.diffs.filter((d: any) => d.changed);
+  const [restoring, setRestoring] = useState<string | null>(null);
+
+  const restoreFrom = async (module: string, source: "a" | "b") => {
+    const src = source === "a" ? diff.a : diff.b;
+    if (!confirm(`Restore "${module}" from ${src.version} into the current draft?`)) return;
+    setRestoring(module + source);
+    try {
+      await restoreSectionFn({ data: { sourceVersionId: src.id, module } });
+      toast.success(`${module} restored from ${src.version}`);
+      onRestored();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setRestoring(null);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg border border-border shadow-xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg border border-border shadow-xl w-full max-w-6xl max-h-[85vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="text-sm">
             <span className="font-mono text-ink">{diff.a.version}</span>
@@ -765,23 +1004,78 @@ function VersionDiffModal({ diff, onClose }: { diff: any; onClose: () => void })
         </div>
         <div className="overflow-auto p-4 space-y-4">
           {changed.length === 0 ? (
-            <div className="text-sm text-ink/60">These versions are identical across tracked modules.</div>
+            <div className="text-sm text-ink/60">
+              These versions are identical across tracked modules.
+            </div>
           ) : (
-            changed.map((d: any) => (
-              <div key={d.module} className="border border-border rounded overflow-hidden">
-                <div className="text-[11px] uppercase tracking-wider bg-ink/5 px-3 py-1.5 text-ink/70">
-                  {d.module.replace(/_/g, " ")}
+            changed.map((d: any) => {
+              const lines = lineDiff(d.a || "", d.b || "");
+              return (
+                <div key={d.module} className="border border-border rounded overflow-hidden">
+                  <div className="flex items-center justify-between bg-ink/5 px-3 py-1.5">
+                    <div className="text-[11px] uppercase tracking-wider text-ink/70">
+                      {d.module.replace(/_/g, " ")}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        disabled={restoring === d.module + "a"}
+                        onClick={() => restoreFrom(d.module, "a")}
+                        className="text-[11px] inline-flex items-center gap-1 border border-border rounded px-2 py-0.5 bg-white hover:bg-ink/5 disabled:opacity-40"
+                      >
+                        <RotateCcw className="w-3 h-3" /> Restore from {diff.a.version}
+                      </button>
+                      <button
+                        disabled={restoring === d.module + "b"}
+                        onClick={() => restoreFrom(d.module, "b")}
+                        className="text-[11px] inline-flex items-center gap-1 border border-border rounded px-2 py-0.5 bg-white hover:bg-ink/5 disabled:opacity-40"
+                      >
+                        <RotateCcw className="w-3 h-3" /> Restore from {diff.b.version}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 text-[11px] font-mono max-h-72">
+                    <div className="border-r border-border overflow-auto">
+                      {lines.map((l, i) =>
+                        l.type === "add" ? null : (
+                          <div
+                            key={`a-${i}`}
+                            className={
+                              l.type === "del"
+                                ? "bg-red-100/60 text-red-900 px-2 whitespace-pre-wrap break-words"
+                                : "text-ink/80 px-2 whitespace-pre-wrap break-words"
+                            }
+                          >
+                            <span className="opacity-40 select-none mr-2">
+                              {l.type === "del" ? "-" : " "}
+                            </span>
+                            {l.text || " "}
+                          </div>
+                        ),
+                      )}
+                    </div>
+                    <div className="overflow-auto">
+                      {lines.map((l, i) =>
+                        l.type === "del" ? null : (
+                          <div
+                            key={`b-${i}`}
+                            className={
+                              l.type === "add"
+                                ? "bg-green-100/60 text-green-900 px-2 whitespace-pre-wrap break-words"
+                                : "text-ink/80 px-2 whitespace-pre-wrap break-words"
+                            }
+                          >
+                            <span className="opacity-40 select-none mr-2">
+                              {l.type === "add" ? "+" : " "}
+                            </span>
+                            {l.text || " "}
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 text-xs font-mono">
-                  <pre className="p-3 bg-red-50/40 whitespace-pre-wrap break-words border-r border-border max-h-72 overflow-auto">
-                    {d.a || "(empty)"}
-                  </pre>
-                  <pre className="p-3 bg-green-50/40 whitespace-pre-wrap break-words max-h-72 overflow-auto">
-                    {d.b || "(empty)"}
-                  </pre>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
@@ -806,5 +1100,81 @@ function VersionStatus({ status }: { status: string }) {
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide ${map[status] ?? map.draft}`}>
       {label}
     </span>
+  );
+}
+
+/* ============================================================
+ * Audit Log
+ * ============================================================ */
+
+const AUDIT_ACTION_LABEL: Record<string, { label: string; tone: string; icon: React.ReactNode }> = {
+  version_approved: { label: "Version approved", tone: "text-[#1f6b3b]", icon: <ShieldCheck className="w-3.5 h-3.5" /> },
+  version_archived: { label: "Version archived", tone: "text-ink/60", icon: <Archive className="w-3.5 h-3.5" /> },
+  version_restored: { label: "Version restored", tone: "text-royal", icon: <RotateCcw className="w-3.5 h-3.5" /> },
+  version_compared: { label: "Versions compared", tone: "text-ink/70", icon: <GitCompare className="w-3.5 h-3.5" /> },
+  section_restored: { label: "Section restored", tone: "text-royal", icon: <RotateCcw className="w-3.5 h-3.5" /> },
+  agent_applied: { label: "Agent applied", tone: "text-[#5435a4]", icon: <Sparkles className="w-3.5 h-3.5" /> },
+  agent_pending_approval: { label: "Agent proposal queued", tone: "text-[#8a6713]", icon: <AlertTriangle className="w-3.5 h-3.5" /> },
+};
+
+function AuditLogSection({
+  rows,
+  loading,
+  onRefresh,
+}: {
+  rows: EngineAuditLog[];
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <SectionCard
+      title={<span className="flex items-center gap-2"><History className="w-4 h-4 text-ink/60" />Audit Log</span>}
+      right={
+        <button onClick={onRefresh} className="text-xs text-ink/60 hover:text-ink inline-flex items-center gap-1">
+          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} /> Refresh
+        </button>
+      }
+    >
+      {rows.length === 0 ? (
+        <EmptyState title="No audit events yet" hint="Approvals, restores, compares, and agent applies land here." />
+      ) : (
+        <ul className="divide-y divide-border/70">
+          {rows.map((r) => {
+            const meta = AUDIT_ACTION_LABEL[r.action] ?? {
+              label: r.action.replace(/_/g, " "),
+              tone: "text-ink/70",
+              icon: <History className="w-3.5 h-3.5" />,
+            };
+            return (
+              <li key={r.id} className="py-2.5 flex items-start gap-3">
+                <span className={`${meta.tone} mt-0.5`}>{meta.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-sm font-medium ${meta.tone}`}>{meta.label}</span>
+                    <span className="text-[11px] text-ink/50">{new Date(r.created_at).toLocaleString()}</span>
+                    {r.actor_email ? (
+                      <span className="text-[11px] text-ink/70">· {r.actor_email}</span>
+                    ) : null}
+                  </div>
+                  {r.summary ? <div className="text-xs text-ink/70 mt-0.5">{r.summary}</div> : null}
+                  {r.affected_modules?.length ? (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {r.affected_modules.map((m) => (
+                        <span
+                          key={m}
+                          className="text-[10px] uppercase tracking-wide bg-ink/5 text-ink/70 rounded px-1.5 py-0.5"
+                        >
+                          {m.replace(/_/g, " ")}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </SectionCard>
   );
 }
