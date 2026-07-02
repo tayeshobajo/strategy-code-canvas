@@ -264,10 +264,24 @@ function VersionComparePage() {
           I confirm these changes have been reviewed
         </label>
         <button
-          disabled={!confirmed}
-          className="text-sm bg-royal text-white rounded-md px-4 py-2 hover:bg-royal/90 disabled:opacity-40 disabled:cursor-not-allowed"
-        >Approve as v{draft?.version ?? "next"} Official Version</button>
+          onClick={() => approveMut.mutate()}
+          disabled={!confirmed || approveMut.isPending || !draft?.id}
+          className="text-sm bg-royal text-white rounded-md px-4 py-2 hover:bg-royal/90 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
+        >
+          {approveMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+          Approve as v{draft?.version ?? "next"} Official Version
+        </button>
       </div>
+      {approveError && (
+        <div className="rounded-md border border-[#f3ced5] bg-[#fbe9ec] text-[#a4283c] text-sm px-4 py-2">
+          {approveError}
+        </div>
+      )}
+      {approveMut.isSuccess && (
+        <div className="rounded-md border border-[#c4e6d2] bg-[#e6f5ec] text-[#1f6b3b] text-sm px-4 py-2">
+          Approved. This draft is now the official version.
+        </div>
+      )}
     </div>
   );
 }
