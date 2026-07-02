@@ -255,16 +255,37 @@ export const approveVersion = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const sb = context.supabase as any;
     const email = (context as any).claims?.email ?? null;
+
+    // Guard: block approving if any critical change_event is still unresolved.
+    const { data: openCritical } = await sb
+      .from("engine_change_events")
+      .select("id")
+      .eq("project_id", (await sb.from("engine_roadmap_versions").select("project_id").eq("id", data.id).single()).data?.project_id)
+      .eq("severity", "critical")
+      .is("resolved_at", null);
+    if ((openCritical ?? []).length) {
+      throw new Error("Resolve open critical change events before approving.");
+    }
+
     const { data: v, error } = await sb
       .from("engine_roadmap_versions")
       .update({ status: "approved", approved_by: email, approved_at: new Date().toISOString() })
       .eq("id", data.id)
-      .select("project_id, version")
+      .select("id, project_id, version, payload")
       .single();
     if (error) throw new Error(error.message ?? "approve failed");
+
+    // Snapshot the approved payload immutably on the project so any further
+    // draft edits do not touch the last approved state.
     await sb
       .from("engine_projects")
-      .update({ approved_version: v.version, roadmap_version: v.version })
+      .update({
+        approved_version: v.version,
+        roadmap_version: v.version,
+        approved_snapshot: v.payload ?? {},
+        approved_at: new Date().toISOString(),
+        approved_by_email: email,
+      })
       .eq("id", v.project_id);
     await sb.from("engine_activity").insert({
       project_id: v.project_id,
@@ -275,6 +296,7 @@ export const approveVersion = createServerFn({ method: "POST" })
     });
     return { ok: true, version: v.version };
   });
+
 
 export const archiveVersion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
