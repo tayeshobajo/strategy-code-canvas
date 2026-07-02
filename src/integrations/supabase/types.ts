@@ -840,6 +840,53 @@ export type Database = {
           },
         ]
       }
+      engine_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          affected_modules: string[]
+          created_at: string
+          id: string
+          metadata: Json
+          project_id: string
+          summary: string | null
+          target_id: string | null
+          version_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          affected_modules?: string[]
+          created_at?: string
+          id?: string
+          metadata?: Json
+          project_id: string
+          summary?: string | null
+          target_id?: string | null
+          version_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          affected_modules?: string[]
+          created_at?: string
+          id?: string
+          metadata?: Json
+          project_id?: string
+          summary?: string | null
+          target_id?: string | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_audit_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_change_events: {
         Row: {
           affected_module: string | null
@@ -1215,12 +1262,16 @@ export type Database = {
           confidence: number
           created_at: string
           created_by_email: string | null
+          current_stage: string | null
           error: string | null
+          finished_at: string | null
           id: string
           name: string
+          processing_stages: Json
           project_id: string
           raw_text: string | null
           signals_count: number
+          started_at: string | null
           status: Database["public"]["Enums"]["engine_source_status"]
           storage_path: string | null
           type: Database["public"]["Enums"]["engine_source_type"]
@@ -1232,12 +1283,16 @@ export type Database = {
           confidence?: number
           created_at?: string
           created_by_email?: string | null
+          current_stage?: string | null
           error?: string | null
+          finished_at?: string | null
           id?: string
           name: string
+          processing_stages?: Json
           project_id: string
           raw_text?: string | null
           signals_count?: number
+          started_at?: string | null
           status?: Database["public"]["Enums"]["engine_source_status"]
           storage_path?: string | null
           type: Database["public"]["Enums"]["engine_source_type"]
@@ -1249,12 +1304,16 @@ export type Database = {
           confidence?: number
           created_at?: string
           created_by_email?: string | null
+          current_stage?: string | null
           error?: string | null
+          finished_at?: string | null
           id?: string
           name?: string
+          processing_stages?: Json
           project_id?: string
           raw_text?: string | null
           signals_count?: number
+          started_at?: string | null
           status?: Database["public"]["Enums"]["engine_source_status"]
           storage_path?: string | null
           type?: Database["public"]["Enums"]["engine_source_type"]
