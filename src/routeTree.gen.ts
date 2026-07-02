@@ -80,6 +80,11 @@ import { Route as EngineProjectsProjectIdBlueprintRouteImport } from './routes/e
 import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engine.projects.$projectId.agent'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
+import { Route as EngineProjectsProjectIdVersionsCompareRouteImport } from './routes/engine.projects.$projectId.versions.compare'
+import { Route as EngineProjectsProjectIdAgentTasksRouteImport } from './routes/engine.projects.$projectId.agent.tasks'
+import { Route as EngineProjectsProjectIdAgentPermissionsRouteImport } from './routes/engine.projects.$projectId.agent.permissions'
+import { Route as EngineProjectsProjectIdAgentCostsRouteImport } from './routes/engine.projects.$projectId.agent.costs'
+import { Route as EngineProjectsProjectIdMilestonesMilestoneIdBriefRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.brief'
 
 const WhatWeBuildRoute = WhatWeBuildRouteImport.update({
   id: '/what-we-build',
@@ -455,6 +460,36 @@ const ApiPublicHooksBuildRoadmapContactRoute =
     path: '/api/public/hooks/build-roadmap-contact',
     getParentRoute: () => rootRouteImport,
   } as any)
+const EngineProjectsProjectIdVersionsCompareRoute =
+  EngineProjectsProjectIdVersionsCompareRouteImport.update({
+    id: '/versions/compare',
+    path: '/versions/compare',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdAgentTasksRoute =
+  EngineProjectsProjectIdAgentTasksRouteImport.update({
+    id: '/tasks',
+    path: '/tasks',
+    getParentRoute: () => EngineProjectsProjectIdAgentRoute,
+  } as any)
+const EngineProjectsProjectIdAgentPermissionsRoute =
+  EngineProjectsProjectIdAgentPermissionsRouteImport.update({
+    id: '/permissions',
+    path: '/permissions',
+    getParentRoute: () => EngineProjectsProjectIdAgentRoute,
+  } as any)
+const EngineProjectsProjectIdAgentCostsRoute =
+  EngineProjectsProjectIdAgentCostsRouteImport.update({
+    id: '/costs',
+    path: '/costs',
+    getParentRoute: () => EngineProjectsProjectIdAgentRoute,
+  } as any)
+const EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute =
+  EngineProjectsProjectIdMilestonesMilestoneIdBriefRouteImport.update({
+    id: '/milestones/$milestoneId/brief',
+    path: '/milestones/$milestoneId/brief',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -506,7 +541,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
-  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRoute
+  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
@@ -526,6 +561,11 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
+  '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
+  '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
+  '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -574,7 +614,7 @@ export interface FileRoutesByTo {
   '/engine/projects': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
-  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRoute
+  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
@@ -594,6 +634,11 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
+  '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
+  '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
+  '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -648,7 +693,7 @@ export interface FileRoutesById {
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
-  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRoute
+  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
@@ -668,6 +713,11 @@ export interface FileRoutesById {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
+  '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
+  '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
+  '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -741,6 +791,11 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/engine/projects/$projectId/agent/costs'
+    | '/engine/projects/$projectId/agent/permissions'
+    | '/engine/projects/$projectId/agent/tasks'
+    | '/engine/projects/$projectId/versions/compare'
+    | '/engine/projects/$projectId/milestones/$milestoneId/brief'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -809,6 +864,11 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/engine/projects/$projectId/agent/costs'
+    | '/engine/projects/$projectId/agent/permissions'
+    | '/engine/projects/$projectId/agent/tasks'
+    | '/engine/projects/$projectId/versions/compare'
+    | '/engine/projects/$projectId/milestones/$milestoneId/brief'
   id:
     | '__root__'
     | '/'
@@ -882,6 +942,11 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/engine/projects/$projectId/agent/costs'
+    | '/engine/projects/$projectId/agent/permissions'
+    | '/engine/projects/$projectId/agent/tasks'
+    | '/engine/projects/$projectId/versions/compare'
+    | '/engine/projects/$projectId/milestones/$milestoneId/brief'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1409,6 +1474,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksBuildRoadmapContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engine/projects/$projectId/versions/compare': {
+      id: '/engine/projects/$projectId/versions/compare'
+      path: '/versions/compare'
+      fullPath: '/engine/projects/$projectId/versions/compare'
+      preLoaderRoute: typeof EngineProjectsProjectIdVersionsCompareRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/agent/tasks': {
+      id: '/engine/projects/$projectId/agent/tasks'
+      path: '/tasks'
+      fullPath: '/engine/projects/$projectId/agent/tasks'
+      preLoaderRoute: typeof EngineProjectsProjectIdAgentTasksRouteImport
+      parentRoute: typeof EngineProjectsProjectIdAgentRoute
+    }
+    '/engine/projects/$projectId/agent/permissions': {
+      id: '/engine/projects/$projectId/agent/permissions'
+      path: '/permissions'
+      fullPath: '/engine/projects/$projectId/agent/permissions'
+      preLoaderRoute: typeof EngineProjectsProjectIdAgentPermissionsRouteImport
+      parentRoute: typeof EngineProjectsProjectIdAgentRoute
+    }
+    '/engine/projects/$projectId/agent/costs': {
+      id: '/engine/projects/$projectId/agent/costs'
+      path: '/costs'
+      fullPath: '/engine/projects/$projectId/agent/costs'
+      preLoaderRoute: typeof EngineProjectsProjectIdAgentCostsRouteImport
+      parentRoute: typeof EngineProjectsProjectIdAgentRoute
+    }
+    '/engine/projects/$projectId/milestones/$milestoneId/brief': {
+      id: '/engine/projects/$projectId/milestones/$milestoneId/brief'
+      path: '/milestones/$milestoneId/brief'
+      fullPath: '/engine/projects/$projectId/milestones/$milestoneId/brief'
+      preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
   }
 }
 
@@ -1461,8 +1561,29 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface EngineProjectsProjectIdAgentRouteChildren {
+  EngineProjectsProjectIdAgentCostsRoute: typeof EngineProjectsProjectIdAgentCostsRoute
+  EngineProjectsProjectIdAgentPermissionsRoute: typeof EngineProjectsProjectIdAgentPermissionsRoute
+  EngineProjectsProjectIdAgentTasksRoute: typeof EngineProjectsProjectIdAgentTasksRoute
+}
+
+const EngineProjectsProjectIdAgentRouteChildren: EngineProjectsProjectIdAgentRouteChildren =
+  {
+    EngineProjectsProjectIdAgentCostsRoute:
+      EngineProjectsProjectIdAgentCostsRoute,
+    EngineProjectsProjectIdAgentPermissionsRoute:
+      EngineProjectsProjectIdAgentPermissionsRoute,
+    EngineProjectsProjectIdAgentTasksRoute:
+      EngineProjectsProjectIdAgentTasksRoute,
+  }
+
+const EngineProjectsProjectIdAgentRouteWithChildren =
+  EngineProjectsProjectIdAgentRoute._addFileChildren(
+    EngineProjectsProjectIdAgentRouteChildren,
+  )
+
 interface EngineProjectsProjectIdRouteChildren {
-  EngineProjectsProjectIdAgentRoute: typeof EngineProjectsProjectIdAgentRoute
+  EngineProjectsProjectIdAgentRoute: typeof EngineProjectsProjectIdAgentRouteWithChildren
   EngineProjectsProjectIdBlueprintRoute: typeof EngineProjectsProjectIdBlueprintRoute
   EngineProjectsProjectIdBuilderRoute: typeof EngineProjectsProjectIdBuilderRoute
   EngineProjectsProjectIdDeadlinesRoute: typeof EngineProjectsProjectIdDeadlinesRoute
@@ -1479,11 +1600,14 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdPreviewRoute: typeof EngineProjectsProjectIdPreviewRoute
   EngineProjectsProjectIdSequencingRoute: typeof EngineProjectsProjectIdSequencingRoute
   EngineProjectsProjectIdSignalRoomRoute: typeof EngineProjectsProjectIdSignalRoomRoute
+  EngineProjectsProjectIdVersionsCompareRoute: typeof EngineProjectsProjectIdVersionsCompareRoute
+  EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
 }
 
 const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren =
   {
-    EngineProjectsProjectIdAgentRoute: EngineProjectsProjectIdAgentRoute,
+    EngineProjectsProjectIdAgentRoute:
+      EngineProjectsProjectIdAgentRouteWithChildren,
     EngineProjectsProjectIdBlueprintRoute:
       EngineProjectsProjectIdBlueprintRoute,
     EngineProjectsProjectIdBuilderRoute: EngineProjectsProjectIdBuilderRoute,
@@ -1509,6 +1633,10 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
       EngineProjectsProjectIdSequencingRoute,
     EngineProjectsProjectIdSignalRoomRoute:
       EngineProjectsProjectIdSignalRoomRoute,
+    EngineProjectsProjectIdVersionsCompareRoute:
+      EngineProjectsProjectIdVersionsCompareRoute,
+    EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute:
+      EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute,
   }
 
 const EngineProjectsProjectIdRouteWithChildren =

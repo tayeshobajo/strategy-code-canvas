@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Settings, ArrowRightLeft, PlusCircle, Download, Sparkles, Bot } from "lucide-react";
+import { Settings, ArrowRightLeft, PlusCircle, Download, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck } from "lucide-react";
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import { EngineStatusBadge } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
@@ -103,25 +103,27 @@ function Metric({
 }
 
 export function WorkspaceToolbar({ projectId }: { projectId: string }) {
+  const linkCls = "inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 hover:border-royal/50 text-ink";
   return (
     <div className="flex items-center justify-end gap-2 flex-wrap">
-      <Link
-        to="/engine/projects/$projectId/intelligence-layer"
-        params={{ projectId }}
-        className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 hover:border-royal/50 text-ink"
-      >
-        <Sparkles className="w-3.5 h-3.5" /> Intelligence Layer
+      <Link to="/engine/projects/$projectId/intelligence-layer" params={{ projectId }} className={linkCls}>
+        <Sparkles className="w-3.5 h-3.5" /> Intelligence
       </Link>
-      <Link
-        to="/engine/projects/$projectId/agent"
-        params={{ projectId }}
-        className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 hover:border-royal/50 text-ink"
-      >
-        <Bot className="w-3.5 h-3.5" /> Project Agent
+      <Link to="/engine/projects/$projectId/agent" params={{ projectId }} className={linkCls}>
+        <Bot className="w-3.5 h-3.5" /> Agent
       </Link>
-      <button className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 hover:border-royal/50 text-ink">
-        <ArrowRightLeft className="w-3.5 h-3.5" /> Switch Project
-      </button>
+      <Link to="/engine/projects/$projectId/agent/tasks" params={{ projectId }} className={linkCls}>
+        <ListChecks className="w-3.5 h-3.5" /> Tasks
+      </Link>
+      <Link to="/engine/projects/$projectId/agent/costs" params={{ projectId }} className={linkCls}>
+        <DollarSign className="w-3.5 h-3.5" /> Costs
+      </Link>
+      <Link to="/engine/projects/$projectId/versions/compare" params={{ projectId }} className={linkCls}>
+        <GitCompare className="w-3.5 h-3.5" /> Compare
+      </Link>
+      <Link to="/engine/projects/$projectId/agent/permissions" params={{ projectId }} className={linkCls}>
+        <ShieldCheck className="w-3.5 h-3.5" /> Permissions
+      </Link>
       <Link
         to="/engine/projects/$projectId/signal-room"
         params={{ projectId }}
@@ -129,9 +131,6 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
       >
         <PlusCircle className="w-3.5 h-3.5" /> Add Signal
       </Link>
-      <button className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 hover:border-royal/50 text-ink">
-        <Download className="w-3.5 h-3.5" /> Export
-      </button>
     </div>
   );
 }
