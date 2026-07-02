@@ -49,6 +49,7 @@ const NAV: Array<{ to: string; label: string; icon: typeof ClipboardList }> = [
   { to: "/ops/history", label: "History", icon: HistoryIcon },
   { to: "/ops/insights", label: "Analytics", icon: LineChart },
   { to: "/ops/access-events", label: "Access events", icon: ShieldAlert },
+  { to: "/ops/emails", label: "Email health", icon: Mail },
 ];
 
 function OpsLayout() {
