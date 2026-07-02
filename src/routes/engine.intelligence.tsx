@@ -34,24 +34,29 @@ type Item = {
   usedIn: string;
 };
 
-const ITEMS: Item[] = [
-  { id: "i1", title: "Launch date is January 1, 2026", summary: "Official target for school platform launch.", type: "Client Truth", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:14 AM", confidence: 95, tags: ["Launch", "Deadline"], usedIn: "Roadmap v1.2 · 3 milestones" },
-  { id: "i2", title: "80 students expected in Phase 1", summary: "Initial schools launch with ~80 students.", type: "Client Truth", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:15 AM", confidence: 92, tags: ["Students", "Phase 1"], usedIn: "Q-Bank Engine Pre-Test MVP" },
-  { id: "i3", title: "Q-Bank is the foundation", summary: "Q-Bank drives everything. Get this right first.", type: "Decision", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:22 PM", confidence: 93, tags: ["Q-Bank", "Core"], usedIn: "Milestone Ordering · Priorities" },
-  { id: "i4", title: "Pre-Test before content access", summary: "Students complete pre-test before modules.", type: "Requirement", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:16 AM", confidence: 90, tags: ["Pre-Test", "Access"], usedIn: "Pre-Test MVP · Student Flow" },
-  { id: "i5", title: "Schools want simple reporting", summary: "Need easy reports for school admins.", type: "Opportunity", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:17 AM", confidence: 78, tags: ["Reporting", "Admin"], usedIn: "School Portal · Analytics" },
-  { id: "i6", title: "Budget range $100k – $150k", summary: "Annual investment range discussed.", type: "Constraint", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:18 AM", confidence: 88, tags: ["Budget", "Investment"], usedIn: "Investment Builder · Client Preview" },
-  { id: "i7", title: "Q-Bank import from existing bank", summary: "Need ability to import existing questions.", type: "Requirement", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:25 PM", confidence: 75, tags: ["Q-Bank", "Import"], usedIn: "Q-Bank Engine · Admin Tools" },
-  { id: "i8", title: "Parents will not use the platform", summary: "Platform is for students and schools only.", type: "Client Truth", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:18 AM", confidence: 91, tags: ["Users", "Access"], usedIn: "Feature Scope · User Roles" },
-  { id: "i9", title: "Compliance and data privacy critical", summary: "Must meet school data requirements.", type: "Risk", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:27 PM", confidence: 89, tags: ["Compliance", "Security"], usedIn: "System Blueprint · Risk Register" },
-  { id: "i10", title: "Mobile experience must be strong", summary: "Students will access mostly on mobile.", type: "Preference", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:19 AM", confidence: 70, tags: ["Mobile", "UX"], usedIn: "Design System · All Milestones" },
-  { id: "i11", title: "Launch target: Jan 1, 2026", summary: "Client confirmed the launch date is January 1st, 2026.", type: "Client Truth", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:14 PM", confidence: 88, tags: ["Launch", "Deadline"], usedIn: "Roadmap v1.2" },
-  { id: "i12", title: "Roughly 80 students in first cohort", summary: "First cohort will be about 80 students.", type: "Client Truth", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:16 PM", confidence: 84, tags: ["Students", "Phase 1"], usedIn: "Pre-Test MVP" },
-  { id: "i13", title: "Low-confidence: possibly needs SSO", summary: "One passing mention of maybe wanting SSO.", type: "Requirement", project: "Mental Dental Academy", source: "Slack thread", sourceDate: "May 12, 2025", captured: "May 12, 2025 · 4:02 PM", confidence: 42, tags: ["SSO"], usedIn: "—" },
-  { id: "i14", title: "Old constraint: prior budget cap $80k", summary: "Superseded by updated $100–150k range.", type: "Constraint", project: "Mental Dental Academy", source: "Kickoff notes", sourceDate: "Mar 1, 2025", captured: "Mar 1, 2025 · 9:00 AM", confidence: 55, tags: ["Budget"], usedIn: "—" },
-];
+const KNOWN_TYPES: MemType[] = ["Client Truth", "Insight", "Decision", "Requirement", "Opportunity", "Constraint", "Risk", "Preference"];
+
+function toItem(r: MemoryRow): Item {
+  const t = (KNOWN_TYPES as string[]).includes(r.type) ? (r.type as MemType) : "Insight";
+  const captured = r.captured_at ? new Date(r.captured_at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  const sourceDate = r.source_date ? new Date(r.source_date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+  return {
+    id: r.id,
+    title: r.title,
+    summary: r.summary ?? "",
+    type: t,
+    project: r.project_id ? r.project_id.slice(0, 8) : "—",
+    source: r.source ?? "—",
+    sourceDate,
+    captured,
+    confidence: r.confidence,
+    tags: r.tags ?? [],
+    usedIn: r.used_in ?? "—",
+  };
+}
 
 const TABS: (MemType | "All Memory" | "Insights")[] = ["All Memory", "Insights", "Client Truth", "Decision", "Constraint", "Opportunity", "Risk", "Preference"];
+
 
 const TYPE_STYLE: Record<MemType, string> = {
   "Client Truth": "bg-[#e6f5ec] text-[#1f6b3b] border-[#c4e6d2]",
