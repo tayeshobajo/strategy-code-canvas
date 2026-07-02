@@ -3,6 +3,22 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 
+async function assertAdminEmail(context: {
+  claims?: Record<string, unknown>;
+  supabase: {
+    rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+  };
+}) {
+  const email = (context.claims?.email as string | undefined) ?? undefined;
+  const admin = await hasRoleForEmail(
+    context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
+    email,
+    "admin",
+  );
+  if (!admin) throw new Error("Forbidden: admin role required");
+  return email ?? "unknown";
+}
+
 async function assertOps(context: {
   claims?: Record<string, unknown>;
   supabase: {
