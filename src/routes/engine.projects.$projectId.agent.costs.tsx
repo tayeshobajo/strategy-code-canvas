@@ -23,6 +23,7 @@ function CostCenterPage() {
   const qc = useQueryClient();
   const fn = useServerFn(getAgentCosts);
   const updFn = useServerFn(updateBudgetControls);
+  const csvFn = useServerFn(exportAgentCostsCsv);
 
   const q = useQuery({
     queryKey: ["engine", "costs", projectId],
@@ -34,6 +35,7 @@ function CostCenterPage() {
   const categories = d?.spendByCategory ?? [];
   const milestones = d?.spendByMilestone ?? [];
   const recent = d?.recent ?? [];
+  const ledger = d?.ledger ?? [];
 
   const budgetPct = totals.budget > 0 ? Math.round((totals.monthSpend / totals.budget) * 100) : 0;
   const projectedRange = useMemo(() => ({
