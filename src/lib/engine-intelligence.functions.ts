@@ -626,7 +626,104 @@ export const restoreVersion = createServerFn({ method: "POST" })
       body: email ? `By ${email}` : null,
       severity: "info",
     });
+    await logAudit(sb, {
+      project_id: src.project_id,
+      actor_email: email,
+      action: "version_restored",
+      summary: `Restored ${src.version} as new draft ${nextVersion}.`,
+      version_id: v.id,
+      target_id: src.id,
+      affected_modules: Object.keys(src.payload ?? {}),
+      metadata: { from: src.version, to: nextVersion },
+    });
     return { ok: true, version: v.version };
+  });
+
+/* ============================================================
+ * Restore a single module (section) from a source version into the
+ * project's current draft. Approved snapshot untouched.
+ * ============================================================ */
+
+export const restoreVersionSection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        sourceVersionId: z.string().uuid(),
+        module: z.string().min(1).max(80),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true }> => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+    const { data: src } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,project_id,version,payload")
+      .eq("id", data.sourceVersionId)
+      .single();
+    if (!src) throw new Error("Version not found");
+    const value = src.payload?.[data.module];
+    if (value === undefined) throw new Error(`Module "${data.module}" is empty in ${src.version}.`);
+
+    const patch: Record<string, any> = {};
+    patch[data.module] = value;
+    const { error } = await sb.from("engine_projects").update(patch).eq("id", src.project_id);
+    if (error) throw new Error(error.message ?? "restore section failed");
+
+    await sb.from("engine_activity").insert({
+      project_id: src.project_id,
+      kind: "section_restored",
+      title: `Restored ${data.module.replace(/_/g, " ")} from ${src.version}`,
+      body: email ? `By ${email}` : null,
+      severity: "info",
+    });
+    await logAudit(sb, {
+      project_id: src.project_id,
+      actor_email: email,
+      action: "section_restored",
+      summary: `Restored the ${data.module.replace(/_/g, " ")} section from ${src.version} into the current draft.`,
+      version_id: src.id,
+      affected_modules: [data.module],
+      metadata: { from: src.version, module: data.module },
+    });
+    return { ok: true };
+  });
+
+/* ============================================================
+ * Audit log listing (admin-only via RLS + role check)
+ * ============================================================ */
+
+export type EngineAuditLog = {
+  id: string;
+  project_id: string;
+  actor_email: string | null;
+  action: string;
+  summary: string | null;
+  affected_modules: string[];
+  version_id: string | null;
+  target_id: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+};
+
+export const listAuditLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ projectId: z.string().uuid(), limit: z.number().int().min(1).max(200).default(100) }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ rows: EngineAuditLog[] }> => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { data: rows, error } = await sb
+      .from("engine_audit_log")
+      .select("*")
+      .eq("project_id", data.projectId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message ?? "list audit failed");
+    return { rows: (rows ?? []) as EngineAuditLog[] };
   });
 
 
