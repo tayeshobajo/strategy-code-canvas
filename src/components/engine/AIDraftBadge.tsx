@@ -15,6 +15,8 @@ export function AIDraftBadge({
   onRegenerate,
   regenerating = false,
   regenerateLabel = "Regenerate",
+  disabled = false,
+  disabledReason,
 }: {
   kind: "ai" | "human" | string | null | undefined;
   size?: "xs" | "sm";
@@ -22,6 +24,8 @@ export function AIDraftBadge({
   onRegenerate?: () => void;
   regenerating?: boolean;
   regenerateLabel?: string;
+  disabled?: boolean;
+  disabledReason?: string;
 }) {
   const isAI = kind === "ai";
   const pad = size === "xs" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[11px]";
@@ -30,6 +34,7 @@ export function AIDraftBadge({
   const tone = isAI
     ? "border-[#cdd6f3] bg-[#e9eefb] text-[#2842a4]"
     : "border-border bg-paper-soft text-ink/70";
+  const btnTitle = disabled && disabledReason ? disabledReason : regenerateLabel;
   return (
     <span className={`inline-flex items-center gap-1 ${className}`}>
       <span
@@ -42,9 +47,9 @@ export function AIDraftBadge({
       {isAI && onRegenerate ? (
         <button
           onClick={onRegenerate}
-          disabled={regenerating}
-          title={regenerateLabel}
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-white text-ink/70 hover:text-ink hover:border-royal/50 px-1.5 py-0.5 text-[10px] disabled:opacity-60"
+          disabled={regenerating || disabled}
+          title={btnTitle}
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-white text-ink/70 hover:text-ink hover:border-royal/50 px-1.5 py-0.5 text-[10px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border"
         >
           {regenerating ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <RotateCcw className="w-2.5 h-2.5" />}
           {regenerating ? "…" : regenerateLabel}
