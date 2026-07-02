@@ -4,14 +4,16 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail, isOperatorEmail, isAdminEmail } from "@/lib/ops/access";
 
 async function assertOps(context: {
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> };
+  supabase: unknown;
   claims?: { email?: string } | null;
 }) {
   const email = (context.claims?.email as string | undefined) ?? "";
   if (isOperatorEmail(email) || isAdminEmail(email)) return;
-  const op = await hasRoleForEmail(context.supabase, email, "operator");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = context.supabase as any;
+  const op = await hasRoleForEmail(sb, email, "operator");
   if (op) return;
-  const admin = await hasRoleForEmail(context.supabase, email, "admin");
+  const admin = await hasRoleForEmail(sb, email, "admin");
   if (admin) return;
   throw new Error("Forbidden");
 }
