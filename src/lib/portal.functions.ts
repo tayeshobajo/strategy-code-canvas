@@ -417,7 +417,7 @@ export const adminUpdatePortal = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => AdminUpdateInput.parse(raw))
   .handler(async ({ context, data }) => {
     const email = await assertOperator(context);
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, any> = {};
     for (const [k, v] of Object.entries(data)) {
       if (k === "id") continue;
       if (v !== undefined) patch[k] = v;
@@ -765,7 +765,7 @@ export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
     if (cprErr || !cpr) return { error: "Roadmap not found or not visible" } as const;
 
     const nowIso = new Date().toISOString();
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, any> = {};
     if (data.event === "acknowledged" && !cpr.acknowledged_at) {
       patch.acknowledged_at = nowIso;
       patch.acknowledged_by_email = email;
@@ -807,7 +807,7 @@ export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
             : null; // "downloaded" is a timestamp bump only
 
       for (const it of (items ?? []) as Array<{ id: string; status: string }>) {
-        const update: Record<string, unknown> = {};
+        const update: Record<string, any> = {};
         if (data.event === "viewed") update.client_viewed_at = nowIso;
         if (data.event === "downloaded") update.client_downloaded_at = nowIso;
         if (data.event === "acknowledged") {
