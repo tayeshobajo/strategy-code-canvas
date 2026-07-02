@@ -90,8 +90,11 @@ export const runAgentPrompt = createServerFn({ method: "POST" })
       (budgetRow.agent_spend_month_cents ?? 0) >= budgetRow.agent_budget_monthly_cents
     ) {
       throw new Error("Agent budget cap reached for this month. Raise the cap to continue.");
+    }
 
     let contextText = "";
+
+
 
 
     if (data.useProjectContext) {
