@@ -27,6 +27,9 @@ export type EngineAgentTask = {
   used_project_context: boolean;
   created_by_email: string | null;
   error: string | null;
+  applied_module: string | null;
+  applied_at: string | null;
+  pending_approval: boolean;
   created_at: string;
   updated_at: string;
 };
