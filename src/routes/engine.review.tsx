@@ -1,14 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, XCircle, Eye, AlertTriangle, Clock, X, RotateCcw, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, AlertTriangle, Clock, X, RotateCcw, Loader2, Search } from "lucide-react";
 import { listReviewQueue, decideReviewItem, type ReviewItem } from "@/lib/engine-ops.functions";
+
+type AuditSearch = { q?: string; actor?: string; decision?: "all" | "approved" | "sent_back" };
 
 export const Route = createFileRoute("/engine/review")({
   component: ReviewApprovalsPage,
+  validateSearch: (search: Record<string, unknown>): AuditSearch => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+    actor: typeof search.actor === "string" ? search.actor : undefined,
+    decision: search.decision === "approved" || search.decision === "sent_back" ? search.decision : "all",
+  }),
 });
 
 const SOURCE_ROUTE: Record<string, string> = {
@@ -31,12 +39,22 @@ const reviewQO = queryOptions({
 function ReviewApprovalsPage() {
   const [filter, setFilter] = useState<string>("All");
   const [rejecting, setRejecting] = useState<ReviewItem | null>(null);
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const setSearch = (next: Partial<AuditSearch>) =>
+    navigate({ search: (prev: AuditSearch) => ({ ...prev, ...next }), replace: true });
   const qc = useQueryClient();
   const { data, isLoading } = useQuery(reviewQO);
   const decideFn = useServerFn(decideReviewItem);
   const decide = useMutation({
     mutationFn: (v: { id: string; action: "approved" | "sent_back"; reason?: string }) => decideFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["engine", "reviews"] }),
+    onError: (err, vars) => {
+      toast.error(vars.action === "approved" ? "Couldn't approve item" : "Couldn't send item back", {
+        description: (err as Error).message || "The backend rejected the change.",
+        action: { label: "Retry", onClick: () => decide.mutate(vars) },
+      });
+    },
   });
 
   const rows = data?.items ?? [];
@@ -46,6 +64,21 @@ function ReviewApprovalsPage() {
   const highImpact = rows.filter((r) => r.impact === "high" && (r.status === "pending" || r.status === "in_review")).length;
   const inReview = rows.filter((r) => r.status === "in_review").length;
   const sentBack = audit.filter((a) => a.action === "sent_back").length;
+
+  const actorOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of audit) if (a.actor) set.add(a.actor);
+    return Array.from(set).sort();
+  }, [audit]);
+  const q = (search.q ?? "").trim().toLowerCase();
+  const decisionFilter = search.decision ?? "all";
+  const actorFilter = search.actor ?? "";
+  const auditFiltered = audit.filter((a) => {
+    if (decisionFilter !== "all" && a.action !== decisionFilter) return false;
+    if (actorFilter && a.actor !== actorFilter) return false;
+    if (q && !(`${a.project} ${a.title} ${a.reason ?? ""}`.toLowerCase().includes(q))) return false;
+    return true;
+  });
 
   return (
     <div className="max-w-[1400px]">
@@ -141,11 +174,54 @@ function ReviewApprovalsPage() {
         </SectionCard>
 
         <SectionCard title="Audit History">
+          <div className="space-y-2 mb-3">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-ink/40" />
+              <input
+                value={search.q ?? ""}
+                onChange={(e) => setSearch({ q: e.target.value || undefined })}
+                placeholder="Search project, title, reason…"
+                className="w-full text-xs border border-border rounded pl-7 pr-2 py-1.5 focus:outline-none focus:border-royal"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={decisionFilter}
+                onChange={(e) => setSearch({ decision: e.target.value as AuditSearch["decision"] })}
+                className="text-xs border border-border rounded px-2 py-1.5 bg-white"
+              >
+                <option value="all">All decisions</option>
+                <option value="approved">Approved</option>
+                <option value="sent_back">Sent back</option>
+              </select>
+              <select
+                value={actorFilter}
+                onChange={(e) => setSearch({ actor: e.target.value || undefined })}
+                className="text-xs border border-border rounded px-2 py-1.5 bg-white"
+              >
+                <option value="">All actors</option>
+                {actorOptions.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+            {(q || actorFilter || decisionFilter !== "all") ? (
+              <button
+                onClick={() => setSearch({ q: undefined, actor: undefined, decision: "all" })}
+                className="text-[10px] text-royal hover:underline"
+              >
+                Clear filters
+              </button>
+            ) : null}
+            <div className="text-[10px] font-mono uppercase tracking-wider text-ink/40">
+              {auditFiltered.length} of {audit.length} entries
+            </div>
+          </div>
           {audit.length === 0 ? (
             <div className="text-sm text-ink/50">No approvals or rejections yet.</div>
+          ) : auditFiltered.length === 0 ? (
+            <div className="text-sm text-ink/50">No entries match these filters.</div>
           ) : (
             <ol className="space-y-3 text-sm max-h-[600px] overflow-y-auto -mr-2 pr-2">
-              {audit.map((a) => (
+              {auditFiltered.map((a) => (
                 <li key={a.id} className="border-l-2 pl-3"
                     style={{ borderColor: a.action === "approved" ? "#1f6b3b" : "#a4283c" }}>
                   <div className="flex items-center gap-2">
@@ -172,6 +248,7 @@ function ReviewApprovalsPage() {
           )}
         </SectionCard>
       </div>
+
 
       {rejecting ? (
         <RejectDialog item={rejecting} onClose={() => setRejecting(null)}

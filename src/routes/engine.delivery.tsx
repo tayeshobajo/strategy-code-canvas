@@ -2,9 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Send, Eye, MessageCircle, CheckCircle2, Archive, Calendar, AlertCircle, X, ArrowRight, PlayCircle, Loader2 } from "lucide-react";
+import { Send, Eye, MessageCircle, CheckCircle2, Archive, Calendar, AlertCircle, X, ArrowRight, PlayCircle, Loader2, RefreshCw } from "lucide-react";
 import { listDeliveries, transitionDelivery, type DeliveryItem, type DeliveryStatus } from "@/lib/engine-ops.functions";
 
 export const Route = createFileRoute("/engine/delivery")({
@@ -78,11 +80,17 @@ function DeliveryRoomPage() {
   const [tab, setTab] = useState<DeliveryStatus | "all">("all");
   const [historyOpen, setHistoryOpen] = useState<DeliveryItem | null>(null);
   const qc = useQueryClient();
-  const { data: items = [], isLoading } = useQuery(deliveryQO);
+  const { data: items = [], isLoading, isFetching, refetch } = useQuery(deliveryQO);
   const transitionFn = useServerFn(transitionDelivery);
   const mutate = useMutation({
     mutationFn: (v: { id: string; to: DeliveryStatus }) => transitionFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["engine", "deliveries"] }),
+    onError: (err, vars) => {
+      toast.error("Couldn't update delivery status", {
+        description: (err as Error).message || "The backend rejected the transition.",
+        action: { label: "Retry", onClick: () => mutate.mutate(vars) },
+      });
+    },
   });
 
   const rows = tab === "all" ? items : items.filter((d) => d.status === tab);
@@ -93,6 +101,7 @@ function DeliveryRoomPage() {
   }, [items]);
 
   const currentHistory = historyOpen ? items.find((d) => d.id === historyOpen.id) ?? historyOpen : null;
+  const showSkeleton = isLoading && items.length === 0;
 
   return (
     <div className="max-w-[1500px]">
@@ -102,7 +111,16 @@ function DeliveryRoomPage() {
           <h1 className="font-display text-4xl text-ink mt-1">Delivery Room</h1>
           <p className="text-ink/60 mt-1">Managed lifecycle. Every transition is saved to the backend and shown in history.</p>
         </div>
-        {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-ink/40" /> : null}
+        <div className="flex items-center gap-2">
+          {isFetching ? <Loader2 className="w-4 h-4 animate-spin text-ink/40" /> : null}
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="inline-flex items-center gap-1.5 text-xs border border-border rounded px-2.5 py-1.5 hover:border-royal/50 disabled:opacity-40"
+          >
+            <RefreshCw className={cn("w-3 h-3", isFetching && "animate-spin")} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
@@ -178,7 +196,15 @@ function DeliveryRoomPage() {
                     </td>
                   </tr>
                 ))}
-                {rows.length === 0 && !isLoading ? (
+                {showSkeleton ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <tr key={`sk-${i}`} className="border-b border-border/60">
+                      {Array.from({ length: 7 }).map((__, j) => (
+                        <td key={j} className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
+                      ))}
+                    </tr>
+                  ))
+                ) : rows.length === 0 ? (
                   <tr><td colSpan={7} className="px-5 py-8 text-center text-ink/50 text-sm">No deliveries in this view.</td></tr>
                 ) : null}
               </tbody>

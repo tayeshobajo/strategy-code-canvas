@@ -294,6 +294,16 @@ function mergeCluster(cluster: Item[]): Item {
 function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onClose: () => void; onApply: (next: Item[]) => void }) {
   const clusters = useMemo(() => findDuplicateClusters(items), [items]);
   const [selected, setSelected] = useState<Set<string>>(new Set(clusters.map((c) => c.key)));
+  const [compact, setCompact] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(clusters.map((c) => c.key)));
+
+  const toggleExpand = (key: string) => {
+    setExpanded((s) => {
+      const n = new Set(s);
+      if (n.has(key)) n.delete(key); else n.add(key);
+      return n;
+    });
+  };
 
   const apply = () => {
     const toRemove = new Set<string>();
@@ -315,7 +325,19 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
             <div className="font-display text-lg text-ink">Merge Duplicates</div>
             <div className="text-xs text-ink/60">Grouped by shared tags and title similarity. Review each merge before applying.</div>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 text-xs text-ink/70 cursor-pointer select-none">
+              <input type="checkbox" checked={compact} onChange={(e) => setCompact(e.target.checked)} />
+              Compact
+            </label>
+            <button
+              onClick={() => setExpanded(expanded.size === clusters.length ? new Set() : new Set(clusters.map((c) => c.key)))}
+              className="text-[11px] text-ink/60 hover:text-ink border border-border rounded px-2 py-1"
+            >
+              {expanded.size === clusters.length ? "Collapse all" : "Expand all"}
+            </button>
+            <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
+          </div>
         </header>
         <div className="p-4 overflow-y-auto flex-1 space-y-4">
           {clusters.length === 0 ? (
@@ -324,9 +346,10 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
             clusters.map((c) => {
               const merged = mergeCluster(c.items);
               const isSel = selected.has(c.key);
+              const isOpen = expanded.has(c.key);
               return (
                 <div key={c.key} className={cn("border rounded-lg overflow-hidden", isSel ? "border-royal" : "border-border")}>
-                  <label className="flex items-center gap-2 p-3 bg-paper-soft border-b border-border cursor-pointer">
+                  <div className="flex items-center gap-2 p-3 bg-paper-soft border-b border-border">
                     <input
                       type="checkbox"
                       checked={isSel}
@@ -336,17 +359,29 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
                         setSelected(next);
                       }}
                     />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-ink">{c.items.length} similar items in {c.items[0].project}</div>
-                      <div className="text-xs text-ink/60">Similarity ~{Math.round(c.similarity * 100)}%</div>
+                    <button
+                      onClick={() => toggleExpand(c.key)}
+                      className="flex-1 min-w-0 text-left"
+                      aria-expanded={isOpen}
+                    >
+                      <div className="text-sm font-medium text-ink flex items-center gap-1.5">
+                        <span className={cn("inline-block transition-transform", isOpen && "rotate-90")}>▸</span>
+                        {c.items.length} similar items in {c.items[0].project}
+                      </div>
+                      <div className="text-xs text-ink/60 pl-4">Similarity ~{Math.round(c.similarity * 100)}%</div>
+                    </button>
+                  </div>
+                  <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                    <div className="overflow-hidden">
+                      <DiffPanel before={c.items} after={merged} compact={compact} />
                     </div>
-                  </label>
-                  <DiffPanel before={c.items} after={merged} />
+                  </div>
                 </div>
               );
             })
           )}
         </div>
+
         <footer className="flex items-center justify-between p-4 border-t border-border">
           <div className="text-xs text-ink/60">{selected.size} of {clusters.length} clusters selected</div>
           <div className="flex gap-2">
@@ -469,7 +504,7 @@ function CleanOptimizeDialog({ items, onClose, onApply }: { items: Item[]; onClo
 // ─────────────────────────────────────────────────────────────
 // DiffPanel — field-by-field before/after diff for merge preview
 // ─────────────────────────────────────────────────────────────
-function DiffPanel({ before, after }: { before: Item[]; after: Item }) {
+function DiffPanel({ before, after, compact = false }: { before: Item[]; after: Item; compact?: boolean }) {
   const primary = [...before].sort((a, b) => b.confidence - a.confidence)[0];
   const allTitles = Array.from(new Set(before.map((b) => b.title)));
   const allSummaries = Array.from(new Set(before.map((b) => b.summary)));
@@ -478,37 +513,49 @@ function DiffPanel({ before, after }: { before: Item[]; after: Item }) {
   const beforeUsed = Array.from(new Set(before.map((b) => b.usedIn).filter((u) => u && u !== "—")));
   const confAvg = Math.round(before.reduce((s, b) => s + b.confidence, 0) / before.length);
   const confDelta = after.confidence - confAvg;
+  const pad = compact ? "p-2" : "p-3";
+  const gap = compact ? "space-y-1" : "space-y-2";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-      <div className="p-3 border-r border-border bg-white">
-        <div className="text-[10px] font-mono uppercase tracking-wider text-[#a4283c] mb-2">Before ({before.length} items)</div>
-        <dl className="text-xs space-y-2">
-          <FieldRow label="TITLES">
-            <ul className="space-y-0.5">{allTitles.map((t, i) => <li key={i} className="text-ink">• {t}</li>)}</ul>
+      <div className={cn(pad, "border-r border-border bg-white")}>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-[#a4283c] mb-2">Before · {before.length} items</div>
+        <dl className={cn("text-xs", gap)}>
+          <FieldRow label="Titles">
+            {compact ? (
+              <div className="text-ink truncate">{allTitles[0]}{allTitles.length > 1 ? ` +${allTitles.length - 1} more` : ""}</div>
+            ) : (
+              <ul className="space-y-0.5">{allTitles.map((t, i) => <li key={i} className="text-ink">• {t}</li>)}</ul>
+            )}
           </FieldRow>
-          <FieldRow label="SUMMARIES">
-            <ul className="space-y-0.5">{allSummaries.map((s, i) => <li key={i} className="text-ink/70">• {s}</li>)}</ul>
-          </FieldRow>
-          <FieldRow label="TAGS">
+          {!compact ? (
+            <FieldRow label="Summaries">
+              <ul className="space-y-0.5">{allSummaries.map((s, i) => <li key={i} className="text-ink/70">• {s}</li>)}</ul>
+            </FieldRow>
+          ) : null}
+          <FieldRow label="Tags">
             <div className="flex flex-wrap gap-1">
               {beforeTags.map((t) => <span key={t} className="text-[10px] bg-paper-soft border border-border rounded px-1.5 py-0.5">{t}</span>)}
             </div>
           </FieldRow>
-          <FieldRow label="CONFIDENCE">
-            <span className="text-ink">avg {confAvg}% <span className="text-ink/50">(range {Math.min(...before.map((b) => b.confidence))}–{Math.max(...before.map((b) => b.confidence))})</span></span>
+          <FieldRow label="Confidence">
+            <span className="text-ink">avg {confAvg}%{compact ? "" : (
+              <span className="text-ink/50"> (range {Math.min(...before.map((b) => b.confidence))}–{Math.max(...before.map((b) => b.confidence))})</span>
+            )}</span>
           </FieldRow>
-          <FieldRow label="USED IN">
-            <div className="text-ink/70">{beforeUsed.length > 0 ? beforeUsed.join(" · ") : "—"}</div>
-          </FieldRow>
+          {!compact ? (
+            <FieldRow label="Used in">
+              <div className="text-ink/70">{beforeUsed.length > 0 ? beforeUsed.join(" · ") : "—"}</div>
+            </FieldRow>
+          ) : null}
         </dl>
       </div>
-      <div className="p-3 bg-[#f5fbf7]">
-        <div className="text-[10px] font-mono uppercase tracking-wider text-[#1f6b3b] mb-2">After (1 merged item)</div>
-        <dl className="text-xs space-y-2">
-          <FieldRow label="TITLE"><div className="text-ink font-medium">{after.title}</div></FieldRow>
-          <FieldRow label="SUMMARY"><div className="text-ink/70">{after.summary}</div></FieldRow>
-          <FieldRow label="TAGS">
+      <div className={cn(pad, "bg-[#f5fbf7]")}>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-[#1f6b3b] mb-2">After · 1 merged item</div>
+        <dl className={cn("text-xs", gap)}>
+          <FieldRow label="Title"><div className="text-ink font-medium">{after.title}</div></FieldRow>
+          {!compact ? <FieldRow label="Summary"><div className="text-ink/70">{after.summary}</div></FieldRow> : null}
+          <FieldRow label="Tags">
             <div className="flex flex-wrap gap-1">
               {after.tags.map((t) => (
                 <span key={t} className={cn("text-[10px] rounded px-1.5 py-0.5 border",
@@ -518,7 +565,7 @@ function DiffPanel({ before, after }: { before: Item[]; after: Item }) {
               ))}
             </div>
           </FieldRow>
-          <FieldRow label="CONFIDENCE">
+          <FieldRow label="Confidence">
             <span className="text-ink font-medium">{after.confidence}%</span>
             {confDelta !== 0 ? (
               <span className={cn("ml-1 text-[10px]", confDelta > 0 ? "text-[#1f6b3b]" : "text-[#a4283c]")}>
@@ -526,9 +573,11 @@ function DiffPanel({ before, after }: { before: Item[]; after: Item }) {
               </span>
             ) : null}
           </FieldRow>
-          <FieldRow label="USED IN">
-            <div className="text-ink/70">{after.usedIn}</div>
-          </FieldRow>
+          {!compact ? (
+            <FieldRow label="Used in">
+              <div className="text-ink/70">{after.usedIn}</div>
+            </FieldRow>
+          ) : null}
         </dl>
       </div>
     </div>
@@ -537,8 +586,8 @@ function DiffPanel({ before, after }: { before: Item[]; after: Item }) {
 
 function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[70px_1fr] gap-2">
-      <dt className="text-[10px] font-mono uppercase tracking-wider text-ink/50 pt-0.5">{label}</dt>
+    <div className="grid grid-cols-[84px_1fr] gap-2">
+      <dt className="text-[10px] font-medium uppercase tracking-wider text-ink/50 pt-0.5">{label}</dt>
       <dd>{children}</dd>
     </div>
   );
