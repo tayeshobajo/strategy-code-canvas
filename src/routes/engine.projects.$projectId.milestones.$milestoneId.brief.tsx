@@ -521,12 +521,13 @@ function RelKV({ label, value }: { label: string; value: string | null | undefin
 // -- Inline editors --------------------------------------------------------
 
 function EditableMarkdown({
-  value, onSave, approved, compact = false,
+  value, onSave, approved, compact = false, approvedReason,
 }: {
   value: string;
   onSave: (v: string) => Promise<unknown>;
   approved: boolean;
   compact?: boolean;
+  approvedReason?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
