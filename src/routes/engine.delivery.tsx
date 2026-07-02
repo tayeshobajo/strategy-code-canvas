@@ -80,11 +80,17 @@ function DeliveryRoomPage() {
   const [tab, setTab] = useState<DeliveryStatus | "all">("all");
   const [historyOpen, setHistoryOpen] = useState<DeliveryItem | null>(null);
   const qc = useQueryClient();
-  const { data: items = [], isLoading } = useQuery(deliveryQO);
+  const { data: items = [], isLoading, isFetching, refetch } = useQuery(deliveryQO);
   const transitionFn = useServerFn(transitionDelivery);
   const mutate = useMutation({
     mutationFn: (v: { id: string; to: DeliveryStatus }) => transitionFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["engine", "deliveries"] }),
+    onError: (err, vars) => {
+      toast.error("Couldn't update delivery status", {
+        description: (err as Error).message || "The backend rejected the transition.",
+        action: { label: "Retry", onClick: () => mutate.mutate(vars) },
+      });
+    },
   });
 
   const rows = tab === "all" ? items : items.filter((d) => d.status === tab);
@@ -95,6 +101,7 @@ function DeliveryRoomPage() {
   }, [items]);
 
   const currentHistory = historyOpen ? items.find((d) => d.id === historyOpen.id) ?? historyOpen : null;
+  const showSkeleton = isLoading && items.length === 0;
 
   return (
     <div className="max-w-[1500px]">
@@ -104,7 +111,16 @@ function DeliveryRoomPage() {
           <h1 className="font-display text-4xl text-ink mt-1">Delivery Room</h1>
           <p className="text-ink/60 mt-1">Managed lifecycle. Every transition is saved to the backend and shown in history.</p>
         </div>
-        {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-ink/40" /> : null}
+        <div className="flex items-center gap-2">
+          {isFetching ? <Loader2 className="w-4 h-4 animate-spin text-ink/40" /> : null}
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="inline-flex items-center gap-1.5 text-xs border border-border rounded px-2.5 py-1.5 hover:border-royal/50 disabled:opacity-40"
+          >
+            <RefreshCw className={cn("w-3 h-3", isFetching && "animate-spin")} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
