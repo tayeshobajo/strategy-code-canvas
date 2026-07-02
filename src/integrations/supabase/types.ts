@@ -1927,6 +1927,57 @@ export type Database = {
           },
         ]
       }
+      engine_version_change_decisions: {
+        Row: {
+          actor_email: string | null
+          change_id: string
+          created_at: string
+          decision: string
+          id: string
+          module_key: string
+          note: string | null
+          project_id: string
+          version_id: string
+        }
+        Insert: {
+          actor_email?: string | null
+          change_id: string
+          created_at?: string
+          decision: string
+          id?: string
+          module_key: string
+          note?: string | null
+          project_id: string
+          version_id: string
+        }
+        Update: {
+          actor_email?: string | null
+          change_id?: string
+          created_at?: string
+          decision?: string
+          id?: string
+          module_key?: string
+          note?: string | null
+          project_id?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_version_change_decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_version_change_decisions_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intake_drafts: {
         Row: {
           answers: Json
@@ -2419,7 +2470,7 @@ export type Database = {
       sync_client_access_user: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "operator" | "user"
+      app_role: "admin" | "operator" | "user" | "team_member"
       engine_agent_permission:
         | "draft_only"
         | "propose_updates"
@@ -2605,7 +2656,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "operator", "user"],
+      app_role: ["admin", "operator", "user", "team_member"],
       engine_agent_permission: [
         "draft_only",
         "propose_updates",

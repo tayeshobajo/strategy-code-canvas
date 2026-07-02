@@ -880,3 +880,69 @@ export const getVersionCompareData = createServerFn({ method: "GET" })
       summary: { totalChanges, added, modified, removed, conflicts: 0, modulesAffected },
     };
   });
+
+/* ============================================================
+ * Version-Compare per-change decisions
+ * ============================================================ */
+
+export type VersionChangeDecisionRow = {
+  id: string;
+  version_id: string;
+  project_id: string;
+  module_key: string;
+  change_id: string;
+  decision: "accept" | "edit" | "reject";
+  note: string | null;
+  actor_email: string | null;
+  created_at: string;
+};
+
+export const listVersionChangeDecisions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ version_id: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<VersionChangeDecisionRow[]> => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { data: rows, error } = await sb
+      .from("engine_version_change_decisions")
+      .select("*")
+      .eq("version_id", data.version_id)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message ?? "list decisions failed");
+    return (rows ?? []) as VersionChangeDecisionRow[];
+  });
+
+export const recordVersionChangeDecision = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      version_id: z.string().uuid(),
+      project_id: z.string().uuid(),
+      module_key: z.string().min(1),
+      change_id: z.string().min(1),
+      decision: z.enum(["accept", "edit", "reject"]),
+      note: z.string().nullable().optional(),
+    }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true; id: string }> => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+    const { data: r, error } = await sb
+      .from("engine_version_change_decisions")
+      .insert({
+        version_id: data.version_id,
+        project_id: data.project_id,
+        module_key: data.module_key,
+        change_id: data.change_id,
+        decision: data.decision,
+        note: data.note ?? null,
+        actor_email: email,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message ?? "record decision failed");
+    return { ok: true, id: r.id };
+  });

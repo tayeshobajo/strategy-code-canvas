@@ -2,11 +2,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRightLeft, ShieldCheck, Check, X, Edit3, CheckCircle2, AlertTriangle, FileText, Loader2 } from "lucide-react";
-import { SectionCard, MetricCard, formatCents } from "@/components/engine/primitives";
-import { getVersionCompareData } from "@/lib/engine-execution.functions";
+import { SectionCard, MetricCard } from "@/components/engine/primitives";
+import {
+  getVersionCompareData,
+  listVersionChangeDecisions,
+  recordVersionChangeDecision,
+} from "@/lib/engine-execution.functions";
 import { approveVersion } from "@/lib/engine-intelligence.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/engine/projects/$projectId/versions/compare")({
   component: VersionComparePage,
@@ -19,6 +24,8 @@ function VersionComparePage() {
   const { projectId } = Route.useParams();
   const fn = useServerFn(getVersionCompareData);
   const approveFn = useServerFn(approveVersion);
+  const listDecisionsFn = useServerFn(listVersionChangeDecisions);
+  const recordDecisionFn = useServerFn(recordVersionChangeDecision);
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["engine", "versions-compare", projectId],
@@ -35,6 +42,35 @@ function VersionComparePage() {
   const [confirmed, setConfirmed] = useState(false);
   const [approveError, setApproveError] = useState<string | null>(null);
 
+  // Load persisted per-change decisions for the current draft.
+  const decisionsQuery = useQuery({
+    queryKey: ["engine", "version-decisions", draft?.id],
+    queryFn: () => listDecisionsFn({ data: { version_id: draft.id as string } }),
+    enabled: Boolean(draft?.id),
+  });
+
+  useEffect(() => {
+    if (!decisionsQuery.data) return;
+    // Take latest decision per change_id (rows are ordered ascending).
+    const map: Record<string, "accept" | "edit" | "reject"> = {};
+    for (const r of decisionsQuery.data) map[r.change_id] = r.decision;
+    setDecisions((prev) => ({ ...map, ...prev })); // in-flight optimistic wins
+  }, [decisionsQuery.data]);
+
+  const recordMut = useMutation({
+    mutationFn: (args: { module_key: string; change_id: string; decision: "accept" | "edit" | "reject" }) =>
+      recordDecisionFn({
+        data: {
+          version_id: draft.id,
+          project_id: projectId,
+          module_key: args.module_key,
+          change_id: args.change_id,
+          decision: args.decision,
+        },
+      }),
+    onError: (e: Error) => toast.error(e.message ?? "Failed to save decision"),
+  });
+
   const approveMut = useMutation({
     mutationFn: async () => {
       if (!draft?.id) throw new Error("No draft version to approve.");
@@ -43,16 +79,23 @@ function VersionComparePage() {
     onSuccess: async () => {
       setApproveError(null);
       setConfirmed(false);
+      toast.success("Approved. This draft is now the official version.");
       await qc.invalidateQueries({ queryKey: ["engine", "versions-compare", projectId] });
       await qc.invalidateQueries({ queryKey: ["engine"] });
     },
-    onError: (e: Error) => setApproveError(e.message),
+    onError: (e: Error) => {
+      setApproveError(e.message);
+      toast.error(e.message);
+    },
   });
 
   const activeMod = modules.find((m: any) => m.key === activeModule);
 
-  const decide = (id: string, choice: "accept" | "reject" | "edit") =>
-    setDecisions((prev) => ({ ...prev, [id]: choice }));
+  const decide = (moduleKey: string, changeId: string, choice: "accept" | "reject" | "edit") => {
+    setDecisions((prev) => ({ ...prev, [changeId]: choice }));
+    if (draft?.id) recordMut.mutate({ module_key: moduleKey, change_id: changeId, decision: choice });
+  };
+
 
   return (
     <div className="space-y-5 max-w-[1500px]">
@@ -200,17 +243,18 @@ function VersionComparePage() {
                         <td className="py-3 pr-2">
                           <div className="flex flex-col gap-1">
                             <button
-                              onClick={() => decide(id, "accept")}
+                              onClick={() => decide(activeMod.key, id, "accept")}
                               className={`text-[10px] rounded px-2 py-1 border ${decision === "accept" ? "bg-[#e6f5ec] border-[#c4e6d2] text-[#1f6b3b]" : "border-border text-ink/70 hover:border-royal/40"}`}
                             ><Check className="w-3 h-3 inline mr-1" />Accept</button>
                             <button
-                              onClick={() => decide(id, "edit")}
+                              onClick={() => decide(activeMod.key, id, "edit")}
                               className={`text-[10px] rounded px-2 py-1 border ${decision === "edit" ? "bg-[#fbf3e0] border-[#f1e3b9] text-[#8a6713]" : "border-border text-ink/70 hover:border-royal/40"}`}
                             ><Edit3 className="w-3 h-3 inline mr-1" />Edit</button>
                             <button
-                              onClick={() => decide(id, "reject")}
+                              onClick={() => decide(activeMod.key, id, "reject")}
                               className={`text-[10px] rounded px-2 py-1 border ${decision === "reject" ? "bg-[#fbe9ec] border-[#f3ced5] text-[#a4283c]" : "border-border text-ink/70 hover:border-royal/40"}`}
                             ><X className="w-3 h-3 inline mr-1" />Reject</button>
+
                           </div>
                         </td>
                       </tr>
@@ -240,12 +284,18 @@ function VersionComparePage() {
               onClick={() => {
                 const next: Record<string, "accept"> = {};
                 modules.forEach((m: any) => m.changes.forEach((_c: any, i: number) => {
-                  if (_c.impact !== "high") next[`${m.key}-${i}`] = "accept";
+                  const id = `${m.key}-${i}`;
+                  if (_c.impact !== "high" && decisions[id] !== "accept") {
+                    next[id] = "accept";
+                    if (draft?.id) recordMut.mutate({ module_key: m.key, change_id: id, decision: "accept" });
+                  }
                 }));
                 setDecisions((prev) => ({ ...prev, ...next }));
               }}
-              className="mt-3 w-full text-xs border border-royal text-royal rounded-md py-2 hover:bg-royal/5"
+              disabled={!draft?.id}
+              className="mt-3 w-full text-xs border border-royal text-royal rounded-md py-2 hover:bg-royal/5 disabled:opacity-50"
             >Accept all safe changes</button>
+
           </div>
         </aside>
       </div>
