@@ -108,7 +108,10 @@ function MilestoneBriefPage() {
             </span>
             <AIDraftBadge kind={m.created_by_kind ?? (isAI ? "ai" : "human")} />
             {approved && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#a7d3b7] bg-[#e6f4ec] text-[#1f6b3b] px-2 py-0.5 text-[11px] font-medium">
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-[#a7d3b7] bg-[#e6f4ec] text-[#1f6b3b] px-2 py-0.5 text-[11px] font-medium"
+                title="This milestone is Approved. All key fields are locked. Reset approval to edit."
+              >
                 <ShieldCheck className="w-3 h-3" /> Protected
               </span>
             )}
@@ -116,11 +119,22 @@ function MilestoneBriefPage() {
           <div className="text-sm text-ink/60 mt-1">{m.phase}</div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50">
+          <button
+            onClick={() => sendTasks.mutate()}
+            disabled={sendTasks.isPending || !approved}
+            title={!approved ? "Approve the brief before sending to agent" : "Send acceptance criteria to the agent as tasks"}
+            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-50"
+          >
             <Send className="w-3.5 h-3.5" /> Send to Agent
           </button>
-          <button className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50">
-            <RotateCcw className="w-3.5 h-3.5" /> Regenerate Brief
+          <button
+            onClick={() => regenerate("brief_md")}
+            disabled={approved || !!regenerating}
+            title={approved ? "Reset approval before regenerating" : "Ask AI to redraft the brief"}
+            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-50"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${regenerating === "brief_md" ? "animate-spin" : ""}`} />
+            {regenerating === "brief_md" ? "Regenerating…" : "Regenerate Brief"}
           </button>
           <button
             onClick={() => approve.mutate()}
