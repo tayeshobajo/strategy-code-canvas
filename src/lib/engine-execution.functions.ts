@@ -221,7 +221,9 @@ export const approveMilestone = createServerFn({ method: "POST" })
 
 export const sendMilestoneToTasks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .inputValidator((raw: unknown) =>
+    z.object({ id: z.string().uuid(), approve: z.boolean().optional() }).parse(raw),
+  )
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
@@ -231,22 +233,64 @@ export const sendMilestoneToTasks = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .single();
     if (!m) throw new Error("Milestone not found");
+    // Tai approves via the UI button — treat that as the human approval this
+    // action needs (agent create_tasks is otherwise needs_approval by default).
+    await assertActionAllowed(sb, m.project_id, "create_tasks", { approve: true });
+
     const criteria: any[] = Array.isArray(m.acceptance_criteria) ? m.acceptance_criteria : [];
-    const rows = criteria.slice(0, 15).map((c: any, i: number) => ({
-      project_id: m.project_id,
-      milestone_id: m.id,
-      name: typeof c === "string" ? c : c.text ?? `Task ${i + 1}`,
-      priority: "P2",
-      status: "suggested",
-      source: `Milestone: ${m.name}`,
-      estimated_effort_hours: 4,
-      estimated_cost_cents: 100,
-      created_by: "agent",
-    }));
+    // Distribute due dates evenly leading up to the milestone's due date, so
+    // each task lands with a reasonable target date instead of piling up.
+    const milestoneDue = m.due_date ? new Date(m.due_date) : null;
+    const totalCount = Math.min(criteria.length, 15);
+    const perTaskGapDays = milestoneDue ? Math.max(2, Math.floor(21 / Math.max(totalCount, 1))) : 0;
+
+    // Skip criteria that were already sent (name+milestone match) so re-runs
+    // don't duplicate tasks.
+    const { data: existing } = await sb
+      .from("engine_tasks")
+      .select("name")
+      .eq("milestone_id", m.id);
+    const existingNames = new Set(((existing ?? []) as any[]).map((r) => r.name));
+
+    const rows = criteria.slice(0, 15).flatMap((c: any, i: number) => {
+      const text = typeof c === "string" ? c : c.text ?? `Task ${i + 1}`;
+      if (existingNames.has(text)) return [];
+      const due = milestoneDue
+        ? new Date(milestoneDue.getTime() - (totalCount - 1 - i) * perTaskGapDays * 86400_000)
+        : null;
+      return [{
+        project_id: m.project_id,
+        milestone_id: m.id,
+        name: text,
+        description: `From milestone "${m.name}" · ${m.phase ?? ""}`.trim(),
+        priority: m.priority === "Critical" ? "P1" : "P2",
+        status: "suggested",
+        source: `Milestone: ${m.name}`,
+        estimated_effort_hours: 4,
+        estimated_cost_cents: 100,
+        owner_email: m.owner_email ?? null,
+        due_date: due ? due.toISOString().slice(0, 10) : null,
+        acceptance_criteria: [{ text, done: !!(c as any)?.done }],
+        created_by: "agent",
+      }];
+    });
+
     if (rows.length) {
       const { error } = await sb.from("engine_tasks").insert(rows);
       if (error) throw new Error(error.message);
     }
+
+    // Log for the audit trail so the tasks page reflects provenance.
+    await sb.from("engine_audit_log").insert({
+      project_id: m.project_id,
+      actor_email: (context as any).claims?.email ?? null,
+      action: "milestone_to_tasks",
+      summary: `Sent ${rows.length} tasks from milestone "${m.name}" to the board.`,
+      affected_modules: ["tasks"],
+      target_id: m.id,
+      metadata: { milestone_id: m.id, count: rows.length },
+    });
+
     return { ok: true as const, count: rows.length };
   });
 
