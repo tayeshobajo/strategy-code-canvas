@@ -108,8 +108,9 @@ function RolesPage() {
     const copy = [...filtered];
     const dir = search.dir === "asc" ? 1 : -1;
     copy.sort((a, b) => {
-      const av = String(a[search.sort] ?? "");
-      const bv = String(b[search.sort] ?? "");
+      const key = search.sort as keyof UserRoleRow;
+      const av = String(a[key] ?? "");
+      const bv = String(b[key] ?? "");
       return av < bv ? -1 * dir : av > bv ? 1 * dir : 0;
     });
     return copy;
