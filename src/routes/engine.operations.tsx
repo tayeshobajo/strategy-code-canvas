@@ -113,7 +113,7 @@ function GlobalOperationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {AGENTS.map((a) => (
+                {agents.map((a) => (
                   <tr key={a.name} className="border-b border-border/60 hover:bg-paper-soft/40">
                     <td className="px-5 py-3 font-medium text-ink whitespace-nowrap">{a.name}</td>
                     <td className="px-3 py-3">
