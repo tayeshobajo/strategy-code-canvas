@@ -4,10 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { DollarSign, TrendingUp, Wallet, AlertTriangle, Star, Layers, Download } from "lucide-react";
+import { TrendingUp, Wallet, AlertTriangle, Star, Layers, Download, RefreshCw, AlertCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from "recharts";
 import { SectionCard, MetricCard, formatCents } from "@/components/engine/primitives";
-import { getAgentCosts, updateBudgetControls } from "@/lib/engine-execution.functions";
+import { getAgentCosts, updateBudgetControls, exportAgentCostsCsv } from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/agent/costs")({
   component: CostCenterPage,
@@ -23,6 +23,7 @@ function CostCenterPage() {
   const qc = useQueryClient();
   const fn = useServerFn(getAgentCosts);
   const updFn = useServerFn(updateBudgetControls);
+  const csvFn = useServerFn(exportAgentCostsCsv);
 
   const q = useQuery({
     queryKey: ["engine", "costs", projectId],
@@ -34,6 +35,7 @@ function CostCenterPage() {
   const categories = d?.spendByCategory ?? [];
   const milestones = d?.spendByMilestone ?? [];
   const recent = d?.recent ?? [];
+  const ledger = d?.ledger ?? [];
 
   const budgetPct = totals.budget > 0 ? Math.round((totals.monthSpend / totals.budget) * 100) : 0;
   const projectedRange = useMemo(() => ({
@@ -56,6 +58,23 @@ function CostCenterPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const download = useMutation({
+    mutationFn: () => csvFn({ data: { projectId } }),
+    onSuccess: (res: any) => {
+      const blob = new Blob([res.csv ?? ""], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.filename ?? "cost-center.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${res.rowCount ?? 0} ledger rows`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to export CSV"),
+  });
+
   return (
     <div className="space-y-5 max-w-[1500px]">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -63,10 +82,43 @@ function CostCenterPage() {
           <h1 className="font-display text-3xl text-ink">Agent Cost Center</h1>
           <p className="text-sm text-ink/60 mt-1">Track the cost, efficiency, and value of your AI agent for this project.</p>
         </div>
-        <button className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50">
-          <Download className="w-3.5 h-3.5" /> Download Report
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => q.refetch()}
+            disabled={q.isFetching}
+            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-60"
+            title="Refresh cost data"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${q.isFetching ? "animate-spin" : ""}`} />
+            {q.isFetching ? "Refreshing…" : "Refresh"}
+          </button>
+          <button
+            onClick={() => download.mutate()}
+            disabled={download.isPending}
+            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-60"
+          >
+            <Download className="w-3.5 h-3.5" />
+            {download.isPending ? "Preparing…" : "Download CSV"}
+          </button>
+        </div>
       </div>
+
+      {q.isError && (
+        <div className="rounded-md border border-[#a4283c]/30 bg-[#fdecef] px-3 py-2 flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2 text-sm text-[#a4283c]">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <div>
+              <div className="font-medium">Failed to load cost data</div>
+              <div className="text-[#a4283c]/80 text-xs">{(q.error as Error)?.message ?? "Unknown error"}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => q.refetch()}
+            className="text-xs bg-[#a4283c] text-white rounded-md px-3 py-1.5 hover:bg-[#a4283c]/90"
+          >Retry</button>
+        </div>
+      )}
+
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <MetricCard label="Total spend" value={formatCents(totals.totalSpend)} tone="blue" hint={`Across ${totals.tasksCreated} agent runs`} />
@@ -197,7 +249,12 @@ function CostCenterPage() {
           </div>
 
           <div className="mt-5">
-            <div className="text-xs font-mono uppercase tracking-wide text-ink/50 mb-2">Recent Cost Activity</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-mono uppercase tracking-wide text-ink/50">Live Cost Ledger</div>
+              <div className="text-[11px] text-ink/50">
+                {ledger.length > 0 ? `${d?.ledgerCount ?? ledger.length} ledger entries` : `${recent.length} recent tasks`}
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -211,7 +268,16 @@ function CostCenterPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recent.map((r: any) => (
+                  {q.isLoading && (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={`sk-${i}`} className="border-b border-border/60">
+                        {Array.from({ length: 6 }).map((__, j) => (
+                          <td key={j} className="py-2 pr-3"><div className="h-3 bg-ink/5 rounded animate-pulse" /></td>
+                        ))}
+                      </tr>
+                    ))
+                  )}
+                  {!q.isLoading && (ledger.length > 0 ? ledger : recent).map((r: any) => (
                     <tr key={r.id} className="border-b border-border/60">
                       <td className="py-2 pr-3 text-ink/70 whitespace-nowrap">{new Date(r.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</td>
                       <td className="py-2 pr-3 text-ink capitalize">{String(r.kind ?? "").replace(/_/g, " ")}</td>
@@ -221,14 +287,15 @@ function CostCenterPage() {
                       <td className="py-2 pr-3 text-ink/70 capitalize">{r.status ?? "—"}</td>
                     </tr>
                   ))}
-                  {recent.length === 0 && (
-                    <tr><td colSpan={6} className="py-8 text-center text-ink/50 text-sm">No cost activity yet.</td></tr>
+                  {!q.isLoading && ledger.length === 0 && recent.length === 0 && (
+                    <tr><td colSpan={6} className="py-8 text-center text-ink/50 text-sm">No cost activity yet. The ledger populates the first time the agent runs.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
           </div>
         </SectionCard>
+
 
         {/* Budget controls */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-3">

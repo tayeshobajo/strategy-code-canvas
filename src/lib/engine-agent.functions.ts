@@ -214,6 +214,34 @@ Investment: ${JSON.stringify(proj.investment).slice(0, 1000)}`;
       .single();
     if (error) throw new Error(error.message ?? "task insert failed");
 
+    // Append to the live agent-cost ledger so the Cost Center can display,
+    // export, and audit every AI charge independent of downstream task edits.
+    try {
+      const { data: latestApproved } = await sb
+        .from("engine_roadmap_versions")
+        .select("id")
+        .eq("project_id", data.projectId)
+        .eq("status", "approved")
+        .order("approved_at", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      await sb.from("engine_agent_costs").insert({
+        project_id: data.projectId,
+        agent_task_id: (row as { id: string })?.id ?? null,
+        roadmap_version_id: latestApproved?.id ?? null,
+        kind: data.kind,
+        category: data.kind,
+        related_module: data.relatedModule ?? null,
+        tokens_in: ai.tokens_in,
+        tokens_out: ai.tokens_out,
+        cost_cents: ai.cost_cents,
+        status: "recorded",
+        actor_email: email,
+      });
+    } catch {
+      // Ledger insert must never block the primary task flow.
+    }
+
     // Add to project spend
     const { data: proj } = await sb
       .from("engine_projects")
