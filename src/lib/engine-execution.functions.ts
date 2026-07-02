@@ -996,3 +996,100 @@ export const recordVersionChangeDecision = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message ?? "record decision failed");
     return { ok: true, id: r.id };
   });
+
+// ============================================================
+// Regenerate milestone brief sections via Lovable AI Gateway
+// ============================================================
+const REGEN_SECTIONS = ["brief_md", "developer_prompt", "client_safe_md", "acceptance_criteria", "qa_checklist", "risks"] as const;
+type RegenSection = (typeof REGEN_SECTIONS)[number];
+
+export const regenerateMilestoneSection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      section: z.enum(REGEN_SECTIONS),
+      instructions: z.string().max(2000).optional(),
+    }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true; value: unknown }> => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+
+    const { data: current, error: readErr } = await sb
+      .from("engine_milestones")
+      .select("id,project_id,name,phase,brief_md,developer_prompt,client_safe_md,acceptance_criteria,qa_checklist,risks,dependencies,approval_status")
+      .eq("id", data.id)
+      .single();
+    if (readErr || !current) throw new Error(readErr?.message ?? "Milestone not found");
+    if (current.approval_status === "approved") {
+      throw new Error("Milestone is approved — reset approval before regenerating.");
+    }
+
+    const { callLovableAi, parseJsonOutput } = await import("./engine-ai.server");
+
+    const sectionAsk: Record<RegenSection, string> = {
+      brief_md: "Rewrite the milestone brief as concise markdown. Include Purpose, Why It Matters, Business Outcome, User Outcome, System Outcome as bolded headings.",
+      developer_prompt: "Regenerate a concrete developer prompt (plain text) explaining what to build for this milestone, with numbered requirements.",
+      client_safe_md: "Regenerate a short, non-technical client-facing explanation as a single paragraph.",
+      acceptance_criteria: "Regenerate acceptance criteria. Respond as JSON: {\"items\": [{\"text\": string, \"done\": false}]}",
+      qa_checklist: "Regenerate the QA checklist. Respond as JSON: {\"items\": [{\"section\": string, \"items\": number, \"note\": string}]}",
+      risks: "Regenerate the risk list. Respond as JSON: {\"items\": [{\"text\": string, \"severity\": \"Low\"|\"Medium\"|\"High\"}]}",
+    };
+
+    const isJson = ["acceptance_criteria", "qa_checklist", "risks"].includes(data.section);
+
+    const sys = "You are a senior product strategist redrafting one section of an internal milestone brief. Be concrete, no fluff, no filler.";
+    const user = `Milestone: ${current.name}\nPhase: ${current.phase ?? "—"}\nExisting brief:\n${current.brief_md ?? "(none)"}\n\nTask: ${sectionAsk[data.section as RegenSection]}${
+      data.instructions ? `\n\nAdditional guidance from Tai: ${data.instructions}` : ""
+    }`;
+
+    const ai = await callLovableAi(
+      [{ role: "system", content: sys }, { role: "user", content: user }],
+      { json: isJson, temperature: 0.4 },
+    );
+
+    let newValue: unknown = ai.text;
+    if (isJson) {
+      const parsed = parseJsonOutput<{ items: unknown[] }>(ai.text);
+      if (!parsed || !Array.isArray(parsed.items)) {
+        throw new Error("AI returned an unexpected shape — try again.");
+      }
+      newValue = parsed.items;
+    } else {
+      newValue = (ai.text ?? "").trim();
+    }
+
+    const { error: updErr } = await sb
+      .from("engine_milestones")
+      .update({ [data.section]: newValue, created_by_kind: "ai" })
+      .eq("id", data.id);
+    if (updErr) throw new Error(updErr.message);
+
+    await sb.from("engine_audit_log").insert({
+      project_id: current.project_id,
+      actor_email: email,
+      action: "milestone_section_regenerated",
+      summary: `Regenerated "${data.section}" for milestone "${current.name}".`,
+      affected_modules: ["milestones"],
+      target_id: current.id,
+      metadata: { section: data.section, tokens_in: ai.tokens_in, tokens_out: ai.tokens_out, cost_cents: ai.cost_cents },
+    });
+
+    // Record to agent cost ledger for transparency
+    try {
+      await sb.from("engine_agent_costs").insert({
+        project_id: current.project_id,
+        actor_email: email,
+        action: "regenerate_milestone_section",
+        model: "google/gemini-3-flash-preview",
+        tokens_in: ai.tokens_in,
+        tokens_out: ai.tokens_out,
+        cost_cents: ai.cost_cents,
+        metadata: { section: data.section, milestone_id: current.id },
+      });
+    } catch { /* ledger insert is best-effort */ }
+
+    return { ok: true, value: newValue };
+  });
