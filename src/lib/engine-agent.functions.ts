@@ -79,7 +79,19 @@ export const runAgentPrompt = createServerFn({ method: "POST" })
     const sb = context.supabase as any;
     const email = (context as any).claims?.email ?? null;
 
-    let contextText = "";
+    // Budget guard: block calls that would exceed the monthly cap.
+    const { data: budgetRow } = await sb
+      .from("engine_projects")
+      .select("agent_budget_monthly_cents,agent_spend_month_cents")
+      .eq("id", data.projectId)
+      .single();
+    if (
+      budgetRow?.agent_budget_monthly_cents &&
+      (budgetRow.agent_spend_month_cents ?? 0) >= budgetRow.agent_budget_monthly_cents
+    ) {
+      throw new Error("Agent budget cap reached for this month. Raise the cap to continue.");
+    }
+
     if (data.useProjectContext) {
       const { data: proj } = await sb
         .from("engine_projects")
