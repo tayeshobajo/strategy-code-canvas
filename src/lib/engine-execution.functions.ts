@@ -10,6 +10,45 @@ async function assertAdmin(context: any) {
   if (!ok) throw new Error("Forbidden: admin role required");
 }
 
+/**
+ * Server-side gate for agent-authored actions. Reads engine_agent_permissions
+ * for the project and throws for `blocked` actions or `needs_approval` when
+ * the caller did not pass `{ approve: true }`. `permission_mode` also caps
+ * agent behavior:
+ *   - draft_only     -> every action treated as needs_approval unless approve=true
+ *   - propose_updates -> honors action_permissions map
+ *   - execute_approved -> honors action_permissions map
+ * Non-negotiable safety rules keep send_delivery / move_project_to_execution
+ * always blocked, regardless of stored permissions.
+ */
+export async function assertActionAllowed(
+  sb: any,
+  projectId: string,
+  action: string,
+  opts: { approve?: boolean } = {},
+): Promise<{ mode: string; permission: "allowed" | "needs_approval" | "blocked" }> {
+  const HARD_BLOCKED = new Set(["send_delivery", "move_project_to_execution"]);
+  if (HARD_BLOCKED.has(action)) {
+    throw new Error(`Blocked by safety rule: agent cannot perform "${action.replace(/_/g, " ")}".`);
+  }
+  const { data: row } = await sb
+    .from("engine_agent_permissions")
+    .select("permission_mode,action_permissions")
+    .eq("project_id", projectId)
+    .maybeSingle();
+  const mode: string = row?.permission_mode ?? "draft_only";
+  const map: Record<string, string> = row?.action_permissions ?? {};
+  let permission = (map[action] ?? "needs_approval") as "allowed" | "needs_approval" | "blocked";
+  if (mode === "draft_only" && permission === "allowed") permission = "needs_approval";
+  if (permission === "blocked") {
+    throw new Error(`Action "${action.replace(/_/g, " ")}" is blocked by agent permissions.`);
+  }
+  if (permission === "needs_approval" && !opts.approve) {
+    throw new Error(`Action "${action.replace(/_/g, " ")}" needs approval. Approve to continue.`);
+  }
+  return { mode, permission };
+}
+
 // ============================================================
 // Milestones
 // ============================================================
