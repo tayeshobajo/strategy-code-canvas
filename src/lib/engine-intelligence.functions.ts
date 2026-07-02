@@ -1083,3 +1083,174 @@ export const getSourceDownloadUrl = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message ?? "signed url failed");
     return { url: signed.signedUrl };
   });
+
+/* ============================================================
+ * Intelligence Memory (global) — Priority 2
+ * ============================================================ */
+
+export type MemoryRow = {
+  id: string;
+  project_id: string | null;
+  title: string;
+  summary: string | null;
+  type: string;
+  source: string | null;
+  source_date: string | null;
+  captured_at: string;
+  confidence: number;
+  tags: string[];
+  used_in: string | null;
+  promoted_by: string | null;
+  archived_at: string | null;
+};
+
+async function assertOpsOrAdmin(context: any) {
+  const email = (context.claims?.email as string | undefined) ?? undefined;
+  const isAdmin = await hasRoleForEmail(context.supabase, email, "admin");
+  if (isAdmin) return;
+  const isOp = await hasRoleForEmail(context.supabase, email, "operator");
+  if (!isOp) throw new Error("Forbidden: admin or operator role required");
+}
+
+export const listIntelligenceMemory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<MemoryRow[]> => {
+    await assertOpsOrAdmin(context);
+    const sb = context.supabase as any;
+    const { data, error } = await sb
+      .from("engine_intelligence_memory")
+      .select("*")
+      .is("archived_at", null)
+      .order("captured_at", { ascending: false })
+      .limit(500);
+    if (error) throw new Error(error.message ?? "list memory failed");
+    return (data ?? []) as MemoryRow[];
+  });
+
+export const upsertIntelligenceMemory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      id: z.string().uuid().optional(),
+      project_id: z.string().uuid().nullable().optional(),
+      title: z.string().min(1),
+      summary: z.string().nullable().optional(),
+      type: z.string().min(1),
+      source: z.string().nullable().optional(),
+      source_date: z.string().nullable().optional(),
+      confidence: z.number().int().min(0).max(100).optional(),
+      tags: z.array(z.string()).optional(),
+      used_in: z.string().nullable().optional(),
+    }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true; id: string }> => {
+    await assertOpsOrAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+    const payload: Record<string, any> = {
+      project_id: data.project_id ?? null,
+      title: data.title,
+      summary: data.summary ?? null,
+      type: data.type,
+      source: data.source ?? null,
+      source_date: data.source_date ?? null,
+      confidence: data.confidence ?? 80,
+      tags: data.tags ?? [],
+      used_in: data.used_in ?? null,
+      promoted_by: email,
+    };
+    if (data.id) {
+      const { data: r, error } = await sb
+        .from("engine_intelligence_memory")
+        .update(payload)
+        .eq("id", data.id)
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message ?? "update memory failed");
+      return { ok: true, id: r.id };
+    }
+    const { data: r, error } = await sb
+      .from("engine_intelligence_memory")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message ?? "insert memory failed");
+    return { ok: true, id: r.id };
+  });
+
+export const bulkReplaceIntelligenceMemory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      removeIds: z.array(z.string().uuid()).default([]),
+      inserts: z
+        .array(
+          z.object({
+            project_id: z.string().uuid().nullable().optional(),
+            title: z.string().min(1),
+            summary: z.string().nullable().optional(),
+            type: z.string().min(1),
+            source: z.string().nullable().optional(),
+            source_date: z.string().nullable().optional(),
+            confidence: z.number().int().min(0).max(100).optional(),
+            tags: z.array(z.string()).optional(),
+            used_in: z.string().nullable().optional(),
+          }),
+        )
+        .default([]),
+    }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true; removed: number; inserted: number }> => {
+    await assertOpsOrAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+
+    let removed = 0;
+    if (data.removeIds.length) {
+      // Soft-archive to preserve history
+      const { error } = await sb
+        .from("engine_intelligence_memory")
+        .update({ archived_at: new Date().toISOString() })
+        .in("id", data.removeIds);
+      if (error) throw new Error(error.message ?? "archive memory failed");
+      removed = data.removeIds.length;
+    }
+
+    let inserted = 0;
+    if (data.inserts.length) {
+      const rows = data.inserts.map((r) => ({
+        project_id: r.project_id ?? null,
+        title: r.title,
+        summary: r.summary ?? null,
+        type: r.type,
+        source: r.source ?? null,
+        source_date: r.source_date ?? null,
+        confidence: r.confidence ?? 80,
+        tags: r.tags ?? [],
+        used_in: r.used_in ?? null,
+        promoted_by: email,
+      }));
+      const { data: ins, error } = await sb
+        .from("engine_intelligence_memory")
+        .insert(rows)
+        .select("id");
+      if (error) throw new Error(error.message ?? "insert memory failed");
+      inserted = (ins ?? []).length;
+    }
+
+    return { ok: true, removed, inserted };
+  });
+
+export const deleteIntelligenceMemory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }): Promise<{ ok: true }> => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { error } = await sb
+      .from("engine_intelligence_memory")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message ?? "archive failed");
+    return { ok: true };
+  });
