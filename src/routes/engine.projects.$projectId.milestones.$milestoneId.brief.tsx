@@ -33,7 +33,9 @@ function MilestoneBriefPage() {
   const updateFn = useServerFn(updateMilestone);
   const approveFn = useServerFn(approveMilestone);
   const sendFn = useServerFn(sendMilestoneToTasks);
+  const regenFn = useServerFn(regenerateMilestoneSection);
   const [tab, setTab] = useState<Tab>("Overview");
+  const [regenerating, setRegenerating] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ["engine", "milestone", milestoneId, projectId],
@@ -60,6 +62,20 @@ function MilestoneBriefPage() {
     onSuccess: (r: any) => { toast.success(`Sent ${r.count ?? 0} tasks`); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const regenerate = async (section: string) => {
+    if (!m) return;
+    setRegenerating(section);
+    try {
+      await regenFn({ data: { id: m.id, section: section as any } });
+      toast.success(`Regenerated ${section.replace(/_/g, " ")}`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Regenerate failed");
+    } finally {
+      setRegenerating(null);
+    }
+  };
 
   if (q.isLoading || !m) return <div className="text-sm text-ink/60">Loading milestone…</div>;
 
