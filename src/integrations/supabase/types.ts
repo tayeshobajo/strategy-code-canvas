@@ -763,6 +763,82 @@ export type Database = {
           },
         ]
       }
+      engine_agent_costs: {
+        Row: {
+          actor_email: string | null
+          agent_task_id: string | null
+          category: string | null
+          cost_cents: number
+          created_at: string
+          id: string
+          kind: string
+          metadata: Json
+          model: string | null
+          project_id: string
+          related_module: string | null
+          roadmap_version_id: string | null
+          status: string
+          tokens_in: number
+          tokens_out: number
+        }
+        Insert: {
+          actor_email?: string | null
+          agent_task_id?: string | null
+          category?: string | null
+          cost_cents?: number
+          created_at?: string
+          id?: string
+          kind: string
+          metadata?: Json
+          model?: string | null
+          project_id: string
+          related_module?: string | null
+          roadmap_version_id?: string | null
+          status?: string
+          tokens_in?: number
+          tokens_out?: number
+        }
+        Update: {
+          actor_email?: string | null
+          agent_task_id?: string | null
+          category?: string | null
+          cost_cents?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          model?: string | null
+          project_id?: string
+          related_module?: string | null
+          roadmap_version_id?: string | null
+          status?: string
+          tokens_in?: number
+          tokens_out?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_agent_costs_agent_task_id_fkey"
+            columns: ["agent_task_id"]
+            isOneToOne: false
+            referencedRelation: "engine_agent_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_agent_costs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_agent_costs_roadmap_version_id_fkey"
+            columns: ["roadmap_version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_agent_permissions: {
         Row: {
           action_permissions: Json
