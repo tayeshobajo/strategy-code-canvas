@@ -70,7 +70,11 @@ export const Route = createFileRoute("/api/public/hooks/build-roadmap-contact")(
           const { supabaseAdmin } = await import(
             "@/integrations/supabase/client.server"
           );
+          const { ensureUnsubscribeToken } = await import(
+            "@/lib/email/unsubscribe-token.server"
+          );
           const idempotencyKey = `roadmap-${cid}`;
+          const unsubscribeToken = await ensureUnsubscribeToken(RECIPIENT);
           const { error } = await (supabaseAdmin.rpc as unknown as (
             fn: string,
             args: Record<string, unknown>,
@@ -82,6 +86,7 @@ export const Route = createFileRoute("/api/public/hooks/build-roadmap-contact")(
               reply_to: email,
               idempotency_key: idempotencyKey,
               correlation_id: cid,
+              unsubscribe_token: unsubscribeToken,
               template_data: { name, email, stuck, correlationId: cid },
             },
           });
