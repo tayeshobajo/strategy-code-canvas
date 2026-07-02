@@ -427,6 +427,34 @@ export const getAgentCosts = createServerFn({ method: "GET" })
     }
     const timeline = Object.entries(timelineMap).map(([date, cents]) => ({ date, cents }));
 
+    // Spend by milestone — match engine_agent_tasks.related_module against
+    // milestone names for this project so the cost center can show what each
+    // milestone actually cost to draft (approvals + drafts + rejections).
+    const { data: milestones } = await sb
+      .from("engine_milestones")
+      .select("id,name")
+      .eq("project_id", data.projectId);
+    const msList = (milestones ?? []) as Array<{ id: string; name: string }>;
+    const msMap = new Map<string, { id: string; name: string; cents: number; approved: number; unused: number }>();
+    for (const m of msList) msMap.set(m.name.toLowerCase(), { id: m.id, name: m.name, cents: 0, approved: 0, unused: 0 });
+    let unattributedCents = 0;
+    for (const t of list) {
+      const key = String(t.related_module ?? "").toLowerCase();
+      const bucket = key ? msMap.get(key) : undefined;
+      const cents = t.cost_cents ?? 0;
+      if (!bucket) { unattributedCents += cents; continue; }
+      bucket.cents += cents;
+      if (t.status === "applied" || t.status === "saved_as_task") bucket.approved += cents;
+      else if (t.status === "draft" || t.status === "rejected") bucket.unused += cents;
+    }
+    const spendByMilestone = [...msMap.values()]
+      .filter((b) => b.cents > 0)
+      .sort((a, b) => b.cents - a.cents)
+      .map((b) => ({
+        ...b,
+        costPerApproved: b.approved > 0 ? Math.round(b.cents / Math.max(1, Math.round(b.approved / Math.max(1, b.cents) * (approvedOutputs || 1)))) : 0,
+      }));
+
     return {
       project: proj,
       totals: {
@@ -441,8 +469,10 @@ export const getAgentCosts = createServerFn({ method: "GET" })
         rejectedOutputs,
         draftOutputs,
         tasksCreated: list.length,
+        unattributedCents,
       },
       spendByCategory,
+      spendByMilestone,
       timeline,
       recent: list.slice(0, 15),
     };
