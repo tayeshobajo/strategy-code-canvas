@@ -463,7 +463,8 @@ function CleanOptimizeDialog({ items, onClose, onApply }: { items: Item[]; onClo
   );
 }
 
-function LegendRow({ color, label, value }: { color: string; label: string; value: number }) {
+
+
 
 // ─────────────────────────────────────────────────────────────
 // DiffPanel — field-by-field before/after diff for merge preview
