@@ -10,6 +10,35 @@ async function assertAdmin(context: any) {
   if (!ok) throw new Error("Forbidden: admin role required");
 }
 
+async function logAudit(
+  sb: any,
+  args: {
+    project_id: string;
+    actor_email: string | null;
+    action: string;
+    summary?: string | null;
+    affected_modules?: string[];
+    version_id?: string | null;
+    target_id?: string | null;
+    metadata?: Record<string, any>;
+  },
+) {
+  try {
+    await sb.from("engine_audit_log").insert({
+      project_id: args.project_id,
+      actor_email: args.actor_email,
+      action: args.action,
+      summary: args.summary ?? null,
+      affected_modules: args.affected_modules ?? [],
+      version_id: args.version_id ?? null,
+      target_id: args.target_id ?? null,
+      metadata: args.metadata ?? {},
+    });
+  } catch {
+    /* audit failures never break the action */
+  }
+}
+
 /* ============================================================
  * Sources
  * ============================================================ */
