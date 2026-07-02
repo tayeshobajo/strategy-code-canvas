@@ -547,7 +547,50 @@ export const getAgentCosts = createServerFn({ method: "GET" })
       spendByMilestone,
       timeline,
       recent: list.slice(0, 15),
+      ledger: ledger.slice(0, 25),
+      ledgerCount: ledger.length,
     };
+  });
+
+// CSV export of the full cost ledger for the current project. Returns raw
+// CSV text; the client is responsible for downloading it as a file.
+export const exportAgentCostsCsv = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ projectId: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { data: proj } = await sb
+      .from("engine_projects")
+      .select("name,client_company")
+      .eq("id", data.projectId)
+      .single();
+    const { data: rows } = await sb
+      .from("engine_agent_costs")
+      .select("created_at,kind,category,related_module,model,tokens_in,tokens_out,cost_cents,status,actor_email,agent_task_id,roadmap_version_id")
+      .eq("project_id", data.projectId)
+      .order("created_at", { ascending: false });
+    const header = [
+      "created_at","kind","category","related_module","model",
+      "tokens_in","tokens_out","cost_cents","cost_usd","status",
+      "actor_email","agent_task_id","roadmap_version_id",
+    ];
+    const escape = (v: unknown) => {
+      if (v == null) return "";
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [header.join(",")];
+    for (const r of (rows ?? []) as any[]) {
+      const usd = ((r.cost_cents ?? 0) / 100).toFixed(2);
+      lines.push([
+        r.created_at, r.kind, r.category, r.related_module, r.model,
+        r.tokens_in ?? 0, r.tokens_out ?? 0, r.cost_cents ?? 0, usd, r.status,
+        r.actor_email, r.agent_task_id, r.roadmap_version_id,
+      ].map(escape).join(","));
+    }
+    const filename = `cost-center_${(proj?.name ?? "project").replace(/[^a-z0-9-]+/gi, "-").toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    return { csv: lines.join("\n"), filename, rowCount: (rows ?? []).length };
   });
 
 export const updateBudgetControls = createServerFn({ method: "POST" })
