@@ -326,23 +326,12 @@ function IntelligenceMemoryPage() {
           </SectionCard>
 
           <SectionCard title="Recent Decisions">
-            {decisionsQuery.isLoading ? (
-              <div className="text-xs text-ink/50">Loading…</div>
-            ) : (decisionsQuery.data ?? []).length === 0 ? (
-              <div className="text-xs text-ink/50">No decisions recorded yet.</div>
-            ) : (
-              <ul className="space-y-2 text-xs">
-                {(decisionsQuery.data ?? []).slice(0, 8).map((d) => (
-                  <li key={d.id} className="flex items-start justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0">
-                    <div className="min-w-0">
-                      <div className="text-ink font-medium capitalize">{d.action}</div>
-                      <div className="text-ink/60 truncate">{d.actor_email}</div>
-                    </div>
-                    <div className="text-[10px] text-ink/50 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <DecisionsPanel
+              decisions={decisionsQuery.data ?? []}
+              loading={decisionsQuery.isLoading}
+              onRefresh={() => decisionsQuery.refetch()}
+              refreshing={decisionsQuery.isFetching}
+            />
           </SectionCard>
 
           <SectionCard title="Quick Actions">
@@ -390,6 +379,123 @@ function QuickBtn({ icon, label, onClick }: { icon: React.ReactNode; label: stri
     <button onClick={onClick} className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-2 hover:border-royal/50 text-ink justify-center">
       {icon}{label}
     </button>
+  );
+}
+
+type DecisionRow = {
+  id: string;
+  memory_id: string | null;
+  project_id: string | null;
+  action: string;
+  actor_email: string;
+  notes: string | null;
+  created_at: string;
+  before_state?: Record<string, unknown> | null;
+};
+
+const DECISION_ACTIONS = ["merge", "clean", "reject", "promote", "archive", "restore", "accept"] as const;
+
+function DecisionsPanel({
+  decisions, loading, onRefresh, refreshing,
+}: {
+  decisions: DecisionRow[];
+  loading: boolean;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
+  const [search, setSearch] = useState("");
+  const [projectId, setProjectId] = useState("");
+  const [memoryId, setMemoryId] = useState("");
+  const [action, setAction] = useState<string>("");
+  const [milestoneId, setMilestoneId] = useState("");
+
+  const projects = useMemo(
+    () => Array.from(new Set(decisions.map((d) => d.project_id).filter(Boolean))) as string[],
+    [decisions],
+  );
+
+  const filtered = useMemo(() => {
+    return decisions.filter((d) => {
+      if (action && d.action !== action) return false;
+      if (projectId && d.project_id !== projectId) return false;
+      if (memoryId && (d.memory_id ?? "").toLowerCase() !== memoryId.toLowerCase()) return false;
+      if (milestoneId) {
+        const mid = (d.before_state as any)?.milestone_id ?? "";
+        if (!String(mid).toLowerCase().includes(milestoneId.toLowerCase())) return false;
+      }
+      if (search) {
+        const s = search.toLowerCase();
+        const hay = `${d.action} ${d.actor_email ?? ""} ${d.notes ?? ""} ${d.memory_id ?? ""} ${d.project_id ?? ""}`.toLowerCase();
+        if (!hay.includes(s)) return false;
+      }
+      return true;
+    });
+  }, [decisions, search, projectId, memoryId, action, milestoneId]);
+
+  const anyFilter = !!(search || projectId || memoryId || action || milestoneId);
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-1.5">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search notes / actor…"
+          className="col-span-2 text-[11px] border border-border rounded px-2 py-1.5 bg-white"
+        />
+        <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="text-[11px] border border-border rounded px-1.5 py-1.5 bg-white">
+          <option value="">All projects</option>
+          {projects.map((p) => <option key={p} value={p}>{p.slice(0, 8)}</option>)}
+        </select>
+        <select value={action} onChange={(e) => setAction(e.target.value)} className="text-[11px] border border-border rounded px-1.5 py-1.5 bg-white">
+          <option value="">All types</option>
+          {DECISION_ACTIONS.map((a) => <option key={a} value={a} className="capitalize">{a}</option>)}
+        </select>
+        <input
+          value={memoryId}
+          onChange={(e) => setMemoryId(e.target.value)}
+          placeholder="memory_id"
+          className="text-[11px] border border-border rounded px-2 py-1.5 bg-white font-mono"
+        />
+        <input
+          value={milestoneId}
+          onChange={(e) => setMilestoneId(e.target.value)}
+          placeholder="milestone_id"
+          className="text-[11px] border border-border rounded px-2 py-1.5 bg-white font-mono"
+        />
+      </div>
+      <div className="flex items-center justify-between text-[10px] text-ink/50">
+        <span>{filtered.length} of {decisions.length}</span>
+        <div className="flex items-center gap-2">
+          {anyFilter && (
+            <button onClick={() => { setSearch(""); setProjectId(""); setMemoryId(""); setAction(""); setMilestoneId(""); }} className="hover:text-ink">
+              Clear
+            </button>
+          )}
+          <button onClick={onRefresh} disabled={refreshing} className="inline-flex items-center gap-1 hover:text-ink disabled:opacity-50">
+            <RefreshCw className={cn("w-3 h-3", refreshing && "animate-spin")} /> Refresh
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <div className="text-xs text-ink/50">Loading…</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-xs text-ink/50">{anyFilter ? "No decisions match filters." : "No decisions recorded yet."}</div>
+      ) : (
+        <ul className="space-y-2 text-xs max-h-72 overflow-auto">
+          {filtered.slice(0, 30).map((d) => (
+            <li key={d.id} className="flex items-start justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0">
+              <div className="min-w-0">
+                <div className="text-ink font-medium capitalize">{d.action}</div>
+                <div className="text-ink/60 truncate">{d.actor_email}</div>
+                {d.notes && <div className="text-ink/50 truncate italic">{d.notes}</div>}
+              </div>
+              <div className="text-[10px] text-ink/50 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
