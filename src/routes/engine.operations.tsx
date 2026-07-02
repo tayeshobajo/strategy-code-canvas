@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
-import { PlusCircle, LayoutGrid, DollarSign, ShieldCheck, ClipboardList, AlertTriangle, TrendingUp } from "lucide-react";
+import { PlusCircle, LayoutGrid, DollarSign, ShieldCheck, ClipboardList, AlertTriangle, TrendingUp, X, Check } from "lucide-react";
 
 export const Route = createFileRoute("/engine/operations")({
   component: GlobalOperationsPage,
 });
 
-const AGENTS = [
+type Agent = { name: string; status: string; health: string; tasks: number; approval: string; spend: string; budget: string; used: number; last: string; template?: string; model?: string; policy?: string };
+
+const INITIAL_AGENTS: Agent[] = [
   { name: "Mental Dental Academy", status: "Active", health: "Healthy", tasks: 48, approval: "84%", spend: "$42.18", budget: "$150.00", used: 28, last: "10:14 AM" },
   { name: "Greenridge Learning", status: "Active", health: "Healthy", tasks: 42, approval: "88%", spend: "$38.77", budget: "$120.00", used: 32, last: "9:52 AM" },
   { name: "Elevate Coaching", status: "Active", health: "Healthy", tasks: 36, approval: "90%", spend: "$31.22", budget: "$100.00", used: 31, last: "9:23 AM" },
@@ -16,6 +19,21 @@ const AGENTS = [
   { name: "Summit Consulting", status: "Active", health: "Healthy", tasks: 25, approval: "86%", spend: "$21.35", budget: "$80.00", used: 27, last: "Jun 20" },
   { name: "Peak Performance Co.", status: "Draft", health: "Healthy", tasks: 8, approval: "100%", spend: "$3.12", budget: "$50.00", used: 6, last: "Jun 20" },
 ];
+
+const TEMPLATES = [
+  { id: "discovery", name: "Discovery Analyst", desc: "Ingest calls, surface truths, propose insights.", policy: "Draft only" },
+  { id: "roadmap", name: "Roadmap Drafter", desc: "Turn intelligence into milestone drafts.", policy: "Propose updates" },
+  { id: "delivery", name: "Delivery Coordinator", desc: "Track handoff, follow-ups, engagement.", policy: "Propose updates" },
+  { id: "brief", name: "Milestone Brief Writer", desc: "Generate acceptance criteria, dev prompts, QA.", policy: "Propose updates" },
+  { id: "custom", name: "Custom (blank)", desc: "Start from a blank agent config.", policy: "Draft only" },
+];
+const MODELS = [
+  { id: "gemini-flash", name: "Gemini 2.5 Flash", cost: "$0.10 / 1M in · $0.40 / 1M out" },
+  { id: "gemini-pro", name: "Gemini 2.5 Pro", cost: "$1.25 / 1M in · $10 / 1M out" },
+  { id: "claude-sonnet", name: "Claude Sonnet 4.5", cost: "$3 / 1M in · $15 / 1M out" },
+  { id: "gpt-5-mini", name: "GPT-5 Mini", cost: "$0.25 / 1M in · $2 / 1M out" },
+];
+const POLICIES = ["Draft only", "Propose updates", "Execute approved actions"] as const;
 
 const SYSTEMS = [
   "Agent Orchestrator",
