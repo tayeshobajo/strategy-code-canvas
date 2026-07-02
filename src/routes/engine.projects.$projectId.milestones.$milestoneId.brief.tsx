@@ -409,8 +409,28 @@ function EditableMarkdown({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [lastSaved, setLastSaved] = useState(value);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setDraft(value); }, [value]);
+  const [autoStatus, setAutoStatus] = useState<"idle" | "dirty" | "saving" | "saved" | "error">("idle");
+  useEffect(() => { setDraft(value); setLastSaved(value); }, [value]);
+
+  // Debounced autosave — 1.2s after last keystroke while editing
+  useEffect(() => {
+    if (!editing || approved) return;
+    if (draft === lastSaved) { setAutoStatus("idle"); return; }
+    setAutoStatus("dirty");
+    const t = setTimeout(async () => {
+      try {
+        setAutoStatus("saving");
+        await onSave(draft);
+        setLastSaved(draft);
+        setAutoStatus("saved");
+      } catch {
+        setAutoStatus("error");
+      }
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [draft, editing, approved, lastSaved, onSave]);
 
   if (!editing) {
     return (
@@ -419,7 +439,7 @@ function EditableMarkdown({
         <button
           onClick={() => setEditing(true)}
           disabled={approved}
-          title={approved ? "Reset approval before editing" : "Edit"}
+          title={approved ? "This milestone is Approved — reset approval before editing." : "Edit"}
           className="inline-flex items-center gap-1 text-xs text-royal hover:underline disabled:opacity-40 disabled:no-underline"
         >
           <PencilLine className="w-3 h-3" /> Edit
@@ -435,21 +455,38 @@ function EditableMarkdown({
         rows={compact ? 6 : 12}
         className="w-full text-sm border border-border rounded p-3 bg-white"
       />
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           disabled={saving}
           onClick={async () => {
             setSaving(true);
-            try { await onSave(draft); setEditing(false); }
+            try { await onSave(draft); setLastSaved(draft); setAutoStatus("saved"); setEditing(false); }
             finally { setSaving(false); }
           }}
           className="text-xs bg-royal text-white rounded-md px-3 py-1.5 hover:bg-royal/90 disabled:opacity-60 inline-flex items-center gap-1"
         >
-          <Save className="w-3 h-3" /> Save
+          <Save className="w-3 h-3" /> Save & Close
+        </button>
+        <button
+          onClick={async () => {
+            setDraft(lastSaved);
+            if (lastSaved !== value) { try { await onSave(lastSaved); } catch { /* noop */ } }
+            setAutoStatus("idle");
+          }}
+          title="Discard changes made since the last successful autosave"
+          className="text-xs text-ink/70 hover:text-ink inline-flex items-center gap-1 border border-border rounded-md px-2 py-1.5"
+        >
+          <RotateCcw className="w-3 h-3" /> Rollback to last saved
         </button>
         <button onClick={() => { setDraft(value); setEditing(false); }} className="text-xs text-ink/60 hover:text-ink inline-flex items-center gap-1">
-          <X className="w-3 h-3" /> Cancel
+          <X className="w-3 h-3" /> Close
         </button>
+        <span className="ml-auto text-[11px] text-ink/50">
+          {autoStatus === "saving" && "Autosaving…"}
+          {autoStatus === "saved" && "Autosaved ✓"}
+          {autoStatus === "dirty" && "Unsaved changes…"}
+          {autoStatus === "error" && <span className="text-[#a4283c]">Autosave failed — use Save</span>}
+        </span>
       </div>
     </div>
   );
