@@ -475,9 +475,10 @@ export const archiveVersion = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     await assertAdmin(context);
     const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
     const { data: v } = await sb
       .from("engine_roadmap_versions")
-      .select("status")
+      .select("id,project_id,version,status")
       .eq("id", data.id)
       .single();
     if (v?.status === "approved") {
@@ -488,6 +489,16 @@ export const archiveVersion = createServerFn({ method: "POST" })
       .update({ status: "archived" })
       .eq("id", data.id);
     if (error) throw new Error(error.message ?? "archive failed");
+    if (v) {
+      await logAudit(sb, {
+        project_id: v.project_id,
+        actor_email: email,
+        action: "version_archived",
+        summary: `Archived ${v.version}.`,
+        version_id: v.id,
+        metadata: { version: v.version },
+      });
+    }
     return { ok: true };
   });
 
