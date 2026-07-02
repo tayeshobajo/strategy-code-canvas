@@ -243,17 +243,18 @@ function VersionComparePage() {
                         <td className="py-3 pr-2">
                           <div className="flex flex-col gap-1">
                             <button
-                              onClick={() => decide(id, "accept")}
+                              onClick={() => decide(activeMod.key, id, "accept")}
                               className={`text-[10px] rounded px-2 py-1 border ${decision === "accept" ? "bg-[#e6f5ec] border-[#c4e6d2] text-[#1f6b3b]" : "border-border text-ink/70 hover:border-royal/40"}`}
                             ><Check className="w-3 h-3 inline mr-1" />Accept</button>
                             <button
-                              onClick={() => decide(id, "edit")}
+                              onClick={() => decide(activeMod.key, id, "edit")}
                               className={`text-[10px] rounded px-2 py-1 border ${decision === "edit" ? "bg-[#fbf3e0] border-[#f1e3b9] text-[#8a6713]" : "border-border text-ink/70 hover:border-royal/40"}`}
                             ><Edit3 className="w-3 h-3 inline mr-1" />Edit</button>
                             <button
-                              onClick={() => decide(id, "reject")}
+                              onClick={() => decide(activeMod.key, id, "reject")}
                               className={`text-[10px] rounded px-2 py-1 border ${decision === "reject" ? "bg-[#fbe9ec] border-[#f3ced5] text-[#a4283c]" : "border-border text-ink/70 hover:border-royal/40"}`}
                             ><X className="w-3 h-3 inline mr-1" />Reject</button>
+
                           </div>
                         </td>
                       </tr>
