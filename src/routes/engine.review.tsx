@@ -1,14 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, XCircle, Eye, AlertTriangle, Clock, X, RotateCcw, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, AlertTriangle, Clock, X, RotateCcw, Loader2, Search } from "lucide-react";
 import { listReviewQueue, decideReviewItem, type ReviewItem } from "@/lib/engine-ops.functions";
+
+type AuditSearch = { q?: string; actor?: string; decision?: "all" | "approved" | "sent_back" };
 
 export const Route = createFileRoute("/engine/review")({
   component: ReviewApprovalsPage,
+  validateSearch: (search: Record<string, unknown>): AuditSearch => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+    actor: typeof search.actor === "string" ? search.actor : undefined,
+    decision: search.decision === "approved" || search.decision === "sent_back" ? search.decision : "all",
+  }),
 });
 
 const SOURCE_ROUTE: Record<string, string> = {
