@@ -335,14 +335,13 @@ export const getPortalContext = createServerFn({ method: "GET" })
   });
 
 // -------------------- Admin (operator) --------------------
-async function assertOperator(context: {
-  claims?: { email?: string };
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> };
-}) {
+async function assertOperator(context: { claims?: { email?: string }; supabase: unknown }) {
   const email = context.claims?.email;
   if (!email) throw new Error("Forbidden");
-  // Allowlist fast-path OR user_roles.admin
-  const ok = isOperator(email) || (await hasRoleForEmail(context.supabase, email, "admin"));
+  const supa = context.supabase as {
+    rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+  };
+  const ok = isOperator(email) || (await hasRoleForEmail(supa, email, "admin"));
   if (!ok) throw new Error("Forbidden");
   return email;
 }
