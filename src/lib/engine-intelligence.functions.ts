@@ -456,6 +456,13 @@ export const approveVersion = createServerFn({ method: "POST" })
       body: email ? `Approved by ${email}` : null,
       severity: "success",
     });
+    await sb.from("roadmap_approvals").insert({
+      version_id: v.id,
+      project_id: v.project_id,
+      snapshot_version: v.version,
+      approver_email: email,
+      notes: null,
+    });
     await logAudit(sb, {
       project_id: v.project_id,
       actor_email: email,
@@ -467,6 +474,7 @@ export const approveVersion = createServerFn({ method: "POST" })
     });
     return { ok: true, version: v.version };
   });
+
 
 
 export const archiveVersion = createServerFn({ method: "POST" })
