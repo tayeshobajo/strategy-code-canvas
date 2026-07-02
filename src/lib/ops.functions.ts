@@ -83,7 +83,7 @@ export const listSubmissions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ListSubmissionsInput.parse(input))
   .handler(async ({ data, context }) => {
-    requireOperatorContext(context.claims as Record<string, unknown> | undefined);
+    await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
 
     let q = intake.from("roadmap_intake_review_queue").select("*");
@@ -149,7 +149,7 @@ export const listSubmissions = createServerFn({ method: "POST" })
 export const getQueueStats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    requireOperatorContext(context.claims as Record<string, unknown> | undefined);
+    await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
 
     async function countStatus(status: ReviewStatus, sinceISO?: string): Promise<number> {
@@ -185,9 +185,7 @@ export const getSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => GetSubmissionInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { operatorEmail } = requireOperatorContext(
-      context.claims as Record<string, unknown> | undefined,
-    );
+    const { operatorEmail } = await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
 
     const [{ data: submission, error: sErr }, { data: review, error: rErr }] = await Promise.all([
@@ -269,9 +267,7 @@ export const setReviewStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SetReviewStatusInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { operatorEmail } = requireOperatorContext(
-      context.claims as Record<string, unknown> | undefined,
-    );
+    const { operatorEmail } = await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
     const status = data.status as ReviewStatus;
     await updateReviewStatus(intake, data.id, status, operatorEmail);
@@ -294,9 +290,7 @@ export const archiveSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ArchiveSubmissionInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { operatorEmail } = requireOperatorContext(
-      context.claims as Record<string, unknown> | undefined,
-    );
+    const { operatorEmail } = await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
     await updateReviewStatus(intake, data.submission_id, "archived", operatorEmail);
     await writeAudit(intake, data.submission_id, operatorEmail, "archived");
@@ -307,9 +301,7 @@ export const reopenSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ReopenSubmissionInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { operatorEmail } = requireOperatorContext(
-      context.claims as Record<string, unknown> | undefined,
-    );
+    const { operatorEmail } = await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
     await updateReviewStatus(intake, data.submission_id, "in_review", operatorEmail, {
       decided_at: null,
@@ -322,9 +314,7 @@ export const rejectSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => RejectSubmissionInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { operatorEmail } = requireOperatorContext(
-      context.claims as Record<string, unknown> | undefined,
-    );
+    const { operatorEmail } = await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
     await updateReviewStatus(intake, data.submission_id, "rejected", operatorEmail);
     await writeAudit(intake, data.submission_id, operatorEmail, "rejected", {
@@ -341,9 +331,7 @@ export const addNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AddNoteInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { operatorEmail } = requireOperatorContext(
-      context.claims as Record<string, unknown> | undefined,
-    );
+    const { operatorEmail } = await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
     const { data: inserted, error } = await intake
       .from("review_notes")
@@ -368,9 +356,7 @@ export const saveDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SaveDraftInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { operatorEmail } = requireOperatorContext(
-      context.claims as Record<string, unknown> | undefined,
-    );
+    const { operatorEmail } = await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
 
     const { data: review } = await intake
@@ -418,9 +404,7 @@ export const approveSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ApproveSubmissionInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { operatorEmail } = requireOperatorContext(
-      context.claims as Record<string, unknown> | undefined,
-    );
+    const { operatorEmail } = await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
 
     await updateReviewStatus(intake, data.submission_id, "approved", operatorEmail);
@@ -526,7 +510,7 @@ export const listHistory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ListHistoryInput.parse(input))
   .handler(async ({ data, context }) => {
-    requireOperatorContext(context.claims as Record<string, unknown> | undefined);
+    await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
 
     let q = intake.from("roadmap_intake_review_queue").select("*", { count: "exact" });
@@ -572,7 +556,7 @@ export const getAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AnalyticsInput.parse(input))
   .handler(async ({ data, context }) => {
-    requireOperatorContext(context.claims as Record<string, unknown> | undefined);
+    await requireOperatorContext(context.claims as Record<string, unknown> | undefined, context.supabase as unknown as Parameters<typeof requireOperatorContext>[1]);
     const intake = await loadIntake();
 
     // Resolve the analysis window. Explicit from/to (YYYY-MM-DD) wins over
