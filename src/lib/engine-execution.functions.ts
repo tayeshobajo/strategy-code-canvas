@@ -441,10 +441,17 @@ export const getAgentCosts = createServerFn({ method: "GET" })
       .single();
     const { data: tasks } = await sb
       .from("engine_agent_tasks")
-      .select("id,kind,cost_cents,status,created_at,applied_module,related_module,category,tokens_in,tokens_out")
+      .select("id,kind,cost_cents,status,created_at,applied_module,related_module,category,tokens_in,tokens_out,roadmap_version_id")
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false })
       .limit(500);
+    const { data: ledgerRows } = await sb
+      .from("engine_agent_costs")
+      .select("id,kind,category,cost_cents,status,created_at,related_module,tokens_in,tokens_out,model,actor_email,agent_task_id,roadmap_version_id")
+      .eq("project_id", data.projectId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    const ledger = (ledgerRows ?? []) as any[];
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
