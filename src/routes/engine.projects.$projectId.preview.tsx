@@ -15,6 +15,9 @@ export const Route = createFileRoute("/engine/projects/$projectId/preview")({
 function ClientPreview() {
   const { projectId } = Route.useParams();
   const { project } = useWorkspace(projectId);
+  const search = useSearch({ from: "/engine/projects/$projectId/preview" });
+  const navigate = useNavigate();
+  const isPresenting = search.present === "1";
   const point_a = project.point_a as { key_diagnosis?: string };
   const point_b = project.point_b as Record<string, string | undefined>;
   const phases = ((project.investment as { phases?: Array<{ name: string; outcome?: string; timeline?: string; range?: string }> })?.phases) ?? [];
@@ -22,6 +25,12 @@ function ClientPreview() {
 
   return (
     <div className="space-y-4">
+      {isPresenting ? (
+        <PresentationMode
+          project={project}
+          onClose={() => navigate({ to: ".", search: {}, replace: true })}
+        />
+      ) : null}
       <header className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">Step 13</div>
@@ -29,10 +38,16 @@ function ClientPreview() {
           <p className="text-sm text-ink/60 mt-1">The clean, client-safe roadmap. Internal notes are hidden.</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-3 py-1.5 text-ink hover:border-royal/50">
-            <FileText className="w-3.5 h-3.5" /> PDF preview
+          <button
+            onClick={() => exportClientRoadmapPdf(project)}
+            className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-3 py-1.5 text-ink hover:border-royal/50"
+          >
+            <FileText className="w-3.5 h-3.5" /> Download PDF
           </button>
-          <button className="inline-flex items-center gap-1.5 text-xs bg-ink text-white rounded-md px-3 py-1.5 hover:bg-ink/90">
+          <button
+            onClick={() => navigate({ to: ".", search: { present: "1" }, replace: false })}
+            className="inline-flex items-center gap-1.5 text-xs bg-ink text-white rounded-md px-3 py-1.5 hover:bg-ink/90"
+          >
             <Presentation className="w-3.5 h-3.5" /> Presentation mode
           </button>
         </div>
