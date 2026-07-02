@@ -19,6 +19,8 @@ import {
   CheckCircle2,
   Archive,
   GitCompare,
+  RotateCcw,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
@@ -30,6 +32,8 @@ import {
   listVersions,
   approveVersion,
   archiveVersion,
+  compareVersions,
+  restoreVersion,
   listChangeEvents,
   resolveChangeEvent,
   runIntelligencePipeline,
