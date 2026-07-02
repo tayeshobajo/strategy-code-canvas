@@ -249,7 +249,12 @@ function CostCenterPage() {
           </div>
 
           <div className="mt-5">
-            <div className="text-xs font-mono uppercase tracking-wide text-ink/50 mb-2">Recent Cost Activity</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-mono uppercase tracking-wide text-ink/50">Live Cost Ledger</div>
+              <div className="text-[11px] text-ink/50">
+                {ledger.length > 0 ? `${d?.ledgerCount ?? ledger.length} ledger entries` : `${recent.length} recent tasks`}
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -263,7 +268,16 @@ function CostCenterPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recent.map((r: any) => (
+                  {q.isLoading && (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={`sk-${i}`} className="border-b border-border/60">
+                        {Array.from({ length: 6 }).map((__, j) => (
+                          <td key={j} className="py-2 pr-3"><div className="h-3 bg-ink/5 rounded animate-pulse" /></td>
+                        ))}
+                      </tr>
+                    ))
+                  )}
+                  {!q.isLoading && (ledger.length > 0 ? ledger : recent).map((r: any) => (
                     <tr key={r.id} className="border-b border-border/60">
                       <td className="py-2 pr-3 text-ink/70 whitespace-nowrap">{new Date(r.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</td>
                       <td className="py-2 pr-3 text-ink capitalize">{String(r.kind ?? "").replace(/_/g, " ")}</td>
@@ -273,14 +287,15 @@ function CostCenterPage() {
                       <td className="py-2 pr-3 text-ink/70 capitalize">{r.status ?? "—"}</td>
                     </tr>
                   ))}
-                  {recent.length === 0 && (
-                    <tr><td colSpan={6} className="py-8 text-center text-ink/50 text-sm">No cost activity yet.</td></tr>
+                  {!q.isLoading && ledger.length === 0 && recent.length === 0 && (
+                    <tr><td colSpan={6} className="py-8 text-center text-ink/50 text-sm">No cost activity yet. The ledger populates the first time the agent runs.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
           </div>
         </SectionCard>
+
 
         {/* Budget controls */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-3">
