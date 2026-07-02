@@ -32,11 +32,12 @@ export const Route = createFileRoute("/engine")({
     const email = (data.user.email ?? "").toLowerCase();
     let allowed = isAdminEmail(email);
     if (!allowed) {
-      const { data: rpcData } = await supabase.rpc("has_role_email", {
-        _email: email,
-        _role: "admin",
-      });
-      allowed = rpcData === true;
+      const [{ data: adminRpc }, { data: opRpc }, { data: teamRpc }] = await Promise.all([
+        supabase.rpc("has_role_email", { _email: email, _role: "admin" }),
+        supabase.rpc("has_role_email", { _email: email, _role: "operator" }),
+        supabase.rpc("has_role_email", { _email: email, _role: "team_member" }),
+      ]);
+      allowed = adminRpc === true || opRpc === true || teamRpc === true;
     }
     if (!allowed) {
       throw redirect({ to: "/portal/access-denied" });
