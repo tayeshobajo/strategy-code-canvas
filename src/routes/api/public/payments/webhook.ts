@@ -206,6 +206,8 @@ async function sendWelcomeEmail(email: string, contactName?: string | null) {
     <p>— Tai</p>
   </div>`;
   try {
+    const { ensureUnsubscribeToken } = await import("@/lib/email/unsubscribe-token.server");
+    const unsubscribeToken = await ensureUnsubscribeToken(email);
     await supabase.rpc("enqueue_email", {
       queue_name: "transactional_emails",
       payload: {
@@ -220,6 +222,7 @@ async function sendWelcomeEmail(email: string, contactName?: string | null) {
         label: "portal-welcome",
         purpose: "transactional",
         idempotency_key: `portal-welcome-${email}`,
+        unsubscribe_token: unsubscribeToken,
       },
     });
   } catch (e) {
