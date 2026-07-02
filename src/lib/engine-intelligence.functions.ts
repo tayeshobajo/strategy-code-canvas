@@ -14,6 +14,16 @@ async function assertAdmin(context: any) {
  * Sources
  * ============================================================ */
 
+export type EngineSourceStage = {
+  key: string;
+  label: string;
+  status: "queued" | "running" | "completed" | "failed" | "skipped";
+  started_at?: string | null;
+  finished_at?: string | null;
+  error?: string | null;
+  note?: string | null;
+};
+
 export type EngineSource = {
   id: string;
   project_id: string;
@@ -27,6 +37,10 @@ export type EngineSource = {
   confidence: number;
   used_in_version: string | null;
   error: string | null;
+  current_stage: string | null;
+  processing_stages: EngineSourceStage[];
+  started_at: string | null;
+  finished_at: string | null;
   created_at: string;
   updated_at: string;
 };
