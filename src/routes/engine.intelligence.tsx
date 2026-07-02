@@ -759,3 +759,85 @@ function ConnectionsGraph() {
     </svg>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// New Memory Item dialog
+// ─────────────────────────────────────────────────────────────
+function NewMemoryDialog({ onClose, onSubmit, pending }: { onClose: () => void; onSubmit: (payload: NewMemoryInput) => void; pending?: boolean }) {
+  const [title, setTitle] = useState("");
+  const [summary, setSummary] = useState("");
+  const [type, setType] = useState<MemType>("Insight");
+  const [source, setSource] = useState("");
+  const [confidence, setConfidence] = useState(80);
+  const [tagsRaw, setTagsRaw] = useState("");
+  const [usedIn, setUsedIn] = useState("");
+
+  const canSubmit = title.trim().length > 0 && !pending;
+
+  const submit = () => {
+    if (!canSubmit) return;
+    onSubmit({
+      title: title.trim(),
+      summary: summary.trim() || null,
+      type,
+      source: source.trim() || null,
+      confidence,
+      tags: tagsRaw.split(",").map((t) => t.trim()).filter(Boolean),
+      used_in: usedIn.trim() || null,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-xl border border-border shadow-lg max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+        <header className="flex items-center justify-between p-4 border-b border-border">
+          <div>
+            <div className="font-display text-lg text-ink">Promote to Memory</div>
+            <div className="text-xs text-ink/60">Add a new insight, decision, or client truth to the intelligence memory.</div>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
+        </header>
+        <div className="p-4 space-y-3">
+          <label className="block text-xs">
+            <span className="text-ink/70 font-medium">Title</span>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm" placeholder="e.g. Launch date is January 1, 2026" />
+          </label>
+          <label className="block text-xs">
+            <span className="text-ink/70 font-medium">Summary</span>
+            <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm" placeholder="One-line context" />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs">
+              <span className="text-ink/70 font-medium">Type</span>
+              <select value={type} onChange={(e) => setType(e.target.value as MemType)} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm">
+                {KNOWN_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </label>
+            <label className="block text-xs">
+              <span className="text-ink/70 font-medium">Confidence ({confidence}%)</span>
+              <input type="range" min={0} max={100} value={confidence} onChange={(e) => setConfidence(Number(e.target.value))} className="mt-1 w-full" />
+            </label>
+          </div>
+          <label className="block text-xs">
+            <span className="text-ink/70 font-medium">Source</span>
+            <input value={source} onChange={(e) => setSource(e.target.value)} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm" placeholder="e.g. Discovery call transcript" />
+          </label>
+          <label className="block text-xs">
+            <span className="text-ink/70 font-medium">Tags (comma separated)</span>
+            <input value={tagsRaw} onChange={(e) => setTagsRaw(e.target.value)} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm" placeholder="Launch, Deadline" />
+          </label>
+          <label className="block text-xs">
+            <span className="text-ink/70 font-medium">Used In</span>
+            <input value={usedIn} onChange={(e) => setUsedIn(e.target.value)} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm" placeholder="Roadmap v1.2 · Milestone Ordering" />
+          </label>
+        </div>
+        <footer className="flex items-center justify-end gap-2 p-4 border-t border-border">
+          <button onClick={onClose} className="text-xs px-3 py-1.5 rounded border border-border text-ink/70">Cancel</button>
+          <button onClick={submit} disabled={!canSubmit} className="text-xs px-3 py-1.5 rounded bg-royal text-white hover:bg-royal/90 disabled:opacity-40">
+            {pending ? "Saving…" : "Add to Memory"}
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
