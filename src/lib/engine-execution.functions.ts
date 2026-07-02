@@ -674,6 +674,132 @@ export const updatePermissions = createServerFn({ method: "POST" })
         .update({ agent_permission_level: patch.permission_mode })
         .eq("id", projectId);
     }
+    const email = (context as any).claims?.email ?? null;
+    await sb.from("engine_audit_log").insert({
+      project_id: projectId,
+      actor_email: email,
+      action: "agent_permissions_updated",
+      summary: `Updated agent permissions (${Object.keys(patch).join(", ")}).`,
+      affected_modules: ["permissions"],
+      metadata: patch,
+    });
+    return { ok: true as const };
+  });
+
+// ============================================================
+// Delivery send (project-level, admin-only, gated)
+// ============================================================
+
+export const sendProjectDelivery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        projectId: z.string().uuid(),
+        checklist: z.record(z.string(), z.boolean()),
+        confirmed: z.literal(true),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+
+    // Require every checklist entry to be true. Client sends the full map.
+    const unchecked = Object.entries(data.checklist).filter(([, v]) => !v).map(([k]) => k);
+    if (unchecked.length) {
+      throw new Error(`Approval checklist incomplete: ${unchecked.join(", ")}`);
+    }
+
+    const { data: proj } = await sb
+      .from("engine_projects")
+      .select("id,name,approved_snapshot,approved_version,client_company,delivery")
+      .eq("id", data.projectId)
+      .single();
+    if (!proj) throw new Error("Project not found");
+    if (!proj.approved_snapshot || Object.keys(proj.approved_snapshot).length === 0) {
+      throw new Error("Cannot send: no approved roadmap version exists yet.");
+    }
+
+    const nowIso = new Date().toISOString();
+    // Persist checklist state onto the delivery JSONB so it survives refresh.
+    const nextDelivery = {
+      ...((proj.delivery as Record<string, unknown> | null) ?? {}),
+      approval_checklist: data.checklist,
+      sent_at: nowIso,
+      sent_by_email: email,
+    };
+    await sb
+      .from("engine_projects")
+      .update({ delivery: nextDelivery, status: "delivered" })
+      .eq("id", data.projectId);
+
+    // Transition any linked delivery item to "sent".
+    const { data: items } = await sb
+      .from("engine_delivery_items")
+      .select("id,status")
+      .eq("project_id", data.projectId);
+    for (const it of (items ?? []) as Array<{ id: string; status: string }>) {
+      await sb
+        .from("engine_delivery_items")
+        .update({ status: "sent", last_action: `Sent · ${new Date().toLocaleString()}`, approved_by: email })
+        .eq("id", it.id);
+      await sb.from("engine_delivery_history").insert({
+        delivery_id: it.id,
+        from_status: it.status,
+        to_status: "sent",
+        note: "Sent via project delivery prep",
+        actor: email,
+      });
+    }
+
+    await sb.from("engine_activity").insert({
+      project_id: data.projectId,
+      kind: "delivery_sent",
+      title: `Delivery sent to ${proj.client_company ?? "client"}`,
+      body: email ? `Sent by ${email}` : null,
+      severity: "success",
+    });
+    await sb.from("engine_audit_log").insert({
+      project_id: data.projectId,
+      actor_email: email,
+      action: "delivery_sent",
+      summary: `Sent approved roadmap ${proj.approved_version ?? ""} to client.`,
+      affected_modules: ["delivery"],
+      metadata: { checklist: data.checklist, approved_version: proj.approved_version },
+    });
+
+    return { ok: true as const };
+  });
+
+// Persist just the delivery checklist state without sending (for UI persistence).
+export const saveDeliveryChecklist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        projectId: z.string().uuid(),
+        checklist: z.record(z.string(), z.boolean()),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { data: proj } = await sb
+      .from("engine_projects")
+      .select("delivery")
+      .eq("id", data.projectId)
+      .single();
+    const nextDelivery = {
+      ...((proj?.delivery as Record<string, unknown> | null) ?? {}),
+      approval_checklist: data.checklist,
+    };
+    await sb
+      .from("engine_projects")
+      .update({ delivery: nextDelivery })
+      .eq("id", data.projectId);
     return { ok: true as const };
   });
 
