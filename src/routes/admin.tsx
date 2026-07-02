@@ -54,6 +54,12 @@ function AdminLayout() {
             <Settings className="w-4 h-4" /> Runtime config
           </Link>
           <Link
+            to="/admin/roles"
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/roles") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <ShieldCheck className="w-4 h-4" /> User roles
+          </Link>
+          <Link
             to="/ops/queue"
             className="flex items-center gap-2 px-3 py-2 text-sm rounded text-white/70 hover:bg-white/5"
           >
