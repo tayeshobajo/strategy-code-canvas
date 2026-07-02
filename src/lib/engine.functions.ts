@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
+import type { WorkspaceProject, WorkspaceStepKey } from "@/lib/engine-workspace";
 
 async function assertAdmin(context: {
   claims?: Record<string, unknown>;
