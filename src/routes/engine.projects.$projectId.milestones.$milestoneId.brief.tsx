@@ -653,7 +653,7 @@ function EditablePrompt({
         <button
           onClick={() => setEditing(true)}
           disabled={approved}
-          title={approved ? "This milestone is Approved — reset approval before editing." : "Edit prompt"}
+          title={approved ? (approvedReason ?? "This milestone is Approved — reset approval before editing.") : "Edit prompt"}
           className="inline-flex items-center gap-1 text-xs text-royal hover:underline disabled:opacity-40 disabled:no-underline"
         >
           <PencilLine className="w-3 h-3" /> Edit prompt
