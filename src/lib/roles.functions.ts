@@ -47,7 +47,7 @@ export const grantUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => MutateInput.parse(raw))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
     const { data: id, error } = await context.supabase.rpc("admin_grant_role", {
       _email: data.email,
       _role: data.role,
@@ -60,7 +60,7 @@ export const revokeUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => MutateInput.parse(raw))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
     const { data: affected, error } = await context.supabase.rpc("admin_revoke_role", {
       _email: data.email,
       _role: data.role,
