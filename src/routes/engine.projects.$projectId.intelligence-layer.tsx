@@ -614,13 +614,44 @@ function ConfidenceDial({ value }: { value: number }) {
  * Processing Timeline
  * ============================================================ */
 
-function ProcessingTimeline({ running }: { running: boolean }) {
+function ProcessingTimeline({
+  running,
+  sources,
+}: {
+  running: boolean;
+  sources: EngineSource[];
+}) {
+  // Aggregate per-stage status across all sources so Tai sees at a glance
+  // where the pipeline is spending time.
+  type Agg = { total: number; running: number; completed: number; failed: number; skipped: number };
+  const agg = new Map<string, Agg>();
+  for (const s of sources) {
+    for (const st of s.processing_stages ?? []) {
+      const cur = agg.get(st.key) ?? { total: 0, running: 0, completed: 0, failed: 0, skipped: 0 };
+      cur.total += 1;
+      if (st.status === "running") cur.running += 1;
+      else if (st.status === "completed") cur.completed += 1;
+      else if (st.status === "failed") cur.failed += 1;
+      else if (st.status === "skipped") cur.skipped += 1;
+      agg.set(st.key, cur);
+    }
+  }
+  const anyProcessing = sources.some((s) => s.status === "processing");
   return (
     <SectionCard
       title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-ink/60" />AI Processing Timeline</span>}
-      right={running ? <span className="text-royal">Running…</span> : <span>Idle</span>}
+      right={
+        running || anyProcessing ? (
+          <span className="text-royal inline-flex items-center gap-1">
+            <Loader2 className="w-3 h-3 animate-spin" /> Running
+          </span>
+        ) : (
+          <span>Idle</span>
+        )
+      }
     >
-      <ol className="space-y-2.5">
+      <div className="text-[11px] uppercase tracking-wider text-ink/50 mb-2">Pipeline stages</div>
+      <ol className="space-y-2 mb-4">
         {PIPELINE_STAGES.map((s, i) => (
           <li key={s.key} className="flex items-center gap-3 text-sm">
             <span
@@ -634,6 +665,32 @@ function ProcessingTimeline({ running }: { running: boolean }) {
           </li>
         ))}
       </ol>
+      {sources.length ? (
+        <>
+          <div className="text-[11px] uppercase tracking-wider text-ink/50 mb-2">
+            Per-source jobs
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {["queued", "fetch", "extract", "persist", "complete"].map((k) => {
+              const a = agg.get(k) ?? { total: 0, running: 0, completed: 0, failed: 0, skipped: 0 };
+              return (
+                <div key={k} className="rounded-md border border-border bg-white px-3 py-2">
+                  <div className="text-[11px] text-ink/60 capitalize">{k}</div>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap text-[11px]">
+                    {a.running ? <span className="text-royal">{a.running} running</span> : null}
+                    {a.completed ? (
+                      <span className="text-[#1f6b3b]">{a.completed} done</span>
+                    ) : null}
+                    {a.failed ? <span className="text-[#a4283c]">{a.failed} failed</span> : null}
+                    {a.skipped ? <span className="text-ink/40">{a.skipped} skipped</span> : null}
+                    {!a.total ? <span className="text-ink/40">—</span> : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
     </SectionCard>
   );
 }
