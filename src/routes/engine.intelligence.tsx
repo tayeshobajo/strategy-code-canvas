@@ -398,7 +398,7 @@ function mergeCluster(cluster: Item[]): Item {
   };
 }
 
-function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onClose: () => void; onApply: (next: Item[]) => void }) {
+function MergeDuplicatesDialog({ items, onClose, onApply, pending }: { items: Item[]; onClose: () => void; onApply: (diff: BulkDiff) => void; pending?: boolean }) {
   const clusters = useMemo(() => findDuplicateClusters(items), [items]);
   const [selected, setSelected] = useState<Set<string>>(new Set(clusters.map((c) => c.key)));
   const [compact, setCompact] = useState(false);
@@ -413,16 +413,25 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
   };
 
   const apply = () => {
-    const toRemove = new Set<string>();
-    const toAdd: Item[] = [];
+    const removeIds: string[] = [];
+    const inserts: NewMemoryInput[] = [];
     for (const c of clusters) {
       if (!selected.has(c.key)) continue;
-      c.items.forEach((it) => toRemove.add(it.id));
-      toAdd.push(mergeCluster(c.items));
+      c.items.forEach((it) => removeIds.push(it.id));
+      const merged = mergeCluster(c.items);
+      inserts.push({
+        title: merged.title,
+        summary: merged.summary,
+        type: merged.type,
+        source: merged.source === "—" ? null : merged.source,
+        confidence: merged.confidence,
+        tags: merged.tags,
+        used_in: merged.usedIn === "—" ? null : merged.usedIn,
+      });
     }
-    const next = items.filter((it) => !toRemove.has(it.id)).concat(toAdd);
-    onApply(next);
+    onApply({ removeIds, inserts });
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
