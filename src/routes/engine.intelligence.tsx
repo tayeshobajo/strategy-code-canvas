@@ -294,6 +294,16 @@ function mergeCluster(cluster: Item[]): Item {
 function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onClose: () => void; onApply: (next: Item[]) => void }) {
   const clusters = useMemo(() => findDuplicateClusters(items), [items]);
   const [selected, setSelected] = useState<Set<string>>(new Set(clusters.map((c) => c.key)));
+  const [compact, setCompact] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(clusters.map((c) => c.key)));
+
+  const toggleExpand = (key: string) => {
+    setExpanded((s) => {
+      const n = new Set(s);
+      if (n.has(key)) n.delete(key); else n.add(key);
+      return n;
+    });
+  };
 
   const apply = () => {
     const toRemove = new Set<string>();
@@ -315,7 +325,19 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
             <div className="font-display text-lg text-ink">Merge Duplicates</div>
             <div className="text-xs text-ink/60">Grouped by shared tags and title similarity. Review each merge before applying.</div>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 text-xs text-ink/70 cursor-pointer select-none">
+              <input type="checkbox" checked={compact} onChange={(e) => setCompact(e.target.checked)} />
+              Compact
+            </label>
+            <button
+              onClick={() => setExpanded(expanded.size === clusters.length ? new Set() : new Set(clusters.map((c) => c.key)))}
+              className="text-[11px] text-ink/60 hover:text-ink border border-border rounded px-2 py-1"
+            >
+              {expanded.size === clusters.length ? "Collapse all" : "Expand all"}
+            </button>
+            <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
+          </div>
         </header>
         <div className="p-4 overflow-y-auto flex-1 space-y-4">
           {clusters.length === 0 ? (
@@ -324,9 +346,10 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
             clusters.map((c) => {
               const merged = mergeCluster(c.items);
               const isSel = selected.has(c.key);
+              const isOpen = expanded.has(c.key);
               return (
                 <div key={c.key} className={cn("border rounded-lg overflow-hidden", isSel ? "border-royal" : "border-border")}>
-                  <label className="flex items-center gap-2 p-3 bg-paper-soft border-b border-border cursor-pointer">
+                  <div className="flex items-center gap-2 p-3 bg-paper-soft border-b border-border">
                     <input
                       type="checkbox"
                       checked={isSel}
@@ -336,17 +359,29 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
                         setSelected(next);
                       }}
                     />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-ink">{c.items.length} similar items in {c.items[0].project}</div>
-                      <div className="text-xs text-ink/60">Similarity ~{Math.round(c.similarity * 100)}%</div>
+                    <button
+                      onClick={() => toggleExpand(c.key)}
+                      className="flex-1 min-w-0 text-left"
+                      aria-expanded={isOpen}
+                    >
+                      <div className="text-sm font-medium text-ink flex items-center gap-1.5">
+                        <span className={cn("inline-block transition-transform", isOpen && "rotate-90")}>▸</span>
+                        {c.items.length} similar items in {c.items[0].project}
+                      </div>
+                      <div className="text-xs text-ink/60 pl-4">Similarity ~{Math.round(c.similarity * 100)}%</div>
+                    </button>
+                  </div>
+                  <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                    <div className="overflow-hidden">
+                      <DiffPanel before={c.items} after={merged} compact={compact} />
                     </div>
-                  </label>
-                  <DiffPanel before={c.items} after={merged} />
+                  </div>
                 </div>
               );
             })
           )}
         </div>
+
         <footer className="flex items-center justify-between p-4 border-t border-border">
           <div className="text-xs text-ink/60">{selected.size} of {clusters.length} clusters selected</div>
           <div className="flex gap-2">
