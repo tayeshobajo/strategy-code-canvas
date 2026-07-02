@@ -13,6 +13,7 @@ import { SectionCard, MetricCard, formatCents } from "@/components/engine/primit
 import { AIDraftBadge } from "@/components/engine/AIDraftBadge";
 import {
   getMilestoneBrief, updateMilestone, approveMilestone, sendMilestoneToTasks,
+  regenerateMilestoneSection,
 } from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/milestones/$milestoneId/brief")({
@@ -32,7 +33,9 @@ function MilestoneBriefPage() {
   const updateFn = useServerFn(updateMilestone);
   const approveFn = useServerFn(approveMilestone);
   const sendFn = useServerFn(sendMilestoneToTasks);
+  const regenFn = useServerFn(regenerateMilestoneSection);
   const [tab, setTab] = useState<Tab>("Overview");
+  const [regenerating, setRegenerating] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ["engine", "milestone", milestoneId, projectId],
@@ -59,6 +62,20 @@ function MilestoneBriefPage() {
     onSuccess: (r: any) => { toast.success(`Sent ${r.count ?? 0} tasks`); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const regenerate = async (section: string) => {
+    if (!m) return;
+    setRegenerating(section);
+    try {
+      await regenFn({ data: { id: m.id, section: section as any } });
+      toast.success(`Regenerated ${section.replace(/_/g, " ")}`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Regenerate failed");
+    } finally {
+      setRegenerating(null);
+    }
+  };
 
   if (q.isLoading || !m) return <div className="text-sm text-ink/60">Loading milestone…</div>;
 
@@ -91,7 +108,10 @@ function MilestoneBriefPage() {
             </span>
             <AIDraftBadge kind={m.created_by_kind ?? (isAI ? "ai" : "human")} />
             {approved && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#a7d3b7] bg-[#e6f4ec] text-[#1f6b3b] px-2 py-0.5 text-[11px] font-medium">
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-[#a7d3b7] bg-[#e6f4ec] text-[#1f6b3b] px-2 py-0.5 text-[11px] font-medium"
+                title="This milestone is Approved. All key fields are locked. Reset approval to edit."
+              >
                 <ShieldCheck className="w-3 h-3" /> Protected
               </span>
             )}
@@ -99,11 +119,22 @@ function MilestoneBriefPage() {
           <div className="text-sm text-ink/60 mt-1">{m.phase}</div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50">
+          <button
+            onClick={() => sendTasks.mutate()}
+            disabled={sendTasks.isPending || !approved}
+            title={!approved ? "Approve the brief before sending to agent" : "Send acceptance criteria to the agent as tasks"}
+            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-50"
+          >
             <Send className="w-3.5 h-3.5" /> Send to Agent
           </button>
-          <button className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50">
-            <RotateCcw className="w-3.5 h-3.5" /> Regenerate Brief
+          <button
+            onClick={() => regenerate("brief_md")}
+            disabled={approved || !!regenerating}
+            title={approved ? "Reset approval before regenerating" : "Ask AI to redraft the brief"}
+            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-50"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${regenerating === "brief_md" ? "animate-spin" : ""}`} />
+            {regenerating === "brief_md" ? "Regenerating…" : "Regenerate Brief"}
           </button>
           <button
             onClick={() => approve.mutate()}
@@ -144,7 +175,7 @@ function MilestoneBriefPage() {
           {showTab("Brief") && (
             <SectionCard
               title={<span className="flex items-center gap-2"><FileText className="w-4 h-4" />Generated Brief</span>}
-              right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" />}
+              right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("brief_md")} regenerating={regenerating === "brief_md"} />}
             >
               <EditableMarkdown
                 value={m.brief_md ?? ""}
@@ -157,7 +188,7 @@ function MilestoneBriefPage() {
           {showTab("Acceptance Criteria") && (
             <SectionCard
               title={<span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />Acceptance Criteria</span>}
-              right={<span className="flex items-center gap-2 text-xs text-ink/60">{done}/{criteria.length} <AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" /></span>}
+              right={<span className="flex items-center gap-2 text-xs text-ink/60">{done}/{criteria.length} <AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("acceptance_criteria")} regenerating={regenerating === "acceptance_criteria"} /></span>}
             >
               <CriteriaEditor
                 criteria={criteria}
@@ -171,10 +202,13 @@ function MilestoneBriefPage() {
             <SectionCard
               title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4" />Developer / Lovable Prompt</span>}
               right={
-                <button
-                  onClick={() => { navigator.clipboard.writeText(m.developer_prompt ?? ""); toast.success("Copied"); }}
-                  className="inline-flex items-center gap-1.5 text-xs text-royal hover:underline"
-                ><Copy className="w-3 h-3" /> Copy</button>
+                <div className="flex items-center gap-2">
+                  <AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("developer_prompt")} regenerating={regenerating === "developer_prompt"} />
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(m.developer_prompt ?? ""); toast.success("Copied"); }}
+                    className="inline-flex items-center gap-1.5 text-xs text-royal hover:underline"
+                  ><Copy className="w-3 h-3" /> Copy</button>
+                </div>
               }
             >
               <EditablePrompt
@@ -187,10 +221,10 @@ function MilestoneBriefPage() {
 
           {tab === "Overview" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <SectionCard title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4" />QA Checklist</span>} right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" />}>
+              <SectionCard title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4" />QA Checklist</span>} right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("qa_checklist")} regenerating={regenerating === "qa_checklist"} />}>
                 <QAList items={m.qa_checklist ?? []} />
               </SectionCard>
-              <SectionCard title="Client-Safe Explanation" right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" />}>
+              <SectionCard title="Client-Safe Explanation" right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("client_safe_md")} regenerating={regenerating === "client_safe_md"} />}>
                 <EditableMarkdown
                   value={m.client_safe_md ?? ""}
                   approved={approved}
@@ -375,8 +409,28 @@ function EditableMarkdown({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [lastSaved, setLastSaved] = useState(value);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setDraft(value); }, [value]);
+  const [autoStatus, setAutoStatus] = useState<"idle" | "dirty" | "saving" | "saved" | "error">("idle");
+  useEffect(() => { setDraft(value); setLastSaved(value); }, [value]);
+
+  // Debounced autosave — 1.2s after last keystroke while editing
+  useEffect(() => {
+    if (!editing || approved) return;
+    if (draft === lastSaved) { setAutoStatus("idle"); return; }
+    setAutoStatus("dirty");
+    const t = setTimeout(async () => {
+      try {
+        setAutoStatus("saving");
+        await onSave(draft);
+        setLastSaved(draft);
+        setAutoStatus("saved");
+      } catch {
+        setAutoStatus("error");
+      }
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [draft, editing, approved, lastSaved, onSave]);
 
   if (!editing) {
     return (
@@ -385,7 +439,7 @@ function EditableMarkdown({
         <button
           onClick={() => setEditing(true)}
           disabled={approved}
-          title={approved ? "Reset approval before editing" : "Edit"}
+          title={approved ? "This milestone is Approved — reset approval before editing." : "Edit"}
           className="inline-flex items-center gap-1 text-xs text-royal hover:underline disabled:opacity-40 disabled:no-underline"
         >
           <PencilLine className="w-3 h-3" /> Edit
@@ -401,21 +455,38 @@ function EditableMarkdown({
         rows={compact ? 6 : 12}
         className="w-full text-sm border border-border rounded p-3 bg-white"
       />
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           disabled={saving}
           onClick={async () => {
             setSaving(true);
-            try { await onSave(draft); setEditing(false); }
+            try { await onSave(draft); setLastSaved(draft); setAutoStatus("saved"); setEditing(false); }
             finally { setSaving(false); }
           }}
           className="text-xs bg-royal text-white rounded-md px-3 py-1.5 hover:bg-royal/90 disabled:opacity-60 inline-flex items-center gap-1"
         >
-          <Save className="w-3 h-3" /> Save
+          <Save className="w-3 h-3" /> Save & Close
+        </button>
+        <button
+          onClick={async () => {
+            setDraft(lastSaved);
+            if (lastSaved !== value) { try { await onSave(lastSaved); } catch { /* noop */ } }
+            setAutoStatus("idle");
+          }}
+          title="Discard changes made since the last successful autosave"
+          className="text-xs text-ink/70 hover:text-ink inline-flex items-center gap-1 border border-border rounded-md px-2 py-1.5"
+        >
+          <RotateCcw className="w-3 h-3" /> Rollback to last saved
         </button>
         <button onClick={() => { setDraft(value); setEditing(false); }} className="text-xs text-ink/60 hover:text-ink inline-flex items-center gap-1">
-          <X className="w-3 h-3" /> Cancel
+          <X className="w-3 h-3" /> Close
         </button>
+        <span className="ml-auto text-[11px] text-ink/50">
+          {autoStatus === "saving" && "Autosaving…"}
+          {autoStatus === "saved" && "Autosaved ✓"}
+          {autoStatus === "dirty" && "Unsaved changes…"}
+          {autoStatus === "error" && <span className="text-[#a4283c]">Autosave failed — use Save</span>}
+        </span>
       </div>
     </div>
   );
@@ -430,8 +501,25 @@ function EditablePrompt({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [lastSaved, setLastSaved] = useState(value);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setDraft(value); }, [value]);
+  const [autoStatus, setAutoStatus] = useState<"idle" | "dirty" | "saving" | "saved" | "error">("idle");
+  useEffect(() => { setDraft(value); setLastSaved(value); }, [value]);
+
+  useEffect(() => {
+    if (!editing || approved) return;
+    if (draft === lastSaved) { setAutoStatus("idle"); return; }
+    setAutoStatus("dirty");
+    const t = setTimeout(async () => {
+      try {
+        setAutoStatus("saving");
+        await onSave(draft);
+        setLastSaved(draft);
+        setAutoStatus("saved");
+      } catch { setAutoStatus("error"); }
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [draft, editing, approved, lastSaved, onSave]);
 
   if (!editing) {
     return (
@@ -442,7 +530,7 @@ function EditablePrompt({
         <button
           onClick={() => setEditing(true)}
           disabled={approved}
-          title={approved ? "Reset approval before editing" : "Edit prompt"}
+          title={approved ? "This milestone is Approved — reset approval before editing." : "Edit prompt"}
           className="inline-flex items-center gap-1 text-xs text-royal hover:underline disabled:opacity-40 disabled:no-underline"
         >
           <PencilLine className="w-3 h-3" /> Edit prompt
@@ -458,13 +546,28 @@ function EditablePrompt({
         rows={14}
         className="w-full text-xs font-mono bg-[#0f172a] text-slate-100 border border-slate-700 rounded p-3"
       />
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           disabled={saving}
-          onClick={async () => { setSaving(true); try { await onSave(draft); setEditing(false); } finally { setSaving(false); } }}
+          onClick={async () => { setSaving(true); try { await onSave(draft); setLastSaved(draft); setAutoStatus("saved"); setEditing(false); } finally { setSaving(false); } }}
           className="text-xs bg-royal text-white rounded-md px-3 py-1.5 hover:bg-royal/90 disabled:opacity-60"
-        ><Save className="w-3 h-3 inline mr-1" /> Save</button>
-        <button onClick={() => { setDraft(value); setEditing(false); }} className="text-xs text-ink/60 hover:text-ink">Cancel</button>
+        ><Save className="w-3 h-3 inline mr-1" /> Save & Close</button>
+        <button
+          onClick={async () => {
+            setDraft(lastSaved);
+            if (lastSaved !== value) { try { await onSave(lastSaved); } catch { /* noop */ } }
+            setAutoStatus("idle");
+          }}
+          title="Discard changes made since the last successful autosave"
+          className="text-xs text-ink/70 hover:text-ink inline-flex items-center gap-1 border border-border rounded-md px-2 py-1.5"
+        ><RotateCcw className="w-3 h-3" /> Rollback</button>
+        <button onClick={() => { setDraft(value); setEditing(false); }} className="text-xs text-ink/60 hover:text-ink">Close</button>
+        <span className="ml-auto text-[11px] text-ink/50">
+          {autoStatus === "saving" && "Autosaving…"}
+          {autoStatus === "saved" && "Autosaved ✓"}
+          {autoStatus === "dirty" && "Unsaved…"}
+          {autoStatus === "error" && <span className="text-[#a4283c]">Autosave failed — use Save</span>}
+        </span>
       </div>
     </div>
   );

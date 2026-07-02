@@ -9,6 +9,8 @@ import {
   listIntelligenceMemory,
   bulkReplaceIntelligenceMemory,
   upsertIntelligenceMemory,
+  listIntelligenceDecisions,
+  recordIntelligenceDecision,
   type MemoryRow,
 } from "@/lib/engine-intelligence.functions";
 import { toast } from "sonner";
@@ -98,10 +100,18 @@ function IntelligenceMemoryPage() {
   const listFn = useServerFn(listIntelligenceMemory);
   const bulkFn = useServerFn(bulkReplaceIntelligenceMemory);
   const upsertFn = useServerFn(upsertIntelligenceMemory);
+  const listDecisionsFn = useServerFn(listIntelligenceDecisions);
+  const recordDecisionFn = useServerFn(recordIntelligenceDecision);
 
   const memoryQuery = useQuery({
     queryKey: ["intelligence-memory"],
     queryFn: () => listFn(),
+    staleTime: 15_000,
+  });
+
+  const decisionsQuery = useQuery({
+    queryKey: ["intelligence-decisions"],
+    queryFn: () => listDecisionsFn({ data: { limit: 100 } }),
     staleTime: 15_000,
   });
 
@@ -110,8 +120,30 @@ function IntelligenceMemoryPage() {
     [memoryQuery.data],
   );
 
+  const persistDecisions = async (action: "merge" | "clean", diff: BulkDiff) => {
+    for (const id of diff.removeIds) {
+      const it = items.find((i) => i.id === id);
+      try {
+        await recordDecisionFn({
+          data: {
+            memory_id: id,
+            action,
+            before_state: it ? { title: it.title, summary: it.summary, type: it.type, confidence: it.confidence, tags: it.tags } : {},
+            after_state: action === "merge" ? { merged: true } : { archived: true },
+            notes: null,
+          },
+        });
+      } catch { /* audit best-effort */ }
+    }
+    queryClient.invalidateQueries({ queryKey: ["intelligence-decisions"] });
+  };
+
   const bulkMut = useMutation({
-    mutationFn: (diff: BulkDiff) => bulkFn({ data: diff }),
+    mutationFn: async (payload: { action: "merge" | "clean"; diff: BulkDiff }) => {
+      const r = await bulkFn({ data: payload.diff });
+      await persistDecisions(payload.action, payload.diff);
+      return r;
+    },
     onSuccess: (r) => {
       toast.success(`Memory updated · removed ${r.removed}, added ${r.inserted}`);
       queryClient.invalidateQueries({ queryKey: ["intelligence-memory"] });
@@ -252,7 +284,7 @@ function IntelligenceMemoryPage() {
                       <td className="px-3 py-3 text-xs text-ink/70">{it.usedIn}</td>
                       <td className="px-5 py-3 text-right">
                         <button
-                          onClick={() => bulkMut.mutate({ removeIds: [it.id], inserts: [] })}
+                          onClick={() => bulkMut.mutate({ action: 'clean', diff: { removeIds: [it.id], inserts: [] } })}
                           className="p-1 rounded hover:bg-paper-soft text-ink/60"
                           title="Archive item"
                         >
@@ -293,6 +325,26 @@ function IntelligenceMemoryPage() {
             </ul>
           </SectionCard>
 
+          <SectionCard title="Recent Decisions">
+            {decisionsQuery.isLoading ? (
+              <div className="text-xs text-ink/50">Loading…</div>
+            ) : (decisionsQuery.data ?? []).length === 0 ? (
+              <div className="text-xs text-ink/50">No decisions recorded yet.</div>
+            ) : (
+              <ul className="space-y-2 text-xs">
+                {(decisionsQuery.data ?? []).slice(0, 8).map((d) => (
+                  <li key={d.id} className="flex items-start justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0">
+                    <div className="min-w-0">
+                      <div className="text-ink font-medium capitalize">{d.action}</div>
+                      <div className="text-ink/60 truncate">{d.actor_email}</div>
+                    </div>
+                    <div className="text-[10px] text-ink/50 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+
           <SectionCard title="Quick Actions">
             <div className="grid grid-cols-2 gap-2">
               <QuickBtn icon={<Upload className="w-3.5 h-3.5" />} label="Import Source" />
@@ -310,7 +362,7 @@ function IntelligenceMemoryPage() {
           items={items}
           pending={bulkMut.isPending}
           onClose={() => setMergeOpen(false)}
-          onApply={(diff) => bulkMut.mutate(diff)}
+          onApply={(diff) => bulkMut.mutate({ action: 'merge', diff })}
         />
       ) : null}
       {cleanOpen ? (
@@ -318,7 +370,7 @@ function IntelligenceMemoryPage() {
           items={items}
           pending={bulkMut.isPending}
           onClose={() => setCleanOpen(false)}
-          onApply={(diff) => bulkMut.mutate(diff)}
+          onApply={(diff) => bulkMut.mutate({ action: 'clean', diff })}
         />
       ) : null}
       {newOpen ? (
