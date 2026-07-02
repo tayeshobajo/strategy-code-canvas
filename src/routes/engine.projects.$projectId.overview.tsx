@@ -121,11 +121,11 @@ function ProjectOverview() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 space-y-6">
           <SectionCard title="Signals">
-            {data.signals.length === 0 ? (
+            {d.signals.length === 0 ? (
               <EmptyState title="No signals yet" />
             ) : (
               <ul className="space-y-3">
-                {data.signals.map((s) => (
+                {d.signals.map((s) => (
                   <li key={s.id} className="border-l-2 border-royal/60 pl-3">
                     <div className="text-sm text-ink">{s.summary}</div>
                     <div className="text-[11px] text-ink/50 mt-1 font-mono uppercase tracking-wider">
@@ -138,11 +138,11 @@ function ProjectOverview() {
           </SectionCard>
 
           <SectionCard title="Recent activity">
-            {data.activity.length === 0 ? (
+            {d.activity.length === 0 ? (
               <EmptyState title="No activity yet" />
             ) : (
               <ul className="space-y-3">
-                {data.activity.map((a) => (
+                {d.activity.map((a) => (
                   <li key={a.id}>
                     <div className="text-sm font-medium text-ink">{a.title}</div>
                     {a.body ? <div className="text-xs text-ink/60 mt-0.5">{a.body}</div> : null}
@@ -158,11 +158,11 @@ function ProjectOverview() {
 
         <div className="space-y-6">
           <SectionCard title="Critical dates">
-            {data.dates.length === 0 ? (
+            {d.dates.length === 0 ? (
               <EmptyState title="No dates set" />
             ) : (
               <ul className="space-y-3 text-sm">
-                {data.dates.map((d) => (
+                {d.dates.map((dd) => (
                   <li key={d.id} className="flex items-baseline justify-between gap-3">
                     <span className="text-ink">{d.label}</span>
                     <span className="text-ink/60 text-xs whitespace-nowrap">{formatDate(d.due_on)}</span>
