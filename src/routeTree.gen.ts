@@ -61,7 +61,21 @@ import { Route as EngineProjectsProjectIdRouteImport } from './routes/engine.pro
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as EngineProjectsProjectIdSignalRoomRouteImport } from './routes/engine.projects.$projectId.signal-room'
+import { Route as EngineProjectsProjectIdSequencingRouteImport } from './routes/engine.projects.$projectId.sequencing'
+import { Route as EngineProjectsProjectIdPreviewRouteImport } from './routes/engine.projects.$projectId.preview'
+import { Route as EngineProjectsProjectIdPointBRouteImport } from './routes/engine.projects.$projectId.point-b'
+import { Route as EngineProjectsProjectIdPointARouteImport } from './routes/engine.projects.$projectId.point-a'
 import { Route as EngineProjectsProjectIdOverviewRouteImport } from './routes/engine.projects.$projectId.overview'
+import { Route as EngineProjectsProjectIdInvestmentRouteImport } from './routes/engine.projects.$projectId.investment'
+import { Route as EngineProjectsProjectIdIntelligenceRouteImport } from './routes/engine.projects.$projectId.intelligence'
+import { Route as EngineProjectsProjectIdHiddenAssetsRouteImport } from './routes/engine.projects.$projectId.hidden-assets'
+import { Route as EngineProjectsProjectIdGapMapRouteImport } from './routes/engine.projects.$projectId.gap-map'
+import { Route as EngineProjectsProjectIdExtractionRouteImport } from './routes/engine.projects.$projectId.extraction'
+import { Route as EngineProjectsProjectIdDeliveryRouteImport } from './routes/engine.projects.$projectId.delivery'
+import { Route as EngineProjectsProjectIdDeadlinesRouteImport } from './routes/engine.projects.$projectId.deadlines'
+import { Route as EngineProjectsProjectIdBuilderRouteImport } from './routes/engine.projects.$projectId.builder'
+import { Route as EngineProjectsProjectIdBlueprintRouteImport } from './routes/engine.projects.$projectId.blueprint'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
 
@@ -325,10 +339,94 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngineProjectsProjectIdSignalRoomRoute =
+  EngineProjectsProjectIdSignalRoomRouteImport.update({
+    id: '/signal-room',
+    path: '/signal-room',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdSequencingRoute =
+  EngineProjectsProjectIdSequencingRouteImport.update({
+    id: '/sequencing',
+    path: '/sequencing',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdPreviewRoute =
+  EngineProjectsProjectIdPreviewRouteImport.update({
+    id: '/preview',
+    path: '/preview',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdPointBRoute =
+  EngineProjectsProjectIdPointBRouteImport.update({
+    id: '/point-b',
+    path: '/point-b',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdPointARoute =
+  EngineProjectsProjectIdPointARouteImport.update({
+    id: '/point-a',
+    path: '/point-a',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdOverviewRoute =
   EngineProjectsProjectIdOverviewRouteImport.update({
     id: '/overview',
     path: '/overview',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdInvestmentRoute =
+  EngineProjectsProjectIdInvestmentRouteImport.update({
+    id: '/investment',
+    path: '/investment',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdIntelligenceRoute =
+  EngineProjectsProjectIdIntelligenceRouteImport.update({
+    id: '/intelligence',
+    path: '/intelligence',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdHiddenAssetsRoute =
+  EngineProjectsProjectIdHiddenAssetsRouteImport.update({
+    id: '/hidden-assets',
+    path: '/hidden-assets',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdGapMapRoute =
+  EngineProjectsProjectIdGapMapRouteImport.update({
+    id: '/gap-map',
+    path: '/gap-map',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdExtractionRoute =
+  EngineProjectsProjectIdExtractionRouteImport.update({
+    id: '/extraction',
+    path: '/extraction',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdDeliveryRoute =
+  EngineProjectsProjectIdDeliveryRouteImport.update({
+    id: '/delivery',
+    path: '/delivery',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdDeadlinesRoute =
+  EngineProjectsProjectIdDeadlinesRouteImport.update({
+    id: '/deadlines',
+    path: '/deadlines',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdBuilderRoute =
+  EngineProjectsProjectIdBuilderRouteImport.update({
+    id: '/builder',
+    path: '/builder',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdBlueprintRoute =
+  EngineProjectsProjectIdBlueprintRouteImport.update({
+    id: '/blueprint',
+    path: '/blueprint',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
 const ApiPublicPaymentsWebhookRoute =
@@ -394,7 +492,21 @@ export interface FileRoutesByFullPath {
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
+  '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
+  '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
+  '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
+  '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
+  '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
+  '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
+  '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
+  '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
+  '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
+  '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
+  '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
+  '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -446,7 +558,21 @@ export interface FileRoutesByTo {
   '/engine/projects': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
+  '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
+  '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
+  '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
+  '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
+  '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
+  '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
+  '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
+  '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
+  '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
+  '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
+  '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
+  '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -504,7 +630,21 @@ export interface FileRoutesById {
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
+  '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
+  '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
+  '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
+  '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
+  '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
+  '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
+  '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
+  '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
+  '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
+  '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
+  '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
+  '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -561,7 +701,21 @@ export interface FileRouteTypes {
     | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
+    | '/engine/projects/$projectId/blueprint'
+    | '/engine/projects/$projectId/builder'
+    | '/engine/projects/$projectId/deadlines'
+    | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/extraction'
+    | '/engine/projects/$projectId/gap-map'
+    | '/engine/projects/$projectId/hidden-assets'
+    | '/engine/projects/$projectId/intelligence'
+    | '/engine/projects/$projectId/investment'
     | '/engine/projects/$projectId/overview'
+    | '/engine/projects/$projectId/point-a'
+    | '/engine/projects/$projectId/point-b'
+    | '/engine/projects/$projectId/preview'
+    | '/engine/projects/$projectId/sequencing'
+    | '/engine/projects/$projectId/signal-room'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -613,7 +767,21 @@ export interface FileRouteTypes {
     | '/engine/projects'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
+    | '/engine/projects/$projectId/blueprint'
+    | '/engine/projects/$projectId/builder'
+    | '/engine/projects/$projectId/deadlines'
+    | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/extraction'
+    | '/engine/projects/$projectId/gap-map'
+    | '/engine/projects/$projectId/hidden-assets'
+    | '/engine/projects/$projectId/intelligence'
+    | '/engine/projects/$projectId/investment'
     | '/engine/projects/$projectId/overview'
+    | '/engine/projects/$projectId/point-a'
+    | '/engine/projects/$projectId/point-b'
+    | '/engine/projects/$projectId/preview'
+    | '/engine/projects/$projectId/sequencing'
+    | '/engine/projects/$projectId/signal-room'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -670,7 +838,21 @@ export interface FileRouteTypes {
     | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
+    | '/engine/projects/$projectId/blueprint'
+    | '/engine/projects/$projectId/builder'
+    | '/engine/projects/$projectId/deadlines'
+    | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/extraction'
+    | '/engine/projects/$projectId/gap-map'
+    | '/engine/projects/$projectId/hidden-assets'
+    | '/engine/projects/$projectId/intelligence'
+    | '/engine/projects/$projectId/investment'
     | '/engine/projects/$projectId/overview'
+    | '/engine/projects/$projectId/point-a'
+    | '/engine/projects/$projectId/point-b'
+    | '/engine/projects/$projectId/preview'
+    | '/engine/projects/$projectId/sequencing'
+    | '/engine/projects/$projectId/signal-room'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1068,11 +1250,109 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engine/projects/$projectId/signal-room': {
+      id: '/engine/projects/$projectId/signal-room'
+      path: '/signal-room'
+      fullPath: '/engine/projects/$projectId/signal-room'
+      preLoaderRoute: typeof EngineProjectsProjectIdSignalRoomRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/sequencing': {
+      id: '/engine/projects/$projectId/sequencing'
+      path: '/sequencing'
+      fullPath: '/engine/projects/$projectId/sequencing'
+      preLoaderRoute: typeof EngineProjectsProjectIdSequencingRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/preview': {
+      id: '/engine/projects/$projectId/preview'
+      path: '/preview'
+      fullPath: '/engine/projects/$projectId/preview'
+      preLoaderRoute: typeof EngineProjectsProjectIdPreviewRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/point-b': {
+      id: '/engine/projects/$projectId/point-b'
+      path: '/point-b'
+      fullPath: '/engine/projects/$projectId/point-b'
+      preLoaderRoute: typeof EngineProjectsProjectIdPointBRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/point-a': {
+      id: '/engine/projects/$projectId/point-a'
+      path: '/point-a'
+      fullPath: '/engine/projects/$projectId/point-a'
+      preLoaderRoute: typeof EngineProjectsProjectIdPointARouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/overview': {
       id: '/engine/projects/$projectId/overview'
       path: '/overview'
       fullPath: '/engine/projects/$projectId/overview'
       preLoaderRoute: typeof EngineProjectsProjectIdOverviewRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/investment': {
+      id: '/engine/projects/$projectId/investment'
+      path: '/investment'
+      fullPath: '/engine/projects/$projectId/investment'
+      preLoaderRoute: typeof EngineProjectsProjectIdInvestmentRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/intelligence': {
+      id: '/engine/projects/$projectId/intelligence'
+      path: '/intelligence'
+      fullPath: '/engine/projects/$projectId/intelligence'
+      preLoaderRoute: typeof EngineProjectsProjectIdIntelligenceRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/hidden-assets': {
+      id: '/engine/projects/$projectId/hidden-assets'
+      path: '/hidden-assets'
+      fullPath: '/engine/projects/$projectId/hidden-assets'
+      preLoaderRoute: typeof EngineProjectsProjectIdHiddenAssetsRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/gap-map': {
+      id: '/engine/projects/$projectId/gap-map'
+      path: '/gap-map'
+      fullPath: '/engine/projects/$projectId/gap-map'
+      preLoaderRoute: typeof EngineProjectsProjectIdGapMapRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/extraction': {
+      id: '/engine/projects/$projectId/extraction'
+      path: '/extraction'
+      fullPath: '/engine/projects/$projectId/extraction'
+      preLoaderRoute: typeof EngineProjectsProjectIdExtractionRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/delivery': {
+      id: '/engine/projects/$projectId/delivery'
+      path: '/delivery'
+      fullPath: '/engine/projects/$projectId/delivery'
+      preLoaderRoute: typeof EngineProjectsProjectIdDeliveryRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/deadlines': {
+      id: '/engine/projects/$projectId/deadlines'
+      path: '/deadlines'
+      fullPath: '/engine/projects/$projectId/deadlines'
+      preLoaderRoute: typeof EngineProjectsProjectIdDeadlinesRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/builder': {
+      id: '/engine/projects/$projectId/builder'
+      path: '/builder'
+      fullPath: '/engine/projects/$projectId/builder'
+      preLoaderRoute: typeof EngineProjectsProjectIdBuilderRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/blueprint': {
+      id: '/engine/projects/$projectId/blueprint'
+      path: '/blueprint'
+      fullPath: '/engine/projects/$projectId/blueprint'
+      preLoaderRoute: typeof EngineProjectsProjectIdBlueprintRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
     '/api/public/payments/webhook': {
@@ -1142,12 +1422,48 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface EngineProjectsProjectIdRouteChildren {
+  EngineProjectsProjectIdBlueprintRoute: typeof EngineProjectsProjectIdBlueprintRoute
+  EngineProjectsProjectIdBuilderRoute: typeof EngineProjectsProjectIdBuilderRoute
+  EngineProjectsProjectIdDeadlinesRoute: typeof EngineProjectsProjectIdDeadlinesRoute
+  EngineProjectsProjectIdDeliveryRoute: typeof EngineProjectsProjectIdDeliveryRoute
+  EngineProjectsProjectIdExtractionRoute: typeof EngineProjectsProjectIdExtractionRoute
+  EngineProjectsProjectIdGapMapRoute: typeof EngineProjectsProjectIdGapMapRoute
+  EngineProjectsProjectIdHiddenAssetsRoute: typeof EngineProjectsProjectIdHiddenAssetsRoute
+  EngineProjectsProjectIdIntelligenceRoute: typeof EngineProjectsProjectIdIntelligenceRoute
+  EngineProjectsProjectIdInvestmentRoute: typeof EngineProjectsProjectIdInvestmentRoute
   EngineProjectsProjectIdOverviewRoute: typeof EngineProjectsProjectIdOverviewRoute
+  EngineProjectsProjectIdPointARoute: typeof EngineProjectsProjectIdPointARoute
+  EngineProjectsProjectIdPointBRoute: typeof EngineProjectsProjectIdPointBRoute
+  EngineProjectsProjectIdPreviewRoute: typeof EngineProjectsProjectIdPreviewRoute
+  EngineProjectsProjectIdSequencingRoute: typeof EngineProjectsProjectIdSequencingRoute
+  EngineProjectsProjectIdSignalRoomRoute: typeof EngineProjectsProjectIdSignalRoomRoute
 }
 
 const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren =
   {
+    EngineProjectsProjectIdBlueprintRoute:
+      EngineProjectsProjectIdBlueprintRoute,
+    EngineProjectsProjectIdBuilderRoute: EngineProjectsProjectIdBuilderRoute,
+    EngineProjectsProjectIdDeadlinesRoute:
+      EngineProjectsProjectIdDeadlinesRoute,
+    EngineProjectsProjectIdDeliveryRoute: EngineProjectsProjectIdDeliveryRoute,
+    EngineProjectsProjectIdExtractionRoute:
+      EngineProjectsProjectIdExtractionRoute,
+    EngineProjectsProjectIdGapMapRoute: EngineProjectsProjectIdGapMapRoute,
+    EngineProjectsProjectIdHiddenAssetsRoute:
+      EngineProjectsProjectIdHiddenAssetsRoute,
+    EngineProjectsProjectIdIntelligenceRoute:
+      EngineProjectsProjectIdIntelligenceRoute,
+    EngineProjectsProjectIdInvestmentRoute:
+      EngineProjectsProjectIdInvestmentRoute,
     EngineProjectsProjectIdOverviewRoute: EngineProjectsProjectIdOverviewRoute,
+    EngineProjectsProjectIdPointARoute: EngineProjectsProjectIdPointARoute,
+    EngineProjectsProjectIdPointBRoute: EngineProjectsProjectIdPointBRoute,
+    EngineProjectsProjectIdPreviewRoute: EngineProjectsProjectIdPreviewRoute,
+    EngineProjectsProjectIdSequencingRoute:
+      EngineProjectsProjectIdSequencingRoute,
+    EngineProjectsProjectIdSignalRoomRoute:
+      EngineProjectsProjectIdSignalRoomRoute,
   }
 
 const EngineProjectsProjectIdRouteWithChildren =
