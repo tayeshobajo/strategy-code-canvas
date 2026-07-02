@@ -725,6 +725,218 @@ export type Database = {
         }
         Relationships: []
       }
+      engine_activity: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          project_id: string | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          project_id?: string | null
+          severity?: string
+          title: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          project_id?: string | null
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_clients: {
+        Row: {
+          company: string
+          contact_email: string | null
+          created_at: string
+          id: string
+          industry: string | null
+          notes: string | null
+          owner_email: string | null
+          primary_contact: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company: string
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          industry?: string | null
+          notes?: string | null
+          owner_email?: string | null
+          primary_contact?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company?: string
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          industry?: string | null
+          notes?: string | null
+          owner_email?: string | null
+          primary_contact?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      engine_project_dates: {
+        Row: {
+          created_at: string
+          due_on: string
+          id: string
+          kind: string
+          label: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_on: string
+          id?: string
+          kind?: string
+          label: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          due_on?: string
+          id?: string
+          kind?: string
+          label?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_dates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_projects: {
+        Row: {
+          agent_budget_monthly_cents: number
+          agent_spend_month_cents: number
+          agent_status: string
+          approved_version: string | null
+          client_id: string
+          created_at: string
+          current_step: string
+          id: string
+          last_activity_at: string
+          name: string
+          next_action: string | null
+          open_decisions: number
+          roadmap_version: string | null
+          status: Database["public"]["Enums"]["engine_project_status"]
+          updated_at: string
+        }
+        Insert: {
+          agent_budget_monthly_cents?: number
+          agent_spend_month_cents?: number
+          agent_status?: string
+          approved_version?: string | null
+          client_id: string
+          created_at?: string
+          current_step?: string
+          id?: string
+          last_activity_at?: string
+          name: string
+          next_action?: string | null
+          open_decisions?: number
+          roadmap_version?: string | null
+          status?: Database["public"]["Enums"]["engine_project_status"]
+          updated_at?: string
+        }
+        Update: {
+          agent_budget_monthly_cents?: number
+          agent_spend_month_cents?: number
+          agent_status?: string
+          approved_version?: string | null
+          client_id?: string
+          created_at?: string
+          current_step?: string
+          id?: string
+          last_activity_at?: string
+          name?: string
+          next_action?: string | null
+          open_decisions?: number
+          roadmap_version?: string | null
+          status?: Database["public"]["Enums"]["engine_project_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "engine_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_signals: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string | null
+          received_at: string
+          source: string | null
+          summary: string
+          triaged: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          received_at?: string
+          source?: string | null
+          summary: string
+          triaged?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          received_at?: string
+          source?: string | null
+          summary?: string
+          triaged?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intake_drafts: {
         Row: {
           answers: Json
@@ -1147,6 +1359,15 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "operator" | "user"
+      engine_project_status:
+        | "active"
+        | "draft"
+        | "needs_review"
+        | "approved"
+        | "delivered"
+        | "in_execution"
+        | "blocked"
+        | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1275,6 +1496,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "operator", "user"],
+      engine_project_status: [
+        "active",
+        "draft",
+        "needs_review",
+        "approved",
+        "delivered",
+        "in_execution",
+        "blocked",
+        "archived",
+      ],
     },
   },
 } as const

@@ -15,6 +15,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
+import { Route as EngineRouteImport } from './routes/engine'
 import { Route as BuildMyRoadmapRouteImport } from './routes/build-my-roadmap'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -24,6 +25,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
+import { Route as EngineIndexRouteImport } from './routes/engine.index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as PortalRoadmapRouteImport } from './routes/portal.roadmap'
 import { Route as PortalOnboardingRouteImport } from './routes/portal.onboarding'
@@ -40,17 +42,25 @@ import { Route as OpsInsightsRouteImport } from './routes/ops/insights'
 import { Route as OpsHistoryRouteImport } from './routes/ops/history'
 import { Route as OpsAccessEventsRouteImport } from './routes/ops/access-events'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
+import { Route as EngineTemplatesRouteImport } from './routes/engine.templates'
+import { Route as EngineReviewRouteImport } from './routes/engine.review'
+import { Route as EngineOperationsRouteImport } from './routes/engine.operations'
+import { Route as EngineIntelligenceRouteImport } from './routes/engine.intelligence'
+import { Route as EngineExecutionRouteImport } from './routes/engine.execution'
+import { Route as EngineDeliveryRouteImport } from './routes/engine.delivery'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AdminRolesRouteImport } from './routes/admin.roles'
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
 import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
+import { Route as EngineProjectsIndexRouteImport } from './routes/engine.projects.index'
 import { Route as OpsSubmissionsIdRouteImport } from './routes/ops/submissions.$id'
 import { Route as OpsEditorIdRouteImport } from './routes/ops/editor.$id'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as EngineProjectsProjectIdOverviewRouteImport } from './routes/engine.projects.$projectId.overview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
 
@@ -82,6 +92,11 @@ const InvestmentRoute = InvestmentRouteImport.update({
 const InsightsRoute = InsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EngineRoute = EngineRouteImport.update({
+  id: '/engine',
+  path: '/engine',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BuildMyRoadmapRoute = BuildMyRoadmapRouteImport.update({
@@ -127,6 +142,11 @@ const OpsIndexRoute = OpsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => OpsRouteRoute,
+} as any)
+const EngineIndexRoute = EngineIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EngineRoute,
 } as any)
 const WalksSlugRoute = WalksSlugRouteImport.update({
   id: '/walks_/$slug',
@@ -208,6 +228,36 @@ const InsightsSlugRoute = InsightsSlugRouteImport.update({
   path: '/insights/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngineTemplatesRoute = EngineTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => EngineRoute,
+} as any)
+const EngineReviewRoute = EngineReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => EngineRoute,
+} as any)
+const EngineOperationsRoute = EngineOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => EngineRoute,
+} as any)
+const EngineIntelligenceRoute = EngineIntelligenceRouteImport.update({
+  id: '/intelligence',
+  path: '/intelligence',
+  getParentRoute: () => EngineRoute,
+} as any)
+const EngineExecutionRoute = EngineExecutionRouteImport.update({
+  id: '/execution',
+  path: '/execution',
+  getParentRoute: () => EngineRoute,
+} as any)
+const EngineDeliveryRoute = EngineDeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => EngineRoute,
+} as any)
 const CheckoutRoadmapRoute = CheckoutRoadmapRouteImport.update({
   id: '/checkout/roadmap',
   path: '/checkout/roadmap',
@@ -238,6 +288,11 @@ const AuthenticatedPortalRoute = AuthenticatedPortalRouteImport.update({
   path: '/portal',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const EngineProjectsIndexRoute = EngineProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
+  getParentRoute: () => EngineRoute,
+} as any)
 const OpsSubmissionsIdRoute = OpsSubmissionsIdRouteImport.update({
   id: '/submissions/$id',
   path: '/submissions/$id',
@@ -264,6 +319,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngineProjectsProjectIdOverviewRoute =
+  EngineProjectsProjectIdOverviewRouteImport.update({
+    id: '/projects/$projectId/overview',
+    path: '/projects/$projectId/overview',
+    getParentRoute: () => EngineRoute,
+  } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -284,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
+  '/engine': typeof EngineRouteWithChildren
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/portal': typeof AuthenticatedPortalRoute
@@ -295,6 +357,12 @@ export interface FileRoutesByFullPath {
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/engine/delivery': typeof EngineDeliveryRoute
+  '/engine/execution': typeof EngineExecutionRoute
+  '/engine/intelligence': typeof EngineIntelligenceRoute
+  '/engine/operations': typeof EngineOperationsRoute
+  '/engine/review': typeof EngineReviewRoute
+  '/engine/templates': typeof EngineTemplatesRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/ops/access-events': typeof OpsAccessEventsRoute
   '/ops/history': typeof OpsHistoryRoute
@@ -311,12 +379,15 @@ export interface FileRoutesByFullPath {
   '/portal/onboarding': typeof PortalOnboardingRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
   '/walks/$slug': typeof WalksSlugRoute
+  '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
+  '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -338,6 +409,12 @@ export interface FileRoutesByTo {
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/engine/delivery': typeof EngineDeliveryRoute
+  '/engine/execution': typeof EngineExecutionRoute
+  '/engine/intelligence': typeof EngineIntelligenceRoute
+  '/engine/operations': typeof EngineOperationsRoute
+  '/engine/review': typeof EngineReviewRoute
+  '/engine/templates': typeof EngineTemplatesRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/ops/access-events': typeof OpsAccessEventsRoute
   '/ops/history': typeof OpsHistoryRoute
@@ -354,11 +431,14 @@ export interface FileRoutesByTo {
   '/portal/onboarding': typeof PortalOnboardingRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
   '/walks/$slug': typeof WalksSlugRoute
+  '/engine': typeof EngineIndexRoute
   '/ops': typeof OpsIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
+  '/engine/projects': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -372,6 +452,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
+  '/engine': typeof EngineRouteWithChildren
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/portal': typeof PortalRouteWithChildren
@@ -384,6 +465,12 @@ export interface FileRoutesById {
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/engine/delivery': typeof EngineDeliveryRoute
+  '/engine/execution': typeof EngineExecutionRoute
+  '/engine/intelligence': typeof EngineIntelligenceRoute
+  '/engine/operations': typeof EngineOperationsRoute
+  '/engine/review': typeof EngineReviewRoute
+  '/engine/templates': typeof EngineTemplatesRoute
   '/insights_/$slug': typeof InsightsSlugRoute
   '/ops/access-events': typeof OpsAccessEventsRoute
   '/ops/history': typeof OpsHistoryRoute
@@ -400,12 +487,15 @@ export interface FileRoutesById {
   '/portal/onboarding': typeof PortalOnboardingRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
   '/walks_/$slug': typeof WalksSlugRoute
+  '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
+  '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -419,6 +509,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/build-my-roadmap'
+    | '/engine'
     | '/insights'
     | '/investment'
     | '/portal'
@@ -430,6 +521,12 @@ export interface FileRouteTypes {
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/engine/delivery'
+    | '/engine/execution'
+    | '/engine/intelligence'
+    | '/engine/operations'
+    | '/engine/review'
+    | '/engine/templates'
     | '/insights/$slug'
     | '/ops/access-events'
     | '/ops/history'
@@ -446,12 +543,15 @@ export interface FileRouteTypes {
     | '/portal/onboarding'
     | '/portal/roadmap'
     | '/walks/$slug'
+    | '/engine/'
     | '/ops/'
     | '/portal/'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
+    | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
+    | '/engine/projects/$projectId/overview'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -473,6 +573,12 @@ export interface FileRouteTypes {
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/engine/delivery'
+    | '/engine/execution'
+    | '/engine/intelligence'
+    | '/engine/operations'
+    | '/engine/review'
+    | '/engine/templates'
     | '/insights/$slug'
     | '/ops/access-events'
     | '/ops/history'
@@ -489,11 +595,14 @@ export interface FileRouteTypes {
     | '/portal/onboarding'
     | '/portal/roadmap'
     | '/walks/$slug'
+    | '/engine'
     | '/ops'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
+    | '/engine/projects'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
+    | '/engine/projects/$projectId/overview'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -506,6 +615,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/build-my-roadmap'
+    | '/engine'
     | '/insights'
     | '/investment'
     | '/portal'
@@ -518,6 +628,12 @@ export interface FileRouteTypes {
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/engine/delivery'
+    | '/engine/execution'
+    | '/engine/intelligence'
+    | '/engine/operations'
+    | '/engine/review'
+    | '/engine/templates'
     | '/insights_/$slug'
     | '/ops/access-events'
     | '/ops/history'
@@ -534,12 +650,15 @@ export interface FileRouteTypes {
     | '/portal/onboarding'
     | '/portal/roadmap'
     | '/walks_/$slug'
+    | '/engine/'
     | '/ops/'
     | '/portal/'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
+    | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
+    | '/engine/projects/$projectId/overview'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -553,6 +672,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   BuildMyRoadmapRoute: typeof BuildMyRoadmapRoute
+  EngineRoute: typeof EngineRouteWithChildren
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
   PortalRoute: typeof PortalRouteWithChildren
@@ -612,6 +732,13 @@ declare module '@tanstack/react-router' {
       path: '/insights'
       fullPath: '/insights'
       preLoaderRoute: typeof InsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/engine': {
+      id: '/engine'
+      path: '/engine'
+      fullPath: '/engine'
+      preLoaderRoute: typeof EngineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/build-my-roadmap': {
@@ -676,6 +803,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/ops/'
       preLoaderRoute: typeof OpsIndexRouteImport
       parentRoute: typeof OpsRouteRoute
+    }
+    '/engine/': {
+      id: '/engine/'
+      path: '/'
+      fullPath: '/engine/'
+      preLoaderRoute: typeof EngineIndexRouteImport
+      parentRoute: typeof EngineRoute
     }
     '/walks_/$slug': {
       id: '/walks_/$slug'
@@ -789,6 +923,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InsightsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engine/templates': {
+      id: '/engine/templates'
+      path: '/templates'
+      fullPath: '/engine/templates'
+      preLoaderRoute: typeof EngineTemplatesRouteImport
+      parentRoute: typeof EngineRoute
+    }
+    '/engine/review': {
+      id: '/engine/review'
+      path: '/review'
+      fullPath: '/engine/review'
+      preLoaderRoute: typeof EngineReviewRouteImport
+      parentRoute: typeof EngineRoute
+    }
+    '/engine/operations': {
+      id: '/engine/operations'
+      path: '/operations'
+      fullPath: '/engine/operations'
+      preLoaderRoute: typeof EngineOperationsRouteImport
+      parentRoute: typeof EngineRoute
+    }
+    '/engine/intelligence': {
+      id: '/engine/intelligence'
+      path: '/intelligence'
+      fullPath: '/engine/intelligence'
+      preLoaderRoute: typeof EngineIntelligenceRouteImport
+      parentRoute: typeof EngineRoute
+    }
+    '/engine/execution': {
+      id: '/engine/execution'
+      path: '/execution'
+      fullPath: '/engine/execution'
+      preLoaderRoute: typeof EngineExecutionRouteImport
+      parentRoute: typeof EngineRoute
+    }
+    '/engine/delivery': {
+      id: '/engine/delivery'
+      path: '/delivery'
+      fullPath: '/engine/delivery'
+      preLoaderRoute: typeof EngineDeliveryRouteImport
+      parentRoute: typeof EngineRoute
+    }
     '/checkout/roadmap': {
       id: '/checkout/roadmap'
       path: '/checkout/roadmap'
@@ -831,6 +1007,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPortalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/engine/projects/': {
+      id: '/engine/projects/'
+      path: '/projects'
+      fullPath: '/engine/projects/'
+      preLoaderRoute: typeof EngineProjectsIndexRouteImport
+      parentRoute: typeof EngineRoute
+    }
     '/ops/submissions/$id': {
       id: '/ops/submissions/$id'
       path: '/submissions/$id'
@@ -865,6 +1048,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/lovable/email/auth/preview'
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/engine/projects/$projectId/overview': {
+      id: '/engine/projects/$projectId/overview'
+      path: '/projects/$projectId/overview'
+      fullPath: '/engine/projects/$projectId/overview'
+      preLoaderRoute: typeof EngineProjectsProjectIdOverviewRouteImport
+      parentRoute: typeof EngineRoute
     }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
@@ -932,6 +1122,33 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface EngineRouteChildren {
+  EngineDeliveryRoute: typeof EngineDeliveryRoute
+  EngineExecutionRoute: typeof EngineExecutionRoute
+  EngineIntelligenceRoute: typeof EngineIntelligenceRoute
+  EngineOperationsRoute: typeof EngineOperationsRoute
+  EngineReviewRoute: typeof EngineReviewRoute
+  EngineTemplatesRoute: typeof EngineTemplatesRoute
+  EngineIndexRoute: typeof EngineIndexRoute
+  EngineProjectsIndexRoute: typeof EngineProjectsIndexRoute
+  EngineProjectsProjectIdOverviewRoute: typeof EngineProjectsProjectIdOverviewRoute
+}
+
+const EngineRouteChildren: EngineRouteChildren = {
+  EngineDeliveryRoute: EngineDeliveryRoute,
+  EngineExecutionRoute: EngineExecutionRoute,
+  EngineIntelligenceRoute: EngineIntelligenceRoute,
+  EngineOperationsRoute: EngineOperationsRoute,
+  EngineReviewRoute: EngineReviewRoute,
+  EngineTemplatesRoute: EngineTemplatesRoute,
+  EngineIndexRoute: EngineIndexRoute,
+  EngineProjectsIndexRoute: EngineProjectsIndexRoute,
+  EngineProjectsProjectIdOverviewRoute: EngineProjectsProjectIdOverviewRoute,
+}
+
+const EngineRouteWithChildren =
+  EngineRoute._addFileChildren(EngineRouteChildren)
+
 interface PortalRouteChildren {
   PortalAccessDeniedRoute: typeof PortalAccessDeniedRoute
   PortalAccountRoute: typeof PortalAccountRoute
@@ -971,6 +1188,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BuildMyRoadmapRoute: BuildMyRoadmapRoute,
+  EngineRoute: EngineRouteWithChildren,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
   PortalRoute: PortalRouteWithChildren,
@@ -991,13 +1209,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
