@@ -23,6 +23,7 @@ import {
   listAgentTasks,
   runAgentPrompt,
   updateAgentTaskStatus,
+  applyAgentTask,
   updateAgentControls,
   type EngineAgentTask,
 } from "@/lib/engine-agent.functions";
