@@ -57,6 +57,7 @@ import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated
 import { Route as EngineProjectsIndexRouteImport } from './routes/engine.projects.index'
 import { Route as OpsSubmissionsIdRouteImport } from './routes/ops/submissions.$id'
 import { Route as OpsEditorIdRouteImport } from './routes/ops/editor.$id'
+import { Route as EngineProjectsProjectIdRouteImport } from './routes/engine.projects.$projectId'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -303,6 +304,11 @@ const OpsEditorIdRoute = OpsEditorIdRouteImport.update({
   path: '/editor/$id',
   getParentRoute: () => OpsRouteRoute,
 } as any)
+const EngineProjectsProjectIdRoute = EngineProjectsProjectIdRouteImport.update({
+  id: '/projects/$projectId',
+  path: '/projects/$projectId',
+  getParentRoute: () => EngineRoute,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -321,9 +327,9 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
 } as any)
 const EngineProjectsProjectIdOverviewRoute =
   EngineProjectsProjectIdOverviewRouteImport.update({
-    id: '/projects/$projectId/overview',
-    path: '/projects/$projectId/overview',
-    getParentRoute: () => EngineRoute,
+    id: '/overview',
+    path: '/overview',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
@@ -382,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects/': typeof EngineProjectsIndexRoute
@@ -433,6 +440,7 @@ export interface FileRoutesByTo {
   '/walks/$slug': typeof WalksSlugRoute
   '/engine': typeof EngineIndexRoute
   '/ops': typeof OpsIndexRoute
+  '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects': typeof EngineProjectsIndexRoute
@@ -490,6 +498,7 @@ export interface FileRoutesById {
   '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects/': typeof EngineProjectsIndexRoute
@@ -546,6 +555,7 @@ export interface FileRouteTypes {
     | '/engine/'
     | '/ops/'
     | '/portal/'
+    | '/engine/projects/$projectId'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
     | '/engine/projects/'
@@ -597,6 +607,7 @@ export interface FileRouteTypes {
     | '/walks/$slug'
     | '/engine'
     | '/ops'
+    | '/engine/projects/$projectId'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
     | '/engine/projects'
@@ -653,6 +664,7 @@ export interface FileRouteTypes {
     | '/engine/'
     | '/ops/'
     | '/portal/'
+    | '/engine/projects/$projectId'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
     | '/engine/projects/'
@@ -1028,6 +1040,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpsEditorIdRouteImport
       parentRoute: typeof OpsRouteRoute
     }
+    '/engine/projects/$projectId': {
+      id: '/engine/projects/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/engine/projects/$projectId'
+      preLoaderRoute: typeof EngineProjectsProjectIdRouteImport
+      parentRoute: typeof EngineRoute
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -1051,10 +1070,10 @@ declare module '@tanstack/react-router' {
     }
     '/engine/projects/$projectId/overview': {
       id: '/engine/projects/$projectId/overview'
-      path: '/projects/$projectId/overview'
+      path: '/overview'
       fullPath: '/engine/projects/$projectId/overview'
       preLoaderRoute: typeof EngineProjectsProjectIdOverviewRouteImport
-      parentRoute: typeof EngineRoute
+      parentRoute: typeof EngineProjectsProjectIdRoute
     }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
@@ -1122,6 +1141,20 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface EngineProjectsProjectIdRouteChildren {
+  EngineProjectsProjectIdOverviewRoute: typeof EngineProjectsProjectIdOverviewRoute
+}
+
+const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren =
+  {
+    EngineProjectsProjectIdOverviewRoute: EngineProjectsProjectIdOverviewRoute,
+  }
+
+const EngineProjectsProjectIdRouteWithChildren =
+  EngineProjectsProjectIdRoute._addFileChildren(
+    EngineProjectsProjectIdRouteChildren,
+  )
+
 interface EngineRouteChildren {
   EngineDeliveryRoute: typeof EngineDeliveryRoute
   EngineExecutionRoute: typeof EngineExecutionRoute
@@ -1130,8 +1163,8 @@ interface EngineRouteChildren {
   EngineReviewRoute: typeof EngineReviewRoute
   EngineTemplatesRoute: typeof EngineTemplatesRoute
   EngineIndexRoute: typeof EngineIndexRoute
+  EngineProjectsProjectIdRoute: typeof EngineProjectsProjectIdRouteWithChildren
   EngineProjectsIndexRoute: typeof EngineProjectsIndexRoute
-  EngineProjectsProjectIdOverviewRoute: typeof EngineProjectsProjectIdOverviewRoute
 }
 
 const EngineRouteChildren: EngineRouteChildren = {
@@ -1142,8 +1175,8 @@ const EngineRouteChildren: EngineRouteChildren = {
   EngineReviewRoute: EngineReviewRoute,
   EngineTemplatesRoute: EngineTemplatesRoute,
   EngineIndexRoute: EngineIndexRoute,
+  EngineProjectsProjectIdRoute: EngineProjectsProjectIdRouteWithChildren,
   EngineProjectsIndexRoute: EngineProjectsIndexRoute,
-  EngineProjectsProjectIdOverviewRoute: EngineProjectsProjectIdOverviewRoute,
 }
 
 const EngineRouteWithChildren =
