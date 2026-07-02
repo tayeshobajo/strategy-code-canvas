@@ -417,7 +417,7 @@ export const adminUpdatePortal = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => AdminUpdateInput.parse(raw))
   .handler(async ({ context, data }) => {
     const email = await assertOperator(context);
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, any> = {};
     for (const [k, v] of Object.entries(data)) {
       if (k === "id") continue;
       if (v !== undefined) patch[k] = v;
@@ -731,4 +731,109 @@ export const updatePortalProfile = createServerFn({ method: "POST" })
     }
 
     return { ok: true as const, profile: row };
+  });
+
+// -------------------- Roadmap acknowledge (client-facing) --------------------
+/**
+ * Record a client-side event against their approved portal roadmap and mirror
+ * it back into the internal Delivery Room so Tai can see reception state.
+ * Supported events:
+ *   - "viewed"        (idempotent — only writes first time)
+ *   - "downloaded"    (records latest timestamp)
+ *   - "acknowledged"  (records first ack + marks delivery item complete)
+ */
+export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        roadmapId: z.string().uuid(),
+        event: z.enum(["viewed", "downloaded", "acknowledged"]),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const email = (context.claims?.email as string | undefined) ?? undefined;
+    if (!email) return { error: "No email on account" } as const;
+
+    // Load the portal roadmap and ensure the caller has permission to see it.
+    const { data: cpr, error: cprErr } = await context.supabase
+      .from("client_portal_roadmaps")
+      .select("id, project_id, acknowledged_at, source_version_id")
+      .eq("id", data.roadmapId)
+      .maybeSingle();
+    if (cprErr || !cpr) return { error: "Roadmap not found or not visible" } as const;
+
+    const nowIso = new Date().toISOString();
+    const patch: Record<string, any> = {};
+    if (data.event === "acknowledged" && !cpr.acknowledged_at) {
+      patch.acknowledged_at = nowIso;
+      patch.acknowledged_by_email = email;
+    }
+    if (Object.keys(patch).length) {
+      await context.supabase.from("client_portal_roadmaps").update(patch as never).eq("id", cpr.id);
+    }
+
+    // Client-visible activity in the portal timeline.
+    const summaryByEvent: Record<string, string> = {
+      viewed: "You opened your approved roadmap.",
+      downloaded: "You downloaded your approved roadmap.",
+      acknowledged: "You acknowledged your approved roadmap.",
+    };
+    await context.supabase.rpc("log_client_portal_activity", {
+      _project_id: cpr.project_id,
+      _actor_type: "client",
+      _actor_email: email,
+      _event_type: `roadmap_${data.event}`,
+      _summary: summaryByEvent[data.event],
+      _client_visible: true,
+      _metadata: { portal_roadmap_id: cpr.id } as unknown as never,
+    });
+
+    // Mirror into the internal Delivery Room via admin client. This is a
+    // trusted, verified caller (owner of the portal roadmap), and the write
+    // targets the internal engine tables that clients cannot reach directly.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: items } = await supabaseAdmin
+        .from("engine_delivery_items")
+        .select("id,status")
+        .eq("client_portal_roadmap_id", cpr.id);
+      const nextStatus =
+        data.event === "acknowledged"
+          ? "client_acknowledged"
+          : data.event === "viewed"
+            ? "client_viewed"
+            : null; // "downloaded" is a timestamp bump only
+
+      for (const it of (items ?? []) as Array<{ id: string; status: string }>) {
+        const update: Record<string, any> = {};
+        if (data.event === "viewed") update.client_viewed_at = nowIso;
+        if (data.event === "downloaded") update.client_downloaded_at = nowIso;
+        if (data.event === "acknowledged") {
+          update.client_acknowledged_at = nowIso;
+          update.client_acknowledged_by_email = email;
+        }
+        if (nextStatus && it.status !== nextStatus && it.status !== "client_acknowledged") {
+          update.status = nextStatus;
+          update.last_action = `${nextStatus.replace(/_/g, " ")} · ${new Date().toLocaleString()}`;
+        }
+        if (Object.keys(update).length) {
+          await supabaseAdmin.from("engine_delivery_items").update(update as never).eq("id", it.id);
+        }
+        if (nextStatus && it.status !== nextStatus) {
+          await supabaseAdmin.from("engine_delivery_history").insert({
+            delivery_id: it.id,
+            from_status: it.status,
+            to_status: nextStatus,
+            note: `Client ${data.event}`,
+            actor: email,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("[portal.roadmap-event] delivery mirror failed", e);
+    }
+
+    return { ok: true as const };
   });
