@@ -10,6 +10,45 @@ async function assertAdmin(context: any) {
   if (!ok) throw new Error("Forbidden: admin role required");
 }
 
+/**
+ * Server-side gate for agent-authored actions. Reads engine_agent_permissions
+ * for the project and throws for `blocked` actions or `needs_approval` when
+ * the caller did not pass `{ approve: true }`. `permission_mode` also caps
+ * agent behavior:
+ *   - draft_only     -> every action treated as needs_approval unless approve=true
+ *   - propose_updates -> honors action_permissions map
+ *   - execute_approved -> honors action_permissions map
+ * Non-negotiable safety rules keep send_delivery / move_project_to_execution
+ * always blocked, regardless of stored permissions.
+ */
+export async function assertActionAllowed(
+  sb: any,
+  projectId: string,
+  action: string,
+  opts: { approve?: boolean } = {},
+): Promise<{ mode: string; permission: "allowed" | "needs_approval" | "blocked" }> {
+  const HARD_BLOCKED = new Set(["send_delivery", "move_project_to_execution"]);
+  if (HARD_BLOCKED.has(action)) {
+    throw new Error(`Blocked by safety rule: agent cannot perform "${action.replace(/_/g, " ")}".`);
+  }
+  const { data: row } = await sb
+    .from("engine_agent_permissions")
+    .select("permission_mode,action_permissions")
+    .eq("project_id", projectId)
+    .maybeSingle();
+  const mode: string = row?.permission_mode ?? "draft_only";
+  const map: Record<string, string> = row?.action_permissions ?? {};
+  let permission = (map[action] ?? "needs_approval") as "allowed" | "needs_approval" | "blocked";
+  if (mode === "draft_only" && permission === "allowed") permission = "needs_approval";
+  if (permission === "blocked") {
+    throw new Error(`Action "${action.replace(/_/g, " ")}" is blocked by agent permissions.`);
+  }
+  if (permission === "needs_approval" && !opts.approve) {
+    throw new Error(`Action "${action.replace(/_/g, " ")}" needs approval. Approve to continue.`);
+  }
+  return { mode, permission };
+}
+
 // ============================================================
 // Milestones
 // ============================================================
@@ -182,7 +221,9 @@ export const approveMilestone = createServerFn({ method: "POST" })
 
 export const sendMilestoneToTasks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .inputValidator((raw: unknown) =>
+    z.object({ id: z.string().uuid(), approve: z.boolean().optional() }).parse(raw),
+  )
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
@@ -192,22 +233,64 @@ export const sendMilestoneToTasks = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .single();
     if (!m) throw new Error("Milestone not found");
+    // Tai approves via the UI button — treat that as the human approval this
+    // action needs (agent create_tasks is otherwise needs_approval by default).
+    await assertActionAllowed(sb, m.project_id, "create_tasks", { approve: true });
+
     const criteria: any[] = Array.isArray(m.acceptance_criteria) ? m.acceptance_criteria : [];
-    const rows = criteria.slice(0, 15).map((c: any, i: number) => ({
-      project_id: m.project_id,
-      milestone_id: m.id,
-      name: typeof c === "string" ? c : c.text ?? `Task ${i + 1}`,
-      priority: "P2",
-      status: "suggested",
-      source: `Milestone: ${m.name}`,
-      estimated_effort_hours: 4,
-      estimated_cost_cents: 100,
-      created_by: "agent",
-    }));
+    // Distribute due dates evenly leading up to the milestone's due date, so
+    // each task lands with a reasonable target date instead of piling up.
+    const milestoneDue = m.due_date ? new Date(m.due_date) : null;
+    const totalCount = Math.min(criteria.length, 15);
+    const perTaskGapDays = milestoneDue ? Math.max(2, Math.floor(21 / Math.max(totalCount, 1))) : 0;
+
+    // Skip criteria that were already sent (name+milestone match) so re-runs
+    // don't duplicate tasks.
+    const { data: existing } = await sb
+      .from("engine_tasks")
+      .select("name")
+      .eq("milestone_id", m.id);
+    const existingNames = new Set(((existing ?? []) as any[]).map((r) => r.name));
+
+    const rows = criteria.slice(0, 15).flatMap((c: any, i: number) => {
+      const text = typeof c === "string" ? c : c.text ?? `Task ${i + 1}`;
+      if (existingNames.has(text)) return [];
+      const due = milestoneDue
+        ? new Date(milestoneDue.getTime() - (totalCount - 1 - i) * perTaskGapDays * 86400_000)
+        : null;
+      return [{
+        project_id: m.project_id,
+        milestone_id: m.id,
+        name: text,
+        description: `From milestone "${m.name}" · ${m.phase ?? ""}`.trim(),
+        priority: m.priority === "Critical" ? "P1" : "P2",
+        status: "suggested",
+        source: `Milestone: ${m.name}`,
+        estimated_effort_hours: 4,
+        estimated_cost_cents: 100,
+        owner_email: m.owner_email ?? null,
+        due_date: due ? due.toISOString().slice(0, 10) : null,
+        acceptance_criteria: [{ text, done: !!(c as any)?.done }],
+        created_by: "agent",
+      }];
+    });
+
     if (rows.length) {
       const { error } = await sb.from("engine_tasks").insert(rows);
       if (error) throw new Error(error.message);
     }
+
+    // Log for the audit trail so the tasks page reflects provenance.
+    await sb.from("engine_audit_log").insert({
+      project_id: m.project_id,
+      actor_email: (context as any).claims?.email ?? null,
+      action: "milestone_to_tasks",
+      summary: `Sent ${rows.length} tasks from milestone "${m.name}" to the board.`,
+      affected_modules: ["tasks"],
+      target_id: m.id,
+      metadata: { milestone_id: m.id, count: rows.length },
+    });
+
     return { ok: true as const, count: rows.length };
   });
 
@@ -344,6 +427,38 @@ export const getAgentCosts = createServerFn({ method: "GET" })
     }
     const timeline = Object.entries(timelineMap).map(([date, cents]) => ({ date, cents }));
 
+    // Spend by milestone — match engine_agent_tasks.related_module against
+    // milestone names for this project so the cost center can show what each
+    // milestone actually cost to draft (approvals + drafts + rejections).
+    const { data: milestones } = await sb
+      .from("engine_milestones")
+      .select("id,name")
+      .eq("project_id", data.projectId);
+    const msList = (milestones ?? []) as Array<{ id: string; name: string }>;
+    const msMap = new Map<string, { id: string; name: string; cents: number; approved_cents: number; approved_count: number; unused_cents: number }>();
+    for (const m of msList) msMap.set(m.name.toLowerCase(), { id: m.id, name: m.name, cents: 0, approved_cents: 0, approved_count: 0, unused_cents: 0 });
+    let unattributedCents = 0;
+    for (const t of list) {
+      const key = String(t.related_module ?? "").toLowerCase();
+      const bucket = key ? msMap.get(key) : undefined;
+      const cents = t.cost_cents ?? 0;
+      if (!bucket) { unattributedCents += cents; continue; }
+      bucket.cents += cents;
+      if (t.status === "applied" || t.status === "saved_as_task") { bucket.approved_cents += cents; bucket.approved_count += 1; }
+      else if (t.status === "draft" || t.status === "rejected") bucket.unused_cents += cents;
+    }
+    const spendByMilestone = [...msMap.values()]
+      .filter((b) => b.cents > 0)
+      .sort((a, b) => b.cents - a.cents)
+      .map((b) => ({
+        id: b.id,
+        name: b.name,
+        cents: b.cents,
+        approved_cents: b.approved_cents,
+        unused_cents: b.unused_cents,
+        cost_per_approved: b.approved_count > 0 ? Math.round(b.cents / b.approved_count) : 0,
+      }));
+
     return {
       project: proj,
       totals: {
@@ -358,8 +473,10 @@ export const getAgentCosts = createServerFn({ method: "GET" })
         rejectedOutputs,
         draftOutputs,
         tasksCreated: list.length,
+        unattributedCents,
       },
       spendByCategory,
+      spendByMilestone,
       timeline,
       recent: list.slice(0, 15),
     };

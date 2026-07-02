@@ -247,6 +247,7 @@ function PromptConsole({
           prompt: prompt.trim(),
           useProjectContext: useContext,
           attachedSourceIds: attach,
+          approve: true, // Tai clicked Run — satisfies `needs_approval` gate
         },
       }),
     onSuccess: () => {

@@ -4,12 +4,30 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { systemPromptFor, type AgentTaskKind } from "@/lib/engine-agent-prompts";
+import { assertActionAllowed } from "@/lib/engine-execution.functions";
 
 async function assertAdmin(context: any) {
   const email = (context.claims?.email as string | undefined) ?? undefined;
   const ok = await hasRoleForEmail(context.supabase, email, "admin");
   if (!ok) throw new Error("Forbidden: admin role required");
 }
+
+// Map an agent task kind to a permission action key so the permissions matrix
+// (draft_only / propose_updates / execute_approved + blocked/needs_approval)
+// gates every generation call.
+const KIND_TO_ACTION: Record<string, string> = {
+  milestone_brief: "generate_milestone_briefs",
+  acceptance_criteria: "create_acceptance_criteria",
+  lovable_prompt: "draft_developer_prompts",
+  qa_checklist: "generate_milestone_briefs",
+  missing_decisions: "generate_milestone_briefs",
+  update_from_source: "update_roadmap_drafts",
+  version_compare: "compare_versions",
+  risk_estimate: "generate_milestone_briefs",
+  client_summary: "prepare_client_facing_copy",
+  free_form: "generate_milestone_briefs",
+};
+
 
 export type EngineAgentTask = {
   id: string;
@@ -74,6 +92,7 @@ export const runAgentPrompt = createServerFn({ method: "POST" })
         useProjectContext: z.boolean().default(true),
         attachedSourceIds: z.array(z.string().uuid()).max(20).default([]),
         relatedModule: z.string().max(80).optional().nullable(),
+        approve: z.boolean().optional(),
       })
       .parse(raw),
   )
@@ -81,6 +100,13 @@ export const runAgentPrompt = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const sb = context.supabase as any;
     const email = (context as any).claims?.email ?? null;
+
+    // Permission gate: check the project's agent permission mode + per-action
+    // matrix before spending any budget. Blocked = hard stop; needs_approval
+    // requires `approve: true` from the caller (i.e. Tai clicked run/approve).
+    const actionKey = KIND_TO_ACTION[data.kind] ?? "generate_milestone_briefs";
+    await assertActionAllowed(sb, data.projectId, actionKey, { approve: data.approve });
+
 
     // Budget guard: block calls that would exceed the monthly cap.
     const { data: budgetRow } = await sb
@@ -280,6 +306,13 @@ export const applyAgentTask = createServerFn({ method: "POST" })
       if (!task) throw new Error("Task not found");
       if (!task.output) throw new Error("Task has no output to apply");
 
+      // Permission gate: applying agent output writes to a roadmap draft, so
+      // this maps to the `update_roadmap_drafts` action. `force` = Tai
+      // explicitly clicked Apply, which counts as approval.
+      await assertActionAllowed(sb, task.project_id, "update_roadmap_drafts", {
+        approve: data.force,
+      });
+
       const { data: proj } = await sb
         .from("engine_projects")
         .select("agent_permission_level,agent_allowed_modules")
@@ -290,6 +323,7 @@ export const applyAgentTask = createServerFn({ method: "POST" })
       if (allowed.length && !allowed.includes(data.module)) {
         throw new Error(`Module "${data.module}" is not in the agent's allowed list.`);
       }
+
 
       // draft_only: mark as pending, do not touch the module.
       if (level === "draft_only" && !data.force) {

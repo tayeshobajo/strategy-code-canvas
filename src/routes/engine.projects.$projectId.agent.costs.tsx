@@ -29,9 +29,10 @@ function CostCenterPage() {
     queryFn: () => fn({ data: { projectId } }),
   });
   const d = q.data as any;
-  const totals = d?.totals ?? { totalSpend: 0, monthSpend: 0, budget: 0, remaining: 0, projected: 0, costPerApproved: 0, unusedDraftCost: 0, approvedOutputs: 0, rejectedOutputs: 0, draftOutputs: 0, tasksCreated: 0 };
+  const totals = d?.totals ?? { totalSpend: 0, monthSpend: 0, budget: 0, remaining: 0, projected: 0, costPerApproved: 0, unusedDraftCost: 0, approvedOutputs: 0, rejectedOutputs: 0, draftOutputs: 0, tasksCreated: 0, unattributedCents: 0 };
   const timeline = (d?.timeline ?? []).map((t: any) => ({ ...t, dollars: t.cents / 100 }));
   const categories = d?.spendByCategory ?? [];
+  const milestones = d?.spendByMilestone ?? [];
   const recent = d?.recent ?? [];
 
   const budgetPct = totals.budget > 0 ? Math.round((totals.monthSpend / totals.budget) * 100) : 0;
@@ -149,7 +150,40 @@ function CostCenterPage() {
         </div>
       </div>
 
-      {/* Efficiency + budget controls */}
+      {/* Spend by milestone */}
+      <SectionCard
+        title={<span className="flex items-center gap-2"><Layers className="w-4 h-4" />Spend by Milestone</span>}
+        right={<span className="text-ink/60">{formatCents(totals.unattributedCents ?? 0)} unattributed</span>}
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wide text-ink/50 border-b border-border">
+                <th className="py-2 pr-3">Milestone</th>
+                <th className="py-2 pr-3 text-right">Total spend</th>
+                <th className="py-2 pr-3 text-right">Approved</th>
+                <th className="py-2 pr-3 text-right">Unused drafts</th>
+                <th className="py-2 pr-3 text-right">Cost / approved</th>
+              </tr>
+            </thead>
+            <tbody>
+              {milestones.map((m: any) => (
+                <tr key={m.id} className="border-b border-border/60">
+                  <td className="py-2 pr-3 text-ink">{m.name}</td>
+                  <td className="py-2 pr-3 text-right font-mono text-ink">{formatCents(m.cents)}</td>
+                  <td className="py-2 pr-3 text-right font-mono text-[#1f6b3b]">{formatCents(m.approved_cents)}</td>
+                  <td className="py-2 pr-3 text-right font-mono text-[#a4283c]">{formatCents(m.unused_cents)}</td>
+                  <td className="py-2 pr-3 text-right font-mono text-ink/80">{m.cost_per_approved ? formatCents(m.cost_per_approved) : "—"}</td>
+                </tr>
+              ))}
+              {milestones.length === 0 && (
+                <tr><td colSpan={5} className="py-6 text-center text-ink/50 text-sm">No milestone-attributed spend yet. Set an agent output&rsquo;s related module to a milestone name to see it here.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </SectionCard>
+
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5">
         <SectionCard title="Value & Efficiency">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
