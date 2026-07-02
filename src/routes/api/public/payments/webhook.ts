@@ -233,18 +233,22 @@ async function sendWelcomeEmail(email: string, contactName?: string | null) {
 async function notifyInternal(subject: string, text: string) {
   const supabase = getSupabase() as any;
   try {
+    const recipient = "tai@trusttai.com";
+    const { ensureUnsubscribeToken } = await import("@/lib/email/unsubscribe-token.server");
+    const unsubscribeToken = await ensureUnsubscribeToken(recipient);
     await supabase.rpc("enqueue_email", {
       queue_name: "transactional_emails",
       payload: {
         message_id: (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`),
         queued_at: new Date().toISOString(),
-        to: "tai@trusttai.com",
+        to: recipient,
         from: "Trust Tai <hello@trusttai.com>",
         sender_domain: "notify.trusttai.com",
         subject,
         text,
         label: "internal-notify",
         purpose: "transactional",
+        unsubscribe_token: unsubscribeToken,
       },
     });
   } catch (e) {
