@@ -843,15 +843,31 @@ export type Database = {
           agent_spend_month_cents: number
           agent_status: string
           approved_version: string | null
+          blueprint: Json
           client_id: string
+          client_preview: Json
           created_at: string
           current_step: string
+          current_step_num: number
+          deadlines: Json
+          delivery: Json
+          extraction: Json
+          gap_map: Json
+          health_score: number
+          hidden_assets: Json
           id: string
+          investment: Json
           last_activity_at: string
           name: string
           next_action: string | null
           open_decisions: number
+          point_a: Json
+          point_b: Json
+          progress_pct: number
+          roadmap: Json
           roadmap_version: string | null
+          sequencing: Json
+          signal_room: Json
           status: Database["public"]["Enums"]["engine_project_status"]
           updated_at: string
         }
@@ -860,15 +876,31 @@ export type Database = {
           agent_spend_month_cents?: number
           agent_status?: string
           approved_version?: string | null
+          blueprint?: Json
           client_id: string
+          client_preview?: Json
           created_at?: string
           current_step?: string
+          current_step_num?: number
+          deadlines?: Json
+          delivery?: Json
+          extraction?: Json
+          gap_map?: Json
+          health_score?: number
+          hidden_assets?: Json
           id?: string
+          investment?: Json
           last_activity_at?: string
           name: string
           next_action?: string | null
           open_decisions?: number
+          point_a?: Json
+          point_b?: Json
+          progress_pct?: number
+          roadmap?: Json
           roadmap_version?: string | null
+          sequencing?: Json
+          signal_room?: Json
           status?: Database["public"]["Enums"]["engine_project_status"]
           updated_at?: string
         }
@@ -877,15 +909,31 @@ export type Database = {
           agent_spend_month_cents?: number
           agent_status?: string
           approved_version?: string | null
+          blueprint?: Json
           client_id?: string
+          client_preview?: Json
           created_at?: string
           current_step?: string
+          current_step_num?: number
+          deadlines?: Json
+          delivery?: Json
+          extraction?: Json
+          gap_map?: Json
+          health_score?: number
+          hidden_assets?: Json
           id?: string
+          investment?: Json
           last_activity_at?: string
           name?: string
           next_action?: string | null
           open_decisions?: number
+          point_a?: Json
+          point_b?: Json
+          progress_pct?: number
+          roadmap?: Json
           roadmap_version?: string | null
+          sequencing?: Json
+          signal_room?: Json
           status?: Database["public"]["Enums"]["engine_project_status"]
           updated_at?: string
         }

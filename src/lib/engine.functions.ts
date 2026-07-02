@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
+import type { WorkspaceProject, WorkspaceStepKey } from "@/lib/engine-workspace";
 
 async function assertAdmin(context: {
   claims?: Record<string, unknown>;
@@ -422,3 +423,114 @@ export const getProject = createServerFn({ method: "GET" })
       }>,
     };
   });
+
+const WORKSPACE_SELECT =
+  "id,name,status,current_step_num,progress_pct,health_score,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview,delivery, engine_clients(company,owner_email)";
+
+export const getProjectWorkspace = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }): Promise<{ project: WorkspaceProject; dates: Array<{ id: string; label: string; due_on: string; kind: string }>; activity: Array<{ id: string; kind: string; title: string; body: string | null; severity: string; created_at: string }> }> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    const sb = context.supabase as unknown as {
+      from: (t: string) => {
+        select: (s: string) => {
+          eq: (c: string, v: string) => {
+            single: () => Promise<{ data: unknown; error: unknown }>;
+            order: (c: string, o: { ascending: boolean }) => {
+              limit: (n: number) => Promise<{ data: unknown }>;
+            } & Promise<{ data: unknown }>;
+          };
+        };
+      };
+    };
+    const { data: p, error } = await sb.from("engine_projects").select(WORKSPACE_SELECT).eq("id", data.id).single();
+    if (error) throw new Error((error as { message?: string }).message ?? "not found");
+    const row = p as Record<string, unknown> & { engine_clients: { company: string; owner_email: string | null } | null };
+
+    const { data: datesData } = await sb.from("engine_project_dates").select("id,label,due_on,kind").eq("project_id", data.id).order("due_on", { ascending: true });
+    const { data: actData } = await sb.from("engine_activity").select("id,kind,title,body,severity,created_at").eq("project_id", data.id).order("created_at", { ascending: false }).limit(20);
+
+    const project: WorkspaceProject = {
+      id: row.id as string,
+      name: row.name as string,
+      status: row.status as string,
+      current_step_num: (row.current_step_num as number) ?? 1,
+      progress_pct: (row.progress_pct as number) ?? 0,
+      health_score: (row.health_score as number) ?? 0,
+      roadmap_version: (row.roadmap_version as string | null) ?? null,
+      approved_version: (row.approved_version as string | null) ?? null,
+      agent_status: (row.agent_status as string) ?? "idle",
+      agent_budget_monthly_cents: (row.agent_budget_monthly_cents as number) ?? 0,
+      agent_spend_month_cents: (row.agent_spend_month_cents as number) ?? 0,
+      open_decisions: (row.open_decisions as number) ?? 0,
+      next_action: (row.next_action as string | null) ?? null,
+      last_activity_at: row.last_activity_at as string,
+      client_company: row.engine_clients?.company ?? "—",
+      client_owner_email: row.engine_clients?.owner_email ?? null,
+      signal_room: (row.signal_room as import("@/lib/engine-workspace").Json) ?? {},
+      extraction: (row.extraction as import("@/lib/engine-workspace").Json) ?? {},
+      point_a: (row.point_a as import("@/lib/engine-workspace").Json) ?? {},
+      point_b: (row.point_b as import("@/lib/engine-workspace").Json) ?? {},
+      hidden_assets: (row.hidden_assets as import("@/lib/engine-workspace").Json) ?? {},
+      gap_map: (row.gap_map as import("@/lib/engine-workspace").Json) ?? {},
+      blueprint: (row.blueprint as import("@/lib/engine-workspace").Json) ?? {},
+      roadmap: (row.roadmap as import("@/lib/engine-workspace").Json) ?? {},
+      sequencing: (row.sequencing as import("@/lib/engine-workspace").Json) ?? {},
+      deadlines: (row.deadlines as import("@/lib/engine-workspace").Json) ?? {},
+      investment: (row.investment as import("@/lib/engine-workspace").Json) ?? {},
+      client_preview: (row.client_preview as import("@/lib/engine-workspace").Json) ?? {},
+      delivery: (row.delivery as import("@/lib/engine-workspace").Json) ?? {},
+    };
+
+    return {
+      project,
+      dates: (datesData ?? []) as Array<{ id: string; label: string; due_on: string; kind: string }>,
+      activity: (actData ?? []) as Array<{ id: string; kind: string; title: string; body: string | null; severity: string; created_at: string }>,
+    };
+  });
+
+const STEP_COLUMNS: Record<WorkspaceStepKey, string | null> = {
+  intelligence: null,
+  "signal-room": "signal_room",
+  extraction: "extraction",
+  "point-a": "point_a",
+  "point-b": "point_b",
+  "hidden-assets": "hidden_assets",
+  "gap-map": "gap_map",
+  blueprint: "blueprint",
+  builder: "roadmap",
+  sequencing: "sequencing",
+  deadlines: "deadlines",
+  investment: "investment",
+  preview: "client_preview",
+  delivery: "delivery",
+};
+
+const UpdateStepInput = z.object({
+  id: z.string().uuid(),
+  step: z.enum([
+    "signal-room","extraction","point-a","point-b","hidden-assets","gap-map","blueprint","builder","sequencing","deadlines","investment","preview","delivery",
+  ]),
+  data: z.record(z.string(), z.unknown()),
+});
+
+export const updateProjectStep = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => UpdateStepInput.parse(raw))
+  .handler(async ({ context, data }): Promise<{ ok: true }> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    const col = STEP_COLUMNS[data.step as WorkspaceStepKey];
+    if (!col) throw new Error("Unknown step");
+    const sb = context.supabase as unknown as {
+      from: (t: string) => {
+        update: (v: Record<string, unknown>) => {
+          eq: (c: string, v: string) => Promise<{ error: unknown }>;
+        };
+      };
+    };
+    const { error } = await sb.from("engine_projects").update({ [col]: data.data }).eq("id", data.id);
+    if (error) throw new Error((error as { message?: string }).message ?? "update failed");
+    return { ok: true };
+  });
+
