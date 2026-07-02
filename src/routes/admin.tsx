@@ -1,7 +1,8 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
-import { ClipboardList, Users, Settings } from "lucide-react";
+import { isAdminEmail } from "@/lib/ops/access";
+import { ClipboardList, Users, Settings, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -10,9 +11,19 @@ export const Route = createFileRoute("/admin")({
     if (error || !data.user) {
       throw redirect({ to: "/auth", search: { redirect: location.href } });
     }
-    // Include hello@trusttai.com for portal admin
     const email = data.user.email?.toLowerCase() ?? "";
-    if (!isOperatorEmail(email) && email !== "hello@trusttai.com") {
+    // Admin surface: allow allow-listed operators (backward compat) and any
+    // email that is either the legacy hello@ address or has an admin/operator
+    // role in `public.user_roles` (checked via the security-definer RPC).
+    let allowed = isOperatorEmail(email) || isAdminEmail(email) || email === "hello@trusttai.com";
+    if (!allowed) {
+      const { data: rpcData } = await supabase.rpc("has_role_email", {
+        _email: email,
+        _role: "admin",
+      });
+      allowed = rpcData === true;
+    }
+    if (!allowed) {
       throw redirect({ to: "/" });
     }
     return { adminEmail: email };
@@ -41,6 +52,12 @@ function AdminLayout() {
             className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/config") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
           >
             <Settings className="w-4 h-4" /> Runtime config
+          </Link>
+          <Link
+            to="/admin/roles"
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/roles") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <ShieldCheck className="w-4 h-4" /> User roles
           </Link>
           <Link
             to="/ops/queue"

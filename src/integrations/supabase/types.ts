@@ -1072,6 +1072,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_grant_role: {
+        Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
+        Returns: string
+      }
+      admin_list_user_roles: {
+        Args: never
+        Returns: {
+          email: string
+          granted_at: string
+          granted_by: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }[]
+      }
+      admin_revoke_role: {
+        Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
+        Returns: number
+      }
       client_portal_is_operator: { Args: { _email: string }; Returns: boolean }
       current_client_portal_project_id: { Args: never; Returns: string }
       delete_email: {

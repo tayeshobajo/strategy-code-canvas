@@ -22,10 +22,20 @@ export const Route = createFileRoute("/ops")({
     if (error || !data.user) {
       throw redirect({ to: "/auth", search: { redirect: location.href } });
     }
-    if (!isOperatorEmail(data.user.email)) {
+    const email = data.user.email?.toLowerCase() ?? "";
+    let allowed = isOperatorEmail(email);
+    if (!allowed) {
+      const { data: opRpc } = await supabase.rpc("has_role_email", { _email: email, _role: "operator" });
+      if (opRpc === true) allowed = true;
+    }
+    if (!allowed) {
+      const { data: adminRpc } = await supabase.rpc("has_role_email", { _email: email, _role: "admin" });
+      if (adminRpc === true) allowed = true;
+    }
+    if (!allowed) {
       throw redirect({ to: "/" });
     }
-    return { operatorEmail: data.user.email!.toLowerCase() };
+    return { operatorEmail: email };
   },
   component: OpsLayout,
 });
