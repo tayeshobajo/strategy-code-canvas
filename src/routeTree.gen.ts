@@ -77,6 +77,7 @@ import { Route as EngineProjectsProjectIdDeliveryRouteImport } from './routes/en
 import { Route as EngineProjectsProjectIdDeadlinesRouteImport } from './routes/engine.projects.$projectId.deadlines'
 import { Route as EngineProjectsProjectIdBuilderRouteImport } from './routes/engine.projects.$projectId.builder'
 import { Route as EngineProjectsProjectIdBlueprintRouteImport } from './routes/engine.projects.$projectId.blueprint'
+import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engine.projects.$projectId.agent'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
 
@@ -436,6 +437,12 @@ const EngineProjectsProjectIdBlueprintRoute =
     path: '/blueprint',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdAgentRoute =
+  EngineProjectsProjectIdAgentRouteImport.update({
+    id: '/agent',
+    path: '/agent',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -499,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
@@ -566,6 +574,7 @@ export interface FileRoutesByTo {
   '/engine/projects': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
@@ -639,6 +648,7 @@ export interface FileRoutesById {
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
@@ -711,6 +721,7 @@ export interface FileRouteTypes {
     | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
+    | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/builder'
     | '/engine/projects/$projectId/deadlines'
@@ -778,6 +789,7 @@ export interface FileRouteTypes {
     | '/engine/projects'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
+    | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/builder'
     | '/engine/projects/$projectId/deadlines'
@@ -850,6 +862,7 @@ export interface FileRouteTypes {
     | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
+    | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/builder'
     | '/engine/projects/$projectId/deadlines'
@@ -1375,6 +1388,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdBlueprintRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/agent': {
+      id: '/engine/projects/$projectId/agent'
+      path: '/agent'
+      fullPath: '/engine/projects/$projectId/agent'
+      preLoaderRoute: typeof EngineProjectsProjectIdAgentRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -1442,6 +1462,7 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface EngineProjectsProjectIdRouteChildren {
+  EngineProjectsProjectIdAgentRoute: typeof EngineProjectsProjectIdAgentRoute
   EngineProjectsProjectIdBlueprintRoute: typeof EngineProjectsProjectIdBlueprintRoute
   EngineProjectsProjectIdBuilderRoute: typeof EngineProjectsProjectIdBuilderRoute
   EngineProjectsProjectIdDeadlinesRoute: typeof EngineProjectsProjectIdDeadlinesRoute
@@ -1462,6 +1483,7 @@ interface EngineProjectsProjectIdRouteChildren {
 
 const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren =
   {
+    EngineProjectsProjectIdAgentRoute: EngineProjectsProjectIdAgentRoute,
     EngineProjectsProjectIdBlueprintRoute:
       EngineProjectsProjectIdBlueprintRoute,
     EngineProjectsProjectIdBuilderRoute: EngineProjectsProjectIdBuilderRoute,
