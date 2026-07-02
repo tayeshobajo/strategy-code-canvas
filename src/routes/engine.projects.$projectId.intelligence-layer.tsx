@@ -451,61 +451,142 @@ function SourceRow({ row, onChange }: { row: EngineSource; onChange: () => void 
   const removeFn = useServerFn(removeSource);
   const reprocessFn = useServerFn(reprocessSource);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const isProcessing = row.status === "processing";
+  const isFailed = row.status === "failed";
+  const stages = (row.processing_stages ?? []) as EngineSourceStage[];
+
+  const reprocess = async () => {
+    setBusy(true);
+    setOpen(true);
+    try {
+      await reprocessFn({ data: { id: row.id } });
+      toast.success(`Reprocessed "${row.name}"`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+      onChange();
+    }
+  };
+
   return (
-    <tr className="border-b border-border/60">
-      <td className="py-2.5">
-        <div className="font-medium text-ink text-sm">{row.name}</div>
-        {row.url ? (
-          <a
-            href={row.url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs text-royal hover:underline inline-flex items-center gap-1"
-          >
-            {row.url.slice(0, 48)} <ExternalLink className="w-3 h-3" />
-          </a>
-        ) : null}
-      </td>
-      <td className="text-ink/70 capitalize">{row.type.replace(/_/g, " ")}</td>
-      <td className="text-ink/60 text-xs">{new Date(row.created_at).toLocaleDateString()}</td>
-      <td>
-        <StatusPill status={row.status} />
-      </td>
-      <td className="text-right text-ink/80">{row.signals_count}</td>
-      <td className="text-right">
-        <ConfidenceDial value={row.confidence} />
-      </td>
-      <td className="pl-4 text-ink/70 text-xs">{row.used_in_version ?? "—"}</td>
-      <td className="text-right">
-        <div className="inline-flex items-center gap-1">
-          <button
-            title="Reprocess"
-            onClick={async () => {
-              setBusy(true);
-              await reprocessFn({ data: { id: row.id } });
-              setBusy(false);
-              onChange();
-            }}
-            disabled={busy}
-            className="p-1 hover:bg-ink/5 rounded"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${busy ? "animate-spin" : ""}`} />
-          </button>
-          <button
-            title="Remove"
-            onClick={async () => {
-              if (!confirm(`Remove "${row.name}"?`)) return;
-              await removeFn({ data: { id: row.id } });
-              onChange();
-            }}
-            className="p-1 hover:bg-ink/5 rounded"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </td>
-    </tr>
+    <>
+      <tr className="border-b border-border/60">
+        <td className="py-2.5">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="p-0.5 hover:bg-ink/5 rounded"
+              aria-label={open ? "Collapse stages" : "Expand stages"}
+            >
+              {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+            <div className="min-w-0">
+              <div className="font-medium text-ink text-sm truncate">{row.name}</div>
+              {row.url ? (
+                <a
+                  href={row.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-royal hover:underline inline-flex items-center gap-1"
+                >
+                  {row.url.slice(0, 48)} <ExternalLink className="w-3 h-3" />
+                </a>
+              ) : null}
+              {isFailed && row.error ? (
+                <div className="text-[11px] text-[#a4283c] mt-0.5 truncate max-w-[320px]">{row.error}</div>
+              ) : null}
+            </div>
+          </div>
+        </td>
+        <td className="text-ink/70 capitalize">{row.type.replace(/_/g, " ")}</td>
+        <td className="text-ink/60 text-xs">{new Date(row.created_at).toLocaleDateString()}</td>
+        <td>
+          <StatusPill status={row.status} />
+        </td>
+        <td className="text-right text-ink/80">{row.signals_count}</td>
+        <td className="text-right">
+          <ConfidenceDial value={row.confidence} />
+        </td>
+        <td className="pl-4 text-ink/70 text-xs">{row.used_in_version ?? "—"}</td>
+        <td className="text-right">
+          <div className="inline-flex items-center gap-1">
+            <button
+              title="Reprocess this source"
+              onClick={reprocess}
+              disabled={busy || isProcessing}
+              className="p-1 hover:bg-ink/5 rounded disabled:opacity-40"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${busy || isProcessing ? "animate-spin" : ""}`} />
+            </button>
+            <button
+              title="Remove"
+              onClick={async () => {
+                if (!confirm(`Remove "${row.name}"?`)) return;
+                await removeFn({ data: { id: row.id } });
+                onChange();
+              }}
+              className="p-1 hover:bg-ink/5 rounded"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </td>
+      </tr>
+      {open ? (
+        <tr className="bg-canvas/60 border-b border-border/60">
+          <td colSpan={8} className="px-3 py-3">
+            <StagePanel stages={stages} isProcessing={isProcessing} />
+          </td>
+        </tr>
+      ) : null}
+    </>
   );
+}
+
+function StagePanel({
+  stages,
+  isProcessing,
+}: {
+  stages: EngineSourceStage[];
+  isProcessing: boolean;
+}) {
+  if (!stages.length) {
+    return (
+      <div className="text-xs text-ink/60">
+        {isProcessing
+          ? "Starting…"
+          : "Not yet processed. Click the refresh icon to run the pipeline for this source."}
+      </div>
+    );
+  }
+  return (
+    <ol className="grid grid-cols-1 md:grid-cols-5 gap-2">
+      {stages.map((s) => (
+        <li
+          key={s.key}
+          className="rounded-md border border-border bg-white px-3 py-2 flex items-start gap-2"
+        >
+          <StageIcon status={s.status} />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs text-ink font-medium">{s.label}</div>
+            <div className="text-[10px] uppercase tracking-wide text-ink/50">{s.status}</div>
+            {s.note ? <div className="text-[11px] text-ink/70 mt-0.5 truncate">{s.note}</div> : null}
+            {s.error ? <div className="text-[11px] text-[#a4283c] mt-0.5 truncate">{s.error}</div> : null}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function StageIcon({ status }: { status: EngineSourceStage["status"] }) {
+  if (status === "running") return <Loader2 className="w-3.5 h-3.5 mt-0.5 text-royal animate-spin" />;
+  if (status === "completed") return <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-[#1f6b3b]" />;
+  if (status === "failed") return <XCircle className="w-3.5 h-3.5 mt-0.5 text-[#a4283c]" />;
+  if (status === "skipped") return <MinusCircle className="w-3.5 h-3.5 mt-0.5 text-ink/40" />;
+  return <span className="w-3.5 h-3.5 mt-0.5 rounded-full border border-ink/30 block" />;
 }
 
 function StatusPill({ status }: { status: string }) {
