@@ -36,6 +36,8 @@ function MilestoneBriefPage() {
   const approveFn = useServerFn(approveMilestone);
   const sendFn = useServerFn(sendMilestoneToTasks);
   const regenFn = useServerFn(regenerateMilestoneSection);
+  const recordDecisionFn = useServerFn(recordIntelligenceDecision);
+  const role = useEngineRole();
   const [tab, setTab] = useState<Tab>("Overview");
   const [regenerating, setRegenerating] = useState<string | null>(null);
 
