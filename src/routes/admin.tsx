@@ -11,9 +11,19 @@ export const Route = createFileRoute("/admin")({
     if (error || !data.user) {
       throw redirect({ to: "/auth", search: { redirect: location.href } });
     }
-    // Include hello@trusttai.com for portal admin
     const email = data.user.email?.toLowerCase() ?? "";
-    if (!isOperatorEmail(email) && email !== "hello@trusttai.com") {
+    // Admin surface: allow allow-listed operators (backward compat) and any
+    // email that is either the legacy hello@ address or has an admin/operator
+    // role in `public.user_roles` (checked via the security-definer RPC).
+    let allowed = isOperatorEmail(email) || isAdminEmail(email) || email === "hello@trusttai.com";
+    if (!allowed) {
+      const { data: rpcData } = await supabase.rpc("has_role_email", {
+        _email: email,
+        _role: "admin",
+      });
+      allowed = rpcData === true;
+    }
+    if (!allowed) {
       throw redirect({ to: "/" });
     }
     return { adminEmail: email };
