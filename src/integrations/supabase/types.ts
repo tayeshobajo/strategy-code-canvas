@@ -823,6 +823,7 @@ export type Database = {
           cost_cents: number
           created_at: string
           created_by_email: string | null
+          created_by_kind: string
           error: string | null
           id: string
           kind: Database["public"]["Enums"]["engine_agent_task_kind"]
@@ -831,6 +832,7 @@ export type Database = {
           project_id: string
           prompt: string
           related_module: string | null
+          roadmap_version_id: string | null
           status: Database["public"]["Enums"]["engine_agent_task_status"]
           tokens_in: number
           tokens_out: number
@@ -846,6 +848,7 @@ export type Database = {
           cost_cents?: number
           created_at?: string
           created_by_email?: string | null
+          created_by_kind?: string
           error?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["engine_agent_task_kind"]
@@ -854,6 +857,7 @@ export type Database = {
           project_id: string
           prompt: string
           related_module?: string | null
+          roadmap_version_id?: string | null
           status?: Database["public"]["Enums"]["engine_agent_task_status"]
           tokens_in?: number
           tokens_out?: number
@@ -869,6 +873,7 @@ export type Database = {
           cost_cents?: number
           created_at?: string
           created_by_email?: string | null
+          created_by_kind?: string
           error?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["engine_agent_task_kind"]
@@ -877,6 +882,7 @@ export type Database = {
           project_id?: string
           prompt?: string
           related_module?: string | null
+          roadmap_version_id?: string | null
           status?: Database["public"]["Enums"]["engine_agent_task_status"]
           tokens_in?: number
           tokens_out?: number
@@ -889,6 +895,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_agent_tasks_roadmap_version_id_fkey"
+            columns: ["roadmap_version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -1143,6 +1156,68 @@ export type Database = {
           },
         ]
       }
+      engine_intelligence_memory: {
+        Row: {
+          archived_at: string | null
+          captured_at: string
+          confidence: number
+          created_at: string
+          id: string
+          project_id: string | null
+          promoted_by: string | null
+          source: string | null
+          source_date: string | null
+          summary: string | null
+          tags: string[]
+          title: string
+          type: string
+          updated_at: string
+          used_in: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          captured_at?: string
+          confidence?: number
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          promoted_by?: string | null
+          source?: string | null
+          source_date?: string | null
+          summary?: string | null
+          tags?: string[]
+          title: string
+          type?: string
+          updated_at?: string
+          used_in?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          captured_at?: string
+          confidence?: number
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          promoted_by?: string | null
+          source?: string | null
+          source_date?: string | null
+          summary?: string | null
+          tags?: string[]
+          title?: string
+          type?: string
+          updated_at?: string
+          used_in?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_intelligence_memory_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_milestones: {
         Row: {
           acceptance_criteria: Json
@@ -1153,6 +1228,7 @@ export type Database = {
           client_safe_md: string | null
           confidence: number | null
           created_at: string
+          created_by_kind: string
           deadline_relevance: string | null
           decisions: Json
           dependencies: Json
@@ -1171,6 +1247,7 @@ export type Database = {
           related_hidden_asset: string | null
           related_system_node: string | null
           risks: Json
+          roadmap_version_id: string | null
           sort_index: number | null
           status: string
           updated_at: string
@@ -1184,6 +1261,7 @@ export type Database = {
           client_safe_md?: string | null
           confidence?: number | null
           created_at?: string
+          created_by_kind?: string
           deadline_relevance?: string | null
           decisions?: Json
           dependencies?: Json
@@ -1202,6 +1280,7 @@ export type Database = {
           related_hidden_asset?: string | null
           related_system_node?: string | null
           risks?: Json
+          roadmap_version_id?: string | null
           sort_index?: number | null
           status?: string
           updated_at?: string
@@ -1215,6 +1294,7 @@ export type Database = {
           client_safe_md?: string | null
           confidence?: number | null
           created_at?: string
+          created_by_kind?: string
           deadline_relevance?: string | null
           decisions?: Json
           dependencies?: Json
@@ -1233,6 +1313,7 @@ export type Database = {
           related_hidden_asset?: string | null
           related_system_node?: string | null
           risks?: Json
+          roadmap_version_id?: string | null
           sort_index?: number | null
           status?: string
           updated_at?: string
@@ -1243,6 +1324,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_milestones_roadmap_version_id_fkey"
+            columns: ["roadmap_version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -1761,6 +1849,7 @@ export type Database = {
           owner_email: string | null
           priority: string
           project_id: string
+          roadmap_version_id: string | null
           source: string | null
           status: string
           updated_at: string
@@ -1781,6 +1870,7 @@ export type Database = {
           owner_email?: string | null
           priority?: string
           project_id: string
+          roadmap_version_id?: string | null
           source?: string | null
           status?: string
           updated_at?: string
@@ -1801,6 +1891,7 @@ export type Database = {
           owner_email?: string | null
           priority?: string
           project_id?: string
+          roadmap_version_id?: string | null
           source?: string | null
           status?: string
           updated_at?: string
@@ -1825,6 +1916,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_tasks_roadmap_version_id_fkey"
+            columns: ["roadmap_version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -2029,6 +2127,64 @@ export type Database = {
           processed_at?: string
         }
         Relationships: []
+      }
+      roadmap_approvals: {
+        Row: {
+          approved_at: string
+          approver_email: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          project_id: string
+          review_item_id: string | null
+          snapshot_version: string
+          version_id: string
+        }
+        Insert: {
+          approved_at?: string
+          approver_email?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          project_id: string
+          review_item_id?: string | null
+          snapshot_version: string
+          version_id: string
+        }
+        Update: {
+          approved_at?: string
+          approver_email?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          project_id?: string
+          review_item_id?: string | null
+          snapshot_version?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_approvals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roadmap_approvals_review_item_id_fkey"
+            columns: ["review_item_id"]
+            isOneToOne: false
+            referencedRelation: "engine_review_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roadmap_approvals_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       roadmap_documents: {
         Row: {

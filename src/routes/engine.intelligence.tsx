@@ -1,12 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
-import { Database, Link2, Lightbulb, Calendar, Clock, Gauge, Download, Upload, GitMerge, Sparkles, MoreHorizontal, X } from "lucide-react";
+import { Database, Link2, Lightbulb, Calendar, Clock, Gauge, Download, Upload, GitMerge, Sparkles, MoreHorizontal, X, RefreshCw, Plus } from "lucide-react";
+import {
+  listIntelligenceMemory,
+  bulkReplaceIntelligenceMemory,
+  upsertIntelligenceMemory,
+  type MemoryRow,
+} from "@/lib/engine-intelligence.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/engine/intelligence")({
   component: IntelligenceMemoryPage,
 });
+
 
 type MemType = "Client Truth" | "Insight" | "Decision" | "Requirement" | "Opportunity" | "Constraint" | "Risk" | "Preference";
 
@@ -24,24 +34,29 @@ type Item = {
   usedIn: string;
 };
 
-const ITEMS: Item[] = [
-  { id: "i1", title: "Launch date is January 1, 2026", summary: "Official target for school platform launch.", type: "Client Truth", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:14 AM", confidence: 95, tags: ["Launch", "Deadline"], usedIn: "Roadmap v1.2 · 3 milestones" },
-  { id: "i2", title: "80 students expected in Phase 1", summary: "Initial schools launch with ~80 students.", type: "Client Truth", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:15 AM", confidence: 92, tags: ["Students", "Phase 1"], usedIn: "Q-Bank Engine Pre-Test MVP" },
-  { id: "i3", title: "Q-Bank is the foundation", summary: "Q-Bank drives everything. Get this right first.", type: "Decision", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:22 PM", confidence: 93, tags: ["Q-Bank", "Core"], usedIn: "Milestone Ordering · Priorities" },
-  { id: "i4", title: "Pre-Test before content access", summary: "Students complete pre-test before modules.", type: "Requirement", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:16 AM", confidence: 90, tags: ["Pre-Test", "Access"], usedIn: "Pre-Test MVP · Student Flow" },
-  { id: "i5", title: "Schools want simple reporting", summary: "Need easy reports for school admins.", type: "Opportunity", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:17 AM", confidence: 78, tags: ["Reporting", "Admin"], usedIn: "School Portal · Analytics" },
-  { id: "i6", title: "Budget range $100k – $150k", summary: "Annual investment range discussed.", type: "Constraint", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:18 AM", confidence: 88, tags: ["Budget", "Investment"], usedIn: "Investment Builder · Client Preview" },
-  { id: "i7", title: "Q-Bank import from existing bank", summary: "Need ability to import existing questions.", type: "Requirement", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:25 PM", confidence: 75, tags: ["Q-Bank", "Import"], usedIn: "Q-Bank Engine · Admin Tools" },
-  { id: "i8", title: "Parents will not use the platform", summary: "Platform is for students and schools only.", type: "Client Truth", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:18 AM", confidence: 91, tags: ["Users", "Access"], usedIn: "Feature Scope · User Roles" },
-  { id: "i9", title: "Compliance and data privacy critical", summary: "Must meet school data requirements.", type: "Risk", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:27 PM", confidence: 89, tags: ["Compliance", "Security"], usedIn: "System Blueprint · Risk Register" },
-  { id: "i10", title: "Mobile experience must be strong", summary: "Students will access mostly on mobile.", type: "Preference", project: "Mental Dental Academy", source: "Ryan Discovery Call", sourceDate: "Jun 19, 2025", captured: "Jun 19, 2025 · 10:19 AM", confidence: 70, tags: ["Mobile", "UX"], usedIn: "Design System · All Milestones" },
-  { id: "i11", title: "Launch target: Jan 1, 2026", summary: "Client confirmed the launch date is January 1st, 2026.", type: "Client Truth", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:14 PM", confidence: 88, tags: ["Launch", "Deadline"], usedIn: "Roadmap v1.2" },
-  { id: "i12", title: "Roughly 80 students in first cohort", summary: "First cohort will be about 80 students.", type: "Client Truth", project: "Mental Dental Academy", source: "Launch Notes v2", sourceDate: "Jun 18, 2025", captured: "Jun 18, 2025 · 3:16 PM", confidence: 84, tags: ["Students", "Phase 1"], usedIn: "Pre-Test MVP" },
-  { id: "i13", title: "Low-confidence: possibly needs SSO", summary: "One passing mention of maybe wanting SSO.", type: "Requirement", project: "Mental Dental Academy", source: "Slack thread", sourceDate: "May 12, 2025", captured: "May 12, 2025 · 4:02 PM", confidence: 42, tags: ["SSO"], usedIn: "—" },
-  { id: "i14", title: "Old constraint: prior budget cap $80k", summary: "Superseded by updated $100–150k range.", type: "Constraint", project: "Mental Dental Academy", source: "Kickoff notes", sourceDate: "Mar 1, 2025", captured: "Mar 1, 2025 · 9:00 AM", confidence: 55, tags: ["Budget"], usedIn: "—" },
-];
+const KNOWN_TYPES: MemType[] = ["Client Truth", "Insight", "Decision", "Requirement", "Opportunity", "Constraint", "Risk", "Preference"];
+
+function toItem(r: MemoryRow): Item {
+  const t = (KNOWN_TYPES as string[]).includes(r.type) ? (r.type as MemType) : "Insight";
+  const captured = r.captured_at ? new Date(r.captured_at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  const sourceDate = r.source_date ? new Date(r.source_date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+  return {
+    id: r.id,
+    title: r.title,
+    summary: r.summary ?? "",
+    type: t,
+    project: r.project_id ? r.project_id.slice(0, 8) : "—",
+    source: r.source ?? "—",
+    sourceDate,
+    captured,
+    confidence: r.confidence,
+    tags: r.tags ?? [],
+    usedIn: r.used_in ?? "—",
+  };
+}
 
 const TABS: (MemType | "All Memory" | "Insights")[] = ["All Memory", "Insights", "Client Truth", "Decision", "Constraint", "Opportunity", "Risk", "Preference"];
+
 
 const TYPE_STYLE: Record<MemType, string> = {
   "Client Truth": "bg-[#e6f5ec] text-[#1f6b3b] border-[#c4e6d2]",
@@ -61,26 +76,107 @@ function confidenceMeta(c: number) {
   return { label: "Low", dot: "bg-[#a4283c]" };
 }
 
+type BulkDiff = { removeIds: string[]; inserts: NewMemoryInput[] };
+type NewMemoryInput = {
+  project_id?: string | null;
+  title: string;
+  summary?: string | null;
+  type: string;
+  source?: string | null;
+  source_date?: string | null;
+  confidence?: number;
+  tags?: string[];
+  used_in?: string | null;
+};
+
 function IntelligenceMemoryPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("All Memory");
-  const [items, setItems] = useState<Item[]>(ITEMS);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [cleanOpen, setCleanOpen] = useState(false);
+
+  const queryClient = useQueryClient();
+  const listFn = useServerFn(listIntelligenceMemory);
+  const bulkFn = useServerFn(bulkReplaceIntelligenceMemory);
+  const upsertFn = useServerFn(upsertIntelligenceMemory);
+
+  const memoryQuery = useQuery({
+    queryKey: ["intelligence-memory"],
+    queryFn: () => listFn(),
+    staleTime: 15_000,
+  });
+
+  const items = useMemo<Item[]>(
+    () => (memoryQuery.data ?? []).map(toItem),
+    [memoryQuery.data],
+  );
+
+  const bulkMut = useMutation({
+    mutationFn: (diff: BulkDiff) => bulkFn({ data: diff }),
+    onSuccess: (r) => {
+      toast.success(`Memory updated · removed ${r.removed}, added ${r.inserted}`);
+      queryClient.invalidateQueries({ queryKey: ["intelligence-memory"] });
+      setMergeOpen(false);
+      setCleanOpen(false);
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Failed to update memory"),
+  });
+
   const rows = tab === "All Memory" || tab === "Insights" ? items : items.filter((i) => i.type === tab);
+
+  const totalItems = items.length;
+  const avgConfidence = items.length ? Math.round(items.reduce((s, i) => s + i.confidence, 0) / items.length) : 0;
+  const lastUpdated = memoryQuery.data && memoryQuery.data.length ? new Date(memoryQuery.data[0].captured_at) : null;
+  const firstCaptured = memoryQuery.data && memoryQuery.data.length
+    ? new Date(memoryQuery.data[memoryQuery.data.length - 1].captured_at)
+    : null;
+  const projectCount = new Set(items.map((i) => i.project).filter((p) => p !== "—")).size;
+
+  const [newOpen, setNewOpen] = useState(false);
+  const upsertMut = useMutation({
+    mutationFn: (payload: NewMemoryInput) => upsertFn({ data: payload as NewMemoryInput & { title: string; type: string } }),
+    onSuccess: () => {
+      toast.success("Memory item added");
+      queryClient.invalidateQueries({ queryKey: ["intelligence-memory"] });
+      setNewOpen(false);
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Failed to add memory item"),
+  });
 
   return (
     <div className="max-w-[1500px]">
-      <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">Memory</div>
-      <h1 className="font-display text-4xl text-ink mt-1 mb-2">Intelligence Memory</h1>
-      <p className="text-ink/60 mb-6">The living memory of all project intelligence. Organized, connected, and always ready to inform better decisions.</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">Memory</div>
+          <h1 className="font-display text-4xl text-ink mt-1 mb-2">Intelligence Memory</h1>
+          <p className="text-ink/60 mb-6">The living memory of all project intelligence. Organized, connected, and always ready to inform better decisions.</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => memoryQuery.refetch()}
+            className="inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 text-ink/80 hover:border-royal/50"
+            disabled={memoryQuery.isFetching}
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", memoryQuery.isFetching && "animate-spin")} />
+            Refresh
+          </button>
+          <button
+            onClick={() => setNewOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs bg-royal text-white rounded-md px-2.5 py-1.5 hover:bg-royal/90"
+          >
+            <Plus className="w-3.5 h-3.5" /> New Item
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-        <MetricCard label="Total Items" value="2,487" tone="purple" hint={<span className="flex items-center gap-1"><Database className="w-3 h-3" />Across all projects</span>} />
-        <MetricCard label="Sources Connected" value={68} tone="blue" hint={<span className="flex items-center gap-1"><Link2 className="w-3 h-3" />Active sources</span>} />
-        <MetricCard label="Insights Extracted" value="1,142" tone="orange" hint={<span className="flex items-center gap-1"><Lightbulb className="w-3 h-3" />This month</span>} />
-        <MetricCard label="First Captured" value="Jan 3" tone="default" hint={<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />2025</span>} />
-        <MetricCard label="Last Updated" value="Jun 20" tone="default" hint={<span className="flex items-center gap-1"><Clock className="w-3 h-3" />9:24 AM</span>} />
-        <MetricCard label="Avg Confidence" value="87%" tone="green" hint={<span className="flex items-center gap-1"><Gauge className="w-3 h-3" />Across all items</span>} />
+        <MetricCard label="Total Items" value={String(totalItems)} tone="purple" hint={<span className="flex items-center gap-1"><Database className="w-3 h-3" />Across all projects</span>} />
+        <MetricCard label="Projects" value={projectCount} tone="blue" hint={<span className="flex items-center gap-1"><Link2 className="w-3 h-3" />With memory</span>} />
+        <MetricCard label="Insights" value={items.filter((i) => i.type === "Insight").length} tone="orange" hint={<span className="flex items-center gap-1"><Lightbulb className="w-3 h-3" />Total</span>} />
+        <MetricCard label="First Captured" value={firstCaptured ? firstCaptured.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"} tone="default" hint={<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{firstCaptured ? firstCaptured.getFullYear() : ""}</span>} />
+        <MetricCard label="Last Updated" value={lastUpdated ? lastUpdated.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"} tone="default" hint={<span className="flex items-center gap-1"><Clock className="w-3 h-3" />{lastUpdated ? lastUpdated.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : ""}</span>} />
+        <MetricCard label="Avg Confidence" value={`${avgConfidence}%`} tone="green" hint={<span className="flex items-center gap-1"><Gauge className="w-3 h-3" />Across all items</span>} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
@@ -117,7 +213,13 @@ function IntelligenceMemoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((it) => {
+                {memoryQuery.isLoading ? (
+                  <tr><td colSpan={8} className="px-5 py-10 text-center text-ink/50 text-sm">Loading memory…</td></tr>
+                ) : rows.length === 0 ? (
+                  <tr><td colSpan={8} className="px-5 py-10 text-center text-ink/50 text-sm">
+                    No memory items yet. Click "New Item" to promote an insight into memory.
+                  </td></tr>
+                ) : rows.map((it) => {
                   const c = confidenceMeta(it.confidence);
                   return (
                     <tr key={it.id} className="border-b border-border/60 hover:bg-paper-soft/40 align-top">
@@ -128,7 +230,7 @@ function IntelligenceMemoryPage() {
                       <td className="px-3 py-3">
                         <span className={cn("text-[11px] px-2 py-0.5 rounded-full border whitespace-nowrap", TYPE_STYLE[it.type])}>{it.type}</span>
                       </td>
-                      <td className="px-3 py-3 text-ink/80 whitespace-nowrap">{it.project}</td>
+                      <td className="px-3 py-3 text-ink/80 whitespace-nowrap font-mono text-xs">{it.project}</td>
                       <td className="px-3 py-3">
                         <div className="text-ink/80">{it.source}</div>
                         <div className="text-xs text-ink/60">{it.sourceDate}</div>
@@ -149,7 +251,13 @@ function IntelligenceMemoryPage() {
                       </td>
                       <td className="px-3 py-3 text-xs text-ink/70">{it.usedIn}</td>
                       <td className="px-5 py-3 text-right">
-                        <button className="p-1 rounded hover:bg-paper-soft text-ink/60"><MoreHorizontal className="w-4 h-4" /></button>
+                        <button
+                          onClick={() => bulkMut.mutate({ removeIds: [it.id], inserts: [] })}
+                          className="p-1 rounded hover:bg-paper-soft text-ink/60"
+                          title="Archive item"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -163,31 +271,25 @@ function IntelligenceMemoryPage() {
           <SectionCard title="Memory Connections">
             <ConnectionsGraph />
             <ul className="mt-3 space-y-1.5 text-xs">
-              <LegendRow color="#1f6b3b" label="Client Truths" value={425} />
-              <LegendRow color="#2842a4" label="Decisions" value={312} />
-              <LegendRow color="#5435a4" label="Requirements" value={518} />
-              <LegendRow color="#a4283c" label="Constraints" value={284} />
-              <LegendRow color="#c99a20" label="Opportunities" value={401} />
-              <LegendRow color="#8a6713" label="Risks" value={204} />
+              {(["Client Truth", "Decision", "Requirement", "Constraint", "Opportunity", "Risk"] as MemType[]).map((t) => (
+                <LegendRow
+                  key={t}
+                  color={{ "Client Truth": "#1f6b3b", "Decision": "#2842a4", "Requirement": "#5435a4", "Constraint": "#a4283c", "Opportunity": "#c99a20", "Risk": "#8a6713", "Insight": "#2842a4", "Preference": "#5435a4" }[t]}
+                  label={`${t}s`}
+                  value={items.filter((i) => i.type === t).length}
+                />
+              ))}
             </ul>
           </SectionCard>
 
           <SectionCard title="Recent Additions">
             <ul className="space-y-3 text-sm">
-              <RecentItem title="New discovery call transcript" project="Mental Dental Academy" when="10:14 AM" />
-              <RecentItem title="Launch notes v2 uploaded" project="Mental Dental Academy" when="9:32 AM" />
-              <RecentItem title="School ops feedback" project="Mental Dental Academy" when="Yesterday" />
-              <RecentItem title="Q-Bank export data" project="Mental Dental Academy" when="Yesterday" />
-            </ul>
-          </SectionCard>
-
-          <SectionCard title="Most Connected Insights">
-            <ul className="space-y-2 text-sm">
-              <li className="flex justify-between text-ink"><span>Q-Bank is the foundation</span><span className="text-xs text-ink/60">18</span></li>
-              <li className="flex justify-between text-ink"><span>Launch date Jan 1, 2026</span><span className="text-xs text-ink/60">14</span></li>
-              <li className="flex justify-between text-ink"><span>Pre-Test before content access</span><span className="text-xs text-ink/60">12</span></li>
-              <li className="flex justify-between text-ink"><span>Budget range $100k–$150k</span><span className="text-xs text-ink/60">11</span></li>
-              <li className="flex justify-between text-ink"><span>80 students in Phase 1</span><span className="text-xs text-ink/60">10</span></li>
+              {items.slice(0, 4).map((it) => (
+                <RecentItem key={it.id} title={it.title} project={it.project} when={it.captured} />
+              ))}
+              {items.length === 0 ? (
+                <li className="text-xs text-ink/50">No recent additions.</li>
+              ) : null}
             </ul>
           </SectionCard>
 
@@ -198,6 +300,7 @@ function IntelligenceMemoryPage() {
               <QuickBtn icon={<GitMerge className="w-3.5 h-3.5" />} label="Merge Duplicates" onClick={() => setMergeOpen(true)} />
               <QuickBtn icon={<Sparkles className="w-3.5 h-3.5" />} label="Clean & Optimize" onClick={() => setCleanOpen(true)} />
             </div>
+            {bulkMut.isPending ? <div className="mt-2 text-xs text-ink/50">Saving…</div> : null}
           </SectionCard>
         </div>
       </div>
@@ -205,26 +308,30 @@ function IntelligenceMemoryPage() {
       {mergeOpen ? (
         <MergeDuplicatesDialog
           items={items}
+          pending={bulkMut.isPending}
           onClose={() => setMergeOpen(false)}
-          onApply={(nextItems) => {
-            setItems(nextItems);
-            setMergeOpen(false);
-          }}
+          onApply={(diff) => bulkMut.mutate(diff)}
         />
       ) : null}
       {cleanOpen ? (
         <CleanOptimizeDialog
           items={items}
+          pending={bulkMut.isPending}
           onClose={() => setCleanOpen(false)}
-          onApply={(nextItems) => {
-            setItems(nextItems);
-            setCleanOpen(false);
-          }}
+          onApply={(diff) => bulkMut.mutate(diff)}
+        />
+      ) : null}
+      {newOpen ? (
+        <NewMemoryDialog
+          pending={upsertMut.isPending}
+          onClose={() => setNewOpen(false)}
+          onSubmit={(payload) => upsertMut.mutate(payload)}
         />
       ) : null}
     </div>
   );
 }
+
 
 function QuickBtn({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
   return (
@@ -291,7 +398,7 @@ function mergeCluster(cluster: Item[]): Item {
   };
 }
 
-function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onClose: () => void; onApply: (next: Item[]) => void }) {
+function MergeDuplicatesDialog({ items, onClose, onApply, pending }: { items: Item[]; onClose: () => void; onApply: (diff: BulkDiff) => void; pending?: boolean }) {
   const clusters = useMemo(() => findDuplicateClusters(items), [items]);
   const [selected, setSelected] = useState<Set<string>>(new Set(clusters.map((c) => c.key)));
   const [compact, setCompact] = useState(false);
@@ -306,16 +413,25 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
   };
 
   const apply = () => {
-    const toRemove = new Set<string>();
-    const toAdd: Item[] = [];
+    const removeIds: string[] = [];
+    const inserts: NewMemoryInput[] = [];
     for (const c of clusters) {
       if (!selected.has(c.key)) continue;
-      c.items.forEach((it) => toRemove.add(it.id));
-      toAdd.push(mergeCluster(c.items));
+      c.items.forEach((it) => removeIds.push(it.id));
+      const merged = mergeCluster(c.items);
+      inserts.push({
+        title: merged.title,
+        summary: merged.summary,
+        type: merged.type,
+        source: merged.source === "—" ? null : merged.source,
+        confidence: merged.confidence,
+        tags: merged.tags,
+        used_in: merged.usedIn === "—" ? null : merged.usedIn,
+      });
     }
-    const next = items.filter((it) => !toRemove.has(it.id)).concat(toAdd);
-    onApply(next);
+    onApply({ removeIds, inserts });
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
@@ -388,10 +504,10 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
             <button onClick={onClose} className="text-xs px-3 py-1.5 rounded border border-border text-ink/70">Cancel</button>
             <button
               onClick={apply}
-              disabled={selected.size === 0}
+              disabled={selected.size === 0 || pending}
               className="text-xs px-3 py-1.5 rounded bg-royal text-white hover:bg-royal/90 disabled:opacity-40"
             >
-              Apply {selected.size} merge{selected.size === 1 ? "" : "s"}
+              {pending ? "Applying…" : `Apply ${selected.size} merge${selected.size === 1 ? "" : "s"}`}
             </button>
           </div>
         </footer>
@@ -399,6 +515,7 @@ function MergeDuplicatesDialog({ items, onClose, onApply }: { items: Item[]; onC
     </div>
   );
 }
+
 
 // ─────────────────────────────────────────────────────────────
 // Clean & Optimize: drop low-confidence, unused, superseded items
@@ -415,13 +532,14 @@ function detectCleanActions(items: Item[]): CleanAction[] {
   return out;
 }
 
-function CleanOptimizeDialog({ items, onClose, onApply }: { items: Item[]; onClose: () => void; onApply: (next: Item[]) => void }) {
+function CleanOptimizeDialog({ items, onClose, onApply, pending }: { items: Item[]; onClose: () => void; onApply: (diff: BulkDiff) => void; pending?: boolean }) {
   const actions = useMemo(() => detectCleanActions(items), [items]);
   const [selected, setSelected] = useState<Set<string>>(new Set(actions.map((a) => a.item.id)));
 
   const apply = () => {
-    onApply(items.filter((it) => !selected.has(it.id)));
+    onApply({ removeIds: [...selected], inserts: [] });
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
@@ -486,11 +604,12 @@ function CleanOptimizeDialog({ items, onClose, onApply }: { items: Item[]; onClo
             <button onClick={onClose} className="text-xs px-3 py-1.5 rounded border border-border text-ink/70">Cancel</button>
             <button
               onClick={apply}
-              disabled={selected.size === 0}
+              disabled={selected.size === 0 || pending}
               className="text-xs px-3 py-1.5 rounded bg-[#a4283c] text-white hover:bg-[#8a2033] disabled:opacity-40"
             >
-              Remove {selected.size} item{selected.size === 1 ? "" : "s"}
+              {pending ? "Removing…" : `Remove ${selected.size} item${selected.size === 1 ? "" : "s"}`}
             </button>
+
           </div>
         </footer>
       </div>
@@ -638,5 +757,87 @@ function ConnectionsGraph() {
         <circle key={i} cx={n.x} cy={n.y} r="6" fill={n.c} />
       ))}
     </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// New Memory Item dialog
+// ─────────────────────────────────────────────────────────────
+function NewMemoryDialog({ onClose, onSubmit, pending }: { onClose: () => void; onSubmit: (payload: NewMemoryInput) => void; pending?: boolean }) {
+  const [title, setTitle] = useState("");
+  const [summary, setSummary] = useState("");
+  const [type, setType] = useState<MemType>("Insight");
+  const [source, setSource] = useState("");
+  const [confidence, setConfidence] = useState(80);
+  const [tagsRaw, setTagsRaw] = useState("");
+  const [usedIn, setUsedIn] = useState("");
+
+  const canSubmit = title.trim().length > 0 && !pending;
+
+  const submit = () => {
+    if (!canSubmit) return;
+    onSubmit({
+      title: title.trim(),
+      summary: summary.trim() || null,
+      type,
+      source: source.trim() || null,
+      confidence,
+      tags: tagsRaw.split(",").map((t) => t.trim()).filter(Boolean),
+      used_in: usedIn.trim() || null,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-xl border border-border shadow-lg max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+        <header className="flex items-center justify-between p-4 border-b border-border">
+          <div>
+            <div className="font-display text-lg text-ink">Promote to Memory</div>
+            <div className="text-xs text-ink/60">Add a new insight, decision, or client truth to the intelligence memory.</div>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
+        </header>
+        <div className="p-4 space-y-3">
+          <label className="block text-xs">
+            <span className="text-ink/70 font-medium">Title</span>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm" placeholder="e.g. Launch date is January 1, 2026" />
+          </label>
+          <label className="block text-xs">
+            <span className="text-ink/70 font-medium">Summary</span>
+            <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm" placeholder="One-line context" />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs">
+              <span className="text-ink/70 font-medium">Type</span>
+              <select value={type} onChange={(e) => setType(e.target.value as MemType)} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm">
+                {KNOWN_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </label>
+            <label className="block text-xs">
+              <span className="text-ink/70 font-medium">Confidence ({confidence}%)</span>
+              <input type="range" min={0} max={100} value={confidence} onChange={(e) => setConfidence(Number(e.target.value))} className="mt-1 w-full" />
+            </label>
+          </div>
+          <label className="block text-xs">
+            <span className="text-ink/70 font-medium">Source</span>
+            <input value={source} onChange={(e) => setSource(e.target.value)} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm" placeholder="e.g. Discovery call transcript" />
+          </label>
+          <label className="block text-xs">
+            <span className="text-ink/70 font-medium">Tags (comma separated)</span>
+            <input value={tagsRaw} onChange={(e) => setTagsRaw(e.target.value)} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm" placeholder="Launch, Deadline" />
+          </label>
+          <label className="block text-xs">
+            <span className="text-ink/70 font-medium">Used In</span>
+            <input value={usedIn} onChange={(e) => setUsedIn(e.target.value)} className="mt-1 w-full border border-border rounded-md px-2.5 py-1.5 text-sm" placeholder="Roadmap v1.2 · Milestone Ordering" />
+          </label>
+        </div>
+        <footer className="flex items-center justify-end gap-2 p-4 border-t border-border">
+          <button onClick={onClose} className="text-xs px-3 py-1.5 rounded border border-border text-ink/70">Cancel</button>
+          <button onClick={submit} disabled={!canSubmit} className="text-xs px-3 py-1.5 rounded bg-royal text-white hover:bg-royal/90 disabled:opacity-40">
+            {pending ? "Saving…" : "Add to Memory"}
+          </button>
+        </footer>
+      </div>
+    </div>
   );
 }
