@@ -463,8 +463,10 @@ export const approveSubmission = createServerFn({ method: "POST" })
     // Enqueue on the main Lovable Cloud Supabase project (where the email
     // queue + cron live), not on the intake project.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { ensureUnsubscribeToken } = await import("@/lib/email/unsubscribe-token.server");
     const messageId = (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`) as string;
     const recipient = (process.env.OPS_NOTIFY_EMAIL ?? "tai@trusttai.com").trim().toLowerCase();
+    const unsubscribeToken = await ensureUnsubscribeToken(recipient);
     const { error: enqErr } = await (
       supabaseAdmin.rpc as unknown as (
         fn: string,
@@ -488,6 +490,7 @@ export const approveSubmission = createServerFn({ method: "POST" })
         label: "ops-approval-notice",
         purpose: "transactional",
         idempotency_key: `ops-approval-${data.submission_id}`,
+        unsubscribe_token: unsubscribeToken,
       },
     });
     if (enqErr) {
