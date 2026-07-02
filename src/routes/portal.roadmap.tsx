@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Suspense } from "react";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { Suspense, useEffect, useState } from "react";
+import { useSuspenseQuery, queryOptions, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
-import { getPortalRoadmapDocs } from "@/lib/portal.functions";
+import { getPortalRoadmapDocs, recordPortalRoadmapEvent } from "@/lib/portal.functions";
+import { usePortalContext } from "@/hooks/use-portal-context";
 import { Button } from "@/components/ui/button";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, CheckCircle2, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/portal/roadmap")({
   head: () => ({
