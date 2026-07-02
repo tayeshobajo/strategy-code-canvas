@@ -100,10 +100,18 @@ function IntelligenceMemoryPage() {
   const listFn = useServerFn(listIntelligenceMemory);
   const bulkFn = useServerFn(bulkReplaceIntelligenceMemory);
   const upsertFn = useServerFn(upsertIntelligenceMemory);
+  const listDecisionsFn = useServerFn(listIntelligenceDecisions);
+  const recordDecisionFn = useServerFn(recordIntelligenceDecision);
 
   const memoryQuery = useQuery({
     queryKey: ["intelligence-memory"],
     queryFn: () => listFn(),
+    staleTime: 15_000,
+  });
+
+  const decisionsQuery = useQuery({
+    queryKey: ["intelligence-decisions"],
+    queryFn: () => listDecisionsFn({ data: { limit: 100 } }),
     staleTime: 15_000,
   });
 
@@ -112,8 +120,30 @@ function IntelligenceMemoryPage() {
     [memoryQuery.data],
   );
 
+  const persistDecisions = async (action: "merge" | "clean", diff: BulkDiff) => {
+    for (const id of diff.removeIds) {
+      const it = items.find((i) => i.id === id);
+      try {
+        await recordDecisionFn({
+          data: {
+            memory_id: id,
+            action,
+            before_state: it ? { title: it.title, summary: it.summary, type: it.type, confidence: it.confidence, tags: it.tags } : {},
+            after_state: action === "merge" ? { merged: true } : { archived: true },
+            notes: null,
+          },
+        });
+      } catch { /* audit best-effort */ }
+    }
+    queryClient.invalidateQueries({ queryKey: ["intelligence-decisions"] });
+  };
+
   const bulkMut = useMutation({
-    mutationFn: (diff: BulkDiff) => bulkFn({ data: diff }),
+    mutationFn: async (payload: { action: "merge" | "clean"; diff: BulkDiff }) => {
+      const r = await bulkFn({ data: payload.diff });
+      await persistDecisions(payload.action, payload.diff);
+      return r;
+    },
     onSuccess: (r) => {
       toast.success(`Memory updated · removed ${r.removed}, added ${r.inserted}`);
       queryClient.invalidateQueries({ queryKey: ["intelligence-memory"] });
