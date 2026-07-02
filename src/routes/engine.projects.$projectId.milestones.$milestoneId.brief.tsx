@@ -175,7 +175,7 @@ function MilestoneBriefPage() {
           {showTab("Brief") && (
             <SectionCard
               title={<span className="flex items-center gap-2"><FileText className="w-4 h-4" />Generated Brief</span>}
-              right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" />}
+              right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("brief_md")} regenerating={regenerating === "brief_md"} />}
             >
               <EditableMarkdown
                 value={m.brief_md ?? ""}
@@ -188,7 +188,7 @@ function MilestoneBriefPage() {
           {showTab("Acceptance Criteria") && (
             <SectionCard
               title={<span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />Acceptance Criteria</span>}
-              right={<span className="flex items-center gap-2 text-xs text-ink/60">{done}/{criteria.length} <AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" /></span>}
+              right={<span className="flex items-center gap-2 text-xs text-ink/60">{done}/{criteria.length} <AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("acceptance_criteria")} regenerating={regenerating === "acceptance_criteria"} /></span>}
             >
               <CriteriaEditor
                 criteria={criteria}
@@ -202,10 +202,13 @@ function MilestoneBriefPage() {
             <SectionCard
               title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4" />Developer / Lovable Prompt</span>}
               right={
-                <button
-                  onClick={() => { navigator.clipboard.writeText(m.developer_prompt ?? ""); toast.success("Copied"); }}
-                  className="inline-flex items-center gap-1.5 text-xs text-royal hover:underline"
-                ><Copy className="w-3 h-3" /> Copy</button>
+                <div className="flex items-center gap-2">
+                  <AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("developer_prompt")} regenerating={regenerating === "developer_prompt"} />
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(m.developer_prompt ?? ""); toast.success("Copied"); }}
+                    className="inline-flex items-center gap-1.5 text-xs text-royal hover:underline"
+                  ><Copy className="w-3 h-3" /> Copy</button>
+                </div>
               }
             >
               <EditablePrompt
@@ -218,10 +221,10 @@ function MilestoneBriefPage() {
 
           {tab === "Overview" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <SectionCard title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4" />QA Checklist</span>} right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" />}>
+              <SectionCard title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4" />QA Checklist</span>} right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("qa_checklist")} regenerating={regenerating === "qa_checklist"} />}>
                 <QAList items={m.qa_checklist ?? []} />
               </SectionCard>
-              <SectionCard title="Client-Safe Explanation" right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" />}>
+              <SectionCard title="Client-Safe Explanation" right={<AIDraftBadge kind={m.created_by_kind ?? "ai"} size="xs" onRegenerate={() => regenerate("client_safe_md")} regenerating={regenerating === "client_safe_md"} />}>
                 <EditableMarkdown
                   value={m.client_safe_md ?? ""}
                   approved={approved}
