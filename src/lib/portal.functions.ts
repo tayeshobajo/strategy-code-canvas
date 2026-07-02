@@ -11,18 +11,13 @@ import {
   normalizeCorrelationId,
 } from "@/lib/portal-access-diagnosis";
 
-const OPERATOR_EMAILS = new Set([
-  "hello@trusttai.com",
-  "tai@trusttai.com",
-  "henry@trusttai.com",
-  // Legacy aliases retained for backward compatibility.
-  "hello@trust-tai.com",
-  "tai@trust-tai.com",
-  "henry@trust-tai.com",
-]);
+import { hasRoleForEmail, isAdminEmail } from "@/lib/ops/access";
 
+// Sync allowlist fallback used for rendering (returned in `hasClientAccess`).
+// The authoritative check is `assertOperator` which also consults the
+// `user_roles` table via the `has_role_email` RPC.
 function isOperator(email: string | null | undefined) {
-  return !!email && OPERATOR_EMAILS.has(email.toLowerCase());
+  return isAdminEmail(email);
 }
 
 // Read the inbound correlation ID from the request or mint a fresh one.
@@ -342,8 +337,13 @@ export const getPortalContext = createServerFn({ method: "GET" })
 // -------------------- Admin (operator) --------------------
 async function assertOperator(context: { claims?: { email?: string }; supabase: unknown }) {
   const email = context.claims?.email;
-  if (!isOperator(email)) throw new Error("Forbidden");
-  return email as string;
+  if (!email) throw new Error("Forbidden");
+  const supa = context.supabase as {
+    rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+  };
+  const ok = isOperator(email) || (await hasRoleForEmail(supa, email, "admin"));
+  if (!ok) throw new Error("Forbidden");
+  return email;
 }
 
 export const adminListPortals = createServerFn({ method: "GET" })
