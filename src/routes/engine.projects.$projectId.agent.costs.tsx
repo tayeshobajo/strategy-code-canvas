@@ -58,6 +58,23 @@ function CostCenterPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const download = useMutation({
+    mutationFn: () => csvFn({ data: { projectId } }),
+    onSuccess: (res: any) => {
+      const blob = new Blob([res.csv ?? ""], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.filename ?? "cost-center.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${res.rowCount ?? 0} ledger rows`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to export CSV"),
+  });
+
   return (
     <div className="space-y-5 max-w-[1500px]">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -65,10 +82,43 @@ function CostCenterPage() {
           <h1 className="font-display text-3xl text-ink">Agent Cost Center</h1>
           <p className="text-sm text-ink/60 mt-1">Track the cost, efficiency, and value of your AI agent for this project.</p>
         </div>
-        <button className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50">
-          <Download className="w-3.5 h-3.5" /> Download Report
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => q.refetch()}
+            disabled={q.isFetching}
+            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-60"
+            title="Refresh cost data"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${q.isFetching ? "animate-spin" : ""}`} />
+            {q.isFetching ? "Refreshing…" : "Refresh"}
+          </button>
+          <button
+            onClick={() => download.mutate()}
+            disabled={download.isPending}
+            className="text-xs border border-border rounded-md px-3 py-1.5 flex items-center gap-1.5 hover:border-royal/50 disabled:opacity-60"
+          >
+            <Download className="w-3.5 h-3.5" />
+            {download.isPending ? "Preparing…" : "Download CSV"}
+          </button>
+        </div>
       </div>
+
+      {q.isError && (
+        <div className="rounded-md border border-[#a4283c]/30 bg-[#fdecef] px-3 py-2 flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2 text-sm text-[#a4283c]">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <div>
+              <div className="font-medium">Failed to load cost data</div>
+              <div className="text-[#a4283c]/80 text-xs">{(q.error as Error)?.message ?? "Unknown error"}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => q.refetch()}
+            className="text-xs bg-[#a4283c] text-white rounded-md px-3 py-1.5 hover:bg-[#a4283c]/90"
+          >Retry</button>
+        </div>
+      )}
+
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <MetricCard label="Total spend" value={formatCents(totals.totalSpend)} tone="blue" hint={`Across ${totals.tasksCreated} agent runs`} />
