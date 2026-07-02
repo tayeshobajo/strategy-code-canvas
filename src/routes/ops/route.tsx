@@ -10,6 +10,7 @@ import {
   History as HistoryIcon,
   LineChart,
   LogOut,
+  Mail,
   Send,
   Eye,
   ShieldAlert,
