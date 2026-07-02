@@ -17,6 +17,8 @@ export const WORKSPACE_STEPS = [
 
 export type WorkspaceStepKey = (typeof WORKSPACE_STEPS)[number]["key"];
 
+export type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
+
 export type WorkspaceProject = {
   id: string;
   name: string;
@@ -34,17 +36,17 @@ export type WorkspaceProject = {
   last_activity_at: string;
   client_company: string;
   client_owner_email: string | null;
-  signal_room: Record<string, unknown>;
-  extraction: Record<string, unknown>;
-  point_a: Record<string, unknown>;
-  point_b: Record<string, unknown>;
-  hidden_assets: Record<string, unknown>;
-  gap_map: Record<string, unknown>;
-  blueprint: Record<string, unknown>;
-  roadmap: Record<string, unknown>;
-  sequencing: Record<string, unknown>;
-  deadlines: Record<string, unknown>;
-  investment: Record<string, unknown>;
-  client_preview: Record<string, unknown>;
-  delivery: Record<string, unknown>;
+  signal_room: Json;
+  extraction: Json;
+  point_a: Json;
+  point_b: Json;
+  hidden_assets: Json;
+  gap_map: Json;
+  blueprint: Json;
+  roadmap: Json;
+  sequencing: Json;
+  deadlines: Json;
+  investment: Json;
+  client_preview: Json;
+  delivery: Json;
 };
