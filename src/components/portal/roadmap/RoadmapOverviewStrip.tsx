@@ -7,23 +7,34 @@ type Props = {
   journey: RoadmapJourney;
   onJump: (key: "pointA" | "now" | "next" | "later" | "pointB") => void;
   onFullscreen?: () => void;
+  /** "floating" renders as a dark, glass-blur strip designed to sit
+   *  absolutely inside the map canvas. Default is the light card variant. */
+  variant?: "card" | "floating";
 };
 
-export function RoadmapOverviewStrip({ journey, onJump }: Props) {
+export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Props) {
   const canvas = useRoadmapCanvas();
   const [expanded, setExpanded] = useState(true);
   const active = canvas.activePhaseKey ?? journey.activeMilestone?.phase ?? "now";
 
   const phases = journey.phases;
+  const floating = variant === "floating";
 
   return (
-    <div className="rounded-2xl bg-card border border-border p-4 lg:p-5">
+    <div
+      className={
+        floating
+          ? "rounded-xl bg-slate-950/75 backdrop-blur border border-white/15 px-4 py-2.5 shadow-[0_20px_45px_-20px_rgba(0,0,0,0.6)] text-white"
+          : "rounded-2xl bg-card border border-border p-4 lg:p-5"
+      }
+    >
+
       <div className="flex items-center gap-6">
         <div className="shrink-0">
-          <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-royal">
+          <div className={`font-mono text-[10px] uppercase tracking-[0.28em] ${floating ? "text-royal-glow" : "text-royal"}`}>
             Roadmap overview
           </div>
-          <div className="text-[12px] text-ink/60 mt-0.5 max-w-[180px] leading-snug">
+          <div className={`text-[12px] mt-0.5 max-w-[180px] leading-snug ${floating ? "text-white/65" : "text-ink/60"}`}>
             Drag or click on the map to navigate
           </div>
         </div>
@@ -36,7 +47,9 @@ export function RoadmapOverviewStrip({ journey, onJump }: Props) {
               tone="anchor"
               active={active === "pointA"}
               onClick={() => onJump("pointA")}
+              floating={floating}
             />
+
             {phases.map((p, i) => (
               <StripStop
                 key={p.key}
@@ -51,6 +64,7 @@ export function RoadmapOverviewStrip({ journey, onJump }: Props) {
                 tone={p.key === "now" ? "phase1" : p.key === "next" ? "phase2" : "phase3"}
                 active={active === p.key}
                 onClick={() => onJump(p.key as "now" | "next" | "later")}
+                floating={floating}
               />
             ))}
             <StripStop
@@ -59,6 +73,7 @@ export function RoadmapOverviewStrip({ journey, onJump }: Props) {
               tone="anchor"
               active={active === "pointB"}
               onClick={() => onJump("pointB")}
+              floating={floating}
             />
           </div>
         )}
@@ -67,13 +82,17 @@ export function RoadmapOverviewStrip({ journey, onJump }: Props) {
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
+            className={
+              floating
+                ? "inline-flex items-center justify-center h-8 w-8 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 text-white"
+                : "inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
+            }
             aria-label={expanded ? "Collapse overview" : "Expand overview"}
           >
             {expanded ? (
-              <ChevronLeft className="w-4 h-4 text-ink/70" />
+              <ChevronLeft className={`w-4 h-4 ${floating ? "text-white" : "text-ink/70"}`} />
             ) : (
-              <ChevronRight className="w-4 h-4 text-ink/70" />
+              <ChevronRight className={`w-4 h-4 ${floating ? "text-white" : "text-ink/70"}`} />
             )}
           </button>
           <button
@@ -86,12 +105,17 @@ export function RoadmapOverviewStrip({ journey, onJump }: Props) {
                 }
               }
             }}
-            className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
+            className={
+              floating
+                ? "inline-flex items-center justify-center h-8 w-8 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 text-white"
+                : "inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
+            }
             aria-label="View map fullscreen"
           >
-            <Maximize2 className="w-4 h-4 text-ink/70" />
+            <Maximize2 className={`w-4 h-4 ${floating ? "text-white" : "text-ink/70"}`} />
           </button>
         </div>
+
       </div>
     </div>
   );
@@ -103,29 +127,35 @@ function StripStop({
   tone,
   active,
   onClick,
+  floating = false,
 }: {
   label: string;
   sub: string;
   tone: "anchor" | "phase1" | "phase2" | "phase3";
   active: boolean;
   onClick: () => void;
+  floating?: boolean;
 }) {
   const toneClass =
     tone === "phase1"
-      ? "text-royal"
+      ? floating ? "text-[#7ea6ff]" : "text-royal"
       : tone === "phase2"
-        ? "text-[#c8811b]"
+        ? floating ? "text-[#f0b25b]" : "text-[#c8811b]"
         : tone === "phase3"
-          ? "text-[#3d8558]"
-          : "text-ink/60";
+          ? floating ? "text-[#7bd6a0]" : "text-[#3d8558]"
+          : floating ? "text-white/60" : "text-ink/60";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex-1 min-w-0 rounded-lg px-3 py-2 text-left transition-colors ${
+      className={`flex-1 min-w-0 rounded-lg px-3 py-1.5 text-left transition-colors ${
         active
-          ? "bg-royal/10 border border-royal/40"
-          : "border border-transparent hover:bg-ink/[0.03]"
+          ? floating
+            ? "bg-white/15 border border-white/40"
+            : "bg-royal/10 border border-royal/40"
+          : floating
+            ? "border border-transparent hover:bg-white/10"
+            : "border border-transparent hover:bg-ink/[0.03]"
       }`}
     >
       <div
@@ -133,10 +163,11 @@ function StripStop({
       >
         {label}
       </div>
-      <div className="text-[12px] font-medium text-ink truncate">{sub}</div>
+      <div className={`text-[12px] font-medium truncate ${floating ? "text-white" : "text-ink"}`}>{sub}</div>
     </button>
   );
 }
+
 
 export function MapLegend() {
   const items: Array<{ label: string; color: string }> = [

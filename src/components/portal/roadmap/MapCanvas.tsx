@@ -15,6 +15,10 @@ type Props = {
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
   matchingSlugs?: Set<string> | null;
+  /** When true, the inner canvas is scaled to fit the parent height so the
+   *  full map sits inside a controlled app viewport (no page scroll). */
+  fitHeight?: boolean;
+  className?: string;
 };
 
 export function MapCanvas({
@@ -22,6 +26,8 @@ export function MapCanvas({
   selectedSlug,
   onSelect,
   matchingSlugs,
+  fitHeight = false,
+  className,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{
@@ -36,8 +42,25 @@ export function MapCanvas({
   const reduced = useReducedMotion();
   const canvas = useRoadmapCanvas();
   const [ready, setReady] = useState(false);
+  const [scale, setScale] = useState(1);
 
   const layout = useMemo(() => computeMapLayout(journey), [journey]);
+
+  // When fitting to height, observe the container and rescale the inner canvas.
+  useLayoutEffect(() => {
+    if (!fitHeight) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = el.clientHeight;
+      if (h > 0) setScale(h / CANVAS_HEIGHT);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fitHeight]);
+
 
   // Publish scroll state so the header pill + overview strip can react.
   useLayoutEffect(() => {
@@ -208,6 +231,13 @@ export function MapCanvas({
 
   const bgUrl = mapBg.url;
 
+  const outerClass = fitHeight
+    ? "relative h-full w-full overflow-x-auto overflow-y-hidden rounded-2xl border border-white/10 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-royal"
+    : "relative w-full overflow-x-auto overflow-y-hidden rounded-2xl border border-white/10 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-royal";
+
+  const scaledWidth = fitHeight ? CANVAS_WIDTH * scale : CANVAS_WIDTH;
+  const scaledHeight = fitHeight ? CANVAS_HEIGHT * scale : CANVAS_HEIGHT;
+
   return (
     <div
       ref={scrollRef}
@@ -221,13 +251,23 @@ export function MapCanvas({
       role="region"
       aria-label="Roadmap journey map. Drag to pan, arrow keys to move between milestones."
       tabIndex={0}
-      className="relative w-full overflow-x-auto overflow-y-hidden rounded-2xl border border-white/10 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-royal"
+      className={`${outerClass}${className ? ` ${className}` : ""}`}
       style={{ cursor: "grab", background: "#0b1220" }}
     >
       <div
         className="relative"
-        style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
+        style={{ width: `${scaledWidth}px`, height: `${scaledHeight}px` }}
       >
+        <div
+          className="absolute top-0 left-0"
+          style={{
+            width: `${CANVAS_WIDTH}px`,
+            height: `${CANVAS_HEIGHT}px`,
+            transform: fitHeight ? `scale(${scale})` : undefined,
+            transformOrigin: "top left",
+          }}
+        >
+
         {/* Photorealistic background */}
         <img
           src={bgUrl}
@@ -354,7 +394,9 @@ export function MapCanvas({
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
 }
+

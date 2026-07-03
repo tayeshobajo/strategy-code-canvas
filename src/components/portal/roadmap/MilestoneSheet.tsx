@@ -172,10 +172,11 @@ export function MilestoneSheet({
       >
         <SheetContent
           side={isMobile ? "bottom" : "right"}
+          overlayClassName={isMobile ? undefined : "bg-black/15 backdrop-blur-[1px]"}
           className={
             isMobile
               ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-paper text-ink border-t border-border overflow-y-auto p-5"
-              : "w-full sm:max-w-lg bg-paper text-ink border-l border-border overflow-y-auto"
+              : "w-full sm:max-w-md bg-paper text-ink border-l border-border overflow-y-auto rounded-l-2xl shadow-2xl"
           }
           aria-labelledby="milestone-sheet-title"
           aria-describedby="milestone-sheet-desc"
