@@ -363,6 +363,34 @@ export function MapCanvas({
   const scaledWidth = fitHeight ? CANVAS_WIDTH * scale : CANVAS_WIDTH;
   const scaledHeight = fitHeight ? CANVAS_HEIGHT * scale : CANVAS_HEIGHT;
 
+  // Build the base route path through all markers (always visible)
+  const baseRoutePoints = useMemo(() => {
+    const points: Array<{ x: number; y: number }> = [];
+    // Start from Point A
+    points.push({ x: POINT_A_POS.nx * CANVAS_WIDTH, y: POINT_A_POS.ny * CANVAS_HEIGHT });
+    // Thread through all markers in layout order
+    for (const marker of layout.markers) {
+      if (marker.milestone.slug.endsWith("-placeholder")) continue;
+      points.push({ x: marker.nx * CANVAS_WIDTH, y: marker.ny * CANVAS_HEIGHT });
+    }
+    // End at Point B
+    points.push({ x: POINT_B_POS.nx * CANVAS_WIDTH, y: POINT_B_POS.ny * CANVAS_HEIGHT });
+    return points;
+  }, [layout.markers]);
+
+  const baseRouteStr = baseRoutePoints.map(p => `${p.x},${p.y}`).join(" ");
+
+  // Build the selected critical path overlay points
+  const selectedPathPoints = useMemo(() => {
+    if (!selectedSlug || journey.criticalPathSlugs.length < 2) return null;
+    const pts = journey.criticalPathSlugs
+      .map((slug) => layout.markers.find((m) => m.milestone.slug === slug))
+      .filter((m): m is (typeof layout.markers)[number] => !!m)
+      .map((m) => `${m.nx * CANVAS_WIDTH},${m.ny * CANVAS_HEIGHT}`)
+      .join(" ");
+    return pts || null;
+  }, [selectedSlug, journey.criticalPathSlugs, layout.markers]);
+
   return (
     <div
       ref={scrollRef}
@@ -391,7 +419,7 @@ export function MapCanvas({
             transform: fitHeight ? `scale(${scale})` : undefined,
             transformOrigin: "top left",
           }}
-        >
+        >n          {/* Terrain background image */}
           <img
             src={bgUrl}
             alt=""
@@ -399,14 +427,134 @@ export function MapCanvas({
             draggable={false}
             className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
           />
+
+          {/* Atmospheric vignette — dark edges draw the eye into the terrain */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 85% 75% at 50% 45%, rgba(0,0,0,0) 30%, rgba(4,8,20,0.35) 75%, rgba(2,5,12,0.6) 100%)",
+            }}
+          />
+
+          {/* Top fade for label legibility */}
           <div
             aria-hidden="true"
             className="absolute inset-x-0 top-0 h-56 pointer-events-none"
             style={{
               background:
-                "linear-gradient(180deg, rgba(4,10,25,0.55) 0%, rgba(4,10,25,0) 100%)",
+                "linear-gradient(180deg, rgba(4,10,25,0.45) 0%, rgba(4,10,25,0) 100%)",
             }}
           />
+
+          {/* Bottom warm haze — atmospheric depth near the summit */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-80 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(0deg, rgba(8,15,30,0.4) 0%, rgba(8,15,30,0) 100%)",
+            }}
+          />
+
+          {/* Base route path — always visible, the hero element of the map */}
+          <svg
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+            style={{ zIndex: 5 }}
+          >
+            <defs>
+              <filter id="base-route-glow" x="-10%" y="-10%" width="120%" height="120%">
+                <feGaussianBlur stdDeviation="4" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            {/* Soft wide underlay */}
+            <polyline
+              points={baseRouteStr}
+              fill="none"
+              stroke="rgba(47,93,246,0.12)"
+              strokeWidth={16}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              filter="url(#base-route-glow)"
+            />
+            {/* Main base route — visible but subdued */}
+            <polyline
+              points={baseRouteStr}
+              fill="none"
+              stroke="rgba(180,200,255,0.25)"
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="2 8"
+            />
+          </svg>
+
+          {/* Selected critical path overlay — bright glow */}
+          {selectedPathPoints && (
+            <svg
+              aria-hidden="true"
+              className="absolute inset-0 pointer-events-none"
+              width={CANVAS_WIDTH}
+              height={CANVAS_HEIGHT}
+              viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+              style={{ zIndex: 8 }}
+            >
+              <defs>
+                <filter id="selected-route-outer" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="6" result="b" />
+                  <feMerge>
+                    <feMergeNode in="b" />
+                  </feMerge>
+                </filter>
+                <filter id="selected-route-inner" x="-10%" y="-10%" width="120%" height="120%">
+                  <feGaussianBlur stdDeviation="3" result="b" />
+                  <feMerge>
+                    <feMergeNode in="b" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {/* Outer wide glow */}
+              <polyline
+                points={selectedPathPoints}
+                fill="none"
+                stroke="rgba(47,93,246,0.35)"
+                strokeWidth={14}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                filter="url(#selected-route-outer)"
+              />
+              {/* Main bright stroke */}
+              <polyline
+                points={selectedPathPoints}
+                fill="none"
+                stroke="rgba(47,93,246,0.9)"
+                strokeWidth={7}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                filter="url(#selected-route-inner)"
+              />
+              {/* Crisp dashed center line */}
+              <polyline
+                points={selectedPathPoints}
+                fill="none"
+                stroke="rgba(255,255,255,0.95)"
+                strokeWidth={2.25}
+                strokeDasharray="6 6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
 
           {journey.phases.map((phase, i) => {
             const band = layout.bands[i];
@@ -419,7 +567,7 @@ export function MapCanvas({
               <div
                 key={phase.key}
                 className="absolute -translate-x-1/2 text-white pointer-events-none"
-                style={{ left: `${x}px`, top: `${y}px` }}
+                style={{ left: `${x}px`, top: `${y}px`, zIndex: 6 }}
               >
                 <div
                   className={`font-mono text-[10px] uppercase tracking-[0.32em] ${isCurrent ? "text-royal-glow" : "text-white/70"}`}
@@ -460,12 +608,13 @@ export function MapCanvas({
             style={{
               left: `${POINT_A_POS.nx * CANVAS_WIDTH}px`,
               top: `${POINT_A_POS.ny * CANVAS_HEIGHT}px`,
+              zIndex: 7,
             }}
           >
-            <div className="flex items-center justify-center h-9 w-9 rounded-full bg-slate-900/70 border border-white/25 backdrop-blur">
+            <div className="flex items-center justify-center h-9 w-9 rounded-full bg-slate-900/70 border border-white/25 backdrop-blur shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
               <MapPin className="w-4 h-4" />
             </div>
-            <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5">
+            <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
               <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">
                 Point A
               </div>
@@ -482,9 +631,10 @@ export function MapCanvas({
             style={{
               left: `${POINT_B_POS.nx * CANVAS_WIDTH}px`,
               top: `${POINT_B_POS.ny * CANVAS_HEIGHT}px`,
+              zIndex: 7,
             }}
           >
-            <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5 text-right">
+            <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5 text-right shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
               <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">
                 Point B
               </div>
@@ -499,76 +649,10 @@ export function MapCanvas({
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-center h-9 w-9 rounded-full bg-[color:var(--royal,#2f5df6)] text-white shadow-[0_0_24px_rgba(47,93,246,0.55)]">
+            <div className="flex items-center justify-center h-9 w-9 rounded-full bg-[color:var(--royal,#2f5df6)] text-white shadow-[0_0_24px_rgba(47,93,246,0.55),0_4px_16px_rgba(0,0,0,0.4)]">
               <Flag className="w-4 h-4" />
             </div>
           </div>
-
-          {/* Highlighted route segment with dual-stroke glow */}
-          {selectedSlug && journey.criticalPathSlugs.length >= 2 && (() => {
-            const pathPoints = journey.criticalPathSlugs
-              .map((slug) => layout.markers.find((m) => m.milestone.slug === slug))
-              .filter((m): m is (typeof layout.markers)[number] => !!m)
-              .map((m) => `${m.nx * CANVAS_WIDTH},${m.ny * CANVAS_HEIGHT}`)
-              .join(" ");
-            if (!pathPoints) return null;
-            return (
-              <svg
-                aria-hidden="true"
-                className="absolute inset-0 pointer-events-none"
-                width={CANVAS_WIDTH}
-                height={CANVAS_HEIGHT}
-                viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
-                style={{ zIndex: 8 }}
-              >
-                <defs>
-                  <filter id="route-glow-outer" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="6" result="b" />
-                    <feMerge>
-                      <feMergeNode in="b" />
-                    </feMerge>
-                  </filter>
-                  <filter id="route-glow-inner" x="-10%" y="-10%" width="120%" height="120%">
-                    <feGaussianBlur stdDeviation="3" result="b" />
-                    <feMerge>
-                      <feMergeNode in="b" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-                {/* Outer soft glow — wide blur at 40% opacity */}
-                <polyline
-                  points={pathPoints}
-                  fill="none"
-                  stroke="rgba(47,93,246,0.4)"
-                  strokeWidth={14}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  filter="url(#route-glow-outer)"
-                />
-                {/* Main stroke — bumped to 0.9 opacity */}
-                <polyline
-                  points={pathPoints}
-                  fill="none"
-                  stroke="rgba(47,93,246,0.9)"
-                  strokeWidth={7}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  filter="url(#route-glow-inner)"
-                />
-                {/* Crisp dashed center line */}
-                <polyline
-                  points={pathPoints}
-                  fill="none"
-                  stroke="rgba(255,255,255,0.95)"
-                  strokeWidth={2.25}
-                  strokeDasharray="6 6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            );
-          })()}
 
           {/* Markers + clusters */}
           {rendered.map((entry, i) => {
