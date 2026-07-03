@@ -127,29 +127,35 @@ function StripStop({
   tone,
   active,
   onClick,
+  floating = false,
 }: {
   label: string;
   sub: string;
   tone: "anchor" | "phase1" | "phase2" | "phase3";
   active: boolean;
   onClick: () => void;
+  floating?: boolean;
 }) {
   const toneClass =
     tone === "phase1"
-      ? "text-royal"
+      ? floating ? "text-[#7ea6ff]" : "text-royal"
       : tone === "phase2"
-        ? "text-[#c8811b]"
+        ? floating ? "text-[#f0b25b]" : "text-[#c8811b]"
         : tone === "phase3"
-          ? "text-[#3d8558]"
-          : "text-ink/60";
+          ? floating ? "text-[#7bd6a0]" : "text-[#3d8558]"
+          : floating ? "text-white/60" : "text-ink/60";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex-1 min-w-0 rounded-lg px-3 py-2 text-left transition-colors ${
+      className={`flex-1 min-w-0 rounded-lg px-3 py-1.5 text-left transition-colors ${
         active
-          ? "bg-royal/10 border border-royal/40"
-          : "border border-transparent hover:bg-ink/[0.03]"
+          ? floating
+            ? "bg-white/15 border border-white/40"
+            : "bg-royal/10 border border-royal/40"
+          : floating
+            ? "border border-transparent hover:bg-white/10"
+            : "border border-transparent hover:bg-ink/[0.03]"
       }`}
     >
       <div
@@ -157,10 +163,11 @@ function StripStop({
       >
         {label}
       </div>
-      <div className="text-[12px] font-medium text-ink truncate">{sub}</div>
+      <div className={`text-[12px] font-medium truncate ${floating ? "text-white" : "text-ink"}`}>{sub}</div>
     </button>
   );
 }
+
 
 export function MapLegend() {
   const items: Array<{ label: string; color: string }> = [
