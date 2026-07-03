@@ -15,6 +15,10 @@ type Props = {
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
   matchingSlugs?: Set<string> | null;
+  /** When true, the inner canvas is scaled to fit the parent height so the
+   *  full map sits inside a controlled app viewport (no page scroll). */
+  fitHeight?: boolean;
+  className?: string;
 };
 
 export function MapCanvas({
@@ -22,6 +26,8 @@ export function MapCanvas({
   selectedSlug,
   onSelect,
   matchingSlugs,
+  fitHeight = false,
+  className,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{
@@ -36,8 +42,25 @@ export function MapCanvas({
   const reduced = useReducedMotion();
   const canvas = useRoadmapCanvas();
   const [ready, setReady] = useState(false);
+  const [scale, setScale] = useState(1);
 
   const layout = useMemo(() => computeMapLayout(journey), [journey]);
+
+  // When fitting to height, observe the container and rescale the inner canvas.
+  useLayoutEffect(() => {
+    if (!fitHeight) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = el.clientHeight;
+      if (h > 0) setScale(h / CANVAS_HEIGHT);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fitHeight]);
+
 
   // Publish scroll state so the header pill + overview strip can react.
   useLayoutEffect(() => {
