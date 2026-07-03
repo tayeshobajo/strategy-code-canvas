@@ -1,160 +1,110 @@
-## Goal
+# Roadmap Canvas — Premium Polish Pass
 
-Refine the existing Client Portal Roadmap canvas from "pins on a beautiful image" into a smart cartographic system. Keep the cinematic terrain, route, and layout — change what is shown, when, and how surfaces stay in sync.
+Not a rebuild. Keep terrain, route, sidebar, top bar, status card, drawer, markers, and overview strip. Fix the rough edges and give the canvas real map logic.
 
-No visual redesign. No new backend. All work is inside `src/components/portal/roadmap/*`, `src/routes/portal.roadmap.tsx`, and `src/lib/portal-roadmap-model.ts` (derived selectors only).
+## 1. Portal shell — stop the clip
 
----
+`src/routes/portal.tsx`
 
-## 1. Single source of truth for current phase
+- Sidebar becomes `fixed inset-y-0 left-0 w-64` (was `lg:w-64` in flex row, which is what's letting the map push it under the browser chrome at 100% zoom).
+- `<main>` gets `lg:ml-64`, `min-h-screen`, and (for the roadmap route only) removes the outer vertical padding so the canvas can own the viewport.
+- Roadmap route wraps content in a full-height shell: sidebar 100vh, top command bar fixed height, canvas `h-[calc(100vh-<topbar>)]`, overview strip pinned inside the canvas — no page-level scroll.
+- Mobile keeps today's horizontal nav; only `lg:` gets the fixed shell.
 
-Today `activePhaseKey` in `canvas-context.tsx` is user selection state, but the top command bar reads `journey.activeMilestone.phase` while the left status card reads a different fallback — that's the "Phase 2 / Phase 1" mismatch.
+## 2. Map cartography — attached, not sprinkled
 
-Introduce a derived `currentPhaseKey` on the journey model (in `portal-roadmap-model.ts`) computed as: first phase containing an `in_progress` milestone → else phase of `activeMilestone` → else first phase with any non-complete milestone → else first phase.
+`src/components/portal/roadmap/roadmap-layout.ts` + `src/lib/portal-roadmap-model.ts`
 
-All surfaces read from that one value:
-- Top command bar "Current Phase" pill
-- Left `StatusOverlayCard` "You are here"
-- `MapCanvas` active-territory highlight
-- `RoadmapOverviewStrip` default active segment
-- Selected marker drawer breadcrumb
+- Add a `RoutePath` (normalized polyline) per phase. Every marker resolves to `{ tAlong, offsetNormal, side }` and is projected onto the path at layout time so markers sit ON the road (milestones), at forks (decisions), just beside (deliverables), or slightly off-road (meetings).
+- Deadlines render as flag glyphs planted on the route.
+- Label collision pass: after projection, walk markers left→right, push labels to alternating sides, and demote to icon-only when a collision cannot be resolved within a min-gap.
 
-`activePhaseKey` in canvas-context becomes strictly "user-selected phase override" and falls back to `currentPhaseKey` for display.
+## 3. Marker hierarchy — three real levels
 
-## 2. Progressive disclosure — three marker levels
+`src/components/portal/roadmap/view-mode.ts`, `MilestoneNode.tsx`
 
-Add a `visibilityLevel: 1 | 2 | 3` field derived per milestone in a new helper `computeMarkerLevels(journey, { currentPhaseKey, selectedPhaseKey, viewMode })`:
+- Level 1 (always full): Point A, Point B, current phase anchor, current milestone, next decision, next major deadline.
+- Level 2 (full inside selected/current phase, short elsewhere): primary milestones, active deliverables, key dependencies.
+- Level 3 (icon-only, hover to reveal): meetings, future deliverables, supporting milestones, minor decisions.
+- Node already supports full / short / icon / muted / hidden — wire the classifier to the tier + active phase instead of the current flat rules.
 
-- Level 1 (always visible): Point A, Point B, current phase label, current milestone, next decision (first upcoming `kind: "decision"`), next major deadline (nearest `dueDate`).
-- Level 2 (current or selected phase, or immediately adjacent phase): remaining primary milestones.
-- Level 3 (hidden by default in Full Journey): deliverables, meetings, secondary decisions, future milestones, small dependencies.
+## 4. View dropdown actually changes density
 
-`MilestoneNode` renders three visual states driven by level + hover/selected:
-- Level 1 → full pill label + icon.
-- Level 2 → short label + icon.
-- Level 3 → icon-only dot, expands to tooltip on hover.
+Extend `RoadmapViewMode` classifier so each mode has its own visibility contract:
 
-Label collision resolver: if two rendered labels' bounding boxes overlap, the lower-priority one collapses to icon-only until hover or the phase is focused.
+- Full Journey: Level 1 only + phase titles.
+- Current Phase: L1 + L2 in current phase, other phases dim to icon.
+- Decisions: decisions + milestones they gate.
+- Deliverables: deliverables + parent milestones.
+- Deadlines: deadline flags + critical-path items feeding them.
+- Critical Path (existing): keep, tightened to next major deadline.
+- New: **What needs me** — only items with `clientActionRequired` (decisions awaiting response, requested files, upcoming meetings, approvals).
 
-## 3. View modes drive density
+## 5. Interactive legend
 
-Extend `view-mode.ts` from filter-only to density-controlling. `RoadmapViewMode` stays the same enum but `matchesView` returns a `MarkerVisibility` (`"full" | "muted" | "hidden"`) instead of a boolean.
+`MapCanvas.tsx` legend row becomes toggle chips bound to `visibleKinds` in `canvas-context`. Defaults on: Milestone, Decision, Deadline. Defaults muted: Meeting, Deliverable. Off = hidden; muted = faint.
 
-- Full Journey → only Level 1 full; others muted or hidden.
-- Current Phase → all markers in current phase full; others muted.
-- Decisions → decision markers + directly-affected milestones full; unrelated hidden.
-- Deliverables → deliverable markers + parent milestones full; meetings/minor decisions hidden.
-- Deadlines → deadline flags + critical-path milestones full.
+## 6. Selection + hover polish
 
-Add two new toggles in the top command bar next to the view-mode dropdown:
-- "Focus current phase" — sets viewMode to `current` and pans/zooms `MapCanvas` to the current-phase bounding box.
-- "Show critical path" — overlays a highlighted route segment through the critical-path milestone chain (data derived: milestones with `unlocks` links leading to the nearest deadline).
+`MilestoneNode.tsx`, `MapCanvas.tsx`
 
-Also add "Client action mode" — filters to only items with `clientActionNeeded`, decisions awaiting approval, and unread deliverables.
+- Selected marker: stronger ring + outer glow, connected route segment highlights, phase territory tints subtly, others drop to ~0.6 opacity (still readable).
+- Hover: 2px lift, glow bump, segment highlight, cursor pointer, existing HoverCard (title, kind, status, one-line summary, View details).
+- Drawer-aware pan: when selected marker's screen X falls inside the drawer's rect, `panTo` shifts it left of the drawer edge with padding.
 
-## 4. Marker clustering
+## 7. Clustering
 
-New helper `clusterMarkers(markers, { zoom, viewport })` in `roadmap-layout.ts` that groups markers whose projected screen distance is under a threshold (e.g. 48px). Returns either a single marker or a cluster node with `{ phase, total, completed, inProgress, decisions, deadlines }`.
+`MarkerCluster.tsx` already exists — extend summary to show phase name and per-kind counts (complete / in-progress / decision / deadline). Click expands in place at `detail` zoom (already wired) or opens the compact popover on dense areas.
 
-New `MarkerCluster` component renders a compact dark chip:
-```
-Phase 1
-6 items · 2 done · 2 in progress · 1 decision · 1 deadline
-```
-Click expands the cluster in place (popover with the child markers) or, if space allows, splays them along the route.
+## 8. Drawer redesign
 
-Clustering thresholds ease as the user zooms in via the "Focus current phase" affordance or mini-map jumps.
+`MilestoneSheet.tsx`
 
-## 5. Marker placement rules
+- Width `w-[420px]`, generous padding, section dividers, soft border, subtle shadow, no flat white — use `bg-paper` with an accent header tinted by marker kind.
+- Header block: kind label chip, status badge next to title, target date.
+- Body per kind:
+  - Milestone: Summary, Why it matters, What it unlocks, Status, Target date, Client action needed, Latest update, Related files. CTAs: Acknowledge (primary), Request clarification (secondary).
+  - Decision: Summary, Options, Recommended, Why it matters, Due. CTAs: Respond (primary), Related files, Book next call.
+  - Deliverable: Description, Related milestone, Version, Published date. CTA: Open / Download.
+- Keep the selected marker visible; add a faint connector line from drawer edge to marker (SVG overlay in `MapCanvas`).
 
-Extend the layout data in `roadmap-layout.ts` so each marker declares an `attachment`:
-- `milestone` → `on-road` (centered on the route path).
-- `decision` → `fork` (offset perpendicular from the road at a branch point).
-- `deliverable` → `beside` (paired to its parent milestone, offset).
-- `deadline` → `flag` (on-road, with flag glyph).
-- `meeting` → `off-road` (calendar glyph, away from the route).
+## 9. Left status card compact/expand
 
-`MilestoneNode` picks glyph + offset from `attachment`. This is a data/style change — positions still come from the existing layout coordinates but with a small perpendicular offset by kind.
+`StatusOverlayCard.tsx`
 
-## 6. Bottom Roadmap Overview becomes the map controller
+- Compact default: You are here, current phase, progress bar, next action.
+- Expanded: upcoming meeting, key date, client responsibilities, Trust Tai responsibilities.
+- Collapse to a vertical pill anchored top-left when dismissed.
 
-`RoadmapOverviewStrip` is upgraded from footer to controller:
+## 10. Bottom overview → true mini-map
 
-- Click Point A / Phase 1 / Phase 2 / Phase 3 / Point B → calls `canvas.panTo(target)` in `canvas-context`. Add `panTo(target: "pointA" | "pointB" | PhaseKey | { slug })` action that computes target viewport bounds and animates.
-- Selecting a marker on the main map updates the strip's active segment (already partly wired — extend to always match).
-- Panning the main map updates the strip's active zone: throttled listener on canvas viewport → derive which phase's bounding box contains the viewport center → set active segment.
+`RoadmapOverviewStrip.tsx`
 
-Strip stays sticky inside the map canvas, not the page.
+- Render a miniature of the route with Point A, Phase 1/2/3, Point B markers.
+- Overlay a viewport rectangle driven by `canvas.viewportPhaseKey` + pan/zoom (compute from canvas transform, throttled).
+- Highlight active phase strongly; show selected-marker dot on the strip.
+- Clicking any zone pans main canvas (already partially wired via `panTo`); extend to Point A / Point B and drag-to-scrub the viewport rect.
 
-## 7. Interactive legend
+## 11. State model — current vs selected
 
-Rebuild the bottom legend (currently decorative) as toggle chips wired to a new `visibleKinds: Set<MilestoneKind | "deadline">` in `canvas-context`.
+`canvas-context.tsx`, `portal.roadmap.tsx`
 
-Defaults on: Milestone, Decision, Deadline.
-Defaults muted (rendered at low opacity, no labels): Meeting, Deliverable.
-Click a chip → toggle between visible / muted / hidden (three states, cycle).
+- Split into `currentPhaseKey` (operational, from data) and `selectedPhaseKey` (viewing, from UI/URL). Top badge + status card read `currentPhaseKey`; map territory highlight + mini-map + drawer context read `selectedPhaseKey`.
+- URL sync already exists for `view` + `phase`; add `marker` param for selected slug so deep links open the drawer at the right item.
 
-`MapCanvas` combines `visibleKinds` with `visibilityLevel` and `viewMode` to decide render state per marker.
+## 12. Client-safe filter
 
-## 8. Collapsible left status card
+`portal-roadmap-model.ts` mapper — strip AI confidence, agent cost, internal notes, review comments, draft versions, risk labels, version conflicts before the portal ever sees them. Status enum locked to: Planned, In preparation, In progress, Waiting on decision, Under review, Delivered, Completed, Paused.
 
-`StatusOverlayCard` gains a `collapsed` state, persisted in `localStorage` (`portal.roadmap.status.collapsed`). Default collapsed.
+## Technical notes
 
-- Collapsed (compact, ~220px wide): Current phase, progress bar, next action.
-- Expanded: adds upcoming meeting, key date, client responsibilities, Trust Tai responsibilities.
-- Chevron toggle in the card header.
+- Route projection lives in `roadmap-layout.ts` next to existing coord math; markers keep their `nx/ny` fallback for legacy fixtures.
+- Throttle hover + viewport updates with `requestAnimationFrame` (memoization for markers already landed last turn).
+- No schema changes required for step 12 — apply as a serializer on the portal read path.
+- New Playwright coverage: sidebar not clipped at 1280×800, view-mode density diff, legend toggles hide markers, drawer connector renders, mini-map viewport rect follows pan.
 
-## 9. Selected-marker behavior refinements
+## Out of scope
 
-Already close after the last pass — finalize:
-- Overlay stays at 8–12% (`bg-black/10`, no blur) — verified.
-- Selected marker: white pill + royal ring + soft glow.
-- Unrelated markers: opacity 0.72.
-- Related route segment: brightened stroke via a computed `activeSegmentIds` derived from `selectedSlug` + `dependencies`/`unlocks`.
-- On selection, `MapCanvas` pans so the marker is centered in the visible area minus the drawer width (offset pan target by `drawerWidth / 2`).
-
-## 10. Information zoom (not visual zoom)
-
-Add a `zoomLevel: "strategic" | "phase" | "detail"` to `canvas-context`, controlled by:
-- Zoom-out button or "Fit to field" → `strategic` (Level 1 only).
-- Selecting a phase (via mini-map or Focus current phase) → `phase` (Level 1 + 2 of that phase).
-- Clicking into a cluster or manual zoom-in control → `detail` (Level 1 + 2 + 3).
-
-This is the umbrella rule that combines viewMode + visibleKinds + visibilityLevel.
-
----
-
-## Technical section
-
-### Files touched
-
-- `src/lib/portal-roadmap-model.ts` — add `currentPhaseKey`, `criticalPath: string[]`, `computeMarkerLevels`, `deriveMarkerAttachment`. Pure functions, unit-testable.
-- `src/components/portal/roadmap/view-mode.ts` — change `matchesView` to return `MarkerVisibility`; add view-mode → visibility mapping.
-- `src/components/portal/roadmap/roadmap-layout.ts` — add `clusterMarkers` and `attachmentOffset` helpers.
-- `src/components/portal/roadmap/canvas-context.tsx` — add `currentPhaseKey`, `selectedPhaseKey` (rename of `activePhaseKey` semantics), `zoomLevel`, `visibleKinds`, `panTo()`, `viewportPhaseKey`.
-- `src/components/portal/roadmap/MapCanvas.tsx` — consume level/visibility/attachment; throttled viewport → mini-map sync; drawer-aware pan-to-selected.
-- `src/components/portal/roadmap/MilestoneNode.tsx` — render three tiers (full / short / icon), attachment-aware glyph offsets.
-- `src/components/portal/roadmap/MarkerCluster.tsx` — new component.
-- `src/components/portal/roadmap/RoadmapOverviewStrip.tsx` — clickable segments driving `panTo`, active segment reflects `viewportPhaseKey || selectedPhaseKey || currentPhaseKey`.
-- `src/components/portal/roadmap/StatusOverlayCard.tsx` — collapsible with persistence.
-- `src/routes/portal.roadmap.tsx` — wire top command bar to single `currentPhaseKey`; add Focus current phase, Show critical path, Client action mode controls; interactive legend chips.
-
-### Tests
-
-Extend `tests/visual/portal-roadmap.spec.ts`:
-- Current-phase consistency: top bar, status card, mini-map, and selected drawer all read the same phase label.
-- Full Journey mode shows only Level 1 markers with visible labels; deliverables/meetings are icon-only or hidden.
-- Legend toggle: turning off "Meeting" hides meeting markers; turning off "Deliverable" removes their labels.
-- Cluster: seed a fixture where 4+ markers overlap; assert a single cluster chip renders with the correct counts, and clicking it expands.
-- Mini-map click on Phase 3 pans the canvas so a Phase 3 marker (e.g. "First School Launch") is in the visible viewport bounds; scrolling the main map updates the mini-map's active segment.
-- Focus current phase zooms to the current-phase bounding box; Fit to field returns to full view with Point A and Point B both visible.
-- Selected-marker pan accounts for the drawer: the selected marker's center x is within `canvasWidth - drawerWidth` on desktop.
-- Status card collapsed by default; expand toggle reveals responsibilities.
-
-Add unit tests for `computeMarkerLevels`, `clusterMarkers`, and `currentPhaseKey` in `src/lib/portal-roadmap-model.test.ts`.
-
-### Out of scope
-
-- No changes to `client_portal_roadmaps` schema or server functions.
-- No redesign of the terrain background, route path, or overall page composition.
-- Mobile stack (`MobilePhaseStack`) reuses the same derived model but keeps its current layout; only the shared selectors change.
+- No backend changes, no new tables.
+- No changes to intake, admin, billing, messages routes.
+- Marketing site untouched.
