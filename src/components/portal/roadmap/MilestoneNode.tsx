@@ -135,7 +135,7 @@ export const MilestoneNode = memo(function MilestoneNode({
   const isHidden = visibility === "hidden";
 
   const selectedShell =
-    "bg-white text-ink border-white ring-2 ring-royal ring-offset-2 ring-offset-slate-900/20 shadow-[0_18px_44px_-10px_rgba(47,93,246,0.55)]";
+    "bg-white text-ink border-white ring-2 ring-royal ring-offset-2 ring-offset-slate-900/20 shadow-[0_22px_50px_-8px_rgba(47,93,246,0.7),0_0_0_6px_rgba(47,93,246,0.18)]";
   const restingShell =
     "bg-slate-900/85 text-white border-white/15 backdrop-blur-sm hover:bg-slate-900/95";
 
