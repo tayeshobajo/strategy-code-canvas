@@ -45,7 +45,12 @@ function isPreviewable(row: { mime_type: string | null; file_name: string }) {
   return null;
 }
 
+const filesSearchSchema = z.object({
+  q: fallback(z.string().optional(), undefined),
+});
+
 export const Route = createFileRoute("/portal/files")({
+  validateSearch: zodValidator(filesSearchSchema),
   head: () => ({
     meta: [
       { title: "Files — Trust Tai portal" },
