@@ -120,7 +120,7 @@ function RoadmapJourneyView({
 
   const setSelected = (slug: string | null) => {
     navigate({
-      search: (prev) => ({ ...prev, m: slug ?? undefined }),
+      search: ((prev: { m?: string }) => ({ ...prev, m: slug ?? undefined })) as never,
       replace: true,
     });
   };
