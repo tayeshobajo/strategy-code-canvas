@@ -158,10 +158,30 @@ function ActivityPage() {
     [data],
   );
 
+  // Compute unresolved follow-up count: a follow_up_needed event without a
+  // matching follow_up_resolved event that references the same message_id.
+  const unresolvedFollowUps = useMemo(() => {
+    const resolved = new Set<string>();
+    for (const e of allEvents) {
+      if (e.event_type === "follow_up_resolved") {
+        const meta = e.metadata as Record<string, unknown> | null;
+        const mid = typeof meta?.message_id === "string" ? meta.message_id : null;
+        if (mid) resolved.add(mid);
+      }
+    }
+    return allEvents.filter((e) => {
+      if (e.event_type !== "follow_up_needed") return false;
+      const meta = e.metadata as Record<string, unknown> | null;
+      const mid = typeof meta?.message_id === "string" ? meta.message_id : null;
+      return !mid || !resolved.has(mid);
+    });
+  }, [allEvents]);
+
   const filtered = useMemo(() => {
     if (categories.size === ALL_CATEGORIES.length) return allEvents;
     return allEvents.filter((e) => categories.has(categoryOf(e.event_type)));
   }, [allEvents, categories]);
+
 
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
 
