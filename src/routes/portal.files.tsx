@@ -660,10 +660,19 @@ function FilesPage() {
   );
 }
 
-function PreviewModal({ file, onClose }: { file: FileRow | null; onClose: () => void }) {
+function PreviewModal({
+  file,
+  onClose,
+  onOpen,
+}: {
+  file: FileRow | null;
+  onClose: () => void;
+  onOpen?: (f: FileRow) => void;
+}) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (!file) {
