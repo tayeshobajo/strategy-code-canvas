@@ -15,6 +15,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -36,6 +41,7 @@ import {
   CircleDot,
   FileText,
   CalendarClock,
+  ChevronDown,
 } from "lucide-react";
 import type {
   MilestoneKind,
@@ -134,6 +140,7 @@ export function MilestoneSheet({
   const [ackOpen, setAckOpen] = useState(false);
   const [clarifyOpen, setClarifyOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
+  const [secondaryOpen, setSecondaryOpen] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const canvas = useRoadmapCanvas();
   const isMobile = useIsMobile();
@@ -162,11 +169,9 @@ export function MilestoneSheet({
     },
   });
 
-  // Track which slug the sheet opened for so we can return focus on close.
   useEffect(() => {
     if (open) {
       openedSlugRef.current = milestone?.slug ?? null;
-      // Focus the title after animation settles.
       const t = setTimeout(() => titleRef.current?.focus(), 30);
       return () => clearTimeout(t);
     }
@@ -175,7 +180,6 @@ export function MilestoneSheet({
   const handleClose = () => {
     const slug = openedSlugRef.current;
     onClose();
-    // Return focus to the originating node after Radix unmounts overlays.
     if (slug) {
       setTimeout(() => canvas.focusNode(slug), 60);
     }
@@ -205,7 +209,6 @@ export function MilestoneSheet({
         >
           {milestone && (() => {
             const KindIcon = KIND_ICON[kind];
-            // "Deadline" is a derived label for a milestone with a due date.
             const isDeadline = kind === "milestone" && !!milestone.dueDate;
             const displayKindLabel = isDeadline ? "Deadline" : KIND_LABEL[kind];
             const displayKindAccent = isDeadline
@@ -248,10 +251,17 @@ export function MilestoneSheet({
               : milestone.targetDate
                 ? `Target ${fmtDate(milestone.targetDate)}`
                 : null;
+
+            // Check if there are secondary sections to collapse
+            const hasSecondary =
+              (milestone.unlocks && milestone.unlocks.length > 0) ||
+              (milestone.actions && milestone.actions.length > 0) ||
+              (milestone.dependencies && milestone.dependencies.length > 0);
+
             return (
               <>
-                {/* Header — chips + title + summary, warm off-white wash */}
-                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/8 bg-[color:var(--paper,#f6f2ea)]/60">
+                {/* Header */}
+                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/[0.08] bg-[color:var(--paper,#f6f2ea)]/60">
                   <div className="flex items-center gap-2 flex-wrap pr-8">
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-0.5 text-[10.5px] font-mono uppercase tracking-[0.22em] ${displayKindAccent}`}
@@ -262,7 +272,7 @@ export function MilestoneSheet({
                       {displayKindLabel}
                     </span>
                     <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/50">
-                      {phaseNumber != null ? `Phase ${phaseNumber} · ${phaseName}` : phaseName}
+                      {phaseNumber != null ? `Phase ${phaseNumber} \u00b7 ${phaseName}` : phaseName}
                     </span>
                     <span
                       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_TONE[milestone.status]}`}
@@ -288,9 +298,8 @@ export function MilestoneSheet({
                   )}
                 </SheetHeader>
 
-
                 {/* Scrollable body */}
-                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
                   {kind === "decision" && (
                     <DecisionBody milestone={milestone} />
                   )}
@@ -299,6 +308,7 @@ export function MilestoneSheet({
                   )}
                   {kind === "meeting" && <MeetingBody milestone={milestone} />}
 
+                  {/* Primary detail — always visible */}
                   {milestone.detail && milestone.detail !== milestone.summary && (
                     <Section label="Why it matters" icon={Lightbulb}>
                       <p>{milestone.detail}</p>
@@ -309,34 +319,54 @@ export function MilestoneSheet({
                       <p>{milestone.successLooksLike}</p>
                     </Section>
                   )}
-                  {milestone.unlocks && milestone.unlocks.length > 0 && (
-                    <Section label="What it unlocks" icon={Unlock}>
-                      <ul className="list-disc pl-5 space-y-1.5">
-                        {milestone.unlocks.map((u, i) => (
-                          <li key={i}>{u}</li>
-                        ))}
-                      </ul>
-                    </Section>
+
+                  {/* Secondary details — progressive disclosure */}
+                  {hasSecondary && (
+                    <Collapsible open={secondaryOpen} onOpenChange={setSecondaryOpen}>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.24em] text-ink/50 hover:text-ink/70 transition-colors py-1"
+                        >
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 transition-transform duration-200 ${secondaryOpen ? "rotate-180" : ""}`}
+                          />
+                          {secondaryOpen ? "Hide details" : "More details"}
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-5 pt-3">
+                        {milestone.unlocks && milestone.unlocks.length > 0 && (
+                          <Section label="What it unlocks" icon={Unlock}>
+                            <ul className="list-disc pl-5 space-y-1.5">
+                              {milestone.unlocks.map((u, i) => (
+                                <li key={i}>{u}</li>
+                              ))}
+                            </ul>
+                          </Section>
+                        )}
+                        {milestone.actions && milestone.actions.length > 0 && (
+                          <Section label="Key actions" icon={ListChecks}>
+                            <ul className="list-disc pl-5 space-y-1.5">
+                              {milestone.actions.map((a, i) => (
+                                <li key={i}>{a}</li>
+                              ))}
+                            </ul>
+                          </Section>
+                        )}
+                        {milestone.dependencies &&
+                          milestone.dependencies.length > 0 && (
+                            <Section label="Dependencies" icon={GitBranch}>
+                              <ul className="list-disc pl-5 space-y-1.5">
+                                {milestone.dependencies.map((d, i) => (
+                                  <li key={i}>{d}</li>
+                                ))}
+                              </ul>
+                            </Section>
+                          )}
+                      </CollapsibleContent>
+                    </Collapsible>
                   )}
-                  {milestone.actions && milestone.actions.length > 0 && (
-                    <Section label="Key actions" icon={ListChecks}>
-                      <ul className="list-disc pl-5 space-y-1.5">
-                        {milestone.actions.map((a, i) => (
-                          <li key={i}>{a}</li>
-                        ))}
-                      </ul>
-                    </Section>
-                  )}
-                  {milestone.dependencies &&
-                    milestone.dependencies.length > 0 && (
-                      <Section label="Dependencies" icon={GitBranch}>
-                        <ul className="list-disc pl-5 space-y-1.5">
-                          {milestone.dependencies.map((d, i) => (
-                            <li key={i}>{d}</li>
-                          ))}
-                        </ul>
-                      </Section>
-                    )}
+
                   {dueLabel && (
                     <Section
                       label={milestone.dueDate ? "Due" : "Target date"}
@@ -374,7 +404,7 @@ export function MilestoneSheet({
                   )}
                 </div>
 
-                {/* Sticky CTA footer — primary · secondary · contextual */}
+                {/* Sticky CTA footer */}
                 <div className="shrink-0 border-t border-ink/10 bg-white/80 backdrop-blur px-6 pt-4 pb-5 space-y-2.5">
                   {primaryCta && "href" in primaryCta && primaryCta.href ? (
                     <Button
@@ -405,7 +435,7 @@ export function MilestoneSheet({
                     </Button>
                   ) : null}
 
-                  {/* Secondary CTA — full-width outlined */}
+                  {/* Secondary CTA */}
                   <Button
                     variant="outline"
                     className="w-full h-9 border-ink/15 text-ink/85 hover:bg-ink/[0.03]"
@@ -415,7 +445,7 @@ export function MilestoneSheet({
                     {kind === "decision" ? "Ask a question" : "Request clarification"}
                   </Button>
 
-                  {/* Contextual — ghost row */}
+                  {/* Contextual ghost row */}
                   <div className="flex items-center justify-between gap-2 pt-1">
                     <Button
                       asChild
