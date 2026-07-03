@@ -362,94 +362,79 @@ function RoadmapJourneyView({
   );
 
   return (
-    <div className="max-w-[1500px] mx-auto space-y-5">
-      <RoadmapHeader
-        journey={journey}
-        doc={doc}
-        portalRoadmapId={portalRoadmapId}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        matchingCount={matchingCount}
-        totalCount={journey.milestones.length}
-        onJump={jumpTo}
-        onClarify={() => setHeaderClarifyOpen(true)}
-        onBookCall={() => setHeaderBookOpen(true)}
-      />
-      {!hasRealMilestones ? (
-        <div className="rounded-2xl bg-card border border-border p-8 lg:p-10 text-center">
-          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-            Milestones coming soon
-          </div>
-          <h2 className="font-display text-xl text-ink mt-2">
-            Your roadmap doesn't have any milestones yet.
-          </h2>
-          <p className="text-[15px] leading-[1.75] text-ink/70 mt-3 max-w-xl mx-auto">
-            Tai is still shaping the phase-by-phase journey. As soon as
-            milestones are added, they'll appear here as an interactive map.
-          </p>
-        </div>
-      ) : isMobile ? (
-        <MobilePhaseStack
+    <RoadmapViewport
+      header={
+        <RoadmapHeader
           journey={journey}
-          selectedSlug={selectedMilestone?.slug ?? null}
-          onSelect={(slug) => setSelected(slug)}
-          matchingSlugs={matchingSlugs}
+          doc={doc}
+          portalRoadmapId={portalRoadmapId}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          matchingCount={matchingCount}
+          totalCount={journey.milestones.length}
+          onJump={jumpTo}
+          onClarify={() => setHeaderClarifyOpen(true)}
+          onBookCall={() => setHeaderBookOpen(true)}
         />
-      ) : (
-        <>
-          <div className="relative">
-            <MapCanvas
-              journey={journey}
-              selectedSlug={selectedMilestone?.slug ?? null}
-              onSelect={(slug) => setSelected(slug)}
-              matchingSlugs={matchingSlugs}
-            />
-            <div className="pointer-events-none absolute inset-0">
-              <div className="absolute top-4 left-4 pointer-events-auto">
-                <StatusOverlayCard
-                  journey={journey}
-                  onSelectNextAction={(slug) => setSelected(slug)}
-                />
-              </div>
-              <div className="absolute top-6 right-6 max-w-md text-right pointer-events-none">
-                <h2 className="font-display text-2xl text-white leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
-                  The journey from today to your scaled impact.
-                </h2>
-                <p className="text-[13px] text-white/80 mt-1 drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)]">
-                  A clear path. Strategic milestones. Real outcomes.
-                </p>
-              </div>
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto">
-                <MapLegend />
-              </div>
+      }
+      canvas={
+        !hasRealMilestones ? (
+          <div className="m-6 rounded-2xl bg-card border border-border p-8 lg:p-10 text-center">
+            <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+              Milestones coming soon
             </div>
+            <h2 className="font-display text-xl text-ink mt-2">
+              Your roadmap doesn't have any milestones yet.
+            </h2>
+            <p className="text-[15px] leading-[1.75] text-ink/70 mt-3 max-w-xl mx-auto">
+              Tai is still shaping the phase-by-phase journey. As soon as
+              milestones are added, they'll appear here as an interactive map.
+            </p>
           </div>
-          <RoadmapOverviewStrip journey={journey} onJump={jumpTo} />
+        ) : isMobile ? (
+          <MobilePhaseStack
+            journey={journey}
+            selectedSlug={selectedMilestone?.slug ?? null}
+            onSelect={(slug) => setSelected(slug)}
+            matchingSlugs={matchingSlugs}
+          />
+        ) : (
+          <RoadmapCanvasStage
+            journey={journey}
+            selectedSlug={selectedMilestone?.slug ?? null}
+            onSelect={(slug) => setSelected(slug)}
+            matchingSlugs={matchingSlugs}
+            onJump={jumpTo}
+          />
+        )
+      }
+      below={
+        <>
+          <SupportingContext journey={journey} />
+          <AcknowledgeBlock ctx={ctx} portalRoadmapId={portalRoadmapId} />
+          {olderDocs.length > 0 && (
+            <div className="rounded-2xl bg-card border border-border p-6">
+              <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal mb-3">
+                Earlier versions
+              </div>
+              <ul className="space-y-2">
+                {olderDocs.map((d) => (
+                  <li key={d.id} className="text-sm text-ink/70">
+                    {d.title}
+                    {d.published_at && (
+                      <span className="text-ink/45">
+                        {" "}
+                        · {new Date(d.published_at).toLocaleDateString()}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </>
-      )}
-      <SupportingContext journey={journey} />
-      <AcknowledgeBlock ctx={ctx} portalRoadmapId={portalRoadmapId} />
-
-      {olderDocs.length > 0 && (
-        <div className="rounded-2xl bg-card border border-border p-6">
-          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal mb-3">
-            Earlier versions
-          </div>
-          <ul className="space-y-2">
-            {olderDocs.map((d) => (
-              <li key={d.id} className="text-sm text-ink/70">
-                {d.title}
-                {d.published_at && (
-                  <span className="text-ink/45">
-                    {" "}
-                    · {new Date(d.published_at).toLocaleDateString()}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      }
+    >
       <MilestoneSheet
         milestone={selectedMilestone}
         roadmapId={portalRoadmapId}
@@ -473,9 +458,101 @@ function RoadmapJourneyView({
         schedulingUrl={schedulingUrl}
         context={null}
       />
+    </RoadmapViewport>
+  );
+}
+
+/**
+ * Controlled viewport shell for the roadmap. Escapes the portal's page
+ * padding so the header + canvas + mini-map fit inside 100vh at 100% zoom.
+ * Supporting sections rendered under `below` remain page-scrollable.
+ */
+function RoadmapViewport({
+  header,
+  canvas,
+  below,
+  children,
+}: {
+  header: React.ReactNode;
+  canvas: React.ReactNode;
+  below?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="-mx-4 sm:-mx-6 lg:-mx-10 -mt-10 lg:-mt-16 -mb-10 lg:-mb-16">
+      <section
+        className="flex flex-col bg-paper-soft"
+        style={{ height: "calc(100vh - 0px)" }}
+      >
+        <div className="shrink-0 border-b border-ink/10 bg-white px-4 sm:px-6 lg:px-8 py-3">
+          {header}
+        </div>
+        <div className="flex-1 min-h-0 relative px-3 sm:px-4 lg:px-6 py-3">
+          {canvas}
+        </div>
+      </section>
+      {below && (
+        <div className="px-4 sm:px-6 lg:px-10 py-8 lg:py-12 space-y-5 max-w-[1500px] mx-auto">
+          {below}
+        </div>
+      )}
+      {children}
     </div>
   );
 }
+
+/**
+ * The map canvas + floating overlays + sticky mini-map, all inside a single
+ * bounded box so the client keeps "field awareness" without page scroll.
+ */
+function RoadmapCanvasStage({
+  journey,
+  selectedSlug,
+  onSelect,
+  matchingSlugs,
+  onJump,
+}: {
+  journey: ReturnType<typeof buildRoadmapJourney>;
+  selectedSlug: string | null;
+  onSelect: (slug: string) => void;
+  matchingSlugs: Set<string> | null;
+  onJump: (key: "pointA" | "now" | "next" | "later" | "pointB") => void;
+}) {
+  return (
+    <div className="relative h-full w-full">
+      <MapCanvas
+        journey={journey}
+        selectedSlug={selectedSlug}
+        onSelect={onSelect}
+        matchingSlugs={matchingSlugs}
+        fitHeight
+      />
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-4 left-4 pointer-events-auto max-w-[280px]">
+          <StatusOverlayCard
+            journey={journey}
+            onSelectNextAction={(slug) => onSelect(slug)}
+          />
+        </div>
+        <div className="absolute top-4 right-4 max-w-md text-right pointer-events-none">
+          <h2 className="font-display text-xl xl:text-2xl text-white leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
+            The journey from today to your scaled impact.
+          </h2>
+          <p className="text-[12px] xl:text-[13px] text-white/80 mt-1 drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)]">
+            A clear path. Strategic milestones. Real outcomes.
+          </p>
+        </div>
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 pointer-events-auto">
+          <MapLegend />
+        </div>
+        <div className="absolute bottom-3 left-3 right-3 pointer-events-auto">
+          <RoadmapOverviewStrip journey={journey} onJump={onJump} variant="floating" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function CurrentPhasePill({ journey }: { journey: ReturnType<typeof buildRoadmapJourney> }) {
   const canvas = useRoadmapCanvas();
