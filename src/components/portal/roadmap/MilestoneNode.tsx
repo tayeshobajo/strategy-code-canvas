@@ -143,7 +143,7 @@ export function MilestoneNode({
     : isMuted
       ? 0.45
       : mutedBySelection
-        ? 0.72
+        ? 0.85
         : 1;
   const transform = isSelected ? "scale(1.08)" : undefined;
 
