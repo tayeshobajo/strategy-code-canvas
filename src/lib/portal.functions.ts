@@ -459,6 +459,13 @@ export type PortalRoadmapDoc = {
   file_url: string | null;
   published_at: string | null;
   updated_at: string | null;
+  // Raw structured fields consumed by the interactive journey canvas.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  raw: Record<string, any> | null;
+  project: {
+    point_a: string | null;
+    point_b: string | null;
+  } | null;
 };
 
 export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
@@ -482,7 +489,7 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("client_portal_roadmaps")
       .select(
-        "id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, approved_at, updated_at, version_label",
+        "id, project_id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, supporting_notes, current_focus, owner_name, next_milestone, next_meeting_at, acknowledged_at, share_url, approved_at, updated_at, version_label",
       )
       .in("project_id", projectIds)
       .in("status", ["approved", "delivered"])
@@ -496,6 +503,11 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
       file_url: null,
       published_at: r.approved_at,
       updated_at: r.updated_at,
+      raw: r,
+      // point_a/point_b live in the intake/engine layer today; portal
+      // projects don't carry them, so the canvas falls back to
+      // current_diagnosis / executive_summary from the roadmap row.
+      project: null,
     }));
     return { docs, revoked: false as const };
   });
