@@ -24,7 +24,14 @@ type Props = {
 
 export function MarkerClusterChip({ cluster, x, y, onOpenMember }: Props) {
   const [open, setOpen] = useState(false);
+  const canvas = useRoadmapCanvas();
   const title = PHASE_TITLE[cluster.phase] ?? `Phase ${cluster.phase}`;
+
+  const expandInPlace = () => {
+    // Drop into detail zoom so the cluster dissolves into individual markers.
+    canvas.setZoomLevel("detail");
+    setOpen(false);
+  };
 
   return (
     <div
