@@ -528,6 +528,24 @@ function RoadmapCanvasStage({
     canvas.setCurrentPhaseKey(journey.currentPhaseKey);
   }, [canvas, journey.currentPhaseKey]);
 
+  // On first mount, pan the viewport to sit over the current phase so the
+  // mini-map, pill, and canvas center all agree from the start.
+  const didInitialSnap = useRef(false);
+  useEffect(() => {
+    if (didInitialSnap.current) return;
+    const el = document.getElementById("portal-canvas-scroll");
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    const total = el.scrollWidth;
+    const map: Record<string, number> = {
+      now: total * 0.15,
+      next: total * 0.45,
+      later: total * 0.75,
+    };
+    const target = map[journey.currentPhaseKey] ?? 0;
+    el.scrollTo({ left: target, behavior: "auto" });
+    didInitialSnap.current = true;
+  }, [journey.currentPhaseKey]);
+
   return (
     <div className="relative h-full w-full">
       <MapCanvas
