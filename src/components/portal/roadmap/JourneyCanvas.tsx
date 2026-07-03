@@ -73,7 +73,7 @@ function computeLayout(journey: RoadmapJourney) {
   return { nodes, segments, phaseBands, anchorA, anchorB };
 }
 
-export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
+export function JourneyCanvas({ journey, selectedSlug, onSelect, matchingSlugs }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{
     startX: number;
