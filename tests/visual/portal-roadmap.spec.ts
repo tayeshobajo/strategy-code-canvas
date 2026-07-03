@@ -59,6 +59,11 @@ test.describe("/portal/roadmap visual regression", () => {
   });
 
   test("roadmap canvas snapshot", async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "desktop-1440",
+      "The uploaded Image 1 strict baseline is a desktop-1440 reference.",
+    );
+
     const canvas = page.locator("[data-testid='roadmap-canvas-wrap']");
     await expect(canvas).toBeVisible();
     // Strict-pixel compare against the baseline for this project (viewport).
