@@ -176,7 +176,7 @@ function PortalLayout() {
         </div>
         <PortalGreeting />
       </div>
-      <PortalNav pathname={pathname} orientation="vertical" />
+      <PortalNav pathname={pathname} />
       <div className="mt-auto shrink-0">
         <SidebarAccountZone email={email} onSignOut={signOut} />
       </div>
