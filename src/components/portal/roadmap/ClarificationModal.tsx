@@ -64,11 +64,14 @@ export function ClarificationModal({
     onSuccess: () => {
       setSent(true);
       setQuestion("");
+      toast.success("Question sent to Tai.");
     },
     onError: (e) => {
       toast.error(e instanceof Error ? e.message : "Could not send your question.");
     },
   });
+
+  const errorMessage = send.error instanceof Error ? send.error.message : null;
 
   const reset = () => {
     setSent(false);
