@@ -160,7 +160,7 @@ function RoadmapJourneyView({
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-8">
-      <RoadmapHeader journey={journey} doc={doc} />
+      <RoadmapHeader journey={journey} doc={doc} portalRoadmapId={portalRoadmapId} />
       <ExecutiveSnapshot journey={journey} />
       <PhaseJumpNav
         journey={journey}
