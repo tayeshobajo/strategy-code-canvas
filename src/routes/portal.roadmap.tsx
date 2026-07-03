@@ -765,7 +765,7 @@ function RoadmapHeader({
               </span>
             </SelectTrigger>
             <SelectContent>
-              {(["all", "current", "decisions", "deliverables", "deadlines", "client-actions"] as const).map((mode) => (
+              {(["all", "current", "critical-path", "decisions", "deliverables", "deadlines", "client-actions"] as const).map((mode) => (
                 <SelectItem key={mode} value={mode}>
                   {VIEW_MODE_LABEL[mode]}
                 </SelectItem>
