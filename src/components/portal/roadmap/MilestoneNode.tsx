@@ -103,7 +103,7 @@ function shortLabel(title: string, max = 18): string {
   return title.slice(0, max - 1).trimEnd() + "…";
 }
 
-export function MilestoneNode({
+export const MilestoneNode = memo(function MilestoneNode({
   milestone,
   x,
   y,
