@@ -317,7 +317,20 @@ function RoadmapJourneyView({
   // the drawer stays consistent with what the canvas is showing.
   useEffect(() => {
     if (!selectedMilestone || !matchingSlugs) return;
-    if (!matchingSlugs.has(selectedMilestone.slug)) setSelected(null);
+    if (!matchingSlugs.has(selectedMilestone.slug)) {
+      toast.info(
+        `"${selectedMilestone.title}" is hidden by the current view. Selection cleared.`,
+      );
+      setSelected(null);
+      // Return focus to the canvas so keyboard users aren't stranded.
+      setTimeout(() => {
+        const el = document.getElementById("portal-canvas-scroll");
+        if (el) {
+          if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+          (el as HTMLElement).focus({ preventScroll: true });
+        }
+      }, 60);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
 
@@ -498,17 +511,31 @@ function RoadmapHeader({
   onBookCall: () => void;
 }) {
   const recordEvent = useServerFn(recordPortalRoadmapEvent);
+  const [dlError, setDlError] = useState<string | null>(null);
   const handleDownload = () => {
+    setDlError(null);
     if (portalRoadmapId) {
       recordEvent({
         data: { roadmapId: portalRoadmapId, event: "downloaded" },
       }).catch(() => {});
     }
-    if (doc.file_url) {
-      window.open(doc.file_url, "_blank", "noopener,noreferrer");
-      return;
+    try {
+      if (doc.file_url) {
+        const w = window.open(doc.file_url, "_blank", "noopener,noreferrer");
+        if (!w) {
+          setDlError("Popup blocked. Allow popups for this site, then try again.");
+          toast.error("Download blocked by your browser.");
+          return;
+        }
+        toast.success("Download started.");
+        return;
+      }
+      if (typeof window !== "undefined") window.print();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Something went wrong.";
+      setDlError(msg);
+      toast.error(`Could not start download: ${msg}`);
     }
-    if (typeof window !== "undefined") window.print();
   };
   return (
     <div className="flex items-start justify-between gap-6 flex-wrap">
@@ -538,34 +565,51 @@ function RoadmapHeader({
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button
-          variant="outline"
-          className="border-ink/20"
-          onClick={onClarify}
-        >
-          <MessageSquare className="w-4 h-4 mr-2" />
-          Request clarification
-        </Button>
-        <Button
-          onClick={handleDownload}
-          variant="outline"
-          className="border-ink/20"
-          aria-label={
-            doc.file_url
-              ? "Download approved roadmap PDF"
-              : "Save roadmap as PDF via browser print"
-          }
-        >
-          <Download className="w-4 h-4 mr-2" /> Download PDF
-        </Button>
-        <Button
-          onClick={onBookCall}
-          className="bg-ink hover:bg-ink/90 text-white"
-        >
-          <Calendar className="w-4 h-4 mr-2" />
-          Book next call
-        </Button>
+      <div className="flex flex-col items-end gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            className="border-ink/20"
+            onClick={onClarify}
+          >
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Request clarification
+          </Button>
+          <Button
+            onClick={handleDownload}
+            variant="outline"
+            className="border-ink/20"
+            aria-label={
+              doc.file_url
+                ? "Download approved roadmap PDF"
+                : "Save roadmap as PDF via browser print"
+            }
+          >
+            <Download className="w-4 h-4 mr-2" /> Download PDF
+          </Button>
+          <Button
+            onClick={onBookCall}
+            className="bg-ink hover:bg-ink/90 text-white"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Book next call
+          </Button>
+        </div>
+        {dlError && (
+          <div
+            role="alert"
+            className="text-[12px] text-[#a4283c] flex items-center gap-2"
+          >
+            <span>{dlError}</span>
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="font-medium underline underline-offset-2 hover:no-underline"
+            >
+              Try again
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

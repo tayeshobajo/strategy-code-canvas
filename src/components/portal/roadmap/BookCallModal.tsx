@@ -69,11 +69,14 @@ export function BookCallModal({
     onSuccess: () => {
       setSent(true);
       setNotes("");
+      toast.success("Call request sent.");
     },
     onError: (e) => {
       toast.error(e instanceof Error ? e.message : "Could not send your request.");
     },
   });
+
+  const errorMessage = send.error instanceof Error ? send.error.message : null;
 
   const reset = () => {
     setSent(false);
@@ -168,6 +171,22 @@ export function BookCallModal({
                 className="resize-none"
               />
             </div>
+            {errorMessage && (
+              <div
+                role="alert"
+                className="rounded-md border border-[#a4283c]/30 bg-[#a4283c]/5 p-3 text-[13px] text-[#a4283c] flex items-start justify-between gap-3"
+              >
+                <span>Couldn't send: {errorMessage}</span>
+                <button
+                  type="button"
+                  className="font-medium underline underline-offset-2 hover:no-underline"
+                  onClick={() => send.mutate()}
+                  disabled={send.isPending || !projectId}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
           </div>
         )}
 
