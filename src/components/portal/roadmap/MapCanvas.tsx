@@ -300,6 +300,53 @@ export function MapCanvas({
     });
   }, [layout.markers, visibilities, clusterThreshold, keepFull]);
 
+  // Fan out any cluster the user has explicitly expanded, replacing the
+  // cluster chip with its members laid out around the cluster center so
+  // nearby items no longer overlap.
+  type FannedEntry =
+    | { kind: "cluster"; cluster: (typeof clustered)[number] extends { cluster: infer C } ? C : never }
+    | {
+        kind: "single";
+        pos: (typeof layout.markers)[number];
+        /** Optional absolute pixel overrides applied by fan-out. */
+        overrideX?: number;
+        overrideY?: number;
+        fannedFrom?: string;
+      };
+  const rendered = useMemo<FannedEntry[]>(() => {
+    const out: FannedEntry[] = [];
+    for (const entry of clustered) {
+      if (entry.kind === "cluster" && canvas.explodedClusterKeys.has(entry.cluster.key)) {
+        // Fan members around the cluster center on a shallow arc.
+        const cx = entry.cluster.nx * CANVAS_WIDTH;
+        const cy = entry.cluster.ny * CANVAS_HEIGHT;
+        const n = entry.cluster.members.length;
+        const spanPx = Math.min(360, 90 + n * 46);
+        const step = n > 1 ? spanPx / (n - 1) : 0;
+        const startX = cx - spanPx / 2;
+        for (let i = 0; i < n; i++) {
+          const member = entry.cluster.members[i];
+          const dx = startX + i * step - cx;
+          // shallow parabolic arc: peaks in the middle, dips towards edges
+          const t = n > 1 ? i / (n - 1) - 0.5 : 0; // -0.5..0.5
+          const dy = -60 + Math.abs(t) * 120; // -60..0
+          out.push({
+            kind: "single",
+            pos: member,
+            overrideX: cx + dx,
+            overrideY: cy + dy,
+            fannedFrom: entry.cluster.key,
+          });
+        }
+        // Keep the cluster chip visible so the user can collapse it back.
+        out.push(entry as FannedEntry);
+      } else {
+        out.push(entry as FannedEntry);
+      }
+    }
+    return out;
+  }, [clustered, canvas.explodedClusterKeys]);
+
   // Pan the selected marker into the visible half of the canvas (accounting
   // for the drawer that overlays the right side on desktop).
   useEffect(() => {
