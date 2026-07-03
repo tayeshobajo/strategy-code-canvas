@@ -28,6 +28,14 @@ import {
   Loader2,
   Download,
   Eye,
+  Lightbulb,
+  Unlock,
+  Flag,
+  ListChecks,
+  GitBranch,
+  CircleDot,
+  FileText,
+  CalendarClock,
 } from "lucide-react";
 import type {
   MilestoneKind,
@@ -58,8 +66,8 @@ const STATUS_LABEL: Record<RoadmapMilestone["status"], string> = {
 };
 
 const STATUS_TONE: Record<RoadmapMilestone["status"], string> = {
-  completed: "bg-royal/10 text-royal border-royal/30",
-  in_progress: "bg-royal text-white border-royal",
+  completed: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  in_progress: "bg-royal/15 text-royal border-royal/30",
   upcoming: "bg-ink/5 text-ink/70 border-ink/15",
   blocked: "bg-[#a4283c]/10 text-[#a4283c] border-[#a4283c]/30",
   optional: "bg-ink/5 text-ink/60 border-dashed border-ink/25",
@@ -70,6 +78,20 @@ const KIND_LABEL: Record<MilestoneKind, string> = {
   decision: "Decision",
   deliverable: "Deliverable",
   meeting: "Meeting",
+};
+
+const KIND_ICON: Record<MilestoneKind, typeof CircleDot> = {
+  milestone: CircleDot,
+  decision: GitBranch,
+  deliverable: FileText,
+  meeting: CalendarClock,
+};
+
+const KIND_ACCENT: Record<MilestoneKind, string> = {
+  milestone: "bg-royal/15 text-royal border-royal/30",
+  decision: "bg-[#8b5cf6]/15 text-[#7c3aed] border-[#8b5cf6]/30",
+  deliverable: "bg-[#f59e0b]/15 text-[#b45309] border-[#f59e0b]/30",
+  meeting: "bg-[#0ea5a4]/15 text-[#0f766e] border-[#0ea5a4]/30",
 };
 
 function fmtDate(d?: string) {
