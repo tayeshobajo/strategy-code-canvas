@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import {
   MessageSquare,
   Send,
@@ -29,7 +31,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { usePortalContext } from "@/hooks/use-portal-context";
 import { toast } from "sonner";
 
+const messagesSearchSchema = z.object({
+  milestone: fallback(z.string().optional(), undefined),
+  prefill: fallback(z.string().optional(), undefined),
+});
+
 export const Route = createFileRoute("/portal/messages")({
+  validateSearch: zodValidator(messagesSearchSchema),
   head: () => ({
     meta: [
       { title: "Messages — Trust Tai portal" },
