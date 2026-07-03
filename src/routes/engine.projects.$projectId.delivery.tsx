@@ -192,6 +192,8 @@ function ExecutionHandoffCard({ projectId }: { projectId: string }) {
   const qc = useQueryClient();
   const stateFn = useServerFn(getPortalHandoffState);
   const startFn = useServerFn(startExecutionEngagement);
+  const flagFn = useServerFn(markPortalFollowUpNeeded);
+  const [flagReason, setFlagReason] = useState("");
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["engine", "portal-handoff", projectId],
@@ -212,6 +214,19 @@ function ExecutionHandoffCard({ projectId }: { projectId: string }) {
       ]);
     },
   });
+
+  const flag = useMutation({
+    mutationFn: (reason: string) => {
+      const portalProjectId = (data as { portalProjectId?: string | null } | undefined)
+        ?.portalProjectId;
+      if (!portalProjectId) throw new Error("No linked portal workspace.");
+      return flagFn({ data: { projectId: portalProjectId, reason } });
+    },
+    onSuccess: () => {
+      setFlagReason("");
+    },
+  });
+
 
   if (isLoading || !data) {
     return (
