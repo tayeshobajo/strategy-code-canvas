@@ -100,13 +100,24 @@ export function computeMapLayout(journey: RoadmapJourney): {
     const layout = PHASE_LAYOUT[phase.key];
     const items = phase.milestones;
     const n = items.length;
+    // Inset the marker band inside each phase so items don't hug the borders
+    // and adjacent phases don't collide at their shared edge.
+    const inset = Math.min(0.045, (layout.x1 - layout.x0) * 0.12);
+    const x0 = layout.x0 + inset;
+    const x1 = layout.x1 - inset;
+    // Enforce a minimum horizontal gap so dense phases stay legible.
+    const minGap = 0.052;
+    const span = Math.max(x1 - x0, (n - 1) * minGap);
+    const start = x0 - Math.max(0, (span - (x1 - x0)) / 2);
     items.forEach((m, i) => {
       const t = n === 1 ? 0.5 : i / (n - 1);
-      const nx = layout.x0 + (layout.x1 - layout.x0) * t;
+      const nx = n === 1 ? (x0 + x1) / 2 : start + span * t;
       const baseY = layout.yStart + (layout.yEnd - layout.yStart) * t;
       const wobble = Math.sin(t * Math.PI) * 0.045;
       const attachment = attachmentForKind(m);
-      const ny = baseY - wobble + attachmentOffset(attachment);
+      // Small alternating micro-offset so same-kind neighbors don't stack.
+      const stagger = (i % 2 === 0 ? -1 : 1) * 0.012;
+      const ny = baseY - wobble + attachmentOffset(attachment) + stagger;
       markers.push({ milestone: m, nx, ny, attachment });
     });
   }
