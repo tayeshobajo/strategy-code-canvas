@@ -850,7 +850,7 @@ export const logPortalFileEvent = createServerFn({ method: "POST" })
       .parse(raw),
   )
   .handler(async ({ data, context }) => {
-    const sb = context.supabase as {
+    const sb = context.supabase as unknown as {
       rpc: (
         fn: string,
         args: Record<string, unknown>,
@@ -877,7 +877,7 @@ export const markPortalFollowUpNeeded = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertOperator(context);
-    const sb = context.supabase as {
+    const sb = context.supabase as unknown as {
       rpc: (
         fn: string,
         args: Record<string, unknown>,
@@ -897,7 +897,7 @@ export const resolvePortalFollowUp = createServerFn({ method: "POST" })
     z.object({ messageId: z.string().uuid() }).parse(raw),
   )
   .handler(async ({ data, context }) => {
-    const sb = context.supabase as {
+    const sb = context.supabase as unknown as {
       rpc: (
         fn: string,
         args: Record<string, unknown>,
