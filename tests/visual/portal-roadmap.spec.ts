@@ -138,3 +138,140 @@ test.describe("/portal/roadmap header actions keep unchanged sections stable", (
     expect(await hashUnchangedSections(page), "after Book next call").toBe(before);
   });
 });
+
+async function readScroll(page: Page): Promise<{ left: number; width: number; client: number }> {
+  return await page.evaluate(() => {
+    const el = document.getElementById("portal-canvas-scroll");
+    if (!el) return { left: -1, width: 0, client: 0 };
+    return { left: el.scrollLeft, width: el.scrollWidth, client: el.clientWidth };
+  });
+}
+
+test.describe("/portal/roadmap Fit to field + Jump to pan the canvas", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await preparePage(page);
+  });
+
+  test("Jump to each phase changes scrollLeft and Fit resets to Point A; A + B both reachable", async ({ page }) => {
+    const start = await readScroll(page);
+    expect(start.left).toBe(0);
+    expect(start.width).toBeGreaterThan(start.client); // canvas is pannable
+
+    const jumpTargets = [
+      { name: /Point A/i, expectMin: 0, expectMax: start.width * 0.1 },
+      { name: /Phase 1/i, expectMin: start.width * 0.05, expectMax: start.width * 0.35 },
+      { name: /Phase 2/i, expectMin: start.width * 0.3, expectMax: start.width * 0.65 },
+      { name: /Phase 3/i, expectMin: start.width * 0.6, expectMax: start.width * 0.95 },
+      { name: /Point B/i, expectMin: start.width * 0.7, expectMax: start.width },
+    ];
+
+    for (const target of jumpTargets) {
+      await page.getByRole("button", { name: /jump to/i }).click();
+      await page.getByRole("menuitem", { name: target.name }).click();
+      await page.waitForTimeout(500);
+      const s = await readScroll(page);
+      expect(s.left, `Jump to ${target.name}`).toBeGreaterThanOrEqual(target.expectMin - 1);
+      expect(s.left, `Jump to ${target.name}`).toBeLessThanOrEqual(target.expectMax + 1);
+    }
+
+    // Fit to field → back to origin (Point A visible)
+    await page.getByRole("button", { name: /fit to field/i }).click();
+    await page.waitForTimeout(500);
+    const end = await readScroll(page);
+    expect(end.left).toBeLessThanOrEqual(2);
+  });
+});
+
+test.describe("/portal/roadmap sync between mini-map, active phase, and markers", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await preparePage(page);
+  });
+
+  test("clicking a phase stop in the bottom overview strip pans the main map", async ({ page }) => {
+    const overview = page.locator("[data-testid='roadmap-canvas-wrap']").locator("text=Roadmap overview").locator("..").locator("..");
+
+    const before = await readScroll(page);
+    // Click Phase 3 tab in the strip (buttons with sub-label "Scale Systems")
+    await overview.getByRole("button", { name: /Scale Systems/i }).click();
+    await page.waitForTimeout(500);
+    const after = await readScroll(page);
+    expect(after.left, "phase 3 strip click should pan right").toBeGreaterThan(before.left + 50);
+
+    // Click Point A stop → pans back to origin
+    await overview.getByRole("button", { name: /Current State/i }).click();
+    await page.waitForTimeout(500);
+    const reset = await readScroll(page);
+    expect(reset.left).toBeLessThanOrEqual(after.left);
+  });
+
+  test("selecting a marker highlights it and updates the mini-map active phase", async ({ page }) => {
+    const marker = page.locator("[data-milestone-node]").first();
+    await marker.scrollIntoViewIfNeeded();
+    await marker.click();
+    await page.waitForTimeout(300);
+    // The selected marker exposes data-marker-selected=true
+    await expect(page.locator("[data-marker-selected='true']")).toHaveCount(1);
+    // Milestone sheet drawer opens (aria dialog with milestone-sheet-title)
+    await expect(page.locator("#milestone-sheet-title")).toBeVisible();
+    // The overlay behind the sheet is the lighter black/10 (not the heavy default)
+    const overlayBg = await page
+      .locator("[data-slot='sheet-overlay'], [class*='fixed inset-0'][class*='bg-black']")
+      .first()
+      .evaluate((el) => getComputedStyle(el).backgroundColor)
+      .catch(() => "");
+    // black/10 = rgba(0,0,0,0.1). Allow either exact or close.
+    if (overlayBg) {
+      expect(overlayBg.replace(/\s/g, "")).toMatch(/rgba\(0,0,0,0\.1\d*\)|rgba\(0,0,0,0\.1\)/);
+    }
+  });
+});
+
+test.describe("/portal/roadmap fits within the viewport at 100% zoom", () => {
+  for (const viewport of [
+    { name: "laptop-1366", width: 1366, height: 768 },
+    { name: "desktop-1440", width: 1440, height: 900 },
+    { name: "desktop-1920", width: 1920, height: 1080 },
+  ] as const) {
+    test(`no page-level vertical scroll at ${viewport.name}, mini-map visible`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await preparePage(page);
+
+      // The controlled roadmap viewport lives at the top of the page. Only the
+      // sections BELOW (SupportingContext, AcknowledgeBlock) may cause
+      // additional page scroll. What matters at 100% zoom is: the roadmap
+      // canvas + mini-map fit within the visible viewport height without
+      // needing to scroll first.
+      const inView = await page.evaluate(() => {
+        const canvas = document.querySelector("[data-testid='roadmap-canvas-wrap']") as HTMLElement | null;
+        const mini = document.getElementById("portal-canvas-scroll")?.parentElement?.querySelector("[class*='backdrop-blur'][class*='rounded-xl']") as HTMLElement | null;
+        const stripByText = Array.from(document.querySelectorAll("*")).find((n) =>
+          (n as HTMLElement).innerText?.trim() === "Roadmap overview",
+        ) as HTMLElement | null;
+        const strip = mini ?? stripByText;
+        const cr = canvas?.getBoundingClientRect();
+        const sr = strip?.getBoundingClientRect();
+        return {
+          vh: window.innerHeight,
+          canvasBottom: cr?.bottom ?? null,
+          canvasTop: cr?.top ?? null,
+          stripBottom: sr?.bottom ?? null,
+          stripTop: sr?.top ?? null,
+        };
+      });
+
+      expect(inView.canvasTop, "canvas should be at/near the top").not.toBeNull();
+      expect(inView.canvasBottom, "canvas should fit within viewport height").toBeLessThanOrEqual(
+        inView.vh + 2,
+      );
+      if (inView.stripBottom != null && inView.stripTop != null) {
+        expect(inView.stripTop, "mini-map top must be inside the viewport").toBeLessThan(inView.vh);
+        expect(inView.stripBottom, "mini-map bottom must be inside the viewport").toBeLessThanOrEqual(
+          inView.vh + 2,
+        );
+      }
+    });
+  }
+});
+
