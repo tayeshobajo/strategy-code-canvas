@@ -7,17 +7,28 @@ type Props = {
   journey: RoadmapJourney;
   onJump: (key: "pointA" | "now" | "next" | "later" | "pointB") => void;
   onFullscreen?: () => void;
+  /** "floating" renders as a dark, glass-blur strip designed to sit
+   *  absolutely inside the map canvas. Default is the light card variant. */
+  variant?: "card" | "floating";
 };
 
-export function RoadmapOverviewStrip({ journey, onJump }: Props) {
+export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Props) {
   const canvas = useRoadmapCanvas();
   const [expanded, setExpanded] = useState(true);
   const active = canvas.activePhaseKey ?? journey.activeMilestone?.phase ?? "now";
 
   const phases = journey.phases;
+  const floating = variant === "floating";
 
   return (
-    <div className="rounded-2xl bg-card border border-border p-4 lg:p-5">
+    <div
+      className={
+        floating
+          ? "rounded-xl bg-slate-950/75 backdrop-blur border border-white/15 px-4 py-2.5 shadow-[0_20px_45px_-20px_rgba(0,0,0,0.6)] text-white"
+          : "rounded-2xl bg-card border border-border p-4 lg:p-5"
+      }
+    >
+
       <div className="flex items-center gap-6">
         <div className="shrink-0">
           <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-royal">
