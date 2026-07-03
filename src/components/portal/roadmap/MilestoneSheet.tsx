@@ -194,17 +194,31 @@ export function MilestoneSheet({
       >
         <SheetContent
           side={isMobile ? "bottom" : "right"}
-          overlayClassName={isMobile ? undefined : "bg-black/10"}
+          overlayClassName={isMobile ? undefined : "bg-slate-950/[0.08] backdrop-blur-[1px]"}
           className={
             isMobile
               ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-paper text-ink border-t border-border overflow-y-auto p-0"
-              : "w-full sm:max-w-[440px] bg-paper text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)] p-0 flex flex-col"
+              : "w-full sm:max-w-[410px] bg-paper text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_30px_80px_-30px_rgba(11,18,32,0.35)] p-0 flex flex-col"
           }
           aria-labelledby="milestone-sheet-title"
           aria-describedby="milestone-sheet-desc"
         >
           {milestone && (() => {
             const KindIcon = KIND_ICON[kind];
+            // "Deadline" is a derived label for a milestone with a due date.
+            const isDeadline = kind === "milestone" && !!milestone.dueDate;
+            const displayKindLabel = isDeadline ? "Deadline" : KIND_LABEL[kind];
+            const displayKindAccent = isDeadline
+              ? "bg-[#e11d48]/12 text-[#be123c] border-[#e11d48]/30"
+              : KIND_ACCENT[kind];
+            const phaseName =
+              milestone.phase === 1
+                ? "Foundation"
+                : milestone.phase === 2
+                  ? "Core Platform Build"
+                  : milestone.phase === 3
+                    ? "Scale Systems"
+                    : `Phase ${milestone.phase}`;
             const primaryCta =
               kind === "decision"
                 ? { label: "Respond", onClick: () => setClarifyOpen(true) }
@@ -228,19 +242,19 @@ export function MilestoneSheet({
                 : null;
             return (
               <>
-                {/* Header — grounded card with tinted kind chip + close */}
-                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/8 bg-white/50">
-                  <div className="flex items-center gap-2 flex-wrap">
+                {/* Header — chips + title + summary, warm off-white wash */}
+                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/8 bg-[color:var(--paper,#f6f2ea)]/60">
+                  <div className="flex items-center gap-2 flex-wrap pr-8">
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-0.5 text-[10.5px] font-mono uppercase tracking-[0.22em] ${KIND_ACCENT[kind]}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-0.5 text-[10.5px] font-mono uppercase tracking-[0.22em] ${displayKindAccent}`}
                     >
                       <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-white/70">
                         <KindIcon className="w-3 h-3" />
                       </span>
-                      {KIND_LABEL[kind]}
+                      {displayKindLabel}
                     </span>
-                    <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
-                      Phase {milestone.phase}
+                    <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/50">
+                      Phase {milestone.phase} · {phaseName}
                     </span>
                     <span
                       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_TONE[milestone.status]}`}
@@ -252,7 +266,7 @@ export function MilestoneSheet({
                     id="milestone-sheet-title"
                     ref={titleRef}
                     tabIndex={-1}
-                    className="font-display text-2xl leading-tight text-ink focus:outline-none"
+                    className="font-display text-[26px] leading-[1.15] text-ink focus:outline-none"
                   >
                     {milestone.title}
                   </SheetTitle>
@@ -265,6 +279,7 @@ export function MilestoneSheet({
                     </SheetDescription>
                   )}
                 </SheetHeader>
+
 
                 {/* Scrollable body */}
                 <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
