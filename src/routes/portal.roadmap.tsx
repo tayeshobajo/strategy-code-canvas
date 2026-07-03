@@ -465,60 +465,31 @@ function RoadmapJourneyView({
   );
 }
 
-function ViewFilterBar({
-  value,
-  onChange,
-  matchingCount,
-  total,
-}: {
-  value: RoadmapViewMode;
-  onChange: (v: RoadmapViewMode) => void;
-  matchingCount: number;
-  total: number;
-}) {
-  const active = value !== "all";
+function CurrentPhasePill({ journey }: { journey: ReturnType<typeof buildRoadmapJourney> }) {
+  const canvas = useRoadmapCanvas();
+  const key = canvas.activePhaseKey ?? journey.activeMilestone?.phase ?? "now";
+  const idx = journey.phases.findIndex((p) => p.key === key);
+  const phaseName =
+    key === "now" || idx === 0
+      ? "Phase 1: Pre-Test Readiness"
+      : key === "next" || idx === 1
+        ? "Phase 2: Core Platform Build"
+        : key === "later" || idx === 2
+          ? "Phase 3: Scale Systems"
+          : key === "pointA"
+            ? "Point A: Current State"
+            : "Point B: Scaled Impact";
   return (
-    <div className="flex items-center justify-between gap-3 flex-wrap">
-      <div className="flex items-center gap-3">
-        <label
-          htmlFor="roadmap-view-filter"
-          className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/55"
-        >
-          View
-        </label>
-        <Select value={value} onValueChange={(v) => onChange(v as RoadmapViewMode)}>
-          <SelectTrigger
-            id="roadmap-view-filter"
-            className="h-9 w-[200px] bg-card border-border"
-            aria-label="Filter roadmap view"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {(
-              ["all", "decisions", "deliverables", "deadlines", "current"] as const
-            ).map((mode) => (
-              <SelectItem key={mode} value={mode}>
-                {VIEW_MODE_LABEL[mode]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {active && (
-          <span className="text-[12px] text-ink/60">
-            Showing {matchingCount} of {total}
-          </span>
-        )}
+    <div className="inline-flex items-center gap-3 rounded-xl bg-slate-900 text-white px-4 py-2 shadow-[0_10px_28px_-16px_rgba(4,10,25,0.6)]">
+      <div className="text-left">
+        <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
+          Current Phase
+        </div>
+        <div className="text-[13px] font-semibold leading-tight">
+          {phaseName}
+        </div>
       </div>
-      {active && (
-        <button
-          type="button"
-          onClick={() => onChange("all")}
-          className="text-[12px] font-medium text-royal hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-royal rounded"
-        >
-          Show full journey
-        </button>
-      )}
+      <Activity className="w-4 h-4 text-royal shrink-0" />
     </div>
   );
 }
@@ -527,12 +498,22 @@ function RoadmapHeader({
   journey,
   doc,
   portalRoadmapId,
+  viewMode,
+  onViewModeChange,
+  matchingCount,
+  totalCount,
+  onJump,
   onClarify,
   onBookCall,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
   doc: PortalRoadmapDoc;
   portalRoadmapId: string | undefined;
+  viewMode: RoadmapViewMode;
+  onViewModeChange: (v: RoadmapViewMode) => void;
+  matchingCount: number;
+  totalCount: number;
+  onJump: (key: "pointA" | "now" | "next" | "later" | "pointB") => void;
   onClarify: () => void;
   onBookCall: () => void;
 }) {
@@ -563,80 +544,152 @@ function RoadmapHeader({
       toast.error(`Could not start download: ${msg}`);
     }
   };
+
+  const fitToField = () => {
+    const el = document.getElementById("portal-canvas-scroll");
+    if (!el) return;
+    el.scrollTo({ left: 0, behavior: "smooth" });
+  };
+
+  const viewFiltered = viewMode !== "all";
+
   return (
-    <div className="flex items-start justify-between gap-6 flex-wrap">
-      <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-          Your Roadmap Canvas
-        </div>
-        <h1 className="font-display text-3xl sm:text-4xl text-ink mt-2 leading-tight">
-          {journey.title}
-        </h1>
-        <p className="text-[14px] text-ink/65 mt-2 max-w-2xl">
-          A clear view of the journey, the active work, and the decisions ahead.
-        </p>
-        <div className="flex items-center gap-2 flex-wrap mt-3">
-          <span className="inline-flex items-center rounded-full bg-royal/10 text-royal border border-royal/20 px-2.5 py-1 text-[11px] font-medium">
-            Approved
-          </span>
-          {journey.activeMilestone && (
-            <span className="inline-flex items-center rounded-full bg-ink text-white px-2.5 py-1 text-[11px] font-medium">
-              Current: {journey.activeMilestone.title}
+    <div className="flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl sm:text-[26px] text-ink leading-tight truncate">
+            {journey.title}
+          </h1>
+          <p className="text-[13px] text-ink/60 mt-1">
+            {journey.currentFocus ?? "Roadmap to your next milestone"}
+          </p>
+          <div className="flex items-center gap-2 flex-wrap mt-2">
+            <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10.5px] font-medium">
+              Active
             </span>
-          )}
-          {journey.approvedAt && (
-            <span className="text-[12px] text-ink/55">
-              Last updated {new Date(journey.approvedAt).toLocaleDateString()}
-            </span>
-          )}
+            {journey.approvedAt && (
+              <span className="text-[11.5px] text-ink/55">
+                Last updated {new Date(journey.approvedAt).toLocaleDateString()}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="flex flex-col items-end gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
+
+        <div className="flex items-center gap-2 justify-end flex-wrap">
+          <CurrentPhasePill journey={journey} />
+
           <Button
             variant="outline"
-            className="border-ink/20"
-            onClick={onClarify}
+            size="sm"
+            className="border-ink/15 h-9"
+            onClick={fitToField}
           >
-            <MessageSquare className="w-4 h-4 mr-2" />
-            Request clarification
+            <Maximize className="w-3.5 h-3.5 mr-1.5" />
+            Fit to field
           </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="border-ink/15 h-9">
+                <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                Jump to
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => onJump("pointA")}>Point A · Current State</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onJump("now")}>Phase 1 · Foundation</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onJump("next")}>Phase 2 · Core Platform Build</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onJump("later")}>Phase 3 · Scale Systems</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onJump("pointB")}>Point B · Scaled Impact</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Select value={viewMode} onValueChange={(v) => onViewModeChange(v as RoadmapViewMode)}>
+            <SelectTrigger
+              className="h-9 w-[150px] border-ink/15 bg-white"
+              aria-label="Filter roadmap view"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5" />
+                <SelectValue />
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {(["all", "decisions", "deliverables", "deadlines", "current"] as const).map((mode) => (
+                <SelectItem key={mode} value={mode}>
+                  {VIEW_MODE_LABEL[mode]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Button
             onClick={handleDownload}
             variant="outline"
-            className="border-ink/20"
+            size="sm"
+            className="border-ink/15 h-9"
             aria-label={
               doc.file_url
                 ? "Download approved roadmap PDF"
                 : "Save roadmap as PDF via browser print"
             }
           >
-            <Download className="w-4 h-4 mr-2" /> Download PDF
+            <Download className="w-3.5 h-3.5 mr-1.5" /> Download PDF
           </Button>
+
+          <Button
+            onClick={onClarify}
+            variant="outline"
+            size="sm"
+            className="border-ink/15 h-9"
+          >
+            <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+            Ask a question
+          </Button>
+
           <Button
             onClick={onBookCall}
-            className="bg-ink hover:bg-ink/90 text-white"
+            size="sm"
+            className="bg-slate-900 hover:bg-slate-900/90 text-white h-9"
           >
-            <Calendar className="w-4 h-4 mr-2" />
+            <Calendar className="w-3.5 h-3.5 mr-1.5" />
             Book next call
           </Button>
         </div>
-        {dlError && (
-          <div
-            role="alert"
-            className="text-[12px] text-[#a4283c] flex items-center gap-2"
-          >
-            <span>{dlError}</span>
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="font-medium underline underline-offset-2 hover:no-underline"
-            >
-              Try again
-            </button>
-          </div>
-        )}
       </div>
+
+      {(viewFiltered || dlError) && (
+        <div className="flex items-center justify-between gap-3 flex-wrap text-[12px]">
+          {viewFiltered ? (
+            <div className="flex items-center gap-3">
+              <span className="text-ink/60">
+                Showing {matchingCount} of {totalCount}
+              </span>
+              <button
+                type="button"
+                onClick={() => onViewModeChange("all")}
+                className="font-medium text-royal hover:underline"
+              >
+                Show full journey
+              </button>
+            </div>
+          ) : (
+            <span />
+          )}
+          {dlError && (
+            <div role="alert" className="text-[#a4283c] flex items-center gap-2">
+              <span>{dlError}</span>
+              <button
+                type="button"
+                onClick={handleDownload}
+                className="font-medium underline underline-offset-2 hover:no-underline"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
