@@ -276,6 +276,12 @@ function RoadmapJourneyView({
   };
 
   const [headerClarifyOpen, setHeaderClarifyOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  // A journey is "empty" when every phase only contains placeholder milestones.
+  const hasRealMilestones = journey.milestones.some(
+    (m) => !m.slug.endsWith("-placeholder"),
+  );
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
@@ -286,15 +292,39 @@ function RoadmapJourneyView({
         onClarify={() => setHeaderClarifyOpen(true)}
       />
       <ExecutiveSnapshot journey={journey} />
-      <PhaseJumpNav journey={journey} onJump={jumpTo} />
-      <JourneyCanvas
-        journey={journey}
-        selectedSlug={selectedMilestone?.slug ?? null}
-        onSelect={(slug) => setSelected(slug)}
-      />
-      <MiniMap journey={journey} canvasWidth={canvas.scrollWidth || 1800} />
+      {!hasRealMilestones ? (
+        <div className="rounded-2xl bg-card border border-border p-8 lg:p-10 text-center">
+          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+            Milestones coming soon
+          </div>
+          <h2 className="font-display text-xl text-ink mt-2">
+            Your roadmap doesn't have any milestones yet.
+          </h2>
+          <p className="text-[15px] leading-[1.75] text-ink/70 mt-3 max-w-xl mx-auto">
+            Tai is still shaping the phase-by-phase journey. As soon as
+            milestones are added, they'll appear here as an interactive map.
+          </p>
+        </div>
+      ) : isMobile ? (
+        <MobilePhaseStack
+          journey={journey}
+          selectedSlug={selectedMilestone?.slug ?? null}
+          onSelect={(slug) => setSelected(slug)}
+        />
+      ) : (
+        <>
+          <PhaseJumpNav journey={journey} onJump={jumpTo} />
+          <JourneyCanvas
+            journey={journey}
+            selectedSlug={selectedMilestone?.slug ?? null}
+            onSelect={(slug) => setSelected(slug)}
+          />
+          <MiniMap journey={journey} canvasWidth={canvas.scrollWidth || 1800} />
+        </>
+      )}
       <SupportingContext journey={journey} />
       <AcknowledgeBlock ctx={ctx} portalRoadmapId={portalRoadmapId} />
+
       {olderDocs.length > 0 && (
         <div className="rounded-2xl bg-card border border-border p-6">
           <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal mb-3">
