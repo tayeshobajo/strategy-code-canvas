@@ -611,14 +611,6 @@ function RoadmapHeader({
           </div>
         )}
       </div>
-        <Button
-          onClick={onBookCall}
-          className="bg-ink hover:bg-ink/90 text-white"
-        >
-          <Calendar className="w-4 h-4 mr-2" />
-          Book next call
-        </Button>
-      </div>
     </div>
   );
 }
