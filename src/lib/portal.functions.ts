@@ -486,26 +486,15 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
       return { docs: [] as PortalRoadmapDoc[], revoked: false as const };
     }
 
-    const [{ data, error }, projectsRes] = await Promise.all([
-      context.supabase
-        .from("client_portal_roadmaps")
-        .select(
-          "id, project_id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, supporting_notes, current_focus, owner_name, next_milestone, next_meeting_at, acknowledged_at, share_url, approved_at, updated_at, version_label",
-        )
-        .in("project_id", projectIds)
-        .in("status", ["approved", "delivered"])
-        .order("approved_at", { ascending: false }),
-      context.supabase
-        .from("client_portal_projects")
-        .select("id, point_a, point_b")
-        .in("id", projectIds),
-    ]);
+    const { data, error } = await context.supabase
+      .from("client_portal_roadmaps")
+      .select(
+        "id, project_id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, supporting_notes, current_focus, owner_name, next_milestone, next_meeting_at, acknowledged_at, share_url, approved_at, updated_at, version_label",
+      )
+      .in("project_id", projectIds)
+      .in("status", ["approved", "delivered"])
+      .order("approved_at", { ascending: false });
     if (error) throw error;
-
-    const projectById = new Map<string, { point_a: string | null; point_b: string | null }>();
-    for (const p of projectsRes.data ?? []) {
-      projectById.set(p.id, { point_a: p.point_a ?? null, point_b: p.point_b ?? null });
-    }
 
     const docs: PortalRoadmapDoc[] = (data ?? []).map((r: any) => ({
       id: r.id,
@@ -515,7 +504,10 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
       published_at: r.approved_at,
       updated_at: r.updated_at,
       raw: r,
-      project: projectById.get(r.project_id) ?? null,
+      // point_a/point_b live in the intake/engine layer today; portal
+      // projects don't carry them, so the canvas falls back to
+      // current_diagnosis / executive_summary from the roadmap row.
+      project: null,
     }));
     return { docs, revoked: false as const };
   });
