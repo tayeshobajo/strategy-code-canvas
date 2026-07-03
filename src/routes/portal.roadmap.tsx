@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { MapCanvas } from "@/components/portal/roadmap/MapCanvas";
 import { MilestoneSheet } from "@/components/portal/roadmap/MilestoneSheet";
+import { SelectionConnector } from "@/components/portal/roadmap/SelectionConnector";
 import {
   RoadmapOverviewStrip,
   MapLegend,
@@ -666,6 +667,7 @@ function RoadmapCanvasStage({
         viewMode={viewMode}
         fitHeight
       />
+      <SelectionConnector selectedSlug={selectedSlug} active={!!selectedSlug} />
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-4 left-4 pointer-events-auto max-w-[280px]">
           <StatusOverlayCard

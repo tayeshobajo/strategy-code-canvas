@@ -65,6 +65,8 @@ type CanvasCtx = {
   visibleKinds: Set<LegendKind>;
   /** Kinds shown at muted strength (dimmed, no label). */
   mutedKinds: Set<LegendKind>;
+  /** Cluster keys the user has explicitly fanned out ("exploded"). */
+  explodedClusterKeys: Set<string>;
 
   setScrollState: (s: { scrollWidth: number; scrollLeft: number; clientWidth: number }) => void;
   setCurrentPhaseKey: (k: PhaseKey | null) => void;
@@ -73,6 +75,10 @@ type CanvasCtx = {
   setZoomLevel: (z: ZoomLevel) => void;
   /** Cycle a legend kind: visible → muted → hidden → visible. */
   toggleKind: (k: LegendKind) => void;
+  /** Toggle whether a cluster is fanned out in place. */
+  toggleClusterExpanded: (key: string) => void;
+  /** Collapse every fanned-out cluster (e.g. on zoom change). */
+  collapseAllClusters: () => void;
 
   /** Smooth-scroll the canvas so that `x` is visible near the viewport center. */
   scrollToX: (x: number) => void;
@@ -105,6 +111,9 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
   );
   const [mutedKinds, setMutedKinds] = useState<Set<LegendKind>>(() =>
     loadKindSet(LS_LEGEND_MUTED, DEFAULT_MUTED_KINDS),
+  );
+  const [explodedClusterKeys, setExplodedClusterKeys] = useState<Set<string>>(
+    () => new Set(),
   );
   const scrollerRef = useRef<HTMLElement | null>(null);
   const nodeRefs = useRef<NodeRefs>(new Map());
@@ -175,6 +184,25 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
     });
   }, []);
 
+  const toggleClusterExpanded = useCallback((key: string) => {
+    setExplodedClusterKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const collapseAllClusters = useCallback(() => {
+    setExplodedClusterKeys((prev) => (prev.size === 0 ? prev : new Set()));
+  }, []);
+
+  // Any zoom change should reset in-place expansions — the marker layout
+  // shifts, so lingering fanned-out members would be misleading.
+  useEffect(() => {
+    setExplodedClusterKeys((prev) => (prev.size === 0 ? prev : new Set()));
+  }, [zoomLevel]);
+
   const value = useMemo<CanvasCtx>(
     () => ({
       scrollWidth,
@@ -187,12 +215,15 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
       zoomLevel,
       visibleKinds,
       mutedKinds,
+      explodedClusterKeys,
       setScrollState,
       setCurrentPhaseKey,
       setSelectedPhaseKey,
       setHighlightedSlug,
       setZoomLevel,
       toggleKind,
+      toggleClusterExpanded,
+      collapseAllClusters,
       scrollToX,
       scrollToXWithDrawer,
       registerScroller,
@@ -210,6 +241,7 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
       zoomLevel,
       visibleKinds,
       mutedKinds,
+      explodedClusterKeys,
       setScrollState,
       scrollToX,
       scrollToXWithDrawer,
@@ -217,6 +249,8 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
       registerNode,
       focusNode,
       toggleKind,
+      toggleClusterExpanded,
+      collapseAllClusters,
     ],
   );
 
