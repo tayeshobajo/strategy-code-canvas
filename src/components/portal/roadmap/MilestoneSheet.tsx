@@ -7,11 +7,23 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import { Calendar, MessageSquare, ExternalLink } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useMutation } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import {
+  Calendar,
+  MessageSquare,
+  ExternalLink,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 import type { RoadmapMilestone } from "@/lib/portal-roadmap-model";
+import { recordPortalMilestoneReview } from "@/lib/portal.functions";
+import { toast } from "sonner";
 
 type Props = {
   milestone: RoadmapMilestone | null;
+  roadmapId?: string;
   onClose: () => void;
 };
 
@@ -31,13 +43,51 @@ const STATUS_TONE: Record<RoadmapMilestone["status"], string> = {
   optional: "bg-ink/5 text-ink/60 border-dashed border-ink/25",
 };
 
-export function MilestoneSheet({ milestone, onClose }: Props) {
+export function MilestoneSheet({ milestone, roadmapId, onClose }: Props) {
   const open = !!milestone;
+  const recordReview = useServerFn(recordPortalMilestoneReview);
+  const [reviewedSlugs, setReviewedSlugs] = useState<Set<string>>(new Set());
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  const reviewMut = useMutation({
+    mutationFn: (m: RoadmapMilestone) =>
+      recordReview({
+        data: {
+          roadmapId: roadmapId!,
+          milestoneSlug: m.slug,
+          milestoneTitle: m.title,
+        },
+      }),
+    onSuccess: (_res, m) => {
+      setReviewedSlugs((prev) => {
+        const next = new Set(prev);
+        next.add(m.slug);
+        return next;
+      });
+      toast.success("Marked as reviewed. Tai will see the update.");
+    },
+    onError: () => {
+      toast.error("Could not record review. Please try again.");
+    },
+  });
+
+  // When a milestone opens, move focus into the sheet title for screen readers.
+  useEffect(() => {
+    if (open && titleRef.current) titleRef.current.focus();
+  }, [open, milestone?.slug]);
+
+  const isReviewed = milestone ? reviewedSlugs.has(milestone.slug) : false;
+  const clarificationSubject = milestone
+    ? `I have a question about the "${milestone.title}" milestone in our roadmap:\n\n`
+    : "";
+
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
         className="w-full sm:max-w-lg bg-paper text-ink border-l border-border overflow-y-auto"
+        aria-labelledby="milestone-sheet-title"
+        aria-describedby="milestone-sheet-desc"
       >
         {milestone && (
           <>
@@ -52,11 +102,19 @@ export function MilestoneSheet({ milestone, onClose }: Props) {
                   {STATUS_LABEL[milestone.status]}
                 </span>
               </div>
-              <SheetTitle className="font-display text-2xl leading-tight text-ink">
+              <SheetTitle
+                id="milestone-sheet-title"
+                ref={titleRef}
+                tabIndex={-1}
+                className="font-display text-2xl leading-tight text-ink focus:outline-none"
+              >
                 {milestone.title}
               </SheetTitle>
               {milestone.summary && (
-                <SheetDescription className="text-[15px] leading-[1.7] text-ink/70">
+                <SheetDescription
+                  id="milestone-sheet-desc"
+                  className="text-[15px] leading-[1.7] text-ink/70"
+                >
                   {milestone.summary}
                 </SheetDescription>
               )}
@@ -98,25 +156,43 @@ export function MilestoneSheet({ milestone, onClose }: Props) {
               )}
 
               <div className="pt-4 border-t border-border flex flex-wrap gap-3">
+                <Button
+                  onClick={() => reviewMut.mutate(milestone)}
+                  disabled={!roadmapId || isReviewed || reviewMut.isPending}
+                  className="bg-ink hover:bg-ink/90 text-white"
+                >
+                  {reviewMut.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                  )}
+                  {isReviewed ? "Reviewed" : "Mark reviewed"}
+                </Button>
                 <Button asChild variant="outline" className="border-ink/20">
                   <Link
                     to="/portal/messages"
-                    search={{ milestone: milestone.slug } as never}
+                    search={{
+                      milestone: milestone.title,
+                      prefill: clarificationSubject,
+                    }}
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Request clarification
                   </Link>
                 </Button>
-                <Button asChild className="bg-ink hover:bg-ink/90 text-white">
-                  <Link to="/portal/messages">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Book next call
+                <Button asChild variant="outline" className="border-ink/20">
+                  <Link
+                    to="/portal/files"
+                    search={{ q: milestone.title }}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Related files
                   </Link>
                 </Button>
                 <Button asChild variant="ghost" className="text-ink/70">
-                  <Link to="/portal/files">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Related files
+                  <Link to="/portal/messages">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Book next call
                   </Link>
                 </Button>
               </div>
