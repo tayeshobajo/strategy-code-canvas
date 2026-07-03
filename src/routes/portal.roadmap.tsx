@@ -65,13 +65,41 @@ import { Activity, Maximize, Target } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
+const VIEW_MODES = [
+  "all",
+  "decisions",
+  "deliverables",
+  "deadlines",
+  "current",
+  "client-actions",
+  "critical-path",
+] as const;
+
+const PHASE_KEYS = ["pointA", "now", "next", "later", "pointB"] as const;
+
 const searchSchema = z.object({
   m: fallback(z.string().optional(), undefined),
   item: fallback(z.string().optional(), undefined),
   decision: fallback(z.string().optional(), undefined),
   deliverable: fallback(z.string().optional(), undefined),
+  view: fallback(z.enum(VIEW_MODES).optional(), undefined),
+  phase: fallback(z.enum(PHASE_KEYS).optional(), undefined),
   __visual: fallback(z.enum(["demo"]).optional(), undefined),
 });
+
+const LS_VIEW_MODE = "portal.roadmap.viewMode";
+const LS_PHASE_KEY = "portal.roadmap.phaseKey";
+
+function readStoredView(): RoadmapViewMode | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.localStorage.getItem(LS_VIEW_MODE);
+    if (v && (VIEW_MODES as readonly string[]).includes(v)) return v as RoadmapViewMode;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
 
 export const Route = createFileRoute("/portal/roadmap")({
   validateSearch: zodValidator(searchSchema),
