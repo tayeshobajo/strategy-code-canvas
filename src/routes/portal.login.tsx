@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { isAdminEmail, isOperatorEmail } from "@/lib/ops/access";
+
 
 export const Route = createFileRoute("/portal/login")({
   head: () => ({
