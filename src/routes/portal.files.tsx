@@ -648,7 +648,14 @@ function FilesPage() {
           </div>
         </div>
       </aside>
-      <PreviewModal file={preview} onClose={() => setPreview(null)} />
+      <PreviewModal
+        file={preview}
+        onClose={() => setPreview(null)}
+        onOpen={(f) =>
+          void logFileEvent({ data: { fileId: f.id, event: "viewed" } }).catch(() => {})
+        }
+      />
+
     </div>
   );
 }
