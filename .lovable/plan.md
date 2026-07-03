@@ -1,110 +1,118 @@
-# Roadmap Canvas — Premium Polish Pass
+# Roadmap Canvas — Reference-Match Polish Pass
 
-Not a rebuild. Keep terrain, route, sidebar, top bar, status card, drawer, markers, and overview strip. Fix the rough edges and give the canvas real map logic.
+Not a rebuild. Keep the route, portal shell, terrain map, markers, drawer, top controls, status card, legend, and overview strip. Tighten the three surfaces that read as rough vs. the approved reference: bottom overview, right drawer, and sidebar footer.
 
-## 1. Portal shell — stop the clip
+## 1. Bottom Roadmap Overview → command mini-map
+
+`src/components/portal/roadmap/RoadmapOverviewStrip.tsx` (+ `canvas-context.tsx` for viewport math)
+
+Structure — one glass panel with three regions:
+```text
+┌─ ROADMAP OVERVIEW ─────────────────────────────────────────────┐
+│ Click a phase   │ Point A · Phase 1 · Phase 2 · Phase 3 · B  │ ⤢ ⛶ │
+│  to navigate    │ ─○─○──●──○─○──○─○──○─○──○──▲               │      │
+└────────────────────────────────────────────────────────────────┘
+```
+
+- Wrapper: `bg-slate-950/85 backdrop-blur-md border border-white/12 rounded-2xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)]`, ~104px tall, generous inner padding.
+- Left column: "ROADMAP OVERVIEW" caption in mono uppercase + "Click a phase to navigate" helper.
+- Center: continuous mini route line across the whole strip. Each of the 5 zones (A, P1, P2, P3, B) is a clickable cell containing a tiny mountain silhouette + label + small colored dots for the milestones in that phase (color by kind, filled if complete, ring if in-progress).
+- Right controls: collapse chevron, "Fit to field" icon, optional fullscreen icon.
+
+Active phase highlight:
+- Selected/current phase cell gets `bg-royal/15`, `border border-royal/60`, inner blue glow, and a stronger label. Non-active cells stay muted white/60.
+- Selected marker: render a small pulsing royal dot on the route line at that marker's normalized x.
+- Viewport window: absolutely-positioned translucent rectangle spanning the visible x-range of the main canvas, updated on scroll (compute `left = scrollLeft/scrollWidth`, `width = clientWidth/scrollWidth`, throttled with rAF). Drag the rectangle to scrub the main canvas.
+
+Interactivity (extend existing `onJump`):
+- Clicking A / P1 / P2 / P3 / B cell → `onJump(key)` (already wired).
+- Clicking anywhere on the route line pans main canvas to that normalized x via `canvas.panTo`.
+- Selecting a marker on the main canvas → strip already re-derives active zone from `canvas.selectedPhaseKey`; add the pulsing marker dot bound to `selectedSlug`.
+
+Sync contract:
+- Reads: `canvas.selectedPhaseKey`, `canvas.currentPhaseKey`, `canvas.scrollState` (already published from `MapCanvas`), `selectedSlug` (thread through as prop).
+- Writes: calls `onJump()` or `canvas.panTo()` — never sets phase state directly.
+
+Positioning: keep pinned at the bottom of the canvas stage with `bottom-4 left-4 right-4` and enough bottom padding above the legend so Point A / route markers stay uncovered. Legend moves up ~16px if it currently sits below.
+
+## 2. Right Detail Drawer → premium strategic panel
+
+`src/components/portal/roadmap/MilestoneSheet.tsx`
+
+Header block:
+- Circular kind-tinted icon (28px) top-left, kind label "MILESTONE" in mono uppercase next to it.
+- Close (×) top-right.
+- Title `font-display text-2xl` on its own row, generous leading.
+- One-line summary directly below in `text-ink/70`.
+
+Body — labeled sections with icon glyphs, dividers, and consistent spacing (24px between sections, 8px gap between label and content):
+- WHY IT MATTERS (lightbulb icon)
+- WHAT IT UNLOCKS (unlock icon) — bulleted list
+- STATUS — status pill + inline progress bar with % label
+- TARGET DATE — calendar icon + formatted date
+- CLIENT ACTION NEEDED — checkbox icon + action label + due date, on a subtle `bg-royal/5 border border-royal/15 rounded-md` callout
+- LATEST UPDATE — dot + date on one line, body text below
+- RELATED FILES — file rows with icon + name + type/date + download icon
+
+CTA hierarchy sticky at bottom:
+- Primary: full-width `Acknowledge` (kind = milestone) / `Respond` (kind = decision) / `Open` (deliverable) — solid `bg-ink text-white h-10`.
+- Secondary: `Request clarification` outlined `border-ink/15 h-10`, full-width beneath.
+- Drawer width `w-[440px]`, soft border `border-l border-ink/10`, `shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)]`, background `bg-paper` (not flat white).
+
+Visual connection to marker:
+- `MapCanvas` renders an SVG connector polyline from the selected marker's canvas position out to the drawer's left edge (fixed at `right: 440px`), stroke `rgba(47,93,246,0.4)`, 1.5px, dashed, animated dash offset. Only shown when drawer is open on desktop.
+- Selected marker keeps its glow ring; opacity of others stays at current `0.85` — no darkening overlay.
+
+Kind-specific bodies:
+- Decision: OPTIONS (list of choice pills), RECOMMENDED, WHY, DUE. CTAs: Respond / Related files / Book next call.
+- Deliverable: DESCRIPTION, RELATED MILESTONE (link), VERSION, PUBLISHED. CTA: Open or Download.
+
+## 3. Sidebar footer polish
 
 `src/routes/portal.tsx`
 
-- Sidebar becomes `fixed inset-y-0 left-0 w-64` (was `lg:w-64` in flex row, which is what's letting the map push it under the browser chrome at 100% zoom).
-- `<main>` gets `lg:ml-64`, `min-h-screen`, and (for the roadmap route only) removes the outer vertical padding so the canvas can own the viewport.
-- Roadmap route wraps content in a full-height shell: sidebar 100vh, top command bar fixed height, canvas `h-[calc(100vh-<topbar>)]`, overview strip pinned inside the canvas — no page-level scroll.
-- Mobile keeps today's horizontal nav; only `lg:` gets the fixed shell.
+Match the reference's grounded user block:
+- Above the sign-out row, add a slim mission card: `Your success is our mission.` + helper line, thin blue accent bar.
+- User block becomes a row: 32px avatar circle with initials (from `contact_name` or email) on left, name + role stacked in the middle, small chevron on the right that opens a menu with "Sign out".
+- Sign out link moves into that popover, so the sidebar bottom is one clean row, not two stacked.
+- Add a floating collapse-chevron pill anchored to the sidebar's right edge (`absolute -right-3 top-24`) — non-functional in step 1 (opens a "coming soon" toast) unless the user wants real collapse now.
 
-## 2. Map cartography — attached, not sprinkled
+## 4. Marker hierarchy micro-fixes
 
-`src/components/portal/roadmap/roadmap-layout.ts` + `src/lib/portal-roadmap-model.ts`
+`src/components/portal/roadmap/roadmap-layout.ts`, `MilestoneNode.tsx`
 
-- Add a `RoutePath` (normalized polyline) per phase. Every marker resolves to `{ tAlong, offsetNormal, side }` and is projected onto the path at layout time so markers sit ON the road (milestones), at forks (decisions), just beside (deliverables), or slightly off-road (meetings).
-- Deadlines render as flag glyphs planted on the route.
-- Label collision pass: after projection, walk markers left→right, push labels to alternating sides, and demote to icon-only when a collision cannot be resolved within a min-gap.
+- After the existing anchor projection, run a one-pass horizontal declutter: markers within `< 60px` of each other on the same y-band get their labels alternated above/below the road; if still colliding, demote the lower-priority one to icon.
+- Meetings render with a smaller off-road pin variant (already the kind, just reduce badge size to 20px).
+- Deadlines already render as flags — bump their z-index above other markers so they stay visible when overlapping.
 
-## 3. Marker hierarchy — three real levels
+No layout math rewrite — this is just a pass on existing `layout.markers`.
 
-`src/components/portal/roadmap/view-mode.ts`, `MilestoneNode.tsx`
+## 5. Sync — one state model
 
-- Level 1 (always full): Point A, Point B, current phase anchor, current milestone, next decision, next major deadline.
-- Level 2 (full inside selected/current phase, short elsewhere): primary milestones, active deliverables, key dependencies.
-- Level 3 (icon-only, hover to reveal): meetings, future deliverables, supporting milestones, minor decisions.
-- Node already supports full / short / icon / muted / hidden — wire the classifier to the tier + active phase instead of the current flat rules.
+`src/routes/portal.roadmap.tsx` + `canvas-context.tsx`
 
-## 4. View dropdown actually changes density
-
-Extend `RoadmapViewMode` classifier so each mode has its own visibility contract:
-
-- Full Journey: Level 1 only + phase titles.
-- Current Phase: L1 + L2 in current phase, other phases dim to icon.
-- Decisions: decisions + milestones they gate.
-- Deliverables: deliverables + parent milestones.
-- Deadlines: deadline flags + critical-path items feeding them.
-- Critical Path (existing): keep, tightened to next major deadline.
-- New: **What needs me** — only items with `clientActionRequired` (decisions awaiting response, requested files, upcoming meetings, approvals).
-
-## 5. Interactive legend
-
-`MapCanvas.tsx` legend row becomes toggle chips bound to `visibleKinds` in `canvas-context`. Defaults on: Milestone, Decision, Deadline. Defaults muted: Meeting, Deliverable. Off = hidden; muted = faint.
-
-## 6. Selection + hover polish
-
-`MilestoneNode.tsx`, `MapCanvas.tsx`
-
-- Selected marker: stronger ring + outer glow, connected route segment highlights, phase territory tints subtly, others drop to ~0.6 opacity (still readable).
-- Hover: 2px lift, glow bump, segment highlight, cursor pointer, existing HoverCard (title, kind, status, one-line summary, View details).
-- Drawer-aware pan: when selected marker's screen X falls inside the drawer's rect, `panTo` shifts it left of the drawer edge with padding.
-
-## 7. Clustering
-
-`MarkerCluster.tsx` already exists — extend summary to show phase name and per-kind counts (complete / in-progress / decision / deadline). Click expands in place at `detail` zoom (already wired) or opens the compact popover on dense areas.
-
-## 8. Drawer redesign
-
-`MilestoneSheet.tsx`
-
-- Width `w-[420px]`, generous padding, section dividers, soft border, subtle shadow, no flat white — use `bg-paper` with an accent header tinted by marker kind.
-- Header block: kind label chip, status badge next to title, target date.
-- Body per kind:
-  - Milestone: Summary, Why it matters, What it unlocks, Status, Target date, Client action needed, Latest update, Related files. CTAs: Acknowledge (primary), Request clarification (secondary).
-  - Decision: Summary, Options, Recommended, Why it matters, Due. CTAs: Respond (primary), Related files, Book next call.
-  - Deliverable: Description, Related milestone, Version, Published date. CTA: Open / Download.
-- Keep the selected marker visible; add a faint connector line from drawer edge to marker (SVG overlay in `MapCanvas`).
-
-## 9. Left status card compact/expand
-
-`StatusOverlayCard.tsx`
-
-- Compact default: You are here, current phase, progress bar, next action.
-- Expanded: upcoming meeting, key date, client responsibilities, Trust Tai responsibilities.
-- Collapse to a vertical pill anchored top-left when dismissed.
-
-## 10. Bottom overview → true mini-map
-
-`RoadmapOverviewStrip.tsx`
-
-- Render a miniature of the route with Point A, Phase 1/2/3, Point B markers.
-- Overlay a viewport rectangle driven by `canvas.viewportPhaseKey` + pan/zoom (compute from canvas transform, throttled).
-- Highlight active phase strongly; show selected-marker dot on the strip.
-- Clicking any zone pans main canvas (already partially wired via `panTo`); extend to Point A / Point B and drag-to-scrub the viewport rect.
-
-## 11. State model — current vs selected
-
-`canvas-context.tsx`, `portal.roadmap.tsx`
-
-- Split into `currentPhaseKey` (operational, from data) and `selectedPhaseKey` (viewing, from UI/URL). Top badge + status card read `currentPhaseKey`; map territory highlight + mini-map + drawer context read `selectedPhaseKey`.
-- URL sync already exists for `view` + `phase`; add `marker` param for selected slug so deep links open the drawer at the right item.
-
-## 12. Client-safe filter
-
-`portal-roadmap-model.ts` mapper — strip AI confidence, agent cost, internal notes, review comments, draft versions, risk labels, version conflicts before the portal ever sees them. Status enum locked to: Planned, In preparation, In progress, Waiting on decision, Under review, Delivered, Completed, Paused.
+- Add `selectedSlug` to `canvas-context` so the mini-map dot can read it without prop drilling.
+- URL params already carry `view` + `phase`; add `marker` param for deep-linking a selected item.
+- Confirm on every marker select: `selectedPhaseKey` follows the marker's phase, mini-map re-derives, drawer opens, canvas pans keeping the marker outside the drawer (existing `scrollToXWithDrawer`).
 
 ## Technical notes
 
-- Route projection lives in `roadmap-layout.ts` next to existing coord math; markers keep their `nx/ny` fallback for legacy fixtures.
-- Throttle hover + viewport updates with `requestAnimationFrame` (memoization for markers already landed last turn).
-- No schema changes required for step 12 — apply as a serializer on the portal read path.
-- New Playwright coverage: sidebar not clipped at 1280×800, view-mode density diff, legend toggles hide markers, drawer connector renders, mini-map viewport rect follows pan.
+- Overview viewport rect: subscribe to `canvas.scrollState` (already published on every `MapCanvas` scroll via rAF-throttled `publish()`). No new listeners needed.
+- Drawer connector: single `<svg>` positioned absolutely inside the canvas stage, updated only on marker change and window resize.
+- No schema, no server, no new routes.
 
 ## Out of scope
 
-- No backend changes, no new tables.
-- No changes to intake, admin, billing, messages routes.
-- Marketing site untouched.
+- Terrain map artwork.
+- View-mode density rules (already landed).
+- Clustering behavior beyond what already exists.
+- Mobile stack (`MobilePhaseStack.tsx`).
+- Marketing site, admin, other portal routes.
+- Full sidebar collapse behavior (adds the pill only; wiring can follow if you want it in a later turn).
+
+## Acceptance
+
+- Mini-map matches the reference: glass panel, phase cells with silhouettes + milestone dots, viewport rectangle scrubs the main canvas, active phase glows.
+- Drawer matches the reference: circular kind icon header, labeled sections with icons, callout for client action, sticky primary/secondary CTA, subtle connector line to the selected marker.
+- Sidebar bottom shows a user row with avatar + name + role and mission card above it; sign out lives in the popover.
+- No sidebar clipping, no page-level horizontal scroll at 100% browser zoom.

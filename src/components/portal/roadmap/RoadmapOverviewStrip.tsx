@@ -1,8 +1,13 @@
 import type { PhaseKey, RoadmapJourney } from "@/lib/portal-roadmap-model";
 import { useRoadmapCanvas, useDisplayPhaseKey } from "./canvas-context";
 import type { LegendKind } from "./view-mode";
-import { Maximize2, ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Maximize2, ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  computeMapLayout,
+  POINT_A_POS,
+  POINT_B_POS,
+} from "./roadmap-layout";
 
 type JumpTarget = "pointA" | "now" | "next" | "later" | "pointB";
 
@@ -10,15 +15,31 @@ type Props = {
   journey: RoadmapJourney;
   onJump: (key: JumpTarget) => void;
   onFullscreen?: () => void;
-  /** "floating" renders as a dark, glass-blur strip designed to sit
+  /** Slug of the currently selected marker, for the pulsing indicator. */
+  selectedSlug?: string | null;
+  /** "floating" renders as a dark, glass-blur panel designed to sit
    *  absolutely inside the map canvas. Default is the light card variant. */
   variant?: "card" | "floating";
 };
 
-export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Props) {
+const KIND_DOT: Record<string, string> = {
+  milestone: "bg-[color:var(--royal,#2f5df6)]",
+  decision: "bg-[#8b5cf6]",
+  deliverable: "bg-[#f59e0b]",
+  meeting: "bg-[#0ea5a4]",
+  deadline: "bg-[#e11d48]",
+};
+
+export function RoadmapOverviewStrip({
+  journey,
+  onJump,
+  selectedSlug = null,
+  variant = "card",
+}: Props) {
   const [expanded, setExpanded] = useState(true);
   const active = useDisplayPhaseKey() ?? journey.currentPhaseKey;
   const canvas = useRoadmapCanvas();
+  const layout = useMemo(() => computeMapLayout(journey), [journey]);
 
   // Once the user pans the map so the viewport centers on a different phase
   // than the one they explicitly selected, clear the sticky selection so the
@@ -37,8 +58,6 @@ export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Prop
   const floating = variant === "floating";
 
   const handleJump = (key: JumpTarget) => {
-    // Setting selectedPhaseKey makes the user's choice sticky in the mini-map
-    // regardless of what the main viewport ends up centering on.
     if (key === "pointA" || key === "pointB") {
       canvas.setSelectedPhaseKey(null);
     } else {
@@ -47,112 +66,183 @@ export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Prop
     onJump(key);
   };
 
+  // Viewport rectangle (0..1) — reflects current pan/zoom of the main canvas.
+  const viewport = useMemo(() => {
+    const total = canvas.scrollWidth || 0;
+    const view = canvas.clientWidth || 0;
+    if (total <= 0 || view <= 0 || view >= total - 2) return null;
+    const left = canvas.scrollLeft / total;
+    const width = Math.min(1, view / total);
+    return { left, width };
+  }, [canvas.scrollWidth, canvas.scrollLeft, canvas.clientWidth]);
+
+  // Selected marker → normalized x for the pulsing indicator.
+  const selectedX = useMemo(() => {
+    if (!selectedSlug) return null;
+    const m = layout.markers.find((mk) => mk.milestone.slug === selectedSlug);
+    return m ? m.nx : null;
+  }, [layout.markers, selectedSlug]);
+
   return (
     <div
       className={
         floating
-          ? "rounded-xl bg-slate-950/75 backdrop-blur border border-white/15 px-4 py-2.5 shadow-[0_20px_45px_-20px_rgba(0,0,0,0.6)] text-white"
+          ? "rounded-2xl bg-slate-950/85 backdrop-blur-md border border-white/12 px-4 pt-3 pb-3.5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)] text-white"
           : "rounded-2xl bg-card border border-border p-4 lg:p-5"
       }
       data-testid="roadmap-overview-strip"
     >
-      <div className="flex items-center gap-6">
-        <div className="shrink-0">
+      <div className="flex items-center gap-5">
+        <div className="shrink-0 min-w-[132px]">
           <div
             className={`font-mono text-[10px] uppercase tracking-[0.28em] ${floating ? "text-royal-glow" : "text-royal"}`}
           >
             Roadmap overview
           </div>
           <div
-            className={`text-[12px] mt-0.5 max-w-[180px] leading-snug ${floating ? "text-white/65" : "text-ink/60"}`}
+            className={`text-[11.5px] mt-0.5 max-w-[160px] leading-snug ${floating ? "text-white/60" : "text-ink/60"}`}
           >
-            Click a stop to focus the map
+            Click a phase to navigate
           </div>
         </div>
 
         {expanded && (
-          <div className="flex-1 min-w-0 flex items-center gap-1">
-            <StripStop
-              label="Point A"
-              sub="Current State"
-              tone="anchor"
-              active={active === "pointA"}
-              onClick={() => handleJump("pointA")}
-              floating={floating}
-              testId="strip-pointA"
+          <div className="flex-1 min-w-0 relative">
+            {/* Continuous route line under the row */}
+            <div
+              aria-hidden
+              className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px ${floating ? "bg-white/12" : "bg-ink/10"}`}
             />
-
-            {phases.map((p, i) => (
-              <StripStop
-                key={p.key}
-                label={`Phase ${i + 1}`}
-                sub={
-                  p.key === "now"
-                    ? "Foundation"
-                    : p.key === "next"
-                      ? "Core Platform Build"
-                      : "Scale Systems"
-                }
-                tone={p.key === "now" ? "phase1" : p.key === "next" ? "phase2" : "phase3"}
-                active={active === p.key}
-                onClick={() => handleJump(p.key as "now" | "next" | "later")}
-                floating={floating}
-                current={p.key === journey.currentPhaseKey}
-                testId={`strip-${p.key}`}
+            {/* Viewport window rectangle */}
+            {viewport && floating && (
+              <div
+                aria-hidden
+                data-testid="mini-viewport-window"
+                className="pointer-events-none absolute inset-y-1 rounded-md border border-royal/60 bg-royal/10 shadow-[inset_0_0_16px_rgba(47,93,246,0.25)] transition-[left,width] duration-150 ease-out"
+                style={{
+                  left: `${viewport.left * 100}%`,
+                  width: `${viewport.width * 100}%`,
+                }}
               />
-            ))}
-            <StripStop
-              label="Point B"
-              sub="Scaled Impact"
-              tone="anchor"
-              active={active === "pointB"}
-              onClick={() => handleJump("pointB")}
-              floating={floating}
-              testId="strip-pointB"
-            />
+            )}
+            {/* Selected marker pulse */}
+            {selectedX != null && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 -translate-y-1/2 -ml-1.5"
+                style={{ left: `${selectedX * 100}%` }}
+              >
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inset-0 rounded-full bg-royal opacity-70" />
+                  <span className="relative rounded-full h-3 w-3 bg-royal border border-white shadow-[0_0_10px_rgba(47,93,246,0.9)]" />
+                </span>
+              </span>
+            )}
+
+            <div className="relative flex items-stretch gap-1">
+              <StripStop
+                label="Point A"
+                sub="Current State"
+                tone="anchor"
+                active={active === "pointA"}
+                onClick={() => handleJump("pointA")}
+                floating={floating}
+                testId="strip-pointA"
+                kindCounts={{}}
+                showRoute={false}
+              />
+
+              {phases.map((p) => (
+                <StripStop
+                  key={p.key}
+                  label={
+                    p.key === "now"
+                      ? "Phase 1"
+                      : p.key === "next"
+                        ? "Phase 2"
+                        : "Phase 3"
+                  }
+                  sub={
+                    p.key === "now"
+                      ? "Foundation"
+                      : p.key === "next"
+                        ? "Core Platform Build"
+                        : "Scale Systems"
+                  }
+                  tone={p.key === "now" ? "phase1" : p.key === "next" ? "phase2" : "phase3"}
+                  active={active === p.key}
+                  onClick={() => handleJump(p.key as "now" | "next" | "later")}
+                  floating={floating}
+                  current={p.key === journey.currentPhaseKey}
+                  testId={`strip-${p.key}`}
+                  kindCounts={countKinds(p.milestones)}
+                  showRoute
+                />
+              ))}
+              <StripStop
+                label="Point B"
+                sub="Scaled Impact"
+                tone="anchor"
+                active={active === "pointB"}
+                onClick={() => handleJump("pointB")}
+                floating={floating}
+                testId="strip-pointB"
+                kindCounts={{}}
+                showRoute={false}
+              />
+            </div>
           </div>
         )}
 
         <div className="ml-auto flex items-center gap-1 shrink-0">
           <button
             type="button"
+            onClick={() => {
+              // Fit to field: pan scroller back to Point A end.
+              const el = document.getElementById("portal-canvas-scroll");
+              if (el) el.scrollTo({ left: 0, behavior: "smooth" });
+              canvas.setSelectedPhaseKey(null);
+            }}
+            className={
+              floating
+                ? "inline-flex items-center justify-center h-8 w-8 rounded-md border border-white/15 bg-white/[0.06] hover:bg-white/15 text-white/85"
+                : "inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
+            }
+            aria-label="Fit map to field"
+            title="Fit to field"
+          >
+            <Maximize2 className={`w-3.5 h-3.5 ${floating ? "text-white" : "text-ink/70"}`} />
+          </button>
+          <button
+            type="button"
             onClick={() => setExpanded((v) => !v)}
             className={
               floating
-                ? "inline-flex items-center justify-center h-8 w-8 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 text-white"
+                ? "inline-flex items-center justify-center h-8 w-8 rounded-md border border-white/15 bg-white/[0.06] hover:bg-white/15 text-white/85"
                 : "inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
             }
             aria-label={expanded ? "Collapse overview" : "Expand overview"}
           >
             {expanded ? (
-              <ChevronLeft className={`w-4 h-4 ${floating ? "text-white" : "text-ink/70"}`} />
+              <ChevronDown className={`w-3.5 h-3.5 ${floating ? "text-white" : "text-ink/70"}`} />
             ) : (
-              <ChevronRight className={`w-4 h-4 ${floating ? "text-white" : "text-ink/70"}`} />
+              <ChevronUp className={`w-3.5 h-3.5 ${floating ? "text-white" : "text-ink/70"}`} />
             )}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof document !== "undefined") {
-                const el = document.getElementById("portal-canvas-scroll");
-                if (el && el.requestFullscreen) {
-                  el.requestFullscreen().catch(() => {});
-                }
-              }
-            }}
-            className={
-              floating
-                ? "inline-flex items-center justify-center h-8 w-8 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 text-white"
-                : "inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
-            }
-            aria-label="View map fullscreen"
-          >
-            <Maximize2 className={`w-4 h-4 ${floating ? "text-white" : "text-ink/70"}`} />
           </button>
         </div>
       </div>
     </div>
   );
+}
+
+function countKinds(items: RoadmapJourney["phases"][number]["milestones"]) {
+  const counts: Record<string, number> = {};
+  for (const m of items) {
+    if (m.slug.endsWith("-placeholder")) continue;
+    const key = m.dueDate && m.kind === "milestone" ? "deadline" : m.kind;
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
 }
 
 function StripStop({
@@ -164,6 +254,8 @@ function StripStop({
   floating = false,
   current = false,
   testId,
+  kindCounts,
+  showRoute,
 }: {
   label: string;
   sub: string;
@@ -173,6 +265,8 @@ function StripStop({
   floating?: boolean;
   current?: boolean;
   testId?: string;
+  kindCounts: Record<string, number>;
+  showRoute: boolean;
 }) {
   const toneClass =
     tone === "phase1"
@@ -188,8 +282,13 @@ function StripStop({
             ? "text-[#7bd6a0]"
             : "text-[#3d8558]"
           : floating
-            ? "text-white/60"
+            ? "text-white/55"
             : "text-ink/60";
+  const activeShellFloating =
+    "bg-royal/15 border border-royal/60 shadow-[0_0_0_1px_rgba(47,93,246,0.35),inset_0_0_18px_rgba(47,93,246,0.15)]";
+  const kinds = Object.entries(kindCounts).sort(
+    ([a], [b]) => Number(b === "milestone") - Number(a === "milestone"),
+  );
   return (
     <button
       type="button"
@@ -197,28 +296,43 @@ function StripStop({
       data-testid={testId}
       data-active={active ? "true" : "false"}
       data-current-phase={current ? "true" : "false"}
-      className={`flex-1 min-w-0 rounded-lg px-3 py-1.5 text-left transition-colors ${
+      className={`relative flex-1 min-w-0 rounded-lg px-3 py-2 text-left transition-all ${
         active
           ? floating
-            ? "bg-white/15 border border-white/40"
+            ? activeShellFloating
             : "bg-royal/10 border border-royal/40"
           : floating
-            ? "border border-transparent hover:bg-white/10"
+            ? "border border-transparent hover:bg-white/[0.06]"
             : "border border-transparent hover:bg-ink/[0.03]"
       }`}
     >
-      <div className={`font-mono text-[9.5px] uppercase tracking-[0.24em] ${toneClass}`}>
-        {label}
+      <div
+        className={`font-mono text-[9.5px] uppercase tracking-[0.24em] flex items-center gap-1.5 ${toneClass}`}
+      >
+        <span>{label}</span>
         {current && (
           <span
-            className={`ml-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle ${floating ? "bg-royal-glow" : "bg-royal"}`}
+            className={`inline-block h-1.5 w-1.5 rounded-full ${floating ? "bg-royal-glow" : "bg-royal"}`}
             aria-label="current phase"
           />
         )}
       </div>
-      <div className={`text-[12px] font-medium truncate ${floating ? "text-white" : "text-ink"}`}>
+      <div
+        className={`text-[12px] font-medium truncate mt-0.5 ${floating ? (active ? "text-white" : "text-white/90") : "text-ink"}`}
+      >
         {sub}
       </div>
+      {showRoute && kinds.length > 0 && (
+        <div className="mt-1.5 flex items-center gap-1">
+          {kinds.slice(0, 5).map(([k, count]) => (
+            <span
+              key={k}
+              className={`inline-block h-1.5 w-1.5 rounded-full ${KIND_DOT[k] ?? "bg-white/40"}`}
+              title={`${count} ${k}${count === 1 ? "" : "s"}`}
+            />
+          ))}
+        </div>
+      )}
     </button>
   );
 }
@@ -277,3 +391,6 @@ export function MapLegend() {
     </div>
   );
 }
+
+// Re-exported for tests / future consumers.
+export { POINT_A_POS, POINT_B_POS };
