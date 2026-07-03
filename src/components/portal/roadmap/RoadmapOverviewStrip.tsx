@@ -112,28 +112,54 @@ export function RoadmapOverviewStrip({
       data-testid="roadmap-overview-strip"
     >
       <div className="flex items-center gap-5">
-        <div className="shrink-0 min-w-[132px]">
+        <div className="shrink-0 min-w-[148px]">
           <div
             className={`font-mono text-[10px] uppercase tracking-[0.28em] ${floating ? "text-royal-glow" : "text-royal"}`}
           >
             Roadmap overview
           </div>
-          <div
-            className={`text-[11.5px] mt-0.5 max-w-[160px] leading-snug ${floating ? "text-white/60" : "text-ink/60"}`}
-          >
-            {viewMode !== "all" ? (
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  className="inline-block h-1.5 w-1.5 rounded-full"
-                  style={{ background: `rgb(${tone.rgb})` }}
-                  aria-hidden
-                />
-                <span>View: {VIEW_MODE_LABEL[viewMode]}</span>
-              </span>
-            ) : (
-              "Click a phase to navigate"
-            )}
-          </div>
+          {(() => {
+            const currentKey = canvas.currentPhaseKey ?? journey.currentPhaseKey;
+            const selectedKey = canvas.selectedPhaseKey ?? canvas.viewportPhaseKey ?? null;
+            const label = (k: string | null | undefined): string => {
+              if (k === "now") return "Phase 1";
+              if (k === "next") return "Phase 2";
+              if (k === "later") return "Phase 3";
+              return "";
+            };
+            const currentLabel = label(currentKey);
+            const viewingLabel = label(selectedKey);
+            const showViewing = !!selectedKey && selectedKey !== currentKey;
+            return (
+              <div className={`mt-0.5 text-[11px] leading-snug ${floating ? "text-white/70" : "text-ink/60"}`}>
+                <div className="flex items-center gap-1.5">
+                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${floating ? "bg-royal-glow" : "bg-royal"}`} aria-hidden />
+                  <span>
+                    <span className={floating ? "text-white/55" : "text-ink/55"}>Current:</span>{" "}
+                    <span className={floating ? "text-white" : "text-ink"}>{currentLabel}</span>
+                  </span>
+                </div>
+                {showViewing && (
+                  <div className="flex items-center gap-1.5 mt-0.5" data-testid="strip-viewing-caption">
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full ring-2"
+                      style={{ background: `rgb(${tone.rgb})`, boxShadow: `0 0 0 2px rgba(${tone.rgb},0.25)` }}
+                      aria-hidden
+                    />
+                    <span>
+                      <span className={floating ? "text-white/55" : "text-ink/55"}>Viewing:</span>{" "}
+                      <span className={floating ? "text-white" : "text-ink"}>{viewingLabel}</span>
+                    </span>
+                  </div>
+                )}
+                {viewMode !== "all" && (
+                  <div className={`mt-0.5 text-[10.5px] ${floating ? "text-white/50" : "text-ink/50"}`}>
+                    View: {VIEW_MODE_LABEL[viewMode]}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {expanded && (
