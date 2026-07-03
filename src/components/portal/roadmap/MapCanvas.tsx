@@ -80,6 +80,12 @@ export function MapCanvas({
         scrollLeft: el.scrollLeft,
         clientWidth: el.clientWidth,
       });
+      // When the canvas has no horizontal overflow (whole map is visible),
+      // don't override the current-phase display with a viewport guess.
+      if (el.scrollWidth <= el.clientWidth + 2) {
+        canvas.setViewportPhaseKey(null);
+        return;
+      }
       const centerX =
         (el.scrollLeft + el.clientWidth / 2) *
         (CANVAS_WIDTH / Math.max(el.scrollWidth, 1));
