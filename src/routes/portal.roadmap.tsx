@@ -371,7 +371,10 @@ function RoadmapJourneyView({
       }
     }
     navigate({
-      search: (prev) => ({ ...prev, view: v === "all" ? undefined : v }),
+      search: (prev: z.infer<typeof searchSchema>) => ({
+        ...prev,
+        view: v === "all" ? undefined : v,
+      }),
       replace: true,
     });
   };
@@ -379,7 +382,7 @@ function RoadmapJourneyView({
   useEffect(() => {
     if (!search.view && viewMode !== "all") {
       navigate({
-        search: (prev) => ({ ...prev, view: viewMode }),
+        search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, view: viewMode }),
         replace: true,
       });
     }
