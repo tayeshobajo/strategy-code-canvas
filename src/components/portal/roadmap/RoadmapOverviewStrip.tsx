@@ -278,10 +278,14 @@ export function RoadmapOverviewStrip({
   );
 }
 
-function countKinds(items: RoadmapJourney["phases"][number]["milestones"]) {
+function countKinds(
+  items: RoadmapJourney["phases"][number]["milestones"],
+  matchingSlugs?: Set<string> | null,
+) {
   const counts: Record<string, number> = {};
   for (const m of items) {
     if (m.slug.endsWith("-placeholder")) continue;
+    if (matchingSlugs && !matchingSlugs.has(m.slug)) continue;
     const key = m.dueDate && m.kind === "milestone" ? "deadline" : m.kind;
     counts[key] = (counts[key] ?? 0) + 1;
   }
