@@ -29,10 +29,23 @@ import { PhaseJumpNav } from "@/components/portal/roadmap/PhaseJumpNav";
 import { MiniMap } from "@/components/portal/roadmap/MiniMap";
 import { MobilePhaseStack } from "@/components/portal/roadmap/MobilePhaseStack";
 import { ClarificationModal } from "@/components/portal/roadmap/ClarificationModal";
+import { BookCallModal } from "@/components/portal/roadmap/BookCallModal";
 import {
   RoadmapCanvasProvider,
   useRoadmapCanvas,
 } from "@/components/portal/roadmap/canvas-context";
+import {
+  computeMatchingSlugs,
+  VIEW_MODE_LABEL,
+  type RoadmapViewMode,
+} from "@/components/portal/roadmap/view-mode";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
