@@ -64,6 +64,7 @@ export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Prop
                 tone={p.key === "now" ? "phase1" : p.key === "next" ? "phase2" : "phase3"}
                 active={active === p.key}
                 onClick={() => onJump(p.key as "now" | "next" | "later")}
+                floating={floating}
               />
             ))}
             <StripStop
@@ -72,6 +73,7 @@ export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Prop
               tone="anchor"
               active={active === "pointB"}
               onClick={() => onJump("pointB")}
+              floating={floating}
             />
           </div>
         )}
@@ -80,13 +82,17 @@ export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Prop
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
+            className={
+              floating
+                ? "inline-flex items-center justify-center h-8 w-8 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 text-white"
+                : "inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
+            }
             aria-label={expanded ? "Collapse overview" : "Expand overview"}
           >
             {expanded ? (
-              <ChevronLeft className="w-4 h-4 text-ink/70" />
+              <ChevronLeft className={`w-4 h-4 ${floating ? "text-white" : "text-ink/70"}`} />
             ) : (
-              <ChevronRight className="w-4 h-4 text-ink/70" />
+              <ChevronRight className={`w-4 h-4 ${floating ? "text-white" : "text-ink/70"}`} />
             )}
           </button>
           <button
@@ -99,12 +105,17 @@ export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Prop
                 }
               }
             }}
-            className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
+            className={
+              floating
+                ? "inline-flex items-center justify-center h-8 w-8 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 text-white"
+                : "inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
+            }
             aria-label="View map fullscreen"
           >
-            <Maximize2 className="w-4 h-4 text-ink/70" />
+            <Maximize2 className={`w-4 h-4 ${floating ? "text-white" : "text-ink/70"}`} />
           </button>
         </div>
+
       </div>
     </div>
   );
