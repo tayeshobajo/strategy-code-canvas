@@ -80,8 +80,30 @@ function kindKey(m: RoadmapMilestone): LegendKind {
 }
 
 /**
+ * Priority tier used by the "smart map" density model.
+ *  1 — always visible (strategic anchors, deadlines)
+ *  2 — primary items in the focus phase (milestones, decisions, active deliverables)
+ *  3 — supporting items (meetings, secondary deliverables, distant phases)
+ */
+function priorityLevel(
+  m: RoadmapMilestone,
+  journey: RoadmapJourney,
+  currentPhaseKey: string,
+): 1 | 2 | 3 {
+  if (isStrategicAnchor(m, journey)) return 1;
+  if (m.dueDate && m.status !== "completed") return 1;
+  if (m.phase === currentPhaseKey) {
+    if (m.kind === "milestone") return 2;
+    if (m.kind === "decision") return 2;
+    if (m.kind === "deliverable" && m.status !== "completed") return 2;
+  }
+  return 3;
+}
+
+/**
  * Compute how a single marker should render. Combines information zoom,
- * view-mode filter, legend toggles, and strategic-anchor promotion.
+ * view-mode filter, legend toggles, and priority-tier gating so density
+ * scales with the client's active lens.
  */
 export function computeMarkerVisibility(
   m: RoadmapMilestone,
@@ -103,51 +125,89 @@ export function computeMarkerVisibility(
 
   const focusPhase = selectedPhaseKey ?? currentPhaseKey;
   const anchor = isStrategicAnchor(m, journey);
+  const level = priorityLevel(m, journey, currentPhaseKey);
   const kind = kindKey(m);
   const inFocusPhase = m.phase === focusPhase;
+  const inCurrentPhase = m.phase === currentPhaseKey;
   const nearFocusPhase = phaseIsNear(m.phase, focusPhase, journey);
+  const onCriticalPath = journey.criticalPathSlugs.includes(m.slug);
 
   // Legend gating first — hidden wins over anchor promotion for supporting kinds.
-  // Anchors of kind "milestone"/"decision"/"deadline" are always visible.
   const legendVisible = visibleKinds.has(kind);
   const legendMuted = mutedKinds.has(kind);
   const legendHidden = !legendVisible && !legendMuted;
   if (legendHidden && !anchor) return "hidden";
 
-  // View-mode filter.
+  // View-mode density model — each mode changes what the client sees.
   switch (mode) {
-    case "decisions":
-      if (m.kind !== "decision" && !anchor) return "hidden";
-      break;
-    case "deliverables":
-      if (m.kind !== "deliverable" && !anchor) return "hidden";
-      break;
-    case "deadlines":
-      if (!(m.dueDate || journey.criticalPathSlugs.includes(m.slug))) {
-        if (!anchor) return "hidden";
+    case "all": {
+      // Full Journey: only strategic anchors + phase-level milestones get labels.
+      // Meetings and secondary deliverables collapse to icons (or hide at strategic zoom).
+      if (level === 1) return "full";
+      if (m.kind === "meeting")
+        return zoom === "strategic" ? "hidden" : "icon";
+      if (m.kind === "deliverable" && !inCurrentPhase)
+        return zoom === "strategic" ? "hidden" : "icon";
+      if (inCurrentPhase && m.kind === "milestone") return "short";
+      if (inCurrentPhase) return "icon";
+      // Distant-phase supporting markers: icon at phase/detail, hidden at strategic.
+      return zoom === "strategic" ? "hidden" : "icon";
+    }
+
+    case "current": {
+      // Current Phase: rich detail inside the focus phase, dim everything else.
+      if (inFocusPhase) {
+        if (level <= 2) return anchor ? "full" : "short";
+        return "icon";
       }
-      break;
-    case "current":
-      if (m.phase !== currentPhaseKey && !anchor) return "hidden";
-      break;
-    case "client-actions":
-      if (!m.clientActionNeeded && m.kind !== "decision" && !anchor) {
+      if (anchor) return "muted";
+      return "muted";
+    }
+
+    case "client-actions": {
+      // What needs me: only client action items, decisions, and upcoming meetings.
+      const isMineAction = !!m.clientActionNeeded;
+      const isDecision = m.kind === "decision";
+      const isUpcomingMeeting =
+        m.kind === "meeting" && m.status !== "completed";
+      if (!isMineAction && !isDecision && !isUpcomingMeeting && !anchor) {
         return "hidden";
       }
-      break;
-    case "critical-path": {
-      const onPath = journey.criticalPathSlugs.includes(m.slug);
-      if (!onPath && !anchor) return "muted";
-      break;
+      if (anchor || isMineAction) return "full";
+      return "short";
     }
-    case "all":
-    default:
-      break;
+
+    case "critical-path": {
+      if (onCriticalPath || anchor) return anchor ? "full" : "short";
+      return "muted";
+    }
+
+    case "deliverables": {
+      // Deliverables + the milestone they support (same phase) stay visible.
+      if (m.kind === "deliverable") return "full";
+      if (anchor) return "full";
+      if (m.kind === "milestone" && inCurrentPhase) return "short";
+      return "muted";
+    }
+
+    case "deadlines": {
+      // Deadline flags + items tied to them (critical path, related decisions).
+      const isDeadline = !!m.dueDate;
+      if (isDeadline) return "full";
+      if (anchor) return "full";
+      if (onCriticalPath) return "short";
+      if (m.kind === "decision" && inCurrentPhase) return "short";
+      return "muted";
+    }
+
+    case "decisions": {
+      if (m.kind !== "decision" && !anchor) return "hidden";
+      return anchor ? "full" : "short";
+    }
   }
 
-  // Information zoom drives density.
+  // Fallback (shouldn't be reached) — zoom-driven density.
   if (zoom === "strategic") {
-    // Only Level 1 (anchors + point-adjacent items) show full labels.
     if (anchor) return "full";
     if (inFocusPhase && m.kind === "milestone") return "short";
     return "icon";
@@ -158,7 +218,6 @@ export function computeMarkerVisibility(
     if (nearFocusPhase) return "icon";
     return legendMuted ? "muted" : "icon";
   }
-  // detail zoom
   if (anchor) return "full";
   if (inFocusPhase) return "short";
   if (legendMuted && !anchor && !inFocusPhase) return "muted";
