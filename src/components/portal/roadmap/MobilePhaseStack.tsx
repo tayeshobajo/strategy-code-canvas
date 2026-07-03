@@ -21,6 +21,7 @@ type Props = {
   journey: RoadmapJourney;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
+  matchingSlugs?: Set<string> | null;
 };
 
 const KIND_ICON: Record<MilestoneKind, typeof Circle> = {
