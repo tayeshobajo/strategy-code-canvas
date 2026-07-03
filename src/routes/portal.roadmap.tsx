@@ -103,11 +103,11 @@ function FailedToLoad({
         Roadmap unavailable
       </div>
       <h1 className="font-display text-2xl text-ink mt-2">
-        We couldn't load your Roadmap.
+        We could not load your roadmap.
       </h1>
       <p className="text-[15px] leading-[1.75] text-ink/70 mt-3">
-        This is on our side, not yours. Please try again in a moment — if it
-        keeps happening, message Tai and we'll take a look.
+        Please refresh the page. If this continues, contact Trust Tai and we
+        will help.
       </p>
       <p className="text-[12px] text-ink/45 mt-3 font-mono break-all">
         {message}
@@ -117,10 +117,10 @@ function FailedToLoad({
           onClick={() => reset()}
           className="bg-ink hover:bg-ink/90 text-white"
         >
-          Try again
+          Refresh
         </Button>
         <Button asChild variant="outline" className="border-ink/20">
-          <Link to="/portal/messages">Message Tai</Link>
+          <Link to="/portal/messages">Contact Trust Tai</Link>
         </Button>
       </div>
     </div>
