@@ -195,212 +195,244 @@ export function MilestoneSheet({
         <SheetContent
           side={isMobile ? "bottom" : "right"}
           overlayClassName={isMobile ? undefined : "bg-black/10"}
-
           className={
             isMobile
-              ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-paper text-ink border-t border-border overflow-y-auto p-5"
-              : "w-full sm:max-w-md bg-paper text-ink border-l border-border overflow-y-auto rounded-l-2xl shadow-2xl"
+              ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-paper text-ink border-t border-border overflow-y-auto p-0"
+              : "w-full sm:max-w-[440px] bg-paper text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)] p-0 flex flex-col"
           }
           aria-labelledby="milestone-sheet-title"
           aria-describedby="milestone-sheet-desc"
         >
-          {milestone && (
-            <>
-              <SheetHeader className="text-left space-y-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-                    {KIND_LABEL[kind]} · Phase {milestone.phase}
-                  </span>
-                  <span
-                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_TONE[milestone.status]}`}
+          {milestone && (() => {
+            const KindIcon = KIND_ICON[kind];
+            const primaryCta =
+              kind === "decision"
+                ? { label: "Respond", onClick: () => setClarifyOpen(true) }
+                : kind === "deliverable"
+                  ? milestone.fileUrl
+                    ? {
+                        label: "Open",
+                        href: milestone.fileUrl,
+                        download: false,
+                      }
+                    : null
+                  : {
+                      label: isReviewed ? "Acknowledged" : "Acknowledge",
+                      onClick: () => setAckOpen(true),
+                      disabled: !roadmapId || isReviewed || reviewMut.isPending,
+                    };
+            const dueLabel = milestone.dueDate
+              ? `Due ${fmtDate(milestone.dueDate)}`
+              : milestone.targetDate
+                ? `Target ${fmtDate(milestone.targetDate)}`
+                : null;
+            return (
+              <>
+                {/* Header — grounded card with tinted kind chip + close */}
+                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/8 bg-white/50">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-0.5 text-[10.5px] font-mono uppercase tracking-[0.22em] ${KIND_ACCENT[kind]}`}
+                    >
+                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-white/70">
+                        <KindIcon className="w-3 h-3" />
+                      </span>
+                      {KIND_LABEL[kind]}
+                    </span>
+                    <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
+                      Phase {milestone.phase}
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_TONE[milestone.status]}`}
+                    >
+                      {STATUS_LABEL[milestone.status]}
+                    </span>
+                  </div>
+                  <SheetTitle
+                    id="milestone-sheet-title"
+                    ref={titleRef}
+                    tabIndex={-1}
+                    className="font-display text-2xl leading-tight text-ink focus:outline-none"
                   >
-                    {STATUS_LABEL[milestone.status]}
-                  </span>
-                </div>
-                <SheetTitle
-                  id="milestone-sheet-title"
-                  ref={titleRef}
-                  tabIndex={-1}
-                  className="font-display text-2xl leading-tight text-ink focus:outline-none"
-                >
-                  {milestone.title}
-                </SheetTitle>
-                {milestone.summary && (
-                  <SheetDescription
-                    id="milestone-sheet-desc"
-                    className="text-[15px] leading-[1.7] text-ink/70"
-                  >
-                    {milestone.summary}
-                  </SheetDescription>
-                )}
-              </SheetHeader>
+                    {milestone.title}
+                  </SheetTitle>
+                  {milestone.summary && (
+                    <SheetDescription
+                      id="milestone-sheet-desc"
+                      className="text-[14.5px] leading-[1.65] text-ink/70"
+                    >
+                      {milestone.summary}
+                    </SheetDescription>
+                  )}
+                </SheetHeader>
 
-              <div className="mt-8 space-y-6">
-                {/* Kind-specific detail blocks */}
-                {kind === "decision" && (
-                  <DecisionBody milestone={milestone} />
-                )}
-                {kind === "deliverable" && (
-                  <DeliverableBody milestone={milestone} />
-                )}
-                {kind === "meeting" && <MeetingBody milestone={milestone} />}
+                {/* Scrollable body */}
+                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+                  {kind === "decision" && (
+                    <DecisionBody milestone={milestone} />
+                  )}
+                  {kind === "deliverable" && (
+                    <DeliverableBody milestone={milestone} />
+                  )}
+                  {kind === "meeting" && <MeetingBody milestone={milestone} />}
 
-                {milestone.detail && milestone.detail !== milestone.summary && (
-                  <Section label="Why this matters">
-                    <p>{milestone.detail}</p>
-                  </Section>
-                )}
-                {milestone.successLooksLike && (
-                  <Section label="What success looks like">
-                    <p>{milestone.successLooksLike}</p>
-                  </Section>
-                )}
-                {milestone.unlocks && milestone.unlocks.length > 0 && (
-                  <Section label="What it unlocks">
-                    <ul className="list-disc pl-5 space-y-1.5">
-                      {milestone.unlocks.map((u, i) => (
-                        <li key={i}>{u}</li>
-                      ))}
-                    </ul>
-                  </Section>
-                )}
-                {milestone.actions && milestone.actions.length > 0 && (
-                  <Section label="Key actions">
-                    <ul className="list-disc pl-5 space-y-1.5">
-                      {milestone.actions.map((a, i) => (
-                        <li key={i}>{a}</li>
-                      ))}
-                    </ul>
-                  </Section>
-                )}
-                {milestone.dependencies &&
-                  milestone.dependencies.length > 0 && (
-                    <Section label="Dependencies">
+                  {milestone.detail && milestone.detail !== milestone.summary && (
+                    <Section label="Why it matters" icon={Lightbulb}>
+                      <p>{milestone.detail}</p>
+                    </Section>
+                  )}
+                  {milestone.successLooksLike && (
+                    <Section label="What success looks like" icon={CheckCircle2}>
+                      <p>{milestone.successLooksLike}</p>
+                    </Section>
+                  )}
+                  {milestone.unlocks && milestone.unlocks.length > 0 && (
+                    <Section label="What it unlocks" icon={Unlock}>
                       <ul className="list-disc pl-5 space-y-1.5">
-                        {milestone.dependencies.map((d, i) => (
-                          <li key={i}>{d}</li>
+                        {milestone.unlocks.map((u, i) => (
+                          <li key={i}>{u}</li>
                         ))}
                       </ul>
                     </Section>
                   )}
-                {milestone.clientActionNeeded && (
-                  <Section label="Your next step">
-                    <p>{milestone.clientActionNeeded}</p>
-                  </Section>
-                )}
-                {milestone.latestUpdate && (
-                  <Section label="Latest update">
-                    <p>{milestone.latestUpdate}</p>
-                  </Section>
-                )}
-                {(milestone.targetDate || milestone.dueDate) && (
-                  <Section label={milestone.dueDate ? "Due" : "Target date"}>
-                    <p>{fmtDate(milestone.dueDate ?? milestone.targetDate)}</p>
-                  </Section>
-                )}
-                {milestone.ownerNote && (
-                  <Section label="Notes from Tai">
-                    <p className="italic">{milestone.ownerNote}</p>
-                  </Section>
-                )}
-
-                {isReviewed && (
-                  <div className="rounded-lg bg-royal/5 border border-royal/20 p-3 text-[13px] text-ink/85 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-royal" />
-                    Acknowledged. Tai has been notified.
-                  </div>
-                )}
-
-                <div className="pt-4 border-t border-border flex flex-wrap gap-2">
-                  {kind !== "decision" && kind !== "meeting" && (
-                    <Button
-                      onClick={() => setAckOpen(true)}
-                      disabled={!roadmapId || isReviewed || reviewMut.isPending}
-                      className="bg-ink hover:bg-ink/90 text-white"
+                  {milestone.actions && milestone.actions.length > 0 && (
+                    <Section label="Key actions" icon={ListChecks}>
+                      <ul className="list-disc pl-5 space-y-1.5">
+                        {milestone.actions.map((a, i) => (
+                          <li key={i}>{a}</li>
+                        ))}
+                      </ul>
+                    </Section>
+                  )}
+                  {milestone.dependencies &&
+                    milestone.dependencies.length > 0 && (
+                      <Section label="Dependencies" icon={GitBranch}>
+                        <ul className="list-disc pl-5 space-y-1.5">
+                          {milestone.dependencies.map((d, i) => (
+                            <li key={i}>{d}</li>
+                          ))}
+                        </ul>
+                      </Section>
+                    )}
+                  {dueLabel && (
+                    <Section
+                      label={milestone.dueDate ? "Due" : "Target date"}
+                      icon={milestone.dueDate ? Flag : Calendar}
                     >
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      {isReviewed ? "Acknowledged" : "Acknowledge"}
-                    </Button>
+                      <p>{fmtDate(milestone.dueDate ?? milestone.targetDate)}</p>
+                    </Section>
+                  )}
+                  {milestone.clientActionNeeded && (
+                    <div className="rounded-lg border border-royal/25 bg-royal/[0.06] px-4 py-3">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-royal mb-1.5 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3 h-3" /> Client action needed
+                      </div>
+                      <p className="text-[14px] leading-[1.6] text-ink/85">
+                        {milestone.clientActionNeeded}
+                      </p>
+                    </div>
+                  )}
+                  {milestone.latestUpdate && (
+                    <Section label="Latest update" icon={CircleDot}>
+                      <p>{milestone.latestUpdate}</p>
+                    </Section>
+                  )}
+                  {milestone.ownerNote && (
+                    <Section label="Notes from Tai" icon={MessageSquare}>
+                      <p className="italic">{milestone.ownerNote}</p>
+                    </Section>
                   )}
 
-                  {kind === "deliverable" && milestone.fileUrl && (
-                    <>
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="border-ink/20"
-                      >
-                        <a
-                          href={milestone.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Preview
-                        </a>
-                      </Button>
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="border-ink/20"
-                      >
-                        <a
-                          href={milestone.fileUrl}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </a>
-                      </Button>
-                    </>
+                  {isReviewed && (
+                    <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-[13px] text-emerald-900 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Acknowledged. Tai has been notified.
+                    </div>
                   )}
+                </div>
 
-                  {kind === "meeting" && milestone.meetingUrl && (
-                    <Button asChild variant="outline" className="border-ink/20">
+                {/* Sticky CTA footer */}
+                <div className="shrink-0 border-t border-ink/10 bg-white/70 backdrop-blur px-6 py-4 space-y-2">
+                  {primaryCta && "href" in primaryCta && primaryCta.href ? (
+                    <Button
+                      asChild
+                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white"
+                    >
                       <a
-                        href={milestone.meetingUrl}
+                        href={primaryCta.href}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <Calendar className="w-4 h-4 mr-2" />
-                        View meeting
+                        <Eye className="w-4 h-4 mr-2" />
+                        {primaryCta.label}
+                      </a>
+                    </Button>
+                  ) : primaryCta && "onClick" in primaryCta ? (
+                    <Button
+                      onClick={primaryCta.onClick}
+                      disabled={"disabled" in primaryCta && primaryCta.disabled}
+                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white"
+                    >
+                      {kind === "decision" ? (
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                      )}
+                      {primaryCta.label}
+                    </Button>
+                  ) : null}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className="h-9 border-ink/15 text-ink/80"
+                      onClick={() => setClarifyOpen(true)}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                      {kind === "decision" ? "Ask" : "Clarify"}
+                    </Button>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="h-9 border-ink/15 text-ink/80"
+                    >
+                      <Link to="/portal/files" search={{ q: milestone.title }}>
+                        <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                        Related files
+                      </Link>
+                    </Button>
+                  </div>
+
+                  {kind === "deliverable" && milestone.fileUrl && (
+                    <Button
+                      asChild
+                      variant="ghost"
+                      className="w-full h-9 text-ink/70"
+                    >
+                      <a
+                        href={milestone.fileUrl}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="w-3.5 h-3.5 mr-1.5" />
+                        Download
                       </a>
                     </Button>
                   )}
 
-                  <Button
-                    variant="outline"
-                    className="border-ink/20"
-                    onClick={() => setClarifyOpen(true)}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    {kind === "decision" ? "Respond" : "Request clarification"}
-                  </Button>
-
-                  <Button asChild variant="ghost" className="text-ink/70">
-                    <Link
-                      to="/portal/files"
-                      search={{ q: milestone.title }}
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Related files
-                    </Link>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    className="text-ink/70"
+                  <button
+                    type="button"
                     onClick={() => setBookOpen(true)}
+                    className="w-full flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink pt-1"
                   >
-                    <Calendar className="w-4 h-4 mr-2" />
+                    <Calendar className="w-3.5 h-3.5" />
                     Book next call
-                  </Button>
+                  </button>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            );
+          })()}
         </SheetContent>
       </Sheet>
 
