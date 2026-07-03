@@ -208,10 +208,26 @@ function RoadmapJourneyView({
 function RoadmapHeader({
   journey,
   doc,
+  portalRoadmapId,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
   doc: PortalRoadmapDoc;
+  portalRoadmapId: string | undefined;
 }) {
+  const recordEvent = useServerFn(recordPortalRoadmapEvent);
+  const handleDownload = () => {
+    if (portalRoadmapId) {
+      recordEvent({
+        data: { roadmapId: portalRoadmapId, event: "downloaded" },
+      }).catch(() => {});
+    }
+    if (doc.file_url) {
+      window.open(doc.file_url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    // Fallback: browser print-to-PDF of the current roadmap page.
+    if (typeof window !== "undefined") window.print();
+  };
   return (
     <div className="flex items-start justify-between gap-6 flex-wrap">
       <div>
@@ -244,13 +260,14 @@ function RoadmapHeader({
             Request clarification
           </Link>
         </Button>
-        {doc.file_url && (
-          <Button asChild variant="outline" className="border-ink/20">
-            <a href={doc.file_url} target="_blank" rel="noreferrer">
-              <Download className="w-4 h-4 mr-2" /> Download PDF
-            </a>
-          </Button>
-        )}
+        <Button
+          onClick={handleDownload}
+          variant="outline"
+          className="border-ink/20"
+          aria-label={doc.file_url ? "Download approved roadmap PDF" : "Save roadmap as PDF via browser print"}
+        >
+          <Download className="w-4 h-4 mr-2" /> Download PDF
+        </Button>
         <Button asChild className="bg-ink hover:bg-ink/90 text-white">
           <Link to="/portal/messages">
             <Calendar className="w-4 h-4 mr-2" />
