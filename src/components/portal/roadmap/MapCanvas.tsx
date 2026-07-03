@@ -394,7 +394,9 @@ export function MapCanvas({
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
 }
+
