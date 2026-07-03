@@ -201,9 +201,7 @@ export function MapCanvas({
       el.style.cursor = "grab";
       try {
         el.releasePointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
+      } catch {}
     }
     if (st && st.moved) startMomentum(st.velocity);
   };
@@ -260,17 +258,7 @@ export function MapCanvas({
       }
       return map;
     });
-  }, [
-    layout.markers,
-    viewMode,
-    canvas.zoomLevel,
-    canvas.currentPhaseKey,
-    canvas.selectedPhaseKey,
-    canvas.visibleKinds,
-    canvas.mutedKinds,
-    journey,
-    selectedSlug,
-  ]);
+  }, [layout.markers, viewMode, canvas.zoomLevel, canvas.currentPhaseKey, canvas.selectedPhaseKey, canvas.visibleKinds, canvas.mutedKinds, journey, selectedSlug]);
 
   const keepFull = useMemo(() => {
     const set = new Set<string>();
@@ -281,32 +269,18 @@ export function MapCanvas({
     return set;
   }, [journey, selectedSlug]);
 
-  const clusterThreshold =
-    canvas.zoomLevel === "strategic"
-      ? 0.05
-      : canvas.zoomLevel === "phase"
-        ? 0.03
-        : 0;
+  const clusterThreshold = canvas.zoomLevel === "strategic" ? 0.05 : canvas.zoomLevel === "phase" ? 0.03 : 0;
 
   const clustered = useMemo(() => {
     const visibleMarkers = layout.markers.filter(
       (m) => visibilities.get(m.milestone.slug) !== "hidden",
     );
-    return clusterMarkers(visibleMarkers, {
-      thresholdNx: clusterThreshold,
-      keepFull,
-    });
+    return clusterMarkers(visibleMarkers, { thresholdNx: clusterThreshold, keepFull });
   }, [layout.markers, visibilities, clusterThreshold, keepFull]);
 
   type FannedEntry =
     | { kind: "cluster"; cluster: MarkerClusterModel }
-    | {
-        kind: "marker";
-        pos: MarkerPos;
-        overrideX?: number;
-        overrideY?: number;
-        fannedFrom?: string;
-      };
+    | { kind: "marker"; pos: MarkerPos; overrideX?: number; overrideY?: number; fannedFrom?: string };
   const rendered = useMemo<FannedEntry[]>(() => {
     return measure("cluster:relayout", () => {
       const out: FannedEntry[] = [];
@@ -323,13 +297,7 @@ export function MapCanvas({
             const dx = startX + i * step - cx;
             const t = n > 1 ? i / (n - 1) - 0.5 : 0;
             const dy = -60 + Math.abs(t) * 120;
-            out.push({
-              kind: "marker",
-              pos: member,
-              overrideX: cx + dx,
-              overrideY: cy + dy,
-              fannedFrom: entry.cluster.key,
-            });
+            out.push({ kind: "marker", pos: member, overrideX: cx + dx, overrideY: cy + dy, fannedFrom: entry.cluster.key });
           }
           out.push({ kind: "cluster", cluster: entry.cluster });
         } else if (entry.kind === "cluster") {
@@ -344,9 +312,7 @@ export function MapCanvas({
 
   useEffect(() => {
     if (!selectedSlug) return;
-    const marker = layout.markers.find(
-      (m) => m.milestone.slug === selectedSlug,
-    );
+    const marker = layout.markers.find((m) => m.milestone.slug === selectedSlug);
     if (!marker) return;
     const el = scrollRef.current;
     if (!el) return;
@@ -363,24 +329,19 @@ export function MapCanvas({
   const scaledWidth = fitHeight ? CANVAS_WIDTH * scale : CANVAS_WIDTH;
   const scaledHeight = fitHeight ? CANVAS_HEIGHT * scale : CANVAS_HEIGHT;
 
-  // Build the base route path through all markers (always visible)
-  const baseRoutePoints = useMemo(() => {
-    const points: Array<{ x: number; y: number }> = [];
-    // Start from Point A
-    points.push({ x: POINT_A_POS.nx * CANVAS_WIDTH, y: POINT_A_POS.ny * CANVAS_HEIGHT });
-    // Thread through all markers in layout order
-    for (const marker of layout.markers) {
-      if (marker.milestone.slug.endsWith("-placeholder")) continue;
-      points.push({ x: marker.nx * CANVAS_WIDTH, y: marker.ny * CANVAS_HEIGHT });
+  // Base route: Point A through all markers to Point B (always visible)
+  const baseRouteStr = useMemo(() => {
+    const pts: string[] = [];
+    pts.push(`${POINT_A_POS.nx * CANVAS_WIDTH},${POINT_A_POS.ny * CANVAS_HEIGHT}`);
+    for (const m of layout.markers) {
+      if (m.milestone.slug.endsWith("-placeholder")) continue;
+      pts.push(`${m.nx * CANVAS_WIDTH},${m.ny * CANVAS_HEIGHT}`);
     }
-    // End at Point B
-    points.push({ x: POINT_B_POS.nx * CANVAS_WIDTH, y: POINT_B_POS.ny * CANVAS_HEIGHT });
-    return points;
+    pts.push(`${POINT_B_POS.nx * CANVAS_WIDTH},${POINT_B_POS.ny * CANVAS_HEIGHT}`);
+    return pts.join(" ");
   }, [layout.markers]);
 
-  const baseRouteStr = baseRoutePoints.map(p => `${p.x},${p.y}`).join(" ");
-
-  // Build the selected critical path overlay points
+  // Selected critical path overlay
   const selectedPathPoints = useMemo(() => {
     if (!selectedSlug || journey.criticalPathSlugs.length < 2) return null;
     const pts = journey.criticalPathSlugs
@@ -407,10 +368,7 @@ export function MapCanvas({
       className={`${outerClass}${className ? ` ${className}` : ""}`}
       style={{ cursor: "grab", background: "#0b1220" }}
     >
-      <div
-        className="relative"
-        style={{ width: `${scaledWidth}px`, height: `${scaledHeight}px` }}
-      >
+      <div className="relative" style={{ width: `${scaledWidth}px`, height: `${scaledHeight}px` }}>
         <div
           className="absolute top-0 left-0"
           style={{
@@ -419,7 +377,8 @@ export function MapCanvas({
             transform: fitHeight ? `scale(${scale})` : undefined,
             transformOrigin: "top left",
           }}
-        >n          {/* Terrain background image */}
+        >
+          {/* Terrain background */}
           <img
             src={bgUrl}
             alt=""
@@ -428,7 +387,7 @@ export function MapCanvas({
             className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
           />
 
-          {/* Atmospheric vignette — dark edges draw the eye into the terrain */}
+          {/* Atmospheric vignette */}
           <div
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
@@ -438,27 +397,21 @@ export function MapCanvas({
             }}
           />
 
-          {/* Top fade for label legibility */}
+          {/* Top fade */}
           <div
             aria-hidden="true"
             className="absolute inset-x-0 top-0 h-56 pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(4,10,25,0.45) 0%, rgba(4,10,25,0) 100%)",
-            }}
+            style={{ background: "linear-gradient(180deg, rgba(4,10,25,0.45) 0%, rgba(4,10,25,0) 100%)" }}
           />
 
-          {/* Bottom warm haze — atmospheric depth near the summit */}
+          {/* Bottom warm haze for depth */}
           <div
             aria-hidden="true"
             className="absolute inset-x-0 bottom-0 h-80 pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(0deg, rgba(8,15,30,0.4) 0%, rgba(8,15,30,0) 100%)",
-            }}
+            style={{ background: "linear-gradient(0deg, rgba(8,15,30,0.4) 0%, rgba(8,15,30,0) 100%)" }}
           />
 
-          {/* Base route path — always visible, the hero element of the map */}
+          {/* Base route path — the hero element, always visible */}
           <svg
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
@@ -476,7 +429,7 @@ export function MapCanvas({
                 </feMerge>
               </filter>
             </defs>
-            {/* Soft wide underlay */}
+            {/* Wide soft underlay */}
             <polyline
               points={baseRouteStr}
               fill="none"
@@ -486,11 +439,11 @@ export function MapCanvas({
               strokeLinejoin="round"
               filter="url(#base-route-glow)"
             />
-            {/* Main base route — visible but subdued */}
+            {/* Dotted main path */}
             <polyline
               points={baseRouteStr}
               fill="none"
-              stroke="rgba(180,200,255,0.25)"
+              stroke="rgba(180,200,255,0.3)"
               strokeWidth={3}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -498,7 +451,7 @@ export function MapCanvas({
             />
           </svg>
 
-          {/* Selected critical path overlay — bright glow */}
+          {/* Selected critical path — bright glow overlay */}
           {selectedPathPoints && (
             <svg
               aria-hidden="true"
@@ -509,50 +462,18 @@ export function MapCanvas({
               style={{ zIndex: 8 }}
             >
               <defs>
-                <filter id="selected-route-outer" x="-20%" y="-20%" width="140%" height="140%">
+                <filter id="sel-route-outer" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="6" result="b" />
-                  <feMerge>
-                    <feMergeNode in="b" />
-                  </feMerge>
+                  <feMerge><feMergeNode in="b" /></feMerge>
                 </filter>
-                <filter id="selected-route-inner" x="-10%" y="-10%" width="120%" height="120%">
+                <filter id="sel-route-inner" x="-10%" y="-10%" width="120%" height="120%">
                   <feGaussianBlur stdDeviation="3" result="b" />
-                  <feMerge>
-                    <feMergeNode in="b" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
+                  <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
               </defs>
-              {/* Outer wide glow */}
-              <polyline
-                points={selectedPathPoints}
-                fill="none"
-                stroke="rgba(47,93,246,0.35)"
-                strokeWidth={14}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                filter="url(#selected-route-outer)"
-              />
-              {/* Main bright stroke */}
-              <polyline
-                points={selectedPathPoints}
-                fill="none"
-                stroke="rgba(47,93,246,0.9)"
-                strokeWidth={7}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                filter="url(#selected-route-inner)"
-              />
-              {/* Crisp dashed center line */}
-              <polyline
-                points={selectedPathPoints}
-                fill="none"
-                stroke="rgba(255,255,255,0.95)"
-                strokeWidth={2.25}
-                strokeDasharray="6 6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              <polyline points={selectedPathPoints} fill="none" stroke="rgba(47,93,246,0.35)" strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" filter="url(#sel-route-outer)" />
+              <polyline points={selectedPathPoints} fill="none" stroke="rgba(47,93,246,0.9)" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" filter="url(#sel-route-inner)" />
+              <polyline points={selectedPathPoints} fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth={2.25} strokeDasharray="6 6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
 
@@ -561,28 +482,18 @@ export function MapCanvas({
             const x = ((band.x0 + band.x1) / 2) * CANVAS_WIDTH;
             const y = band.headingY * CANVAS_HEIGHT;
             const pct = Math.round(band.completionRatio * 100);
-            const isCurrent =
-              phase.key === (canvas.currentPhaseKey ?? journey.currentPhaseKey);
+            const isCurrent = phase.key === (canvas.currentPhaseKey ?? journey.currentPhaseKey);
             return (
               <div
                 key={phase.key}
                 className="absolute -translate-x-1/2 text-white pointer-events-none"
                 style={{ left: `${x}px`, top: `${y}px`, zIndex: 6 }}
               >
-                <div
-                  className={`font-mono text-[10px] uppercase tracking-[0.32em] ${isCurrent ? "text-royal-glow" : "text-white/70"}`}
-                >
-                  Phase {i + 1}
-                  {isCurrent && (
-                    <span className="ml-1.5 text-royal-glow">·</span>
-                  )}
+                <div className={`font-mono text-[10px] uppercase tracking-[0.32em] ${isCurrent ? "text-royal-glow" : "text-white/70"}`}>
+                  Phase {i + 1}{isCurrent && <span className="ml-1.5 text-royal-glow">·</span>}
                 </div>
                 <div className="font-display text-2xl mt-1 leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]">
-                  {phase.label === "Now"
-                    ? "Foundation"
-                    : phase.label === "Next"
-                      ? "Core Platform Build"
-                      : "Scale Systems"}
+                  {phase.label === "Now" ? "Foundation" : phase.label === "Next" ? "Core Platform Build" : "Scale Systems"}
                 </div>
                 {phase.milestones[0]?.summary && (
                   <div className="text-[12.5px] text-white/75 mt-1 max-w-[220px] leading-snug drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]">
@@ -591,9 +502,7 @@ export function MapCanvas({
                 )}
                 <div
                   className={`mt-2 inline-flex items-center rounded-full backdrop-blur px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.24em] ${
-                    isCurrent
-                      ? "bg-royal/25 border border-royal/60"
-                      : "bg-white/10 border border-white/20"
+                    isCurrent ? "bg-royal/25 border border-royal/60" : "bg-white/10 border border-white/20"
                   }`}
                 >
                   {pct}% complete
@@ -605,22 +514,14 @@ export function MapCanvas({
           {/* Point A */}
           <div
             className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 text-white pointer-events-none"
-            style={{
-              left: `${POINT_A_POS.nx * CANVAS_WIDTH}px`,
-              top: `${POINT_A_POS.ny * CANVAS_HEIGHT}px`,
-              zIndex: 7,
-            }}
+            style={{ left: `${POINT_A_POS.nx * CANVAS_WIDTH}px`, top: `${POINT_A_POS.ny * CANVAS_HEIGHT}px`, zIndex: 7 }}
           >
             <div className="flex items-center justify-center h-9 w-9 rounded-full bg-slate-900/70 border border-white/25 backdrop-blur shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
               <MapPin className="w-4 h-4" />
             </div>
             <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">
-                Point A
-              </div>
-              <div className="font-display text-[15px] leading-tight">
-                Current State
-              </div>
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">Point A</div>
+              <div className="font-display text-[15px] leading-tight">Current State</div>
               <div className="text-[11px] text-white/75">Operating today</div>
             </div>
           </div>
@@ -628,24 +529,14 @@ export function MapCanvas({
           {/* Point B */}
           <div
             className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 text-white pointer-events-none"
-            style={{
-              left: `${POINT_B_POS.nx * CANVAS_WIDTH}px`,
-              top: `${POINT_B_POS.ny * CANVAS_HEIGHT}px`,
-              zIndex: 7,
-            }}
+            style={{ left: `${POINT_B_POS.nx * CANVAS_WIDTH}px`, top: `${POINT_B_POS.ny * CANVAS_HEIGHT}px`, zIndex: 7 }}
           >
             <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5 text-right shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">
-                Point B
-              </div>
-              <div className="font-display text-[15px] leading-tight">
-                {journey.pointB.label || "Scaled Impact"}
-              </div>
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">Point B</div>
+              <div className="font-display text-[15px] leading-tight">{journey.pointB.label || "Scaled Impact"}</div>
               {journey.pointB.detail && (
                 <div className="text-[11px] text-white/75 max-w-[180px]">
-                  {journey.pointB.detail.length > 60
-                    ? journey.pointB.detail.slice(0, 60) + "…"
-                    : journey.pointB.detail}
+                  {journey.pointB.detail.length > 60 ? journey.pointB.detail.slice(0, 60) + "…" : journey.pointB.detail}
                 </div>
               )}
             </div>
@@ -660,10 +551,7 @@ export function MapCanvas({
               return (
                 <div
                   key={entry.cluster.key}
-                  style={{
-                    opacity: ready ? 1 : 0,
-                    transition: reduced ? "none" : "opacity 400ms ease-out",
-                  }}
+                  style={{ opacity: ready ? 1 : 0, transition: reduced ? "none" : "opacity 400ms ease-out" }}
                 >
                   <MarkerClusterChip
                     cluster={entry.cluster}
@@ -677,23 +565,16 @@ export function MapCanvas({
             }
             const { pos } = entry;
             const vis = visibilities.get(pos.milestone.slug) ?? "short";
-            const mutedBySelection =
-              !!selectedSlug && pos.milestone.slug !== selectedSlug;
-            const px =
-              entry.overrideX != null ? entry.overrideX : pos.nx * CANVAS_WIDTH;
-            const py =
-              entry.overrideY != null ? entry.overrideY : pos.ny * CANVAS_HEIGHT;
-            const keyId = entry.fannedFrom
-              ? `${entry.fannedFrom}:${pos.milestone.slug}:${i}`
-              : pos.milestone.slug;
+            const mutedBySelection = !!selectedSlug && pos.milestone.slug !== selectedSlug;
+            const px = entry.overrideX != null ? entry.overrideX : pos.nx * CANVAS_WIDTH;
+            const py = entry.overrideY != null ? entry.overrideY : pos.ny * CANVAS_HEIGHT;
+            const keyId = entry.fannedFrom ? `${entry.fannedFrom}:${pos.milestone.slug}:${i}` : pos.milestone.slug;
             return (
               <div
                 key={keyId}
                 style={{
                   opacity: ready ? 1 : 0,
-                  transition: reduced
-                    ? "none"
-                    : "opacity 400ms ease-out, left 260ms ease-out, top 260ms ease-out",
+                  transition: reduced ? "none" : "opacity 400ms ease-out, left 260ms ease-out, top 260ms ease-out",
                   zIndex: entry.fannedFrom ? 12 : undefined,
                 }}
               >
