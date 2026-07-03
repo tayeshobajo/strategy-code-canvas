@@ -934,6 +934,53 @@ export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/**
+ * Client marks an individual milestone as reviewed. Records a client-visible
+ * activity referencing the roadmap and milestone so Tai can see progress in
+ * the internal timeline. Does not mutate the roadmap row itself.
+ */
+export const recordPortalMilestoneReview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        roadmapId: z.string().uuid(),
+        milestoneSlug: z.string().min(1).max(120),
+        milestoneTitle: z.string().min(1).max(240),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const email = (context.claims?.email as string | undefined) ?? undefined;
+    if (!email) return { error: "No email on account" } as const;
+
+    // Access check: caller must be able to SELECT the roadmap (RLS-checked).
+    const { data: cpr, error: cprErr } = await context.supabase
+      .from("client_portal_roadmaps")
+      .select("id, project_id")
+      .eq("id", data.roadmapId)
+      .maybeSingle();
+    if (cprErr || !cpr) {
+      return { error: "Roadmap not found or not visible" } as const;
+    }
+
+    await context.supabase.rpc("log_client_portal_activity", {
+      _project_id: cpr.project_id,
+      _actor_type: "client",
+      _actor_email: email,
+      _event_type: "milestone_reviewed",
+      _summary: `You marked "${data.milestoneTitle}" as reviewed.`,
+      _client_visible: true,
+      _metadata: {
+        portal_roadmap_id: cpr.id,
+        milestone_slug: data.milestoneSlug,
+        milestone_title: data.milestoneTitle,
+      } as unknown as never,
+    });
+
+    return { ok: true as const };
+  });
+
 // -------------------- File view/download telemetry (client-facing) --------------------
 export const logPortalFileEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
