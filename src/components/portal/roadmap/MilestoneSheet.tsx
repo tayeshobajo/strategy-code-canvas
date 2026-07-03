@@ -262,7 +262,7 @@ export function MilestoneSheet({
                       {displayKindLabel}
                     </span>
                     <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/50">
-                      Phase {milestone.phase} · {phaseName}
+                      {phaseNumber != null ? `Phase ${phaseNumber} · ${phaseName}` : phaseName}
                     </span>
                     <span
                       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_TONE[milestone.status]}`}
