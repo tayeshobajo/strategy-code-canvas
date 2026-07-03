@@ -14,6 +14,7 @@ import {
   type MarkerCluster as MarkerClusterModel,
 } from "./roadmap-layout";
 import { computeMarkerVisibility, type RoadmapViewMode } from "./view-mode";
+import { measure } from "./perf";
 import mapBg from "@/assets/roadmap-map-background.png.asset.json";
 
 const CANVAS_WIDTH = 1800;
