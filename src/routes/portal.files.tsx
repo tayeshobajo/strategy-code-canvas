@@ -28,7 +28,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { useServerFn } from "@tanstack/react-start";
+import { logPortalFileEvent } from "@/lib/portal.functions";
 import { toast } from "sonner";
+
 
 function isPreviewable(row: { mime_type: string | null; file_name: string }) {
   const ext = row.file_name.split(".").pop()?.toLowerCase() ?? "";
