@@ -218,7 +218,7 @@ export function RoadmapOverviewStrip({
                   floating={floating}
                   current={p.key === journey.currentPhaseKey}
                   testId={`strip-${p.key}`}
-                  kindCounts={countKinds(p.milestones)}
+                  kindCounts={countKinds(p.milestones, matchingSlugs)}
                   showRoute
                 />
               ))}
