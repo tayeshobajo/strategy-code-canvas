@@ -196,6 +196,92 @@ function PortalGreeting() {
   );
 }
 
+function SidebarMissionCard() {
+  return (
+    <div className="mx-4 mb-4 rounded-lg border border-white/10 bg-white/[0.03] px-3.5 py-3">
+      <div className="h-[3px] w-8 rounded-full bg-royal mb-2" />
+      <div className="font-display text-[13.5px] leading-tight text-white">
+        Your success is our mission.
+      </div>
+      <div className="text-[11.5px] text-white/55 mt-1 leading-snug">
+        We're building the future of your business, together.
+      </div>
+    </div>
+  );
+}
+
+function initialsFromEmail(name: string | null | undefined, email: string) {
+  const src = (name && name.trim()) || email || "";
+  if (!src) return "?";
+  const parts = src.split(/[\s@._-]+/).filter(Boolean);
+  if (parts.length === 0) return src.slice(0, 2).toUpperCase();
+  const first = parts[0]?.[0] ?? "";
+  const second = parts[1]?.[0] ?? "";
+  return (first + second || first).toUpperCase();
+}
+
+function SidebarUserBlock({
+  email,
+  onSignOut,
+}: {
+  email: string;
+  onSignOut: () => void;
+}) {
+  const { data } = usePortalContext();
+  const contactName =
+    data && "project" in data ? data.project?.contact_name ?? null : null;
+  const initials = initialsFromEmail(contactName, email);
+  const displayName = contactName || email.split("@")[0] || "Portal user";
+  return (
+    <div className="border-t border-white/10 px-3 py-3">
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="w-full flex items-center gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-white/5 transition-colors"
+            aria-label="Account menu"
+          >
+            <span
+              aria-hidden
+              className="grid place-items-center h-8 w-8 rounded-full bg-royal/25 border border-royal/40 text-[11px] font-semibold text-white shrink-0"
+            >
+              {initials}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12.5px] text-white truncate leading-tight">
+                {displayName}
+              </span>
+              <span className="block text-[10.5px] text-white/50 truncate leading-tight mt-0.5">
+                Client
+              </span>
+            </span>
+            <ChevronUp className="w-3.5 h-3.5 text-white/50 shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          side="top"
+          align="end"
+          sideOffset={8}
+          className="w-56 p-1"
+        >
+          <div className="px-2.5 py-2 border-b border-border">
+            <div className="text-[11px] text-muted-foreground truncate">
+              {email}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-sm text-[13px] text-ink hover:bg-muted"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sign out
+          </button>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 function PortalNav({ pathname }: { pathname: string }) {
   const { data } = usePortalContext();
   const portalStatus =
