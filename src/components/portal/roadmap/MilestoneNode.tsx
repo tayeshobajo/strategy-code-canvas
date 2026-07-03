@@ -285,7 +285,7 @@ export const MilestoneNode = memo(function MilestoneNode({
       )}
     </div>
   );
-}
+});
 
 
 /** Small decorative peak marker for Point B (destination flag). */
