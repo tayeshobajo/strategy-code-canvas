@@ -54,6 +54,10 @@ function PortalLoginPage() {
     status === "enqueue_failed" ||
     status === "network_error";
 
+  const submittedEmail = email.trim().toLowerCase();
+  const isStaffEmail = isAdminEmail(submittedEmail) || isOperatorEmail(submittedEmail);
+  const staffLabel = isAdminEmail(submittedEmail) ? "admin" : "operator";
+
   return (
     <div className="bg-paper min-h-screen flex flex-col">
       <SiteHeader />
@@ -82,25 +86,45 @@ function PortalLoginPage() {
               <>
                 <p className="text-[15px] text-ink font-medium">
                   {status === "no_access"
-                    ? "No active portal access found for this email."
+                    ? isStaffEmail
+                      ? `This ${staffLabel} account isn't set up yet.`
+                      : "No active portal access found for this email."
                     : "Something went wrong on our side."}
                 </p>
                 <p className="text-[13px] text-ink/70 mt-2">
                   {status === "no_access"
-                    ? "We did not send a sign-in link because this email is not currently authorized for the portal."
+                    ? isStaffEmail
+                      ? `We recognize this as a Trust Tai ${staffLabel} address, but the role hasn't been provisioned on the backend yet. Contact Tai to finish setup — clients do not need this step.`
+                      : "We did not send a sign-in link because this email is not currently authorized for the portal. If you're a client, use the exact address tied to your engagement."
                     : "We couldn't finish sending your sign-in link"}
                   {status === "link_failed" && " (auth link generation failed)"}
                   {status === "suppressed" && " (this address is currently blocked from email delivery)"}
                   {status === "enqueue_failed" && " (email queue rejected the request)"}
                   {status === "network_error" && " (network error contacting the server)"}
-                  . Please try again in a minute, or contact
-                  <a
-                    href="mailto:hello@trusttai.com"
-                    className="underline underline-offset-2 ml-1"
-                  >
-                    hello@trusttai.com
-                  </a>
-                  .
+                  {status !== "no_access" && (
+                    <>
+                      . Please try again in a minute, or contact
+                      <a
+                        href="mailto:hello@trusttai.com"
+                        className="underline underline-offset-2 ml-1"
+                      >
+                        hello@trusttai.com
+                      </a>
+                      .
+                    </>
+                  )}
+                </p>
+              </>
+            ) : isStaffEmail ? (
+              <>
+                <p className="text-[15px] text-ink">
+                  Staff sign-in link on its way to{" "}
+                  <span className="font-medium">{email}</span>.
+                </p>
+                <p className="text-[13px] text-ink/70 mt-2">
+                  This is a Trust Tai {staffLabel} account. Opening the link
+                  will take you into the admin dashboard, not a client
+                  workspace.
                 </p>
               </>
             ) : (
@@ -120,6 +144,7 @@ function PortalLoginPage() {
               Use a different email
             </button>
           </div>
+
         ) : (
           <form onSubmit={onSubmit} className="space-y-5">
             <div>
