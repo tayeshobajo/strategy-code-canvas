@@ -142,11 +142,11 @@ export const MilestoneNode = memo(function MilestoneNode({
   const opacity = isHidden
     ? 0
     : isMuted
-      ? 0.45
+      ? 0.6
       : mutedBySelection
-        ? 0.85
+        ? 0.9
         : 1;
-  const transform = isSelected ? "scale(1.08)" : undefined;
+  const transform = isSelected ? "scale(1.12)" : undefined;
 
   const statusLabel =
     milestone.status === "in_progress"
