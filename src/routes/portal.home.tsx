@@ -20,11 +20,12 @@ export const Route = createFileRoute("/portal/home")({
   ssr: false,
   beforeLoad: async () => {
     const res = await checkPortalAccess();
-    // Staff/admins are not clients — send them to the admin dashboard on
-    // their default portal landing. They can still visit any /portal/*
-    // route directly if they need to review a client-facing surface.
-    if (res.isAdmin) {
-      throw redirect({ to: "/admin" });
+    // Staff (admin or operator) are not clients — send them straight to the
+    // admin dashboard's landing surface (Client portals) so they never land on
+    // an empty /admin layout shell. They can still visit any /portal/* route
+    // directly if they need to review a client-facing surface.
+    if (res.isAdmin || isOperatorEmail(res.email)) {
+      throw redirect({ to: "/admin/client-portals" });
     }
     // Only redirect for explicit rejection states. If access is "none" but the
     // user is authenticated (portal layout already gated on that), fall through
@@ -92,7 +93,7 @@ function StaffAccountPanel({ email }: { email?: string | null }) {
         <div className="flex flex-col gap-3 border-t border-rule-soft bg-paper-soft px-8 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-10">
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild className="rounded-md bg-ink text-white hover:bg-ink/90">
-              <Link to="/admin">Open admin dashboard</Link>
+              <Link to="/admin/client-portals">Open admin dashboard</Link>
             </Button>
             <Button
               asChild
