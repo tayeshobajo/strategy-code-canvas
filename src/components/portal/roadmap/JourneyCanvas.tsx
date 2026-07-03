@@ -110,6 +110,37 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
     }
   };
 
+  // Arrow-key navigation between milestone nodes. Focus follows selection so
+  // screen readers announce the active milestone; Enter/Space opens details.
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const nodes = Array.from(
+      container.querySelectorAll<HTMLButtonElement>("[data-milestone-node]"),
+    );
+    if (nodes.length === 0) return;
+    const currentIndex = nodes.findIndex(
+      (n) => n === document.activeElement,
+    );
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      const delta = e.key === "ArrowRight" ? 1 : -1;
+      const nextIndex =
+        currentIndex < 0
+          ? 0
+          : Math.min(Math.max(currentIndex + delta, 0), nodes.length - 1);
+      const target = nodes[nextIndex];
+      target.focus();
+      target.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      nodes[0].focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      nodes[nodes.length - 1].focus();
+    }
+  };
+
   return (
     <div
       ref={scrollRef}
@@ -118,7 +149,11 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
       onPointerLeave={endDrag}
-      className="relative w-full overflow-x-auto overflow-y-hidden rounded-2xl border border-white/10 select-none"
+      onKeyDown={onKeyDown}
+      role="region"
+      aria-label="Roadmap journey. Use arrow keys to move between milestones, Enter to open details."
+      tabIndex={0}
+      className="relative w-full overflow-x-auto overflow-y-hidden rounded-2xl border border-white/10 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-paper-soft"
       style={{
         cursor: "grab",
         background:
