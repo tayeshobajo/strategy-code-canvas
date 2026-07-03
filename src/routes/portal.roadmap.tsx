@@ -47,7 +47,7 @@ export const Route = createFileRoute("/portal/roadmap")({
   validateSearch: zodValidator(searchSchema),
   head: () => ({
     meta: [
-      { title: "Roadmap — Trust Tai portal" },
+      { title: "Your Roadmap Canvas — Trust Tai portal" },
       { name: "robots", content: "noindex" },
     ],
   }),
