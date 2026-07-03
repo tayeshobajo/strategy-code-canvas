@@ -840,8 +840,17 @@ export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
       patch.acknowledged_by_email = email;
     }
     if (Object.keys(patch).length) {
-      await context.supabase.from("client_portal_roadmaps").update(patch as never).eq("id", cpr.id);
+      // RLS on client_portal_roadmaps only grants SELECT to clients; the ack
+      // update must run through the admin client. The caller was verified as
+      // an authorized viewer by the SELECT above (RLS-checked).
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error: updErr } = await supabaseAdmin
+        .from("client_portal_roadmaps")
+        .update(patch as never)
+        .eq("id", cpr.id);
+      if (updErr) return { error: updErr.message } as const;
     }
+
 
     // Client-visible activity in the portal timeline.
     const summaryByEvent: Record<string, string> = {
