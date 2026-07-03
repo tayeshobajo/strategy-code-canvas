@@ -12,6 +12,8 @@ import {
   getPortalHandoffState,
   startExecutionEngagement,
 } from "@/lib/engine-execution.functions";
+import { markPortalFollowUpNeeded } from "@/lib/portal.functions";
+
 
 export const Route = createFileRoute("/engine/projects/$projectId/delivery")({
   component: DeliveryPrep,
@@ -190,6 +192,8 @@ function ExecutionHandoffCard({ projectId }: { projectId: string }) {
   const qc = useQueryClient();
   const stateFn = useServerFn(getPortalHandoffState);
   const startFn = useServerFn(startExecutionEngagement);
+  const flagFn = useServerFn(markPortalFollowUpNeeded);
+  const [flagReason, setFlagReason] = useState("");
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["engine", "portal-handoff", projectId],
@@ -210,6 +214,19 @@ function ExecutionHandoffCard({ projectId }: { projectId: string }) {
       ]);
     },
   });
+
+  const flag = useMutation({
+    mutationFn: (reason: string) => {
+      const portalProjectId = (data as { portalProjectId?: string | null } | undefined)
+        ?.portalProjectId;
+      if (!portalProjectId) throw new Error("No linked portal workspace.");
+      return flagFn({ data: { projectId: portalProjectId, reason } });
+    },
+    onSuccess: () => {
+      setFlagReason("");
+    },
+  });
+
 
   if (isLoading || !data) {
     return (
@@ -274,7 +291,43 @@ function ExecutionHandoffCard({ projectId }: { projectId: string }) {
           </>
         )}
       </div>
+
+      <div className="mt-4 pt-4 border-t border-border">
+        <div className="text-xs font-medium text-ink/70 uppercase tracking-wider mb-2">
+          Flag follow-up for client
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            type="text"
+            value={flagReason}
+            onChange={(e) => setFlagReason(e.target.value)}
+            placeholder="What do you need from the client?"
+            className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm"
+            maxLength={500}
+          />
+          <button
+            type="button"
+            disabled={flag.isPending || flagReason.trim().length === 0}
+            onClick={() => flag.mutate(flagReason.trim())}
+            className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+          >
+            {flag.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+            Flag follow-up
+          </button>
+        </div>
+        {flag.isSuccess && (
+          <div className="mt-2 text-xs text-[#1f6b3b]">
+            Client notified in portal Messages.
+          </div>
+        )}
+        {flag.isError && (
+          <div className="mt-2 text-xs text-[#a4283c]">
+            {(flag.error as Error).message}
+          </div>
+        )}
+      </div>
     </SectionCard>
   );
 }
+
 

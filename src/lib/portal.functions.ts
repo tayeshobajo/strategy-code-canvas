@@ -837,3 +837,76 @@ export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
 
     return { ok: true as const };
   });
+
+// -------------------- File view/download telemetry (client-facing) --------------------
+export const logPortalFileEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        fileId: z.string().uuid(),
+        event: z.enum(["viewed", "downloaded"]),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message?: string } | null }>;
+    };
+    const { error } = await sb.rpc("log_portal_file_event", {
+      _file_id: data.fileId,
+      _event: data.event,
+    });
+    if (error) return { ok: false as const, error: error.message ?? "log failed" };
+    return { ok: true as const };
+  });
+
+// -------------------- Follow-up needed (operator + client) --------------------
+export const markPortalFollowUpNeeded = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        projectId: z.string().uuid(),
+        reason: z.string().trim().min(1).max(1000),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    await assertOperator(context);
+    const sb = context.supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message?: string } | null }>;
+    };
+    const { data: id, error } = await sb.rpc("mark_portal_follow_up_needed", {
+      _project_id: data.projectId,
+      _reason: data.reason,
+    });
+    if (error) throw new Error(error.message ?? "mark follow-up failed");
+    return { ok: true as const, activityId: id as string | null };
+  });
+
+export const resolvePortalFollowUp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ messageId: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message?: string } | null }>;
+    };
+    const { error } = await sb.rpc("resolve_portal_follow_up", {
+      _message_id: data.messageId,
+    });
+    if (error) throw new Error(error.message ?? "resolve failed");
+    return { ok: true as const };
+  });
+

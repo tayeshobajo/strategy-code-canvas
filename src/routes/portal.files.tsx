@@ -28,7 +28,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { useServerFn } from "@tanstack/react-start";
+import { logPortalFileEvent } from "@/lib/portal.functions";
 import { toast } from "sonner";
+
 
 function isPreviewable(row: { mime_type: string | null; file_name: string }) {
   const ext = row.file_name.split(".").pop()?.toLowerCase() ?? "";
@@ -127,6 +130,8 @@ function FilesPage() {
   const email = ctx.data?.email ?? null;
   const { data: files, isLoading, isError, refetch } = useFiles(projectId);
   const qc = useQueryClient();
+  const logFileEvent = useServerFn(logPortalFileEvent);
+
 
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
@@ -316,8 +321,10 @@ function FilesPage() {
       toast.error("Could not open file.");
       return;
     }
+    void logFileEvent({ data: { fileId: row.id, event: "downloaded" } }).catch(() => {});
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
+
 
   return (
     <div className="max-w-6xl mx-auto grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -641,15 +648,31 @@ function FilesPage() {
           </div>
         </div>
       </aside>
-      <PreviewModal file={preview} onClose={() => setPreview(null)} />
+      <PreviewModal
+        file={preview}
+        onClose={() => setPreview(null)}
+        onOpen={(f) =>
+          void logFileEvent({ data: { fileId: f.id, event: "viewed" } }).catch(() => {})
+        }
+      />
+
     </div>
   );
 }
 
-function PreviewModal({ file, onClose }: { file: FileRow | null; onClose: () => void }) {
+function PreviewModal({
+  file,
+  onClose,
+  onOpen,
+}: {
+  file: FileRow | null;
+  onClose: () => void;
+  onOpen?: (f: FileRow) => void;
+}) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (!file) {
@@ -657,9 +680,11 @@ function PreviewModal({ file, onClose }: { file: FileRow | null; onClose: () => 
       setError(null);
       return;
     }
+    onOpen?.(file);
     let cancelled = false;
     setLoading(true);
     setError(null);
+
     supabase.storage
       .from(file.bucket_id)
       .createSignedUrl(file.storage_path, 300)

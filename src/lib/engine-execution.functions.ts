@@ -830,6 +830,23 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
     }
     const portalProjectId = portalProject!.id as string;
 
+    // Ensure a client_portal_permissions grant exists for the recipient so
+    // RLS on files / messages / activity resolves to this workspace.
+    await sb
+      .from("client_portal_permissions")
+      .upsert(
+        {
+          project_id: portalProjectId,
+          email: recipientEmail,
+          granted_by: email ?? null,
+          granted_at: nowIso,
+          revoked_at: null,
+        },
+        { onConflict: "project_id,email" },
+      );
+
+
+
     // Build a minimal client-safe body_md from the approved snapshot.
     const snap = (proj.approved_snapshot as Record<string, any>) ?? {};
     const priorities: any[] = Array.isArray(snap.roadmap?.priorities)

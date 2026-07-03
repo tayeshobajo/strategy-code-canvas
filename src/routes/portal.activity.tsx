@@ -49,8 +49,24 @@ type ActivityRow = {
   created_at: string;
 };
 
-type Category = "billing" | "subscription" | "other";
-const ALL_CATEGORIES: Category[] = ["billing", "subscription", "other"];
+type Category =
+  | "follow_up"
+  | "roadmap"
+  | "files"
+  | "messages"
+  | "billing"
+  | "subscription"
+  | "workspace";
+const ALL_CATEGORIES: Category[] = [
+  "follow_up",
+  "roadmap",
+  "files",
+  "messages",
+  "billing",
+  "subscription",
+  "workspace",
+];
+
 
 type DateRange = "7d" | "30d" | "90d" | "all";
 const DATE_RANGE_LABEL: Record<DateRange, string> = {
@@ -142,10 +158,30 @@ function ActivityPage() {
     [data],
   );
 
+  // Compute unresolved follow-up count: a follow_up_needed event without a
+  // matching follow_up_resolved event that references the same message_id.
+  const unresolvedFollowUps = useMemo(() => {
+    const resolved = new Set<string>();
+    for (const e of allEvents) {
+      if (e.event_type === "follow_up_resolved") {
+        const meta = e.metadata as Record<string, unknown> | null;
+        const mid = typeof meta?.message_id === "string" ? meta.message_id : null;
+        if (mid) resolved.add(mid);
+      }
+    }
+    return allEvents.filter((e) => {
+      if (e.event_type !== "follow_up_needed") return false;
+      const meta = e.metadata as Record<string, unknown> | null;
+      const mid = typeof meta?.message_id === "string" ? meta.message_id : null;
+      return !mid || !resolved.has(mid);
+    });
+  }, [allEvents]);
+
   const filtered = useMemo(() => {
     if (categories.size === ALL_CATEGORIES.length) return allEvents;
     return allEvents.filter((e) => categories.has(categoryOf(e.event_type)));
   }, [allEvents, categories]);
+
 
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
 
@@ -199,6 +235,32 @@ function ActivityPage() {
           </Button>
         }
       />
+
+      {unresolvedFollowUps.length > 0 && (
+        <div
+          role="alert"
+          className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 flex items-start gap-3"
+        >
+          <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[13.5px] font-medium text-amber-900">
+              {unresolvedFollowUps.length === 1
+                ? "1 item needs your attention"
+                : `${unresolvedFollowUps.length} items need your attention`}
+            </div>
+            <p className="text-[12.5px] text-amber-800/80 mt-0.5">
+              Trust Tai flagged {unresolvedFollowUps.length === 1 ? "an item" : "items"} that need a follow-up from you.
+              See the details in{" "}
+              <a href="/portal/messages" className="underline">
+                Messages
+              </a>
+              .
+            </p>
+          </div>
+        </div>
+      )}
+
+
 
       {/* Filters */}
       <div
@@ -351,8 +413,18 @@ function FilterChip({
 }
 
 function categoryLabel(c: Category) {
-  return c === "billing" ? "Billing" : c === "subscription" ? "Subscription" : "Workspace";
+  const map: Record<Category, string> = {
+    follow_up: "Needs attention",
+    roadmap: "Roadmap",
+    files: "Files",
+    messages: "Messages",
+    billing: "Billing",
+    subscription: "Subscription",
+    workspace: "Workspace",
+  };
+  return map[c];
 }
+
 
 function TimelineItem({ event, isLast }: { event: ActivityRow; isLast: boolean }) {
   const cat = categoryOf(event.event_type);
@@ -406,32 +478,42 @@ function TimelineItem({ event, isLast }: { event: ActivityRow; isLast: boolean }
 
 function categoryOf(eventType: string): Category {
   const t = eventType.toLowerCase();
+  if (t.startsWith("follow_up")) return "follow_up";
+  if (t.startsWith("roadmap") || t.includes("engagement")) return "roadmap";
+  if (t.startsWith("file")) return "files";
+  if (t.startsWith("message") || t.includes("reply")) return "messages";
   if (t.includes("invoice") || t.includes("payment") || t.includes("billing")) return "billing";
   if (t.includes("subscription") || t.includes("plan")) return "subscription";
-  return "other";
+  return "workspace";
 }
 
 function iconFor(eventType: string, cat: Category) {
   const t = eventType.toLowerCase();
+  if (cat === "follow_up") return AlertCircle;
   if (t.includes("invoice") || t.includes("receipt")) return Receipt;
   if (cat === "billing") return CreditCard;
   if (cat === "subscription") return Sparkles;
-  if (t.includes("message")) return MessageSquare;
-  if (t.includes("file")) return Folder;
+  if (cat === "messages") return MessageSquare;
+  if (cat === "files") return Folder;
+  if (cat === "roadmap") return Sparkles;
   if (t.includes("access") || t.includes("user")) return UserIcon;
   return ActivityIcon;
 }
 
-function toneFor(eventType: string, _cat: Category) {
+function toneFor(eventType: string, cat: Category) {
   const t = eventType.toLowerCase();
+  if (cat === "follow_up" && !t.includes("resolved"))
+    return { badge: "bg-amber-50 text-amber-700 border-amber-200" };
   if (t.includes("failed") || t.includes("revoked") || t.includes("canceled"))
     return { badge: "bg-destructive/10 text-destructive border-destructive/30" };
-  if (t.includes("paid") || t.includes("succeeded") || t.includes("active"))
+  if (t.includes("paid") || t.includes("succeeded") || t.includes("active") || t.includes("acknowledged") || t.includes("resolved"))
     return { badge: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  if (cat === "roadmap") return { badge: "bg-royal/10 text-royal border-royal/20" };
   if (t.includes("invoice") || t.includes("payment") || t.includes("billing"))
     return { badge: "bg-royal/10 text-royal border-royal/20" };
   return { badge: "bg-paper-soft text-ink/70 border-rule-soft" };
 }
+
 
 function prettyEvent(eventType: string) {
   return eventType.replace(/[._]/g, " ");
