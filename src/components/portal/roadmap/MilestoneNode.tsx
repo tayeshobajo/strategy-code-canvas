@@ -120,17 +120,15 @@ export function MilestoneNode({
             aria-pressed={isSelected}
             onClick={onOpen}
             onMouseEnter={() => canvas.setHighlightedSlug(milestone.slug)}
-            onMouseLeave={() =>
-              canvas.setHighlightedSlug((cur) =>
-                (cur === milestone.slug ? null : cur) as never,
-              )
-            }
+            onMouseLeave={() => {
+              if (canvas.highlightedSlug === milestone.slug)
+                canvas.setHighlightedSlug(null);
+            }}
             onFocus={() => canvas.setHighlightedSlug(milestone.slug)}
-            onBlur={() =>
-              canvas.setHighlightedSlug((cur) =>
-                (cur === milestone.slug ? null : cur) as never,
-              )
-            }
+            onBlur={() => {
+              if (canvas.highlightedSlug === milestone.slug)
+                canvas.setHighlightedSlug(null);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
