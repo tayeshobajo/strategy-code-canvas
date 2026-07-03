@@ -18,6 +18,10 @@ type Props = {
   onFullscreen?: () => void;
   /** Slug of the currently selected marker, for the pulsing indicator. */
   selectedSlug?: string | null;
+  /** Current view mode — drives dot filtering, route gradient, viewport tint. */
+  viewMode?: RoadmapViewMode;
+  /** Slugs matching the current view mode. `null` = show all. */
+  matchingSlugs?: Set<string> | null;
   /** "floating" renders as a dark, glass-blur panel designed to sit
    *  absolutely inside the map canvas. Default is the light card variant. */
   variant?: "card" | "floating";
@@ -31,10 +35,23 @@ const KIND_DOT: Record<string, string> = {
   deadline: "bg-[#e11d48]",
 };
 
+/** Per-view-mode accent tokens for route gradient, viewport tint, and label. */
+const VIEW_TONE: Record<RoadmapViewMode, { rgb: string; label: string }> = {
+  all: { rgb: "47,93,246", label: "Full journey" },
+  decisions: { rgb: "139,92,246", label: "Decisions" },
+  deliverables: { rgb: "245,158,11", label: "Deliverables" },
+  deadlines: { rgb: "225,29,72", label: "Deadlines" },
+  current: { rgb: "47,93,246", label: "Current phase" },
+  "client-actions": { rgb: "14,165,164", label: "Needs you" },
+  "critical-path": { rgb: "245,158,11", label: "Critical path" },
+};
+
 export function RoadmapOverviewStrip({
   journey,
   onJump,
   selectedSlug = null,
+  viewMode = "all",
+  matchingSlugs = null,
   variant = "card",
 }: Props) {
   const [expanded, setExpanded] = useState(true);
