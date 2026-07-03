@@ -184,6 +184,25 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
     });
   }, []);
 
+  const toggleClusterExpanded = useCallback((key: string) => {
+    setExplodedClusterKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const collapseAllClusters = useCallback(() => {
+    setExplodedClusterKeys((prev) => (prev.size === 0 ? prev : new Set()));
+  }, []);
+
+  // Any zoom change should reset in-place expansions — the marker layout
+  // shifts, so lingering fanned-out members would be misleading.
+  useEffect(() => {
+    setExplodedClusterKeys((prev) => (prev.size === 0 ? prev : new Set()));
+  }, [zoomLevel]);
+
   const value = useMemo<CanvasCtx>(
     () => ({
       scrollWidth,
@@ -196,12 +215,15 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
       zoomLevel,
       visibleKinds,
       mutedKinds,
+      explodedClusterKeys,
       setScrollState,
       setCurrentPhaseKey,
       setSelectedPhaseKey,
       setHighlightedSlug,
       setZoomLevel,
       toggleKind,
+      toggleClusterExpanded,
+      collapseAllClusters,
       scrollToX,
       scrollToXWithDrawer,
       registerScroller,
@@ -219,6 +241,7 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
       zoomLevel,
       visibleKinds,
       mutedKinds,
+      explodedClusterKeys,
       setScrollState,
       scrollToX,
       scrollToXWithDrawer,
@@ -226,6 +249,8 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
       registerNode,
       focusNode,
       toggleKind,
+      toggleClusterExpanded,
+      collapseAllClusters,
     ],
   );
 
