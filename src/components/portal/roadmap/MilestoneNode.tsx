@@ -244,6 +244,7 @@ export const MilestoneNode = memo(function MilestoneNode({
         left: `${x}px`,
         top: `${y}px`,
         opacity,
+        filter,
         pointerEvents: isHidden ? "none" : undefined,
         zIndex: isSelected ? 25 : showFullLabel ? 18 : showShortLabel ? 16 : 12,
       }}
