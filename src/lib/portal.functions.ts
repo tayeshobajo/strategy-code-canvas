@@ -496,17 +496,19 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
       .order("approved_at", { ascending: false });
     if (error) throw error;
 
+    // IMPORTANT: only client-safe fields are projected below. Internal engine
+    // metadata (source_version_id, review flags, agent costs, etc.) is
+    // intentionally NOT exposed. Audit new columns before adding to the select.
     const docs: PortalRoadmapDoc[] = (data ?? []).map((r: any) => ({
       id: r.id,
       title: r.version_label ? `${r.title} — ${r.version_label}` : r.title,
       body_md: renderRoadmapMarkdown(r),
-      file_url: null,
+      // Prefer the approved share URL (hosted PDF) when the engine has
+      // attached one to the roadmap version.
+      file_url: r.share_url ?? null,
       published_at: r.approved_at,
       updated_at: r.updated_at,
       raw: r,
-      // point_a/point_b live in the intake/engine layer today; portal
-      // projects don't carry them, so the canvas falls back to
-      // current_diagnosis / executive_summary from the roadmap row.
       project: null,
     }));
     return { docs, revoked: false as const };
