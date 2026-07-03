@@ -13,7 +13,7 @@ import {
   recordPortalRoadmapEvent,
   type PortalRoadmapDoc,
 } from "@/lib/portal.functions";
-import { buildRoadmapJourney } from "@/lib/portal-roadmap-model";
+import { buildRoadmapJourney, type PhaseKey } from "@/lib/portal-roadmap-model";
 import { targetBounds } from "@/components/portal/roadmap/roadmap-layout";
 import { DEMO_ROADMAP_RAW, DEMO_PROJECT } from "@/lib/portal-roadmap-demo-fixture";
 import { usePortalContext } from "@/hooks/use-portal-context";
