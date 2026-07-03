@@ -321,37 +321,39 @@ export function MapCanvas({
         fannedFrom?: string;
       };
   const rendered = useMemo<FannedEntry[]>(() => {
-    const out: FannedEntry[] = [];
-    for (const entry of clustered) {
-      if (entry.kind === "cluster" && canvas.explodedClusterKeys.has(entry.cluster.key)) {
-        const cx = entry.cluster.nx * CANVAS_WIDTH;
-        const cy = entry.cluster.ny * CANVAS_HEIGHT;
-        const n = entry.cluster.members.length;
-        const spanPx = Math.min(360, 90 + n * 46);
-        const step = n > 1 ? spanPx / (n - 1) : 0;
-        const startX = cx - spanPx / 2;
-        for (let i = 0; i < n; i++) {
-          const member = entry.cluster.members[i];
-          const dx = startX + i * step - cx;
-          const t = n > 1 ? i / (n - 1) - 0.5 : 0;
-          const dy = -60 + Math.abs(t) * 120;
-          out.push({
-            kind: "marker",
-            pos: member,
-            overrideX: cx + dx,
-            overrideY: cy + dy,
-            fannedFrom: entry.cluster.key,
-          });
+    return measure("cluster:relayout", () => {
+      const out: FannedEntry[] = [];
+      for (const entry of clustered) {
+        if (entry.kind === "cluster" && canvas.explodedClusterKeys.has(entry.cluster.key)) {
+          const cx = entry.cluster.nx * CANVAS_WIDTH;
+          const cy = entry.cluster.ny * CANVAS_HEIGHT;
+          const n = entry.cluster.members.length;
+          const spanPx = Math.min(360, 90 + n * 46);
+          const step = n > 1 ? spanPx / (n - 1) : 0;
+          const startX = cx - spanPx / 2;
+          for (let i = 0; i < n; i++) {
+            const member = entry.cluster.members[i];
+            const dx = startX + i * step - cx;
+            const t = n > 1 ? i / (n - 1) - 0.5 : 0;
+            const dy = -60 + Math.abs(t) * 120;
+            out.push({
+              kind: "marker",
+              pos: member,
+              overrideX: cx + dx,
+              overrideY: cy + dy,
+              fannedFrom: entry.cluster.key,
+            });
+          }
+          // Keep the cluster chip so the user can collapse it back.
+          out.push({ kind: "cluster", cluster: entry.cluster });
+        } else if (entry.kind === "cluster") {
+          out.push({ kind: "cluster", cluster: entry.cluster });
+        } else {
+          out.push({ kind: "marker", pos: entry.pos });
         }
-        // Keep the cluster chip so the user can collapse it back.
-        out.push({ kind: "cluster", cluster: entry.cluster });
-      } else if (entry.kind === "cluster") {
-        out.push({ kind: "cluster", cluster: entry.cluster });
-      } else {
-        out.push({ kind: "marker", pos: entry.pos });
       }
-    }
-    return out;
+      return out;
+    });
   }, [clustered, canvas.explodedClusterKeys]);
 
   // Pan the selected marker into the visible half of the canvas (accounting
