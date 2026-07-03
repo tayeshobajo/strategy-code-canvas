@@ -41,6 +41,9 @@ import {
 } from "@/components/portal/roadmap/canvas-context";
 import {
   computeMatchingSlugs,
+  computeMarkerVisibility,
+  DEFAULT_MUTED_KINDS,
+  DEFAULT_VISIBLE_KINDS,
   VIEW_MODE_LABEL,
   type RoadmapViewMode,
 } from "@/components/portal/roadmap/view-mode";
@@ -403,7 +406,7 @@ function RoadmapJourneyView({
             journey={journey}
             selectedSlug={selectedMilestone?.slug ?? null}
             onSelect={(slug) => setSelected(slug)}
-            matchingSlugs={matchingSlugs}
+            viewMode={viewMode}
             onJump={jumpTo}
           />
         )
@@ -509,22 +512,29 @@ function RoadmapCanvasStage({
   journey,
   selectedSlug,
   onSelect,
-  matchingSlugs,
+  viewMode,
   onJump,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
-  matchingSlugs: Set<string> | null;
+  viewMode: RoadmapViewMode;
   onJump: (key: "pointA" | "now" | "next" | "later" | "pointB") => void;
 }) {
+  // Inject the derived currentPhaseKey into the canvas context so all
+  // surfaces (status card, pill, mini-map) read from one source of truth.
+  const canvas = useRoadmapCanvas();
+  useEffect(() => {
+    canvas.setCurrentPhaseKey(journey.currentPhaseKey);
+  }, [canvas, journey.currentPhaseKey]);
+
   return (
     <div className="relative h-full w-full">
       <MapCanvas
         journey={journey}
         selectedSlug={selectedSlug}
         onSelect={onSelect}
-        matchingSlugs={matchingSlugs}
+        viewMode={viewMode}
         fitHeight
       />
       <div className="pointer-events-none absolute inset-0">
@@ -556,11 +566,16 @@ function RoadmapCanvasStage({
 
 function CurrentPhasePill({ journey }: { journey: ReturnType<typeof buildRoadmapJourney> }) {
   const canvas = useRoadmapCanvas();
-  const key = canvas.activePhaseKey ?? journey.activeMilestone?.phase ?? "now";
+  // Single source of truth: derived currentPhaseKey. Selected/viewport phase
+  // is used only when the user has explicitly navigated elsewhere.
+  const key =
+    canvas.selectedPhaseKey ??
+    canvas.currentPhaseKey ??
+    journey.currentPhaseKey;
   const idx = journey.phases.findIndex((p) => p.key === key);
   const phaseName =
     key === "now" || idx === 0
-      ? "Phase 1: Pre-Test Readiness"
+      ? "Phase 1: Foundation"
       : key === "next" || idx === 1
         ? "Phase 2: Core Platform Build"
         : key === "later" || idx === 2
@@ -569,7 +584,10 @@ function CurrentPhasePill({ journey }: { journey: ReturnType<typeof buildRoadmap
             ? "Point A: Current State"
             : "Point B: Scaled Impact";
   return (
-    <div className="inline-flex items-center gap-3 rounded-xl bg-slate-900 text-white px-4 py-2 shadow-[0_10px_28px_-16px_rgba(4,10,25,0.6)]">
+    <div
+      className="inline-flex items-center gap-3 rounded-xl bg-slate-900 text-white px-4 py-2 shadow-[0_10px_28px_-16px_rgba(4,10,25,0.6)]"
+      data-testid="current-phase-pill"
+    >
       <div className="text-left">
         <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
           Current Phase
@@ -1029,7 +1047,7 @@ function DemoRoadmapView() {
             journey={journey}
             selectedSlug={selectedSlug}
             onSelect={setSelectedSlug}
-            matchingSlugs={matchingSlugs}
+            viewMode={viewMode}
             onJump={jumpTo}
           />
         </div>

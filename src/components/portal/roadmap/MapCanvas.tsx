@@ -1,20 +1,29 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { RoadmapJourney } from "@/lib/portal-roadmap-model";
 import { MilestoneNode } from "./MilestoneNode";
+import { MarkerClusterChip } from "./MarkerCluster";
 import { MapPin, Flag } from "lucide-react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useRoadmapCanvas } from "./canvas-context";
-import { computeMapLayout, POINT_A_POS, POINT_B_POS } from "./roadmap-layout";
+import {
+  computeMapLayout,
+  clusterMarkers,
+  POINT_A_POS,
+  POINT_B_POS,
+} from "./roadmap-layout";
+import { computeMarkerVisibility, type RoadmapViewMode } from "./view-mode";
 import mapBg from "@/assets/roadmap-map-background.png.asset.json";
 
 const CANVAS_WIDTH = 1800;
-const CANVAS_HEIGHT = 1050; // ~3:2 to match the source photo
+const CANVAS_HEIGHT = 1050;
+/** How much horizontal space the desktop drawer occupies when open (Tailwind sm:max-w-md ≈ 448px). */
+const DRAWER_WIDTH = 448;
 
 type Props = {
   journey: RoadmapJourney;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
-  matchingSlugs?: Set<string> | null;
+  viewMode: RoadmapViewMode;
   /** When true, the inner canvas is scaled to fit the parent height so the
    *  full map sits inside a controlled app viewport (no page scroll). */
   fitHeight?: boolean;
@@ -25,7 +34,7 @@ export function MapCanvas({
   journey,
   selectedSlug,
   onSelect,
-  matchingSlugs,
+  viewMode,
   fitHeight = false,
   className,
 }: Props) {
@@ -46,7 +55,6 @@ export function MapCanvas({
 
   const layout = useMemo(() => computeMapLayout(journey), [journey]);
 
-  // When fitting to height, observe the container and rescale the inner canvas.
   useLayoutEffect(() => {
     if (!fitHeight) return;
     const el = scrollRef.current;
@@ -61,8 +69,7 @@ export function MapCanvas({
     return () => ro.disconnect();
   }, [fitHeight]);
 
-
-  // Publish scroll state so the header pill + overview strip can react.
+  // Publish scroll state + viewport-derived phase to the shared context.
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -83,8 +90,8 @@ export function MapCanvas({
           ? "pointA"
           : cn >= layout.bands[layout.bands.length - 1].x1
             ? "pointB"
-            : band?.key ?? null;
-      canvas.setActivePhaseKey(key);
+            : (band?.key ?? null);
+      canvas.setViewportPhaseKey(key);
     };
     publish();
     let raf = 0;
@@ -110,7 +117,6 @@ export function MapCanvas({
     return () => clearTimeout(t);
   }, []);
 
-  // Trackpad + Shift+wheel horizontal scroll.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -229,6 +235,79 @@ export function MapCanvas({
     }
   };
 
+  // Compute per-marker visibility from view mode + zoom + legend.
+  const visibilities = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof computeMarkerVisibility>>();
+    for (const { milestone } of layout.markers) {
+      map.set(
+        milestone.slug,
+        computeMarkerVisibility(milestone, {
+          mode: viewMode,
+          zoom: canvas.zoomLevel,
+          journey,
+          currentPhaseKey: canvas.currentPhaseKey ?? journey.currentPhaseKey,
+          selectedPhaseKey: canvas.selectedPhaseKey,
+          visibleKinds: canvas.visibleKinds,
+          mutedKinds: canvas.mutedKinds,
+          selectedSlug,
+        }),
+      );
+    }
+    return map;
+  }, [
+    layout.markers,
+    viewMode,
+    canvas.zoomLevel,
+    canvas.currentPhaseKey,
+    canvas.selectedPhaseKey,
+    canvas.visibleKinds,
+    canvas.mutedKinds,
+    journey,
+    selectedSlug,
+  ]);
+
+  // Level-1 "keep full" set — anchors that should never be clustered.
+  const keepFull = useMemo(() => {
+    const set = new Set<string>();
+    if (journey.activeMilestone) set.add(journey.activeMilestone.slug);
+    if (journey.nextDecisionSlug) set.add(journey.nextDecisionSlug);
+    if (journey.nextDeadlineSlug) set.add(journey.nextDeadlineSlug);
+    if (selectedSlug) set.add(selectedSlug);
+    return set;
+  }, [journey, selectedSlug]);
+
+  // Cluster only when zoomed out (strategic view).
+  const clusterThreshold =
+    canvas.zoomLevel === "strategic"
+      ? 0.05
+      : canvas.zoomLevel === "phase"
+        ? 0.03
+        : 0;
+
+  const clustered = useMemo(() => {
+    const visibleMarkers = layout.markers.filter(
+      (m) => visibilities.get(m.milestone.slug) !== "hidden",
+    );
+    return clusterMarkers(visibleMarkers, {
+      thresholdNx: clusterThreshold,
+      keepFull,
+    });
+  }, [layout.markers, visibilities, clusterThreshold, keepFull]);
+
+  // Pan the selected marker into the visible half of the canvas (accounting
+  // for the drawer that overlays the right side on desktop).
+  useEffect(() => {
+    if (!selectedSlug) return;
+    const marker = layout.markers.find(
+      (m) => m.milestone.slug === selectedSlug,
+    );
+    if (!marker) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const targetX = marker.nx * el.scrollWidth;
+    canvas.scrollToXWithDrawer(targetX, DRAWER_WIDTH);
+  }, [selectedSlug, layout.markers, canvas]);
+
   const bgUrl = mapBg.url;
 
   const outerClass = fitHeight
@@ -267,140 +346,165 @@ export function MapCanvas({
             transformOrigin: "top left",
           }}
         >
+          <img
+            src={bgUrl}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-56 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(4,10,25,0.55) 0%, rgba(4,10,25,0) 100%)",
+            }}
+          />
 
-        {/* Photorealistic background */}
-        <img
-          src={bgUrl}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-        />
-        {/* Subtle top gradient so phase labels stay legible */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-56 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(4,10,25,0.55) 0%, rgba(4,10,25,0) 100%)",
-          }}
-        />
+          {journey.phases.map((phase, i) => {
+            const band = layout.bands[i];
+            const x = ((band.x0 + band.x1) / 2) * CANVAS_WIDTH;
+            const y = band.headingY * CANVAS_HEIGHT;
+            const pct = Math.round(band.completionRatio * 100);
+            const isCurrent =
+              phase.key === (canvas.currentPhaseKey ?? journey.currentPhaseKey);
+            return (
+              <div
+                key={phase.key}
+                className="absolute -translate-x-1/2 text-white pointer-events-none"
+                style={{ left: `${x}px`, top: `${y}px` }}
+              >
+                <div
+                  className={`font-mono text-[10px] uppercase tracking-[0.32em] ${isCurrent ? "text-royal-glow" : "text-white/70"}`}
+                >
+                  Phase {i + 1}
+                  {isCurrent && (
+                    <span className="ml-1.5 text-royal-glow">·</span>
+                  )}
+                </div>
+                <div className="font-display text-2xl mt-1 leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]">
+                  {phase.label === "Now"
+                    ? "Foundation"
+                    : phase.label === "Next"
+                      ? "Core Platform Build"
+                      : "Scale Systems"}
+                </div>
+                {phase.milestones[0]?.summary && (
+                  <div className="text-[12.5px] text-white/75 mt-1 max-w-[220px] leading-snug drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]">
+                    {phase.milestones[0].summary}
+                  </div>
+                )}
+                <div
+                  className={`mt-2 inline-flex items-center rounded-full backdrop-blur px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.24em] ${
+                    isCurrent
+                      ? "bg-royal/25 border border-royal/60"
+                      : "bg-white/10 border border-white/20"
+                  }`}
+                >
+                  {pct}% complete
+                </div>
+              </div>
+            );
+          })}
 
-        {/* Phase headings */}
-        {journey.phases.map((phase, i) => {
-          const band = layout.bands[i];
-          const x = ((band.x0 + band.x1) / 2) * CANVAS_WIDTH;
-          const y = band.headingY * CANVAS_HEIGHT;
-          const pct = Math.round(band.completionRatio * 100);
-          return (
-            <div
-              key={phase.key}
-              className="absolute -translate-x-1/2 text-white pointer-events-none"
-              style={{ left: `${x}px`, top: `${y}px` }}
-            >
-              <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-white/70">
-                Phase {i + 1}
+          {/* Point A */}
+          <div
+            className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 text-white pointer-events-none"
+            style={{
+              left: `${POINT_A_POS.nx * CANVAS_WIDTH}px`,
+              top: `${POINT_A_POS.ny * CANVAS_HEIGHT}px`,
+            }}
+          >
+            <div className="flex items-center justify-center h-9 w-9 rounded-full bg-slate-900/70 border border-white/25 backdrop-blur">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5">
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
+                Point A
               </div>
-              <div className="font-display text-2xl mt-1 leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]">
-                {phase.label === "Now"
-                  ? "Foundation"
-                  : phase.label === "Next"
-                    ? "Core Platform Build"
-                    : "Scale Systems"}
+              <div className="font-display text-[15px] leading-tight">
+                Current State
               </div>
-              {phase.milestones[0]?.summary && (
-                <div className="text-[12.5px] text-white/75 mt-1 max-w-[220px] leading-snug drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]">
-                  {phase.milestones[0].summary}
+              <div className="text-[11px] text-white/70">Operating today</div>
+            </div>
+          </div>
+
+          {/* Point B */}
+          <div
+            className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 text-white pointer-events-none"
+            style={{
+              left: `${POINT_B_POS.nx * CANVAS_WIDTH}px`,
+              top: `${POINT_B_POS.ny * CANVAS_HEIGHT}px`,
+            }}
+          >
+            <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5 text-right">
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
+                Point B
+              </div>
+              <div className="font-display text-[15px] leading-tight">
+                {journey.pointB.label || "Scaled Impact"}
+              </div>
+              {journey.pointB.detail && (
+                <div className="text-[11px] text-white/70 max-w-[180px]">
+                  {journey.pointB.detail.length > 60
+                    ? journey.pointB.detail.slice(0, 60) + "…"
+                    : journey.pointB.detail}
                 </div>
               )}
-              <div className="mt-2 inline-flex items-center rounded-full bg-white/10 backdrop-blur border border-white/20 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.24em]">
-                {pct}% complete
+            </div>
+            <div className="flex items-center justify-center h-9 w-9 rounded-full bg-[color:var(--royal,#2f5df6)] text-white shadow-[0_0_24px_rgba(47,93,246,0.55)]">
+              <Flag className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Markers + clusters */}
+          {clustered.map((entry) => {
+            if (entry.kind === "cluster") {
+              return (
+                <div
+                  key={entry.cluster.key}
+                  style={{
+                    opacity: ready ? 1 : 0,
+                    transition: reduced ? "none" : "opacity 400ms ease-out",
+                  }}
+                >
+                  <MarkerClusterChip
+                    cluster={entry.cluster}
+                    x={entry.cluster.nx * CANVAS_WIDTH}
+                    y={entry.cluster.ny * CANVAS_HEIGHT}
+                    onOpenMember={(slug) => onSelect(slug)}
+                  />
+                </div>
+              );
+            }
+            const { pos } = entry;
+            const vis = visibilities.get(pos.milestone.slug) ?? "short";
+            const mutedBySelection =
+              !!selectedSlug && pos.milestone.slug !== selectedSlug;
+            return (
+              <div
+                key={pos.milestone.slug}
+                style={{
+                  opacity: ready ? 1 : 0,
+                  transition: reduced ? "none" : "opacity 400ms ease-out",
+                }}
+              >
+                <MilestoneNode
+                  milestone={pos.milestone}
+                  x={pos.nx * CANVAS_WIDTH}
+                  y={pos.ny * CANVAS_HEIGHT}
+                  onOpen={() => onSelect(pos.milestone.slug)}
+                  isSelected={pos.milestone.slug === selectedSlug}
+                  visibility={vis}
+                  attachment={pos.attachment}
+                  mutedBySelection={mutedBySelection}
+                />
               </div>
-            </div>
-          );
-        })}
-
-        {/* Point A */}
-        <div
-          className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 text-white pointer-events-none"
-          style={{
-            left: `${POINT_A_POS.nx * CANVAS_WIDTH}px`,
-            top: `${POINT_A_POS.ny * CANVAS_HEIGHT}px`,
-          }}
-        >
-          <div className="flex items-center justify-center h-9 w-9 rounded-full bg-slate-900/70 border border-white/25 backdrop-blur">
-            <MapPin className="w-4 h-4" />
-          </div>
-          <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5">
-            <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
-              Point A
-            </div>
-            <div className="font-display text-[15px] leading-tight">
-              Current State
-            </div>
-            <div className="text-[11px] text-white/70">Operating today</div>
-          </div>
-        </div>
-
-        {/* Point B */}
-        <div
-          className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 text-white pointer-events-none"
-          style={{
-            left: `${POINT_B_POS.nx * CANVAS_WIDTH}px`,
-            top: `${POINT_B_POS.ny * CANVAS_HEIGHT}px`,
-          }}
-        >
-          <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5 text-right">
-            <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
-              Point B
-            </div>
-            <div className="font-display text-[15px] leading-tight">
-              {journey.pointB.label || "Scaled Impact"}
-            </div>
-            {journey.pointB.detail && (
-              <div className="text-[11px] text-white/70 max-w-[180px]">
-                {journey.pointB.detail.length > 60
-                  ? journey.pointB.detail.slice(0, 60) + "…"
-                  : journey.pointB.detail}
-              </div>
-            )}
-          </div>
-          <div className="flex items-center justify-center h-9 w-9 rounded-full bg-[color:var(--royal,#2f5df6)] text-white shadow-[0_0_24px_rgba(47,93,246,0.55)]">
-            <Flag className="w-4 h-4" />
-          </div>
-        </div>
-
-        {/* Milestone / decision markers */}
-        {layout.markers.map(({ milestone, nx, ny }) => {
-          const dimmed = matchingSlugs
-            ? !matchingSlugs.has(milestone.slug)
-            : false;
-          const mutedBySelection =
-            !!selectedSlug && milestone.slug !== selectedSlug;
-          return (
-            <div
-              key={milestone.slug}
-              style={{
-                opacity: ready ? 1 : 0,
-                transition: reduced ? "none" : "opacity 400ms ease-out",
-              }}
-            >
-              <MilestoneNode
-                milestone={milestone}
-                x={nx * CANVAS_WIDTH}
-                y={ny * CANVAS_HEIGHT}
-                onOpen={() => onSelect(milestone.slug)}
-                isSelected={milestone.slug === selectedSlug}
-                dimmed={dimmed}
-                mutedBySelection={mutedBySelection}
-              />
-            </div>
-          );
-        })}
-
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
-

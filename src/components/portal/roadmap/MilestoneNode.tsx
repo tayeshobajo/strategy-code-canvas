@@ -13,6 +13,8 @@ import type {
   MilestoneKind,
   RoadmapMilestone,
 } from "@/lib/portal-roadmap-model";
+import type { MarkerVisibility } from "./view-mode";
+import type { MarkerAttachment } from "./roadmap-layout";
 import { useRoadmapCanvas } from "./canvas-context";
 
 type Props = {
@@ -22,11 +24,15 @@ type Props = {
   y: number;
   onOpen: () => void;
   isSelected: boolean;
+  /** How this marker should render, computed from view mode + zoom + legend. */
+  visibility: MarkerVisibility;
+  /** Placement rule — affects glyph choice and micro-offset. */
+  attachment: MarkerAttachment;
+  /** Deprecated — legacy filter dimming from the initial view-mode contract. */
   dimmed?: boolean;
   /** true when another marker is selected — softens this node slightly */
   mutedBySelection?: boolean;
 };
-
 
 const KIND_ICON: Record<MilestoneKind, typeof Circle> = {
   milestone: Circle,
@@ -50,6 +56,7 @@ const KIND_ACCENT: Record<MilestoneKind, string> = {
 };
 
 function statusIcon(m: RoadmapMilestone) {
+  if (m.dueDate && m.kind === "milestone") return Flag;
   if (m.kind !== "milestone") return KIND_ICON[m.kind];
   switch (m.status) {
     case "completed":
@@ -84,13 +91,20 @@ function statusSubline(m: RoadmapMilestone): string | null {
   return "Planned";
 }
 
+/** Truncate to a short label for level-2 markers. */
+function shortLabel(title: string, max = 18): string {
+  if (title.length <= max) return title;
+  return title.slice(0, max - 1).trimEnd() + "…";
+}
+
 export function MilestoneNode({
   milestone,
   x,
   y,
   onOpen,
   isSelected,
-  dimmed = false,
+  visibility,
+  attachment,
   mutedBySelection = false,
 }: Props) {
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -107,12 +121,24 @@ export function MilestoneNode({
   const kindLabel = KIND_LABEL[milestone.kind];
   const accent = KIND_ACCENT[milestone.kind];
 
+  const showFullLabel = visibility === "full";
+  const showShortLabel = visibility === "short";
+  const iconOnly = visibility === "icon" || visibility === "muted";
+  const isMuted = visibility === "muted";
+  const isHidden = visibility === "hidden";
+
   const selectedShell =
     "bg-white text-ink border-white ring-2 ring-royal ring-offset-2 ring-offset-slate-900/20 shadow-[0_18px_44px_-10px_rgba(47,93,246,0.55)]";
   const restingShell =
     "bg-slate-900/85 text-white border-white/15 backdrop-blur-sm hover:bg-slate-900/95";
 
-  const opacity = dimmed ? 0.28 : mutedBySelection ? 0.72 : 1;
+  const opacity = isHidden
+    ? 0
+    : isMuted
+      ? 0.45
+      : mutedBySelection
+        ? 0.72
+        : 1;
   const transform = isSelected ? "scale(1.08)" : undefined;
 
   return (
@@ -122,8 +148,11 @@ export function MilestoneNode({
         left: `${x}px`,
         top: `${y}px`,
         opacity,
-        zIndex: isSelected ? 25 : 15,
+        pointerEvents: isHidden ? "none" : undefined,
+        zIndex: isSelected ? 25 : showFullLabel ? 18 : showShortLabel ? 16 : 12,
       }}
+      data-marker-visibility={visibility}
+      data-marker-attachment={attachment}
     >
       <button
         ref={btnRef}
@@ -146,9 +175,12 @@ export function MilestoneNode({
             canvas.setHighlightedSlug(null);
         }}
         style={{ transform, transformOrigin: "center" }}
-        className={`group flex items-center gap-2 rounded-full border pl-1.5 pr-3 py-1.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
+        className={`group flex items-center gap-2 rounded-full border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
           isSelected ? selectedShell : restingShell
-        } ${isPlaceholder ? "opacity-60" : ""}`}
+        } ${isPlaceholder ? "opacity-60" : ""} ${
+          iconOnly ? "p-1.5" : "pl-1.5 pr-3 py-1.5"
+        }`}
+        title={iconOnly ? `${kindLabel}: ${milestone.title}` : undefined}
       >
         <span
           className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-white shrink-0 ${accent}`}
@@ -163,20 +195,28 @@ export function MilestoneNode({
             }`}
           />
         </span>
-        <span className="flex flex-col items-start leading-tight text-left">
-          <span className="text-[12.5px] font-semibold whitespace-nowrap max-w-[180px] truncate">
-            {milestone.title}
-          </span>
-          {subline && (
+        {!iconOnly && (
+          <span className="flex flex-col items-start leading-tight text-left">
             <span
-              className={`text-[10.5px] whitespace-nowrap ${
-                isSelected ? "text-ink/55" : "text-white/60"
+              className={`font-semibold whitespace-nowrap truncate ${
+                showFullLabel
+                  ? "text-[12.5px] max-w-[200px]"
+                  : "text-[11.5px] max-w-[140px]"
               }`}
             >
-              {subline}
+              {showFullLabel ? milestone.title : shortLabel(milestone.title)}
             </span>
-          )}
-        </span>
+            {showFullLabel && subline && (
+              <span
+                className={`text-[10.5px] whitespace-nowrap ${
+                  isSelected ? "text-ink/55" : "text-white/60"
+                }`}
+              >
+                {subline}
+              </span>
+            )}
+          </span>
+        )}
       </button>
     </div>
   );

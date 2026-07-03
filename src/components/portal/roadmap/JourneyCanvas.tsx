@@ -115,7 +115,7 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect, matchingSlugs }
           : centerX >= layout.phaseBands[layout.phaseBands.length - 1].x1
             ? "pointB"
             : (band?.key ?? null);
-      canvas.setActivePhaseKey(key);
+      canvas.setViewportPhaseKey(key);
     };
     publish();
     let raf = 0;
@@ -498,7 +498,12 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect, matchingSlugs }
               x={n.x}
               y={n.y}
               isSelected={n.milestone.slug === selectedSlug}
-              dimmed={!!matchingSlugs && !matchingSlugs.has(n.milestone.slug)}
+              visibility={
+                matchingSlugs && !matchingSlugs.has(n.milestone.slug)
+                  ? "muted"
+                  : "full"
+              }
+              attachment="on-road"
               onOpen={() => onSelect(n.milestone.slug)}
             />
           </div>
