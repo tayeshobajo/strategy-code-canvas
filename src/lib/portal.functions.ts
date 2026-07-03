@@ -60,9 +60,16 @@ async function ensureUnsubscribeToken(
 export type PortalAccessStatus = "active" | "revoked" | "none";
 export const checkPortalAccess = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ status: PortalAccessStatus; hasAccess: boolean }> => {
-    const email = context.claims?.email as string | undefined;
-    if (!email) return { status: "none", hasAccess: false };
+  .handler(async ({ context }): Promise<{ status: PortalAccessStatus; hasAccess: boolean; isAdmin: boolean; email: string | null }> => {
+    const email = (context.claims?.email as string | undefined) ?? null;
+    const isAdmin = isAdminEmail(email);
+    if (!email) return { status: "none", hasAccess: false, isAdmin: false, email: null };
+
+    // Admin / operator staff always have portal access (they are not clients
+    // themselves, but must be able to view any client-facing surface).
+    if (isAdmin || isOperatorEmail(email)) {
+      return { status: "active", hasAccess: true, isAdmin, email };
+    }
 
     // Check client_access + client_portal_permissions for any row (revoked or not).
     const [caRes, permRes] = await Promise.all([
@@ -76,11 +83,12 @@ export const checkPortalAccess = createServerFn({ method: "GET" })
         .ilike("email", email),
     ]);
     const rows = [...(caRes.data ?? []), ...(permRes.data ?? [])];
-    if (rows.length === 0) return { status: "none", hasAccess: false };
+    if (rows.length === 0) return { status: "none", hasAccess: false, isAdmin, email };
     const anyActive = rows.some((r) => !r.revoked_at);
-    if (anyActive) return { status: "active", hasAccess: true };
-    return { status: "revoked", hasAccess: false };
+    if (anyActive) return { status: "active", hasAccess: true, isAdmin, email };
+    return { status: "revoked", hasAccess: false, isAdmin, email };
   });
+
 
 // -------------------- Magic link (public) --------------------
 
