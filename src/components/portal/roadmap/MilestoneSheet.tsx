@@ -167,8 +167,12 @@ export function MilestoneSheet({
         }}
       >
         <SheetContent
-          side="right"
-          className="w-full sm:max-w-lg bg-paper text-ink border-l border-border overflow-y-auto"
+          side={isMobile ? "bottom" : "right"}
+          className={
+            isMobile
+              ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-paper text-ink border-t border-border overflow-y-auto p-5"
+              : "w-full sm:max-w-lg bg-paper text-ink border-l border-border overflow-y-auto"
+          }
           aria-labelledby="milestone-sheet-title"
           aria-describedby="milestone-sheet-desc"
         >
