@@ -49,6 +49,7 @@ import { Route as EngineOperationsRouteImport } from './routes/engine.operations
 import { Route as EngineIntelligenceRouteImport } from './routes/engine.intelligence'
 import { Route as EngineExecutionRouteImport } from './routes/engine.execution'
 import { Route as EngineDeliveryRouteImport } from './routes/engine.delivery'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AdminRolesRouteImport } from './routes/admin.roles'
@@ -58,7 +59,10 @@ import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated
 import { Route as EngineProjectsIndexRouteImport } from './routes/engine.projects.index'
 import { Route as OpsSubmissionsIdRouteImport } from './routes/ops/submissions.$id'
 import { Route as OpsEditorIdRouteImport } from './routes/ops/editor.$id'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as EngineProjectsProjectIdRouteImport } from './routes/engine.projects.$projectId'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -286,6 +290,11 @@ const EngineDeliveryRoute = EngineDeliveryRouteImport.update({
   path: '/delivery',
   getParentRoute: () => EngineRoute,
 } as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckoutRoadmapRoute = CheckoutRoadmapRouteImport.update({
   id: '/checkout/roadmap',
   path: '/checkout/roadmap',
@@ -331,11 +340,28 @@ const OpsEditorIdRoute = OpsEditorIdRouteImport.update({
   path: '/editor/$id',
   getParentRoute: () => OpsRouteRoute,
 } as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EngineProjectsProjectIdRoute = EngineProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
   getParentRoute: () => EngineRoute,
 } as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -516,6 +542,7 @@ export interface FileRoutesByFullPath {
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engine/delivery': typeof EngineDeliveryRoute
   '/engine/execution': typeof EngineExecutionRoute
   '/engine/intelligence': typeof EngineIntelligenceRoute
@@ -543,6 +570,7 @@ export interface FileRoutesByFullPath {
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects/': typeof EngineProjectsIndexRoute
@@ -568,6 +596,8 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
   '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
@@ -591,6 +621,7 @@ export interface FileRoutesByTo {
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engine/delivery': typeof EngineDeliveryRoute
   '/engine/execution': typeof EngineExecutionRoute
   '/engine/intelligence': typeof EngineIntelligenceRoute
@@ -617,6 +648,7 @@ export interface FileRoutesByTo {
   '/engine': typeof EngineIndexRoute
   '/ops': typeof OpsIndexRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects': typeof EngineProjectsIndexRoute
@@ -642,6 +674,8 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
   '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
@@ -670,6 +704,7 @@ export interface FileRoutesById {
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engine/delivery': typeof EngineDeliveryRoute
   '/engine/execution': typeof EngineExecutionRoute
   '/engine/intelligence': typeof EngineIntelligenceRoute
@@ -697,6 +732,7 @@ export interface FileRoutesById {
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects/': typeof EngineProjectsIndexRoute
@@ -722,6 +758,8 @@ export interface FileRoutesById {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
   '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
@@ -749,6 +787,7 @@ export interface FileRouteTypes {
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/email/unsubscribe'
     | '/engine/delivery'
     | '/engine/execution'
     | '/engine/intelligence'
@@ -776,6 +815,7 @@ export interface FileRouteTypes {
     | '/ops/'
     | '/portal/'
     | '/engine/projects/$projectId'
+    | '/lovable/email/suppression'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
     | '/engine/projects/'
@@ -801,6 +841,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/engine/projects/$projectId/agent/costs'
     | '/engine/projects/$projectId/agent/permissions'
     | '/engine/projects/$projectId/agent/tasks'
@@ -824,6 +866,7 @@ export interface FileRouteTypes {
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/email/unsubscribe'
     | '/engine/delivery'
     | '/engine/execution'
     | '/engine/intelligence'
@@ -850,6 +893,7 @@ export interface FileRouteTypes {
     | '/engine'
     | '/ops'
     | '/engine/projects/$projectId'
+    | '/lovable/email/suppression'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
     | '/engine/projects'
@@ -875,6 +919,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/engine/projects/$projectId/agent/costs'
     | '/engine/projects/$projectId/agent/permissions'
     | '/engine/projects/$projectId/agent/tasks'
@@ -902,6 +948,7 @@ export interface FileRouteTypes {
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/email/unsubscribe'
     | '/engine/delivery'
     | '/engine/execution'
     | '/engine/intelligence'
@@ -929,6 +976,7 @@ export interface FileRouteTypes {
     | '/ops/'
     | '/portal/'
     | '/engine/projects/$projectId'
+    | '/lovable/email/suppression'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
     | '/engine/projects/'
@@ -954,6 +1002,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/engine/projects/$projectId/agent/costs'
     | '/engine/projects/$projectId/agent/permissions'
     | '/engine/projects/$projectId/agent/tasks'
@@ -978,13 +1028,17 @@ export interface RootRouteChildren {
   WhatWeBuildRoute: typeof WhatWeBuildRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
   WalksSlugRoute: typeof WalksSlugRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1269,6 +1323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineDeliveryRouteImport
       parentRoute: typeof EngineRoute
     }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout/roadmap': {
       id: '/checkout/roadmap'
       path: '/checkout/roadmap'
@@ -1332,12 +1393,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpsEditorIdRouteImport
       parentRoute: typeof OpsRouteRoute
     }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/engine/projects/$projectId': {
       id: '/engine/projects/$projectId'
       path: '/projects/$projectId'
       fullPath: '/engine/projects/$projectId'
       preLoaderRoute: typeof EngineProjectsProjectIdRouteImport
       parentRoute: typeof EngineRoute
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -1740,14 +1822,18 @@ const rootRouteChildren: RootRouteChildren = {
   WhatWeBuildRoute: WhatWeBuildRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutRoadmapRoute: CheckoutRoadmapRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   InsightsSlugRoute: InsightsSlugRoute,
   WalksSlugRoute: WalksSlugRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksBuildRoadmapContactRoute:
     ApiPublicHooksBuildRoadmapContactRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
