@@ -489,6 +489,7 @@ function RoadmapHeader({
   doc,
   portalRoadmapId,
   onClarify,
+  onBookCall,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
   doc: PortalRoadmapDoc;
