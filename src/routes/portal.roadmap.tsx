@@ -333,8 +333,17 @@ function RoadmapJourneyView({
         doc={doc}
         portalRoadmapId={portalRoadmapId}
         onClarify={() => setHeaderClarifyOpen(true)}
+        onBookCall={() => setHeaderBookOpen(true)}
       />
       <ExecutiveSnapshot journey={journey} />
+      {hasRealMilestones && (
+        <ViewFilterBar
+          value={viewMode}
+          onChange={setViewMode}
+          matchingCount={matchingCount}
+          total={journey.milestones.length}
+        />
+      )}
       {!hasRealMilestones ? (
         <div className="rounded-2xl bg-card border border-border p-8 lg:p-10 text-center">
           <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
@@ -353,6 +362,7 @@ function RoadmapJourneyView({
           journey={journey}
           selectedSlug={selectedMilestone?.slug ?? null}
           onSelect={(slug) => setSelected(slug)}
+          matchingSlugs={matchingSlugs}
         />
       ) : (
         <>
@@ -361,6 +371,7 @@ function RoadmapJourneyView({
             journey={journey}
             selectedSlug={selectedMilestone?.slug ?? null}
             onSelect={(slug) => setSelected(slug)}
+            matchingSlugs={matchingSlugs}
           />
           <MiniMap journey={journey} canvasWidth={canvas.scrollWidth || 1800} />
         </>
@@ -393,6 +404,7 @@ function RoadmapJourneyView({
         roadmapId={portalRoadmapId}
         projectId={projectId}
         authorEmail={authorEmail}
+        schedulingUrl={schedulingUrl}
         onClose={() => setSelected(null)}
       />
       <ClarificationModal
@@ -402,6 +414,72 @@ function RoadmapJourneyView({
         authorEmail={authorEmail}
         context={null}
       />
+      <BookCallModal
+        open={headerBookOpen}
+        onOpenChange={setHeaderBookOpen}
+        projectId={projectId}
+        authorEmail={authorEmail}
+        schedulingUrl={schedulingUrl}
+        context={null}
+      />
+    </div>
+  );
+}
+
+function ViewFilterBar({
+  value,
+  onChange,
+  matchingCount,
+  total,
+}: {
+  value: RoadmapViewMode;
+  onChange: (v: RoadmapViewMode) => void;
+  matchingCount: number;
+  total: number;
+}) {
+  const active = value !== "all";
+  return (
+    <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center gap-3">
+        <label
+          htmlFor="roadmap-view-filter"
+          className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/55"
+        >
+          View
+        </label>
+        <Select value={value} onValueChange={(v) => onChange(v as RoadmapViewMode)}>
+          <SelectTrigger
+            id="roadmap-view-filter"
+            className="h-9 w-[200px] bg-card border-border"
+            aria-label="Filter roadmap view"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(
+              ["all", "decisions", "deliverables", "deadlines", "current"] as const
+            ).map((mode) => (
+              <SelectItem key={mode} value={mode}>
+                {VIEW_MODE_LABEL[mode]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {active && (
+          <span className="text-[12px] text-ink/60">
+            Showing {matchingCount} of {total}
+          </span>
+        )}
+      </div>
+      {active && (
+        <button
+          type="button"
+          onClick={() => onChange("all")}
+          className="text-[12px] font-medium text-royal hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-royal rounded"
+        >
+          Show full journey
+        </button>
+      )}
     </div>
   );
 }
