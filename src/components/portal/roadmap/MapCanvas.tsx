@@ -248,23 +248,25 @@ export function MapCanvas({
 
   // Compute per-marker visibility from view mode + zoom + legend.
   const visibilities = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof computeMarkerVisibility>>();
-    for (const { milestone } of layout.markers) {
-      map.set(
-        milestone.slug,
-        computeMarkerVisibility(milestone, {
-          mode: viewMode,
-          zoom: canvas.zoomLevel,
-          journey,
-          currentPhaseKey: canvas.currentPhaseKey ?? journey.currentPhaseKey,
-          selectedPhaseKey: canvas.selectedPhaseKey,
-          visibleKinds: canvas.visibleKinds,
-          mutedKinds: canvas.mutedKinds,
-          selectedSlug,
-        }),
-      );
-    }
-    return map;
+    return measure("markers:visibility", () => {
+      const map = new Map<string, ReturnType<typeof computeMarkerVisibility>>();
+      for (const { milestone } of layout.markers) {
+        map.set(
+          milestone.slug,
+          computeMarkerVisibility(milestone, {
+            mode: viewMode,
+            zoom: canvas.zoomLevel,
+            journey,
+            currentPhaseKey: canvas.currentPhaseKey ?? journey.currentPhaseKey,
+            selectedPhaseKey: canvas.selectedPhaseKey,
+            visibleKinds: canvas.visibleKinds,
+            mutedKinds: canvas.mutedKinds,
+            selectedSlug,
+          }),
+        );
+      }
+      return map;
+    });
   }, [
     layout.markers,
     viewMode,
