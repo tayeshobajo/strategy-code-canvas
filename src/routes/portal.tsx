@@ -159,30 +159,67 @@ function PortalLayout() {
     return <Outlet />;
   }
 
+  const sidebarInner = (
+    <div className="flex flex-col h-full bg-ink text-white">
+      <div className="flex px-6 py-6 border-b border-white/10 items-center shrink-0">
+        <Link to="/" aria-label="Trust Tai home" className="block">
+          <img
+            src={logoWhite.url}
+            alt="Trust Tai | Consultancy + AI Agency"
+            className="h-9 w-auto"
+          />
+        </Link>
+      </div>
+      <div className="px-6 pt-5 pb-4 shrink-0">
+        <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+          Client Portal
+        </div>
+        <PortalGreeting />
+      </div>
+      <PortalNav pathname={pathname} orientation="vertical" />
+      <div className="mt-auto shrink-0">
+        <SidebarAccountZone email={email} onSignOut={signOut} />
+      </div>
+    </div>
+  );
+
   return (
     <TooltipProvider delayDuration={150}>
       <div className="min-h-screen flex flex-col bg-paper overflow-x-clip">
+        {/* Mobile top bar with hamburger — hidden on lg+ */}
+        <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between h-14 px-4 bg-ink text-white border-b border-white/10">
+          <Link to="/" aria-label="Trust Tai home" className="block">
+            <img
+              src={logoWhite.url}
+              alt="Trust Tai | Consultancy + AI Agency"
+              className="h-7 w-auto"
+            />
+          </Link>
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                aria-label="Open navigation"
+                className="grid place-items-center h-10 w-10 rounded-md border border-white/10 hover:bg-white/5 transition-colors"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-[280px] max-w-[85vw] p-0 bg-ink border-r border-white/10 text-white [&>button]:text-white/70"
+            >
+              <VisuallyHidden>
+                <SheetTitle>Portal navigation</SheetTitle>
+              </VisuallyHidden>
+              {sidebarInner}
+            </SheetContent>
+          </Sheet>
+        </header>
+
         <div className="flex-1 flex flex-col lg:flex-row min-w-0">
-          <aside className="lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-screen bg-ink text-white flex flex-col z-30">
-            <div className="hidden lg:flex px-6 py-6 border-b border-white/10 items-center shrink-0">
-              <Link to="/" aria-label="Trust Tai home" className="block">
-                <img
-                  src={logoWhite.url}
-                  alt="Trust Tai | Consultancy + AI Agency"
-                  className="h-9 w-auto"
-                />
-              </Link>
-            </div>
-            <div className="hidden lg:block px-6 pt-5 pb-4 shrink-0">
-              <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-                Client Portal
-              </div>
-              <PortalGreeting />
-            </div>
-            <PortalNav pathname={pathname} />
-            <div className="hidden lg:block mt-auto shrink-0">
-              <SidebarAccountZone email={email} onSignOut={signOut} />
-            </div>
+          <aside className="hidden lg:flex lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-screen flex-col z-30">
+            {sidebarInner}
           </aside>
 
           <main className="flex-1 min-w-0 bg-paper-soft px-4 sm:px-6 lg:px-10 py-10 lg:py-16 overflow-x-clip">
