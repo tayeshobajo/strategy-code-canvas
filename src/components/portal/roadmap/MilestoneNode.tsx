@@ -7,6 +7,7 @@ import {
   FileText,
   CalendarClock,
   Flag,
+  ArrowRight,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type {
@@ -16,6 +17,11 @@ import type {
 import type { MarkerVisibility } from "./view-mode";
 import type { MarkerAttachment } from "./roadmap-layout";
 import { useRoadmapCanvas } from "./canvas-context";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 type Props = {
   milestone: RoadmapMilestone;
