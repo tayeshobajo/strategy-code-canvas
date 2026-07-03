@@ -112,6 +112,9 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
   const [mutedKinds, setMutedKinds] = useState<Set<LegendKind>>(() =>
     loadKindSet(LS_LEGEND_MUTED, DEFAULT_MUTED_KINDS),
   );
+  const [explodedClusterKeys, setExplodedClusterKeys] = useState<Set<string>>(
+    () => new Set(),
+  );
   const scrollerRef = useRef<HTMLElement | null>(null);
   const nodeRefs = useRef<NodeRefs>(new Map());
 
