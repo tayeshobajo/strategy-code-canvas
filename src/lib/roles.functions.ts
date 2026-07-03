@@ -47,12 +47,34 @@ export const grantUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => MutateInput.parse(raw))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    const callerEmail = await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
     const { data: id, error } = await context.supabase.rpc("admin_grant_role", {
       _email: data.email,
       _role: data.role,
     });
     if (error) throw new Error(error.message);
+
+    // Fire-and-forget confirmation email for admin grants. Failure must not
+    // block the grant itself — we surface it only in server logs.
+    if (data.role === "admin") {
+      try {
+        const { enqueueTransactionalEmail } = await import(
+          "@/lib/email/enqueue-transactional.server"
+        );
+        await enqueueTransactionalEmail({
+          templateName: "admin-access-granted",
+          recipientEmail: data.email,
+          idempotencyKey: `admin-access-${data.email}-${id}`,
+          templateData: {
+            grantedByName: callerEmail,
+            adminDashboardUrl: "https://www.trust-tai.com/admin",
+          },
+        });
+      } catch (err) {
+        console.error("admin-access-granted email failed", err);
+      }
+    }
+
     return { id: id as string };
   });
 
