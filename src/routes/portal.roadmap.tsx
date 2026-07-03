@@ -198,6 +198,7 @@ function RoadmapJourneyView({
       )}
       <MilestoneSheet
         milestone={selectedMilestone}
+        roadmapId={portalRoadmapId}
         onClose={() => setSelected(null)}
       />
     </div>
