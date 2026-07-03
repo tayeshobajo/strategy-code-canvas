@@ -1,75 +1,108 @@
-# Roadmap Engine ↔ Client Portal: Downstream Contract (P3)
+# Portal Roadmap — Interactive Journey Canvas
 
-Close the audit gaps: make the Portal a true downstream consumer of an internal publish pipeline, with project-scoped artifacts, execution handoff, and activity telemetry.
+Rebuild `/portal/roadmap` from a static markdown document into a premium, interactive strategic canvas inside the existing portal shell. Keep the current sidebar/layout, data source, acknowledgement flow, and access rules — only the presentation and interactions change.
 
 ## Scope
 
-Four fixes, in dependency order. Each is a self-contained migration + code slice so we can ship and verify one at a time.
+- Client-facing only: shows approved roadmap data already surfaced by `getPortalRoadmapDocs` / `getPortalContext`. No internal draft/ops data.
+- Reuses existing portal shell in `src/routes/portal.tsx` (sidebar, header, sign-out).
+- Preserves current server functions and acknowledgement/download event tracking (`recordPortalRoadmapEvent`).
+- Desktop-first; graceful tablet/mobile fallback.
 
----
+## Data mapping
 
-### 1. Real publish pipeline (internal approval → portal)
+The `client_portal_roadmaps` row already provides:
+- `title`, `version_label`, `approved_at`, `executive_summary`
+- `current_diagnosis`, `strategic_priorities[]`, `sequence_30_60_90` (Now/Next/Later), `risks_dependencies`, `recommended_next_move`
 
-Today `send_delivery` (P1) writes directly to `client_portal_roadmaps` / `client_portal_files`, and lifecycle status is seeded in migrations. Replace with an explicit, auditable publish step.
+Derive canvas structure from that row (no schema changes):
+- Point A = "Current state" (from `current_diagnosis` / project point_a if present)
+- Point B = "Destination" (from project point_b or executive summary tagline)
+- Phases (3): Now (0–30d), Next (31–60d), Later (61–90d) — from `sequence_30_60_90`
+- Milestones: items inside each phase bucket; `strategic_priorities` map onto the most relevant phase (default: Now) as anchor milestones
+- Status: first Now milestone = "in progress"; earlier ones = "completed" if `acknowledged_at`; upcoming otherwise. Blocked/optional only if item metadata flags it.
+- Progress %: derived from completed vs total milestones
+- When fields are missing, render a friendly empty-state milestone rather than mocking
 
-- New server fn `publishRoadmapToPortal({ projectId })` in `src/lib/engine-execution.functions.ts`:
-  - Requires `has_role(auth.uid(), 'admin')` or operator.
-  - Guards: source `engine_roadmap_versions` row must be `status='approved'` with non-null `approved_at` and `approved_by`.
-  - Atomic: insert `client_portal_roadmaps` row (`status='delivered'`, `source_version_id` set), mirror published `roadmap_documents` (client_safe + published only), flip `client_portal_projects.portal_status` → `roadmap_delivered`, `last_client_activity_at=now()`.
-  - Writes `client_portal_activity` (`event_type='roadmap_published'`, `client_visible=true`).
-- Delivery Room UI (`src/routes/engine.projects.$projectId.delivery.tsx`): add "Publish to Client Portal" primary action; disabled until roadmap approved; shows last publish timestamp + who.
-- Remove implicit status seeding from prior migrations' data blocks (leave schema).
+## Page structure (in order)
 
-### 2. Delivery Room entities + client event telemetry
+1. **Header strip** (top of main content)
+   - Eyebrow "Roadmap" • Title (from doc) • Status pill "Approved" • Current-phase pill • "Last updated {date}"
+   - Actions: Book next call (links to `/portal/messages` for now, placeholder handler), Download PDF (only if a real `file_url` — otherwise hidden), Request clarification (opens Messages with milestone context prefilled via query param)
 
-Portal currently has no activity feed and downloads are plain links.
+2. **Executive snapshot strip** (compact 4–5 stat row)
+   - Current focus • Active milestone • Progress % (bar) • Next milestone • Next review date (from project data if available; hide otherwise)
 
-- Migration: extend `client_portal_activity` `event_type` vocabulary and add helper RPCs:
-  - `log_portal_view({ project_id, surface })` — surfaces: `roadmap`, `file`, `billing`, `home`.
-  - `log_portal_download({ project_id, file_id })` — signed URL issuance path.
-  - `log_portal_acknowledge({ project_id, roadmap_id })` — client explicit ack.
-  - `log_portal_reply({ project_id, message_id })` — auto-fires from message insert trigger.
-  - `mark_follow_up_needed({ project_id, reason })` — operator-only.
-- Replace raw `file_url` links with signed URLs from `client-portal-files` bucket via server fn `getPortalFileDownload({ fileId })` that also logs the download.
-- New route `src/routes/portal.activity.tsx` already exists — wire it to `client_portal_activity` filtered by `client_visible=true`.
-- Portal roadmap page: add "Acknowledge receipt" button (once per version) that calls `log_portal_acknowledge` and updates `client_portal_roadmaps.acknowledged_at`.
+3. **Phase jump nav** (sticky pills above canvas)
+   - Point A · Phase 1 Now · Phase 2 Next · Phase 3 Later · Point B
+   - Highlights currently-in-view phase; click smooth-scrolls the canvas horizontally
 
-### 3. Execution handoff with explicit Tai approval
+4. **Journey canvas** (hero, horizontally scrollable)
+   - Wide container with `overflow-x-auto`, drag-to-pan (pointer events), shift+wheel and trackpad support
+   - SVG route: single smooth cubic path from left (Point A flag) to right (Point B flag) with gentle curves; completed portion drawn in `royal`, upcoming in muted ink
+   - Subtle terrain background (soft contour SVG lines / gradient washes) — no heavy imagery
+   - Phase bands: three faint vertical zones with phase label + short "what happens here" line
+   - Milestone nodes positioned along the path; each node has status-specific styling (completed = filled check, in-progress = pulsing ring, upcoming = outlined, blocked = amber warning, optional = dashed)
+   - Load-in animation: path draws left→right (`stroke-dasharray`), nodes fade/scale in sequence, labels last. Respects `prefers-reduced-motion`.
 
-After client acknowledges the roadmap, execution should not auto-start.
+5. **Milestone interaction**
+   - Hover: node lifts + glow, route segment highlights, tooltip (Radix) with title/phase/status/one-liner + "View details" hint
+   - Click: opens right-side Sheet (`components/ui/sheet.tsx`) with milestone detail; canvas dims behind; ESC / outside click / X closes; focus trapped
+   - Sheet contents: title, phase, status badge, why it matters, what success looks like, key actions, dependencies, related files (from `client_portal_files` if linked, else hidden), Trust Tai notes, action buttons (Request clarification → `/portal/messages?milestone=<slug>`; Book next call; Open file)
+   - Selection memory: selected milestone reflected in URL as `?m=<slug>`; deep-link opens the sheet on load
 
-- Add `engine_projects.execution_kickoff_status` enum: `awaiting_ack | ready_to_start | started`.
-- Server fn `startExecutionEngagement({ projectId })` (admin/operator only) — allowed only when `client_portal_roadmaps.acknowledged_at IS NOT NULL`. Flips `portal_status` → `engagement_active`, writes activity `event_type='engagement_started'`.
-- Delivery Room shows a "Start Engagement" affordance gated on client ack; portal Home surfaces "Awaiting Tai to kick off execution" copy in the interim.
+6. **Supporting context** (below canvas, existing card rhythm)
+   - Executive summary • Strategic priorities • Risks & dependencies • Recommended next move
+   - Existing **Acknowledge roadmap** block (unchanged behaviour + persistence fix already landed)
 
-### 4. Project/workspace-scoped portal (drop email-only scoping)
+## Responsive
 
-Today `client_portal_files` / `client_portal_messages` are joined by email.
+- ≥1024px: full canvas + right Sheet
+- 640–1023px: canvas remains horizontal, Sheet becomes full-width overlay, jump pills scroll
+- <640px: convert to a paged phased view (swipeable via native scroll-snap), milestone details open as full-screen Sheet
 
-- Migration: add `project_id uuid NOT NULL REFERENCES client_portal_projects(id)` to `client_portal_files` and `client_portal_messages` (backfill from `client_portal_permissions.email` → single active project; verify no ambiguity before enforcing NOT NULL).
-- Rewrite RLS on both tables to use `project_id IN (SELECT project_id FROM client_portal_permissions WHERE lower(email)=lower(auth.email()) AND revoked_at IS NULL)`.
-- Update `portal.functions.ts` reads/writes + `portal.files.tsx` / `portal.messages.tsx` to scope on current project (from `usePortalContext`).
-- Deprecate `current_client_portal_project_id()` in favor of an explicit `projectId` argument passed by the client, validated server-side against permissions.
+## Files
 
----
+**New**
+- `src/components/portal/roadmap/JourneyCanvas.tsx` — SVG canvas, path, terrain, nodes, drag/scroll
+- `src/components/portal/roadmap/MilestoneNode.tsx` — status-aware node + hover tooltip
+- `src/components/portal/roadmap/MilestoneSheet.tsx` — right slide-over detail panel
+- `src/components/portal/roadmap/PhaseJumpNav.tsx` — sticky pills + in-view detection
+- `src/components/portal/roadmap/RoadmapHeader.tsx` — title, status pills, primary CTAs
+- `src/components/portal/roadmap/ExecutiveSnapshot.tsx`
+- `src/lib/portal-roadmap-model.ts` — pure fn: `PortalRoadmapDoc` + project → `{ pointA, pointB, phases[], milestones[] }`; slug + status derivation; unit-tested
 
-## Technical notes
+**Edited**
+- `src/routes/portal.roadmap.tsx` — replace current single-card markdown view with the new composition; keep the empty-state and revoked-access branches; keep acknowledge block; consume `?m=` search param for deep link
+- (optional) `src/lib/portal.functions.ts` — if snapshot needs `sequence_30_60_90` fields not already returned, extend the select list (they already are)
 
-- All four items ship as separate migrations to keep review small and rollback surgical.
-- Each new server fn uses `requireSupabaseAuth` + explicit role check (never rely on RLS alone for state transitions).
-- Every state transition writes to `client_portal_activity` — that table becomes the single source of truth for the portal activity feed and the audit log.
-- Signed URLs: 5-minute TTL, generated per-download via `supabaseAdmin.storage.from('client-portal-files').createSignedUrl`.
-- No changes to intake review flow or draft artifact isolation — those already pass.
+**Not touched**
+- `src/routes/portal.tsx` shell, sidebar, auth
+- All server functions and access checks
+- Any ops/engine surfaces
 
-## Verification per slice
+## Interaction spec (verbatim for implementation)
 
-1. Publish pipeline: unit test that `publishRoadmapToPortal` rejects non-approved versions; e2e that portal Roadmap route flips from locked → visible after publish.
-2. Telemetry: assert `client_portal_activity` row per view/download/ack; portal Activity page renders newest-first.
-3. Execution handoff: assert `startExecutionEngagement` rejects before ack; portal Home copy updates.
-4. Project scoping: assert cross-project read returns 0 rows even with matching email; RLS regression test.
+- Node hover: scale 1.04, ring glow (royal 30% alpha), route segment stroke +2, tooltip after 150ms
+- Node click: open Sheet from right, 240ms ease-out; backdrop 40% ink; ESC/outside/X close
+- Phase pill click: `scrollTo({ left, behavior: 'smooth' })`
+- Drag-to-pan: pointer down on canvas empty space sets `cursor-grabbing`, mousemove translates scrollLeft
+- Load: 600ms path draw, 60ms stagger nodes, 200ms label fade; skipped if `prefers-reduced-motion: reduce`
+- Selection memory via `search: { m }`; using TanStack `useSearch` + `navigate({ search })`
 
-## Out of scope
+## QA checklist
 
-- Multi-project-per-client UX (single project remains the default; scoping change just makes it correct).
-- Redesign of Delivery Room layout.
-- Notification emails on publish/ack (can layer via existing email queue in a follow-up).
+- Canvas scrolls horizontally by trackpad, shift+wheel, and drag
+- Hover, tooltip, click-to-open, ESC/outside close all work with keyboard
+- Deep link `/portal/roadmap?m=<slug>` opens correct milestone sheet
+- Empty state (no approved roadmap) and revoked branch still render
+- Acknowledge flow still persists (verified previously)
+- No internal ops fields exposed; no draft data leaks
+- Reduced-motion honoured; contrast passes on ink/royal tokens
+- Mobile: phase-paged view works and milestone sheet is full-screen
+
+## Out of scope (call out for follow-up)
+
+- Editing/managing phases from admin side (would require new schema)
+- Real "related files" wiring beyond what `client_portal_files` already exposes (basic linkage only)
+- New Book-a-call scheduler integration — CTA is a placeholder route/modal
