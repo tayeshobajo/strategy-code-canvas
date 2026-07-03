@@ -22,6 +22,8 @@ DECLARE
   v_msg_welcome  uuid := 'aaaaaaa4-0000-4000-8000-000000000001';
   v_msg_action   uuid := 'aaaaaaa4-0000-4000-8000-000000000002';
   v_perm         uuid := 'aaaaaaa5-0000-4000-8000-000000000001';
+  v_access       uuid := 'aaaaaaa6-0000-4000-8000-000000000001';
+  v_legacy_doc   uuid := 'aaaaaaa7-0000-4000-8000-000000000001';
 BEGIN
   ----------------------------------------------------------------
   -- 1. Portal project
@@ -57,6 +59,48 @@ BEGIN
   ON CONFLICT (id) DO UPDATE SET
     revoked_at = NULL,
     email      = EXCLUDED.email;
+
+  -- Legacy client_access row — required by /portal/roadmap's revoked check.
+  INSERT INTO public.client_access
+    (id, email, source, granted_at, revoked_at)
+  VALUES
+    (v_access, v_email, 'demo_seed', now() - interval '10 days', NULL)
+  ON CONFLICT (id) DO UPDATE SET
+    revoked_at = NULL,
+    email      = EXCLUDED.email;
+
+  -- Legacy roadmap_documents row — read by /portal/roadmap by email.
+  INSERT INTO public.roadmap_documents
+    (id, client_email, title, body_md, published_at)
+  VALUES
+    (v_legacy_doc, v_email, 'Jotaye Ventures — Strategy Sprint Roadmap',
+$md$
+# Strategy Sprint Roadmap
+
+**Focus the next 90 days on tightening the offer, pricing, and top-of-funnel positioning.**
+
+## Diagnosis
+Current growth is inbound-heavy and price-anchored below willingness to pay.
+
+## Strategic Priorities
+1. **Reprice core offer** — Move Strategy Sprint from $2.5k to $5k with proof-of-value gating.
+2. **Ship founder-led content engine** — Weekly essay + 3 short-form cuts.
+3. **Instrument the funnel** — Attribution from first touch through paid engagement.
+
+## 30 / 60 / 90
+- **30 days**: Reprice + refresh sales page. Tighten intake to qualify at $5k.
+- **60 days**: Publish 8 essays. Book 12 discovery calls.
+- **90 days**: Close 3 Strategy Sprints. Convert 1 to retainer.
+
+## Recommended next move
+Approve the reprice and lock the content cadence by Monday.
+$md$,
+    now() - interval '6 days')
+  ON CONFLICT (id) DO UPDATE SET
+    body_md      = EXCLUDED.body_md,
+    published_at = EXCLUDED.published_at,
+    updated_at   = now();
+
 
   ----------------------------------------------------------------
   -- 3. Files (clean reseed of just these two demo rows)
