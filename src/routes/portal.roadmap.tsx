@@ -1,6 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSuspenseQuery, queryOptions, useMutation } from "@tanstack/react-query";
+import {
+  useSuspenseQuery,
+  queryOptions,
+  useMutation,
+} from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
@@ -22,9 +26,19 @@ import {
 import { JourneyCanvas } from "@/components/portal/roadmap/JourneyCanvas";
 import { MilestoneSheet } from "@/components/portal/roadmap/MilestoneSheet";
 import { PhaseJumpNav } from "@/components/portal/roadmap/PhaseJumpNav";
+import { MiniMap } from "@/components/portal/roadmap/MiniMap";
+import { ClarificationModal } from "@/components/portal/roadmap/ClarificationModal";
+import {
+  RoadmapCanvasProvider,
+  useRoadmapCanvas,
+} from "@/components/portal/roadmap/canvas-context";
+import { toast } from "sonner";
 
 const searchSchema = z.object({
   m: fallback(z.string().optional(), undefined),
+  item: fallback(z.string().optional(), undefined),
+  decision: fallback(z.string().optional(), undefined),
+  deliverable: fallback(z.string().optional(), undefined),
 });
 
 export const Route = createFileRoute("/portal/roadmap")({
@@ -82,7 +96,7 @@ function RoadmapView() {
           Roadmap
         </div>
         <h1 className="font-display text-2xl text-ink mt-2">
-          Your Roadmap is not yet published.
+          Your roadmap is being prepared. Once approved, it will appear here.
         </h1>
         <p className="text-[15px] leading-[1.75] text-ink/70 mt-3">
           Once Tai finalizes your approved Roadmap, it will appear here as an
@@ -92,10 +106,12 @@ function RoadmapView() {
     );
   }
 
-  // Show the most recently approved roadmap as the primary journey; older
-  // versions collapse into a compact history list below the canvas.
   const [primary, ...older] = data.docs;
-  return <RoadmapJourneyView doc={primary} olderDocs={older} />;
+  return (
+    <RoadmapCanvasProvider>
+      <RoadmapJourneyView doc={primary} olderDocs={older} />
+    </RoadmapCanvasProvider>
+  );
 }
 
 function RoadmapJourneyView({
@@ -108,32 +124,74 @@ function RoadmapJourneyView({
   const navigate = useNavigate({ from: "/portal/roadmap" });
   const search = Route.useSearch();
   const ctx = usePortalContext();
+  const canvas = useRoadmapCanvas();
 
   const journey = useMemo(
     () => buildRoadmapJourney(doc.raw ?? {}, doc.project ?? undefined),
     [doc],
   );
 
-  const selectedSlug = search.m ?? null;
-  const selectedMilestone =
-    journey.milestones.find((m) => m.slug === selectedSlug) ?? null;
+  // Resolve the selected marker across alias params (decision > deliverable > item > m).
+  const requestedSlug =
+    search.decision ?? search.deliverable ?? search.item ?? search.m ?? null;
+
+  // Normalize any alias to canonical `?m=<slug>` shape.
+  useEffect(() => {
+    if (
+      requestedSlug &&
+      (search.decision || search.deliverable || search.item) &&
+      search.m !== requestedSlug
+    ) {
+      navigate({
+        search: () => ({ m: requestedSlug }),
+        replace: true,
+      });
+    }
+  }, [requestedSlug, search.decision, search.deliverable, search.item, search.m, navigate]);
+
+  const selectedMilestone = useMemo(
+    () =>
+      requestedSlug
+        ? journey.milestones.find((m) => m.slug === requestedSlug) ?? null
+        : null,
+    [requestedSlug, journey.milestones],
+  );
+
+  // If a deep-link references an unknown slug, clear it with a calm toast.
+  useEffect(() => {
+    if (requestedSlug && !selectedMilestone) {
+      toast.info("This item is no longer available in the current roadmap version.");
+      navigate({ search: () => ({}), replace: true });
+    }
+  }, [requestedSlug, selectedMilestone, navigate]);
+
+  // On mount / when the deep-linked marker changes, scroll it into view.
+  useEffect(() => {
+    if (!selectedMilestone) return;
+    const el = document.querySelector<HTMLElement>(
+      `[data-marker-slug="${CSS.escape(selectedMilestone.slug)}"]`,
+    );
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  }, [selectedMilestone]);
 
   const setSelected = (slug: string | null) => {
     navigate({
-      search: ((prev: { m?: string }) => ({ ...prev, m: slug ?? undefined })) as never,
+      search: () => (slug ? { m: slug } : {}),
       replace: true,
     });
   };
 
-  const [activePhaseKey, setActivePhaseKey] = useState<string | null>(
-    journey.phases[0]?.key ?? null,
-  );
-
-  // Record a passive "viewed" event once per session.
   const portalRoadmapId =
     ctx.data && "approvedRoadmap" in ctx.data
       ? ctx.data.approvedRoadmap?.id
       : undefined;
+  const projectId =
+    ctx.data && "project" in ctx.data ? ctx.data.project?.id : undefined;
+  const authorEmail =
+    ctx.data && "email" in ctx.data ? ctx.data.email : undefined;
+
   const recordEvent = useServerFn(recordPortalRoadmapEvent);
   useEffect(() => {
     if (!portalRoadmapId) return;
@@ -143,8 +201,7 @@ function RoadmapJourneyView({
   }, [portalRoadmapId, recordEvent]);
 
   const jumpTo = (key: string) => {
-    setActivePhaseKey(key);
-    const el = document.getElementById(`portal-canvas-scroll`);
+    const el = document.getElementById("portal-canvas-scroll");
     if (!el) return;
     const total = el.scrollWidth;
     const map: Record<string, number> = {
@@ -158,22 +215,24 @@ function RoadmapJourneyView({
     el.scrollTo({ left: target, behavior: "smooth" });
   };
 
+  const [headerClarifyOpen, setHeaderClarifyOpen] = useState(false);
+
   return (
-    <div className="max-w-[1400px] mx-auto space-y-8">
-      <RoadmapHeader journey={journey} doc={doc} portalRoadmapId={portalRoadmapId} />
-      <ExecutiveSnapshot journey={journey} />
-      <PhaseJumpNav
+    <div className="max-w-[1400px] mx-auto space-y-6">
+      <RoadmapHeader
         journey={journey}
-        onJump={jumpTo}
-        activeKey={activePhaseKey}
+        doc={doc}
+        portalRoadmapId={portalRoadmapId}
+        onClarify={() => setHeaderClarifyOpen(true)}
       />
-      <div id="portal-canvas-scroll" className="overflow-x-auto rounded-2xl">
-        <JourneyCanvas
-          journey={journey}
-          selectedSlug={selectedSlug}
-          onSelect={(slug) => setSelected(slug)}
-        />
-      </div>
+      <ExecutiveSnapshot journey={journey} />
+      <PhaseJumpNav journey={journey} onJump={jumpTo} />
+      <JourneyCanvas
+        journey={journey}
+        selectedSlug={selectedMilestone?.slug ?? null}
+        onSelect={(slug) => setSelected(slug)}
+      />
+      <MiniMap journey={journey} canvasWidth={canvas.scrollWidth || 1800} />
       <SupportingContext journey={journey} />
       <AcknowledgeBlock ctx={ctx} portalRoadmapId={portalRoadmapId} />
       {olderDocs.length > 0 && (
@@ -199,7 +258,16 @@ function RoadmapJourneyView({
       <MilestoneSheet
         milestone={selectedMilestone}
         roadmapId={portalRoadmapId}
+        projectId={projectId}
+        authorEmail={authorEmail}
         onClose={() => setSelected(null)}
+      />
+      <ClarificationModal
+        open={headerClarifyOpen}
+        onOpenChange={setHeaderClarifyOpen}
+        projectId={projectId}
+        authorEmail={authorEmail}
+        context={null}
       />
     </div>
   );
@@ -209,10 +277,12 @@ function RoadmapHeader({
   journey,
   doc,
   portalRoadmapId,
+  onClarify,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
   doc: PortalRoadmapDoc;
   portalRoadmapId: string | undefined;
+  onClarify: () => void;
 }) {
   const recordEvent = useServerFn(recordPortalRoadmapEvent);
   const handleDownload = () => {
@@ -225,7 +295,6 @@ function RoadmapHeader({
       window.open(doc.file_url, "_blank", "noopener,noreferrer");
       return;
     }
-    // Fallback: browser print-to-PDF of the current roadmap page.
     if (typeof window !== "undefined") window.print();
   };
   return (
@@ -254,17 +323,23 @@ function RoadmapHeader({
         </div>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
-        <Button asChild variant="outline" className="border-ink/20">
-          <Link to="/portal/messages">
-            <MessageSquare className="w-4 h-4 mr-2" />
-            Request clarification
-          </Link>
+        <Button
+          variant="outline"
+          className="border-ink/20"
+          onClick={onClarify}
+        >
+          <MessageSquare className="w-4 h-4 mr-2" />
+          Request clarification
         </Button>
         <Button
           onClick={handleDownload}
           variant="outline"
           className="border-ink/20"
-          aria-label={doc.file_url ? "Download approved roadmap PDF" : "Save roadmap as PDF via browser print"}
+          aria-label={
+            doc.file_url
+              ? "Download approved roadmap PDF"
+              : "Save roadmap as PDF via browser print"
+          }
         >
           <Download className="w-4 h-4 mr-2" /> Download PDF
         </Button>
@@ -285,7 +360,11 @@ function ExecutiveSnapshot({
   journey: ReturnType<typeof buildRoadmapJourney>;
 }) {
   const stats = [
-    { label: "Current focus", value: journey.currentFocus ?? journey.activeMilestone?.title ?? "—" },
+    {
+      label: "Current focus",
+      value:
+        journey.currentFocus ?? journey.activeMilestone?.title ?? "—",
+    },
     { label: "Active milestone", value: journey.activeMilestone?.title ?? "—" },
     {
       label: "Progress",
@@ -345,7 +424,9 @@ function SupportingContext({
               {journey.strategicPriorities.map((p, i) => (
                 <li key={i}>
                   <span className="font-medium text-ink">{p.title}</span>
-                  {p.detail && <span className="text-ink/70"> — {p.detail}</span>}
+                  {p.detail && (
+                    <span className="text-ink/70"> — {p.detail}</span>
+                  )}
                 </li>
               ))}
             </ol>
@@ -371,7 +452,10 @@ function SupportingContext({
         }
       : null,
   ];
-  const visible = cards.filter(Boolean) as Array<{ label: string; body: React.ReactNode }>;
+  const visible = cards.filter(Boolean) as Array<{
+    label: string;
+    body: React.ReactNode;
+  }>;
   if (visible.length === 0) return null;
   return (
     <div className="grid md:grid-cols-2 gap-4">

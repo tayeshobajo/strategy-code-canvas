@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   RoadmapJourney,
   RoadmapMilestone,
 } from "@/lib/portal-roadmap-model";
 import { MilestoneNode } from "./MilestoneNode";
 import { Flag, MapPin } from "lucide-react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useRoadmapCanvas } from "./canvas-context";
 
 type Props = {
   journey: RoadmapJourney;
@@ -12,56 +14,51 @@ type Props = {
   onSelect: (slug: string) => void;
 };
 
-// Canvas geometry. Wide enough to feel like a real horizontal journey; the
-// container scrolls horizontally on narrower viewports.
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 460;
 const PADDING_X = 120;
 const BASE_Y = CANVAS_HEIGHT / 2 + 30;
 
-/**
- * Build a smooth left-to-right route with gentle waves. Milestones are placed
- * along the path at even x positions with a small vertical undulation so nodes
- * don't collide and the road reads as a journey rather than a timeline bar.
- */
-function computeLayout(
-  journey: RoadmapJourney,
-): {
-  pathD: string;
-  progressPathD: string;
-  nodes: Array<{ milestone: RoadmapMilestone; x: number; y: number }>;
-  phaseBands: Array<{ key: string; label: string; timeframe: string; x0: number; x1: number }>;
-  progressX: number;
-} {
+type LaidOutNode = { milestone: RoadmapMilestone; x: number; y: number };
+
+/** Build the SVG path between two points using a smooth curve. */
+function segmentPath(a: { x: number; y: number }, b: { x: number; y: number }) {
+  const cx = (a.x + b.x) / 2;
+  return `M ${a.x} ${a.y} Q ${cx} ${a.y}, ${cx} ${(a.y + b.y) / 2} T ${b.x} ${b.y}`;
+}
+
+function computeLayout(journey: RoadmapJourney) {
   const flat = journey.milestones;
   const usable = CANVAS_WIDTH - PADDING_X * 2;
   const step = usable / Math.max(flat.length + 1, 2);
 
-  const nodes = flat.map((m, i) => {
+  const nodes: LaidOutNode[] = flat.map((m, i) => {
     const x = PADDING_X + step * (i + 1);
-    // Undulate the road: alternating small offsets around BASE_Y.
     const wave = Math.sin((i / Math.max(flat.length - 1, 1)) * Math.PI * 1.6) * 60;
-    const y = BASE_Y - wave;
-    return { milestone: m, x, y };
+    return { milestone: m, x, y: BASE_Y - wave };
   });
 
-  // Smooth cubic path through all node points, anchored at Point A / B.
   const anchorA = { x: PADDING_X * 0.55, y: BASE_Y + 30 };
   const anchorB = { x: CANVAS_WIDTH - PADDING_X * 0.55, y: BASE_Y - 40 };
   const points = [anchorA, ...nodes.map((n) => ({ x: n.x, y: n.y })), anchorB];
 
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1];
-    const cur = points[i];
-    const cx = (prev.x + cur.x) / 2;
-    d += ` Q ${cx} ${prev.y}, ${cx} ${(prev.y + cur.y) / 2} T ${cur.x} ${cur.y}`;
-  }
+  // Per-segment paths so we can style completed / active / upcoming / blocked
+  // independently and highlight a segment adjacent to a hovered node.
+  const segments = points.slice(0, -1).map((p, i) => {
+    const q = points[i + 1];
+    // The "phase" of a segment is the phase of its right-hand node (if any).
+    // Anchor segments inherit from the closest node.
+    const rightNode = i < nodes.length ? nodes[i] : nodes[nodes.length - 1];
+    const leftNode = i > 0 ? nodes[i - 1] : nodes[0];
+    return {
+      i,
+      d: segmentPath(p, q),
+      rightSlug: rightNode?.milestone.slug,
+      leftSlug: leftNode?.milestone.slug,
+      status: rightNode?.milestone.status ?? "upcoming",
+    };
+  });
 
-  // Progress path: same path clipped to the current progress ratio.
-  const progressX = anchorA.x + (anchorB.x - anchorA.x) * (journey.progressPercent / 100);
-
-  // Phase bands: distribute across canvas evenly (3 bands).
   const bandWidth = usable / 3;
   const phaseBands = journey.phases.map((p, i) => ({
     key: p.key,
@@ -71,27 +68,145 @@ function computeLayout(
     x1: PADDING_X + bandWidth * (i + 1),
   }));
 
-  return { pathD: d, progressPathD: d, nodes, phaseBands, progressX };
+  return { nodes, segments, phaseBands, anchorA, anchorB };
 }
 
 export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef<{ startX: number; startScroll: number } | null>(null);
+  const dragState = useRef<{
+    startX: number;
+    startScroll: number;
+    lastX: number;
+    lastT: number;
+    velocity: number;
+    moved: boolean;
+  } | null>(null);
+  const momentumRaf = useRef<number | null>(null);
   const [pathDrawn, setPathDrawn] = useState(false);
+  const [showHint, setShowHint] = useState(true);
+  const reduced = useReducedMotion();
+  const canvas = useRoadmapCanvas();
 
-  const layout = computeLayout(journey);
+  const layout = useMemo(() => computeLayout(journey), [journey]);
 
-  useEffect(() => {
-    // Trigger the load-in path animation on mount.
-    const t = setTimeout(() => setPathDrawn(true), 100);
-    return () => clearTimeout(t);
-  }, []);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest("button")) return;
+  // Register scroller and publish scroll state to context.
+  useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    dragState.current = { startX: e.clientX, startScroll: el.scrollLeft };
+    canvas.registerScroller(el);
+    const publish = () => {
+      canvas.setScrollState({
+        scrollWidth: el.scrollWidth,
+        scrollLeft: el.scrollLeft,
+        clientWidth: el.clientWidth,
+      });
+      // Active phase = whichever phase band overlaps the viewport center.
+      const centerX =
+        (el.scrollLeft + el.clientWidth / 2) *
+        (CANVAS_WIDTH / Math.max(el.scrollWidth, 1));
+      const band = layout.phaseBands.find(
+        (b) => centerX >= b.x0 && centerX < b.x1,
+      );
+      const key =
+        centerX <= layout.phaseBands[0].x0
+          ? "pointA"
+          : centerX >= layout.phaseBands[layout.phaseBands.length - 1].x1
+            ? "pointB"
+            : (band?.key ?? null);
+      canvas.setActivePhaseKey(key);
+    };
+    publish();
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        publish();
+      });
+      if (showHint) setShowHint(false);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(() => publish());
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [canvas, layout, showHint]);
+
+  useEffect(() => {
+    if (reduced) {
+      setPathDrawn(true);
+      return;
+    }
+    const t = setTimeout(() => setPathDrawn(true), 100);
+    return () => clearTimeout(t);
+  }, [reduced]);
+
+  // Trackpad + Shift+wheel horizontal scroll.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      const canScrollX = el.scrollWidth > el.clientWidth;
+      if (!canScrollX) return;
+      const preferX =
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey;
+      if (preferX) {
+        const dx = e.shiftKey && Math.abs(e.deltaY) > Math.abs(e.deltaX)
+          ? e.deltaY
+          : e.deltaX || e.deltaY;
+        el.scrollLeft += dx;
+        e.preventDefault();
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const stopMomentum = () => {
+    if (momentumRaf.current) cancelAnimationFrame(momentumRaf.current);
+    momentumRaf.current = null;
+  };
+
+  const startMomentum = (velocity: number) => {
+    if (reduced || Math.abs(velocity) < 0.15) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    let v = velocity;
+    const decel = 0.94;
+    const tick = () => {
+      el.scrollLeft -= v * 16;
+      v *= decel;
+      if (Math.abs(v) < 0.05) {
+        stopMomentum();
+        return;
+      }
+      momentumRaf.current = requestAnimationFrame(tick);
+    };
+    stopMomentum();
+    momentumRaf.current = requestAnimationFrame(tick);
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (
+      (e.target as HTMLElement).closest(
+        "button, a, [role='slider'], [data-no-drag]",
+      )
+    )
+      return;
+    const el = scrollRef.current;
+    if (!el) return;
+    stopMomentum();
+    dragState.current = {
+      startX: e.clientX,
+      startScroll: el.scrollLeft,
+      lastX: e.clientX,
+      lastT: performance.now(),
+      velocity: 0,
+      moved: false,
+    };
     el.setPointerCapture(e.pointerId);
     el.style.cursor = "grabbing";
   };
@@ -99,19 +214,30 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
     const st = dragState.current;
     const el = scrollRef.current;
     if (!st || !el) return;
-    el.scrollLeft = st.startScroll - (e.clientX - st.startX);
+    const now = performance.now();
+    const dt = Math.max(1, now - st.lastT);
+    st.velocity = (e.clientX - st.lastX) / dt; // px/ms
+    st.lastX = e.clientX;
+    st.lastT = now;
+    const dx = e.clientX - st.startX;
+    if (Math.abs(dx) > 3) st.moved = true;
+    el.scrollLeft = st.startScroll - dx;
   };
   const endDrag = (e: React.PointerEvent) => {
-    dragState.current = null;
+    const st = dragState.current;
     const el = scrollRef.current;
+    dragState.current = null;
     if (el) {
       el.style.cursor = "grab";
-      try { el.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+      try {
+        el.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
     }
+    if (st && st.moved) startMomentum(st.velocity);
   };
 
-  // Arrow-key navigation between milestone nodes. Focus follows selection so
-  // screen readers announce the active milestone; Enter/Space opens details.
   const onKeyDown = (e: React.KeyboardEvent) => {
     const container = scrollRef.current;
     if (!container) return;
@@ -119,9 +245,7 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
       container.querySelectorAll<HTMLButtonElement>("[data-milestone-node]"),
     );
     if (nodes.length === 0) return;
-    const currentIndex = nodes.findIndex(
-      (n) => n === document.activeElement,
-    );
+    const currentIndex = nodes.findIndex((n) => n === document.activeElement);
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
       e.preventDefault();
       const delta = e.key === "ArrowRight" ? 1 : -1;
@@ -131,19 +255,42 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
           : Math.min(Math.max(currentIndex + delta, 0), nodes.length - 1);
       const target = nodes[nextIndex];
       target.focus();
-      target.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      target.scrollIntoView({
+        behavior: reduced ? "auto" : "smooth",
+        inline: "center",
+        block: "nearest",
+      });
     } else if (e.key === "Home") {
       e.preventDefault();
       nodes[0].focus();
+      nodes[0].scrollIntoView({ inline: "center", block: "nearest" });
     } else if (e.key === "End") {
       e.preventDefault();
-      nodes[nodes.length - 1].focus();
+      const last = nodes[nodes.length - 1];
+      last.focus();
+      last.scrollIntoView({ inline: "center", block: "nearest" });
+    } else if (e.key === "PageDown" || e.key === "PageUp") {
+      e.preventDefault();
+      container.scrollBy({
+        left: (e.key === "PageDown" ? 1 : -1) * container.clientWidth * 0.9,
+        behavior: reduced ? "auto" : "smooth",
+      });
     }
   };
+
+  const activePhase =
+    journey.activeMilestone?.phase ?? null;
+  const activeBand = activePhase
+    ? layout.phaseBands.find((b) => b.key === activePhase)
+    : null;
+  const activeNode = journey.activeMilestone
+    ? layout.nodes.find((n) => n.milestone.slug === journey.activeMilestone!.slug)
+    : null;
 
   return (
     <div
       ref={scrollRef}
+      id="portal-canvas-scroll"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
@@ -151,7 +298,7 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
       onPointerLeave={endDrag}
       onKeyDown={onKeyDown}
       role="region"
-      aria-label="Roadmap journey. Use arrow keys to move between milestones, Enter to open details."
+      aria-label="Roadmap journey. Use arrow keys to move between milestones, Enter to open details, Page Up/Down for phases."
       tabIndex={0}
       className="relative w-full overflow-x-auto overflow-y-hidden rounded-2xl border border-white/10 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-paper-soft"
       style={{
@@ -164,32 +311,19 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
         className="relative"
         style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
       >
-        {/* Subtle terrain contour lines */}
+        {/* Terrain contour lines + phase bands + route */}
         <svg
           className="absolute inset-0 pointer-events-none"
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
         >
           <defs>
-            <linearGradient id="road-base" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0.15)" />
-            </linearGradient>
             <linearGradient id="road-progress" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="var(--royal)" stopOpacity="0.9" />
               <stop offset="100%" stopColor="var(--royal-soft)" stopOpacity="0.95" />
             </linearGradient>
-            <clipPath id="progress-clip">
-              <rect
-                x={0}
-                y={0}
-                width={layout.progressX}
-                height={CANVAS_HEIGHT}
-              />
-            </clipPath>
           </defs>
 
-          {/* Contour bands for depth */}
           {[0.12, 0.24, 0.38].map((r, i) => (
             <ellipse
               key={i}
@@ -202,6 +336,20 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
               strokeWidth={1}
             />
           ))}
+
+          {/* Active phase glow */}
+          {activeBand && (
+            <rect
+              x={activeBand.x0}
+              y={40}
+              width={activeBand.x1 - activeBand.x0}
+              height={CANVAS_HEIGHT - 80}
+              fill="url(#road-progress)"
+              opacity={0.06}
+              rx={16}
+              className={reduced ? undefined : "roadmap-phase-glow"}
+            />
+          )}
 
           {/* Phase band separators */}
           {layout.phaseBands.slice(1).map((b) => (
@@ -216,36 +364,50 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
             />
           ))}
 
-          {/* Base route */}
-          <path
-            d={layout.pathD}
-            fill="none"
-            stroke="url(#road-base)"
-            strokeWidth={6}
-            strokeLinecap="round"
-            style={{
-              strokeDasharray: pathDrawn ? "none" : "3000",
-              strokeDashoffset: pathDrawn ? 0 : 3000,
-              transition: "stroke-dashoffset 900ms ease-out",
-            }}
-          />
-          {/* Progress route */}
-          <g clipPath="url(#progress-clip)">
-            <path
-              d={layout.pathD}
-              fill="none"
-              stroke="url(#road-progress)"
-              strokeWidth={7}
-              strokeLinecap="round"
-              style={{
-                filter:
-                  "drop-shadow(0 0 12px color-mix(in oklch, var(--royal) 45%, transparent))",
-                strokeDasharray: pathDrawn ? "none" : "3000",
-                strokeDashoffset: pathDrawn ? 0 : 3000,
-                transition: "stroke-dashoffset 1200ms ease-out 200ms",
-              }}
-            />
-          </g>
+          {/* Route segments — styled per status, with adjacent-segment
+              highlight on marker hover/focus. */}
+          {layout.segments.map((seg) => {
+            const isCompleted = seg.status === "completed";
+            const isActive = seg.status === "in_progress";
+            const isBlocked = seg.status === "blocked";
+            const isHighlighted =
+              canvas.highlightedSlug &&
+              (seg.rightSlug === canvas.highlightedSlug ||
+                seg.leftSlug === canvas.highlightedSlug);
+            const stroke = isCompleted
+              ? "url(#road-progress)"
+              : isActive
+                ? "url(#road-progress)"
+                : isBlocked
+                  ? "rgba(183, 129, 0, 0.6)"
+                  : "rgba(255,255,255,0.25)";
+            const strokeWidth = isHighlighted ? 8 : isActive ? 7 : 6;
+            const drop =
+              isCompleted || isActive
+                ? "drop-shadow(0 0 12px color-mix(in oklch, var(--royal) 45%, transparent))"
+                : "none";
+            return (
+              <path
+                key={seg.i}
+                d={seg.d}
+                fill="none"
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                className={
+                  isActive && !reduced ? "roadmap-active-segment" : undefined
+                }
+                style={{
+                  filter: drop,
+                  transition: reduced
+                    ? "none"
+                    : "stroke-width 200ms ease-out, opacity 400ms ease-out",
+                  strokeDasharray: pathDrawn ? "none" : "3000",
+                  strokeDashoffset: pathDrawn ? 0 : 3000,
+                }}
+              />
+            );
+          })}
         </svg>
 
         {/* Phase labels */}
@@ -303,13 +465,30 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
           </div>
         </div>
 
+        {/* "You are here" pill above the active milestone */}
+        {activeNode && (
+          <div
+            className="absolute -translate-x-1/2 pointer-events-none"
+            style={{
+              left: `${activeNode.x}px`,
+              top: `${activeNode.y - 58}px`,
+            }}
+          >
+            <div className="rounded-full bg-white text-royal border border-royal/40 shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.24em] whitespace-nowrap">
+              You are here
+            </div>
+          </div>
+        )}
+
         {/* Milestone nodes */}
         {layout.nodes.map((n, i) => (
           <div
             key={n.milestone.slug}
             style={{
               opacity: pathDrawn ? 1 : 0,
-              transition: `opacity 300ms ease-out ${400 + i * 70}ms`,
+              transition: reduced
+                ? "none"
+                : `opacity 300ms ease-out ${400 + i * 70}ms`,
             }}
           >
             <MilestoneNode
@@ -322,6 +501,23 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Right-edge fade + drag hint */}
+      {showHint && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute right-0 top-0 bottom-0 w-24 flex items-center justify-end pr-3"
+          style={{
+            background:
+              "linear-gradient(to left, rgba(15,20,45,0.55), transparent)",
+            transition: "opacity 400ms ease-out",
+          }}
+        >
+          <div className="text-[11px] font-mono uppercase tracking-[0.24em] text-white/70 whitespace-nowrap">
+            Drag to explore →
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,17 +13,37 @@ export type MilestoneStatus =
 
 export type PhaseKey = "now" | "next" | "later";
 
+export type MilestoneKind = "milestone" | "decision" | "deliverable" | "meeting";
+
 export type RoadmapMilestone = {
   slug: string;
   title: string;
   phase: PhaseKey;
   status: MilestoneStatus;
+  kind: MilestoneKind;
   summary?: string;
   detail?: string;
   successLooksLike?: string;
   dependencies?: string[];
   actions?: string[];
   ownerNote?: string;
+  targetDate?: string;
+  dueDate?: string;
+  unlocks?: string[];
+  latestUpdate?: string;
+  clientActionNeeded?: string;
+  // Decision-specific
+  options?: string[];
+  recommendedOption?: string;
+  // Deliverable-specific
+  fileUrl?: string;
+  fileType?: string;
+  version?: string;
+  publishedAt?: string;
+  // Meeting-specific
+  meetingAt?: string;
+  meetingPurpose?: string;
+  meetingUrl?: string;
 };
 
 export type RoadmapPhase = {
@@ -205,11 +225,22 @@ function toMilestone(
             ? "optional"
             : "upcoming";
 
+  const rawKind = String(raw.kind ?? raw.type ?? "").toLowerCase();
+  const kind: MilestoneKind =
+    rawKind === "decision"
+      ? "decision"
+      : rawKind === "deliverable" || raw.file_url || raw.fileUrl
+        ? "deliverable"
+        : rawKind === "meeting" || raw.meeting_at || raw.meetingAt
+          ? "meeting"
+          : "milestone";
+
   return {
     slug,
     title,
     phase,
     status,
+    kind,
     summary: raw.summary ?? raw.description ?? raw.goal ?? undefined,
     detail: raw.detail ?? raw.description ?? raw.summary ?? undefined,
     successLooksLike:
@@ -217,6 +248,22 @@ function toMilestone(
     dependencies: toStringArray(raw.dependencies ?? raw.deps),
     actions: toStringArray(raw.actions ?? raw.key_actions ?? raw.next_actions),
     ownerNote: raw.owner_note ?? raw.notes ?? raw.tai_note ?? undefined,
+    targetDate: raw.target_date ?? raw.targetDate ?? undefined,
+    dueDate: raw.due_date ?? raw.dueDate ?? undefined,
+    unlocks: toStringArray(raw.unlocks ?? raw.enables),
+    latestUpdate: raw.latest_update ?? raw.latestUpdate ?? undefined,
+    clientActionNeeded:
+      raw.client_action_needed ?? raw.clientActionNeeded ?? undefined,
+    options: toStringArray(raw.options ?? raw.choices),
+    recommendedOption:
+      raw.recommended_option ?? raw.recommendedOption ?? undefined,
+    fileUrl: raw.file_url ?? raw.fileUrl ?? undefined,
+    fileType: raw.file_type ?? raw.fileType ?? undefined,
+    version: raw.version ?? undefined,
+    publishedAt: raw.published_at ?? raw.publishedAt ?? undefined,
+    meetingAt: raw.meeting_at ?? raw.meetingAt ?? undefined,
+    meetingPurpose: raw.meeting_purpose ?? raw.meetingPurpose ?? undefined,
+    meetingUrl: raw.meeting_url ?? raw.meetingUrl ?? undefined,
   };
 }
 
@@ -263,6 +310,7 @@ export function buildRoadmapJourney(
         title: `${p.label} — coming into focus`,
         phase: p.key,
         status: "upcoming",
+        kind: "milestone",
         summary: "Tai will populate this horizon as the roadmap evolves.",
       });
     }
