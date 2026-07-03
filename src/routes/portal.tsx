@@ -167,14 +167,9 @@ function PortalLayout() {
               <PortalGreeting />
             </div>
             <PortalNav pathname={pathname} />
-            <div className="hidden lg:block px-4 py-5 border-t border-white/10 text-xs text-white/60 shrink-0 mt-auto">
-              <div className="truncate mb-2">{email}</div>
-              <button
-                onClick={signOut}
-                className="flex items-center gap-2 text-white/70 hover:text-white"
-              >
-                <LogOut className="w-3.5 h-3.5" /> Sign out
-              </button>
+            <div className="hidden lg:block mt-auto shrink-0">
+              <SidebarMissionCard />
+              <SidebarUserBlock email={email} onSignOut={signOut} />
             </div>
           </aside>
 
