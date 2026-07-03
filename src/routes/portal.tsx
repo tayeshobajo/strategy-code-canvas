@@ -98,8 +98,29 @@ function PortalLayout() {
     pathname === "/portal/login" || pathname === "/portal/access-denied";
 
   useEffect(() => {
-    if (isPublicPage) return;
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
+    if (isPublicPage) {
+      setEmail("");
+      return;
+    }
+    let cancelled = false;
+    const sync = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!cancelled) setEmail(data.user?.email ?? "");
+    };
+    sync();
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        setEmail("");
+      } else if (session?.user?.email) {
+        setEmail(session.user.email);
+      } else {
+        sync();
+      }
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, [isPublicPage]);
 
   async function signOut() {
