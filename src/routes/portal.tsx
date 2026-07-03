@@ -114,9 +114,15 @@ function PortalLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [email, setEmail] = useState<string>("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isPublicPage =
     pathname === "/portal/login" || pathname === "/portal/access-denied";
+
+  // Close the mobile drawer whenever the route changes
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (isPublicPage) {
