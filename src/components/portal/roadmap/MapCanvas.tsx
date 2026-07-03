@@ -464,6 +464,55 @@ export function MapCanvas({
             </div>
           </div>
 
+          {/* Highlighted route segment through the critical path — shown when a
+              marker is selected, to keep the client oriented on the through-line. */}
+          {selectedSlug && journey.criticalPathSlugs.length >= 2 && (() => {
+            const pathPoints = journey.criticalPathSlugs
+              .map((slug) => layout.markers.find((m) => m.milestone.slug === slug))
+              .filter((m): m is (typeof layout.markers)[number] => !!m)
+              .map((m) => `${m.nx * CANVAS_WIDTH},${m.ny * CANVAS_HEIGHT}`)
+              .join(" ");
+            if (!pathPoints) return null;
+            return (
+              <svg
+                aria-hidden="true"
+                className="absolute inset-0 pointer-events-none"
+                width={CANVAS_WIDTH}
+                height={CANVAS_HEIGHT}
+                viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+                style={{ zIndex: 8 }}
+              >
+                <defs>
+                  <filter id="route-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="4" result="b" />
+                    <feMerge>
+                      <feMergeNode in="b" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <polyline
+                  points={pathPoints}
+                  fill="none"
+                  stroke="rgba(47,93,246,0.55)"
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  filter="url(#route-glow)"
+                />
+                <polyline
+                  points={pathPoints}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.85)"
+                  strokeWidth={2}
+                  strokeDasharray="6 6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            );
+          })()}
+
           {/* Markers + clusters */}
           {clustered.map((entry) => {
             if (entry.kind === "cluster") {
