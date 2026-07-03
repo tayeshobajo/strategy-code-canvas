@@ -31,10 +31,10 @@ export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Prop
 
       <div className="flex items-center gap-6">
         <div className="shrink-0">
-          <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-royal">
+          <div className={`font-mono text-[10px] uppercase tracking-[0.28em] ${floating ? "text-royal-glow" : "text-royal"}`}>
             Roadmap overview
           </div>
-          <div className="text-[12px] text-ink/60 mt-0.5 max-w-[180px] leading-snug">
+          <div className={`text-[12px] mt-0.5 max-w-[180px] leading-snug ${floating ? "text-white/65" : "text-ink/60"}`}>
             Drag or click on the map to navigate
           </div>
         </div>
@@ -47,7 +47,9 @@ export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Prop
               tone="anchor"
               active={active === "pointA"}
               onClick={() => onJump("pointA")}
+              floating={floating}
             />
+
             {phases.map((p, i) => (
               <StripStop
                 key={p.key}
