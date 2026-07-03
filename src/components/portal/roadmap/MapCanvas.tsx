@@ -584,6 +584,7 @@ export function MapCanvas({
                     cluster={entry.cluster}
                     x={entry.cluster.nx * CANVAS_WIDTH}
                     y={entry.cluster.ny * CANVAS_HEIGHT}
+                    selectedSlug={selectedSlug}
                     onOpenMember={(slug) => onSelect(slug)}
                   />
                 </div>
