@@ -9,7 +9,7 @@ import {
   Flag,
   ArrowRight,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type {
   MilestoneKind,
   RoadmapMilestone,
@@ -103,7 +103,7 @@ function shortLabel(title: string, max = 18): string {
   return title.slice(0, max - 1).trimEnd() + "…";
 }
 
-export function MilestoneNode({
+export const MilestoneNode = memo(function MilestoneNode({
   milestone,
   x,
   y,
@@ -285,7 +285,7 @@ export function MilestoneNode({
       )}
     </div>
   );
-}
+});
 
 
 /** Small decorative peak marker for Point B (destination flag). */

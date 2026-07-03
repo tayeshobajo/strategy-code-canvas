@@ -398,3 +398,46 @@ test.describe("/portal/roadmap smart-map behavior", () => {
     );
   });
 });
+
+test.describe("/portal/roadmap URL + state persistence", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1480, height: 1000 });
+    await preparePage(page);
+  });
+
+  test("selecting a view mode writes ?view= and persists after reload", async ({ page }) => {
+    await page.getByLabel("Filter roadmap view").click();
+    await page.getByRole("option", { name: /decisions only/i }).click();
+    await page.waitForTimeout(200);
+    await expect(page).toHaveURL(/[?&]view=decisions/);
+
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForSelector("[data-testid='roadmap-canvas-wrap']");
+    // The view filter select still reflects the persisted mode.
+    await expect(page.getByLabel("Filter roadmap view")).toContainText(/decisions/i);
+  });
+
+  test("selecting a phase in the mini-map writes ?phase= to the URL", async ({ page }) => {
+    await page.locator("[data-testid='strip-later']").click();
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/[?&]phase=later/);
+  });
+});
+
+test.describe("/portal/roadmap empty-state and route highlight", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1480, height: 1000 });
+    await preparePage(page);
+  });
+
+  test("selecting a marker draws the critical-path route segment overlay", async ({ page }) => {
+    const marker = page.locator("[data-milestone-node]").first();
+    await marker.scrollIntoViewIfNeeded();
+    await marker.click();
+    await page.waitForTimeout(200);
+    // The polyline overlay is rendered inside the map canvas as an SVG.
+    const polylineCount = await page.locator("[data-testid='roadmap-canvas-wrap'] svg polyline").count();
+    expect(polylineCount).toBeGreaterThan(0);
+  });
+});
+

@@ -65,13 +65,41 @@ import { Activity, Maximize, Target } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
+const VIEW_MODES = [
+  "all",
+  "decisions",
+  "deliverables",
+  "deadlines",
+  "current",
+  "client-actions",
+  "critical-path",
+] as const;
+
+const PHASE_KEYS = ["pointA", "now", "next", "later", "pointB"] as const;
+
 const searchSchema = z.object({
   m: fallback(z.string().optional(), undefined),
   item: fallback(z.string().optional(), undefined),
   decision: fallback(z.string().optional(), undefined),
   deliverable: fallback(z.string().optional(), undefined),
+  view: fallback(z.enum(VIEW_MODES).optional(), undefined),
+  phase: fallback(z.enum(PHASE_KEYS).optional(), undefined),
   __visual: fallback(z.enum(["demo"]).optional(), undefined),
 });
+
+const LS_VIEW_MODE = "portal.roadmap.viewMode";
+const LS_PHASE_KEY = "portal.roadmap.phaseKey";
+
+function readStoredView(): RoadmapViewMode | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.localStorage.getItem(LS_VIEW_MODE);
+    if (v && (VIEW_MODES as readonly string[]).includes(v)) return v as RoadmapViewMode;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
 
 export const Route = createFileRoute("/portal/roadmap")({
   validateSearch: zodValidator(searchSchema),
@@ -328,7 +356,38 @@ function RoadmapJourneyView({
 
   const [headerClarifyOpen, setHeaderClarifyOpen] = useState(false);
   const [headerBookOpen, setHeaderBookOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<RoadmapViewMode>("all");
+  // Seed viewMode from URL, then localStorage, else "all".
+  const [viewMode, setViewModeState] = useState<RoadmapViewMode>(
+    () => search.view ?? readStoredView() ?? "all",
+  );
+  const setViewMode = (v: RoadmapViewMode) => {
+    setViewModeState(v);
+    if (typeof window !== "undefined") {
+      try {
+        if (v === "all") window.localStorage.removeItem(LS_VIEW_MODE);
+        else window.localStorage.setItem(LS_VIEW_MODE, v);
+      } catch {
+        /* ignore */
+      }
+    }
+    navigate({
+      search: (prev: z.infer<typeof searchSchema>) => ({
+        ...prev,
+        view: v === "all" ? undefined : v,
+      }),
+      replace: true,
+    });
+  };
+  // Keep URL in sync if the user arrived without a `view` param but has one stored.
+  useEffect(() => {
+    if (!search.view && viewMode !== "all") {
+      navigate({
+        search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, view: viewMode }),
+        replace: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const isMobile = useIsMobile();
 
   // Compute the set of milestone slugs that match the current view filter.
@@ -339,6 +398,7 @@ function RoadmapJourneyView({
   const matchingCount = matchingSlugs
     ? matchingSlugs.size
     : journey.milestones.length;
+
 
   // If a view filter hides the currently selected marker, deselect it so
   // the drawer stays consistent with what the canvas is showing.
@@ -410,6 +470,8 @@ function RoadmapJourneyView({
             onSelect={(slug) => setSelected(slug)}
             viewMode={viewMode}
             onJump={jumpTo}
+            matchingCount={matchingCount}
+            onResetView={() => setViewMode("all")}
           />
         )
       }
@@ -516,19 +578,66 @@ function RoadmapCanvasStage({
   onSelect,
   viewMode,
   onJump,
+  matchingCount,
+  onResetView,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
   viewMode: RoadmapViewMode;
   onJump: (key: "pointA" | "now" | "next" | "later" | "pointB") => void;
+  matchingCount: number;
+  onResetView: () => void;
 }) {
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/portal/roadmap" });
   // Inject the derived currentPhaseKey into the canvas context so all
   // surfaces (status card, pill, mini-map) read from one source of truth.
   const canvas = useRoadmapCanvas();
   useEffect(() => {
     canvas.setCurrentPhaseKey(journey.currentPhaseKey);
   }, [canvas, journey.currentPhaseKey]);
+
+  // Seed selectedPhaseKey from URL on mount, then persist changes back.
+  const didSeedPhase = useRef(false);
+  useEffect(() => {
+    if (didSeedPhase.current) return;
+    didSeedPhase.current = true;
+    const urlPhase = search.phase;
+    if (!urlPhase) return;
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(LS_PHASE_KEY, urlPhase);
+      } catch {
+        /* ignore */
+      }
+    }
+    if (urlPhase === "pointA" || urlPhase === "pointB") {
+      onJump(urlPhase);
+    } else {
+      canvas.setSelectedPhaseKey(urlPhase);
+      onJump(urlPhase);
+    }
+  }, [search.phase, canvas, onJump]);
+
+  useEffect(() => {
+    const key = canvas.selectedPhaseKey;
+    const urlPhase = key ?? undefined;
+    if (search.phase !== urlPhase) {
+      navigate({
+        search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, phase: urlPhase }),
+        replace: true,
+      });
+    }
+    if (typeof window !== "undefined") {
+      try {
+        if (key) window.localStorage.setItem(LS_PHASE_KEY, key);
+        else window.localStorage.removeItem(LS_PHASE_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [canvas.selectedPhaseKey, search.phase, navigate]);
 
   // On first mount, pan the viewport to sit over the current phase so the
   // mini-map, pill, and canvas center all agree from the start.
@@ -579,6 +688,31 @@ function RoadmapCanvasStage({
           <RoadmapOverviewStrip journey={journey} onJump={onJump} variant="floating" />
         </div>
       </div>
+      {viewMode !== "all" && matchingCount === 0 && (
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          data-testid="roadmap-empty-state"
+        >
+          <div className="pointer-events-auto max-w-md rounded-2xl bg-slate-950/85 border border-white/15 backdrop-blur px-6 py-5 text-white text-center shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)]">
+            <div className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-royal-glow">
+              No matches in this view
+            </div>
+            <h3 className="font-display text-lg mt-1.5">
+              Nothing on the map matches "{VIEW_MODE_LABEL[viewMode]}".
+            </h3>
+            <p className="text-[12.5px] text-white/70 mt-1.5 leading-snug">
+              Try switching filters or clear the view to see every milestone.
+            </p>
+            <button
+              type="button"
+              onClick={onResetView}
+              className="mt-3 inline-flex items-center justify-center rounded-md bg-white text-slate-900 text-[12px] font-medium px-3 py-1.5 hover:bg-white/90"
+            >
+              Show full journey
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1096,6 +1230,8 @@ function DemoRoadmapView() {
             onSelect={setSelectedSlug}
             viewMode={viewMode}
             onJump={jumpTo}
+            matchingCount={matchingCount}
+            onResetView={() => setViewMode("all")}
           />
         </div>
       }
