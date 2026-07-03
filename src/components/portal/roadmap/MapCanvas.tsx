@@ -10,8 +10,8 @@ import {
   clusterMarkers,
   POINT_A_POS,
   POINT_B_POS,
-  type MarkerCluster as MarkerClusterType,
-  type MarkerPosition,
+  type MarkerPos,
+  type MarkerCluster as MarkerClusterModel,
 } from "./roadmap-layout";
 import { computeMarkerVisibility, type RoadmapViewMode } from "./view-mode";
 import mapBg from "@/assets/roadmap-map-background.png.asset.json";
