@@ -5,7 +5,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { checkPortalAccess, getPortalContext, resendPortalWelcome } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Suspense, useState } from "react";
-import { Mail, Check, Loader2, LifeBuoy } from "lucide-react";
+import { Mail, Check, Loader2, LifeBuoy, ShieldCheck } from "lucide-react";
+import { isAdminEmail, isOperatorEmail } from "@/lib/ops/access";
+
 
 
 const portalCtxOptions = (fn: ReturnType<typeof useServerFn<typeof getPortalContext>>) =>
