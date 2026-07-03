@@ -23,10 +23,13 @@ import {
   Calendar,
   MessageSquare,
 } from "lucide-react";
-import { JourneyCanvas } from "@/components/portal/roadmap/JourneyCanvas";
+import { MapCanvas } from "@/components/portal/roadmap/MapCanvas";
 import { MilestoneSheet } from "@/components/portal/roadmap/MilestoneSheet";
-import { PhaseJumpNav } from "@/components/portal/roadmap/PhaseJumpNav";
-import { MiniMap } from "@/components/portal/roadmap/MiniMap";
+import {
+  RoadmapOverviewStrip,
+  MapLegend,
+} from "@/components/portal/roadmap/RoadmapOverviewStrip";
+import { StatusOverlayCard } from "@/components/portal/roadmap/StatusOverlayCard";
 import { MobilePhaseStack } from "@/components/portal/roadmap/MobilePhaseStack";
 import { ClarificationModal } from "@/components/portal/roadmap/ClarificationModal";
 import { BookCallModal } from "@/components/portal/roadmap/BookCallModal";
@@ -46,6 +49,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Activity, Maximize } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
