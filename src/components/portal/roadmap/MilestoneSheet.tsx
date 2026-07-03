@@ -365,11 +365,13 @@ export function MilestoneSheet({
                     </Link>
                   </Button>
 
-                  <Button asChild variant="ghost" className="text-ink/70">
-                    <Link to="/portal/messages">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Book next call
-                    </Link>
+                  <Button
+                    variant="ghost"
+                    className="text-ink/70"
+                    onClick={() => setBookOpen(true)}
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Book next call
                   </Button>
                 </div>
               </div>
