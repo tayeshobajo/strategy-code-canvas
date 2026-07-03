@@ -135,6 +135,11 @@ export function computeMarkerVisibility(
         return "hidden";
       }
       break;
+    case "critical-path": {
+      const onPath = journey.criticalPathSlugs.includes(m.slug);
+      if (!onPath && !anchor) return "muted";
+      break;
+    }
     case "all":
     default:
       break;
