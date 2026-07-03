@@ -143,10 +143,10 @@ function PortalLayout() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="min-h-screen flex flex-col bg-paper">
-        <div className="flex-1 flex flex-col lg:flex-row">
-          <aside className="lg:w-64 lg:flex-shrink-0 bg-ink text-white flex flex-col">
-            <div className="hidden lg:flex px-6 py-6 border-b border-white/10 items-center">
+      <div className="min-h-screen flex flex-col bg-paper overflow-x-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row min-w-0">
+          <aside className="lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-screen bg-ink text-white flex flex-col z-30">
+            <div className="hidden lg:flex px-6 py-6 border-b border-white/10 items-center shrink-0">
               <Link to="/" aria-label="Trust Tai home" className="block">
                 <img
                   src={logoWhite.url}
@@ -155,14 +155,14 @@ function PortalLayout() {
                 />
               </Link>
             </div>
-            <div className="hidden lg:block px-6 pt-5 pb-4">
+            <div className="hidden lg:block px-6 pt-5 pb-4 shrink-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
                 Client Portal
               </div>
               <PortalGreeting />
             </div>
             <PortalNav pathname={pathname} />
-            <div className="hidden lg:block px-4 py-5 border-t border-white/10 text-xs text-white/60">
+            <div className="hidden lg:block px-4 py-5 border-t border-white/10 text-xs text-white/60 shrink-0 mt-auto">
               <div className="truncate mb-2">{email}</div>
               <button
                 onClick={signOut}
@@ -173,7 +173,7 @@ function PortalLayout() {
             </div>
           </aside>
 
-          <main className="flex-1 bg-paper-soft px-4 sm:px-6 lg:px-10 py-10 lg:py-16">
+          <main className="flex-1 min-w-0 bg-paper-soft px-4 sm:px-6 lg:px-10 py-10 lg:py-16 overflow-x-hidden">
             <Outlet />
           </main>
         </div>
