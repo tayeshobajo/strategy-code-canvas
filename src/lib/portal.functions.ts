@@ -844,11 +844,15 @@ export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
       // update must run through the admin client. The caller was verified as
       // an authorized viewer by the SELECT above (RLS-checked).
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error: updErr } = await supabaseAdmin
+      const { data: updRows, error: updErr } = await supabaseAdmin
         .from("client_portal_roadmaps")
         .update(patch as never)
-        .eq("id", cpr.id);
+        .eq("id", cpr.id)
+        .select("id");
       if (updErr) return { error: updErr.message } as const;
+      if (!updRows || updRows.length === 0) {
+        return { error: "Acknowledgment did not persist (0 rows updated)" } as const;
+      }
     }
 
 
