@@ -902,11 +902,9 @@ function AcknowledgeBlock({
 // Rendered when the URL contains `?__visual=demo`. Zero server calls, zero
 // auth, deterministic fixture — used by Playwright visual regression.
 function DemoRoadmapView() {
-  const { DEMO_ROADMAP_RAW, DEMO_PROJECT } =
-    require("@/lib/portal-roadmap-demo-fixture") as typeof import("@/lib/portal-roadmap-demo-fixture");
   const journey = useMemo(
     () => buildRoadmapJourney(DEMO_ROADMAP_RAW, DEMO_PROJECT),
-    [DEMO_ROADMAP_RAW, DEMO_PROJECT],
+    [],
   );
   const [viewMode, setViewMode] = useState<RoadmapViewMode>("all");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
