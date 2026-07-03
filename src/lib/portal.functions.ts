@@ -11,7 +11,7 @@ import {
   normalizeCorrelationId,
 } from "@/lib/portal-access-diagnosis";
 
-import { hasRoleForEmail, isAdminEmail } from "@/lib/ops/access";
+import { hasRoleForEmail, isAdminEmail, isOperatorEmail } from "@/lib/ops/access";
 
 // Sync allowlist fallback used for rendering (returned in `hasClientAccess`).
 // The authoritative check is `assertOperator` which also consults the
@@ -88,6 +88,7 @@ export type MagicLinkStatus =
   | "sent"
   | "no_access"
   | "link_failed"
+  | "suppressed"
   | "enqueue_failed";
 
 export const requestPortalMagicLink = createServerFn({ method: "POST" })
@@ -130,11 +131,13 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
       client_portal_permissions: perm?.length ?? 0,
       client_access: legacy?.length ?? 0,
       user_roles_admin_operator: staffRole?.length ?? 0,
+      staff_allowlist: isAdminEmail(email) || isOperatorEmail(email) ? 1 : 0,
     };
     const hasAccess =
       accessSources.client_portal_permissions > 0 ||
       accessSources.client_access > 0 ||
-      accessSources.user_roles_admin_operator > 0;
+      accessSources.user_roles_admin_operator > 0 ||
+      accessSources.staff_allowlist > 0;
 
     if (!hasAccess) {
       log("no_access — email has no portal permission or staff role", {
@@ -144,7 +147,34 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
     }
     log("access granted", { accessSources });
 
-    // Generate the magic link via Auth Admin (bypasses disable_signup for existing users).
+    // Ensure authorized portal/staff emails have an auth identity before generating a link.
+    // Staff grants can be email-only, so this creates the identity on first sign-in request.
+    const { data: createdUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: { source: "portal_magic_link" },
+    });
+    if (createUserError) {
+      const alreadyExists = /already|registered|exists/i.test(createUserError.message ?? "");
+      log(alreadyExists ? "auth user already exists" : "auth user create skipped with error", {
+        code: createUserError.code,
+        message: createUserError.message,
+        status: createUserError.status,
+      });
+      if (!alreadyExists) {
+        // Continue to generateLink: if the user exists despite the create error, it can still succeed.
+        // If not, the link_failed branch below gives a clear UI error and durable server log.
+      }
+    } else if (createdUser?.user?.id) {
+      log("auth user created", { userId: createdUser.user.id });
+      await supabaseAdmin
+        .from("user_roles")
+        .update({ user_id: createdUser.user.id })
+        .ilike("email", email)
+        .is("user_id", null);
+    }
+
+    // Generate the magic link via Auth Admin.
     const redirectTo = (process.env.PUBLIC_SITE_URL ?? "https://trusttai.com") + "/portal";
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
@@ -166,10 +196,45 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
     const actionLink = linkData.properties.action_link;
     const messageId = (globalThis.crypto?.randomUUID?.() ??
       `${Date.now()}-${Math.random()}`) as string;
+
+    const { data: suppressed, error: suppressionError } = await supabaseAdmin
+      .from("suppressed_emails")
+      .select("id, reason")
+      .ilike("email", email)
+      .limit(1)
+      .maybeSingle();
+    if (suppressionError) {
+      console.warn("[portal.magic-link] suppression check failed", {
+        email,
+        messageId,
+        error: suppressionError.message,
+      });
+    }
+    if (suppressed) {
+      await supabaseAdmin.from("email_send_log").insert({
+        message_id: messageId,
+        template_name: "portal-magic-link",
+        recipient_email: email,
+        status: "suppressed",
+        error_message: `Recipient is suppressed${suppressed.reason ? `: ${suppressed.reason}` : ""}`,
+        metadata: { source: "portal_login", accessSources },
+      });
+      log("email suppressed — not enqueued", { messageId, reason: suppressed.reason });
+      return { ok: true, status: "suppressed" };
+    }
+
     const unsubscribeToken = await ensureUnsubscribeToken(supabaseAdmin, email);
 
     const html = renderPortalMagicLinkHtml({ actionLink });
     const text = renderPortalMagicLinkText(actionLink);
+
+    await supabaseAdmin.from("email_send_log").insert({
+      message_id: messageId,
+      template_name: "portal-magic-link",
+      recipient_email: email,
+      status: "pending",
+      metadata: { source: "portal_login", accessSources },
+    });
 
     const { error: enqError } = await (
       supabaseAdmin.rpc as unknown as (
@@ -199,6 +264,14 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
         email,
         messageId,
         error: enqError,
+      });
+      await supabaseAdmin.from("email_send_log").insert({
+        message_id: messageId,
+        template_name: "portal-magic-link",
+        recipient_email: email,
+        status: "failed",
+        error_message: enqError instanceof Error ? enqError.message : JSON.stringify(enqError),
+        metadata: { source: "portal_login", accessSources },
       });
       return { ok: true, status: "enqueue_failed" };
     }
