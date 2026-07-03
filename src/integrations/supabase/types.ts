@@ -190,10 +190,13 @@ export type Database = {
           category: string
           client_visible: boolean
           created_at: string
+          download_count: number
           file_name: string
           file_type: string | null
           id: string
           is_internal: boolean
+          last_downloaded_at: string | null
+          last_viewed_at: string | null
           linked_roadmap_document_id: string | null
           metadata: Json
           mime_type: string | null
@@ -203,6 +206,7 @@ export type Database = {
           updated_at: string
           uploaded_by_email: string | null
           uploaded_by_role: string
+          view_count: number
         }
         Insert: {
           approved_at?: string | null
@@ -211,10 +215,13 @@ export type Database = {
           category?: string
           client_visible?: boolean
           created_at?: string
+          download_count?: number
           file_name: string
           file_type?: string | null
           id?: string
           is_internal?: boolean
+          last_downloaded_at?: string | null
+          last_viewed_at?: string | null
           linked_roadmap_document_id?: string | null
           metadata?: Json
           mime_type?: string | null
@@ -224,6 +231,7 @@ export type Database = {
           updated_at?: string
           uploaded_by_email?: string | null
           uploaded_by_role?: string
+          view_count?: number
         }
         Update: {
           approved_at?: string | null
@@ -232,10 +240,13 @@ export type Database = {
           category?: string
           client_visible?: boolean
           created_at?: string
+          download_count?: number
           file_name?: string
           file_type?: string | null
           id?: string
           is_internal?: boolean
+          last_downloaded_at?: string | null
+          last_viewed_at?: string | null
           linked_roadmap_document_id?: string | null
           metadata?: Json
           mime_type?: string | null
@@ -245,6 +256,7 @@ export type Database = {
           updated_at?: string
           uploaded_by_email?: string | null
           uploaded_by_role?: string
+          view_count?: number
         }
         Relationships: [
           {
@@ -3016,6 +3028,14 @@ export type Database = {
         }
         Returns: string
       }
+      log_portal_file_event: {
+        Args: { _event: string; _file_id: string }
+        Returns: string
+      }
+      mark_portal_follow_up_needed: {
+        Args: { _project_id: string; _reason: string }
+        Returns: string
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -3032,6 +3052,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      resolve_portal_follow_up: {
+        Args: { _message_id: string }
+        Returns: boolean
       }
       sync_client_access_user: { Args: never; Returns: undefined }
     }
