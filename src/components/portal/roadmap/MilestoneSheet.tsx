@@ -374,12 +374,12 @@ export function MilestoneSheet({
                   )}
                 </div>
 
-                {/* Sticky CTA footer */}
-                <div className="shrink-0 border-t border-ink/10 bg-white/70 backdrop-blur px-6 py-4 space-y-2">
+                {/* Sticky CTA footer — primary · secondary · contextual */}
+                <div className="shrink-0 border-t border-ink/10 bg-white/80 backdrop-blur px-6 pt-4 pb-5 space-y-2.5">
                   {primaryCta && "href" in primaryCta && primaryCta.href ? (
                     <Button
                       asChild
-                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white"
+                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white shadow-[0_8px_20px_-10px_rgba(11,18,32,0.55)]"
                     >
                       <a
                         href={primaryCta.href}
@@ -394,7 +394,7 @@ export function MilestoneSheet({
                     <Button
                       onClick={primaryCta.onClick}
                       disabled={"disabled" in primaryCta && primaryCta.disabled}
-                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white"
+                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white shadow-[0_8px_20px_-10px_rgba(11,18,32,0.55)]"
                     >
                       {kind === "decision" ? (
                         <MessageSquare className="w-4 h-4 mr-2" />
@@ -405,53 +405,53 @@ export function MilestoneSheet({
                     </Button>
                   ) : null}
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      className="h-9 border-ink/15 text-ink/80"
-                      onClick={() => setClarifyOpen(true)}
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-                      {kind === "decision" ? "Ask" : "Clarify"}
-                    </Button>
+                  {/* Secondary CTA — full-width outlined */}
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 border-ink/15 text-ink/85 hover:bg-ink/[0.03]"
+                    onClick={() => setClarifyOpen(true)}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                    {kind === "decision" ? "Ask a question" : "Request clarification"}
+                  </Button>
+
+                  {/* Contextual — ghost row */}
+                  <div className="flex items-center justify-between gap-2 pt-1">
                     <Button
                       asChild
-                      variant="outline"
-                      className="h-9 border-ink/15 text-ink/80"
+                      variant="ghost"
+                      className="flex-1 h-8 text-[12.5px] text-ink/60 hover:text-ink hover:bg-transparent px-1 justify-center"
                     >
                       <Link to="/portal/files" search={{ q: milestone.title }}>
                         <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
                         Related files
                       </Link>
                     </Button>
-                  </div>
-
-                  {kind === "deliverable" && milestone.fileUrl && (
-                    <Button
-                      asChild
-                      variant="ghost"
-                      className="w-full h-9 text-ink/70"
+                    <span aria-hidden className="h-4 w-px bg-ink/10" />
+                    <button
+                      type="button"
+                      onClick={() => setBookOpen(true)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink h-8"
                     >
-                      <a
-                        href={milestone.fileUrl}
-                        download
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Download className="w-3.5 h-3.5 mr-1.5" />
-                        Download
-                      </a>
-                    </Button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setBookOpen(true)}
-                    className="w-full flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink pt-1"
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    Book next call
-                  </button>
+                      <Calendar className="w-3.5 h-3.5" />
+                      Book next call
+                    </button>
+                    {kind === "deliverable" && milestone.fileUrl && (
+                      <>
+                        <span aria-hidden className="h-4 w-px bg-ink/10" />
+                        <a
+                          href={milestone.fileUrl}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink h-8"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download
+                        </a>
+                      </>
+                    )}
+                  </div>
                 </div>
               </>
             );
