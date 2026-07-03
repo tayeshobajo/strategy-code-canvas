@@ -5,8 +5,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Layers, ChevronRight } from "lucide-react";
+import { Layers, ChevronRight, Maximize2 } from "lucide-react";
 import type { RoadmapMilestone } from "@/lib/portal-roadmap-model";
+import { useRoadmapCanvas } from "./canvas-context";
 
 const PHASE_TITLE: Record<string, string> = {
   now: "Phase 1 · Foundation",
