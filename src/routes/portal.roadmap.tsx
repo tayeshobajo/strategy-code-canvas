@@ -214,7 +214,6 @@ function RoadmapJourneyView({
   const navigate = useNavigate({ from: "/portal/roadmap" });
   const search = Route.useSearch();
   const ctx = usePortalContext();
-  const canvas = useRoadmapCanvas();
 
   const journey = useMemo(
     () => buildRoadmapJourney(doc.raw ?? {}, doc.project ?? undefined),
