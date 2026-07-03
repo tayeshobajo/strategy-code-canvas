@@ -680,9 +680,11 @@ function PreviewModal({
       setError(null);
       return;
     }
+    onOpen?.(file);
     let cancelled = false;
     setLoading(true);
     setError(null);
+
     supabase.storage
       .from(file.bucket_id)
       .createSignedUrl(file.storage_path, 300)
