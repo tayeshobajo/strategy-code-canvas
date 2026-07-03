@@ -200,13 +200,7 @@ export function MiniMap({ journey, canvasWidth }: Props) {
             className="absolute inset-y-0 rounded-md border-2 border-royal/70 bg-royal/10 cursor-grab active:cursor-grabbing"
             style={{
               width: `${viewportRatio * 100}%`,
-              transform: `translateX(${viewportOffsetRatio * usableRatio * 100 * (1 / Math.max(viewportRatio, 0.0001))}%)`,
-              // Simpler: translate by offset in strip-units.
               left: `${viewportOffsetRatio * usableRatio * 100}%`,
-              // Reset the transform trick (we use `left` instead):
-              // Note: keeping transform empty via inline resolves conflicts.
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ...({} as any),
             }}
           />
         </div>
