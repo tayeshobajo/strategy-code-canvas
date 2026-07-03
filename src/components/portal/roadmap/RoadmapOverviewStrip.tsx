@@ -2,7 +2,7 @@ import type { PhaseKey, RoadmapJourney } from "@/lib/portal-roadmap-model";
 import { useRoadmapCanvas, useDisplayPhaseKey } from "./canvas-context";
 import type { LegendKind } from "./view-mode";
 import { Maximize2, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type JumpTarget = "pointA" | "now" | "next" | "later" | "pointB";
 
