@@ -12,6 +12,8 @@ import {
   getPortalHandoffState,
   startExecutionEngagement,
 } from "@/lib/engine-execution.functions";
+import { markPortalFollowUpNeeded } from "@/lib/portal.functions";
+
 
 export const Route = createFileRoute("/engine/projects/$projectId/delivery")({
   component: DeliveryPrep,
