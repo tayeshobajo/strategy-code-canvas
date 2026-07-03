@@ -467,24 +467,93 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
     const email = context.claims?.email as string | undefined;
     if (!email) return { docs: [] as PortalRoadmapDoc[], revoked: false as const };
 
-    const { data: access } = await context.supabase
-      .from("client_access")
-      .select("id, revoked_at")
+    // Project-scoped access: any active client_portal_permissions grant is enough.
+    // The legacy client_access / roadmap_documents pause flag is no longer consulted.
+    const { data: perms } = await context.supabase
+      .from("client_portal_permissions")
+      .select("project_id")
       .ilike("email", email)
-      .is("revoked_at", null)
-      .limit(1);
-    if (!access || access.length === 0) {
-      return { docs: [] as PortalRoadmapDoc[], revoked: true as const };
+      .is("revoked_at", null);
+    const projectIds = (perms ?? []).map((p) => p.project_id).filter(Boolean);
+    if (projectIds.length === 0) {
+      return { docs: [] as PortalRoadmapDoc[], revoked: false as const };
     }
 
     const { data, error } = await context.supabase
-      .from("roadmap_documents")
-      .select("id, title, body_md, file_url, published_at, updated_at")
-      .ilike("client_email", email)
-      .order("published_at", { ascending: false });
+      .from("client_portal_roadmaps")
+      .select(
+        "id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, approved_at, updated_at, version_label",
+      )
+      .in("project_id", projectIds)
+      .in("status", ["approved", "delivered"])
+      .order("approved_at", { ascending: false });
     if (error) throw error;
-    return { docs: (data ?? []) as PortalRoadmapDoc[], revoked: false as const };
+
+    const docs: PortalRoadmapDoc[] = (data ?? []).map((r: any) => ({
+      id: r.id,
+      title: r.version_label ? `${r.title} — ${r.version_label}` : r.title,
+      body_md: renderRoadmapMarkdown(r),
+      file_url: null,
+      published_at: r.approved_at,
+      updated_at: r.updated_at,
+    }));
+    return { docs, revoked: false as const };
   });
+
+function renderRoadmapMarkdown(r: any): string {
+  const parts: string[] = [];
+  if (r.executive_summary) parts.push(String(r.executive_summary).trim());
+  if (r.current_diagnosis) parts.push(`## Diagnosis\n${String(r.current_diagnosis).trim()}`);
+
+  const priorities = Array.isArray(r.strategic_priorities) ? r.strategic_priorities : [];
+  if (priorities.length) {
+    const lines = priorities
+      .map((p: any, i: number) => {
+        if (p && typeof p === "object") {
+          const title = p.title ?? p.name ?? `Priority ${i + 1}`;
+          const detail = p.detail ?? p.description ?? "";
+          return detail ? `${i + 1}. **${title}** — ${detail}` : `${i + 1}. **${title}**`;
+        }
+        return `${i + 1}. ${String(p)}`;
+      })
+      .join("\n");
+    parts.push(`## Strategic Priorities\n${lines}`);
+  }
+
+  const seq = r.sequence_30_60_90 && typeof r.sequence_30_60_90 === "object" ? r.sequence_30_60_90 : null;
+  if (seq && (seq["30"] || seq["60"] || seq["90"])) {
+    const bucket = (k: string) => {
+      const v = seq[k];
+      if (!v) return null;
+      const items = Array.isArray(v) ? v : [String(v)];
+      return `- **${k} days**: ${items.join(" · ")}`;
+    };
+    const lines = ["30", "60", "90"].map(bucket).filter(Boolean).join("\n");
+    if (lines) parts.push(`## 30 / 60 / 90\n${lines}`);
+  }
+
+  const risks = Array.isArray(r.risks_dependencies) ? r.risks_dependencies : [];
+  if (risks.length) {
+    const lines = risks
+      .map((rd: any) => {
+        if (rd && typeof rd === "object") {
+          const risk = rd.risk ?? rd.title ?? "";
+          const mit = rd.mitigation ?? rd.detail ?? "";
+          return mit ? `- **${risk}** — ${mit}` : `- ${risk}`;
+        }
+        return `- ${String(rd)}`;
+      })
+      .join("\n");
+    parts.push(`## Risks & Dependencies\n${lines}`);
+  }
+
+  if (r.recommended_next_move) {
+    parts.push(`## Recommended next move\n${String(r.recommended_next_move).trim()}`);
+  }
+
+  return parts.join("\n\n");
+}
+
 
 // -------------------- Resend welcome/magic link (client self-serve) --------------------
 async function sendWelcomeMagicLink(email: string) {
