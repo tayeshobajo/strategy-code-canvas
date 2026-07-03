@@ -49,8 +49,24 @@ type ActivityRow = {
   created_at: string;
 };
 
-type Category = "billing" | "subscription" | "other";
-const ALL_CATEGORIES: Category[] = ["billing", "subscription", "other"];
+type Category =
+  | "follow_up"
+  | "roadmap"
+  | "files"
+  | "messages"
+  | "billing"
+  | "subscription"
+  | "workspace";
+const ALL_CATEGORIES: Category[] = [
+  "follow_up",
+  "roadmap",
+  "files",
+  "messages",
+  "billing",
+  "subscription",
+  "workspace",
+];
+
 
 type DateRange = "7d" | "30d" | "90d" | "all";
 const DATE_RANGE_LABEL: Record<DateRange, string> = {
