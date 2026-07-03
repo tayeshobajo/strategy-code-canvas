@@ -140,7 +140,16 @@ function FilesPage() {
   const logFileEvent = useServerFn(logPortalFileEvent);
 
 
-  const [query, setQuery] = useState("");
+  const search = Route.useSearch();
+  const [query, setQuery] = useState(search.q ?? "");
+  const prefillQueryApplied = useRef(false);
+  useEffect(() => {
+    if (prefillQueryApplied.current) return;
+    if (search.q) {
+      setQuery(search.q);
+      prefillQueryApplied.current = true;
+    }
+  }, [search.q]);
   const [category, setCategory] = useState<string>("all");
   const [queue, setQueue] = useState<UploadItem[]>([]);
   const [preview, setPreview] = useState<FileRow | null>(null);
