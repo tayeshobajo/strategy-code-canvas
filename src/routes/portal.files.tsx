@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -43,7 +45,12 @@ function isPreviewable(row: { mime_type: string | null; file_name: string }) {
   return null;
 }
 
+const filesSearchSchema = z.object({
+  q: fallback(z.string().optional(), undefined),
+});
+
 export const Route = createFileRoute("/portal/files")({
+  validateSearch: zodValidator(filesSearchSchema),
   head: () => ({
     meta: [
       { title: "Files — Trust Tai portal" },
@@ -133,7 +140,16 @@ function FilesPage() {
   const logFileEvent = useServerFn(logPortalFileEvent);
 
 
-  const [query, setQuery] = useState("");
+  const search = Route.useSearch();
+  const [query, setQuery] = useState(search.q ?? "");
+  const prefillQueryApplied = useRef(false);
+  useEffect(() => {
+    if (prefillQueryApplied.current) return;
+    if (search.q) {
+      setQuery(search.q);
+      prefillQueryApplied.current = true;
+    }
+  }, [search.q]);
   const [category, setCategory] = useState<string>("all");
   const [queue, setQueue] = useState<UploadItem[]>([]);
   const [preview, setPreview] = useState<FileRow | null>(null);

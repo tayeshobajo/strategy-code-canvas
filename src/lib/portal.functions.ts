@@ -496,17 +496,19 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
       .order("approved_at", { ascending: false });
     if (error) throw error;
 
+    // IMPORTANT: only client-safe fields are projected below. Internal engine
+    // metadata (source_version_id, review flags, agent costs, etc.) is
+    // intentionally NOT exposed. Audit new columns before adding to the select.
     const docs: PortalRoadmapDoc[] = (data ?? []).map((r: any) => ({
       id: r.id,
       title: r.version_label ? `${r.title} — ${r.version_label}` : r.title,
       body_md: renderRoadmapMarkdown(r),
-      file_url: null,
+      // Prefer the approved share URL (hosted PDF) when the engine has
+      // attached one to the roadmap version.
+      file_url: r.share_url ?? null,
       published_at: r.approved_at,
       updated_at: r.updated_at,
       raw: r,
-      // point_a/point_b live in the intake/engine layer today; portal
-      // projects don't carry them, so the canvas falls back to
-      // current_diagnosis / executive_summary from the roadmap row.
       project: null,
     }));
     return { docs, revoked: false as const };
@@ -928,6 +930,53 @@ export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
     } catch (e) {
       console.warn("[portal.roadmap-event] delivery mirror failed", e);
     }
+
+    return { ok: true as const };
+  });
+
+/**
+ * Client marks an individual milestone as reviewed. Records a client-visible
+ * activity referencing the roadmap and milestone so Tai can see progress in
+ * the internal timeline. Does not mutate the roadmap row itself.
+ */
+export const recordPortalMilestoneReview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        roadmapId: z.string().uuid(),
+        milestoneSlug: z.string().min(1).max(120),
+        milestoneTitle: z.string().min(1).max(240),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const email = (context.claims?.email as string | undefined) ?? undefined;
+    if (!email) return { error: "No email on account" } as const;
+
+    // Access check: caller must be able to SELECT the roadmap (RLS-checked).
+    const { data: cpr, error: cprErr } = await context.supabase
+      .from("client_portal_roadmaps")
+      .select("id, project_id")
+      .eq("id", data.roadmapId)
+      .maybeSingle();
+    if (cprErr || !cpr) {
+      return { error: "Roadmap not found or not visible" } as const;
+    }
+
+    await context.supabase.rpc("log_client_portal_activity", {
+      _project_id: cpr.project_id,
+      _actor_type: "client",
+      _actor_email: email,
+      _event_type: "milestone_reviewed",
+      _summary: `You marked "${data.milestoneTitle}" as reviewed.`,
+      _client_visible: true,
+      _metadata: {
+        portal_roadmap_id: cpr.id,
+        milestone_slug: data.milestoneSlug,
+        milestone_title: data.milestoneTitle,
+      } as unknown as never,
+    });
 
     return { ok: true as const };
   });

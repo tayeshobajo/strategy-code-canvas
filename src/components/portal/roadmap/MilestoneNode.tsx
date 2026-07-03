@@ -62,18 +62,27 @@ export function MilestoneNode({ milestone, x, y, onOpen, isSelected }: Props) {
         <TooltipTrigger asChild>
           <button
             type="button"
-            aria-label={`${milestone.title} — ${s.label}`}
+            data-milestone-node
+            aria-label={`${milestone.title} — ${s.label}. ${milestone.summary ?? ""}`.trim()}
+            aria-pressed={isSelected}
             onClick={onOpen}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpen();
+              }
+            }}
             className={`group relative flex items-center justify-center h-10 w-10 rounded-full border-2 transition-all duration-200 hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-paper-soft ${s.ring} ${
               isSelected ? "scale-110 ring-2 ring-royal ring-offset-2 ring-offset-paper-soft" : ""
             }`}
           >
             <Icon
+              aria-hidden="true"
               className={`w-4 h-4 ${milestone.status === "in_progress" ? "animate-spin" : ""}`}
             />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-[240px] text-left">
+        <TooltipContent side="top" role="tooltip" className="max-w-[240px] text-left">
           <div className="font-medium">{milestone.title}</div>
           <div className="opacity-80 mt-0.5 capitalize">
             {milestone.phase} · {s.label}
@@ -83,7 +92,7 @@ export function MilestoneNode({ milestone, x, y, onOpen, isSelected }: Props) {
               {milestone.summary}
             </div>
           )}
-          <div className="mt-1 opacity-70">Click to view details</div>
+          <div className="mt-1 opacity-70">Press Enter to view details</div>
         </TooltipContent>
       </Tooltip>
       <div

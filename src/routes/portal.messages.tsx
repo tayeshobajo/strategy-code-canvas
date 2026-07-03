@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import {
   MessageSquare,
   Send,
@@ -29,7 +31,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { usePortalContext } from "@/hooks/use-portal-context";
 import { toast } from "sonner";
 
+const messagesSearchSchema = z.object({
+  milestone: fallback(z.string().optional(), undefined),
+  prefill: fallback(z.string().optional(), undefined),
+});
+
 export const Route = createFileRoute("/portal/messages")({
+  validateSearch: zodValidator(messagesSearchSchema),
   head: () => ({
     meta: [
       { title: "Messages — Trust Tai portal" },
@@ -137,14 +145,27 @@ function MessagesPage() {
   const { data: messages, isLoading, isError, refetch } = useMessages(projectId);
   const { data: fileMap } = useMessageFiles(projectId);
   const qc = useQueryClient();
+  const search = Route.useSearch();
   const [body, setBody] = useState("");
   const [tab, setTab] = useState<Tab>("all");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [previewFile, setPreviewFile] = useState<FileMeta | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prefillApplied = useRef(false);
 
   const email = ctx.data?.email ?? "";
+
+  // Pre-fill compose textarea when linked from a roadmap milestone.
+  useEffect(() => {
+    if (prefillApplied.current) return;
+    if (!search.prefill && !search.milestone) return;
+    prefillApplied.current = true;
+    const seed = search.prefill
+      ? search.prefill
+      : `I have a question about the "${search.milestone}" milestone in our roadmap:\n\n`;
+    setBody((current) => (current ? current : seed));
+  }, [search.prefill, search.milestone]);
 
   const updateAttachment = useCallback((clientId: string, patch: Partial<Attachment>) => {
     setAttachments((a) => a.map((it) => (it.clientId === clientId ? { ...it, ...patch } : it)));
