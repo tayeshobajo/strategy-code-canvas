@@ -225,11 +225,22 @@ function toMilestone(
             ? "optional"
             : "upcoming";
 
+  const rawKind = String(raw.kind ?? raw.type ?? "").toLowerCase();
+  const kind: MilestoneKind =
+    rawKind === "decision"
+      ? "decision"
+      : rawKind === "deliverable" || raw.file_url || raw.fileUrl
+        ? "deliverable"
+        : rawKind === "meeting" || raw.meeting_at || raw.meetingAt
+          ? "meeting"
+          : "milestone";
+
   return {
     slug,
     title,
     phase,
     status,
+    kind,
     summary: raw.summary ?? raw.description ?? raw.goal ?? undefined,
     detail: raw.detail ?? raw.description ?? raw.summary ?? undefined,
     successLooksLike:
@@ -237,6 +248,22 @@ function toMilestone(
     dependencies: toStringArray(raw.dependencies ?? raw.deps),
     actions: toStringArray(raw.actions ?? raw.key_actions ?? raw.next_actions),
     ownerNote: raw.owner_note ?? raw.notes ?? raw.tai_note ?? undefined,
+    targetDate: raw.target_date ?? raw.targetDate ?? undefined,
+    dueDate: raw.due_date ?? raw.dueDate ?? undefined,
+    unlocks: toStringArray(raw.unlocks ?? raw.enables),
+    latestUpdate: raw.latest_update ?? raw.latestUpdate ?? undefined,
+    clientActionNeeded:
+      raw.client_action_needed ?? raw.clientActionNeeded ?? undefined,
+    options: toStringArray(raw.options ?? raw.choices),
+    recommendedOption:
+      raw.recommended_option ?? raw.recommendedOption ?? undefined,
+    fileUrl: raw.file_url ?? raw.fileUrl ?? undefined,
+    fileType: raw.file_type ?? raw.fileType ?? undefined,
+    version: raw.version ?? undefined,
+    publishedAt: raw.published_at ?? raw.publishedAt ?? undefined,
+    meetingAt: raw.meeting_at ?? raw.meetingAt ?? undefined,
+    meetingPurpose: raw.meeting_purpose ?? raw.meetingPurpose ?? undefined,
+    meetingUrl: raw.meeting_url ?? raw.meetingUrl ?? undefined,
   };
 }
 
