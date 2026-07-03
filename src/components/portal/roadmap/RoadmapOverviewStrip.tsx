@@ -120,35 +120,50 @@ export function RoadmapOverviewStrip({
           <div
             className={`text-[11.5px] mt-0.5 max-w-[160px] leading-snug ${floating ? "text-white/60" : "text-ink/60"}`}
           >
-            Click a phase to navigate
+            {viewMode !== "all" ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full"
+                  style={{ background: `rgb(${tone.rgb})` }}
+                  aria-hidden
+                />
+                <span>View: {VIEW_MODE_LABEL[viewMode]}</span>
+              </span>
+            ) : (
+              "Click a phase to navigate"
+            )}
           </div>
         </div>
 
         {expanded && (
           <div className="flex-1 min-w-0 relative">
-            {/* Continuous route line under the row — gradient from Point A anchor
-                to Point B royal, communicates the through-line at a glance. */}
+            {/* Continuous route line — accent recolors per view mode. */}
             <div
               aria-hidden
-              className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full"
+              className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full transition-colors duration-300"
               style={{
                 background: floating
-                  ? "linear-gradient(90deg, rgba(255,255,255,0.14) 0%, rgba(47,93,246,0.55) 45%, rgba(47,93,246,0.85) 75%, rgba(47,93,246,1) 100%)"
-                  : "linear-gradient(90deg, rgba(11,18,32,0.10) 0%, rgba(47,93,246,0.45) 55%, rgba(47,93,246,0.85) 100%)",
+                  ? `linear-gradient(90deg, rgba(255,255,255,0.14) 0%, rgba(${tone.rgb},0.55) 45%, rgba(${tone.rgb},0.85) 75%, rgba(${tone.rgb},1) 100%)`
+                  : `linear-gradient(90deg, rgba(11,18,32,0.10) 0%, rgba(${tone.rgb},0.45) 55%, rgba(${tone.rgb},0.85) 100%)`,
                 boxShadow: floating
-                  ? "0 0 12px rgba(47,93,246,0.25)"
+                  ? `0 0 12px rgba(${tone.rgb},${viewMode === "all" ? 0.25 : 0.45})`
                   : undefined,
               }}
             />
-            {/* Viewport window rectangle */}
+            {/* Viewport rectangle — tint follows accent, thicker border when a filter is active. */}
             {viewport && floating && (
               <div
                 aria-hidden
                 data-testid="mini-viewport-window"
-                className="pointer-events-none absolute inset-y-1 rounded-md border border-royal/60 bg-royal/10 shadow-[inset_0_0_16px_rgba(47,93,246,0.25)] transition-[left,width] duration-150 ease-out"
+                className="pointer-events-none absolute inset-y-1 rounded-md transition-[left,width,border-color,background-color,box-shadow] duration-200 ease-out"
                 style={{
                   left: `${viewport.left * 100}%`,
                   width: `${viewport.width * 100}%`,
+                  borderWidth: viewMode === "all" ? 1 : 1.5,
+                  borderStyle: "solid",
+                  borderColor: `rgba(${tone.rgb},${viewMode === "all" ? 0.6 : 0.85})`,
+                  background: `rgba(${tone.rgb},${viewMode === "all" ? 0.1 : 0.18})`,
+                  boxShadow: `inset 0 0 16px rgba(${tone.rgb},${viewMode === "all" ? 0.25 : 0.4})`,
                 }}
               />
             )}
