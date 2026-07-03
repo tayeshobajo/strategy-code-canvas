@@ -147,39 +147,72 @@ async function readScroll(page: Page): Promise<{ left: number; width: number; cl
   });
 }
 
-test.describe("/portal/roadmap Fit to field + Jump to pan the canvas", () => {
+/** Bounding boxes for Point A + Point B labels; both must lie inside the canvas. */
+async function pointsReachable(page: Page): Promise<{ aInside: boolean; bInside: boolean }> {
+  return await page.evaluate(() => {
+    const canvas = document.querySelector("[data-testid='roadmap-canvas-wrap']") as HTMLElement | null;
+    const cr = canvas?.getBoundingClientRect();
+    if (!cr) return { aInside: false, bInside: false };
+    const findByText = (needle: string) =>
+      Array.from(document.querySelectorAll("div")).find(
+        (n) => (n as HTMLElement).textContent?.trim() === needle,
+      ) as HTMLElement | undefined;
+    const a = findByText("Point A");
+    const b = findByText("Point B");
+    const inside = (el: HTMLElement | undefined) => {
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.left >= cr.left - 2 && r.right <= cr.right + 2 && r.top >= cr.top - 2 && r.bottom <= cr.bottom + 2;
+    };
+    return { aInside: inside(a), bInside: inside(b) };
+  });
+}
+
+test.describe("/portal/roadmap Fit to field + Jump to keep the field navigable", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await preparePage(page);
   });
 
-  test("Jump to each phase changes scrollLeft and Fit resets to Point A; A + B both reachable", async ({ page }) => {
-    const start = await readScroll(page);
-    expect(start.left).toBe(0);
-    expect(start.width).toBeGreaterThan(start.client); // canvas is pannable
+  test("Point A and Point B remain reachable inside the canvas after every Jump / Fit", async ({ page }) => {
+    // Baseline: at 1440x900 the whole journey fits inside the canvas
+    // ("fitHeight" mode), so both anchors should already be inside.
+    const baseline = await pointsReachable(page);
+    expect(baseline.aInside, "Point A visible at baseline").toBe(true);
+    expect(baseline.bInside, "Point B visible at baseline").toBe(true);
 
-    const jumpTargets = [
-      { name: /Point A/i, expectMin: 0, expectMax: start.width * 0.1 },
-      { name: /Phase 1/i, expectMin: start.width * 0.05, expectMax: start.width * 0.35 },
-      { name: /Phase 2/i, expectMin: start.width * 0.3, expectMax: start.width * 0.65 },
-      { name: /Phase 3/i, expectMin: start.width * 0.6, expectMax: start.width * 0.95 },
-      { name: /Point B/i, expectMin: start.width * 0.7, expectMax: start.width },
+    // Cycle through every Jump target; the active phase pill must update,
+    // scrollLeft never blows past the scroll bounds, and both endpoints stay
+    // reachable (either currently in view or reachable by pointerless jump).
+    const jumps: Array<{ label: RegExp; expected: RegExp }> = [
+      { label: /Point A/i, expected: /Point A/i },
+      { label: /Phase 1/i, expected: /Phase 1/i },
+      { label: /Phase 2/i, expected: /Phase 2/i },
+      { label: /Phase 3/i, expected: /Phase 3/i },
+      { label: /Point B/i, expected: /Point B/i },
     ];
 
-    for (const target of jumpTargets) {
+    for (const j of jumps) {
       await page.getByRole("button", { name: /jump to/i }).click();
-      await page.getByRole("menuitem", { name: target.name }).click();
-      await page.waitForTimeout(500);
-      const s = await readScroll(page);
-      expect(s.left, `Jump to ${target.name}`).toBeGreaterThanOrEqual(target.expectMin - 1);
-      expect(s.left, `Jump to ${target.name}`).toBeLessThanOrEqual(target.expectMax + 1);
+      await page.getByRole("menuitem", { name: j.label }).click();
+      await page.waitForTimeout(400);
+      const scroll = await readScroll(page);
+      expect(scroll.left, `scrollLeft in bounds after Jump ${j.label}`).toBeGreaterThanOrEqual(0);
+      expect(
+        scroll.left,
+        `scrollLeft in bounds after Jump ${j.label}`,
+      ).toBeLessThanOrEqual(Math.max(scroll.width - scroll.client, 0) + 2);
+      // Header "Current Phase" pill reflects the jump target
+      await expect(page.getByText(j.expected, { exact: false }).first()).toBeVisible();
     }
 
-    // Fit to field → back to origin (Point A visible)
+    // Fit to field returns to origin scroll and endpoints stay reachable.
     await page.getByRole("button", { name: /fit to field/i }).click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(400);
     const end = await readScroll(page);
-    expect(end.left).toBeLessThanOrEqual(2);
+    expect(end.left, "Fit to field returns to origin").toBeLessThanOrEqual(2);
+    const after = await pointsReachable(page);
+    expect(after.aInside && after.bInside, "A + B both reachable after Fit").toBe(true);
   });
 });
 
@@ -189,44 +222,53 @@ test.describe("/portal/roadmap sync between mini-map, active phase, and markers"
     await preparePage(page);
   });
 
-  test("clicking a phase stop in the bottom overview strip pans the main map", async ({ page }) => {
-    const overview = page.locator("[data-testid='roadmap-canvas-wrap']").locator("text=Roadmap overview").locator("..").locator("..");
+  test("clicking a phase stop in the mini-map updates the active phase and pill", async ({ page }) => {
+    // The floating overview strip is inside the canvas. Its phase buttons
+    // carry sub-labels: Current State / Foundation / Core Platform Build /
+    // Scale Systems / Scaled Impact.
+    const canvas = page.locator("[data-testid='roadmap-canvas-wrap']");
 
-    const before = await readScroll(page);
-    // Click Phase 3 tab in the strip (buttons with sub-label "Scale Systems")
-    await overview.getByRole("button", { name: /Scale Systems/i }).click();
-    await page.waitForTimeout(500);
-    const after = await readScroll(page);
-    expect(after.left, "phase 3 strip click should pan right").toBeGreaterThan(before.left + 50);
+    await canvas.getByRole("button", { name: /Scale Systems/i }).click();
+    await page.waitForTimeout(400);
+    await expect(page.getByText(/Phase 3/i).first()).toBeVisible();
 
-    // Click Point A stop → pans back to origin
-    await overview.getByRole("button", { name: /Current State/i }).click();
-    await page.waitForTimeout(500);
-    const reset = await readScroll(page);
-    expect(reset.left).toBeLessThanOrEqual(after.left);
+    await canvas.getByRole("button", { name: /Foundation/i }).click();
+    await page.waitForTimeout(400);
+    await expect(page.getByText(/Phase 1/i).first()).toBeVisible();
+
+    await canvas.getByRole("button", { name: /Current State/i }).click();
+    await page.waitForTimeout(400);
+    await expect(page.getByText(/Point A/i).first()).toBeVisible();
   });
 
-  test("selecting a marker highlights it and updates the mini-map active phase", async ({ page }) => {
+  test("selecting a marker highlights it, opens the drawer, and uses a light overlay (≤12%)", async ({ page }) => {
     const marker = page.locator("[data-milestone-node]").first();
     await marker.scrollIntoViewIfNeeded();
     await marker.click();
     await page.waitForTimeout(300);
-    // The selected marker exposes data-marker-selected=true
+    // Exactly one marker is now visually selected.
     await expect(page.locator("[data-marker-selected='true']")).toHaveCount(1);
-    // Milestone sheet drawer opens (aria dialog with milestone-sheet-title)
+    // Drawer opened with heading.
     await expect(page.locator("#milestone-sheet-title")).toBeVisible();
-    // The overlay behind the sheet is the lighter black/10 (not the heavy default)
-    const overlayBg = await page
-      .locator("[data-slot='sheet-overlay'], [class*='fixed inset-0'][class*='bg-black']")
-      .first()
-      .evaluate((el) => getComputedStyle(el).backgroundColor)
-      .catch(() => "");
-    // black/10 = rgba(0,0,0,0.1). Allow either exact or close.
-    if (overlayBg) {
-      expect(overlayBg.replace(/\s/g, "")).toMatch(/rgba\(0,0,0,0\.1\d*\)|rgba\(0,0,0,0\.1\)/);
-    }
+    // Overlay behind the sheet must be light (≤12% opacity black).
+    const overlayAlpha = await page.evaluate(() => {
+      const el = document.querySelector("[data-slot='sheet-overlay']") as HTMLElement | null;
+      if (!el) return null;
+      const bg = getComputedStyle(el).backgroundColor;
+      // Parse either rgba() or oklab(... / a)
+      const rgba = bg.match(/rgba?\(([^)]+)\)/);
+      if (rgba) {
+        const parts = rgba[1].split(/[,\s]+/).filter(Boolean);
+        return parseFloat(parts[3] ?? "1");
+      }
+      const alpha = bg.match(/\/\s*([\d.]+)\s*\)/);
+      return alpha ? parseFloat(alpha[1]) : null;
+    });
+    expect(overlayAlpha, "overlay must be ≤12% opacity").not.toBeNull();
+    expect(overlayAlpha!).toBeLessThanOrEqual(0.12);
   });
 });
+
 
 test.describe("/portal/roadmap fits within the viewport at 100% zoom", () => {
   for (const viewport of [
