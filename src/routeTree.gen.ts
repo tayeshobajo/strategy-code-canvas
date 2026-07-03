@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatWeBuildRouteImport } from './routes/what-we-build'
 import { Route as WalksRouteImport } from './routes/walks'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as InvestmentRouteImport } from './routes/investment'
@@ -99,6 +100,11 @@ const WhatWeBuildRoute = WhatWeBuildRouteImport.update({
 const WalksRoute = WalksRouteImport.update({
   id: '/walks',
   path: '/walks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -535,6 +541,7 @@ export interface FileRoutesByFullPath {
   '/investment': typeof InvestmentRoute
   '/portal': typeof AuthenticatedPortalRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
@@ -613,6 +620,7 @@ export interface FileRoutesByTo {
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/portal': typeof PortalIndexRoute
@@ -696,6 +704,7 @@ export interface FileRoutesById {
   '/investment': typeof InvestmentRoute
   '/portal': typeof PortalRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
@@ -780,6 +789,7 @@ export interface FileRouteTypes {
     | '/investment'
     | '/portal'
     | '/sitemap.xml'
+    | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
     | '/admin/client-portals'
@@ -858,6 +868,7 @@ export interface FileRouteTypes {
     | '/insights'
     | '/investment'
     | '/sitemap.xml'
+    | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
     | '/portal'
@@ -940,6 +951,7 @@ export interface FileRouteTypes {
     | '/investment'
     | '/portal'
     | '/sitemap.xml'
+    | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
     | '/_authenticated/portal'
@@ -1024,6 +1036,7 @@ export interface RootRouteChildren {
   InvestmentRoute: typeof InvestmentRoute
   PortalRoute: typeof PortalRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   WalksRoute: typeof WalksRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
@@ -1055,6 +1068,13 @@ declare module '@tanstack/react-router' {
       path: '/walks'
       fullPath: '/walks'
       preLoaderRoute: typeof WalksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -1818,6 +1838,7 @@ const rootRouteChildren: RootRouteChildren = {
   InvestmentRoute: InvestmentRoute,
   PortalRoute: PortalRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   WalksRoute: WalksRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
