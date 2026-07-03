@@ -48,7 +48,7 @@ const STATUS_LABEL: Record<RoadmapMilestone["status"], string> = {
   optional: "Optional",
 };
 
-export function MobilePhaseStack({ journey, selectedSlug, onSelect }: Props) {
+export function MobilePhaseStack({ journey, selectedSlug, onSelect, matchingSlugs }: Props) {
   const reduced = useReducedMotion();
   // Start on the phase containing the active milestone, if any.
   const activePhaseIndex = Math.max(
