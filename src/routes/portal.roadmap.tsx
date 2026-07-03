@@ -159,12 +159,15 @@ function RoadmapView() {
           Roadmap
         </div>
         <h1 className="font-display text-2xl text-ink mt-2">
-          Your roadmap is being prepared. Once approved, it will appear here.
+          Your roadmap is being prepared.
         </h1>
         <p className="text-[15px] leading-[1.75] text-ink/70 mt-3">
-          Once Tai finalizes your approved Roadmap, it will appear here as an
-          interactive journey — Point A to Point B, phase by phase.
+          Once your approved roadmap is ready, it will appear here as a visual
+          journey from current state to future state.
         </p>
+        <Button asChild className="mt-6 bg-ink hover:bg-ink/90 text-white">
+          <Link to="/portal/messages">Contact Trust Tai</Link>
+        </Button>
       </div>
     );
   }
