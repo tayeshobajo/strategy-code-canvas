@@ -350,23 +350,19 @@ function RoadmapJourneyView({
   );
 
   return (
-    <div className="max-w-[1400px] mx-auto space-y-6">
+    <div className="max-w-[1500px] mx-auto space-y-5">
       <RoadmapHeader
         journey={journey}
         doc={doc}
         portalRoadmapId={portalRoadmapId}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        matchingCount={matchingCount}
+        totalCount={journey.milestones.length}
+        onJump={jumpTo}
         onClarify={() => setHeaderClarifyOpen(true)}
         onBookCall={() => setHeaderBookOpen(true)}
       />
-      <ExecutiveSnapshot journey={journey} />
-      {hasRealMilestones && (
-        <ViewFilterBar
-          value={viewMode}
-          onChange={setViewMode}
-          matchingCount={matchingCount}
-          total={journey.milestones.length}
-        />
-      )}
       {!hasRealMilestones ? (
         <div className="rounded-2xl bg-card border border-border p-8 lg:p-10 text-center">
           <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
@@ -389,14 +385,34 @@ function RoadmapJourneyView({
         />
       ) : (
         <>
-          <PhaseJumpNav journey={journey} onJump={jumpTo} />
-          <JourneyCanvas
-            journey={journey}
-            selectedSlug={selectedMilestone?.slug ?? null}
-            onSelect={(slug) => setSelected(slug)}
-            matchingSlugs={matchingSlugs}
-          />
-          <MiniMap journey={journey} canvasWidth={canvas.scrollWidth || 1800} />
+          <div className="relative">
+            <MapCanvas
+              journey={journey}
+              selectedSlug={selectedMilestone?.slug ?? null}
+              onSelect={(slug) => setSelected(slug)}
+              matchingSlugs={matchingSlugs}
+            />
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute top-4 left-4 pointer-events-auto">
+                <StatusOverlayCard
+                  journey={journey}
+                  onSelectNextAction={(slug) => setSelected(slug)}
+                />
+              </div>
+              <div className="absolute top-6 right-6 max-w-md text-right pointer-events-none">
+                <h2 className="font-display text-2xl text-white leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
+                  The journey from today to your scaled impact.
+                </h2>
+                <p className="text-[13px] text-white/80 mt-1 drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)]">
+                  A clear path. Strategic milestones. Real outcomes.
+                </p>
+              </div>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto">
+                <MapLegend />
+              </div>
+            </div>
+          </div>
+          <RoadmapOverviewStrip journey={journey} onJump={jumpTo} />
         </>
       )}
       <SupportingContext journey={journey} />
