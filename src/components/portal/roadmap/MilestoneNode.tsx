@@ -69,7 +69,7 @@ export function MilestoneNode({ milestone, x, y, onOpen, isSelected }: Props) {
             }`}
           >
             <Icon
-              className={`w-4 h-4 ${milestone.status === "in_progress" ? "animate-spin-slow" : ""}`}
+              className={`w-4 h-4 ${milestone.status === "in_progress" ? "animate-spin" : ""}`}
             />
           </button>
         </TooltipTrigger>
