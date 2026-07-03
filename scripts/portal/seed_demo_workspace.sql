@@ -1,10 +1,14 @@
 -- Seed demo portal workspace for shobajotaye@gmail.com
--- Rerunnable: uses stable UUIDs + ON CONFLICT / targeted deletes for child rows.
+-- Rerunnable: uses stable UUIDs + ON CONFLICT / targeted deletes for child rows,
+-- so running it repeatedly refreshes the same demo workspace instead of duplicating rows.
 --
--- Usage:
---   psql "$SUPABASE_DB_URL" -f scripts/portal/seed_demo_workspace.sql
+-- Requires elevated (service_role / owner) privileges because the upserts use
+-- ON CONFLICT DO UPDATE. Run one of:
+--   1) Paste into the Lovable Cloud SQL editor.
+--   2) psql "$SUPABASE_DB_URL" -f scripts/portal/seed_demo_workspace.sql
+--   3) Ship as a one-off migration.
 --
--- To seed a different account, change v_email and the top-level UUIDs.
+-- To seed a different account, change v_email (and optionally the stable UUIDs).
 
 BEGIN;
 
