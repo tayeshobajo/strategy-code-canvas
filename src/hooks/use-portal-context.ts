@@ -22,14 +22,16 @@ const UNLOCK_STATUSES = new Set([
  * Once the roadmap is approved (or the project reaches an unlocked status),
  * polling stops and we fall back to the standard 60s stale window.
  */
-export function usePortalContext() {
+export function usePortalContext({ enabled = true }: { enabled?: boolean } = {}) {
   const fetchCtx = useServerFn(getPortalContext);
   return useQuery({
     queryKey: ["portal", "context"],
     queryFn: () => fetchCtx({}),
+    enabled,
     staleTime: 30_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: enabled,
     refetchInterval: (query) => {
+      if (!enabled) return false;
       const data = query.state.data as
         | { approvedRoadmap?: unknown; project?: { portal_status?: string } }
         | undefined;
