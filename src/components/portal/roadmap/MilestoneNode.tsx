@@ -6,59 +6,23 @@ import {
   GitBranch,
   FileText,
   CalendarClock,
+  Flag,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type {
   MilestoneKind,
   RoadmapMilestone,
 } from "@/lib/portal-roadmap-model";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useRoadmapCanvas } from "./canvas-context";
 
 type Props = {
   milestone: RoadmapMilestone;
+  /** absolute px position within the map canvas */
   x: number;
   y: number;
   onOpen: () => void;
   isSelected: boolean;
-  /** When true, node is visually de-emphasized because a view filter is active
-   *  and this marker doesn't match. It stays reachable for accessibility. */
   dimmed?: boolean;
-};
-
-const STATUS_STYLES: Record<
-  RoadmapMilestone["status"],
-  { ring: string; label: string; icon: typeof Circle }
-> = {
-  completed: {
-    ring: "bg-royal text-white border-royal",
-    label: "Completed",
-    icon: CheckCircle2,
-  },
-  in_progress: {
-    ring: "bg-white text-royal border-royal shadow-[0_0_0_6px_color-mix(in_oklch,var(--royal)_18%,transparent)]",
-    label: "In progress",
-    icon: Loader2,
-  },
-  upcoming: {
-    ring: "bg-white text-ink/60 border-ink/25",
-    label: "Upcoming",
-    icon: Circle,
-  },
-  blocked: {
-    ring: "bg-white text-[#a4283c] border-[#a4283c]",
-    label: "Blocked",
-    icon: AlertTriangle,
-  },
-  optional: {
-    ring: "bg-white/70 text-ink/40 border-dashed border-ink/25",
-    label: "Optional",
-    icon: Circle,
-  },
 };
 
 const KIND_ICON: Record<MilestoneKind, typeof Circle> = {
@@ -75,9 +39,46 @@ const KIND_LABEL: Record<MilestoneKind, string> = {
   meeting: "Meeting",
 };
 
-function truncate(input: string, max = 140): string {
-  if (input.length <= max) return input;
-  return input.slice(0, max - 1).trimEnd() + "…";
+const KIND_ACCENT: Record<MilestoneKind, string> = {
+  milestone: "bg-[color:var(--royal,#2f5df6)]",
+  decision: "bg-[#8b5cf6]",
+  deliverable: "bg-[#f59e0b]",
+  meeting: "bg-[#0ea5a4]",
+};
+
+function statusIcon(m: RoadmapMilestone) {
+  if (m.kind !== "milestone") return KIND_ICON[m.kind];
+  switch (m.status) {
+    case "completed":
+      return CheckCircle2;
+    case "in_progress":
+      return Loader2;
+    case "blocked":
+      return AlertTriangle;
+    default:
+      return Circle;
+  }
+}
+
+function statusSubline(m: RoadmapMilestone): string | null {
+  if (m.status === "in_progress") return "In progress";
+  if (m.status === "completed") return "Complete";
+  if (m.status === "blocked") return "Blocked";
+  const date = m.dueDate ?? m.targetDate ?? m.meetingAt;
+  if (date) {
+    try {
+      const d = new Date(date).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      });
+      return m.kind === "decision" || m.kind === "deliverable"
+        ? `Due ${d}`
+        : d;
+    } catch {
+      /* ignore */
+    }
+  }
+  return "Planned";
 }
 
 export function MilestoneNode({
@@ -88,100 +89,95 @@ export function MilestoneNode({
   isSelected,
   dimmed = false,
 }: Props) {
-  const s = STATUS_STYLES[milestone.status];
-  // Use kind icon when non-milestone, otherwise status icon.
-  const Icon = milestone.kind === "milestone" ? s.icon : KIND_ICON[milestone.kind];
   const btnRef = useRef<HTMLButtonElement>(null);
   const canvas = useRoadmapCanvas();
+  const Icon = statusIcon(milestone);
+  const subline = statusSubline(milestone);
+  const isPlaceholder = milestone.slug.endsWith("-placeholder");
 
   useEffect(() => {
     canvas.registerNode(milestone.slug, btnRef.current);
     return () => canvas.registerNode(milestone.slug, null);
   }, [canvas, milestone.slug]);
 
-  const dateLabel =
-    milestone.targetDate ?? milestone.dueDate ?? milestone.meetingAt ?? milestone.publishedAt;
-  const dateStr = dateLabel
-    ? new Date(dateLabel).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      })
-    : null;
+  const kindLabel = KIND_LABEL[milestone.kind];
+  const accent = KIND_ACCENT[milestone.kind];
+
+  const selectedShell =
+    "bg-white text-ink border-white shadow-[0_10px_28px_-8px_rgba(0,0,0,0.35)]";
+  const restingShell =
+    "bg-slate-900/85 text-white border-white/15 backdrop-blur-sm hover:bg-slate-900/95";
 
   return (
     <div
       className="absolute -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200"
-      style={{ left: `${x}px`, top: `${y}px`, opacity: dimmed ? 0.28 : 1 }}
+      style={{
+        left: `${x}px`,
+        top: `${y}px`,
+        opacity: dimmed ? 0.28 : 1,
+        zIndex: isSelected ? 25 : 15,
+      }}
     >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            ref={btnRef}
-            type="button"
-            data-milestone-node
-            data-marker-slug={milestone.slug}
-            aria-label={`${KIND_LABEL[milestone.kind]}: ${milestone.title} — ${s.label}. ${milestone.summary ?? ""}`.trim()}
-            aria-pressed={isSelected}
-            onClick={onOpen}
-            onMouseEnter={() => canvas.setHighlightedSlug(milestone.slug)}
-            onMouseLeave={() => {
-              if (canvas.highlightedSlug === milestone.slug)
-                canvas.setHighlightedSlug(null);
-            }}
-            onFocus={() => canvas.setHighlightedSlug(milestone.slug)}
-            onBlur={() => {
-              if (canvas.highlightedSlug === milestone.slug)
-                canvas.setHighlightedSlug(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onOpen();
-              }
-            }}
-            className={`group relative flex items-center justify-center h-10 w-10 rounded-full border-2 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--royal)_60%,transparent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-paper-soft ${s.ring} ${
-              isSelected
-                ? "ring-2 ring-royal ring-offset-2 ring-offset-paper-soft"
+      <button
+        ref={btnRef}
+        type="button"
+        data-milestone-node
+        data-marker-slug={milestone.slug}
+        data-no-drag
+        aria-label={`${kindLabel}: ${milestone.title}`}
+        aria-pressed={isSelected}
+        onClick={onOpen}
+        onMouseEnter={() => canvas.setHighlightedSlug(milestone.slug)}
+        onMouseLeave={() => {
+          if (canvas.highlightedSlug === milestone.slug)
+            canvas.setHighlightedSlug(null);
+        }}
+        onFocus={() => canvas.setHighlightedSlug(milestone.slug)}
+        onBlur={() => {
+          if (canvas.highlightedSlug === milestone.slug)
+            canvas.setHighlightedSlug(null);
+        }}
+        className={`group flex items-center gap-2 rounded-full border pl-1.5 pr-3 py-1.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
+          isSelected ? selectedShell : restingShell
+        } ${isPlaceholder ? "opacity-60" : ""}`}
+      >
+        <span
+          className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-white shrink-0 ${accent}`}
+          aria-hidden="true"
+        >
+          <Icon
+            className={`w-3.5 h-3.5 ${
+              milestone.status === "in_progress" &&
+              milestone.kind === "milestone"
+                ? "animate-spin"
                 : ""
             }`}
-          >
-            <Icon
-              aria-hidden="true"
-              className={`w-4 h-4 ${milestone.status === "in_progress" && milestone.kind === "milestone" ? "animate-spin" : ""}`}
-            />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent
-          side="top"
-          role="tooltip"
-          className="max-w-[260px] text-left"
-        >
-          <div className="font-medium">{milestone.title}</div>
-          <div className="opacity-80 mt-0.5 capitalize text-[11px]">
-            {KIND_LABEL[milestone.kind]} · Phase {milestone.phase} · {s.label}
-          </div>
-          {milestone.summary && (
-            <div className="opacity-80 mt-1.5 text-[12px] leading-snug">
-              {truncate(milestone.summary)}
-            </div>
+          />
+        </span>
+        <span className="flex flex-col items-start leading-tight text-left">
+          <span className="text-[12.5px] font-semibold whitespace-nowrap max-w-[180px] truncate">
+            {milestone.title}
+          </span>
+          {subline && (
+            <span
+              className={`text-[10.5px] whitespace-nowrap ${
+                isSelected ? "text-ink/55" : "text-white/60"
+              }`}
+            >
+              {subline}
+            </span>
           )}
-          {dateStr && (
-            <div className="opacity-70 mt-1 text-[11px]">Target: {dateStr}</div>
-          )}
-          <div className="mt-1.5 text-[11px] opacity-70">View details →</div>
-        </TooltipContent>
-      </Tooltip>
-      <div
-        className="mt-2 text-center whitespace-nowrap max-w-[180px] mx-auto"
-        style={{ transform: "translateX(-50%)", marginLeft: "50%" }}
-      >
-        <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-white/60">
-          {KIND_LABEL[milestone.kind]}
-        </div>
-        <div className="text-[13px] font-medium text-white leading-tight whitespace-normal max-w-[160px] mx-auto">
-          {milestone.title}
-        </div>
-      </div>
+        </span>
+      </button>
     </div>
+  );
+}
+
+/** Small decorative peak marker for Point B (destination flag). */
+export function PointBFlag() {
+  return (
+    <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-[color:var(--royal,#2f5df6)] text-white shadow-[0_0_24px_rgba(47,93,246,0.5)]">
+      <Flag className="w-4 h-4" />
+    </span>
   );
 }
