@@ -29,6 +29,7 @@ import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as EngineIndexRouteImport } from './routes/engine.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
+import { Route as PortalRoadmapMockupRouteImport } from './routes/portal.roadmap-mockup'
 import { Route as PortalRoadmapRouteImport } from './routes/portal.roadmap'
 import { Route as PortalOnboardingRouteImport } from './routes/portal.onboarding'
 import { Route as PortalMessagesRouteImport } from './routes/portal.messages'
@@ -191,6 +192,11 @@ const WalksSlugRoute = WalksSlugRouteImport.update({
   id: '/walks_/$slug',
   path: '/walks/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoadmapMockupRoute = PortalRoadmapMockupRouteImport.update({
+  id: '/roadmap-mockup',
+  path: '/roadmap-mockup',
+  getParentRoute: () => PortalRoute,
 } as any)
 const PortalRoadmapRoute = PortalRoadmapRouteImport.update({
   id: '/roadmap',
@@ -578,6 +584,7 @@ export interface FileRoutesByFullPath {
   '/portal/messages': typeof PortalMessagesRoute
   '/portal/onboarding': typeof PortalOnboardingRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
+  '/portal/roadmap-mockup': typeof PortalRoadmapMockupRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/engine/': typeof EngineIndexRoute
@@ -658,6 +665,7 @@ export interface FileRoutesByTo {
   '/portal/messages': typeof PortalMessagesRoute
   '/portal/onboarding': typeof PortalOnboardingRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
+  '/portal/roadmap-mockup': typeof PortalRoadmapMockupRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/admin': typeof AdminIndexRoute
   '/engine': typeof EngineIndexRoute
@@ -743,6 +751,7 @@ export interface FileRoutesById {
   '/portal/messages': typeof PortalMessagesRoute
   '/portal/onboarding': typeof PortalOnboardingRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
+  '/portal/roadmap-mockup': typeof PortalRoadmapMockupRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/engine/': typeof EngineIndexRoute
@@ -828,6 +837,7 @@ export interface FileRouteTypes {
     | '/portal/messages'
     | '/portal/onboarding'
     | '/portal/roadmap'
+    | '/portal/roadmap-mockup'
     | '/walks/$slug'
     | '/admin/'
     | '/engine/'
@@ -908,6 +918,7 @@ export interface FileRouteTypes {
     | '/portal/messages'
     | '/portal/onboarding'
     | '/portal/roadmap'
+    | '/portal/roadmap-mockup'
     | '/walks/$slug'
     | '/admin'
     | '/engine'
@@ -992,6 +1003,7 @@ export interface FileRouteTypes {
     | '/portal/messages'
     | '/portal/onboarding'
     | '/portal/roadmap'
+    | '/portal/roadmap-mockup'
     | '/walks_/$slug'
     | '/admin/'
     | '/engine/'
@@ -1205,6 +1217,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/walks/$slug'
       preLoaderRoute: typeof WalksSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/portal/roadmap-mockup': {
+      id: '/portal/roadmap-mockup'
+      path: '/roadmap-mockup'
+      fullPath: '/portal/roadmap-mockup'
+      preLoaderRoute: typeof PortalRoadmapMockupRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/portal/roadmap': {
       id: '/portal/roadmap'
@@ -1824,6 +1843,7 @@ interface PortalRouteChildren {
   PortalMessagesRoute: typeof PortalMessagesRoute
   PortalOnboardingRoute: typeof PortalOnboardingRoute
   PortalRoadmapRoute: typeof PortalRoadmapRoute
+  PortalRoadmapMockupRoute: typeof PortalRoadmapMockupRoute
   PortalIndexRoute: typeof PortalIndexRoute
 }
 
@@ -1838,6 +1858,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalMessagesRoute: PortalMessagesRoute,
   PortalOnboardingRoute: PortalOnboardingRoute,
   PortalRoadmapRoute: PortalRoadmapRoute,
+  PortalRoadmapMockupRoute: PortalRoadmapMockupRoute,
   PortalIndexRoute: PortalIndexRoute,
 }
 
