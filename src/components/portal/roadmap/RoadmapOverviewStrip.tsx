@@ -1,6 +1,7 @@
 import type { PhaseKey, RoadmapJourney } from "@/lib/portal-roadmap-model";
 import { useRoadmapCanvas, useDisplayPhaseKey } from "./canvas-context";
-import type { LegendKind } from "./view-mode";
+import type { LegendKind, RoadmapViewMode } from "./view-mode";
+import { VIEW_MODE_LABEL } from "./view-mode";
 import { Maximize2, ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
