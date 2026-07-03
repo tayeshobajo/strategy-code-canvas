@@ -559,11 +559,12 @@ function RoadmapHeader({
         >
           <Download className="w-4 h-4 mr-2" /> Download PDF
         </Button>
-        <Button asChild className="bg-ink hover:bg-ink/90 text-white">
-          <Link to="/portal/messages">
-            <Calendar className="w-4 h-4 mr-2" />
-            Book next call
-          </Link>
+        <Button
+          onClick={onBookCall}
+          className="bg-ink hover:bg-ink/90 text-white"
+        >
+          <Calendar className="w-4 h-4 mr-2" />
+          Book next call
         </Button>
       </div>
     </div>
