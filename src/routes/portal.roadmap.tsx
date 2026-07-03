@@ -356,7 +356,35 @@ function RoadmapJourneyView({
 
   const [headerClarifyOpen, setHeaderClarifyOpen] = useState(false);
   const [headerBookOpen, setHeaderBookOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<RoadmapViewMode>("all");
+  // Seed viewMode from URL, then localStorage, else "all".
+  const [viewMode, setViewModeState] = useState<RoadmapViewMode>(
+    () => search.view ?? readStoredView() ?? "all",
+  );
+  const setViewMode = (v: RoadmapViewMode) => {
+    setViewModeState(v);
+    if (typeof window !== "undefined") {
+      try {
+        if (v === "all") window.localStorage.removeItem(LS_VIEW_MODE);
+        else window.localStorage.setItem(LS_VIEW_MODE, v);
+      } catch {
+        /* ignore */
+      }
+    }
+    navigate({
+      search: (prev) => ({ ...prev, view: v === "all" ? undefined : v }),
+      replace: true,
+    });
+  };
+  // Keep URL in sync if the user arrived without a `view` param but has one stored.
+  useEffect(() => {
+    if (!search.view && viewMode !== "all") {
+      navigate({
+        search: (prev) => ({ ...prev, view: viewMode }),
+        replace: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const isMobile = useIsMobile();
 
   // Compute the set of milestone slugs that match the current view filter.
@@ -367,6 +395,7 @@ function RoadmapJourneyView({
   const matchingCount = matchingSlugs
     ? matchingSlugs.size
     : journey.milestones.length;
+
 
   // If a view filter hides the currently selected marker, deselect it so
   // the drawer stays consistent with what the canvas is showing.
