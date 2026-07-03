@@ -321,8 +321,10 @@ function FilesPage() {
       toast.error("Could not open file.");
       return;
     }
+    void logFileEvent({ data: { fileId: row.id, event: "downloaded" } }).catch(() => {});
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
+
 
   return (
     <div className="max-w-6xl mx-auto grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
