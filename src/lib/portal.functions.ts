@@ -90,8 +90,10 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
     const email = data.email.trim().toLowerCase();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Verify Stripe-confirmed portal access exists for this email.
-    const [{ data: perm }, { data: legacy }] = await Promise.all([
+    // Verify Stripe-confirmed portal access OR an admin/operator role grant
+    // exists for this email. Staff granted via user_roles don't necessarily
+    // have a client_portal_permissions row, but they still need to sign in.
+    const [{ data: perm }, { data: legacy }, { data: staffRole }] = await Promise.all([
       supabaseAdmin
         .from("client_portal_permissions")
         .select("id, revoked_at, email")
@@ -104,9 +106,18 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
         .ilike("email", email)
         .is("revoked_at", null)
         .limit(1),
+      supabaseAdmin
+        .from("user_roles")
+        .select("id, role, email")
+        .ilike("email", email)
+        .in("role", ["admin", "operator"])
+        .limit(1),
     ]);
 
-    const hasAccess = (perm?.length ?? 0) > 0 || (legacy?.length ?? 0) > 0;
+    const hasAccess =
+      (perm?.length ?? 0) > 0 ||
+      (legacy?.length ?? 0) > 0 ||
+      (staffRole?.length ?? 0) > 0;
     // Always return a generic response — don't reveal whether email is known.
     if (!hasAccess) {
       console.log("[portal.magic-link] no access for", email);
