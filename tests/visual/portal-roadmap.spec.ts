@@ -254,22 +254,34 @@ test.describe("/portal/roadmap sync between mini-map, active phase, and markers"
     await expect(page.locator("[data-marker-selected='true']")).toHaveCount(1);
     // Drawer opened with heading.
     await expect(page.locator("#milestone-sheet-title")).toBeVisible();
-    // Overlay behind the sheet must be light (≤12% opacity black).
+    // Overlay behind the sheet must be light (≤12% opacity black). The
+    // shadcn Sheet overlay is a fixed-inset element with our bg-black/10
+    // class. Read its computed alpha (works for rgba() and oklab(... / a)).
     const overlayAlpha = await page.evaluate(() => {
-      const el = document.querySelector("[data-slot='sheet-overlay']") as HTMLElement | null;
+      const candidates = Array.from(document.querySelectorAll("div"))
+        .filter((el) => {
+          const cs = getComputedStyle(el);
+          return (
+            cs.position === "fixed" &&
+            cs.inset === "0px" &&
+            cs.backgroundColor &&
+            cs.backgroundColor !== "rgba(0, 0, 0, 0)"
+          );
+        }) as HTMLElement[];
+      const el = candidates[0];
       if (!el) return null;
       const bg = getComputedStyle(el).backgroundColor;
-      // Parse either rgba() or oklab(... / a)
       const rgba = bg.match(/rgba?\(([^)]+)\)/);
       if (rgba) {
-        const parts = rgba[1].split(/[,\s]+/).filter(Boolean);
-        return parseFloat(parts[3] ?? "1");
+        const parts = rgba[1].split(/[,\s/]+/).filter(Boolean);
+        return parts.length >= 4 ? parseFloat(parts[3]) : 1;
       }
       const alpha = bg.match(/\/\s*([\d.]+)\s*\)/);
       return alpha ? parseFloat(alpha[1]) : null;
     });
     expect(overlayAlpha, "overlay must be ≤12% opacity").not.toBeNull();
     expect(overlayAlpha!).toBeLessThanOrEqual(0.12);
+
   });
 });
 
