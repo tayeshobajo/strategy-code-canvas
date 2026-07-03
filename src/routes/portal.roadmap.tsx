@@ -652,10 +652,23 @@ function RoadmapHeader({
     }
   };
 
+  const canvas = useRoadmapCanvas();
+
   const fitToField = () => {
+    // "Fit to field" = information zoom out: Level 1 anchors only, whole map visible.
+    canvas.setZoomLevel("strategic");
+    canvas.setSelectedPhaseKey(null);
     const el = document.getElementById("portal-canvas-scroll");
-    if (!el) return;
-    el.scrollTo({ left: 0, behavior: "smooth" });
+    if (el) el.scrollTo({ left: 0, behavior: "smooth" });
+  };
+
+  const focusCurrentPhase = () => {
+    const key = journey.currentPhaseKey;
+    canvas.setZoomLevel("phase");
+    canvas.setSelectedPhaseKey(key);
+    if (key === "now") onJump("now");
+    else if (key === "next") onJump("next");
+    else onJump("later");
   };
 
   const viewFiltered = viewMode !== "all";
@@ -689,7 +702,19 @@ function RoadmapHeader({
             variant="outline"
             size="sm"
             className="border-ink/15 h-9"
+            onClick={focusCurrentPhase}
+            data-testid="focus-current-phase"
+          >
+            <Target className="w-3.5 h-3.5 mr-1.5" />
+            Focus current phase
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-ink/15 h-9"
             onClick={fitToField}
+            data-testid="fit-to-field"
           >
             <Maximize className="w-3.5 h-3.5 mr-1.5" />
             Fit to field
