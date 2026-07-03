@@ -143,6 +143,14 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
       log("no_access — email has no portal permission or staff role", {
         accessSources,
       });
+      await supabaseAdmin.from("email_send_log").insert({
+        message_id: null,
+        template_name: "portal-magic-link",
+        recipient_email: email,
+        status: "failed",
+        error_message: "No active portal permission, admin role, operator role, or staff allowlist match for this email.",
+        metadata: { source: "portal_login", accessSources },
+      });
       return { ok: true, status: "no_access" };
     }
     log("access granted", { accessSources });
@@ -188,6 +196,14 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
         code: linkError?.code,
         message: linkError?.message,
         status: linkError?.status,
+      });
+      await supabaseAdmin.from("email_send_log").insert({
+        message_id: null,
+        template_name: "portal-magic-link",
+        recipient_email: email,
+        status: "failed",
+        error_message: `Magic link generation failed${linkError?.message ? `: ${linkError.message}` : ""}`,
+        metadata: { source: "portal_login", accessSources },
       });
       return { ok: true, status: "link_failed" };
     }
