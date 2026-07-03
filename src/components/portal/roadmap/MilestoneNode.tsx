@@ -192,7 +192,7 @@ export const MilestoneNode = memo(function MilestoneNode({
           canvas.setHighlightedSlug(null);
       }}
       style={{ transform, transformOrigin: "center" }}
-      className={`group flex items-center gap-2 rounded-full border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
+      className={`group flex items-center gap-2 rounded-full border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 hover:-translate-y-[2px] hover:shadow-[0_10px_24px_-8px_rgba(4,10,25,0.55)] ${
         isSelected ? selectedShell : restingShell
       } ${isPlaceholder ? "opacity-60" : ""} ${
         iconOnly ? "p-1.5" : "pl-1.5 pr-3 py-1.5"
