@@ -93,7 +93,7 @@ function StaffAccountPanel({ email }: { email?: string | null }) {
         <div className="flex flex-col gap-3 border-t border-rule-soft bg-paper-soft px-8 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-10">
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild className="rounded-md bg-ink text-white hover:bg-ink/90">
-              <Link to="/admin">Open admin dashboard</Link>
+              <Link to="/admin/client-portals">Open admin dashboard</Link>
             </Button>
             <Button
               asChild
