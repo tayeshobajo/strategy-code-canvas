@@ -397,11 +397,14 @@ function RoadmapHeader({
     <div className="flex items-start justify-between gap-6 flex-wrap">
       <div>
         <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-          Your Roadmap
+          Your Roadmap Canvas
         </div>
         <h1 className="font-display text-3xl sm:text-4xl text-ink mt-2 leading-tight">
           {journey.title}
         </h1>
+        <p className="text-[14px] text-ink/65 mt-2 max-w-2xl">
+          A clear view of the journey, the active work, and the decisions ahead.
+        </p>
         <div className="flex items-center gap-2 flex-wrap mt-3">
           <span className="inline-flex items-center rounded-full bg-royal/10 text-royal border border-royal/20 px-2.5 py-1 text-[11px] font-medium">
             Approved
