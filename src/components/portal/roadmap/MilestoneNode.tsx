@@ -9,7 +9,7 @@ import {
   Flag,
   ArrowRight,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type {
   MilestoneKind,
   RoadmapMilestone,
