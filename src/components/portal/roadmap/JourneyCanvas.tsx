@@ -498,6 +498,7 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect, matchingSlugs }
               x={n.x}
               y={n.y}
               isSelected={n.milestone.slug === selectedSlug}
+              dimmed={!!matchingSlugs && !matchingSlugs.has(n.milestone.slug)}
               onOpen={() => onSelect(n.milestone.slug)}
             />
           </div>
