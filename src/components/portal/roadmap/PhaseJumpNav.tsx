@@ -17,7 +17,7 @@ export function PhaseJumpNav({ journey, onJump }: Props) {
     })),
     { key: "pointB", label: "Point B", sub: journey.pointB.label },
   ];
-  const activeKey = canvas.activePhaseKey;
+  const activeKey = canvas.selectedPhaseKey ?? canvas.viewportPhaseKey ?? canvas.currentPhaseKey;
 
   return (
     <div

@@ -68,6 +68,14 @@ export type RoadmapJourney = {
   milestones: RoadmapMilestone[];
   activeMilestone: RoadmapMilestone | null;
   nextMilestone: RoadmapMilestone | null;
+  /** Single source of truth for "which phase the client is in right now". */
+  currentPhaseKey: PhaseKey;
+  /** Slug of the next upcoming decision awaiting client input. */
+  nextDecisionSlug: string | null;
+  /** Slug of the next major deadline. */
+  nextDeadlineSlug: string | null;
+  /** Ordered slugs on the critical path to the next major deadline. */
+  criticalPathSlugs: string[];
   progressPercent: number;
   executiveSummary: string | null;
   recommendedNextMove: string | null;
@@ -352,6 +360,58 @@ export function buildRoadmapJourney(
       (m) => m.status === "upcoming" && m.slug !== activeMilestone?.slug,
     ) ?? null;
 
+  // --- Single source of truth for the "current phase" -----------------
+  // Precedence:
+  //   1. First phase that contains an in_progress milestone
+  //   2. Phase of the activeMilestone
+  //   3. First phase with any non-complete milestone
+  //   4. First phase
+  let currentPhaseKey: PhaseKey = phases[0].key;
+  const phaseWithInProgress = phases.find((p) =>
+    p.milestones.some((m) => m.status === "in_progress"),
+  );
+  if (phaseWithInProgress) {
+    currentPhaseKey = phaseWithInProgress.key;
+  } else if (activeMilestone) {
+    currentPhaseKey = activeMilestone.phase;
+  } else {
+    const phaseWithPending = phases.find((p) =>
+      p.milestones.some((m) => m.status !== "completed"),
+    );
+    if (phaseWithPending) currentPhaseKey = phaseWithPending.key;
+  }
+
+  // Next decision awaiting the client.
+  const nextDecisionSlug =
+    flat.find(
+      (m) =>
+        m.kind === "decision" &&
+        (m.status === "in_progress" || m.status === "upcoming"),
+    )?.slug ?? null;
+
+  // Next major deadline: the earliest dueDate among non-completed items.
+  const withDeadlines = flat
+    .filter((m) => m.dueDate && m.status !== "completed")
+    .map((m) => ({ m, t: new Date(m.dueDate!).getTime() }))
+    .filter((x) => !Number.isNaN(x.t))
+    .sort((a, b) => a.t - b.t);
+  const nextDeadlineSlug = withDeadlines[0]?.m.slug ?? null;
+
+  // Critical path: from the current active milestone forward through
+  // in_progress + upcoming milestones (excluding placeholders) up to the
+  // next deadline, plus the deadline milestone itself.
+  const criticalPathSlugs: string[] = [];
+  const startIdx = activeMilestone
+    ? flat.findIndex((m) => m.slug === activeMilestone.slug)
+    : 0;
+  for (let i = Math.max(0, startIdx); i < flat.length; i++) {
+    const m = flat[i];
+    if (m.slug.endsWith("-placeholder")) continue;
+    if (m.status === "completed") continue;
+    criticalPathSlugs.push(m.slug);
+    if (m.slug === nextDeadlineSlug) break;
+  }
+
   return {
     title: row?.title ?? "Your Roadmap",
     versionLabel: row?.version_label ?? null,
@@ -372,6 +432,10 @@ export function buildRoadmapJourney(
     milestones: flat,
     activeMilestone,
     nextMilestone,
+    currentPhaseKey,
+    nextDecisionSlug,
+    nextDeadlineSlug,
+    criticalPathSlugs,
     progressPercent,
     executiveSummary: row?.executive_summary ?? null,
     recommendedNextMove: row?.recommended_next_move ?? null,

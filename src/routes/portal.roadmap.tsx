@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   useSuspenseQuery,
   queryOptions,
@@ -41,6 +41,9 @@ import {
 } from "@/components/portal/roadmap/canvas-context";
 import {
   computeMatchingSlugs,
+  computeMarkerVisibility,
+  DEFAULT_MUTED_KINDS,
+  DEFAULT_VISIBLE_KINDS,
   VIEW_MODE_LABEL,
   type RoadmapViewMode,
 } from "@/components/portal/roadmap/view-mode";
@@ -57,7 +60,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Activity, Maximize } from "lucide-react";
+import { Activity, Maximize, Target } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
@@ -403,7 +406,7 @@ function RoadmapJourneyView({
             journey={journey}
             selectedSlug={selectedMilestone?.slug ?? null}
             onSelect={(slug) => setSelected(slug)}
-            matchingSlugs={matchingSlugs}
+            viewMode={viewMode}
             onJump={jumpTo}
           />
         )
@@ -509,22 +512,47 @@ function RoadmapCanvasStage({
   journey,
   selectedSlug,
   onSelect,
-  matchingSlugs,
+  viewMode,
   onJump,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
-  matchingSlugs: Set<string> | null;
+  viewMode: RoadmapViewMode;
   onJump: (key: "pointA" | "now" | "next" | "later" | "pointB") => void;
 }) {
+  // Inject the derived currentPhaseKey into the canvas context so all
+  // surfaces (status card, pill, mini-map) read from one source of truth.
+  const canvas = useRoadmapCanvas();
+  useEffect(() => {
+    canvas.setCurrentPhaseKey(journey.currentPhaseKey);
+  }, [canvas, journey.currentPhaseKey]);
+
+  // On first mount, pan the viewport to sit over the current phase so the
+  // mini-map, pill, and canvas center all agree from the start.
+  const didInitialSnap = useRef(false);
+  useEffect(() => {
+    if (didInitialSnap.current) return;
+    const el = document.getElementById("portal-canvas-scroll");
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    const total = el.scrollWidth;
+    const map: Record<string, number> = {
+      now: total * 0.15,
+      next: total * 0.45,
+      later: total * 0.75,
+    };
+    const target = map[journey.currentPhaseKey] ?? 0;
+    el.scrollTo({ left: target, behavior: "auto" });
+    didInitialSnap.current = true;
+  }, [journey.currentPhaseKey]);
+
   return (
     <div className="relative h-full w-full">
       <MapCanvas
         journey={journey}
         selectedSlug={selectedSlug}
         onSelect={onSelect}
-        matchingSlugs={matchingSlugs}
+        viewMode={viewMode}
         fitHeight
       />
       <div className="pointer-events-none absolute inset-0">
@@ -556,11 +584,16 @@ function RoadmapCanvasStage({
 
 function CurrentPhasePill({ journey }: { journey: ReturnType<typeof buildRoadmapJourney> }) {
   const canvas = useRoadmapCanvas();
-  const key = canvas.activePhaseKey ?? journey.activeMilestone?.phase ?? "now";
+  // Single source of truth: derived currentPhaseKey. Selected/viewport phase
+  // is used only when the user has explicitly navigated elsewhere.
+  const key =
+    canvas.selectedPhaseKey ??
+    canvas.currentPhaseKey ??
+    journey.currentPhaseKey;
   const idx = journey.phases.findIndex((p) => p.key === key);
   const phaseName =
     key === "now" || idx === 0
-      ? "Phase 1: Pre-Test Readiness"
+      ? "Phase 1: Foundation"
       : key === "next" || idx === 1
         ? "Phase 2: Core Platform Build"
         : key === "later" || idx === 2
@@ -569,7 +602,10 @@ function CurrentPhasePill({ journey }: { journey: ReturnType<typeof buildRoadmap
             ? "Point A: Current State"
             : "Point B: Scaled Impact";
   return (
-    <div className="inline-flex items-center gap-3 rounded-xl bg-slate-900 text-white px-4 py-2 shadow-[0_10px_28px_-16px_rgba(4,10,25,0.6)]">
+    <div
+      className="inline-flex items-center gap-3 rounded-xl bg-slate-900 text-white px-4 py-2 shadow-[0_10px_28px_-16px_rgba(4,10,25,0.6)]"
+      data-testid="current-phase-pill"
+    >
       <div className="text-left">
         <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
           Current Phase
@@ -634,10 +670,23 @@ function RoadmapHeader({
     }
   };
 
+  const canvas = useRoadmapCanvas();
+
   const fitToField = () => {
+    // "Fit to field" = information zoom out: Level 1 anchors only, whole map visible.
+    canvas.setZoomLevel("strategic");
+    canvas.setSelectedPhaseKey(null);
     const el = document.getElementById("portal-canvas-scroll");
-    if (!el) return;
-    el.scrollTo({ left: 0, behavior: "smooth" });
+    if (el) el.scrollTo({ left: 0, behavior: "smooth" });
+  };
+
+  const focusCurrentPhase = () => {
+    const key = journey.currentPhaseKey;
+    canvas.setZoomLevel("phase");
+    canvas.setSelectedPhaseKey(key);
+    if (key === "now") onJump("now");
+    else if (key === "next") onJump("next");
+    else onJump("later");
   };
 
   const viewFiltered = viewMode !== "all";
@@ -671,7 +720,19 @@ function RoadmapHeader({
             variant="outline"
             size="sm"
             className="border-ink/15 h-9"
+            onClick={focusCurrentPhase}
+            data-testid="focus-current-phase"
+          >
+            <Target className="w-3.5 h-3.5 mr-1.5" />
+            Focus current phase
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-ink/15 h-9"
             onClick={fitToField}
+            data-testid="fit-to-field"
           >
             <Maximize className="w-3.5 h-3.5 mr-1.5" />
             Fit to field
@@ -704,7 +765,7 @@ function RoadmapHeader({
               </span>
             </SelectTrigger>
             <SelectContent>
-              {(["all", "decisions", "deliverables", "deadlines", "current"] as const).map((mode) => (
+              {(["all", "current", "decisions", "deliverables", "deadlines", "client-actions"] as const).map((mode) => (
                 <SelectItem key={mode} value={mode}>
                   {VIEW_MODE_LABEL[mode]}
                 </SelectItem>
@@ -1029,7 +1090,7 @@ function DemoRoadmapView() {
             journey={journey}
             selectedSlug={selectedSlug}
             onSelect={setSelectedSlug}
-            matchingSlugs={matchingSlugs}
+            viewMode={viewMode}
             onJump={jumpTo}
           />
         </div>

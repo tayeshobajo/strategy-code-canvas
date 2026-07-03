@@ -333,3 +333,68 @@ test.describe("/portal/roadmap fits within the viewport at 100% zoom", () => {
   }
 });
 
+
+test.describe("/portal/roadmap smart-map behavior", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1480, height: 1000 });
+    await preparePage(page);
+  });
+
+  test("current phase is consistent across pill, status card, and mini-map", async ({ page }) => {
+    const pill = await page.locator("[data-testid='current-phase-pill']").innerText();
+    const status = await page.locator("[data-testid='status-current-phase']").innerText();
+    expect(pill.toLowerCase()).toContain("phase 1: foundation");
+    expect(status.toLowerCase()).toContain("phase 1: foundation");
+    // The Phase 1 strip stop is marked as the current phase.
+    await expect(page.locator("[data-testid='strip-now']")).toHaveAttribute(
+      "data-current-phase",
+      "true",
+    );
+    // And when the whole map is visible, the display active stop matches.
+    await expect(page.locator("[data-testid='strip-now']")).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+  });
+
+  test("progressive disclosure: strategic zoom shows anchors full, others icon-only", async ({
+    page,
+  }) => {
+    const counts = await page.evaluate(() => {
+      const buckets: Record<string, number> = {};
+      document.querySelectorAll("[data-marker-visibility]").forEach((el) => {
+        const v = el.getAttribute("data-marker-visibility") ?? "";
+        buckets[v] = (buckets[v] ?? 0) + 1;
+      });
+      return buckets;
+    });
+    // At least one anchor is full-labelled; some level-3 items should be icon-only.
+    expect((counts.full ?? 0) >= 1).toBeTruthy();
+    expect((counts.icon ?? 0) >= 1).toBeTruthy();
+  });
+
+  test("interactive legend toggles marker visibility", async ({ page }) => {
+    const chip = page.locator("[data-testid='legend-meeting']");
+    const before = await chip.getAttribute("data-state");
+    await chip.click();
+    await page.waitForTimeout(120);
+    const after = await chip.getAttribute("data-state");
+    expect(after).not.toBe(before);
+  });
+
+  test("status card is collapsed by default and expands on click", async ({ page }) => {
+    const card = page.locator("[data-testid='status-overlay-card']");
+    await expect(card).toHaveAttribute("data-collapsed", "true");
+    await page.locator("[data-testid='status-toggle']").click();
+    await expect(card).toHaveAttribute("data-collapsed", "false");
+  });
+
+  test("clicking the Phase 3 stop in the mini-map marks it active", async ({ page }) => {
+    await page.locator("[data-testid='strip-later']").click();
+    await page.waitForTimeout(200);
+    await expect(page.locator("[data-testid='strip-later']")).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+  });
+});
