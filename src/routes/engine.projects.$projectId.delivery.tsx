@@ -1,16 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Send, CheckCircle2, Loader2 } from "lucide-react";
+import { Send, CheckCircle2, Loader2, Rocket, Clock } from "lucide-react";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
-import { sendProjectDelivery, saveDeliveryChecklist } from "@/lib/engine-execution.functions";
+import {
+  sendProjectDelivery,
+  saveDeliveryChecklist,
+  getPortalHandoffState,
+  startExecutionEngagement,
+} from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/delivery")({
   component: DeliveryPrep,
 });
+
 
 const CHECKLIST = [
   "Point A verified with client",
@@ -172,8 +178,103 @@ function DeliveryPrep() {
               </div>
             )}
           </SectionCard>
+
+          {alreadySent && <ExecutionHandoffCard projectId={projectId} />}
         </div>
       </div>
     </div>
   );
 }
+
+function ExecutionHandoffCard({ projectId }: { projectId: string }) {
+  const qc = useQueryClient();
+  const stateFn = useServerFn(getPortalHandoffState);
+  const startFn = useServerFn(startExecutionEngagement);
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["engine", "portal-handoff", projectId],
+    queryFn: () => stateFn({ data: { projectId } }),
+    refetchInterval: (q) => {
+      const d = q.state.data as { portalStatus?: string | null } | undefined;
+      return d?.portalStatus === "engagement_active" ? false : 30_000;
+    },
+    refetchOnWindowFocus: true,
+  });
+
+  const start = useMutation({
+    mutationFn: () => startFn({ data: { projectId } }),
+    onSuccess: async () => {
+      await Promise.all([
+        refetch(),
+        qc.invalidateQueries({ queryKey: ["engine"] }),
+      ]);
+    },
+  });
+
+  if (isLoading || !data) {
+    return (
+      <SectionCard title="Execution handoff">
+        <div className="text-sm text-ink/50 flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking client status…
+        </div>
+      </SectionCard>
+    );
+  }
+
+  const acked = !!data.acknowledgedAt;
+  const started = data.portalStatus === "engagement_active";
+
+  return (
+    <SectionCard title="Execution handoff">
+      <ul className="space-y-1.5 text-sm">
+        <li className="flex items-center gap-2 text-ink/80">
+          {data.viewedAt ? <CheckCircle2 className="w-4 h-4 text-[#1f6b3b]" /> : <Clock className="w-4 h-4 text-ink/30" />}
+          <span>Client viewed roadmap {data.viewedAt ? `· ${new Date(data.viewedAt).toLocaleString()}` : "· pending"}</span>
+        </li>
+        <li className="flex items-center gap-2 text-ink/80">
+          {data.downloadedAt ? <CheckCircle2 className="w-4 h-4 text-[#1f6b3b]" /> : <Clock className="w-4 h-4 text-ink/30" />}
+          <span>Client downloaded {data.downloadedAt ? `· ${new Date(data.downloadedAt).toLocaleString()}` : "· pending"}</span>
+        </li>
+        <li className="flex items-center gap-2 text-ink/80">
+          {acked ? <CheckCircle2 className="w-4 h-4 text-[#1f6b3b]" /> : <Clock className="w-4 h-4 text-ink/30" />}
+          <span>
+            Client acknowledged{" "}
+            {acked
+              ? `· ${new Date(data.acknowledgedAt!).toLocaleString()}${data.acknowledgedByEmail ? ` (${data.acknowledgedByEmail})` : ""}`
+              : "· pending"}
+          </span>
+        </li>
+      </ul>
+
+      <div className="mt-4 pt-4 border-t border-border">
+        {started ? (
+          <div className="flex items-center gap-2 text-sm text-[#1f6b3b]">
+            <Rocket className="w-4 h-4" /> Engagement is active in the client portal.
+          </div>
+        ) : (
+          <>
+            <button
+              disabled={!acked || start.isPending}
+              onClick={() => start.mutate()}
+              className="inline-flex items-center gap-2 bg-ink text-white text-sm rounded-md px-3 py-2 hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {start.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+              Start engagement
+            </button>
+            {!acked && (
+              <div className="mt-2 text-xs text-ink/50">
+                Enabled once the client acknowledges their roadmap.
+              </div>
+            )}
+            {start.isError && (
+              <div className="mt-2 rounded-md border border-[#f3ced5] bg-[#fbe9ec] text-[#a4283c] text-xs px-3 py-2">
+                {(start.error as Error).message}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+

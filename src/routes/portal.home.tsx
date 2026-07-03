@@ -327,7 +327,17 @@ function PortalHome() {
 
 
   const { project } = data;
-  const copy = STATUS_COPY[project.portal_status] ?? STATUS_COPY.payment_confirmed;
+  const acknowledged = !!data.approvedRoadmap?.acknowledged_at;
+  const copy =
+    project.portal_status === "roadmap_delivered" && acknowledged
+      ? {
+          title: "Acknowledged. Awaiting Tai to kick off execution.",
+          body: "Your roadmap is signed off. Tai will start the engagement shortly — you'll see files and updates land here as work begins.",
+          cta: "Open Roadmap",
+          to: "/portal/roadmap",
+        }
+      : (STATUS_COPY[project.portal_status] ?? STATUS_COPY.payment_confirmed);
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
