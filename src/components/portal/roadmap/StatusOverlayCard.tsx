@@ -92,8 +92,8 @@ export function StatusOverlayCard({
 
   return (
     <div
-      className={`rounded-2xl bg-white/95 backdrop-blur-md border border-white/60 shadow-[0_20px_60px_-20px_rgba(4,10,25,0.55)] text-ink transition-all ${
-        collapsed ? "w-[240px] p-3" : "w-[280px] p-4"
+      className={`rounded-2xl bg-white/95 backdrop-blur-md border border-white/60 shadow-[0_20px_60px_-20px_rgba(4,10,25,0.55)] text-ink transition-all duration-200 ${
+        collapsed ? "w-[240px] p-2.5" : "w-[280px] p-4"
       }`}
       data-testid="status-overlay-card"
       data-collapsed={collapsed ? "true" : "false"}

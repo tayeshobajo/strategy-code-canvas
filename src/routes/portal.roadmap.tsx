@@ -13,7 +13,7 @@ import {
   recordPortalRoadmapEvent,
   type PortalRoadmapDoc,
 } from "@/lib/portal.functions";
-import { buildRoadmapJourney } from "@/lib/portal-roadmap-model";
+import { buildRoadmapJourney, type PhaseKey } from "@/lib/portal-roadmap-model";
 import { targetBounds } from "@/components/portal/roadmap/roadmap-layout";
 import { DEMO_ROADMAP_RAW, DEMO_PROJECT } from "@/lib/portal-roadmap-demo-fixture";
 import { usePortalContext } from "@/hooks/use-portal-context";
@@ -661,6 +661,19 @@ function RoadmapCanvasStage({
     didInitialSnap.current = true;
   }, [journey.currentPhaseKey]);
 
+  // Selecting a marker sets the "viewing" phase to that marker's phase, so
+  // the mini-map and main-map highlight follow. Never touches currentPhase.
+  useEffect(() => {
+    if (!selectedSlug) return;
+    const m = journey.milestones.find((x) => x.slug === selectedSlug);
+    if (!m) return;
+    const phase = m.phase as PhaseKey;
+    if (phase && phase !== canvas.selectedPhaseKey) {
+      canvas.setSelectedPhaseKey(phase);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSlug]);
+
   return (
     <div className="relative h-full w-full">
       <MapCanvas
@@ -725,37 +738,30 @@ function RoadmapCanvasStage({
 
 function CurrentPhasePill({ journey }: { journey: ReturnType<typeof buildRoadmapJourney> }) {
   const canvas = useRoadmapCanvas();
-  // Single source of truth: derived currentPhaseKey. Selected/viewport phase
-  // is used only when the user has explicitly navigated elsewhere.
-  const key =
-    canvas.selectedPhaseKey ??
-    canvas.currentPhaseKey ??
-    journey.currentPhaseKey;
+  // Operational truth only. Never reads selectedPhaseKey — browsing the map
+  // must not change the "Current Phase" badge.
+  const key = canvas.currentPhaseKey ?? journey.currentPhaseKey;
   const idx = journey.phases.findIndex((p) => p.key === key);
   const phaseName =
     key === "now" || idx === 0
       ? "Phase 1: Foundation"
       : key === "next" || idx === 1
         ? "Phase 2: Core Platform Build"
-        : key === "later" || idx === 2
-          ? "Phase 3: Scale Systems"
-          : key === "pointA"
-            ? "Point A: Current State"
-            : "Point B: Scaled Impact";
+        : "Phase 3: Scale Systems";
   return (
     <div
-      className="inline-flex items-center gap-3 rounded-xl bg-slate-900 text-white px-4 py-2 shadow-[0_10px_28px_-16px_rgba(4,10,25,0.6)]"
+      className="inline-flex items-center gap-3 rounded-xl bg-slate-950 ring-1 ring-white/10 text-white px-4 py-2 shadow-[0_10px_28px_-16px_rgba(4,10,25,0.7)]"
       data-testid="current-phase-pill"
     >
       <div className="text-left">
-        <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
+        <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/65">
           Current Phase
         </div>
         <div className="text-[13px] font-semibold leading-tight">
           {phaseName}
         </div>
       </div>
-      <Activity className="w-4 h-4 text-royal shrink-0" />
+      <Activity className="w-4 h-4 text-royal-glow shrink-0" />
     </div>
   );
 }
