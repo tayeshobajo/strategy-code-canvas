@@ -126,6 +126,22 @@ export function ClarificationModal({
               className="resize-none"
               autoFocus
             />
+            {errorMessage && (
+              <div
+                role="alert"
+                className="rounded-md border border-[#a4283c]/30 bg-[#a4283c]/5 p-3 text-[13px] text-[#a4283c] flex items-start justify-between gap-3"
+              >
+                <span>Couldn't send: {errorMessage}</span>
+                <button
+                  type="button"
+                  className="font-medium underline underline-offset-2 hover:no-underline"
+                  onClick={() => send.mutate()}
+                  disabled={send.isPending || !question.trim() || !projectId}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
           </div>
         )}
 
