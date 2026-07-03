@@ -17,6 +17,7 @@ import type {
 import type { MarkerVisibility } from "./view-mode";
 import type { MarkerAttachment } from "./roadmap-layout";
 import { useRoadmapCanvas } from "./canvas-context";
+import { measure } from "./perf";
 import {
   HoverCard,
   HoverCardContent,
