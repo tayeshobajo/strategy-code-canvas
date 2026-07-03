@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { MapCanvas } from "@/components/portal/roadmap/MapCanvas";
 import { MilestoneSheet } from "@/components/portal/roadmap/MilestoneSheet";
+import { SelectionConnector } from "@/components/portal/roadmap/SelectionConnector";
 import {
   RoadmapOverviewStrip,
   MapLegend,
