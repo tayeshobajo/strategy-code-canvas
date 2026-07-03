@@ -86,6 +86,7 @@ export function MilestoneNode({
   y,
   onOpen,
   isSelected,
+  dimmed = false,
 }: Props) {
   const s = STATUS_STYLES[milestone.status];
   // Use kind icon when non-milestone, otherwise status icon.
