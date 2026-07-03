@@ -65,6 +65,8 @@ type CanvasCtx = {
   visibleKinds: Set<LegendKind>;
   /** Kinds shown at muted strength (dimmed, no label). */
   mutedKinds: Set<LegendKind>;
+  /** Cluster keys the user has explicitly fanned out ("exploded"). */
+  explodedClusterKeys: Set<string>;
 
   setScrollState: (s: { scrollWidth: number; scrollLeft: number; clientWidth: number }) => void;
   setCurrentPhaseKey: (k: PhaseKey | null) => void;
@@ -73,6 +75,10 @@ type CanvasCtx = {
   setZoomLevel: (z: ZoomLevel) => void;
   /** Cycle a legend kind: visible → muted → hidden → visible. */
   toggleKind: (k: LegendKind) => void;
+  /** Toggle whether a cluster is fanned out in place. */
+  toggleClusterExpanded: (key: string) => void;
+  /** Collapse every fanned-out cluster (e.g. on zoom change). */
+  collapseAllClusters: () => void;
 
   /** Smooth-scroll the canvas so that `x` is visible near the viewport center. */
   scrollToX: (x: number) => void;
