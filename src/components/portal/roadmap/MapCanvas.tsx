@@ -231,6 +231,13 @@ export function MapCanvas({
 
   const bgUrl = mapBg.url;
 
+  const outerClass = fitHeight
+    ? "relative h-full w-full overflow-x-auto overflow-y-hidden rounded-2xl border border-white/10 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-royal"
+    : "relative w-full overflow-x-auto overflow-y-hidden rounded-2xl border border-white/10 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-royal";
+
+  const scaledWidth = fitHeight ? CANVAS_WIDTH * scale : CANVAS_WIDTH;
+  const scaledHeight = fitHeight ? CANVAS_HEIGHT * scale : CANVAS_HEIGHT;
+
   return (
     <div
       ref={scrollRef}
@@ -244,13 +251,23 @@ export function MapCanvas({
       role="region"
       aria-label="Roadmap journey map. Drag to pan, arrow keys to move between milestones."
       tabIndex={0}
-      className="relative w-full overflow-x-auto overflow-y-hidden rounded-2xl border border-white/10 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-royal"
+      className={`${outerClass}${className ? ` ${className}` : ""}`}
       style={{ cursor: "grab", background: "#0b1220" }}
     >
       <div
         className="relative"
-        style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
+        style={{ width: `${scaledWidth}px`, height: `${scaledHeight}px` }}
       >
+        <div
+          className="absolute top-0 left-0"
+          style={{
+            width: `${CANVAS_WIDTH}px`,
+            height: `${CANVAS_HEIGHT}px`,
+            transform: fitHeight ? `scale(${scale})` : undefined,
+            transformOrigin: "top left",
+          }}
+        >
+
         {/* Photorealistic background */}
         <img
           src={bgUrl}
