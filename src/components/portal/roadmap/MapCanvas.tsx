@@ -20,7 +20,7 @@ import mapBg from "@/assets/roadmap-map-background.png.asset.json";
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 1050;
 /** How much horizontal space the desktop drawer occupies when open (Tailwind sm:max-w-md ≈ 448px). */
-const DRAWER_WIDTH = 448;
+const DRAWER_WIDTH = 410;
 
 type Props = {
   journey: RoadmapJourney;
