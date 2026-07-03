@@ -236,6 +236,32 @@ function ActivityPage() {
         }
       />
 
+      {unresolvedFollowUps.length > 0 && (
+        <div
+          role="alert"
+          className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 flex items-start gap-3"
+        >
+          <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[13.5px] font-medium text-amber-900">
+              {unresolvedFollowUps.length === 1
+                ? "1 item needs your attention"
+                : `${unresolvedFollowUps.length} items need your attention`}
+            </div>
+            <p className="text-[12.5px] text-amber-800/80 mt-0.5">
+              Trust Tai flagged {unresolvedFollowUps.length === 1 ? "an item" : "items"} that need a follow-up from you.
+              See the details in{" "}
+              <a href="/portal/messages" className="underline">
+                Messages
+              </a>
+              .
+            </p>
+          </div>
+        </div>
+      )}
+
+
+
       {/* Filters */}
       <div
         className="flex flex-wrap items-center gap-2"
