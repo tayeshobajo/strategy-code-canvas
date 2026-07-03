@@ -47,7 +47,7 @@ export const Route = createFileRoute("/portal/roadmap")({
   validateSearch: zodValidator(searchSchema),
   head: () => ({
     meta: [
-      { title: "Roadmap — Trust Tai portal" },
+      { title: "Your Roadmap Canvas — Trust Tai portal" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -69,10 +69,13 @@ function Loading() {
       <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
         Roadmap
       </div>
-      <div className="mt-3 flex items-center gap-3 text-ink/70">
+      <div className="mt-3 flex items-center gap-3 text-ink/80">
         <Loader2 className="w-4 h-4 animate-spin" />
-        <span>Loading your Roadmap…</span>
+        <span className="text-[15px]">Loading your roadmap canvas…</span>
       </div>
+      <p className="text-[13px] text-ink/55 mt-1.5">
+        Preparing the latest approved version.
+      </p>
       <div className="mt-6 space-y-3" aria-hidden="true">
         <div className="h-4 w-2/3 rounded bg-ink/5 animate-pulse" />
         <div className="h-4 w-1/2 rounded bg-ink/5 animate-pulse" />
@@ -100,11 +103,11 @@ function FailedToLoad({
         Roadmap unavailable
       </div>
       <h1 className="font-display text-2xl text-ink mt-2">
-        We couldn't load your Roadmap.
+        We could not load your roadmap.
       </h1>
       <p className="text-[15px] leading-[1.75] text-ink/70 mt-3">
-        This is on our side, not yours. Please try again in a moment — if it
-        keeps happening, message Tai and we'll take a look.
+        Please refresh the page. If this continues, contact Trust Tai and we
+        will help.
       </p>
       <p className="text-[12px] text-ink/45 mt-3 font-mono break-all">
         {message}
@@ -114,10 +117,10 @@ function FailedToLoad({
           onClick={() => reset()}
           className="bg-ink hover:bg-ink/90 text-white"
         >
-          Try again
+          Refresh
         </Button>
         <Button asChild variant="outline" className="border-ink/20">
-          <Link to="/portal/messages">Message Tai</Link>
+          <Link to="/portal/messages">Contact Trust Tai</Link>
         </Button>
       </div>
     </div>
@@ -156,12 +159,15 @@ function RoadmapView() {
           Roadmap
         </div>
         <h1 className="font-display text-2xl text-ink mt-2">
-          Your roadmap is being prepared. Once approved, it will appear here.
+          Your roadmap is being prepared.
         </h1>
         <p className="text-[15px] leading-[1.75] text-ink/70 mt-3">
-          Once Tai finalizes your approved Roadmap, it will appear here as an
-          interactive journey — Point A to Point B, phase by phase.
+          Once your approved roadmap is ready, it will appear here as a visual
+          journey from current state to future state.
         </p>
+        <Button asChild className="mt-6 bg-ink hover:bg-ink/90 text-white">
+          <Link to="/portal/messages">Contact Trust Tai</Link>
+        </Button>
       </div>
     );
   }
@@ -391,11 +397,14 @@ function RoadmapHeader({
     <div className="flex items-start justify-between gap-6 flex-wrap">
       <div>
         <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-          Your Roadmap
+          Your Roadmap Canvas
         </div>
         <h1 className="font-display text-3xl sm:text-4xl text-ink mt-2 leading-tight">
           {journey.title}
         </h1>
+        <p className="text-[14px] text-ink/65 mt-2 max-w-2xl">
+          A clear view of the journey, the active work, and the decisions ahead.
+        </p>
         <div className="flex items-center gap-2 flex-wrap mt-3">
           <span className="inline-flex items-center rounded-full bg-royal/10 text-royal border border-royal/20 px-2.5 py-1 text-[11px] font-medium">
             Approved

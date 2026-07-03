@@ -1,297 +1,87 @@
+## Goal
 
-# Roadmap Canvas — Pass 2 (interactivity only)
+Load the Mental Dental Academy roadmap as the approved roadmap for `shobajotaye@gmail.com`, using the exact client-facing copy you provided. Fill in only the small amount of demo data the copy doesn't cover (project record, a placeholder Q-Bank Schema PDF URL). Update a few state strings on `/portal/roadmap` so the loading / not-published / error / not-found copy matches the spec.
 
-This pass keeps the current battlefield-canvas visual direction and only adds
-interaction, state, and productization. No redesign, no shell changes, no
-schema changes.
+I will not redesign the canvas or add the sidebar mock, mini-map, or dropdown menus from the reference screenshot — that's a separate scope.
 
-## Scope guardrails
+## What's already in place
 
-- Reuse existing files. No new routes, no new tables.
-- `client_portal_roadmaps` fields already exposed by `getPortalRoadmapDocs`
-  stay the source of truth. Client-safe select unchanged.
-- Marker types (milestone / decision / deliverable / meeting) are **derived**
-  from optional fields already accepted by the transformer
-  (`raw.type`, `raw.due_date`, `raw.options`, `raw.file_url`,
-  `raw.meeting_at`). No new columns, no internal fields exposed.
+- Client `shobajotaye@gmail.com` has an active `client_portal_permissions` row for project `aaaaaaa1-0000-4000-8000-000000000001`.
+- That project already has one seeded roadmap row (`Jotaye Ventures — Strategy Sprint Roadmap`, status `delivered`). I'll replace it with Mental Dental.
+- The portal page reads only from `client_portal_roadmaps` and maps `sequence_30_60_90` → three phases; each item's `kind` / `type` / `file_url` / `meeting_at` drives the marker variant already supported by `MilestoneNode`, `MilestoneSheet`, and `portal-roadmap-model.ts`.
 
-## 1. Canvas horizontal navigation (`JourneyCanvas.tsx`)
+## Step 1 — Migration: seed Mental Dental roadmap
 
-Enhance the existing scroll container:
+New migration `seed_mental_dental_roadmap.sql`.
 
-- Trackpad + Shift-wheel horizontal scroll (translate `deltaY` → `scrollLeft`
-  when the horizontal delta is smaller).
-- Click-and-drag panning already exists — refine: ignore drag when
-  `event.target.closest("button, a, [data-no-drag]")`; add momentum via a
-  short `requestAnimationFrame` decel loop.
-- Elegant edge padding: keep current `PADDING_X`; clamp `scrollLeft` so Point
-  A / Point B keep breathing room.
-- Cursor states `grab` / `grabbing` already present — verify.
-- Add a small right-edge fade + "Drag to explore →" hint that fades after
-  first user interaction.
-- Publish current scroll position via a lightweight context (
-  `RoadmapCanvasContext`) so the mini-map and phase pills can subscribe
-  without prop drilling.
+1. `UPDATE client_portal_roadmaps SET status='archived'` for any existing row on that project (keeps history intact, hides it from the portal — the query filters `status IN ('approved','delivered')`).
+2. `INSERT INTO client_portal_roadmaps` a single row with:
+   - `project_id = aaaaaaa1-0000-4000-8000-000000000001`
+   - `title = 'Roadmap to Scale Dental Board Prep'`
+   - `version_label = 'Version 1'`
+   - `status = 'approved'`, `approved_at = 2025-06-20T09:30:00Z`
+   - `current_focus = 'Phase 1: Pre-Test Readiness'`
+   - `owner_name = 'Trust Tai'`
+   - `next_meeting_at = 2025-06-27T14:00:00Z`
+   - `executive_summary` = the "What this roadmap is designed to do" body (also drives Point B detail)
+   - `current_diagnosis` = Point A summary from the copy (drives Point A detail)
+   - `recommended_next_move` = "Confirm the question import format so the Q-Bank structure can move forward without rework."
+   - `strategic_priorities` = JSON array of the 5 priorities you listed
+   - `risks_dependencies` = JSON of the dependency notes captured across milestones
+   - `share_url` = `/files/mental-dental-roadmap-v1.pdf` (placeholder for the Download PDF button)
+   - `sequence_30_60_90` = a JSON object bucketed into `now` / `next` / `later` (see Data Structure below)
+   - `metadata` = `{ "company": "Mental Dental Academy", "subtitle": "A clear view of the journey, the active work, and the decisions ahead." }` for future use — the portal ignores this today
 
-## 2. Phase jump controls (`PhaseJumpNav.tsx`)
+## Step 2 — Copy tweaks on `/portal/roadmap`
 
-Keep visual; wire behavior:
+Change only the strings; no layout changes. In `src/routes/portal.roadmap.tsx`:
 
-- Pills: **Point A · Phase 1 · Phase 2 · Phase 3 · Point B** (map from the
-  existing `now / next / later` keys).
-- Clicking smooth-scrolls to the phase band's `x0` in the canvas.
-- Active pill is derived from live `scrollLeft` (subscribe to canvas ctx),
-  not from click state alone.
-- On click, briefly pulse the destination phase band (200 ms opacity bump on
-  the SVG band rect).
+- Page title in `<head>` → `Your Roadmap Canvas — Trust Tai portal`.
+- `Loading`: headline `Loading your roadmap canvas…`, subline `Preparing the latest approved version.`
+- `FailedToLoad`: headline `We could not load your roadmap.`, body `Please refresh the page. If this continues, contact Trust Tai and we will help.`, buttons `Refresh` (calls `reset`) and `Contact Trust Tai` (→ `/portal/messages`).
+- No-docs state: headline `Your roadmap is being prepared.`, body `Once your approved roadmap is ready, it will appear here as a visual journey from current state to future state.`, CTA `Contact Trust Tai`. (I'll skip the 4-step status ladder — it's not driven by data we have.)
+- No-milestones state: keep the current calm empty state, restated as `This roadmap does not yet have milestones on the canvas.`
+- Selected-item-not-found toast → `This item is no longer available in the current roadmap version.` (matches spec exactly), and keep the query-param reset so the canvas stays usable.
+- Header: `Your Roadmap Canvas` + subtitle `A clear view of the journey, the active work, and the decisions ahead.`
 
-## 3. Bottom mini-map (`MiniMap.tsx`, new)
+Nothing else in the page structure changes.
 
-Small horizontal strip (~72 px tall) rendered under the canvas.
+## Step 3 — Verify
 
-- Scaled-down SVG of the same route path + node dots.
-- A draggable viewport rectangle showing the visible slice; syncs both ways
-  with the main canvas `scrollLeft`.
-- Click anywhere on the mini-map to center the main canvas there.
-- Phase separators shown as faint tick marks with `Phase 1/2/3` labels.
-- Uses the canvas context; no independent data fetch.
+- `supabase--read_query` on `client_portal_roadmaps` to confirm the new row is the only `approved`/`delivered` one for that project.
+- Playwright: sign in as `shobajotaye@gmail.com` (via the injected session), visit `/portal/roadmap`, take screenshots of desktop + mobile confirming the Mental Dental milestones render.
 
-## 4. Marker hover + tooltip
+## Data structure for `sequence_30_60_90`
 
-`MilestoneNode.tsx` already uses shadcn Tooltip. Enhance:
+Each phase bucket contains an ordered mix of milestones, decisions, deliverables, meetings, and deadlines — the model already accepts `kind: 'decision' | 'deliverable' | 'meeting'` (deadlines will use `kind: 'milestone'` with a `due_date` since the model doesn't have a distinct deadline kind — visually still distinct via status).
 
-- 200 ms transition, `transform` + `box-shadow` only (no scale on the label).
-- Tooltip content standardized:
-  - title
-  - phase name
-  - status label
-  - one-sentence summary (truncate to 140 chars)
-  - target date if present
-  - hint: `View details →`
-- On hover, dispatch a `highlightSegment(slug)` to the canvas so the
-  adjacent route segment gets a soft glow (SVG `<path>` with
-  `pointer-events: none`, opacity toggled).
-- Tooltip already keyboard-triggered by Radix on focus — verify.
+```text
+now (Phase 1 — Foundation):
+  - Discovery & Audit                (milestone · completed)
+  - Content Import & Structuring     (milestone · in_progress · client_action_needed)
+  - Q-Bank Engine                    (milestone · in_progress · target_date 2025-07-15)
+  - Question Import Format           (decision  · due 2025-06-25 · options + recommended)
+  - Q-Bank Schema v1.0               (deliverable · file_url · published 2025-06-18)
+  - Strategy Alignment Call          (meeting · meeting_at 2025-06-27T14:00Z)
+  - Pre-Test Ready                   (milestone · due 2025-10-01 · "deadline")
 
-## 5. Marker click → slide-over (`MilestoneSheet.tsx`)
+next (Phase 2 — Core Platform Build):
+  - Pre-Test Experience              (milestone · upcoming)
+  - Mock Exam Engine                 (milestone · upcoming)
+  - Third-Party Integrations         (decision · due 2025-07-15)
+  - Pre-Test Flow Outline            (deliverable)
 
-The Sheet already exists. Refactor into a typed detail panel that switches
-mode based on `marker.kind`:
-
-- `milestone` (default) — current content plus "What it unlocks" and
-  "Target date" fields.
-- `decision` — Options list, Recommended option, Due date, related
-  milestone; CTA: Respond (opens clarification modal in Decision mode).
-- `deliverable` — file type, version, published date, related milestone;
-  CTAs: Preview (opens shadcn Dialog with iframe/text preview),
-  Download (records `downloaded` event), Ask a question.
-- `meeting` — date/time, purpose, prep notes; CTAs: View meeting (external
-  link if provided), Reschedule / Book next call → `/portal/messages`.
-
-Common behavior (Radix Sheet handles most out of the box, verify + fill
-gaps):
-
-- Slide-in from right, canvas dim overlay at 30% opacity.
-- Esc closes; outside click closes; X button closes.
-- Focus trap while open (Radix default).
-- Focus returns to the originating marker on close — store a
-  `WeakRef` / id → button map in the canvas ctx.
-- All internal fields hidden. Only client-safe fields render.
-
-## 6. Decision / Deliverable / Meeting marker variants
-
-Extend `RoadmapMilestone` type in `src/lib/portal-roadmap-model.ts`:
-
-- `kind: "milestone" | "decision" | "deliverable" | "meeting"` (default
-  `"milestone"`).
-- Optional fields: `dueDate`, `targetDate`, `options[]`,
-  `recommendedOption`, `fileUrl`, `fileType`, `version`, `publishedAt`,
-  `meetingAt`, `meetingPurpose`, `unlocks[]`, `latestUpdate`,
-  `clientActionNeeded`.
-- Transformer reads them from `raw.kind` / `raw.type` and the matching
-  fields. All optional; missing fields render nothing.
-
-`MilestoneNode.tsx` renders a variant icon per kind (existing lucide
-icons: `MapPin`/`Circle` for milestone, `GitBranch` for decision,
-`FileText` for deliverable, `CalendarClock` for meeting). Node shape and
-palette match current styling; no new colors.
-
-## 7. Active phase + "You are here" (`JourneyCanvas.tsx`)
-
-- Compute activePhase from `journey.activeMilestone.phase`.
-- Add a soft glow rect behind that phase band and a "You are here" pill
-  above the active milestone node.
-- The active route segment gets a slow-pulse SVG animation (2 s ease
-  in/out on stroke opacity) — disabled under `prefers-reduced-motion`.
-
-## 8. Route segment states
-
-Rebuild `layout.progressPathD` into per-segment paths so each segment can
-be styled independently:
-
-- `completed` — full-opacity royal stroke
-- `active` — royal with soft glow + pulse
-- `upcoming` — 25% opacity white
-- `blocked` — muted amber (`#b78100` at 60% opacity), never red
-
-Segment ↔ node highlight: on marker hover/focus, boost the adjacent
-segment stroke width from 6 → 7 for 200 ms.
-
-## 9. Deep-link query params
-
-Extend the route's `validateSearch`:
-
-```ts
-z.object({
-  m: fallback(z.string().optional(), undefined),         // milestone (existing)
-  item: fallback(z.string().optional(), undefined),      // alias for any marker
-  decision: fallback(z.string().optional(), undefined),
-  deliverable: fallback(z.string().optional(), undefined),
-})
+later (Phase 3 — Scale Systems):
+  - School Portal                    (milestone · upcoming)
+  - Analytics Layer                  (milestone · upcoming)
+  - AI Knowledge Layer               (milestone · upcoming)
+  - School Portal Outline            (deliverable)
+  - Go-To-Market Plan                (decision · due 2025-08-10)
+  - First School Launch              (milestone · due 2026-01-01 · "deadline")
 ```
 
-Resolution precedence: `decision` → `deliverable` → `item` → `m`. Resolved
-slug is normalized back to `?m=<slug>` via `navigate({ replace: true })` so
-we keep one canonical URL shape.
+Each item carries the full drawer copy from your spec: `summary`, `detail` (Why it matters), `success_looks_like`, `unlocks`, `dependencies`, `client_action_needed`, `latest_update`, `owner_note` where provided.
 
-On mount, if the slug matches a marker: open its sheet, smooth-scroll the
-canvas to its x-position, briefly highlight it. If the slug is unknown,
-show a toast: "This item is no longer available in the current roadmap
-version." and clear the param.
+## Out of scope for this pass
 
-## 10. Request clarification modal (`ClarificationModal.tsx`, new)
-
-Small shadcn `Dialog` opened from any panel's "Request clarification" CTA
-and from the header's existing button:
-
-- Title: **Request clarification**
-- Read-only context chip: marker title + phase
-- Textarea: "What would you like us to clarify?"
-- Buttons: **Send question** / Cancel
-- On submit, insert a row into `client_portal_messages` via a new
-  server fn `sendPortalClarification({ roadmapId, markerSlug, markerTitle,
-  question })`. Uses `requireSupabaseAuth`; RLS + existing project
-  membership check.
-- Success state (inline in the dialog): "Your question was sent. We'll
-  respond here so the context stays together." + link to
-  `/portal/messages`.
-- Roadmap state (selected marker, scroll position) preserved on close.
-
-## 11. Acknowledge milestone modal
-
-Replace inline "Mark reviewed" button flow with a confirm dialog:
-
-- Title: **Acknowledge this milestone?**
-- Body: "This lets us know you've reviewed this part of the roadmap."
-- Actions: **Acknowledge** / Cancel
-- Uses existing `recordPortalMilestoneReview`. Success shows an inline
-  "Acknowledged ✓" state on the panel. No reload.
-
-The page-level "Acknowledge roadmap" block stays as-is.
-
-## 12. Keyboard & focus
-
-- Canvas already has `role="region"` + arrow-key nav — verify Home/End,
-  add PageUp/PageDown for phase jumps.
-- Marker `<button>` elements: Enter/Space opens the panel (already), Esc
-  from an unopened tooltip dismisses tooltip only.
-- Sheet: Radix focus trap; on close, focus returns to the source marker
-  via stored ref.
-- All CTAs have `focus-visible:ring-2 ring-royal` classes (already the
-  project default — audit and fix any misses).
-
-## 13. `prefers-reduced-motion`
-
-Add a `useReducedMotion` hook (matchMedia). Wrap:
-
-- Route draw animation (`stroke-dashoffset`) → skip, render final path.
-- Active segment pulse → static full-opacity stroke.
-- Scroll momentum → snap to target instantly.
-- Sheet transitions keep default (Radix respects OS setting already).
-
-## 14. Loading, empty, error, not-found states
-
-Route already handles: revoked, no docs. Add:
-
-- **Loading**: existing skeleton stays.
-- **Not published**: existing copy stays.
-- **Load error**: wrap `RoadmapView` in an error boundary — copy: "We
-  could not load the roadmap. Please refresh or contact Trust Tai."
-- **Selected item missing**: toast + URL param cleared (see §9).
-
-## 15. Mobile / tablet
-
-- Desktop / tablet ≥ 768 px: canvas + hover tooltips + right slide-over.
-- Tablet drag already works via pointer events.
-- Mobile < 768 px: swap `<JourneyCanvas>` for a `<MobilePhaseStack>`
-  component — one phase per swipeable card (existing shadcn `Carousel`),
-  markers listed as tap targets, detail opens as full-screen `Sheet`
-  `side="bottom"`. Phase pills remain as horizontal scroller.
-
-## 16. Performance
-
-- Marker positions memoized on `journey`.
-- Canvas SVG paths memoized; only per-segment stroke opacity animates.
-- Mini-map viewport rect uses CSS `transform: translateX()`, not width
-  reflow.
-- Scroll listener throttled with `requestAnimationFrame`.
-
-## 17. QA checklist (must all pass)
-
-Run through: horizontal scroll, drag pan, phase pills jump, mini-map
-sync + drag, hover lift + tooltip, panel open on click, decision /
-deliverable / meeting modes render, Esc + outside-click + X close,
-`?item=` / `?decision=` / `?deliverable=` deep links open the right
-panel, clarification modal preserves marker context, acknowledge shows
-inline success without reload, no internal fields visible, keyboard-only
-traversal works, reduced-motion setting disables animations, mobile
-phase stack renders below 768 px.
-
----
-
-## File-level change list
-
-- `src/lib/portal-roadmap-model.ts` — extend types with `kind`, marker
-  variants, `dueDate`, `unlocks`, etc. Transformer reads optional
-  `raw.kind` and marker-specific fields.
-- `src/components/portal/roadmap/JourneyCanvas.tsx` — refactor scroll into
-  a context provider, add per-segment paths, active-phase glow, "You are
-  here" pill, segment highlight on marker hover, momentum + edge clamp,
-  scroll-hint gradient, reduced-motion gating.
-- `src/components/portal/roadmap/MilestoneNode.tsx` — variant icon per
-  `kind`, richer tooltip content, `data-marker-slug` + focus-return ref
-  registration, `onMouseEnter` dispatches segment highlight.
-- `src/components/portal/roadmap/MilestoneSheet.tsx` — mode switch
-  (milestone/decision/deliverable/meeting), Preview dialog, Acknowledge +
-  Request-clarification modal triggers, focus-return.
-- `src/components/portal/roadmap/PhaseJumpNav.tsx` — active pill from live
-  scroll, PageUp/Down keyboard, brief phase-band pulse on click.
-- `src/components/portal/roadmap/MiniMap.tsx` (new) — miniature canvas +
-  draggable viewport rect.
-- `src/components/portal/roadmap/MobilePhaseStack.tsx` (new) — swipeable
-  phase cards for < 768 px.
-- `src/components/portal/roadmap/ClarificationModal.tsx` (new) — Dialog
-  wrapping a textarea + submit.
-- `src/components/portal/roadmap/AcknowledgeDialog.tsx` (new) — confirm
-  dialog around `recordPortalMilestoneReview`.
-- `src/components/portal/roadmap/canvas-context.tsx` (new) — React
-  context for scroll state, active phase, focus-return refs, segment
-  highlight, reduced-motion flag.
-- `src/hooks/use-reduced-motion.ts` (new) — matchMedia hook.
-- `src/routes/portal.roadmap.tsx` — extended `validateSearch`, mount
-  clarification modal, wire mobile branch, error boundary, selected-item
-  resolution + toast.
-- `src/lib/portal.functions.ts` — new `sendPortalClarification` server fn
-  (auth-required, inserts into `client_portal_messages`, logs activity).
-
-No changes to migrations, RLS, or the roadmap select projection.
-
----
-
-## Assumption
-
-Decisions / deliverables / meetings are surfaced only when the roadmap
-row's `sequence_30_60_90` items include an optional `type` /
-`due_date` / `file_url` / `meeting_at` field. If none are present, every
-marker renders as a plain milestone — same as today. This keeps the
-change client-safe and avoids inventing internal state.
+The reference screenshot shows features that aren't part of the current codebase — left status panel, "Fit to field / Jump / View" command bar, phase territory tooltips, legend chips, decision "Confirm recommendation" flow, PDF-hosted asset upload. Happy to plan those next; today's plan just gets your real Mental Dental content on screen with the correct state copy.
