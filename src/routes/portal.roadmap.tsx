@@ -1236,6 +1236,7 @@ function DemoRoadmapView() {
             viewMode={viewMode}
             onJump={jumpTo}
             matchingCount={matchingCount}
+            matchingSlugs={matchingSlugs}
             onResetView={() => setViewMode("all")}
           />
         </div>
