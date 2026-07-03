@@ -46,6 +46,7 @@ function PortalLoginPage() {
   }
 
   const hasInternalError =
+    status === "no_access" ||
     status === "link_failed" ||
     status === "suppressed" ||
     status === "enqueue_failed" ||
@@ -78,10 +79,14 @@ function PortalLoginPage() {
             {hasInternalError ? (
               <>
                 <p className="text-[15px] text-ink font-medium">
-                  Something went wrong on our side.
+                  {status === "no_access"
+                    ? "No active portal access found for this email."
+                    : "Something went wrong on our side."}
                 </p>
                 <p className="text-[13px] text-ink/70 mt-2">
-                  We couldn't finish sending your sign-in link
+                  {status === "no_access"
+                    ? "We did not send a sign-in link because this email is not currently authorized for the portal."
+                    : "We couldn't finish sending your sign-in link"}
                   {status === "link_failed" && " (auth link generation failed)"}
                   {status === "suppressed" && " (this address is currently blocked from email delivery)"}
                   {status === "enqueue_failed" && " (email queue rejected the request)"}
