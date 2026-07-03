@@ -18,6 +18,12 @@ export const Route = createFileRoute("/portal/home")({
   ssr: false,
   beforeLoad: async () => {
     const res = await checkPortalAccess();
+    // Staff/admins are not clients — send them to the admin dashboard on
+    // their default portal landing. They can still visit any /portal/*
+    // route directly if they need to review a client-facing surface.
+    if (res.isAdmin) {
+      throw redirect({ to: "/admin" });
+    }
     // Only redirect for explicit rejection states. If access is "none" but the
     // user is authenticated (portal layout already gated on that), fall through
     // so PortalHome can render a friendly "we don't recognize this account"
@@ -26,6 +32,7 @@ export const Route = createFileRoute("/portal/home")({
       throw redirect({ to: "/portal/access-denied" });
     }
   },
+
   head: () => ({
     meta: [
       { title: "Home — Trust Tai portal" },
