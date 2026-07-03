@@ -193,7 +193,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="not-first:mt-3.5 not-first:pt-3.5 not-first:border-t not-first:border-ink/10">
+    <div className="[&:not(:first-child)]:mt-3.5 [&:not(:first-child)]:pt-3.5 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-ink/10">
       <div
         className={`font-mono text-[9.5px] uppercase tracking-[0.28em] ${
           tone === "royal" ? "text-royal" : "text-ink/55"
