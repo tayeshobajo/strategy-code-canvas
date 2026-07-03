@@ -375,6 +375,8 @@ export function MapCanvas({
           const dimmed = matchingSlugs
             ? !matchingSlugs.has(milestone.slug)
             : false;
+          const mutedBySelection =
+            !!selectedSlug && milestone.slug !== selectedSlug;
           return (
             <div
               key={milestone.slug}
@@ -390,10 +392,12 @@ export function MapCanvas({
                 onOpen={() => onSelect(milestone.slug)}
                 isSelected={milestone.slug === selectedSlug}
                 dimmed={dimmed}
+                mutedBySelection={mutedBySelection}
               />
             </div>
           );
         })}
+
         </div>
       </div>
     </div>
