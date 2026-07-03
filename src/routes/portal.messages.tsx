@@ -145,14 +145,27 @@ function MessagesPage() {
   const { data: messages, isLoading, isError, refetch } = useMessages(projectId);
   const { data: fileMap } = useMessageFiles(projectId);
   const qc = useQueryClient();
+  const search = Route.useSearch();
   const [body, setBody] = useState("");
   const [tab, setTab] = useState<Tab>("all");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [previewFile, setPreviewFile] = useState<FileMeta | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prefillApplied = useRef(false);
 
   const email = ctx.data?.email ?? "";
+
+  // Pre-fill compose textarea when linked from a roadmap milestone.
+  useEffect(() => {
+    if (prefillApplied.current) return;
+    if (!search.prefill && !search.milestone) return;
+    prefillApplied.current = true;
+    const seed = search.prefill
+      ? search.prefill
+      : `I have a question about the "${search.milestone}" milestone in our roadmap:\n\n`;
+    setBody((current) => (current ? current : seed));
+  }, [search.prefill, search.milestone]);
 
   const updateAttachment = useCallback((clientId: string, patch: Partial<Attachment>) => {
     setAttachments((a) => a.map((it) => (it.clientId === clientId ? { ...it, ...patch } : it)));
