@@ -69,10 +69,13 @@ function Loading() {
       <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
         Roadmap
       </div>
-      <div className="mt-3 flex items-center gap-3 text-ink/70">
+      <div className="mt-3 flex items-center gap-3 text-ink/80">
         <Loader2 className="w-4 h-4 animate-spin" />
-        <span>Loading your Roadmap…</span>
+        <span className="text-[15px]">Loading your roadmap canvas…</span>
       </div>
+      <p className="text-[13px] text-ink/55 mt-1.5">
+        Preparing the latest approved version.
+      </p>
       <div className="mt-6 space-y-3" aria-hidden="true">
         <div className="h-4 w-2/3 rounded bg-ink/5 animate-pulse" />
         <div className="h-4 w-1/2 rounded bg-ink/5 animate-pulse" />
