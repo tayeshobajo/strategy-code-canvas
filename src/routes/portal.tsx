@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, FileText, Folder, MessageSquare, CreditCard, User, LogOut, Activity, Lock } from "lucide-react";
+import { Home, FileText, Folder, MessageSquare, CreditCard, User, LogOut, Activity, Lock, ChevronUp } from "lucide-react";
 import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 import { usePortalContext } from "@/hooks/use-portal-context";
 import {
@@ -17,6 +17,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export const Route = createFileRoute("/portal")({
   ssr: false,
