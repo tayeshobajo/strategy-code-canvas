@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, FileText, Folder, MessageSquare, CreditCard, User, LogOut, Activity, Lock, ChevronUp } from "lucide-react";
+import { Home, FileText, Folder, MessageSquare, CreditCard, User, LogOut, Activity, Lock, ChevronUp, Menu } from "lucide-react";
 import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 import { usePortalContext } from "@/hooks/use-portal-context";
 import {
@@ -22,6 +22,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export const Route = createFileRoute("/portal")({
   ssr: false,
@@ -107,9 +114,15 @@ function PortalLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [email, setEmail] = useState<string>("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isPublicPage =
     pathname === "/portal/login" || pathname === "/portal/access-denied";
+
+  // Close the mobile drawer whenever the route changes
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (isPublicPage) {
@@ -146,30 +159,67 @@ function PortalLayout() {
     return <Outlet />;
   }
 
+  const sidebarInner = (
+    <div className="flex flex-col h-full bg-ink text-white">
+      <div className="flex px-6 py-6 border-b border-white/10 items-center shrink-0">
+        <Link to="/" aria-label="Trust Tai home" className="block">
+          <img
+            src={logoWhite.url}
+            alt="Trust Tai | Consultancy + AI Agency"
+            className="h-9 w-auto"
+          />
+        </Link>
+      </div>
+      <div className="px-6 pt-5 pb-4 shrink-0">
+        <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+          Client Portal
+        </div>
+        <PortalGreeting />
+      </div>
+      <PortalNav pathname={pathname} />
+      <div className="mt-auto shrink-0">
+        <SidebarAccountZone email={email} onSignOut={signOut} />
+      </div>
+    </div>
+  );
+
   return (
     <TooltipProvider delayDuration={150}>
       <div className="min-h-screen flex flex-col bg-paper overflow-x-clip">
+        {/* Mobile top bar with hamburger — hidden on lg+ */}
+        <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between h-14 px-4 bg-ink text-white border-b border-white/10">
+          <Link to="/" aria-label="Trust Tai home" className="block">
+            <img
+              src={logoWhite.url}
+              alt="Trust Tai | Consultancy + AI Agency"
+              className="h-7 w-auto"
+            />
+          </Link>
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                aria-label="Open navigation"
+                className="grid place-items-center h-10 w-10 rounded-md border border-white/10 hover:bg-white/5 transition-colors"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-[280px] max-w-[85vw] p-0 bg-ink border-r border-white/10 text-white [&>button]:text-white/70"
+            >
+              <VisuallyHidden>
+                <SheetTitle>Portal navigation</SheetTitle>
+              </VisuallyHidden>
+              {sidebarInner}
+            </SheetContent>
+          </Sheet>
+        </header>
+
         <div className="flex-1 flex flex-col lg:flex-row min-w-0">
-          <aside className="lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-screen bg-ink text-white flex flex-col z-30">
-            <div className="hidden lg:flex px-6 py-6 border-b border-white/10 items-center shrink-0">
-              <Link to="/" aria-label="Trust Tai home" className="block">
-                <img
-                  src={logoWhite.url}
-                  alt="Trust Tai | Consultancy + AI Agency"
-                  className="h-9 w-auto"
-                />
-              </Link>
-            </div>
-            <div className="hidden lg:block px-6 pt-5 pb-4 shrink-0">
-              <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-                Client Portal
-              </div>
-              <PortalGreeting />
-            </div>
-            <PortalNav pathname={pathname} />
-            <div className="hidden lg:block mt-auto shrink-0">
-              <SidebarAccountZone email={email} onSignOut={signOut} />
-            </div>
+          <aside className="hidden lg:flex lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-screen flex-col z-30">
+            {sidebarInner}
           </aside>
 
           <main className="flex-1 min-w-0 bg-paper-soft px-4 sm:px-6 lg:px-10 py-10 lg:py-16 overflow-x-clip">
@@ -300,7 +350,7 @@ function PortalNav({ pathname }: { pathname: string }) {
   return (
     <nav
       aria-label="Portal navigation"
-      className="flex lg:block overflow-x-auto lg:overflow-visible lg:flex-1 px-3 py-3 lg:py-4 gap-1 lg:gap-0 lg:space-y-1"
+      className="block flex-1 overflow-y-auto px-3 py-4 space-y-1"
     >
       {NAV.map((item) => {
         const active =
@@ -342,7 +392,7 @@ function PortalNav({ pathname }: { pathname: string }) {
           >
             <span
               aria-hidden
-              className={`hidden lg:block absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
+              className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
                 active ? "bg-royal opacity-100" : "opacity-0 group-hover:opacity-40 bg-white"
               }`}
             />
