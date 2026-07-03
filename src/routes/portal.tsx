@@ -168,8 +168,7 @@ function PortalLayout() {
             </div>
             <PortalNav pathname={pathname} />
             <div className="hidden lg:block mt-auto shrink-0">
-              <SidebarMissionCard />
-              <SidebarUserBlock email={email} onSignOut={signOut} />
+              <SidebarAccountZone email={email} onSignOut={signOut} />
             </div>
           </aside>
 
