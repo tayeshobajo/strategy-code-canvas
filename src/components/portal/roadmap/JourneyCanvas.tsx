@@ -12,6 +12,8 @@ type Props = {
   journey: RoadmapJourney;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
+  /** When set, milestones not in this set are dimmed (view filter active). */
+  matchingSlugs?: Set<string> | null;
 };
 
 const CANVAS_WIDTH = 1800;
