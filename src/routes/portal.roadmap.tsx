@@ -27,11 +27,13 @@ import { JourneyCanvas } from "@/components/portal/roadmap/JourneyCanvas";
 import { MilestoneSheet } from "@/components/portal/roadmap/MilestoneSheet";
 import { PhaseJumpNav } from "@/components/portal/roadmap/PhaseJumpNav";
 import { MiniMap } from "@/components/portal/roadmap/MiniMap";
+import { MobilePhaseStack } from "@/components/portal/roadmap/MobilePhaseStack";
 import { ClarificationModal } from "@/components/portal/roadmap/ClarificationModal";
 import {
   RoadmapCanvasProvider,
   useRoadmapCanvas,
 } from "@/components/portal/roadmap/canvas-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
 const searchSchema = z.object({
