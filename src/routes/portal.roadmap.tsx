@@ -317,7 +317,20 @@ function RoadmapJourneyView({
   // the drawer stays consistent with what the canvas is showing.
   useEffect(() => {
     if (!selectedMilestone || !matchingSlugs) return;
-    if (!matchingSlugs.has(selectedMilestone.slug)) setSelected(null);
+    if (!matchingSlugs.has(selectedMilestone.slug)) {
+      toast.info(
+        `"${selectedMilestone.title}" is hidden by the current view. Selection cleared.`,
+      );
+      setSelected(null);
+      // Return focus to the canvas so keyboard users aren't stranded.
+      setTimeout(() => {
+        const el = document.getElementById("portal-canvas-scroll");
+        if (el) {
+          if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+          (el as HTMLElement).focus({ preventScroll: true });
+        }
+      }, 60);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
 
