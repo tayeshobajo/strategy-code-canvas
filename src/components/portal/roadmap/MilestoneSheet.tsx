@@ -37,6 +37,7 @@ import { recordPortalMilestoneReview } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { ClarificationModal } from "./ClarificationModal";
 import { useRoadmapCanvas } from "./canvas-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Props = {
   milestone: RoadmapMilestone | null;
