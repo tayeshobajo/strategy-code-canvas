@@ -578,19 +578,66 @@ function RoadmapCanvasStage({
   onSelect,
   viewMode,
   onJump,
+  matchingCount,
+  onResetView,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
   viewMode: RoadmapViewMode;
   onJump: (key: "pointA" | "now" | "next" | "later" | "pointB") => void;
+  matchingCount: number;
+  onResetView: () => void;
 }) {
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/portal/roadmap" });
   // Inject the derived currentPhaseKey into the canvas context so all
   // surfaces (status card, pill, mini-map) read from one source of truth.
   const canvas = useRoadmapCanvas();
   useEffect(() => {
     canvas.setCurrentPhaseKey(journey.currentPhaseKey);
   }, [canvas, journey.currentPhaseKey]);
+
+  // Seed selectedPhaseKey from URL on mount, then persist changes back.
+  const didSeedPhase = useRef(false);
+  useEffect(() => {
+    if (didSeedPhase.current) return;
+    didSeedPhase.current = true;
+    const urlPhase = search.phase;
+    if (!urlPhase) return;
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(LS_PHASE_KEY, urlPhase);
+      } catch {
+        /* ignore */
+      }
+    }
+    if (urlPhase === "pointA" || urlPhase === "pointB") {
+      onJump(urlPhase);
+    } else {
+      canvas.setSelectedPhaseKey(urlPhase);
+      onJump(urlPhase);
+    }
+  }, [search.phase, canvas, onJump]);
+
+  useEffect(() => {
+    const key = canvas.selectedPhaseKey;
+    const urlPhase = key ?? undefined;
+    if (search.phase !== urlPhase) {
+      navigate({
+        search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, phase: urlPhase }),
+        replace: true,
+      });
+    }
+    if (typeof window !== "undefined") {
+      try {
+        if (key) window.localStorage.setItem(LS_PHASE_KEY, key);
+        else window.localStorage.removeItem(LS_PHASE_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [canvas.selectedPhaseKey, search.phase, navigate]);
 
   // On first mount, pan the viewport to sit over the current phase so the
   // mini-map, pill, and canvas center all agree from the start.
