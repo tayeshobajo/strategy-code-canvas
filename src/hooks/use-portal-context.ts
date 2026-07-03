@@ -24,7 +24,22 @@ const UNLOCK_STATUSES = new Set([
  * Once the roadmap is approved (or the project reaches an unlocked status),
  * polling stops and we fall back to the standard 60s stale window.
  */
-export function usePortalContext({ enabled = true }: { enabled?: boolean } = {}) {
+export function usePortalContext({ enabled: enabledProp = true }: { enabled?: boolean } = {}) {
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled) setHasSession(!!data.session);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setHasSession(!!session);
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+  const enabled = enabledProp && hasSession === true;
   const fetchCtx = useServerFn(getPortalContext);
   return useQuery({
     queryKey: ["portal", "context"],
