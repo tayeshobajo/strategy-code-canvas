@@ -49,7 +49,23 @@ function AuthPage() {
     setErr(null);
     setBusy(true);
     try {
-      await sendPortalLink({ data: { email: email.trim().toLowerCase() } });
+      const res = await sendPortalLink({ data: { email: email.trim().toLowerCase() } });
+      if (res?.status === "no_access") {
+        setErr("No active portal access was found for this email, so no sign-in link was sent.");
+        return;
+      }
+      if (res?.status === "link_failed") {
+        setErr("We couldn't create your sign-in link. Please try again in a minute.");
+        return;
+      }
+      if (res?.status === "suppressed") {
+        setErr("This address is currently blocked from email delivery. Please contact hello@trusttai.com.");
+        return;
+      }
+      if (res?.status === "enqueue_failed") {
+        setErr("We couldn't queue your sign-in email. Please try again in a minute.");
+        return;
+      }
       setSent(true);
     } catch (error) {
       setErr(error instanceof Error ? error.message : "Something went wrong.");

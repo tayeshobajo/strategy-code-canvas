@@ -19,6 +19,11 @@ import { createHash } from "crypto";
 
 const URL_DEMO = "/portal/roadmap?__visual=demo";
 
+const EXTRA_ROADMAP_VIEWPORTS = [
+  { name: "tablet-900", width: 900, height: 1600 },
+  { name: "small-desktop-1366", width: 1366, height: 1600 },
+] as const;
+
 async function preparePage(page: Page) {
   await page.goto(URL_DEMO, { waitUntil: "networkidle" });
   await page.addStyleTag({
@@ -54,11 +59,37 @@ test.describe("/portal/roadmap visual regression", () => {
   });
 
   test("roadmap canvas snapshot", async ({ page }, testInfo) => {
-    const canvas = page.locator("[data-testid='roadmap-canvas-wrap']");
-    await expect(canvas).toBeVisible();
-    // Strict-pixel compare against the baseline for this project (viewport).
-    await expect(canvas).toHaveScreenshot(`roadmap-${testInfo.project.name}.png`);
+    test.skip(
+      testInfo.project.name !== "desktop-1440",
+      "The uploaded Image 1 strict baseline is a desktop-1440 reference.",
+    );
+
+    // Match the uploaded Image 1 reference size exactly and compare the full viewport.
+    await page.setViewportSize({ width: 1536, height: 1024 });
+    await preparePage(page);
+    await expect(page.locator("[data-testid='roadmap-canvas-wrap']")).toBeVisible();
+    await expect(page).toHaveScreenshot(`roadmap-${testInfo.project.name}.png`, {
+      fullPage: false,
+    });
   });
+});
+
+test.describe("/portal/roadmap additional viewport visual regression", () => {
+  for (const viewport of EXTRA_ROADMAP_VIEWPORTS) {
+    test(`roadmap canvas snapshot ${viewport.name}`, async ({ page }, testInfo) => {
+      test.skip(
+        testInfo.project.name !== "desktop-1440",
+        "Extra roadmap viewport baselines run once to avoid duplicating across every project.",
+      );
+
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await preparePage(page);
+
+      const canvas = page.locator("[data-testid='roadmap-canvas-wrap']");
+      await expect(canvas).toBeVisible();
+      await expect(canvas).toHaveScreenshot(`roadmap-${viewport.name}.png`);
+    });
+  }
 });
 
 test.describe("/portal/roadmap header actions keep unchanged sections stable", () => {
@@ -88,7 +119,7 @@ test.describe("/portal/roadmap header actions keep unchanged sections stable", (
     await page.waitForTimeout(200);
     expect(await hashUnchangedSections(page), "after View filter = decisions").toBe(before);
     await page.getByLabel("Filter roadmap view").click();
-    await page.getByRole("option", { name: /all/i }).first().click();
+    await page.getByRole("option", { name: /full journey/i }).first().click();
     await page.waitForTimeout(200);
     expect(await hashUnchangedSections(page), "after View filter reset").toBe(before);
 
