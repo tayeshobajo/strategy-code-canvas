@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getPortalContext } from "@/lib/portal.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 // Lifecycle statuses at which the Roadmap/Files sidebar entries unlock.
 // Mirrors the rules in src/routes/portal.tsx so we know when to stop polling.
@@ -22,14 +24,31 @@ const UNLOCK_STATUSES = new Set([
  * Once the roadmap is approved (or the project reaches an unlocked status),
  * polling stops and we fall back to the standard 60s stale window.
  */
-export function usePortalContext() {
+export function usePortalContext({ enabled: enabledProp = true }: { enabled?: boolean } = {}) {
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled) setHasSession(!!data.session);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setHasSession(!!session);
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+  const enabled = enabledProp && hasSession === true;
   const fetchCtx = useServerFn(getPortalContext);
   return useQuery({
     queryKey: ["portal", "context"],
     queryFn: () => fetchCtx({}),
+    enabled,
     staleTime: 30_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: enabled,
     refetchInterval: (query) => {
+      if (!enabled) return false;
       const data = query.state.data as
         | { approvedRoadmap?: unknown; project?: { portal_status?: string } }
         | undefined;
