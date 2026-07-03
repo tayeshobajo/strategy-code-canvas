@@ -306,10 +306,10 @@ export function MapCanvas({
   // cluster chip with its members laid out around the cluster center so
   // nearby items no longer overlap.
   type FannedEntry =
-    | { kind: "cluster"; cluster: (typeof clustered)[number] extends { cluster: infer C } ? C : never }
+    | { kind: "cluster"; cluster: MarkerClusterModel }
     | {
-        kind: "single";
-        pos: (typeof layout.markers)[number];
+        kind: "marker";
+        pos: MarkerPos;
         /** Optional absolute pixel overrides applied by fan-out. */
         overrideX?: number;
         overrideY?: number;
@@ -319,7 +319,6 @@ export function MapCanvas({
     const out: FannedEntry[] = [];
     for (const entry of clustered) {
       if (entry.kind === "cluster" && canvas.explodedClusterKeys.has(entry.cluster.key)) {
-        // Fan members around the cluster center on a shallow arc.
         const cx = entry.cluster.nx * CANVAS_WIDTH;
         const cy = entry.cluster.ny * CANVAS_HEIGHT;
         const n = entry.cluster.members.length;
@@ -329,21 +328,22 @@ export function MapCanvas({
         for (let i = 0; i < n; i++) {
           const member = entry.cluster.members[i];
           const dx = startX + i * step - cx;
-          // shallow parabolic arc: peaks in the middle, dips towards edges
-          const t = n > 1 ? i / (n - 1) - 0.5 : 0; // -0.5..0.5
-          const dy = -60 + Math.abs(t) * 120; // -60..0
+          const t = n > 1 ? i / (n - 1) - 0.5 : 0;
+          const dy = -60 + Math.abs(t) * 120;
           out.push({
-            kind: "single",
+            kind: "marker",
             pos: member,
             overrideX: cx + dx,
             overrideY: cy + dy,
             fannedFrom: entry.cluster.key,
           });
         }
-        // Keep the cluster chip visible so the user can collapse it back.
-        out.push(entry as FannedEntry);
+        // Keep the cluster chip so the user can collapse it back.
+        out.push({ kind: "cluster", cluster: entry.cluster });
+      } else if (entry.kind === "cluster") {
+        out.push({ kind: "cluster", cluster: entry.cluster });
       } else {
-        out.push(entry as FannedEntry);
+        out.push({ kind: "marker", pos: entry.pos });
       }
     }
     return out;
