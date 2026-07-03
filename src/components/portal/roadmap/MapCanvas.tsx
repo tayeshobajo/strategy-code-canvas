@@ -560,8 +560,8 @@ export function MapCanvas({
             );
           })()}
 
-          {/* Markers + clusters */}
-          {clustered.map((entry) => {
+          {/* Markers + clusters (with optional fan-out expansion) */}
+          {rendered.map((entry, i) => {
             if (entry.kind === "cluster") {
               return (
                 <div
@@ -584,18 +584,28 @@ export function MapCanvas({
             const vis = visibilities.get(pos.milestone.slug) ?? "short";
             const mutedBySelection =
               !!selectedSlug && pos.milestone.slug !== selectedSlug;
+            const px =
+              entry.overrideX != null ? entry.overrideX : pos.nx * CANVAS_WIDTH;
+            const py =
+              entry.overrideY != null ? entry.overrideY : pos.ny * CANVAS_HEIGHT;
+            const keyId = entry.fannedFrom
+              ? `${entry.fannedFrom}:${pos.milestone.slug}:${i}`
+              : pos.milestone.slug;
             return (
               <div
-                key={pos.milestone.slug}
+                key={keyId}
                 style={{
                   opacity: ready ? 1 : 0,
-                  transition: reduced ? "none" : "opacity 400ms ease-out",
+                  transition: reduced
+                    ? "none"
+                    : "opacity 400ms ease-out, left 260ms ease-out, top 260ms ease-out",
+                  zIndex: entry.fannedFrom ? 12 : undefined,
                 }}
               >
                 <MilestoneNode
                   milestone={pos.milestone}
-                  x={pos.nx * CANVAS_WIDTH}
-                  y={pos.ny * CANVAS_HEIGHT}
+                  x={px}
+                  y={py}
                   onOpen={() => onSelect(pos.milestone.slug)}
                   isSelected={pos.milestone.slug === selectedSlug}
                   visibility={vis}
