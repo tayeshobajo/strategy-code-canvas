@@ -661,6 +661,19 @@ function RoadmapCanvasStage({
     didInitialSnap.current = true;
   }, [journey.currentPhaseKey]);
 
+  // Selecting a marker sets the "viewing" phase to that marker's phase, so
+  // the mini-map and main-map highlight follow. Never touches currentPhase.
+  useEffect(() => {
+    if (!selectedSlug) return;
+    const m = journey.milestones.find((x) => x.slug === selectedSlug);
+    if (!m) return;
+    const phase = m.phase as PhaseKey;
+    if (phase && phase !== canvas.selectedPhaseKey) {
+      canvas.setSelectedPhaseKey(phase);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSlug]);
+
   return (
     <div className="relative h-full w-full">
       <MapCanvas
