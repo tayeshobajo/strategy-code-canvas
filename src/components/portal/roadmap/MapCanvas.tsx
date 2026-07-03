@@ -550,8 +550,8 @@ export function MapCanvas({
                 <polyline
                   points={pathPoints}
                   fill="none"
-                  stroke="rgba(47,93,246,0.55)"
-                  strokeWidth={6}
+                  stroke="rgba(47,93,246,0.75)"
+                  strokeWidth={7}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   filter="url(#route-glow)"
@@ -559,8 +559,8 @@ export function MapCanvas({
                 <polyline
                   points={pathPoints}
                   fill="none"
-                  stroke="rgba(255,255,255,0.85)"
-                  strokeWidth={2}
+                  stroke="rgba(255,255,255,0.95)"
+                  strokeWidth={2.25}
                   strokeDasharray="6 6"
                   strokeLinecap="round"
                   strokeLinejoin="round"
