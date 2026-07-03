@@ -226,19 +226,23 @@ test.describe("/portal/roadmap sync between mini-map, active phase, and markers"
     // The floating overview strip is inside the canvas. Its phase buttons
     // carry sub-labels: Current State / Foundation / Core Platform Build /
     // Scale Systems / Scaled Impact.
+    // The mini-map "phase" buttons carry accessible names like
+    // "Phase 1 Foundation" — exact-match keeps us out of the milestone
+    // markers on the map that happen to include the same words.
     const canvas = page.locator("[data-testid='roadmap-canvas-wrap']");
 
-    await canvas.getByRole("button", { name: /Scale Systems/i }).click();
+    await canvas.getByRole("button", { name: "Phase 3 Scale Systems", exact: true }).click();
     await page.waitForTimeout(400);
     await expect(page.getByText(/Phase 3/i).first()).toBeVisible();
 
-    await canvas.getByRole("button", { name: /Foundation/i }).click();
+    await canvas.getByRole("button", { name: "Phase 1 Foundation", exact: true }).click();
     await page.waitForTimeout(400);
     await expect(page.getByText(/Phase 1/i).first()).toBeVisible();
 
-    await canvas.getByRole("button", { name: /Current State/i }).click();
+    await canvas.getByRole("button", { name: "Point A Current State", exact: true }).click();
     await page.waitForTimeout(400);
     await expect(page.getByText(/Point A/i).first()).toBeVisible();
+
   });
 
   test("selecting a marker highlights it, opens the drawer, and uses a light overlay (≤12%)", async ({ page }) => {
