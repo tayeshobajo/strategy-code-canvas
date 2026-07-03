@@ -19,6 +19,11 @@ import { createHash } from "crypto";
 
 const URL_DEMO = "/portal/roadmap?__visual=demo";
 
+const EXTRA_ROADMAP_VIEWPORTS = [
+  { name: "tablet-900", width: 900, height: 1600 },
+  { name: "small-desktop-1366", width: 1366, height: 1600 },
+] as const;
+
 async function preparePage(page: Page) {
   await page.goto(URL_DEMO, { waitUntil: "networkidle" });
   await page.addStyleTag({
@@ -59,6 +64,24 @@ test.describe("/portal/roadmap visual regression", () => {
     // Strict-pixel compare against the baseline for this project (viewport).
     await expect(canvas).toHaveScreenshot(`roadmap-${testInfo.project.name}.png`);
   });
+});
+
+test.describe("/portal/roadmap additional viewport visual regression", () => {
+  for (const viewport of EXTRA_ROADMAP_VIEWPORTS) {
+    test(`roadmap canvas snapshot ${viewport.name}`, async ({ page }, testInfo) => {
+      test.skip(
+        testInfo.project.name !== "desktop-1440",
+        "Extra roadmap viewport baselines run once to avoid duplicating across every project.",
+      );
+
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await preparePage(page);
+
+      const canvas = page.locator("[data-testid='roadmap-canvas-wrap']");
+      await expect(canvas).toBeVisible();
+      await expect(canvas).toHaveScreenshot(`roadmap-${viewport.name}.png`);
+    });
+  }
 });
 
 test.describe("/portal/roadmap header actions keep unchanged sections stable", () => {
