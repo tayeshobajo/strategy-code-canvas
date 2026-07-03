@@ -1,57 +1,82 @@
-## 1) Sidebar confirmation
+## Goal
 
-The client portal sidebar in `src/routes/portal.tsx` already renders everything shown in your screenshot:
+Rebuild the `/portal/roadmap` visual to match the reference exactly: a large photorealistic map canvas (Image 2 as background) with milestones/decisions plotted on the terrain paths, a left "Your current status" overlay card, phase headings floating on the map, a right MILESTONE detail drawer, a bottom "Roadmap overview" mini-map strip, and a top action bar (Current Phase pill · Fit to field · Jump to · View · Download PDF · Ask a question · Book next call).
 
-- Trust Tai logo → home link
-- CLIENT PORTAL eyebrow
-- Nav items in order: Home, Roadmap, Files, Messages (with unread badge), Billing, Activity
-- "Your success is our mission." footer card
-- User chip (avatar + name + Client) + Sign out
+Untouched (per your instruction): Executive summary, Strategic priorities, Risks & dependencies, Recommended next move, Acknowledge roadmap. These continue to render below the map exactly as they do today.
 
-No changes needed — it matches. ✅
+## Layout to build
 
-## 2) Scaffold app email infrastructure
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ Title + Active + Last updated │ Current Phase pill │ Fit│Jump│View │ DL│Ask│Book│
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────┐          The journey from today…             ┌───────────┐  │
+│  │ YOUR CURRENT│                                                │ MILESTONE │  │
+│  │ STATUS card │       [ photorealistic map background ]        │ drawer    │  │
+│  │ progress    │       phase labels · milestones · decisions    │ (right)   │  │
+│  │ next action │       Point A tag                Point B tag   │           │  │
+│  │ meeting     │       legend row                                │           │  │
+│  │ key date    │                                                │           │  │
+│  │ responsibs. │                                                │           │  │
+│  └─────────────┘                                                └───────────┘  │
+│                                                                              │
+│  ┌──────────────────── ROADMAP OVERVIEW mini-map ────────────────────────┐  │
+│  │ Point A · Phase 1 (active) · Phase 2 · Phase 3 · Point B │ fullscreen │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Executive summary · Strategic priorities · Risks · Next move (UNCHANGED)     │
+│ Acknowledge roadmap (UNCHANGED)                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
 
-Email domain `notify.trusttai.com` is already verified, so we can go straight to scaffolding.
+## Assets
 
-Steps:
-1. `email_domain--setup_email_infra` — provisions pgmq queues, `email_send_log`, `suppressed_emails`, unsubscribe tokens, the `process-email-queue` route, pg_cron, and vault secrets.
-2. `email_domain--scaffold_transactional_email` — creates the send/preview/unsubscribe/suppression server routes, the templates registry (`src/lib/email-templates/registry.ts`), a sample template, and a branded unsubscribe page.
-3. Install any missing packages the scaffolder needs (`@lovable.dev/email-js`, `@lovable.dev/webhooks-js`, `@react-email/components`, `react-email`).
-4. Ensure `src/start.ts` middleware and `__root.tsx` `beforeLoad` pass `/lovable/*` and `/email/unsubscribe` through untouched (scaffolder handles, verify).
+- Upload `user-uploads://Map_Background-2.png` via `lovable-assets` → `src/assets/roadmap-map-background.png.asset.json`. Use as the canvas backdrop (object-cover), no crop, at a fixed aspect ratio (~3:2). No other new assets required.
 
-## 3) Admin-access confirmation email
+## Files
 
-New template: `src/lib/email-templates/admin-access-granted.tsx`
+New:
+- `src/components/portal/roadmap/MapCanvas.tsx` — replaces `JourneyCanvas` for desktop. Renders the background image, phase labels (PHASE 1/2/3 with subtitle + `% COMPLETE` chip), Point A / Point B tags, milestone/decision pill markers positioned by normalized (x, y) coords, "You are here" pill, drag/scroll/keyboard behavior preserved from `JourneyCanvas.tsx`, legend row (Milestone · Decision · Deliverable · Meeting · Deadline) pinned bottom-center.
+- `src/components/portal/roadmap/StatusOverlayCard.tsx` — the left floating card: "YOUR CURRENT STATUS" (You are here + active phase + progress bar), NEXT ACTION, UPCOMING MEETING, KEY DATE, CLIENT RESPONSIBILITIES, TRUST TAI RESPONSIBILITIES, "View all responsibilities" button (expands inline).
+- `src/components/portal/roadmap/RoadmapOverviewStrip.tsx` — bottom strip with the linear route across phases; click-to-scroll & fullscreen toggle (fullscreen expands the map canvas into a max-w viewport modal).
+- `src/components/portal/roadmap/roadmap-layout.ts` — deterministic layout math: given `journey.milestones`, produce normalized `{x, y}` per marker, distributed across three phase bands with wave-offset, plus phase-band bounds. Reused by MapCanvas.
 
-- Brand-consistent React Email template (ivory bg, royal accent, display font stack matching the site).
-- Props: `recipientName?`, `grantedByName?`, `adminDashboardUrl`.
-- Subject: **"You now have admin access to Trust Tai"**
-- Preview text: "Your Trust Tai admin access is active."
-- Body copy (calm/premium tone):
-  - H1: "Admin access enabled"
-  - "Hi {name or there}, your account (`hello@trust-tai.com`) now has admin access to the Trust Tai workspace."
-  - Bulleted "What you can do now": manage client portals, publish roadmaps, review activity, manage user roles.
-  - Primary CTA button → `${SITE_URL}/admin`
-  - Small footer: "If you didn't expect this, reply to this email and we'll investigate."
-- Register in `src/lib/email-templates/registry.ts` as `admin-access-granted`.
+Edited:
+- `src/routes/portal.roadmap.tsx`
+  - Top-bar `RoadmapHeader` rebuilt to match reference: left title + Active pill + Last updated; centered "Current Phase" pill (dark, bound to `journey.activeMilestone.phase`); right actions: **Fit to field**, **Jump to** (dropdown → phases + Point A/B), **View** (existing filter dropdown moved here), **Download PDF**, **Ask a question**, **Book next call**.
+  - Replace `PhaseJumpNav` + `JourneyCanvas` + `MiniMap` with `<MapCanvas />` + `<RoadmapOverviewStrip />`. `StatusOverlayCard` renders as an absolutely-positioned child inside the map region.
+  - Keep the untouched sections rendered below the map exactly as-is.
+  - Existing `MilestoneSheet` continues to serve as the right drawer, retitled `MILESTONE` and styled to match the reference (adds an inline "In progress · 45%" bar sourced from milestone data when available, plus the existing WHY IT MATTERS / WHAT IT UNLOCKS / STATUS / TARGET DATE / CLIENT ACTION NEEDED / LATEST UPDATE / RELATED FILES / Acknowledge / Request clarification).
+- `src/components/portal/roadmap/MilestoneNode.tsx` — restyle to the reference pill: rounded chip with left icon dot, title on top and small "In progress / Planned / Due <date>" line below. Selected state ⇒ solid white pill with dark text; unselected ⇒ translucent dark pill with white text. Icon color per kind (milestone=royal, decision=violet, deliverable=amber, meeting=teal, deadline=red).
+- `src/components/portal/roadmap/MilestoneSheet.tsx` — light restyle only (header label "MILESTONE", section spacing, progress bar in STATUS). No API changes.
+- `src/components/portal/roadmap/MobilePhaseStack.tsx` — unchanged behavior; ensure the new header still works on mobile (mobile keeps the existing stack, hides the map).
 
-### Wiring to the role-change action
+Removed from render tree (kept as files but not imported):
+- `PhaseJumpNav` (replaced by "Jump to" dropdown in header)
+- `MiniMap` (replaced by `RoadmapOverviewStrip`)
+- `JourneyCanvas` (replaced by `MapCanvas`) — file left in place so we don't break other imports if any; will delete once verified.
 
-Create a small helper `src/lib/email/send.ts` (if not present from scaffold) that POSTs to `/lovable/email/transactional/send`. Then:
+## Behavior details
 
-- **Admin roles page** (`/admin/roles`): after a successful "grant admin" insert into `user_roles`, call a new server function `sendAdminAccessGrantedEmail({ email, grantedByName })` that:
-  - Runs behind `requireSupabaseAuth` + `has_role('admin')` check.
-  - Enqueues the `admin-access-granted` template via `supabase.rpc('enqueue_email', ...)` with an idempotency key of `admin-access-${user_id}-${timestamp}`.
-  - Returns `{ queued: true }`.
-- Show a toast on success: "Confirmation email queued." Failure: inline error + retry (matches the pattern used in ClarificationModal/BookCallModal).
+- **Fit to field**: scrolls the map so all markers are visible (centers horizontally, zooms mini-map back to 100%).
+- **Jump to**: dropdown with Point A, Phase 1, Phase 2, Phase 3, Point B → uses existing `jumpTo(key)` logic.
+- **View**: keeps `viewMode` state and `computeMatchingSlugs`; hidden markers become faded (opacity 0.25) on the map, and the existing toast + focus-return on hidden-selection stays.
+- **Current Phase pill**: reads `canvas.activePhaseKey` (already published by scroll observer) so it updates as the user pans.
+- **Marker positioning**: normalized coordinates chosen so the current 3-phase model in `portal-roadmap-model.ts` fits the background terrain (Phase 1 lower-left valley, Phase 2 middle plateau, Phase 3 upper-right peak). No changes to the data model.
+- **Phase % complete chip**: derive per-phase `% complete` from `phase.milestones` (`completed / total`).
+- **Right drawer**: keeps Ask a question + Book next call context wiring already in place.
 
-### One-off send now for `hello@trust-tai.com`
+## Untouched (verified)
 
-After the scaffold + template are in, trigger the same server function once for `hello@trust-tai.com` so the confirmation email you asked for is sent as part of this change.
+- `SupportingContext` (Executive summary, Strategic priorities, Risks & dependencies, Recommended next move) — same component, same position below the map.
+- `AcknowledgeBlock` — same component, same position at the bottom.
 
-## Notes
+## Verification
 
-- No changes to auth email templates (out of scope).
-- No marketing email surface added.
-- DNS is already verified so emails should send immediately after scaffold deploys with the next preview build.
+1. `tsgo` typecheck clean.
+2. Playwright screenshot of `/portal/roadmap` at 1480×1022 to compare with the reference.
+3. Click a marker → drawer opens with correct content.
+4. Change **View** filter → non-matching markers dim; selecting a hidden one still triggers the existing toast + focus return.
+5. **Jump to** dropdown scrolls the map; **Current Phase** pill updates.
+6. **Download PDF** still opens the doc file / prints when absent.
