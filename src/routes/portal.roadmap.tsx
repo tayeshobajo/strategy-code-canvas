@@ -65,6 +65,7 @@ const searchSchema = z.object({
   item: fallback(z.string().optional(), undefined),
   decision: fallback(z.string().optional(), undefined),
   deliverable: fallback(z.string().optional(), undefined),
+  __visual: fallback(z.enum(["demo"]).optional(), undefined),
 });
 
 export const Route = createFileRoute("/portal/roadmap")({
@@ -76,11 +77,21 @@ export const Route = createFileRoute("/portal/roadmap")({
     ],
   }),
   errorComponent: ({ error, reset }) => <FailedToLoad error={error} reset={reset} />,
-  component: () => (
-    <Suspense fallback={<Loading />}>
-      <RoadmapView />
-    </Suspense>
-  ),
+  component: () => {
+    const search = Route.useSearch();
+    if (search.__visual === "demo") {
+      return (
+        <RoadmapCanvasProvider>
+          <DemoRoadmapView />
+        </RoadmapCanvasProvider>
+      );
+    }
+    return (
+      <Suspense fallback={<Loading />}>
+        <RoadmapView />
+      </Suspense>
+    );
+  },
 });
 
 function Loading() {
