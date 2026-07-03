@@ -220,7 +220,7 @@ function RoadmapJourneyView({
   // If a deep-link references an unknown slug, clear it with a calm toast.
   useEffect(() => {
     if (requestedSlug && !selectedMilestone) {
-      toast.info("This item is no longer available in the current roadmap version.");
+      toast.info("The selected item couldn't be found on this roadmap.");
       navigate({ search: () => ({}), replace: true });
     }
   }, [requestedSlug, selectedMilestone, navigate]);
