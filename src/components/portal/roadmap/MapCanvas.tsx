@@ -78,29 +78,31 @@ export function MapCanvas({
     if (!el) return;
     canvas.registerScroller(el);
     const publish = () => {
-      canvas.setScrollState({
-        scrollWidth: el.scrollWidth,
-        scrollLeft: el.scrollLeft,
-        clientWidth: el.clientWidth,
+      measure("viewport:publish", () => {
+        canvas.setScrollState({
+          scrollWidth: el.scrollWidth,
+          scrollLeft: el.scrollLeft,
+          clientWidth: el.clientWidth,
+        });
+        // When the canvas has no horizontal overflow (whole map is visible),
+        // don't override the current-phase display with a viewport guess.
+        if (el.scrollWidth <= el.clientWidth + 2) {
+          canvas.setViewportPhaseKey(null);
+          return;
+        }
+        const centerX =
+          (el.scrollLeft + el.clientWidth / 2) *
+          (CANVAS_WIDTH / Math.max(el.scrollWidth, 1));
+        const cn = centerX / CANVAS_WIDTH;
+        const band = layout.bands.find((b) => cn >= b.x0 && cn < b.x1);
+        const key =
+          cn <= layout.bands[0].x0
+            ? "pointA"
+            : cn >= layout.bands[layout.bands.length - 1].x1
+              ? "pointB"
+              : (band?.key ?? null);
+        canvas.setViewportPhaseKey(key);
       });
-      // When the canvas has no horizontal overflow (whole map is visible),
-      // don't override the current-phase display with a viewport guess.
-      if (el.scrollWidth <= el.clientWidth + 2) {
-        canvas.setViewportPhaseKey(null);
-        return;
-      }
-      const centerX =
-        (el.scrollLeft + el.clientWidth / 2) *
-        (CANVAS_WIDTH / Math.max(el.scrollWidth, 1));
-      const cn = centerX / CANVAS_WIDTH;
-      const band = layout.bands.find((b) => cn >= b.x0 && cn < b.x1);
-      const key =
-        cn <= layout.bands[0].x0
-          ? "pointA"
-          : cn >= layout.bands[layout.bands.length - 1].x1
-            ? "pointB"
-            : (band?.key ?? null);
-      canvas.setViewportPhaseKey(key);
     };
     publish();
     let raf = 0;
