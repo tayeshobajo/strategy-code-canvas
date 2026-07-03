@@ -212,13 +212,21 @@ export function MilestoneSheet({
               ? "bg-[#e11d48]/12 text-[#be123c] border-[#e11d48]/30"
               : KIND_ACCENT[kind];
             const phaseName =
-              milestone.phase === 1
+              milestone.phase === "now"
                 ? "Foundation"
-                : milestone.phase === 2
+                : milestone.phase === "next"
                   ? "Core Platform Build"
-                  : milestone.phase === 3
+                  : milestone.phase === "later"
                     ? "Scale Systems"
-                    : `Phase ${milestone.phase}`;
+                    : String(milestone.phase);
+            const phaseNumber =
+              milestone.phase === "now"
+                ? 1
+                : milestone.phase === "next"
+                  ? 2
+                  : milestone.phase === "later"
+                    ? 3
+                    : null;
             const primaryCta =
               kind === "decision"
                 ? { label: "Respond", onClick: () => setClarifyOpen(true) }
