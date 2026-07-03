@@ -472,6 +472,7 @@ function RoadmapJourneyView({
             viewMode={viewMode}
             onJump={jumpTo}
             matchingCount={matchingCount}
+            matchingSlugs={matchingSlugs}
             onResetView={() => setViewMode("all")}
           />
         )
@@ -580,6 +581,7 @@ function RoadmapCanvasStage({
   viewMode,
   onJump,
   matchingCount,
+  matchingSlugs,
   onResetView,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
@@ -588,6 +590,7 @@ function RoadmapCanvasStage({
   viewMode: RoadmapViewMode;
   onJump: (key: "pointA" | "now" | "next" | "later" | "pointB") => void;
   matchingCount: number;
+  matchingSlugs: Set<string> | null;
   onResetView: () => void;
 }) {
   const search = Route.useSearch();
@@ -687,7 +690,7 @@ function RoadmapCanvasStage({
           <MapLegend />
         </div>
         <div className="absolute bottom-3 left-3 right-3 pointer-events-auto">
-          <RoadmapOverviewStrip journey={journey} onJump={onJump} variant="floating" selectedSlug={selectedSlug} />
+          <RoadmapOverviewStrip journey={journey} onJump={onJump} variant="floating" selectedSlug={selectedSlug} viewMode={viewMode} matchingSlugs={matchingSlugs} />
         </div>
       </div>
       {viewMode !== "all" && matchingCount === 0 && (
@@ -1233,6 +1236,7 @@ function DemoRoadmapView() {
             viewMode={viewMode}
             onJump={jumpTo}
             matchingCount={matchingCount}
+            matchingSlugs={matchingSlugs}
             onResetView={() => setViewMode("all")}
           />
         </div>

@@ -1,6 +1,7 @@
 import type { PhaseKey, RoadmapJourney } from "@/lib/portal-roadmap-model";
 import { useRoadmapCanvas, useDisplayPhaseKey } from "./canvas-context";
-import type { LegendKind } from "./view-mode";
+import type { LegendKind, RoadmapViewMode } from "./view-mode";
+import { VIEW_MODE_LABEL } from "./view-mode";
 import { Maximize2, ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -17,6 +18,10 @@ type Props = {
   onFullscreen?: () => void;
   /** Slug of the currently selected marker, for the pulsing indicator. */
   selectedSlug?: string | null;
+  /** Current view mode — drives dot filtering, route gradient, viewport tint. */
+  viewMode?: RoadmapViewMode;
+  /** Slugs matching the current view mode. `null` = show all. */
+  matchingSlugs?: Set<string> | null;
   /** "floating" renders as a dark, glass-blur panel designed to sit
    *  absolutely inside the map canvas. Default is the light card variant. */
   variant?: "card" | "floating";
@@ -30,10 +35,23 @@ const KIND_DOT: Record<string, string> = {
   deadline: "bg-[#e11d48]",
 };
 
+/** Per-view-mode accent tokens for route gradient, viewport tint, and label. */
+const VIEW_TONE: Record<RoadmapViewMode, { rgb: string; label: string }> = {
+  all: { rgb: "47,93,246", label: "Full journey" },
+  decisions: { rgb: "139,92,246", label: "Decisions" },
+  deliverables: { rgb: "245,158,11", label: "Deliverables" },
+  deadlines: { rgb: "225,29,72", label: "Deadlines" },
+  current: { rgb: "47,93,246", label: "Current phase" },
+  "client-actions": { rgb: "14,165,164", label: "Needs you" },
+  "critical-path": { rgb: "245,158,11", label: "Critical path" },
+};
+
 export function RoadmapOverviewStrip({
   journey,
   onJump,
   selectedSlug = null,
+  viewMode = "all",
+  matchingSlugs = null,
   variant = "card",
 }: Props) {
   const [expanded, setExpanded] = useState(true);
@@ -56,6 +74,7 @@ export function RoadmapOverviewStrip({
 
   const phases = journey.phases;
   const floating = variant === "floating";
+  const tone = VIEW_TONE[viewMode] ?? VIEW_TONE.all;
 
   const handleJump = (key: JumpTarget) => {
     if (key === "pointA" || key === "pointB") {
@@ -102,35 +121,50 @@ export function RoadmapOverviewStrip({
           <div
             className={`text-[11.5px] mt-0.5 max-w-[160px] leading-snug ${floating ? "text-white/60" : "text-ink/60"}`}
           >
-            Click a phase to navigate
+            {viewMode !== "all" ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full"
+                  style={{ background: `rgb(${tone.rgb})` }}
+                  aria-hidden
+                />
+                <span>View: {VIEW_MODE_LABEL[viewMode]}</span>
+              </span>
+            ) : (
+              "Click a phase to navigate"
+            )}
           </div>
         </div>
 
         {expanded && (
           <div className="flex-1 min-w-0 relative">
-            {/* Continuous route line under the row — gradient from Point A anchor
-                to Point B royal, communicates the through-line at a glance. */}
+            {/* Continuous route line — accent recolors per view mode. */}
             <div
               aria-hidden
-              className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full"
+              className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full transition-colors duration-300"
               style={{
                 background: floating
-                  ? "linear-gradient(90deg, rgba(255,255,255,0.14) 0%, rgba(47,93,246,0.55) 45%, rgba(47,93,246,0.85) 75%, rgba(47,93,246,1) 100%)"
-                  : "linear-gradient(90deg, rgba(11,18,32,0.10) 0%, rgba(47,93,246,0.45) 55%, rgba(47,93,246,0.85) 100%)",
+                  ? `linear-gradient(90deg, rgba(255,255,255,0.14) 0%, rgba(${tone.rgb},0.55) 45%, rgba(${tone.rgb},0.85) 75%, rgba(${tone.rgb},1) 100%)`
+                  : `linear-gradient(90deg, rgba(11,18,32,0.10) 0%, rgba(${tone.rgb},0.45) 55%, rgba(${tone.rgb},0.85) 100%)`,
                 boxShadow: floating
-                  ? "0 0 12px rgba(47,93,246,0.25)"
+                  ? `0 0 12px rgba(${tone.rgb},${viewMode === "all" ? 0.25 : 0.45})`
                   : undefined,
               }}
             />
-            {/* Viewport window rectangle */}
+            {/* Viewport rectangle — tint follows accent, thicker border when a filter is active. */}
             {viewport && floating && (
               <div
                 aria-hidden
                 data-testid="mini-viewport-window"
-                className="pointer-events-none absolute inset-y-1 rounded-md border border-royal/60 bg-royal/10 shadow-[inset_0_0_16px_rgba(47,93,246,0.25)] transition-[left,width] duration-150 ease-out"
+                className="pointer-events-none absolute inset-y-1 rounded-md transition-[left,width,border-color,background-color,box-shadow] duration-200 ease-out"
                 style={{
                   left: `${viewport.left * 100}%`,
                   width: `${viewport.width * 100}%`,
+                  borderWidth: viewMode === "all" ? 1 : 1.5,
+                  borderStyle: "solid",
+                  borderColor: `rgba(${tone.rgb},${viewMode === "all" ? 0.6 : 0.85})`,
+                  background: `rgba(${tone.rgb},${viewMode === "all" ? 0.1 : 0.18})`,
+                  boxShadow: `inset 0 0 16px rgba(${tone.rgb},${viewMode === "all" ? 0.25 : 0.4})`,
                 }}
               />
             )}
@@ -184,7 +218,7 @@ export function RoadmapOverviewStrip({
                   floating={floating}
                   current={p.key === journey.currentPhaseKey}
                   testId={`strip-${p.key}`}
-                  kindCounts={countKinds(p.milestones)}
+                  kindCounts={countKinds(p.milestones, matchingSlugs)}
                   showRoute
                 />
               ))}
@@ -244,10 +278,14 @@ export function RoadmapOverviewStrip({
   );
 }
 
-function countKinds(items: RoadmapJourney["phases"][number]["milestones"]) {
+function countKinds(
+  items: RoadmapJourney["phases"][number]["milestones"],
+  matchingSlugs?: Set<string> | null,
+) {
   const counts: Record<string, number> = {};
   for (const m of items) {
     if (m.slug.endsWith("-placeholder")) continue;
+    if (matchingSlugs && !matchingSlugs.has(m.slug)) continue;
     const key = m.dueDate && m.kind === "milestone" ? "deadline" : m.kind;
     counts[key] = (counts[key] ?? 0) + 1;
   }
