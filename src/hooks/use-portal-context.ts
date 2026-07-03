@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getPortalContext } from "@/lib/portal.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 // Lifecycle statuses at which the Roadmap/Files sidebar entries unlock.
 // Mirrors the rules in src/routes/portal.tsx so we know when to stop polling.
