@@ -23,7 +23,10 @@ type Props = {
   onOpen: () => void;
   isSelected: boolean;
   dimmed?: boolean;
+  /** true when another marker is selected — softens this node slightly */
+  mutedBySelection?: boolean;
 };
+
 
 const KIND_ICON: Record<MilestoneKind, typeof Circle> = {
   milestone: Circle,
