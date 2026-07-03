@@ -26,10 +26,12 @@ export function MarkerClusterChip({ cluster, x, y, onOpenMember }: Props) {
   const [open, setOpen] = useState(false);
   const canvas = useRoadmapCanvas();
   const title = PHASE_TITLE[cluster.phase] ?? `Phase ${cluster.phase}`;
+  const isExploded = canvas.explodedClusterKeys.has(cluster.key);
 
   const expandInPlace = () => {
-    // Drop into detail zoom so the cluster dissolves into individual markers.
-    canvas.setZoomLevel("detail");
+    // Fan the cluster's members out onto the map without changing the
+    // global zoom, so nearby items don't overlap and can be inspected.
+    canvas.toggleClusterExpanded(cluster.key);
     setOpen(false);
   };
 
@@ -45,14 +47,28 @@ export function MarkerClusterChip({ cluster, x, y, onOpenMember }: Props) {
             type="button"
             data-no-drag
             aria-label={`${title} cluster: ${cluster.total} items`}
-            className="group flex items-center gap-2 rounded-full border border-white/25 bg-slate-950/85 text-white pl-1.5 pr-3 py-1.5 backdrop-blur-sm shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)] hover:bg-slate-900/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal"
+            aria-expanded={isExploded}
+            className={`group flex items-center gap-2 rounded-full border text-white pl-1.5 pr-3 py-1.5 backdrop-blur-sm shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)] focus:outline-none focus-visible:ring-2 focus-visible:ring-royal ${
+              isExploded
+                ? "border-royal/70 bg-royal/25 hover:bg-royal/35"
+                : "border-white/25 bg-slate-950/85 hover:bg-slate-900/95"
+            }`}
           >
-            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-white/15">
+            <span
+              className={`inline-flex items-center justify-center h-6 w-6 rounded-full ${
+                isExploded ? "bg-white/25" : "bg-white/15"
+              }`}
+            >
               <Layers className="w-3.5 h-3.5" />
             </span>
             <span className="flex flex-col items-start leading-tight text-left">
               <span className="text-[11.5px] font-semibold whitespace-nowrap">
                 {title}
+                {isExploded && (
+                  <span className="ml-1.5 font-mono text-[9.5px] uppercase tracking-[0.2em] text-white/70">
+                    · expanded
+                  </span>
+                )}
               </span>
               <span className="text-[10px] text-white/65 whitespace-nowrap">
                 {cluster.total} items · {cluster.completed} done · {cluster.inProgress} in progress
@@ -100,7 +116,7 @@ export function MarkerClusterChip({ cluster, x, y, onOpenMember }: Props) {
               className="w-full inline-flex items-center justify-center gap-1.5 rounded-md bg-white/10 hover:bg-white/20 text-[11.5px] font-medium py-1.5"
             >
               <Maximize2 className="w-3.5 h-3.5" />
-              Expand nearby items on the map
+              {isExploded ? "Collapse back into cluster" : "Fan nearby items on the map"}
             </button>
           </div>
         </PopoverContent>
