@@ -580,17 +580,20 @@ function MeetingBody({ milestone }: { milestone: RoadmapMilestone }) {
 
 function Section({
   label,
+  icon: Icon,
   children,
 }: {
   label: string;
+  icon?: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-royal mb-2">
+      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/50 mb-2 flex items-center gap-1.5">
+        {Icon && <Icon className="w-3 h-3 text-royal" />}
         {label}
       </div>
-      <div className="text-[14.5px] leading-[1.7] text-ink/85">{children}</div>
+      <div className="text-[14px] leading-[1.65] text-ink/85">{children}</div>
     </div>
   );
 }
