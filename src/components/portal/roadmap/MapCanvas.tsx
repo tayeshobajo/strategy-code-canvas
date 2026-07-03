@@ -19,7 +19,6 @@ import mapBg from "@/assets/roadmap-map-background.png.asset.json";
 
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 1050;
-/** How much horizontal space the desktop drawer occupies when open (Tailwind sm:max-w-md ≈ 448px). */
 const DRAWER_WIDTH = 410;
 
 type Props = {
@@ -27,8 +26,6 @@ type Props = {
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
   viewMode: RoadmapViewMode;
-  /** When true, the inner canvas is scaled to fit the parent height so the
-   *  full map sits inside a controlled app viewport (no page scroll). */
   fitHeight?: boolean;
   className?: string;
 };
@@ -72,7 +69,6 @@ export function MapCanvas({
     return () => ro.disconnect();
   }, [fitHeight]);
 
-  // Publish scroll state + viewport-derived phase to the shared context.
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -84,8 +80,6 @@ export function MapCanvas({
           scrollLeft: el.scrollLeft,
           clientWidth: el.clientWidth,
         });
-        // When the canvas has no horizontal overflow (whole map is visible),
-        // don't override the current-phase display with a viewport guess.
         if (el.scrollWidth <= el.clientWidth + 2) {
           canvas.setViewportPhaseKey(null);
           return;
@@ -246,7 +240,6 @@ export function MapCanvas({
     }
   };
 
-  // Compute per-marker visibility from view mode + zoom + legend.
   const visibilities = useMemo(() => {
     return measure("markers:visibility", () => {
       const map = new Map<string, ReturnType<typeof computeMarkerVisibility>>();
@@ -279,7 +272,6 @@ export function MapCanvas({
     selectedSlug,
   ]);
 
-  // Level-1 "keep full" set — anchors that should never be clustered.
   const keepFull = useMemo(() => {
     const set = new Set<string>();
     if (journey.activeMilestone) set.add(journey.activeMilestone.slug);
@@ -289,7 +281,6 @@ export function MapCanvas({
     return set;
   }, [journey, selectedSlug]);
 
-  // Cluster only when zoomed out (strategic view).
   const clusterThreshold =
     canvas.zoomLevel === "strategic"
       ? 0.05
@@ -307,15 +298,11 @@ export function MapCanvas({
     });
   }, [layout.markers, visibilities, clusterThreshold, keepFull]);
 
-  // Fan out any cluster the user has explicitly expanded, replacing the
-  // cluster chip with its members laid out around the cluster center so
-  // nearby items no longer overlap.
   type FannedEntry =
     | { kind: "cluster"; cluster: MarkerClusterModel }
     | {
         kind: "marker";
         pos: MarkerPos;
-        /** Optional absolute pixel overrides applied by fan-out. */
         overrideX?: number;
         overrideY?: number;
         fannedFrom?: string;
@@ -344,7 +331,6 @@ export function MapCanvas({
               fannedFrom: entry.cluster.key,
             });
           }
-          // Keep the cluster chip so the user can collapse it back.
           out.push({ kind: "cluster", cluster: entry.cluster });
         } else if (entry.kind === "cluster") {
           out.push({ kind: "cluster", cluster: entry.cluster });
@@ -356,8 +342,6 @@ export function MapCanvas({
     });
   }, [clustered, canvas.explodedClusterKeys]);
 
-  // Pan the selected marker into the visible half of the canvas (accounting
-  // for the drawer that overlays the right side on desktop).
   useEffect(() => {
     if (!selectedSlug) return;
     const marker = layout.markers.find(
@@ -482,13 +466,13 @@ export function MapCanvas({
               <MapPin className="w-4 h-4" />
             </div>
             <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5">
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">
                 Point A
               </div>
               <div className="font-display text-[15px] leading-tight">
                 Current State
               </div>
-              <div className="text-[11px] text-white/70">Operating today</div>
+              <div className="text-[11px] text-white/75">Operating today</div>
             </div>
           </div>
 
@@ -501,14 +485,14 @@ export function MapCanvas({
             }}
           >
             <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5 text-right">
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">
                 Point B
               </div>
               <div className="font-display text-[15px] leading-tight">
                 {journey.pointB.label || "Scaled Impact"}
               </div>
               {journey.pointB.detail && (
-                <div className="text-[11px] text-white/70 max-w-[180px]">
+                <div className="text-[11px] text-white/75 max-w-[180px]">
                   {journey.pointB.detail.length > 60
                     ? journey.pointB.detail.slice(0, 60) + "…"
                     : journey.pointB.detail}
@@ -520,8 +504,7 @@ export function MapCanvas({
             </div>
           </div>
 
-          {/* Highlighted route segment through the critical path — shown when a
-              marker is selected, to keep the client oriented on the through-line. */}
+          {/* Highlighted route segment with dual-stroke glow */}
           {selectedSlug && journey.criticalPathSlugs.length >= 2 && (() => {
             const pathPoints = journey.criticalPathSlugs
               .map((slug) => layout.markers.find((m) => m.milestone.slug === slug))
@@ -539,23 +522,41 @@ export function MapCanvas({
                 style={{ zIndex: 8 }}
               >
                 <defs>
-                  <filter id="route-glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="4" result="b" />
+                  <filter id="route-glow-outer" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="6" result="b" />
+                    <feMerge>
+                      <feMergeNode in="b" />
+                    </feMerge>
+                  </filter>
+                  <filter id="route-glow-inner" x="-10%" y="-10%" width="120%" height="120%">
+                    <feGaussianBlur stdDeviation="3" result="b" />
                     <feMerge>
                       <feMergeNode in="b" />
                       <feMergeNode in="SourceGraphic" />
                     </feMerge>
                   </filter>
                 </defs>
+                {/* Outer soft glow — wide blur at 40% opacity */}
                 <polyline
                   points={pathPoints}
                   fill="none"
-                  stroke="rgba(47,93,246,0.75)"
+                  stroke="rgba(47,93,246,0.4)"
+                  strokeWidth={14}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  filter="url(#route-glow-outer)"
+                />
+                {/* Main stroke — bumped to 0.9 opacity */}
+                <polyline
+                  points={pathPoints}
+                  fill="none"
+                  stroke="rgba(47,93,246,0.9)"
                   strokeWidth={7}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  filter="url(#route-glow)"
+                  filter="url(#route-glow-inner)"
                 />
+                {/* Crisp dashed center line */}
                 <polyline
                   points={pathPoints}
                   fill="none"
@@ -569,7 +570,7 @@ export function MapCanvas({
             );
           })()}
 
-          {/* Markers + clusters (with optional fan-out expansion) */}
+          {/* Markers + clusters */}
           {rendered.map((entry, i) => {
             if (entry.kind === "cluster") {
               return (
