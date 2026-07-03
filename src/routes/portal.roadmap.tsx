@@ -1008,47 +1008,50 @@ function DemoRoadmapView() {
   };
 
   return (
-    <div className="max-w-[1500px] mx-auto space-y-5" data-visual-demo="1">
-      <RoadmapHeader
-        journey={journey}
-        doc={{ id: "demo", title: journey.title, file_url: null, published_at: null } as unknown as PortalRoadmapDoc}
-        portalRoadmapId={undefined}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        matchingCount={matchingCount}
-        totalCount={journey.milestones.length}
-        onJump={jumpTo}
-        onClarify={() => setClarifyOpen(true)}
-        onBookCall={() => setBookOpen(true)}
-      />
-      <div className="relative" data-testid="roadmap-canvas-wrap">
-        <MapCanvas
+    <RoadmapViewport
+      header={
+        <RoadmapHeader
           journey={journey}
-          selectedSlug={selectedSlug}
-          onSelect={setSelectedSlug}
-          matchingSlugs={matchingSlugs}
+          doc={{ id: "demo", title: journey.title, file_url: null, published_at: null } as unknown as PortalRoadmapDoc}
+          portalRoadmapId={undefined}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          matchingCount={matchingCount}
+          totalCount={journey.milestones.length}
+          onJump={jumpTo}
+          onClarify={() => setClarifyOpen(true)}
+          onBookCall={() => setBookOpen(true)}
         />
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-4 left-4 pointer-events-auto">
-            <StatusOverlayCard journey={journey} onSelectNextAction={setSelectedSlug} />
-          </div>
-          <div className="absolute top-6 right-6 max-w-md text-right pointer-events-none">
-            <h2 className="font-display text-2xl text-white leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
-              The journey from today to your scaled impact.
-            </h2>
-            <p className="text-[13px] text-white/80 mt-1 drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)]">
-              A clear path. Strategic milestones. Real outcomes.
-            </p>
-          </div>
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto">
-            <MapLegend />
-          </div>
+      }
+      canvas={
+        <div data-testid="roadmap-canvas-wrap" className="h-full w-full">
+          <RoadmapCanvasStage
+            journey={journey}
+            selectedSlug={selectedSlug}
+            onSelect={setSelectedSlug}
+            matchingSlugs={matchingSlugs}
+            onJump={jumpTo}
+          />
         </div>
-      </div>
-      <RoadmapOverviewStrip journey={journey} onJump={jumpTo} />
-      <div data-testid="unchanged-sections">
-        <SupportingContext journey={journey} />
-      </div>
+      }
+      below={
+        <div data-testid="unchanged-sections">
+          <SupportingContext journey={journey} />
+        </div>
+      }
+    >
+      <MilestoneSheet
+        milestone={
+          selectedSlug
+            ? journey.milestones.find((m) => m.slug === selectedSlug) ?? null
+            : null
+        }
+        roadmapId={undefined}
+        projectId={undefined}
+        authorEmail={undefined}
+        schedulingUrl={null}
+        onClose={() => setSelectedSlug(null)}
+      />
       <ClarificationModal
         open={clarifyOpen}
         onOpenChange={setClarifyOpen}
@@ -1064,6 +1067,7 @@ function DemoRoadmapView() {
         schedulingUrl={null}
         context={null}
       />
-    </div>
+    </RoadmapViewport>
   );
 }
+
