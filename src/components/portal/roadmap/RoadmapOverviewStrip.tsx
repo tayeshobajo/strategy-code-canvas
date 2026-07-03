@@ -108,10 +108,19 @@ export function RoadmapOverviewStrip({
 
         {expanded && (
           <div className="flex-1 min-w-0 relative">
-            {/* Continuous route line under the row */}
+            {/* Continuous route line under the row — gradient from Point A anchor
+                to Point B royal, communicates the through-line at a glance. */}
             <div
               aria-hidden
-              className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px ${floating ? "bg-white/12" : "bg-ink/10"}`}
+              className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full"
+              style={{
+                background: floating
+                  ? "linear-gradient(90deg, rgba(255,255,255,0.14) 0%, rgba(47,93,246,0.55) 45%, rgba(47,93,246,0.85) 75%, rgba(47,93,246,1) 100%)"
+                  : "linear-gradient(90deg, rgba(11,18,32,0.10) 0%, rgba(47,93,246,0.45) 55%, rgba(47,93,246,0.85) 100%)",
+                boxShadow: floating
+                  ? "0 0 12px rgba(47,93,246,0.25)"
+                  : undefined,
+              }}
             />
             {/* Viewport window rectangle */}
             {viewport && floating && (
