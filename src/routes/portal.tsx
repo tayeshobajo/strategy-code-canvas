@@ -148,7 +148,7 @@ function PortalLayout() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="min-h-screen flex flex-col bg-paper overflow-x-hidden">
+      <div className="min-h-screen flex flex-col bg-paper overflow-x-clip">
         <div className="flex-1 flex flex-col lg:flex-row min-w-0">
           <aside className="lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-screen bg-ink text-white flex flex-col z-30">
             <div className="hidden lg:flex px-6 py-6 border-b border-white/10 items-center shrink-0">
