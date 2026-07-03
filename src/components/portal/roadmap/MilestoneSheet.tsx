@@ -110,6 +110,7 @@ export function MilestoneSheet({
   const [clarifyOpen, setClarifyOpen] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const canvas = useRoadmapCanvas();
+  const isMobile = useIsMobile();
   const openedSlugRef = useRef<string | null>(null);
 
   const reviewMut = useMutation({
