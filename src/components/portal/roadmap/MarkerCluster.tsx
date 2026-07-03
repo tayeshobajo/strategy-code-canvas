@@ -93,6 +93,16 @@ export function MarkerClusterChip({ cluster, x, y, onOpenMember }: Props) {
               </li>
             ))}
           </ul>
+          <div className="border-t border-white/10 px-3 py-2">
+            <button
+              type="button"
+              onClick={expandInPlace}
+              className="w-full inline-flex items-center justify-center gap-1.5 rounded-md bg-white/10 hover:bg-white/20 text-[11.5px] font-medium py-1.5"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              Expand nearby items on the map
+            </button>
+          </div>
         </PopoverContent>
       </Popover>
     </div>
