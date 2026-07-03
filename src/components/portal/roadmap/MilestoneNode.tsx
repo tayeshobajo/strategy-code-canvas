@@ -91,6 +91,7 @@ export function MilestoneNode({
   onOpen,
   isSelected,
   dimmed = false,
+  mutedBySelection = false,
 }: Props) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const canvas = useRoadmapCanvas();
@@ -107,9 +108,12 @@ export function MilestoneNode({
   const accent = KIND_ACCENT[milestone.kind];
 
   const selectedShell =
-    "bg-white text-ink border-white shadow-[0_10px_28px_-8px_rgba(0,0,0,0.35)]";
+    "bg-white text-ink border-white ring-2 ring-royal ring-offset-2 ring-offset-slate-900/20 shadow-[0_18px_44px_-10px_rgba(47,93,246,0.55)]";
   const restingShell =
     "bg-slate-900/85 text-white border-white/15 backdrop-blur-sm hover:bg-slate-900/95";
+
+  const opacity = dimmed ? 0.28 : mutedBySelection ? 0.72 : 1;
+  const transform = isSelected ? "scale(1.08)" : undefined;
 
   return (
     <div
@@ -117,7 +121,7 @@ export function MilestoneNode({
       style={{
         left: `${x}px`,
         top: `${y}px`,
-        opacity: dimmed ? 0.28 : 1,
+        opacity,
         zIndex: isSelected ? 25 : 15,
       }}
     >
@@ -126,6 +130,7 @@ export function MilestoneNode({
         type="button"
         data-milestone-node
         data-marker-slug={milestone.slug}
+        data-marker-selected={isSelected ? "true" : "false"}
         data-no-drag
         aria-label={`${kindLabel}: ${milestone.title}`}
         aria-pressed={isSelected}
@@ -140,6 +145,7 @@ export function MilestoneNode({
           if (canvas.highlightedSlug === milestone.slug)
             canvas.setHighlightedSlug(null);
         }}
+        style={{ transform, transformOrigin: "center" }}
         className={`group flex items-center gap-2 rounded-full border pl-1.5 pr-3 py-1.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
           isSelected ? selectedShell : restingShell
         } ${isPlaceholder ? "opacity-60" : ""}`}
@@ -175,6 +181,7 @@ export function MilestoneNode({
     </div>
   );
 }
+
 
 /** Small decorative peak marker for Point B (destination flag). */
 export function PointBFlag() {
