@@ -134,10 +134,16 @@ export const MilestoneNode = memo(function MilestoneNode({
   const isMuted = visibility === "muted";
   const isHidden = visibility === "hidden";
 
+  // Softer selected treatment — the route glow remains the hero.
   const selectedShell =
-    "bg-white text-ink border-white ring-2 ring-royal ring-offset-2 ring-offset-slate-900/20 shadow-[0_22px_50px_-8px_rgba(47,93,246,0.7),0_0_0_6px_rgba(47,93,246,0.18)]";
-  const restingShell =
-    "bg-slate-900/85 text-white border-white/15 backdrop-blur-sm hover:bg-slate-900/95";
+    "bg-white text-ink border-white ring-2 ring-[rgba(47,93,246,0.55)] ring-offset-2 ring-offset-slate-900/20 shadow-[0_18px_44px_-10px_rgba(47,93,246,0.55),0_0_0_5px_rgba(47,93,246,0.14)]";
+  // L1 (anchor / due-dated / selected) keeps the dark pill; L2 (short) uses
+  // a lighter translucent chip so the map isn't peppered with dark blocks.
+  const isPrimary =
+    showFullLabel || isSelected || !!milestone.dueDate;
+  const restingShell = isPrimary
+    ? "bg-slate-900/85 text-white border-white/15 backdrop-blur-sm hover:bg-slate-900/95"
+    : "bg-slate-950/40 text-white border-white/10 backdrop-blur-sm hover:bg-slate-950/60";
 
   const opacity = isHidden
     ? 0
@@ -147,6 +153,7 @@ export const MilestoneNode = memo(function MilestoneNode({
         ? 0.9
         : 1;
   const transform = isSelected ? "scale(1.12)" : undefined;
+  const filter = isMuted ? "grayscale(20%)" : undefined;
 
   const statusLabel =
     milestone.status === "in_progress"
