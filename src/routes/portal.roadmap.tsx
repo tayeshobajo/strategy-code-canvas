@@ -51,6 +51,7 @@ export const Route = createFileRoute("/portal/roadmap")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  errorComponent: ({ error, reset }) => <FailedToLoad error={error} reset={reset} />,
   component: () => (
     <Suspense fallback={<Loading />}>
       <RoadmapView />
@@ -60,8 +61,65 @@ export const Route = createFileRoute("/portal/roadmap")({
 
 function Loading() {
   return (
-    <div className="rounded-xl bg-card border border-border p-10 text-ink/60">
-      Loading your Roadmap…
+    <div
+      role="status"
+      aria-live="polite"
+      className="max-w-3xl mx-auto rounded-2xl bg-card border border-border p-8 lg:p-10 shadow-sm"
+    >
+      <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+        Roadmap
+      </div>
+      <div className="mt-3 flex items-center gap-3 text-ink/70">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span>Loading your Roadmap…</span>
+      </div>
+      <div className="mt-6 space-y-3" aria-hidden="true">
+        <div className="h-4 w-2/3 rounded bg-ink/5 animate-pulse" />
+        <div className="h-4 w-1/2 rounded bg-ink/5 animate-pulse" />
+        <div className="h-40 w-full rounded-xl bg-ink/5 animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+function FailedToLoad({
+  error,
+  reset,
+}: {
+  error: unknown;
+  reset: () => void;
+}) {
+  const message =
+    error instanceof Error ? error.message : "Something went wrong.";
+  return (
+    <div
+      role="alert"
+      className="max-w-3xl mx-auto rounded-2xl bg-card border border-border p-8 lg:p-10 shadow-sm"
+    >
+      <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#a4283c]">
+        Roadmap unavailable
+      </div>
+      <h1 className="font-display text-2xl text-ink mt-2">
+        We couldn't load your Roadmap.
+      </h1>
+      <p className="text-[15px] leading-[1.75] text-ink/70 mt-3">
+        This is on our side, not yours. Please try again in a moment — if it
+        keeps happening, message Tai and we'll take a look.
+      </p>
+      <p className="text-[12px] text-ink/45 mt-3 font-mono break-all">
+        {message}
+      </p>
+      <div className="flex gap-2 mt-6 flex-wrap">
+        <Button
+          onClick={() => reset()}
+          className="bg-ink hover:bg-ink/90 text-white"
+        >
+          Try again
+        </Button>
+        <Button asChild variant="outline" className="border-ink/20">
+          <Link to="/portal/messages">Message Tai</Link>
+        </Button>
+      </div>
     </div>
   );
 }
