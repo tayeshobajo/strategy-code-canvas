@@ -367,8 +367,18 @@ function FilterChip({
 }
 
 function categoryLabel(c: Category) {
-  return c === "billing" ? "Billing" : c === "subscription" ? "Subscription" : "Workspace";
+  const map: Record<Category, string> = {
+    follow_up: "Needs attention",
+    roadmap: "Roadmap",
+    files: "Files",
+    messages: "Messages",
+    billing: "Billing",
+    subscription: "Subscription",
+    workspace: "Workspace",
+  };
+  return map[c];
 }
+
 
 function TimelineItem({ event, isLast }: { event: ActivityRow; isLast: boolean }) {
   const cat = categoryOf(event.event_type);
