@@ -69,11 +69,14 @@ export function BookCallModal({
     onSuccess: () => {
       setSent(true);
       setNotes("");
+      toast.success("Call request sent.");
     },
     onError: (e) => {
       toast.error(e instanceof Error ? e.message : "Could not send your request.");
     },
   });
+
+  const errorMessage = send.error instanceof Error ? send.error.message : null;
 
   const reset = () => {
     setSent(false);
