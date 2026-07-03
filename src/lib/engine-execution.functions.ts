@@ -1005,6 +1005,152 @@ export const saveDeliveryChecklist = createServerFn({ method: "POST" })
   });
 
 // ============================================================
+// Execution handoff (post-delivery, requires explicit client ack)
+// ============================================================
+
+/**
+ * Read-only snapshot of the client's portal handoff state for a project:
+ * has the client viewed / downloaded / acknowledged the delivered roadmap,
+ * and what is the current portal lifecycle status. Used by the Delivery Room
+ * to gate the "Start Engagement" action.
+ */
+export const getPortalHandoffState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ projectId: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { data: item } = await sb
+      .from("engine_delivery_items")
+      .select(
+        "client_portal_roadmap_id, client_viewed_at, client_downloaded_at, client_acknowledged_at, client_acknowledged_by_email",
+      )
+      .eq("project_id", data.projectId)
+      .not("client_portal_roadmap_id", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!item?.client_portal_roadmap_id) {
+      return {
+        portalRoadmapId: null,
+        portalProjectId: null,
+        portalStatus: null,
+        viewedAt: null,
+        downloadedAt: null,
+        acknowledgedAt: null,
+        acknowledgedByEmail: null,
+      } as const;
+    }
+    const { data: cpr } = await sb
+      .from("client_portal_roadmaps")
+      .select("id, project_id, acknowledged_at, acknowledged_by_email")
+      .eq("id", item.client_portal_roadmap_id)
+      .maybeSingle();
+    let portalStatus: string | null = null;
+    if (cpr?.project_id) {
+      const { data: pp } = await sb
+        .from("client_portal_projects")
+        .select("portal_status")
+        .eq("id", cpr.project_id)
+        .maybeSingle();
+      portalStatus = pp?.portal_status ?? null;
+    }
+    return {
+      portalRoadmapId: cpr?.id ?? null,
+      portalProjectId: cpr?.project_id ?? null,
+      portalStatus,
+      viewedAt: item.client_viewed_at ?? null,
+      downloadedAt: item.client_downloaded_at ?? null,
+      acknowledgedAt: cpr?.acknowledged_at ?? item.client_acknowledged_at ?? null,
+      acknowledgedByEmail:
+        cpr?.acknowledged_by_email ?? item.client_acknowledged_by_email ?? null,
+    } as const;
+  });
+
+/**
+ * Admin-only. Flips the client portal into engagement_active AFTER the client
+ * has explicitly acknowledged the delivered roadmap. Also moves the engine
+ * project to in_execution and writes activity/audit rows. Explicit human gate
+ * — never called by an agent.
+ */
+export const startExecutionEngagement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ projectId: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+
+    const { data: item } = await sb
+      .from("engine_delivery_items")
+      .select("client_portal_roadmap_id")
+      .eq("project_id", data.projectId)
+      .not("client_portal_roadmap_id", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!item?.client_portal_roadmap_id) {
+      throw new Error("No delivered portal roadmap linked to this project.");
+    }
+    const { data: cpr } = await sb
+      .from("client_portal_roadmaps")
+      .select("id, project_id, acknowledged_at")
+      .eq("id", item.client_portal_roadmap_id)
+      .single();
+    if (!cpr?.acknowledged_at) {
+      throw new Error("Client has not acknowledged the roadmap yet.");
+    }
+
+    const nowIso = new Date().toISOString();
+
+    await sb
+      .from("client_portal_projects")
+      .update({
+        portal_status: "engagement_active",
+        current_phase: "Engagement in progress",
+        last_client_activity_at: nowIso,
+      })
+      .eq("id", cpr.project_id);
+
+    await sb
+      .from("engine_projects")
+      .update({ status: "in_execution" })
+      .eq("id", data.projectId);
+
+    await sb.rpc("log_client_portal_activity", {
+      _project_id: cpr.project_id,
+      _actor_type: "tai",
+      _actor_email: email,
+      _event_type: "engagement_started",
+      _summary: "Tai has kicked off your execution engagement.",
+      _client_visible: true,
+      _metadata: { source_roadmap_id: cpr.id } as unknown as never,
+    });
+
+    await sb.from("engine_activity").insert({
+      project_id: data.projectId,
+      kind: "engagement_started",
+      title: "Execution engagement started",
+      body: email ? `Started by ${email}` : null,
+      severity: "success",
+    });
+    await sb.from("engine_audit_log").insert({
+      project_id: data.projectId,
+      actor_email: email,
+      action: "engagement_started",
+      summary: "Execution engagement started after client acknowledgement.",
+      affected_modules: ["delivery", "client_portal", "execution"],
+      metadata: {
+        portal_project_id: cpr.project_id,
+        portal_roadmap_id: cpr.id,
+      },
+    });
+
+    return { ok: true as const, portalProjectId: cpr.project_id };
+  });
+
+
+// ============================================================
 // Version compare
 // ============================================================
 
