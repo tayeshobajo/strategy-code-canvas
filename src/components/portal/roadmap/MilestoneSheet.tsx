@@ -194,17 +194,39 @@ export function MilestoneSheet({
       >
         <SheetContent
           side={isMobile ? "bottom" : "right"}
-          overlayClassName={isMobile ? undefined : "bg-black/10"}
+          overlayClassName={isMobile ? undefined : "bg-slate-950/[0.08] backdrop-blur-[1px]"}
           className={
             isMobile
               ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-paper text-ink border-t border-border overflow-y-auto p-0"
-              : "w-full sm:max-w-[440px] bg-paper text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)] p-0 flex flex-col"
+              : "w-full sm:max-w-[410px] bg-paper text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_30px_80px_-30px_rgba(11,18,32,0.35)] p-0 flex flex-col"
           }
           aria-labelledby="milestone-sheet-title"
           aria-describedby="milestone-sheet-desc"
         >
           {milestone && (() => {
             const KindIcon = KIND_ICON[kind];
+            // "Deadline" is a derived label for a milestone with a due date.
+            const isDeadline = kind === "milestone" && !!milestone.dueDate;
+            const displayKindLabel = isDeadline ? "Deadline" : KIND_LABEL[kind];
+            const displayKindAccent = isDeadline
+              ? "bg-[#e11d48]/12 text-[#be123c] border-[#e11d48]/30"
+              : KIND_ACCENT[kind];
+            const phaseName =
+              milestone.phase === "now"
+                ? "Foundation"
+                : milestone.phase === "next"
+                  ? "Core Platform Build"
+                  : milestone.phase === "later"
+                    ? "Scale Systems"
+                    : String(milestone.phase);
+            const phaseNumber =
+              milestone.phase === "now"
+                ? 1
+                : milestone.phase === "next"
+                  ? 2
+                  : milestone.phase === "later"
+                    ? 3
+                    : null;
             const primaryCta =
               kind === "decision"
                 ? { label: "Respond", onClick: () => setClarifyOpen(true) }
@@ -228,19 +250,19 @@ export function MilestoneSheet({
                 : null;
             return (
               <>
-                {/* Header — grounded card with tinted kind chip + close */}
-                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/8 bg-white/50">
-                  <div className="flex items-center gap-2 flex-wrap">
+                {/* Header — chips + title + summary, warm off-white wash */}
+                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/8 bg-[color:var(--paper,#f6f2ea)]/60">
+                  <div className="flex items-center gap-2 flex-wrap pr-8">
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-0.5 text-[10.5px] font-mono uppercase tracking-[0.22em] ${KIND_ACCENT[kind]}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-0.5 text-[10.5px] font-mono uppercase tracking-[0.22em] ${displayKindAccent}`}
                     >
                       <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-white/70">
                         <KindIcon className="w-3 h-3" />
                       </span>
-                      {KIND_LABEL[kind]}
+                      {displayKindLabel}
                     </span>
-                    <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
-                      Phase {milestone.phase}
+                    <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/50">
+                      {phaseNumber != null ? `Phase ${phaseNumber} · ${phaseName}` : phaseName}
                     </span>
                     <span
                       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_TONE[milestone.status]}`}
@@ -252,7 +274,7 @@ export function MilestoneSheet({
                     id="milestone-sheet-title"
                     ref={titleRef}
                     tabIndex={-1}
-                    className="font-display text-2xl leading-tight text-ink focus:outline-none"
+                    className="font-display text-[26px] leading-[1.15] text-ink focus:outline-none"
                   >
                     {milestone.title}
                   </SheetTitle>
@@ -265,6 +287,7 @@ export function MilestoneSheet({
                     </SheetDescription>
                   )}
                 </SheetHeader>
+
 
                 {/* Scrollable body */}
                 <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
@@ -351,12 +374,12 @@ export function MilestoneSheet({
                   )}
                 </div>
 
-                {/* Sticky CTA footer */}
-                <div className="shrink-0 border-t border-ink/10 bg-white/70 backdrop-blur px-6 py-4 space-y-2">
+                {/* Sticky CTA footer — primary · secondary · contextual */}
+                <div className="shrink-0 border-t border-ink/10 bg-white/80 backdrop-blur px-6 pt-4 pb-5 space-y-2.5">
                   {primaryCta && "href" in primaryCta && primaryCta.href ? (
                     <Button
                       asChild
-                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white"
+                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white shadow-[0_8px_20px_-10px_rgba(11,18,32,0.55)]"
                     >
                       <a
                         href={primaryCta.href}
@@ -371,7 +394,7 @@ export function MilestoneSheet({
                     <Button
                       onClick={primaryCta.onClick}
                       disabled={"disabled" in primaryCta && primaryCta.disabled}
-                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white"
+                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white shadow-[0_8px_20px_-10px_rgba(11,18,32,0.55)]"
                     >
                       {kind === "decision" ? (
                         <MessageSquare className="w-4 h-4 mr-2" />
@@ -382,53 +405,53 @@ export function MilestoneSheet({
                     </Button>
                   ) : null}
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      className="h-9 border-ink/15 text-ink/80"
-                      onClick={() => setClarifyOpen(true)}
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-                      {kind === "decision" ? "Ask" : "Clarify"}
-                    </Button>
+                  {/* Secondary CTA — full-width outlined */}
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 border-ink/15 text-ink/85 hover:bg-ink/[0.03]"
+                    onClick={() => setClarifyOpen(true)}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                    {kind === "decision" ? "Ask a question" : "Request clarification"}
+                  </Button>
+
+                  {/* Contextual — ghost row */}
+                  <div className="flex items-center justify-between gap-2 pt-1">
                     <Button
                       asChild
-                      variant="outline"
-                      className="h-9 border-ink/15 text-ink/80"
+                      variant="ghost"
+                      className="flex-1 h-8 text-[12.5px] text-ink/60 hover:text-ink hover:bg-transparent px-1 justify-center"
                     >
                       <Link to="/portal/files" search={{ q: milestone.title }}>
                         <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
                         Related files
                       </Link>
                     </Button>
-                  </div>
-
-                  {kind === "deliverable" && milestone.fileUrl && (
-                    <Button
-                      asChild
-                      variant="ghost"
-                      className="w-full h-9 text-ink/70"
+                    <span aria-hidden className="h-4 w-px bg-ink/10" />
+                    <button
+                      type="button"
+                      onClick={() => setBookOpen(true)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink h-8"
                     >
-                      <a
-                        href={milestone.fileUrl}
-                        download
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Download className="w-3.5 h-3.5 mr-1.5" />
-                        Download
-                      </a>
-                    </Button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setBookOpen(true)}
-                    className="w-full flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink pt-1"
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    Book next call
-                  </button>
+                      <Calendar className="w-3.5 h-3.5" />
+                      Book next call
+                    </button>
+                    {kind === "deliverable" && milestone.fileUrl && (
+                      <>
+                        <span aria-hidden className="h-4 w-px bg-ink/10" />
+                        <a
+                          href={milestone.fileUrl}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink h-8"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download
+                        </a>
+                      </>
+                    )}
+                  </div>
                 </div>
               </>
             );

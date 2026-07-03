@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useRoadmapCanvas } from "./canvas-context";
+import { measure as perfMeasure } from "./perf";
 
-/** Drawer width on desktop — must match MilestoneSheet sm:max-w-[440px]. */
-const DRAWER_WIDTH = 440;
+/** Drawer width on desktop — must match MilestoneSheet sm:max-w-[410px]. */
+const DRAWER_WIDTH = 410;
 
 type Props = {
   /** Slug of the selected marker. When null, the connector is hidden. */
@@ -36,32 +37,34 @@ export function SelectionConnector({ selectedSlug, active }: Props) {
     if (!stage) return;
 
     let raf = 0;
-    const measure = () => {
+    const measureRect = () => {
       raf = 0;
-      // read the registered node's rect through the shared registry
-      const marker = document.querySelector<HTMLElement>(
-        `[data-milestone-node][data-marker-slug="${cssEscape(selectedSlug)}"]`,
-      );
-      const stageRect = stage.getBoundingClientRect();
-      if (!marker) {
-        setBox(null);
-        return;
-      }
-      const mRect = marker.getBoundingClientRect();
-      setBox({
-        stageLeft: stageRect.left,
-        stageTop: stageRect.top,
-        stageWidth: stageRect.width,
-        stageHeight: stageRect.height,
-        markerX: mRect.left + mRect.width / 2 - stageRect.left,
-        markerY: mRect.top + mRect.height / 2 - stageRect.top,
+      perfMeasure("connector:measure", () => {
+        // read the registered node's rect through the shared registry
+        const marker = document.querySelector<HTMLElement>(
+          `[data-milestone-node][data-marker-slug="${cssEscape(selectedSlug)}"]`,
+        );
+        const stageRect = stage.getBoundingClientRect();
+        if (!marker) {
+          setBox(null);
+          return;
+        }
+        const mRect = marker.getBoundingClientRect();
+        setBox({
+          stageLeft: stageRect.left,
+          stageTop: stageRect.top,
+          stageWidth: stageRect.width,
+          stageHeight: stageRect.height,
+          markerX: mRect.left + mRect.width / 2 - stageRect.left,
+          markerY: mRect.top + mRect.height / 2 - stageRect.top,
+        });
       });
     };
     const schedule = () => {
       if (raf) return;
-      raf = requestAnimationFrame(measure);
+      raf = requestAnimationFrame(measureRect);
     };
-    measure();
+    measureRect();
     stage.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
     const ro = new ResizeObserver(schedule);
@@ -74,6 +77,7 @@ export function SelectionConnector({ selectedSlug, active }: Props) {
     };
     // re-measure when pan/zoom changes propagate into context
   }, [selectedSlug, active, canvas.scrollLeft, canvas.scrollWidth, canvas.clientWidth]);
+
 
   if (!active || !selectedSlug || !box) return null;
 

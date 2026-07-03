@@ -17,6 +17,7 @@ import type {
 import type { MarkerVisibility } from "./view-mode";
 import type { MarkerAttachment } from "./roadmap-layout";
 import { useRoadmapCanvas } from "./canvas-context";
+import { measure } from "./perf";
 import {
   HoverCard,
   HoverCardContent,
@@ -169,12 +170,16 @@ export const MilestoneNode = memo(function MilestoneNode({
       aria-label={`${kindLabel}: ${milestone.title}`}
       aria-pressed={isSelected}
       onClick={onOpen}
-      onMouseEnter={() => canvas.setHighlightedSlug(milestone.slug)}
+      onMouseEnter={() =>
+        measure("hover:setHighlighted", () => canvas.setHighlightedSlug(milestone.slug))
+      }
       onMouseLeave={() => {
         if (canvas.highlightedSlug === milestone.slug)
           canvas.setHighlightedSlug(null);
       }}
-      onFocus={() => canvas.setHighlightedSlug(milestone.slug)}
+      onFocus={() =>
+        measure("hover:setHighlighted", () => canvas.setHighlightedSlug(milestone.slug))
+      }
       onBlur={() => {
         if (canvas.highlightedSlug === milestone.slug)
           canvas.setHighlightedSlug(null);

@@ -14,12 +14,13 @@ import {
   type MarkerCluster as MarkerClusterModel,
 } from "./roadmap-layout";
 import { computeMarkerVisibility, type RoadmapViewMode } from "./view-mode";
+import { measure } from "./perf";
 import mapBg from "@/assets/roadmap-map-background.png.asset.json";
 
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 1050;
 /** How much horizontal space the desktop drawer occupies when open (Tailwind sm:max-w-md ≈ 448px). */
-const DRAWER_WIDTH = 448;
+const DRAWER_WIDTH = 410;
 
 type Props = {
   journey: RoadmapJourney;
@@ -77,29 +78,31 @@ export function MapCanvas({
     if (!el) return;
     canvas.registerScroller(el);
     const publish = () => {
-      canvas.setScrollState({
-        scrollWidth: el.scrollWidth,
-        scrollLeft: el.scrollLeft,
-        clientWidth: el.clientWidth,
+      measure("viewport:publish", () => {
+        canvas.setScrollState({
+          scrollWidth: el.scrollWidth,
+          scrollLeft: el.scrollLeft,
+          clientWidth: el.clientWidth,
+        });
+        // When the canvas has no horizontal overflow (whole map is visible),
+        // don't override the current-phase display with a viewport guess.
+        if (el.scrollWidth <= el.clientWidth + 2) {
+          canvas.setViewportPhaseKey(null);
+          return;
+        }
+        const centerX =
+          (el.scrollLeft + el.clientWidth / 2) *
+          (CANVAS_WIDTH / Math.max(el.scrollWidth, 1));
+        const cn = centerX / CANVAS_WIDTH;
+        const band = layout.bands.find((b) => cn >= b.x0 && cn < b.x1);
+        const key =
+          cn <= layout.bands[0].x0
+            ? "pointA"
+            : cn >= layout.bands[layout.bands.length - 1].x1
+              ? "pointB"
+              : (band?.key ?? null);
+        canvas.setViewportPhaseKey(key);
       });
-      // When the canvas has no horizontal overflow (whole map is visible),
-      // don't override the current-phase display with a viewport guess.
-      if (el.scrollWidth <= el.clientWidth + 2) {
-        canvas.setViewportPhaseKey(null);
-        return;
-      }
-      const centerX =
-        (el.scrollLeft + el.clientWidth / 2) *
-        (CANVAS_WIDTH / Math.max(el.scrollWidth, 1));
-      const cn = centerX / CANVAS_WIDTH;
-      const band = layout.bands.find((b) => cn >= b.x0 && cn < b.x1);
-      const key =
-        cn <= layout.bands[0].x0
-          ? "pointA"
-          : cn >= layout.bands[layout.bands.length - 1].x1
-            ? "pointB"
-            : (band?.key ?? null);
-      canvas.setViewportPhaseKey(key);
     };
     publish();
     let raf = 0;
@@ -245,23 +248,25 @@ export function MapCanvas({
 
   // Compute per-marker visibility from view mode + zoom + legend.
   const visibilities = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof computeMarkerVisibility>>();
-    for (const { milestone } of layout.markers) {
-      map.set(
-        milestone.slug,
-        computeMarkerVisibility(milestone, {
-          mode: viewMode,
-          zoom: canvas.zoomLevel,
-          journey,
-          currentPhaseKey: canvas.currentPhaseKey ?? journey.currentPhaseKey,
-          selectedPhaseKey: canvas.selectedPhaseKey,
-          visibleKinds: canvas.visibleKinds,
-          mutedKinds: canvas.mutedKinds,
-          selectedSlug,
-        }),
-      );
-    }
-    return map;
+    return measure("markers:visibility", () => {
+      const map = new Map<string, ReturnType<typeof computeMarkerVisibility>>();
+      for (const { milestone } of layout.markers) {
+        map.set(
+          milestone.slug,
+          computeMarkerVisibility(milestone, {
+            mode: viewMode,
+            zoom: canvas.zoomLevel,
+            journey,
+            currentPhaseKey: canvas.currentPhaseKey ?? journey.currentPhaseKey,
+            selectedPhaseKey: canvas.selectedPhaseKey,
+            visibleKinds: canvas.visibleKinds,
+            mutedKinds: canvas.mutedKinds,
+            selectedSlug,
+          }),
+        );
+      }
+      return map;
+    });
   }, [
     layout.markers,
     viewMode,
@@ -316,37 +321,39 @@ export function MapCanvas({
         fannedFrom?: string;
       };
   const rendered = useMemo<FannedEntry[]>(() => {
-    const out: FannedEntry[] = [];
-    for (const entry of clustered) {
-      if (entry.kind === "cluster" && canvas.explodedClusterKeys.has(entry.cluster.key)) {
-        const cx = entry.cluster.nx * CANVAS_WIDTH;
-        const cy = entry.cluster.ny * CANVAS_HEIGHT;
-        const n = entry.cluster.members.length;
-        const spanPx = Math.min(360, 90 + n * 46);
-        const step = n > 1 ? spanPx / (n - 1) : 0;
-        const startX = cx - spanPx / 2;
-        for (let i = 0; i < n; i++) {
-          const member = entry.cluster.members[i];
-          const dx = startX + i * step - cx;
-          const t = n > 1 ? i / (n - 1) - 0.5 : 0;
-          const dy = -60 + Math.abs(t) * 120;
-          out.push({
-            kind: "marker",
-            pos: member,
-            overrideX: cx + dx,
-            overrideY: cy + dy,
-            fannedFrom: entry.cluster.key,
-          });
+    return measure("cluster:relayout", () => {
+      const out: FannedEntry[] = [];
+      for (const entry of clustered) {
+        if (entry.kind === "cluster" && canvas.explodedClusterKeys.has(entry.cluster.key)) {
+          const cx = entry.cluster.nx * CANVAS_WIDTH;
+          const cy = entry.cluster.ny * CANVAS_HEIGHT;
+          const n = entry.cluster.members.length;
+          const spanPx = Math.min(360, 90 + n * 46);
+          const step = n > 1 ? spanPx / (n - 1) : 0;
+          const startX = cx - spanPx / 2;
+          for (let i = 0; i < n; i++) {
+            const member = entry.cluster.members[i];
+            const dx = startX + i * step - cx;
+            const t = n > 1 ? i / (n - 1) - 0.5 : 0;
+            const dy = -60 + Math.abs(t) * 120;
+            out.push({
+              kind: "marker",
+              pos: member,
+              overrideX: cx + dx,
+              overrideY: cy + dy,
+              fannedFrom: entry.cluster.key,
+            });
+          }
+          // Keep the cluster chip so the user can collapse it back.
+          out.push({ kind: "cluster", cluster: entry.cluster });
+        } else if (entry.kind === "cluster") {
+          out.push({ kind: "cluster", cluster: entry.cluster });
+        } else {
+          out.push({ kind: "marker", pos: entry.pos });
         }
-        // Keep the cluster chip so the user can collapse it back.
-        out.push({ kind: "cluster", cluster: entry.cluster });
-      } else if (entry.kind === "cluster") {
-        out.push({ kind: "cluster", cluster: entry.cluster });
-      } else {
-        out.push({ kind: "marker", pos: entry.pos });
       }
-    }
-    return out;
+      return out;
+    });
   }, [clustered, canvas.explodedClusterKeys]);
 
   // Pan the selected marker into the visible half of the canvas (accounting
