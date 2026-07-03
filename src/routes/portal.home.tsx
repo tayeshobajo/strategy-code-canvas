@@ -331,8 +331,12 @@ function PortalHome() {
   // Either way, we keep the user on /portal/home with a clear explanation and
   // prominent recovery actions instead of bouncing to /portal/login.
   if (!data.hasAccess) {
+    if (isAdminEmail(data.email) || isOperatorEmail(data.email)) {
+      return <StaffAccountPanel email={data.email} />;
+    }
     return <PendingWorkspacePanel email={data.email} />;
   }
+
 
 
   const { project } = data;
