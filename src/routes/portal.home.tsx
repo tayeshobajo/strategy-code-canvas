@@ -5,7 +5,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { checkPortalAccess, getPortalContext, resendPortalWelcome } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Suspense, useState } from "react";
-import { Mail, Check, Loader2, LifeBuoy } from "lucide-react";
+import { Mail, Check, Loader2, LifeBuoy, ShieldCheck } from "lucide-react";
+import { isAdminEmail, isOperatorEmail } from "@/lib/ops/access";
+
 
 
 const portalCtxOptions = (fn: ReturnType<typeof useServerFn<typeof getPortalContext>>) =>
@@ -54,6 +56,61 @@ function LoadingCard() {
     </div>
   );
 }
+
+function StaffAccountPanel({ email }: { email?: string | null }) {
+  const kind = isAdminEmail(email) ? "admin" : "operator";
+  return (
+    <div className="mx-auto flex min-h-full max-w-3xl items-center justify-center py-6">
+      <section
+        className="w-full overflow-hidden rounded-2xl border border-rule-soft bg-card shadow-[0_8px_40px_-16px_rgba(23,28,56,0.08)]"
+        aria-labelledby="staff-account-title"
+      >
+        <div className="px-8 pb-6 pt-10 sm:px-10">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-royal" aria-hidden="true" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-royal">
+              Trust Tai staff account
+            </span>
+          </div>
+          <h1
+            id="staff-account-title"
+            className="mt-6 font-display text-4xl font-light leading-[1.15] text-ink sm:text-[42px]"
+          >
+            You're signed in as {kind}.
+            <br />
+            <span className="italic text-ink/85">
+              This isn't a client workspace.
+            </span>
+          </h1>
+          <p className="mt-5 max-w-xl text-[15px] leading-[1.7] text-ink/60">
+            {email ? <span className="font-medium text-ink/80">{email}</span> : "This address"}{" "}
+            has an internal {kind} role, not a client engagement. Head to the
+            admin dashboard to manage portals, roadmaps, and delivery — or open
+            any client-facing route directly to review it.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 border-t border-rule-soft bg-paper-soft px-8 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-10">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild className="rounded-md bg-ink text-white hover:bg-ink/90">
+              <Link to="/admin">Open admin dashboard</Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="rounded-md border-rule-soft bg-card text-ink hover:border-ink/30"
+            >
+              <Link to="/portal/roadmap">Preview client roadmap</Link>
+            </Button>
+          </div>
+          <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-ink/40 sm:text-right">
+            Staff view
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 
 function PendingWorkspacePanel({ email }: { email?: string }) {
   const resendFn = useServerFn(resendPortalWelcome);
@@ -329,8 +386,12 @@ function PortalHome() {
   // Either way, we keep the user on /portal/home with a clear explanation and
   // prominent recovery actions instead of bouncing to /portal/login.
   if (!data.hasAccess) {
+    if (isAdminEmail(data.email) || isOperatorEmail(data.email)) {
+      return <StaffAccountPanel email={data.email} />;
+    }
     return <PendingWorkspacePanel email={data.email} />;
   }
+
 
 
   const { project } = data;
