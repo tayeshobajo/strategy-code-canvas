@@ -666,6 +666,7 @@ function RoadmapCanvasStage({
         viewMode={viewMode}
         fitHeight
       />
+      <SelectionConnector selectedSlug={selectedSlug} active={!!selectedSlug} />
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-4 left-4 pointer-events-auto max-w-[280px]">
           <StatusOverlayCard
