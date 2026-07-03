@@ -50,6 +50,10 @@ function AuthPage() {
     setBusy(true);
     try {
       const res = await sendPortalLink({ data: { email: email.trim().toLowerCase() } });
+      if (res?.status === "no_access") {
+        setErr("No active portal access was found for this email, so no sign-in link was sent.");
+        return;
+      }
       if (res?.status === "link_failed") {
         setErr("We couldn't create your sign-in link. Please try again in a minute.");
         return;
