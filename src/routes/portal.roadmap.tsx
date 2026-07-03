@@ -688,6 +688,31 @@ function RoadmapCanvasStage({
           <RoadmapOverviewStrip journey={journey} onJump={onJump} variant="floating" />
         </div>
       </div>
+      {viewMode !== "all" && matchingCount === 0 && (
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          data-testid="roadmap-empty-state"
+        >
+          <div className="pointer-events-auto max-w-md rounded-2xl bg-slate-950/85 border border-white/15 backdrop-blur px-6 py-5 text-white text-center shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)]">
+            <div className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-royal-glow">
+              No matches in this view
+            </div>
+            <h3 className="font-display text-lg mt-1.5">
+              Nothing on the map matches "{VIEW_MODE_LABEL[viewMode]}".
+            </h3>
+            <p className="text-[12.5px] text-white/70 mt-1.5 leading-snug">
+              Try switching filters or clear the view to see every milestone.
+            </p>
+            <button
+              type="button"
+              onClick={onResetView}
+              className="mt-3 inline-flex items-center justify-center rounded-md bg-white text-slate-900 text-[12px] font-medium px-3 py-1.5 hover:bg-white/90"
+            >
+              Show full journey
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
