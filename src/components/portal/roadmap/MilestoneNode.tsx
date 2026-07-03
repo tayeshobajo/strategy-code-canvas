@@ -25,6 +25,9 @@ type Props = {
   y: number;
   onOpen: () => void;
   isSelected: boolean;
+  /** When true, node is visually de-emphasized because a view filter is active
+   *  and this marker doesn't match. It stays reachable for accessibility. */
+  dimmed?: boolean;
 };
 
 const STATUS_STYLES: Record<
