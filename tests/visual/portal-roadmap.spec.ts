@@ -64,10 +64,13 @@ test.describe("/portal/roadmap visual regression", () => {
       "The uploaded Image 1 strict baseline is a desktop-1440 reference.",
     );
 
-    const canvas = page.locator("[data-testid='roadmap-canvas-wrap']");
-    await expect(canvas).toBeVisible();
-    // Strict-pixel compare against the baseline for this project (viewport).
-    await expect(canvas).toHaveScreenshot(`roadmap-${testInfo.project.name}.png`);
+    // Match the uploaded Image 1 reference size exactly and compare the full viewport.
+    await page.setViewportSize({ width: 1536, height: 1024 });
+    await preparePage(page);
+    await expect(page.locator("[data-testid='roadmap-canvas-wrap']")).toBeVisible();
+    await expect(page).toHaveScreenshot(`roadmap-${testInfo.project.name}.png`, {
+      fullPage: false,
+    });
   });
 });
 
@@ -116,7 +119,7 @@ test.describe("/portal/roadmap header actions keep unchanged sections stable", (
     await page.waitForTimeout(200);
     expect(await hashUnchangedSections(page), "after View filter = decisions").toBe(before);
     await page.getByLabel("Filter roadmap view").click();
-    await page.getByRole("option", { name: /all/i }).first().click();
+    await page.getByRole("option", { name: /full journey/i }).first().click();
     await page.waitForTimeout(200);
     expect(await hashUnchangedSections(page), "after View filter reset").toBe(before);
 
