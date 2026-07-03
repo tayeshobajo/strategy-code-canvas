@@ -494,6 +494,7 @@ function RoadmapHeader({
   doc: PortalRoadmapDoc;
   portalRoadmapId: string | undefined;
   onClarify: () => void;
+  onBookCall: () => void;
 }) {
   const recordEvent = useServerFn(recordPortalRoadmapEvent);
   const handleDownload = () => {
