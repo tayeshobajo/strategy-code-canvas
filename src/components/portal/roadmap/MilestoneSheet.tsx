@@ -36,6 +36,7 @@ import type {
 import { recordPortalMilestoneReview } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { ClarificationModal } from "./ClarificationModal";
+import { BookCallModal } from "./BookCallModal";
 import { useRoadmapCanvas } from "./canvas-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -44,6 +45,7 @@ type Props = {
   roadmapId?: string;
   projectId?: string;
   authorEmail?: string | null;
+  schedulingUrl?: string | null;
   onClose: () => void;
 };
 
@@ -101,6 +103,7 @@ export function MilestoneSheet({
   roadmapId,
   projectId,
   authorEmail,
+  schedulingUrl,
   onClose,
 }: Props) {
   const open = !!milestone;
@@ -108,6 +111,7 @@ export function MilestoneSheet({
   const [reviewedSlugs, setReviewedSlugs] = useState<Set<string>>(new Set());
   const [ackOpen, setAckOpen] = useState(false);
   const [clarifyOpen, setClarifyOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const canvas = useRoadmapCanvas();
   const isMobile = useIsMobile();
@@ -361,11 +365,13 @@ export function MilestoneSheet({
                     </Link>
                   </Button>
 
-                  <Button asChild variant="ghost" className="text-ink/70">
-                    <Link to="/portal/messages">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Book next call
-                    </Link>
+                  <Button
+                    variant="ghost"
+                    className="text-ink/70"
+                    onClick={() => setBookOpen(true)}
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Book next call
                   </Button>
                 </div>
               </div>
@@ -410,6 +416,23 @@ export function MilestoneSheet({
         onOpenChange={setClarifyOpen}
         projectId={projectId}
         authorEmail={authorEmail}
+        context={
+          milestone
+            ? {
+                title: milestone.title,
+                phase: milestone.phase,
+                kind: KIND_LABEL[kind],
+              }
+            : null
+        }
+      />
+
+      <BookCallModal
+        open={bookOpen}
+        onOpenChange={setBookOpen}
+        projectId={projectId}
+        authorEmail={authorEmail}
+        schedulingUrl={schedulingUrl}
         context={
           milestone
             ? {

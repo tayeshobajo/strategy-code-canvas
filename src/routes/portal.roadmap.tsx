@@ -29,10 +29,23 @@ import { PhaseJumpNav } from "@/components/portal/roadmap/PhaseJumpNav";
 import { MiniMap } from "@/components/portal/roadmap/MiniMap";
 import { MobilePhaseStack } from "@/components/portal/roadmap/MobilePhaseStack";
 import { ClarificationModal } from "@/components/portal/roadmap/ClarificationModal";
+import { BookCallModal } from "@/components/portal/roadmap/BookCallModal";
 import {
   RoadmapCanvasProvider,
   useRoadmapCanvas,
 } from "@/components/portal/roadmap/canvas-context";
+import {
+  computeMatchingSlugs,
+  VIEW_MODE_LABEL,
+  type RoadmapViewMode,
+} from "@/components/portal/roadmap/view-mode";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
@@ -257,6 +270,11 @@ function RoadmapJourneyView({
     ctx.data && "project" in ctx.data ? ctx.data.project?.id : undefined;
   const authorEmail =
     ctx.data && "email" in ctx.data ? ctx.data.email : undefined;
+  const schedulingUrl =
+    ctx.data && "project" in ctx.data
+      ? (ctx.data.project as { scheduling_url?: string | null } | null | undefined)
+          ?.scheduling_url ?? null
+      : null;
 
   const recordEvent = useServerFn(recordPortalRoadmapEvent);
   useEffect(() => {
@@ -282,7 +300,26 @@ function RoadmapJourneyView({
   };
 
   const [headerClarifyOpen, setHeaderClarifyOpen] = useState(false);
+  const [headerBookOpen, setHeaderBookOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<RoadmapViewMode>("all");
   const isMobile = useIsMobile();
+
+  // Compute the set of milestone slugs that match the current view filter.
+  const matchingSlugs = useMemo(
+    () => (viewMode === "all" ? null : computeMatchingSlugs(journey, viewMode)),
+    [journey, viewMode],
+  );
+  const matchingCount = matchingSlugs
+    ? matchingSlugs.size
+    : journey.milestones.length;
+
+  // If a view filter hides the currently selected marker, deselect it so
+  // the drawer stays consistent with what the canvas is showing.
+  useEffect(() => {
+    if (!selectedMilestone || !matchingSlugs) return;
+    if (!matchingSlugs.has(selectedMilestone.slug)) setSelected(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
 
   // A journey is "empty" when every phase only contains placeholder milestones.
   const hasRealMilestones = journey.milestones.some(
@@ -296,8 +333,17 @@ function RoadmapJourneyView({
         doc={doc}
         portalRoadmapId={portalRoadmapId}
         onClarify={() => setHeaderClarifyOpen(true)}
+        onBookCall={() => setHeaderBookOpen(true)}
       />
       <ExecutiveSnapshot journey={journey} />
+      {hasRealMilestones && (
+        <ViewFilterBar
+          value={viewMode}
+          onChange={setViewMode}
+          matchingCount={matchingCount}
+          total={journey.milestones.length}
+        />
+      )}
       {!hasRealMilestones ? (
         <div className="rounded-2xl bg-card border border-border p-8 lg:p-10 text-center">
           <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
@@ -316,6 +362,7 @@ function RoadmapJourneyView({
           journey={journey}
           selectedSlug={selectedMilestone?.slug ?? null}
           onSelect={(slug) => setSelected(slug)}
+          matchingSlugs={matchingSlugs}
         />
       ) : (
         <>
@@ -324,6 +371,7 @@ function RoadmapJourneyView({
             journey={journey}
             selectedSlug={selectedMilestone?.slug ?? null}
             onSelect={(slug) => setSelected(slug)}
+            matchingSlugs={matchingSlugs}
           />
           <MiniMap journey={journey} canvasWidth={canvas.scrollWidth || 1800} />
         </>
@@ -356,6 +404,7 @@ function RoadmapJourneyView({
         roadmapId={portalRoadmapId}
         projectId={projectId}
         authorEmail={authorEmail}
+        schedulingUrl={schedulingUrl}
         onClose={() => setSelected(null)}
       />
       <ClarificationModal
@@ -365,6 +414,72 @@ function RoadmapJourneyView({
         authorEmail={authorEmail}
         context={null}
       />
+      <BookCallModal
+        open={headerBookOpen}
+        onOpenChange={setHeaderBookOpen}
+        projectId={projectId}
+        authorEmail={authorEmail}
+        schedulingUrl={schedulingUrl}
+        context={null}
+      />
+    </div>
+  );
+}
+
+function ViewFilterBar({
+  value,
+  onChange,
+  matchingCount,
+  total,
+}: {
+  value: RoadmapViewMode;
+  onChange: (v: RoadmapViewMode) => void;
+  matchingCount: number;
+  total: number;
+}) {
+  const active = value !== "all";
+  return (
+    <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center gap-3">
+        <label
+          htmlFor="roadmap-view-filter"
+          className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/55"
+        >
+          View
+        </label>
+        <Select value={value} onValueChange={(v) => onChange(v as RoadmapViewMode)}>
+          <SelectTrigger
+            id="roadmap-view-filter"
+            className="h-9 w-[200px] bg-card border-border"
+            aria-label="Filter roadmap view"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(
+              ["all", "decisions", "deliverables", "deadlines", "current"] as const
+            ).map((mode) => (
+              <SelectItem key={mode} value={mode}>
+                {VIEW_MODE_LABEL[mode]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {active && (
+          <span className="text-[12px] text-ink/60">
+            Showing {matchingCount} of {total}
+          </span>
+        )}
+      </div>
+      {active && (
+        <button
+          type="button"
+          onClick={() => onChange("all")}
+          className="text-[12px] font-medium text-royal hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-royal rounded"
+        >
+          Show full journey
+        </button>
+      )}
     </div>
   );
 }
@@ -374,11 +489,13 @@ function RoadmapHeader({
   doc,
   portalRoadmapId,
   onClarify,
+  onBookCall,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
   doc: PortalRoadmapDoc;
   portalRoadmapId: string | undefined;
   onClarify: () => void;
+  onBookCall: () => void;
 }) {
   const recordEvent = useServerFn(recordPortalRoadmapEvent);
   const handleDownload = () => {
@@ -442,11 +559,12 @@ function RoadmapHeader({
         >
           <Download className="w-4 h-4 mr-2" /> Download PDF
         </Button>
-        <Button asChild className="bg-ink hover:bg-ink/90 text-white">
-          <Link to="/portal/messages">
-            <Calendar className="w-4 h-4 mr-2" />
-            Book next call
-          </Link>
+        <Button
+          onClick={onBookCall}
+          className="bg-ink hover:bg-ink/90 text-white"
+        >
+          <Calendar className="w-4 h-4 mr-2" />
+          Book next call
         </Button>
       </div>
     </div>

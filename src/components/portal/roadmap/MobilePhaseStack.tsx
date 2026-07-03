@@ -21,6 +21,7 @@ type Props = {
   journey: RoadmapJourney;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
+  matchingSlugs?: Set<string> | null;
 };
 
 const KIND_ICON: Record<MilestoneKind, typeof Circle> = {
@@ -47,7 +48,7 @@ const STATUS_LABEL: Record<RoadmapMilestone["status"], string> = {
   optional: "Optional",
 };
 
-export function MobilePhaseStack({ journey, selectedSlug, onSelect }: Props) {
+export function MobilePhaseStack({ journey, selectedSlug, onSelect, matchingSlugs }: Props) {
   const reduced = useReducedMotion();
   // Start on the phase containing the active milestone, if any.
   const activePhaseIndex = Math.max(
@@ -172,17 +173,18 @@ export function MobilePhaseStack({ journey, selectedSlug, onSelect }: Props) {
                             : Circle
                       : KIND_ICON[m.kind];
                   const isSel = m.slug === selectedSlug;
+                  const dim = !!matchingSlugs && !matchingSlugs.has(m.slug);
                   return (
                     <li key={m.slug}>
                       <button
                         type="button"
                         onClick={() => onSelect(m.slug)}
                         aria-pressed={isSel}
-                        className={`w-full text-left rounded-xl border p-3 flex items-start gap-3 transition-colors ${
+                        className={`w-full text-left rounded-xl border p-3 flex items-start gap-3 transition-all ${
                           isSel
                             ? "border-royal/40 bg-royal/5"
                             : "border-border hover:border-ink/20"
-                        }`}
+                        } ${dim ? "opacity-40" : "opacity-100"}`}
                       >
                         <span
                           className={`shrink-0 mt-0.5 inline-flex items-center justify-center h-8 w-8 rounded-full border-2 ${STATUS_TONE[m.status]}`}

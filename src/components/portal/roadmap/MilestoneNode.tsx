@@ -25,6 +25,9 @@ type Props = {
   y: number;
   onOpen: () => void;
   isSelected: boolean;
+  /** When true, node is visually de-emphasized because a view filter is active
+   *  and this marker doesn't match. It stays reachable for accessibility. */
+  dimmed?: boolean;
 };
 
 const STATUS_STYLES: Record<
@@ -83,6 +86,7 @@ export function MilestoneNode({
   y,
   onOpen,
   isSelected,
+  dimmed = false,
 }: Props) {
   const s = STATUS_STYLES[milestone.status];
   // Use kind icon when non-milestone, otherwise status icon.
@@ -106,8 +110,8 @@ export function MilestoneNode({
 
   return (
     <div
-      className="absolute -translate-x-1/2 -translate-y-1/2"
-      style={{ left: `${x}px`, top: `${y}px` }}
+      className="absolute -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200"
+      style={{ left: `${x}px`, top: `${y}px`, opacity: dimmed ? 0.28 : 1 }}
     >
       <Tooltip>
         <TooltipTrigger asChild>
