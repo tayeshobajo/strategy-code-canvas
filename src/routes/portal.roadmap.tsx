@@ -27,11 +27,13 @@ import { JourneyCanvas } from "@/components/portal/roadmap/JourneyCanvas";
 import { MilestoneSheet } from "@/components/portal/roadmap/MilestoneSheet";
 import { PhaseJumpNav } from "@/components/portal/roadmap/PhaseJumpNav";
 import { MiniMap } from "@/components/portal/roadmap/MiniMap";
+import { MobilePhaseStack } from "@/components/portal/roadmap/MobilePhaseStack";
 import { ClarificationModal } from "@/components/portal/roadmap/ClarificationModal";
 import {
   RoadmapCanvasProvider,
   useRoadmapCanvas,
 } from "@/components/portal/roadmap/canvas-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
 const searchSchema = z.object({
@@ -49,6 +51,7 @@ export const Route = createFileRoute("/portal/roadmap")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  errorComponent: ({ error, reset }) => <FailedToLoad error={error} reset={reset} />,
   component: () => (
     <Suspense fallback={<Loading />}>
       <RoadmapView />
@@ -58,8 +61,65 @@ export const Route = createFileRoute("/portal/roadmap")({
 
 function Loading() {
   return (
-    <div className="rounded-xl bg-card border border-border p-10 text-ink/60">
-      Loading your Roadmap…
+    <div
+      role="status"
+      aria-live="polite"
+      className="max-w-3xl mx-auto rounded-2xl bg-card border border-border p-8 lg:p-10 shadow-sm"
+    >
+      <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+        Roadmap
+      </div>
+      <div className="mt-3 flex items-center gap-3 text-ink/70">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span>Loading your Roadmap…</span>
+      </div>
+      <div className="mt-6 space-y-3" aria-hidden="true">
+        <div className="h-4 w-2/3 rounded bg-ink/5 animate-pulse" />
+        <div className="h-4 w-1/2 rounded bg-ink/5 animate-pulse" />
+        <div className="h-40 w-full rounded-xl bg-ink/5 animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+function FailedToLoad({
+  error,
+  reset,
+}: {
+  error: unknown;
+  reset: () => void;
+}) {
+  const message =
+    error instanceof Error ? error.message : "Something went wrong.";
+  return (
+    <div
+      role="alert"
+      className="max-w-3xl mx-auto rounded-2xl bg-card border border-border p-8 lg:p-10 shadow-sm"
+    >
+      <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#a4283c]">
+        Roadmap unavailable
+      </div>
+      <h1 className="font-display text-2xl text-ink mt-2">
+        We couldn't load your Roadmap.
+      </h1>
+      <p className="text-[15px] leading-[1.75] text-ink/70 mt-3">
+        This is on our side, not yours. Please try again in a moment — if it
+        keeps happening, message Tai and we'll take a look.
+      </p>
+      <p className="text-[12px] text-ink/45 mt-3 font-mono break-all">
+        {message}
+      </p>
+      <div className="flex gap-2 mt-6 flex-wrap">
+        <Button
+          onClick={() => reset()}
+          className="bg-ink hover:bg-ink/90 text-white"
+        >
+          Try again
+        </Button>
+        <Button asChild variant="outline" className="border-ink/20">
+          <Link to="/portal/messages">Message Tai</Link>
+        </Button>
+      </div>
     </div>
   );
 }
@@ -160,7 +220,7 @@ function RoadmapJourneyView({
   // If a deep-link references an unknown slug, clear it with a calm toast.
   useEffect(() => {
     if (requestedSlug && !selectedMilestone) {
-      toast.info("This item is no longer available in the current roadmap version.");
+      toast.info("The selected item couldn't be found on this roadmap.");
       navigate({ search: () => ({}), replace: true });
     }
   }, [requestedSlug, selectedMilestone, navigate]);
@@ -216,6 +276,12 @@ function RoadmapJourneyView({
   };
 
   const [headerClarifyOpen, setHeaderClarifyOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  // A journey is "empty" when every phase only contains placeholder milestones.
+  const hasRealMilestones = journey.milestones.some(
+    (m) => !m.slug.endsWith("-placeholder"),
+  );
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
@@ -226,15 +292,39 @@ function RoadmapJourneyView({
         onClarify={() => setHeaderClarifyOpen(true)}
       />
       <ExecutiveSnapshot journey={journey} />
-      <PhaseJumpNav journey={journey} onJump={jumpTo} />
-      <JourneyCanvas
-        journey={journey}
-        selectedSlug={selectedMilestone?.slug ?? null}
-        onSelect={(slug) => setSelected(slug)}
-      />
-      <MiniMap journey={journey} canvasWidth={canvas.scrollWidth || 1800} />
+      {!hasRealMilestones ? (
+        <div className="rounded-2xl bg-card border border-border p-8 lg:p-10 text-center">
+          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+            Milestones coming soon
+          </div>
+          <h2 className="font-display text-xl text-ink mt-2">
+            Your roadmap doesn't have any milestones yet.
+          </h2>
+          <p className="text-[15px] leading-[1.75] text-ink/70 mt-3 max-w-xl mx-auto">
+            Tai is still shaping the phase-by-phase journey. As soon as
+            milestones are added, they'll appear here as an interactive map.
+          </p>
+        </div>
+      ) : isMobile ? (
+        <MobilePhaseStack
+          journey={journey}
+          selectedSlug={selectedMilestone?.slug ?? null}
+          onSelect={(slug) => setSelected(slug)}
+        />
+      ) : (
+        <>
+          <PhaseJumpNav journey={journey} onJump={jumpTo} />
+          <JourneyCanvas
+            journey={journey}
+            selectedSlug={selectedMilestone?.slug ?? null}
+            onSelect={(slug) => setSelected(slug)}
+          />
+          <MiniMap journey={journey} canvasWidth={canvas.scrollWidth || 1800} />
+        </>
+      )}
       <SupportingContext journey={journey} />
       <AcknowledgeBlock ctx={ctx} portalRoadmapId={portalRoadmapId} />
+
       {olderDocs.length > 0 && (
         <div className="rounded-2xl bg-card border border-border p-6">
           <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal mb-3">

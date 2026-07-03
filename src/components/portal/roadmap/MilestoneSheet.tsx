@@ -37,6 +37,7 @@ import { recordPortalMilestoneReview } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { ClarificationModal } from "./ClarificationModal";
 import { useRoadmapCanvas } from "./canvas-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Props = {
   milestone: RoadmapMilestone | null;
@@ -109,6 +110,7 @@ export function MilestoneSheet({
   const [clarifyOpen, setClarifyOpen] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const canvas = useRoadmapCanvas();
+  const isMobile = useIsMobile();
   const openedSlugRef = useRef<string | null>(null);
 
   const reviewMut = useMutation({
@@ -165,8 +167,12 @@ export function MilestoneSheet({
         }}
       >
         <SheetContent
-          side="right"
-          className="w-full sm:max-w-lg bg-paper text-ink border-l border-border overflow-y-auto"
+          side={isMobile ? "bottom" : "right"}
+          className={
+            isMobile
+              ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-paper text-ink border-t border-border overflow-y-auto p-5"
+              : "w-full sm:max-w-lg bg-paper text-ink border-l border-border overflow-y-auto"
+          }
           aria-labelledby="milestone-sheet-title"
           aria-describedby="milestone-sheet-desc"
         >
