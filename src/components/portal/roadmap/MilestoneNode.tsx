@@ -7,6 +7,7 @@ import {
   FileText,
   CalendarClock,
   Flag,
+  ArrowRight,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type {
@@ -16,6 +17,11 @@ import type {
 import type { MarkerVisibility } from "./view-mode";
 import type { MarkerAttachment } from "./roadmap-layout";
 import { useRoadmapCanvas } from "./canvas-context";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 type Props = {
   milestone: RoadmapMilestone;
@@ -137,9 +143,87 @@ export function MilestoneNode({
     : isMuted
       ? 0.45
       : mutedBySelection
-        ? 0.72
+        ? 0.85
         : 1;
   const transform = isSelected ? "scale(1.08)" : undefined;
+
+  const statusLabel =
+    milestone.status === "in_progress"
+      ? "In progress"
+      : milestone.status === "completed"
+        ? "Completed"
+        : milestone.status === "blocked"
+          ? "Blocked"
+          : milestone.status === "optional"
+            ? "Optional"
+            : "Upcoming";
+
+  const trigger = (
+    <button
+      ref={btnRef}
+      type="button"
+      data-milestone-node
+      data-marker-slug={milestone.slug}
+      data-marker-selected={isSelected ? "true" : "false"}
+      data-no-drag
+      aria-label={`${kindLabel}: ${milestone.title}`}
+      aria-pressed={isSelected}
+      onClick={onOpen}
+      onMouseEnter={() => canvas.setHighlightedSlug(milestone.slug)}
+      onMouseLeave={() => {
+        if (canvas.highlightedSlug === milestone.slug)
+          canvas.setHighlightedSlug(null);
+      }}
+      onFocus={() => canvas.setHighlightedSlug(milestone.slug)}
+      onBlur={() => {
+        if (canvas.highlightedSlug === milestone.slug)
+          canvas.setHighlightedSlug(null);
+      }}
+      style={{ transform, transformOrigin: "center" }}
+      className={`group flex items-center gap-2 rounded-full border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
+        isSelected ? selectedShell : restingShell
+      } ${isPlaceholder ? "opacity-60" : ""} ${
+        iconOnly ? "p-1.5" : "pl-1.5 pr-3 py-1.5"
+      }`}
+      title={iconOnly ? undefined : `${kindLabel}: ${milestone.title}`}
+    >
+      <span
+        className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-white shrink-0 ${accent}`}
+        aria-hidden="true"
+      >
+        <Icon
+          className={`w-3.5 h-3.5 ${
+            milestone.status === "in_progress" &&
+            milestone.kind === "milestone"
+              ? "animate-spin"
+              : ""
+          }`}
+        />
+      </span>
+      {!iconOnly && (
+        <span className="flex flex-col items-start leading-tight text-left">
+          <span
+            className={`font-semibold whitespace-nowrap truncate ${
+              showFullLabel
+                ? "text-[12.5px] max-w-[200px]"
+                : "text-[11.5px] max-w-[140px]"
+            }`}
+          >
+            {showFullLabel ? milestone.title : shortLabel(milestone.title)}
+          </span>
+          {showFullLabel && subline && (
+            <span
+              className={`text-[10.5px] whitespace-nowrap ${
+                isSelected ? "text-ink/55" : "text-white/60"
+              }`}
+            >
+              {subline}
+            </span>
+          )}
+        </span>
+      )}
+    </button>
+  );
 
   return (
     <div
@@ -154,70 +238,51 @@ export function MilestoneNode({
       data-marker-visibility={visibility}
       data-marker-attachment={attachment}
     >
-      <button
-        ref={btnRef}
-        type="button"
-        data-milestone-node
-        data-marker-slug={milestone.slug}
-        data-marker-selected={isSelected ? "true" : "false"}
-        data-no-drag
-        aria-label={`${kindLabel}: ${milestone.title}`}
-        aria-pressed={isSelected}
-        onClick={onOpen}
-        onMouseEnter={() => canvas.setHighlightedSlug(milestone.slug)}
-        onMouseLeave={() => {
-          if (canvas.highlightedSlug === milestone.slug)
-            canvas.setHighlightedSlug(null);
-        }}
-        onFocus={() => canvas.setHighlightedSlug(milestone.slug)}
-        onBlur={() => {
-          if (canvas.highlightedSlug === milestone.slug)
-            canvas.setHighlightedSlug(null);
-        }}
-        style={{ transform, transformOrigin: "center" }}
-        className={`group flex items-center gap-2 rounded-full border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
-          isSelected ? selectedShell : restingShell
-        } ${isPlaceholder ? "opacity-60" : ""} ${
-          iconOnly ? "p-1.5" : "pl-1.5 pr-3 py-1.5"
-        }`}
-        title={iconOnly ? `${kindLabel}: ${milestone.title}` : undefined}
-      >
-        <span
-          className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-white shrink-0 ${accent}`}
-          aria-hidden="true"
-        >
-          <Icon
-            className={`w-3.5 h-3.5 ${
-              milestone.status === "in_progress" &&
-              milestone.kind === "milestone"
-                ? "animate-spin"
-                : ""
-            }`}
-          />
-        </span>
-        {!iconOnly && (
-          <span className="flex flex-col items-start leading-tight text-left">
-            <span
-              className={`font-semibold whitespace-nowrap truncate ${
-                showFullLabel
-                  ? "text-[12.5px] max-w-[200px]"
-                  : "text-[11.5px] max-w-[140px]"
-              }`}
-            >
-              {showFullLabel ? milestone.title : shortLabel(milestone.title)}
-            </span>
-            {showFullLabel && subline && (
-              <span
-                className={`text-[10.5px] whitespace-nowrap ${
-                  isSelected ? "text-ink/55" : "text-white/60"
-                }`}
+      {iconOnly && !isHidden ? (
+        <HoverCard openDelay={120} closeDelay={80}>
+          <HoverCardTrigger asChild>{trigger}</HoverCardTrigger>
+          <HoverCardContent
+            side="top"
+            align="center"
+            className="w-72 p-0 bg-slate-950/95 border-white/20 text-white"
+            data-testid={`marker-hovercard-${milestone.slug}`}
+          >
+            <div className="px-3 py-2 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center justify-center h-5 w-5 rounded-full ${accent}`}
+                  aria-hidden="true"
+                >
+                  <Icon className="w-3 h-3" />
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/60">
+                  {kindLabel} · {statusLabel}
+                </span>
+              </div>
+              <div className="text-[13px] font-semibold mt-1.5 leading-tight">
+                {milestone.title}
+              </div>
+              {(milestone.summary || subline) && (
+                <div className="text-[11.5px] text-white/70 mt-1 leading-snug line-clamp-2">
+                  {milestone.summary ?? subline}
+                </div>
+              )}
+            </div>
+            <div className="px-3 py-2">
+              <button
+                type="button"
+                onClick={onOpen}
+                className="w-full inline-flex items-center justify-center gap-1.5 rounded-md bg-royal/25 hover:bg-royal/40 border border-royal/50 text-[11.5px] font-medium py-1.5"
               >
-                {subline}
-              </span>
-            )}
-          </span>
-        )}
-      </button>
+                View details
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
+      ) : (
+        trigger
+      )}
     </div>
   );
 }

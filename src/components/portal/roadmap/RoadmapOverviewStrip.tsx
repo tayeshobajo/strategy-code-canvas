@@ -2,7 +2,7 @@ import type { PhaseKey, RoadmapJourney } from "@/lib/portal-roadmap-model";
 import { useRoadmapCanvas, useDisplayPhaseKey } from "./canvas-context";
 import type { LegendKind } from "./view-mode";
 import { Maximize2, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type JumpTarget = "pointA" | "now" | "next" | "later" | "pointB";
 
@@ -19,6 +19,19 @@ export function RoadmapOverviewStrip({ journey, onJump, variant = "card" }: Prop
   const [expanded, setExpanded] = useState(true);
   const active = useDisplayPhaseKey() ?? journey.currentPhaseKey;
   const canvas = useRoadmapCanvas();
+
+  // Once the user pans the map so the viewport centers on a different phase
+  // than the one they explicitly selected, clear the sticky selection so the
+  // active stop follows the viewport.
+  useEffect(() => {
+    if (
+      canvas.selectedPhaseKey &&
+      canvas.viewportPhaseKey &&
+      canvas.viewportPhaseKey !== canvas.selectedPhaseKey
+    ) {
+      canvas.setSelectedPhaseKey(null);
+    }
+  }, [canvas.viewportPhaseKey, canvas.selectedPhaseKey, canvas]);
 
   const phases = journey.phases;
   const floating = variant === "floating";

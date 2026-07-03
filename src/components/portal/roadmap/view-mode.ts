@@ -10,7 +10,8 @@ export type RoadmapViewMode =
   | "deliverables"
   | "deadlines"
   | "current"
-  | "client-actions";
+  | "client-actions"
+  | "critical-path";
 
 export const VIEW_MODE_LABEL: Record<RoadmapViewMode, string> = {
   all: "Full journey",
@@ -19,6 +20,7 @@ export const VIEW_MODE_LABEL: Record<RoadmapViewMode, string> = {
   deadlines: "Deadlines only",
   current: "Current phase",
   "client-actions": "What needs me",
+  "critical-path": "Critical path",
 };
 
 /** How a marker should be rendered on the canvas. */
@@ -133,6 +135,11 @@ export function computeMarkerVisibility(
         return "hidden";
       }
       break;
+    case "critical-path": {
+      const onPath = journey.criticalPathSlugs.includes(m.slug);
+      if (!onPath && !anchor) return "muted";
+      break;
+    }
     case "all":
     default:
       break;
