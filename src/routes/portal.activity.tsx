@@ -422,32 +422,42 @@ function TimelineItem({ event, isLast }: { event: ActivityRow; isLast: boolean }
 
 function categoryOf(eventType: string): Category {
   const t = eventType.toLowerCase();
+  if (t.startsWith("follow_up")) return "follow_up";
+  if (t.startsWith("roadmap") || t.includes("engagement")) return "roadmap";
+  if (t.startsWith("file")) return "files";
+  if (t.startsWith("message") || t.includes("reply")) return "messages";
   if (t.includes("invoice") || t.includes("payment") || t.includes("billing")) return "billing";
   if (t.includes("subscription") || t.includes("plan")) return "subscription";
-  return "other";
+  return "workspace";
 }
 
 function iconFor(eventType: string, cat: Category) {
   const t = eventType.toLowerCase();
+  if (cat === "follow_up") return AlertCircle;
   if (t.includes("invoice") || t.includes("receipt")) return Receipt;
   if (cat === "billing") return CreditCard;
   if (cat === "subscription") return Sparkles;
-  if (t.includes("message")) return MessageSquare;
-  if (t.includes("file")) return Folder;
+  if (cat === "messages") return MessageSquare;
+  if (cat === "files") return Folder;
+  if (cat === "roadmap") return Sparkles;
   if (t.includes("access") || t.includes("user")) return UserIcon;
   return ActivityIcon;
 }
 
-function toneFor(eventType: string, _cat: Category) {
+function toneFor(eventType: string, cat: Category) {
   const t = eventType.toLowerCase();
+  if (cat === "follow_up" && !t.includes("resolved"))
+    return { badge: "bg-amber-50 text-amber-700 border-amber-200" };
   if (t.includes("failed") || t.includes("revoked") || t.includes("canceled"))
     return { badge: "bg-destructive/10 text-destructive border-destructive/30" };
-  if (t.includes("paid") || t.includes("succeeded") || t.includes("active"))
+  if (t.includes("paid") || t.includes("succeeded") || t.includes("active") || t.includes("acknowledged") || t.includes("resolved"))
     return { badge: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  if (cat === "roadmap") return { badge: "bg-royal/10 text-royal border-royal/20" };
   if (t.includes("invoice") || t.includes("payment") || t.includes("billing"))
     return { badge: "bg-royal/10 text-royal border-royal/20" };
   return { badge: "bg-paper-soft text-ink/70 border-rule-soft" };
 }
+
 
 function prettyEvent(eventType: string) {
   return eventType.replace(/[._]/g, " ");
