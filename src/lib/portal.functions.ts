@@ -84,11 +84,23 @@ export const checkPortalAccess = createServerFn({ method: "GET" })
 
 // -------------------- Magic link (public) --------------------
 
+export type MagicLinkStatus =
+  | "sent"
+  | "no_access"
+  | "link_failed"
+  | "enqueue_failed";
+
 export const requestPortalMagicLink = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => z.object({ email: z.string().email() }).parse(raw))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<{ ok: true; status: MagicLinkStatus }> => {
     const email = data.email.trim().toLowerCase();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const t0 = Date.now();
+    const log = (msg: string, extra?: Record<string, unknown>) =>
+      console.log(
+        `[portal.magic-link] ${msg}`,
+        JSON.stringify({ email, elapsedMs: Date.now() - t0, ...(extra ?? {}) }),
+      );
 
     // Verify Stripe-confirmed portal access OR an admin/operator role grant
     // exists for this email. Staff granted via user_roles don't necessarily
@@ -114,15 +126,23 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
         .limit(1),
     ]);
 
+    const accessSources = {
+      client_portal_permissions: perm?.length ?? 0,
+      client_access: legacy?.length ?? 0,
+      user_roles_admin_operator: staffRole?.length ?? 0,
+    };
     const hasAccess =
-      (perm?.length ?? 0) > 0 ||
-      (legacy?.length ?? 0) > 0 ||
-      (staffRole?.length ?? 0) > 0;
-    // Always return a generic response — don't reveal whether email is known.
+      accessSources.client_portal_permissions > 0 ||
+      accessSources.client_access > 0 ||
+      accessSources.user_roles_admin_operator > 0;
+
     if (!hasAccess) {
-      console.log("[portal.magic-link] no access for", email);
-      return { ok: true as const };
+      log("no_access — email has no portal permission or staff role", {
+        accessSources,
+      });
+      return { ok: true, status: "no_access" };
     }
+    log("access granted", { accessSources });
 
     // Generate the magic link via Auth Admin (bypasses disable_signup for existing users).
     const redirectTo = (process.env.PUBLIC_SITE_URL ?? "https://trusttai.com") + "/portal";
@@ -133,9 +153,15 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
     });
 
     if (linkError || !linkData?.properties?.action_link) {
-      console.error("[portal.magic-link] generateLink failed", linkError);
-      return { ok: true as const };
+      console.error("[portal.magic-link] generateLink failed", {
+        email,
+        code: linkError?.code,
+        message: linkError?.message,
+        status: linkError?.status,
+      });
+      return { ok: true, status: "link_failed" };
     }
+    log("magic link generated");
 
     const actionLink = linkData.properties.action_link;
     const messageId = (globalThis.crypto?.randomUUID?.() ??
@@ -168,7 +194,15 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
       },
     });
 
-    if (enqError) console.error("[portal.magic-link] enqueue failed", enqError);
+    if (enqError) {
+      console.error("[portal.magic-link] enqueue_email failed", {
+        email,
+        messageId,
+        error: enqError,
+      });
+      return { ok: true, status: "enqueue_failed" };
+    }
+    log("enqueued to transactional_emails", { messageId });
 
     // Log activity if we can find the project.
     const { data: projects } = await supabaseAdmin
@@ -190,11 +224,11 @@ export const requestPortalMagicLink = createServerFn({ method: "POST" })
         _event_type: "magic_link_sent",
         _summary: "Portal sign-in link requested",
         _client_visible: false,
-        _metadata: {},
+        _metadata: { messageId },
       });
     }
 
-    return { ok: true as const };
+    return { ok: true, status: "sent" };
   });
 
 // -------------------- Access telemetry --------------------

@@ -14,6 +14,7 @@ import {
   type PortalRoadmapDoc,
 } from "@/lib/portal.functions";
 import { buildRoadmapJourney } from "@/lib/portal-roadmap-model";
+import { DEMO_ROADMAP_RAW, DEMO_PROJECT } from "@/lib/portal-roadmap-demo-fixture";
 import { usePortalContext } from "@/hooks/use-portal-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,6 +66,7 @@ const searchSchema = z.object({
   item: fallback(z.string().optional(), undefined),
   decision: fallback(z.string().optional(), undefined),
   deliverable: fallback(z.string().optional(), undefined),
+  __visual: fallback(z.enum(["demo"]).optional(), undefined),
 });
 
 export const Route = createFileRoute("/portal/roadmap")({
@@ -76,11 +78,21 @@ export const Route = createFileRoute("/portal/roadmap")({
     ],
   }),
   errorComponent: ({ error, reset }) => <FailedToLoad error={error} reset={reset} />,
-  component: () => (
-    <Suspense fallback={<Loading />}>
-      <RoadmapView />
-    </Suspense>
-  ),
+  component: () => {
+    const search = Route.useSearch();
+    if (search.__visual === "demo") {
+      return (
+        <RoadmapCanvasProvider>
+          <DemoRoadmapView />
+        </RoadmapCanvasProvider>
+      );
+    }
+    return (
+      <Suspense fallback={<Loading />}>
+        <RoadmapView />
+      </Suspense>
+    );
+  },
 });
 
 function Loading() {
@@ -882,6 +894,99 @@ function AcknowledgeBlock({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// -------------------- Visual demo mode --------------------
+// Rendered when the URL contains `?__visual=demo`. Zero server calls, zero
+// auth, deterministic fixture — used by Playwright visual regression.
+function DemoRoadmapView() {
+  const journey = useMemo(
+    () => buildRoadmapJourney(DEMO_ROADMAP_RAW, DEMO_PROJECT),
+    [],
+  );
+  const [viewMode, setViewMode] = useState<RoadmapViewMode>("all");
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const [clarifyOpen, setClarifyOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
+  const matchingSlugs = useMemo(
+    () => (viewMode === "all" ? null : computeMatchingSlugs(journey, viewMode)),
+    [journey, viewMode],
+  );
+  const matchingCount = matchingSlugs ? matchingSlugs.size : journey.milestones.length;
+
+  const jumpTo = (key: string) => {
+    const el = document.getElementById("portal-canvas-scroll");
+    if (!el) return;
+    const total = el.scrollWidth;
+    const map: Record<string, number> = {
+      pointA: 0,
+      now: total * 0.15,
+      next: total * 0.45,
+      later: total * 0.75,
+      pointB: total,
+    };
+    el.scrollTo({ left: map[key] ?? 0, behavior: "smooth" });
+  };
+
+  return (
+    <div className="max-w-[1500px] mx-auto space-y-5" data-visual-demo="1">
+      <RoadmapHeader
+        journey={journey}
+        doc={{ id: "demo", title: journey.title, file_url: null, published_at: null } as unknown as PortalRoadmapDoc}
+        portalRoadmapId={undefined}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        matchingCount={matchingCount}
+        totalCount={journey.milestones.length}
+        onJump={jumpTo}
+        onClarify={() => setClarifyOpen(true)}
+        onBookCall={() => setBookOpen(true)}
+      />
+      <div className="relative" data-testid="roadmap-canvas-wrap">
+        <MapCanvas
+          journey={journey}
+          selectedSlug={selectedSlug}
+          onSelect={setSelectedSlug}
+          matchingSlugs={matchingSlugs}
+        />
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-4 left-4 pointer-events-auto">
+            <StatusOverlayCard journey={journey} onSelectNextAction={setSelectedSlug} />
+          </div>
+          <div className="absolute top-6 right-6 max-w-md text-right pointer-events-none">
+            <h2 className="font-display text-2xl text-white leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
+              The journey from today to your scaled impact.
+            </h2>
+            <p className="text-[13px] text-white/80 mt-1 drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)]">
+              A clear path. Strategic milestones. Real outcomes.
+            </p>
+          </div>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto">
+            <MapLegend />
+          </div>
+        </div>
+      </div>
+      <RoadmapOverviewStrip journey={journey} onJump={jumpTo} />
+      <div data-testid="unchanged-sections">
+        <SupportingContext journey={journey} />
+      </div>
+      <ClarificationModal
+        open={clarifyOpen}
+        onOpenChange={setClarifyOpen}
+        projectId={undefined}
+        authorEmail={undefined}
+        context={null}
+      />
+      <BookCallModal
+        open={bookOpen}
+        onOpenChange={setBookOpen}
+        projectId={undefined}
+        authorEmail={undefined}
+        schedulingUrl={null}
+        context={null}
+      />
     </div>
   );
 }

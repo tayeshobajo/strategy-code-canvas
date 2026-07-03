@@ -26,6 +26,15 @@ export const Route = createFileRoute("/portal")({
     if (PUBLIC_PATHS.includes(location.pathname)) {
       return { user: null };
     }
+    // Visual regression / design-review flag: /portal/roadmap?__visual=demo
+    // renders a self-contained fixture and skips every server call, so
+    // Playwright can snapshot the canvas without a Supabase session.
+    if (
+      location.pathname === "/portal/roadmap" &&
+      /(?:^|[?&])__visual=demo(?:&|$)/.test(location.searchStr ?? "")
+    ) {
+      return { user: null };
+    }
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
       throw redirect({

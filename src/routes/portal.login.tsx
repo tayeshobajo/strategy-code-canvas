@@ -22,19 +22,33 @@ function PortalLoginPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<
+    "sent" | "no_access" | "link_failed" | "enqueue_failed" | "network_error" | null
+  >(null);
   const requestLink = useServerFn(requestPortalMagicLink);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
     setLoading(true);
+    setStatus(null);
     try {
-      await requestLink({ data: { email: email.trim() } });
+      const res = await requestLink({ data: { email: email.trim() } });
+      setStatus(res?.status ?? "sent");
+      setSubmitted(true);
+    } catch (err) {
+      console.error("[portal.login] requestLink threw", err);
+      setStatus("network_error");
       setSubmitted(true);
     } finally {
       setLoading(false);
     }
   }
+
+  const hasInternalError =
+    status === "link_failed" ||
+    status === "enqueue_failed" ||
+    status === "network_error";
 
   return (
     <div className="bg-paper min-h-screen flex flex-col">
@@ -52,14 +66,44 @@ function PortalLoginPage() {
         </div>
 
         {submitted ? (
-          <div className="rounded-lg border border-ink/10 bg-paper p-5">
-            <p className="text-[15px] text-ink">
-              If <span className="font-medium">{email}</span> has portal access,
-              a sign-in link is on its way. Check your inbox.
-            </p>
+          <div
+            className={
+              hasInternalError
+                ? "rounded-lg border border-[#a4283c]/30 bg-[#a4283c]/5 p-5"
+                : "rounded-lg border border-ink/10 bg-paper p-5"
+            }
+            role={hasInternalError ? "alert" : undefined}
+          >
+            {hasInternalError ? (
+              <>
+                <p className="text-[15px] text-ink font-medium">
+                  Something went wrong on our side.
+                </p>
+                <p className="text-[13px] text-ink/70 mt-2">
+                  We couldn't finish sending your sign-in link
+                  {status === "link_failed" && " (auth link generation failed)"}
+                  {status === "enqueue_failed" && " (email queue rejected the request)"}
+                  {status === "network_error" && " (network error contacting the server)"}
+                  . Please try again in a minute, or contact
+                  <a
+                    href="mailto:hello@trusttai.com"
+                    className="underline underline-offset-2 ml-1"
+                  >
+                    hello@trusttai.com
+                  </a>
+                  .
+                </p>
+              </>
+            ) : (
+              <p className="text-[15px] text-ink">
+                If <span className="font-medium">{email}</span> has portal access,
+                a sign-in link is on its way. Check your inbox.
+              </p>
+            )}
             <button
               onClick={() => {
                 setSubmitted(false);
+                setStatus(null);
                 setEmail("");
               }}
               className="mt-4 text-xs underline text-ink/60"
