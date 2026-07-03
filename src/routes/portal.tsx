@@ -195,19 +195,6 @@ function PortalGreeting() {
   );
 }
 
-function SidebarMissionCard() {
-  return (
-    <div className="mx-4 mb-4 rounded-lg border border-white/10 bg-white/[0.03] px-3.5 py-3">
-      <div className="h-[3px] w-8 rounded-full bg-royal mb-2" />
-      <div className="font-display text-[13.5px] leading-tight text-white">
-        Your success is our mission.
-      </div>
-      <div className="text-[11.5px] text-white/55 mt-1 leading-snug">
-        We're building the future of your business, together.
-      </div>
-    </div>
-  );
-}
 
 function initialsFromEmail(name: string | null | undefined, email: string) {
   const src = (name && name.trim()) || email || "";
@@ -219,7 +206,11 @@ function initialsFromEmail(name: string | null | undefined, email: string) {
   return (first + second || first).toUpperCase();
 }
 
-function SidebarUserBlock({
+/**
+ * Combined mission line + user row — one calm bottom zone. Reduced visual
+ * weight so it supports the roadmap canvas instead of competing with it.
+ */
+function SidebarAccountZone({
   email,
   onSignOut,
 }: {
@@ -231,18 +222,32 @@ function SidebarUserBlock({
     data && "project" in data ? data.project?.contact_name ?? null : null;
   const initials = initialsFromEmail(contactName, email);
   const displayName = contactName || email.split("@")[0] || "Portal user";
+  const [open, setOpen] = useState(false);
   return (
-    <div className="border-t border-white/10 px-3 py-3">
-      <Popover>
+    <div className="border-t border-white/8 bg-white/[0.02] px-4 pt-3 pb-3 space-y-3">
+      {/* Mission — no boxed card, just an accent line and calm copy */}
+      <div className="px-1">
+        <div className="h-px w-6 bg-royal/60" />
+        <div className="font-display text-[12.5px] text-white/90 mt-1.5 leading-tight">
+          Your success is our mission.
+        </div>
+        <div className="text-[11px] text-white/45 mt-1 leading-snug">
+          We're building the future of your business, together.
+        </div>
+      </div>
+
+      {/* User row + popover for sign-out */}
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="w-full flex items-center gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left hover:bg-white/[0.04] transition-colors"
             aria-label="Account menu"
+            aria-expanded={open}
           >
             <span
               aria-hidden
-              className="grid place-items-center h-8 w-8 rounded-full bg-royal/25 border border-royal/40 text-[11px] font-semibold text-white shrink-0"
+              className="grid place-items-center h-8 w-8 rounded-full bg-royal/20 border border-royal/35 text-[11px] font-semibold text-white shrink-0"
             >
               {initials}
             </span>
@@ -250,11 +255,15 @@ function SidebarUserBlock({
               <span className="block text-[12.5px] text-white truncate leading-tight">
                 {displayName}
               </span>
-              <span className="block text-[10.5px] text-white/50 truncate leading-tight mt-0.5">
+              <span className="block text-[10.5px] text-white/45 truncate leading-tight mt-0.5">
                 Client
               </span>
             </span>
-            <ChevronUp className="w-3.5 h-3.5 text-white/50 shrink-0" />
+            <ChevronUp
+              className={`w-3.5 h-3.5 text-white/45 shrink-0 transition-transform ${
+                open ? "rotate-180" : ""
+              }`}
+            />
           </button>
         </PopoverTrigger>
         <PopoverContent
