@@ -580,6 +580,7 @@ function RoadmapCanvasStage({
   viewMode,
   onJump,
   matchingCount,
+  matchingSlugs,
   onResetView,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
@@ -588,6 +589,7 @@ function RoadmapCanvasStage({
   viewMode: RoadmapViewMode;
   onJump: (key: "pointA" | "now" | "next" | "later" | "pointB") => void;
   matchingCount: number;
+  matchingSlugs: Set<string> | null;
   onResetView: () => void;
 }) {
   const search = Route.useSearch();
