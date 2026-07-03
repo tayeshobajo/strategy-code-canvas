@@ -21,6 +21,10 @@ const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 1050;
 const DRAWER_WIDTH = 410;
 
+/** Route path colors — warm golden-white to read as a sunlit road on terrain. */
+const ROUTE_GOLD = "240,210,130"; // #F0D282 warm gold
+const ROUTE_GOLD_BRIGHT = "255,235,180"; // lighter highlight
+
 type Props = {
   journey: RoadmapJourney;
   selectedSlug: string | null;
@@ -329,7 +333,7 @@ export function MapCanvas({
   const scaledWidth = fitHeight ? CANVAS_WIDTH * scale : CANVAS_WIDTH;
   const scaledHeight = fitHeight ? CANVAS_HEIGHT * scale : CANVAS_HEIGHT;
 
-  // Base route: Point A through all markers to Point B (always visible)
+  // Base route: Point A → all markers → Point B (always visible, warm golden)
   const baseRouteStr = useMemo(() => {
     const pts: string[] = [];
     pts.push(`${POINT_A_POS.nx * CANVAS_WIDTH},${POINT_A_POS.ny * CANVAS_HEIGHT}`);
@@ -385,33 +389,44 @@ export function MapCanvas({
             aria-hidden="true"
             draggable={false}
             className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+            style={{ filter: "brightness(1.05) saturate(1.1) contrast(1.03)" }}
           />
 
-          {/* Atmospheric vignette */}
+          {/* Warm golden overlay — shifts the cool terrain toward the mockup's sun-lit mood */}
           <div
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                "radial-gradient(ellipse 85% 75% at 50% 45%, rgba(0,0,0,0) 30%, rgba(4,8,20,0.35) 75%, rgba(2,5,12,0.6) 100%)",
+                "linear-gradient(135deg, rgba(200,170,100,0.08) 0%, rgba(200,170,100,0) 40%, rgba(100,140,200,0.05) 100%)",
             }}
           />
 
-          {/* Top fade */}
+          {/* Atmospheric vignette — subtle dark edges */
           <div
             aria-hidden="true"
-            className="absolute inset-x-0 top-0 h-56 pointer-events-none"
-            style={{ background: "linear-gradient(180deg, rgba(4,10,25,0.45) 0%, rgba(4,10,25,0) 100%)" }}
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 90% 80% at 50% 45%, rgba(0,0,0,0) 35%, rgba(4,8,20,0.25) 80%, rgba(2,5,12,0.5) 100%)",
+            }}
+          />
+
+          {/* Top fade for label legibility */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-48 pointer-events-none"
+            style={{ background: "linear-gradient(180deg, rgba(4,10,25,0.35) 0%, rgba(4,10,25,0) 100%)" }}
           />
 
           {/* Bottom warm haze for depth */}
           <div
             aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 h-80 pointer-events-none"
-            style={{ background: "linear-gradient(0deg, rgba(8,15,30,0.4) 0%, rgba(8,15,30,0) 100%)" }}
+            className="absolute inset-x-0 bottom-0 h-72 pointer-events-none"
+            style={{ background: "linear-gradient(0deg, rgba(15,10,5,0.3) 0%, rgba(15,10,5,0) 100%)" }}
           />
 
-          {/* Base route path — the hero element, always visible */}
+          {/* === BASE ROUTE PATH — warm golden road, always visible === */}
           <svg
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
@@ -422,36 +437,36 @@ export function MapCanvas({
           >
             <defs>
               <filter id="base-route-glow" x="-10%" y="-10%" width="120%" height="120%">
-                <feGaussianBlur stdDeviation="4" result="b" />
+                <feGaussianBlur stdDeviation="5" result="b" />
                 <feMerge>
                   <feMergeNode in="b" />
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
             </defs>
-            {/* Wide soft underlay */}
+            {/* Wide warm glow underlay */}
             <polyline
               points={baseRouteStr}
               fill="none"
-              stroke="rgba(47,93,246,0.12)"
-              strokeWidth={16}
+              stroke={`rgba(${ROUTE_GOLD},0.15)`}
+              strokeWidth={18}
               strokeLinecap="round"
               strokeLinejoin="round"
               filter="url(#base-route-glow)"
             />
-            {/* Dotted main path */}
+            {/* Main golden dashed road */}
             <polyline
               points={baseRouteStr}
               fill="none"
-              stroke="rgba(180,200,255,0.3)"
-              strokeWidth={3}
+              stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.55)`}
+              strokeWidth={4}
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeDasharray="2 8"
+              strokeDasharray="10 6"
             />
           </svg>
 
-          {/* Selected critical path — bright glow overlay */}
+          {/* === SELECTED CRITICAL PATH — bright golden glow === */}
           {selectedPathPoints && (
             <svg
               aria-hidden="true"
@@ -463,7 +478,7 @@ export function MapCanvas({
             >
               <defs>
                 <filter id="sel-route-outer" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="6" result="b" />
+                  <feGaussianBlur stdDeviation="8" result="b" />
                   <feMerge><feMergeNode in="b" /></feMerge>
                 </filter>
                 <filter id="sel-route-inner" x="-10%" y="-10%" width="120%" height="120%">
@@ -471,9 +486,12 @@ export function MapCanvas({
                   <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
               </defs>
-              <polyline points={selectedPathPoints} fill="none" stroke="rgba(47,93,246,0.35)" strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" filter="url(#sel-route-outer)" />
-              <polyline points={selectedPathPoints} fill="none" stroke="rgba(47,93,246,0.9)" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" filter="url(#sel-route-inner)" />
-              <polyline points={selectedPathPoints} fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth={2.25} strokeDasharray="6 6" strokeLinecap="round" strokeLinejoin="round" />
+              {/* Wide outer glow */}
+              <polyline points={selectedPathPoints} fill="none" stroke={`rgba(${ROUTE_GOLD},0.4)`} strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" filter="url(#sel-route-outer)" />
+              {/* Main bright stroke */}
+              <polyline points={selectedPathPoints} fill="none" stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.85)`} strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" filter="url(#sel-route-inner)" />
+              {/* Crisp white-gold center line */}
+              <polyline points={selectedPathPoints} fill="none" stroke="rgba(255,250,240,0.95)" strokeWidth={2.5} strokeDasharray="6 6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
 
@@ -492,11 +510,11 @@ export function MapCanvas({
                 <div className={`font-mono text-[10px] uppercase tracking-[0.32em] ${isCurrent ? "text-royal-glow" : "text-white/70"}`}>
                   Phase {i + 1}{isCurrent && <span className="ml-1.5 text-royal-glow">·</span>}
                 </div>
-                <div className="font-display text-2xl mt-1 leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]">
+                <div className="font-display text-2xl mt-1 leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
                   {phase.label === "Now" ? "Foundation" : phase.label === "Next" ? "Core Platform Build" : "Scale Systems"}
                 </div>
                 {phase.milestones[0]?.summary && (
-                  <div className="text-[12.5px] text-white/75 mt-1 max-w-[220px] leading-snug drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]">
+                  <div className="text-[12.5px] text-white/75 mt-1 max-w-[220px] leading-snug drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
                     {phase.milestones[0].summary}
                   </div>
                 )}
@@ -516,13 +534,13 @@ export function MapCanvas({
             className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 text-white pointer-events-none"
             style={{ left: `${POINT_A_POS.nx * CANVAS_WIDTH}px`, top: `${POINT_A_POS.ny * CANVAS_HEIGHT}px`, zIndex: 7 }}
           >
-            <div className="flex items-center justify-center h-9 w-9 rounded-full bg-slate-900/70 border border-white/25 backdrop-blur shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+            <div className="flex items-center justify-center h-9 w-9 rounded-full bg-slate-900/75 border border-white/30 backdrop-blur shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
               <MapPin className="w-4 h-4" />
             </div>
-            <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">Point A</div>
+            <div className="rounded-lg bg-slate-900/75 border border-white/20 backdrop-blur px-3 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/75">Point A</div>
               <div className="font-display text-[15px] leading-tight">Current State</div>
-              <div className="text-[11px] text-white/75">Operating today</div>
+              <div className="text-[11px] text-white/80">Operating today</div>
             </div>
           </div>
 
@@ -531,16 +549,16 @@ export function MapCanvas({
             className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 text-white pointer-events-none"
             style={{ left: `${POINT_B_POS.nx * CANVAS_WIDTH}px`, top: `${POINT_B_POS.ny * CANVAS_HEIGHT}px`, zIndex: 7 }}
           >
-            <div className="rounded-lg bg-slate-900/70 border border-white/15 backdrop-blur px-3 py-1.5 text-right shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/70">Point B</div>
+            <div className="rounded-lg bg-slate-900/75 border border-white/20 backdrop-blur px-3 py-1.5 text-right shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/75">Point B</div>
               <div className="font-display text-[15px] leading-tight">{journey.pointB.label || "Scaled Impact"}</div>
               {journey.pointB.detail && (
-                <div className="text-[11px] text-white/75 max-w-[180px]">
+                <div className="text-[11px] text-white/80 max-w-[180px]">
                   {journey.pointB.detail.length > 60 ? journey.pointB.detail.slice(0, 60) + "…" : journey.pointB.detail}
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-center h-9 w-9 rounded-full bg-[color:var(--royal,#2f5df6)] text-white shadow-[0_0_24px_rgba(47,93,246,0.55),0_4px_16px_rgba(0,0,0,0.4)]">
+            <div className="flex items-center justify-center h-9 w-9 rounded-full bg-[color:var(--royal,#2f5df6)] text-white shadow-[0_0_28px_rgba(47,93,246,0.6),0_4px_16px_rgba(0,0,0,0.5)]">
               <Flag className="w-4 h-4" />
             </div>
           </div>
