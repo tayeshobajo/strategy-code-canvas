@@ -426,6 +426,23 @@ export function MilestoneSheet({
             : null
         }
       />
+
+      <BookCallModal
+        open={bookOpen}
+        onOpenChange={setBookOpen}
+        projectId={projectId}
+        authorEmail={authorEmail}
+        schedulingUrl={schedulingUrl}
+        context={
+          milestone
+            ? {
+                title: milestone.title,
+                phase: milestone.phase,
+                kind: KIND_LABEL[kind],
+              }
+            : null
+        }
+      />
     </>
   );
 }
