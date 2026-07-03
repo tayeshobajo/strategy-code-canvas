@@ -685,7 +685,7 @@ function RoadmapCanvasStage({
           <MapLegend />
         </div>
         <div className="absolute bottom-3 left-3 right-3 pointer-events-auto">
-          <RoadmapOverviewStrip journey={journey} onJump={onJump} variant="floating" />
+          <RoadmapOverviewStrip journey={journey} onJump={onJump} variant="floating" selectedSlug={selectedSlug} />
         </div>
       </div>
       {viewMode !== "all" && matchingCount === 0 && (
