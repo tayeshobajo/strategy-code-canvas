@@ -172,7 +172,7 @@ function PortalLayout() {
             </div>
           </aside>
 
-          <main className="flex-1 min-w-0 bg-paper-soft px-4 sm:px-6 lg:px-10 py-10 lg:py-16 overflow-x-hidden">
+          <main className="flex-1 min-w-0 bg-paper-soft px-4 sm:px-6 lg:px-10 py-10 lg:py-16 overflow-x-clip">
             <Outlet />
           </main>
         </div>
