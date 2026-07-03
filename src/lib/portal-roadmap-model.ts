@@ -13,17 +13,37 @@ export type MilestoneStatus =
 
 export type PhaseKey = "now" | "next" | "later";
 
+export type MilestoneKind = "milestone" | "decision" | "deliverable" | "meeting";
+
 export type RoadmapMilestone = {
   slug: string;
   title: string;
   phase: PhaseKey;
   status: MilestoneStatus;
+  kind: MilestoneKind;
   summary?: string;
   detail?: string;
   successLooksLike?: string;
   dependencies?: string[];
   actions?: string[];
   ownerNote?: string;
+  targetDate?: string;
+  dueDate?: string;
+  unlocks?: string[];
+  latestUpdate?: string;
+  clientActionNeeded?: string;
+  // Decision-specific
+  options?: string[];
+  recommendedOption?: string;
+  // Deliverable-specific
+  fileUrl?: string;
+  fileType?: string;
+  version?: string;
+  publishedAt?: string;
+  // Meeting-specific
+  meetingAt?: string;
+  meetingPurpose?: string;
+  meetingUrl?: string;
 };
 
 export type RoadmapPhase = {
