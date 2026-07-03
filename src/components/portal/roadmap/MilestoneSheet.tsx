@@ -36,6 +36,7 @@ import type {
 import { recordPortalMilestoneReview } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { ClarificationModal } from "./ClarificationModal";
+import { BookCallModal } from "./BookCallModal";
 import { useRoadmapCanvas } from "./canvas-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -44,6 +45,7 @@ type Props = {
   roadmapId?: string;
   projectId?: string;
   authorEmail?: string | null;
+  schedulingUrl?: string | null;
   onClose: () => void;
 };
 
