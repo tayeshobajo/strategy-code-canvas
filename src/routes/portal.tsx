@@ -350,7 +350,7 @@ function PortalNav({ pathname }: { pathname: string }) {
   return (
     <nav
       aria-label="Portal navigation"
-      className="flex lg:block overflow-x-auto lg:overflow-visible lg:flex-1 px-3 py-3 lg:py-4 gap-1 lg:gap-0 lg:space-y-1"
+      className="block flex-1 overflow-y-auto px-3 py-4 space-y-1"
     >
       {NAV.map((item) => {
         const active =
