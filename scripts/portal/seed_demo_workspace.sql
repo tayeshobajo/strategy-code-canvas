@@ -22,6 +22,8 @@ DECLARE
   v_msg_welcome  uuid := 'aaaaaaa4-0000-4000-8000-000000000001';
   v_msg_action   uuid := 'aaaaaaa4-0000-4000-8000-000000000002';
   v_perm         uuid := 'aaaaaaa5-0000-4000-8000-000000000001';
+  v_access       uuid := 'aaaaaaa6-0000-4000-8000-000000000001';
+  v_legacy_doc   uuid := 'aaaaaaa7-0000-4000-8000-000000000001';
 BEGIN
   ----------------------------------------------------------------
   -- 1. Portal project
