@@ -103,6 +103,7 @@ export function MilestoneSheet({
   roadmapId,
   projectId,
   authorEmail,
+  schedulingUrl,
   onClose,
 }: Props) {
   const open = !!milestone;
@@ -110,6 +111,7 @@ export function MilestoneSheet({
   const [reviewedSlugs, setReviewedSlugs] = useState<Set<string>>(new Set());
   const [ackOpen, setAckOpen] = useState(false);
   const [clarifyOpen, setClarifyOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const canvas = useRoadmapCanvas();
   const isMobile = useIsMobile();
