@@ -392,7 +392,7 @@ function PortalNav({ pathname }: { pathname: string }) {
           >
             <span
               aria-hidden
-              className={`hidden lg:block absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
+              className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
                 active ? "bg-royal opacity-100" : "opacity-0 group-hover:opacity-40 bg-white"
               }`}
             />
