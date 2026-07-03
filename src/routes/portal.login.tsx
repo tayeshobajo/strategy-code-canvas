@@ -23,7 +23,7 @@ function PortalLoginPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<
-    "sent" | "no_access" | "link_failed" | "enqueue_failed" | "network_error" | null
+    "sent" | "no_access" | "link_failed" | "suppressed" | "enqueue_failed" | "network_error" | null
   >(null);
   const requestLink = useServerFn(requestPortalMagicLink);
 
@@ -47,6 +47,7 @@ function PortalLoginPage() {
 
   const hasInternalError =
     status === "link_failed" ||
+    status === "suppressed" ||
     status === "enqueue_failed" ||
     status === "network_error";
 
@@ -82,6 +83,7 @@ function PortalLoginPage() {
                 <p className="text-[13px] text-ink/70 mt-2">
                   We couldn't finish sending your sign-in link
                   {status === "link_failed" && " (auth link generation failed)"}
+                  {status === "suppressed" && " (this address is currently blocked from email delivery)"}
                   {status === "enqueue_failed" && " (email queue rejected the request)"}
                   {status === "network_error" && " (network error contacting the server)"}
                   . Please try again in a minute, or contact
