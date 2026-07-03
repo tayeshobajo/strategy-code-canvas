@@ -270,6 +270,11 @@ function RoadmapJourneyView({
     ctx.data && "project" in ctx.data ? ctx.data.project?.id : undefined;
   const authorEmail =
     ctx.data && "email" in ctx.data ? ctx.data.email : undefined;
+  const schedulingUrl =
+    ctx.data && "project" in ctx.data
+      ? (ctx.data.project as { scheduling_url?: string | null } | null | undefined)
+          ?.scheduling_url ?? null
+      : null;
 
   const recordEvent = useServerFn(recordPortalRoadmapEvent);
   useEffect(() => {
@@ -295,7 +300,26 @@ function RoadmapJourneyView({
   };
 
   const [headerClarifyOpen, setHeaderClarifyOpen] = useState(false);
+  const [headerBookOpen, setHeaderBookOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<RoadmapViewMode>("all");
   const isMobile = useIsMobile();
+
+  // Compute the set of milestone slugs that match the current view filter.
+  const matchingSlugs = useMemo(
+    () => (viewMode === "all" ? null : computeMatchingSlugs(journey, viewMode)),
+    [journey, viewMode],
+  );
+  const matchingCount = matchingSlugs
+    ? matchingSlugs.size
+    : journey.milestones.length;
+
+  // If a view filter hides the currently selected marker, deselect it so
+  // the drawer stays consistent with what the canvas is showing.
+  useEffect(() => {
+    if (!selectedMilestone || !matchingSlugs) return;
+    if (!matchingSlugs.has(selectedMilestone.slug)) setSelected(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
 
   // A journey is "empty" when every phase only contains placeholder milestones.
   const hasRealMilestones = journey.milestones.some(
