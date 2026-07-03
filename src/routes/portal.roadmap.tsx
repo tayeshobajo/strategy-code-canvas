@@ -470,6 +470,8 @@ function RoadmapJourneyView({
             onSelect={(slug) => setSelected(slug)}
             viewMode={viewMode}
             onJump={jumpTo}
+            matchingCount={matchingCount}
+            onResetView={() => setViewMode("all")}
           />
         )
       }
