@@ -1059,15 +1059,17 @@ function DemoRoadmapView() {
   const jumpTo = (key: string) => {
     const el = document.getElementById("portal-canvas-scroll");
     if (!el) return;
-    const total = el.scrollWidth;
-    const map: Record<string, number> = {
-      pointA: 0,
-      now: total * 0.15,
-      next: total * 0.45,
-      later: total * 0.75,
-      pointB: total,
-    };
-    el.scrollTo({ left: map[key] ?? 0, behavior: "smooth" });
+    const bounds = targetBounds(
+      journey,
+      key === "pointA" || key === "pointB"
+        ? (key as "pointA" | "pointB")
+        : (key as "now" | "next" | "later"),
+    );
+    const targetLeft = Math.max(
+      0,
+      bounds.center * el.scrollWidth - el.clientWidth / 2,
+    );
+    el.scrollTo({ left: targetLeft, behavior: "smooth" });
   };
 
   return (
