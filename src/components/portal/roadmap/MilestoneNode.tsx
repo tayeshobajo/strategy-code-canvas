@@ -110,8 +110,8 @@ export function MilestoneNode({
 
   return (
     <div
-      className="absolute -translate-x-1/2 -translate-y-1/2"
-      style={{ left: `${x}px`, top: `${y}px` }}
+      className="absolute -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200"
+      style={{ left: `${x}px`, top: `${y}px`, opacity: dimmed ? 0.28 : 1 }}
     >
       <Tooltip>
         <TooltipTrigger asChild>
