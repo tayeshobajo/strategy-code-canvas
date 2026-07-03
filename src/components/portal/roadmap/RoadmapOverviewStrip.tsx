@@ -16,14 +16,9 @@ type Props = {
   journey: RoadmapJourney;
   onJump: (key: JumpTarget) => void;
   onFullscreen?: () => void;
-  /** Slug of the currently selected marker, for the pulsing indicator. */
   selectedSlug?: string | null;
-  /** Current view mode — drives dot filtering, route gradient, viewport tint. */
   viewMode?: RoadmapViewMode;
-  /** Slugs matching the current view mode. `null` = show all. */
   matchingSlugs?: Set<string> | null;
-  /** "floating" renders as a dark, glass-blur panel designed to sit
-   *  absolutely inside the map canvas. Default is the light card variant. */
   variant?: "card" | "floating";
 };
 
@@ -35,7 +30,6 @@ const KIND_DOT: Record<string, string> = {
   deadline: "bg-[#e11d48]",
 };
 
-/** Per-view-mode accent tokens for route gradient, viewport tint, and label. */
 const VIEW_TONE: Record<RoadmapViewMode, { rgb: string; label: string }> = {
   all: { rgb: "47,93,246", label: "Full journey" },
   decisions: { rgb: "139,92,246", label: "Decisions" },
@@ -59,9 +53,6 @@ export function RoadmapOverviewStrip({
   const canvas = useRoadmapCanvas();
   const layout = useMemo(() => computeMapLayout(journey), [journey]);
 
-  // Once the user pans the map so the viewport centers on a different phase
-  // than the one they explicitly selected, clear the sticky selection so the
-  // active stop follows the viewport.
   useEffect(() => {
     if (
       canvas.selectedPhaseKey &&
@@ -85,7 +76,6 @@ export function RoadmapOverviewStrip({
     onJump(key);
   };
 
-  // Viewport rectangle (0..1) — reflects current pan/zoom of the main canvas.
   const viewport = useMemo(() => {
     const total = canvas.scrollWidth || 0;
     const view = canvas.clientWidth || 0;
@@ -95,7 +85,6 @@ export function RoadmapOverviewStrip({
     return { left, width };
   }, [canvas.scrollWidth, canvas.scrollLeft, canvas.clientWidth]);
 
-  // Selected marker → normalized x for the pulsing indicator.
   const selectedX = useMemo(() => {
     if (!selectedSlug) return null;
     const m = layout.markers.find((mk) => mk.milestone.slug === selectedSlug);
@@ -135,7 +124,7 @@ export function RoadmapOverviewStrip({
                 <div className="flex items-center gap-1.5">
                   <span className={`inline-block h-1.5 w-1.5 rounded-full ${floating ? "bg-royal-glow" : "bg-royal"}`} aria-hidden />
                   <span>
-                    <span className={floating ? "text-white/55" : "text-ink/55"}>Current:</span>{" "}
+                    <span className={floating ? "text-white/65" : "text-ink/55"}>Current:</span>{" "}
                     <span className={floating ? "text-white" : "text-ink"}>{currentLabel}</span>
                   </span>
                 </div>
@@ -147,13 +136,13 @@ export function RoadmapOverviewStrip({
                       aria-hidden
                     />
                     <span>
-                      <span className={floating ? "text-white/55" : "text-ink/55"}>Viewing:</span>{" "}
+                      <span className={floating ? "text-white/65" : "text-ink/55"}>Viewing:</span>{" "}
                       <span className={floating ? "text-white" : "text-ink"}>{viewingLabel}</span>
                     </span>
                   </div>
                 )}
                 {viewMode !== "all" && (
-                  <div className={`mt-0.5 text-[10.5px] ${floating ? "text-white/50" : "text-ink/50"}`}>
+                  <div className={`mt-0.5 text-[10.5px] ${floating ? "text-white/60" : "text-ink/50"}`}>
                     View: {VIEW_MODE_LABEL[viewMode]}
                   </div>
                 )}
@@ -164,20 +153,19 @@ export function RoadmapOverviewStrip({
 
         {expanded && (
           <div className="flex-1 min-w-0 relative">
-            {/* Continuous route line — accent recolors per view mode. */}
+            {/* Route line — base opacity raised from 0.14 to 0.2 for visibility */}
             <div
               aria-hidden
-              className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full transition-colors duration-300"
+              className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2.5px] rounded-full transition-colors duration-300"
               style={{
                 background: floating
-                  ? `linear-gradient(90deg, rgba(255,255,255,0.14) 0%, rgba(${tone.rgb},0.55) 45%, rgba(${tone.rgb},0.85) 75%, rgba(${tone.rgb},1) 100%)`
-                  : `linear-gradient(90deg, rgba(11,18,32,0.10) 0%, rgba(${tone.rgb},0.45) 55%, rgba(${tone.rgb},0.85) 100%)`,
+                  ? `linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(${tone.rgb},0.55) 45%, rgba(${tone.rgb},0.85) 75%, rgba(${tone.rgb},1) 100%)`
+                  : `linear-gradient(90deg, rgba(11,18,32,0.12) 0%, rgba(${tone.rgb},0.45) 55%, rgba(${tone.rgb},0.85) 100%)`,
                 boxShadow: floating
-                  ? `0 0 12px rgba(${tone.rgb},${viewMode === "all" ? 0.25 : 0.45})`
+                  ? `0 0 12px rgba(${tone.rgb},${viewMode === "all" ? 0.3 : 0.5})`
                   : undefined,
               }}
             />
-            {/* Viewport rectangle — tint follows accent, thicker border when a filter is active. */}
             {viewport && floating && (
               <div
                 aria-hidden
@@ -194,7 +182,6 @@ export function RoadmapOverviewStrip({
                 }}
               />
             )}
-            {/* Selected marker pulse */}
             {selectedX != null && (
               <span
                 aria-hidden
@@ -267,7 +254,6 @@ export function RoadmapOverviewStrip({
           <button
             type="button"
             onClick={() => {
-              // Fit to field: pan scroller back to Point A end.
               const el = document.getElementById("portal-canvas-scroll");
               if (el) el.scrollTo({ left: 0, behavior: "smooth" });
               canvas.setSelectedPhaseKey(null);
@@ -355,10 +341,10 @@ function StripStop({
             ? "text-[#7bd6a0]"
             : "text-[#3d8558]"
           : floating
-            ? "text-white/55"
+            ? "text-white/65"
             : "text-ink/60";
   const activeShellFloating =
-    "bg-royal/20 border border-royal/70 shadow-[0_0_0_1px_rgba(47,93,246,0.45),inset_0_0_20px_rgba(47,93,246,0.22)]";
+    "bg-royal/20 border border-royal/70 shadow-[0_0_0_1px_rgba(47,93,246,0.45),inset_0_0_0_1px_rgba(255,255,255,0.15),inset_0_0_20px_rgba(47,93,246,0.22)]";
   const kinds = Object.entries(kindCounts).sort(
     ([a], [b]) => Number(b === "milestone") - Number(a === "milestone"),
   );
@@ -418,7 +404,7 @@ function StripStop({
   );
 }
 
-/** Interactive legend — each chip cycles visible → muted → hidden. */
+/** Interactive legend */
 export function MapLegend() {
   const canvas = useRoadmapCanvas();
   const items: Array<{ label: string; color: string; kind: LegendKind }> = [
@@ -457,9 +443,9 @@ export function MapLegend() {
               isVisible
                 ? "bg-white/10 text-white hover:bg-white/15"
                 : isMuted
-                  ? "bg-transparent text-white/55 hover:bg-white/5"
-                  : "bg-transparent text-white/30 line-through hover:bg-white/5"
-            }`}
+                  ? "bg-transparent text-white/65 hover:bg-white/5"
+                  : "bg-transparent text-white/35 line-through hover:bg-white/5"
+            }`
           >
             <span
               className={`inline-block h-2.5 w-2.5 rounded-full ${it.color} ${!isVisible ? "opacity-40" : ""}`}
@@ -473,5 +459,4 @@ export function MapLegend() {
   );
 }
 
-// Re-exported for tests / future consumers.
 export { POINT_A_POS, POINT_B_POS };
