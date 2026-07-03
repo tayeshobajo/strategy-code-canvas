@@ -1,58 +1,113 @@
-# Roadmap parity + PDF + QA
+# Roadmap Canvas Refactor — Plan
 
-## 1. Background image fidelity
+Goal: make `/portal/roadmap` behave like a controlled app canvas inside the client portal shell, not a tall static page with pins. Fits at 100% browser zoom. All selection state (map, mini-map, drawer, top phase badge, Jump to) is driven by one source of truth.
 
-`MapCanvas.tsx` currently darkens the map with a `#0b1220` container background and a top gradient overlay. Change to:
+## Scope guardrails
+- No concept redesign. Keep terrain art, marker types, drawer content model.
+- No backend/data changes. Demo fixture + real loader unchanged in shape.
+- Visual regression snapshots will be re-baselined after layout lands.
 
-- Remove the `background: "#0b1220"` on the scroller.
-- Remove the top gradient div; the reference image (Image 2) is meant to be shown as-is.
-- Keep `object-cover` so it fills the 1800×1050 canvas.
-- Add a fixed aspect frame (`aspect-[12/7]`) so the map scales identically at 1280/1440/1536/1920 without cropping vertically. Canvas width stays fixed; the outer container height derives from viewport width via `min-height` on the scroller so labels stay in the same relative spot.
-- Re-tune overlay text drop shadows since the top gradient is gone (labels sit on brighter sky).
+## 1. Portal shell restored around the canvas
+- `src/routes/portal.roadmap.tsx` renders inside the existing portal layout (`src/routes/portal.tsx` `<Outlet />`), not as a standalone full-bleed page.
+- Confirm the dark Trust Tai sidebar (Home, Roadmap active, Files, Messages, Billing, Activity, account block) stays mounted. Remove any wrapper that escapes the portal layout.
+- Roadmap page owns only the area right of the sidebar.
 
-## 2. Visual regression for `/portal/roadmap`
+## 2. App-viewport sizing (fits at 100% zoom, no page scroll)
+Layout tokens for the roadmap route:
+```
+sidebar         : fixed, h-screen (existing)
+roadmap root    : h-[100dvh] flex flex-col, overflow-hidden
+  ├─ top bar   : h-[72px] shrink-0  (title, phase pill, Fit/Jump/View, Download, Ask, Book)
+  └─ canvas    : flex-1 min-h-0 relative  (map + overlays + sticky mini-map)
+```
+- No vertical scroll on the page. Only the canvas may pan horizontally.
+- Status card (left) and drawer (right) are absolutely positioned inside the canvas, not stacked block elements.
+- Mini-map is `absolute bottom-0` inside canvas with backdrop blur.
 
-Add `tests/visual/portal-roadmap.spec.ts` under the existing Playwright config:
+## 3. Canvas behavior
+- Background terrain uses `object-fit: cover` inside a `rounded-2xl` canvas frame, with a controlled focal point so Point A, all phases, and Point B stay reachable.
+- Marker coordinates stay in normalized `roadmap-layout.ts` percentages so they track the image on resize.
+- Add `panToPhase(phaseId)` and `panToMarker(markerId)` that translate the map inside the canvas (CSS transform on the map layer, not scroll). "Fit to field" resets transform.
 
-- Auth: hit `/portal/roadmap` via the demo portal token flow already used in seed data (`scripts/portal/seed_demo_workspace.sql`). If the route requires a signed-in session that Playwright can't mint, fall back to a public preview route or a storybook-style harness page.
-- Snapshot the full map region (`#portal-canvas-scroll` + overlay card + overview strip) at 1280, 1440, 1536, 1920.
-- Store baselines under `tests/visual/portal-roadmap.spec.ts-snapshots/`.
-- Reuse the 0.01 diff ratio threshold from `playwright.config.ts`.
+## 4. Bottom Roadmap Overview (sticky, integrated)
+`RoadmapOverviewStrip` moves from below the map to a sticky overlay inside the canvas:
+- Point A → Phase 1 → Phase 2 → Phase 3 → Point B, route line, phase markers.
+- Shows active viewport highlight (rectangle over the current pan window).
+- Shows currently selected phase in stronger stroke.
+- Click a phase → `panToPhase` + updates selected phase.
+- Click a marker on main map → strip highlights that marker's phase.
+- Fullscreen toggle button preserved.
 
-Runbook: `bunx playwright test portal-roadmap --update-snapshots` after intentional design changes.
+## 5. Single selection state
+Introduce one hook `useRoadmapSelection` inside the roadmap route:
+```
+{ selectedPhaseId, selectedMarkerId, viewMode, setPhase, setMarker, clear }
+```
+Consumers:
+- Main map markers (active/dim styling)
+- Drawer (open when `selectedMarkerId`)
+- Mini-map (highlight phase)
+- Top "Current Phase" pill (reflects selected phase or default)
+- Jump to dropdown (writes to selection)
+- View filter (writes viewMode: full journey vs active phase)
 
-## 3. PDF that mirrors the on-screen roadmap
+Rules:
+- Selecting a phase closes the drawer unless the selected marker belongs to that phase.
+- Selecting a marker sets both marker + its phase.
+- "Fit to field" clears marker selection, keeps phase.
 
-`src/lib/roadmap-pdf.ts` today writes plain jsPDF text and cannot express the map, overlays, phase pills, or milestone chips. Rewrite as a DOM-to-PDF pipeline:
+## 6. Selected-marker overlay
+Replace the heavy dim with a controlled treatment:
+- Overlay layer: `bg-black/10` maximum (was ~50%).
+- Selected marker: stronger ring + glow, scale 1.08.
+- Unrelated markers: opacity 0.75, no blur.
+- Route segment near selected marker gets a brighter stroke.
+- Drawer sits alongside, canvas stays fully visible behind/next to it.
 
-- Add `html2canvas` (already used elsewhere in similar Lovable projects; verify or `bun add`).
-- New helper `captureRoadmapPdf(el: HTMLElement, filename: string)`:
-  - `html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff" })`
-  - Split into letter-sized pages (`jsPDF` `addImage` per slice) so long content flows.
-- Wire the Download PDF button in `RoadmapHeader` to grab the roadmap section wrapper by id (`#portal-roadmap-print-root`) and call the helper. Keep the existing text-only export as a fallback under a hidden dev flag.
-- Ensure fonts render: pass `letterRendering: true` and preload the display font before capture.
+## 7. Drawer as detail panel
+- Width `w-[380px]` desktop, aligned under top bar, full canvas height, `rounded-l-2xl`.
+- Does not cover mini-map (mini-map layer sits above with `z-index`).
+- Content variants by marker type: Milestone / Decision / Deliverable / Meeting / Deadline (fields as specified in message).
+- Client-safe content only (rule 11/12): filter out `needs_review`, `ai_generated`, `confidence_*`, `draft_*`, `risk_*`, internal notes. Map any internal status to the allowed vocabulary (Planned, In preparation, In progress, Waiting on decision, Under review, Delivered, Completed, Paused).
 
-Trade-off (call out for the user): rasterized PDF = pixel-perfect but not selectable text. That is the only way to guarantee "pixel-perfect spacing relative to the on-screen version".
+## 8. Label hierarchy (reduce middle crowding)
+Extend `MilestoneNode` with a `density` prop derived from selection + phase:
+- Active marker: full card label.
+- Current phase milestones: full labels.
+- Other phase milestones: icon + short label.
+- Secondary items: icon only, label on hover.
+- Decisions: small purple pill.
+- Deliverables: small gold/green pill.
+- Deadlines: flag marker.
 
-## 4. Header action QA
+Hover: lift, glow, tooltip (title / type / status / one-line summary / "View details"), cursor pointer, nearby route segment brightens.
 
-Manually drive each control via Playwright (headed script under `/tmp/browser/`) and screenshot:
+## 9. Header actions
+Wire all to the selection hook:
+- Fit to field → reset pan + zoom, clear marker selection, keep phase.
+- Jump to → dropdown of phases + key markers; selects and pans.
+- View → toggle Full journey vs Active phase only (viewMode).
+- Download PDF → existing PDF export using same layout snapshot.
+- Ask a question → opens message composer prefilled with roadmap context (route to `/portal/messages?context=roadmap:<phase>` — existing route).
+- Book next call → opens scheduling flow (existing link).
 
-- Fit to field → asserts `#portal-canvas-scroll.scrollLeft === 0` and canvas width fits viewport.
-- Jump to Point A / Phase 1 / 2 / 3 / Point B → asserts scrollLeft matches expected band midpoint.
-- View filter (All / Milestones / Decisions / Deliverables) → asserts dimmed markers count changes.
-- Ask a question → opens `ClarificationModal`, submits, sees success state (already implemented earlier).
-- Book next call → opens `BookCallModal`, submits, sees success state.
-- Regression check: after each action, assert Executive Summary / Strategic Priorities / Risks / Recommended Next Move / Acknowledge Roadmap DOM subtree hashes are unchanged.
+All actions must leave the "unchanged sections" DOM untouched (visual regression stability test already covers this; snapshots will be regenerated once new layout is stable).
 
-## Technical details
+## 10. Files to touch
+- `src/routes/portal.roadmap.tsx` — restructure into viewport shell, mount selection hook, wire header actions.
+- `src/components/portal/roadmap/MapCanvas.tsx` — CSS transform pan, cover-fit background, lighter overlay, marker density prop, hover state.
+- `src/components/portal/roadmap/MilestoneNode.tsx` — density variants, hover tooltip, pill/flag variants.
+- `src/components/portal/roadmap/RoadmapOverviewStrip.tsx` — sticky inside canvas, viewport highlight, click-to-jump.
+- `src/components/portal/roadmap/StatusOverlayCard.tsx` — absolute positioning inside canvas.
+- `src/components/portal/roadmap/roadmap-layout.ts` — add phase pan targets, marker density levels.
+- New: `src/components/portal/roadmap/useRoadmapSelection.ts` — single state hook.
+- New: `src/components/portal/roadmap/RoadmapDrawer.tsx` — type-aware drawer, replaces existing inline drawer.
+- `tests/visual/portal-roadmap.spec.ts` + snapshots — re-baseline all four viewports after layout lands.
 
-- Files touched: `src/components/portal/roadmap/MapCanvas.tsx`, `src/lib/roadmap-pdf.ts`, `src/routes/portal.roadmap.tsx` (add print root id + wire new PDF fn), new `tests/visual/portal-roadmap.spec.ts`, new `/tmp/browser/roadmap-actions/verify.py`.
-- New dep: `html2canvas` (unless already present).
-- No schema, no route, no auth changes.
-- Untouched by contract: Executive Summary, Strategic Priorities, Risks & Dependencies, Recommended Next Move, Acknowledge Roadmap.
+## 11. Verification
+- Manual: 1280×800, 1366×768, 1440×900, 1920×1080 at 100% zoom — no page scroll, mini-map visible, sidebar visible.
+- Playwright: existing header-action stability hashes still pass; regenerate the four visual baselines.
+- Console clean, no auth regressions (demo mode `?__visual=demo` still works).
 
-## Open questions
-
-1. Snapshot auth: is the demo portal reachable without a live Supabase session in the sandbox, or should the visual test render a `?preview=demo` variant? I'll add a `__visual` query param that seeds the mock journey on the client so Playwright can hit it without auth — OK?
-2. PDF: confirm rasterized (image-based) PDF is acceptable for pixel parity. The alternative is a hand-built vector layout that will always drift from the DOM.
+## Open question before build
+Nothing blocking — proceeding as specified. If you want the map to *scale down* rather than pan (so entire journey is visible without any panning at 1440px), say so and I'll drop pan/zoom in favor of a single fit-to-viewport render.
