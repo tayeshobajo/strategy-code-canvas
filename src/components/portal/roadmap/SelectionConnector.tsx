@@ -40,7 +40,7 @@ export function SelectionConnector({ selectedSlug, active }: Props) {
       raf = 0;
       // read the registered node's rect through the shared registry
       const marker = document.querySelector<HTMLElement>(
-        `[data-milestone-node][data-slug="${cssEscape(selectedSlug)}"]`,
+        `[data-milestone-node][data-marker-slug="${cssEscape(selectedSlug)}"]`,
       );
       const stageRect = stage.getBoundingClientRect();
       if (!marker) {
