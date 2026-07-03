@@ -555,3 +555,21 @@
 
 
 
+
+/* Roadmap canvas — Pass 2 interactions */
+@keyframes roadmap-active-pulse {
+  0%, 100% { opacity: 0.95; }
+  50% { opacity: 0.55; }
+}
+.roadmap-active-segment { animation: roadmap-active-pulse 2.4s ease-in-out infinite; }
+
+@keyframes roadmap-phase-glow-pulse {
+  0%, 100% { opacity: 0.06; }
+  50% { opacity: 0.12; }
+}
+.roadmap-phase-glow { animation: roadmap-phase-glow-pulse 4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .roadmap-active-segment,
+  .roadmap-phase-glow { animation: none !important; }
+}
