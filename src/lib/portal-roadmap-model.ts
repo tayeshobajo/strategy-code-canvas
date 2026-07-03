@@ -310,6 +310,7 @@ export function buildRoadmapJourney(
         title: `${p.label} — coming into focus`,
         phase: p.key,
         status: "upcoming",
+        kind: "milestone",
         summary: "Tai will populate this horizon as the roadmap evolves.",
       });
     }
