@@ -74,6 +74,7 @@ export function RoadmapOverviewStrip({
 
   const phases = journey.phases;
   const floating = variant === "floating";
+  const tone = VIEW_TONE[viewMode] ?? VIEW_TONE.all;
 
   const handleJump = (key: JumpTarget) => {
     if (key === "pointA" || key === "pointB") {
