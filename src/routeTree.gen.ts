@@ -27,6 +27,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as EngineIndexRouteImport } from './routes/engine.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as PortalRoadmapRouteImport } from './routes/portal.roadmap'
 import { Route as PortalOnboardingRouteImport } from './routes/portal.onboarding'
@@ -180,6 +181,11 @@ const EngineIndexRoute = EngineIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => EngineRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const WalksSlugRoute = WalksSlugRouteImport.update({
   id: '/walks_/$slug',
@@ -573,6 +579,7 @@ export interface FileRoutesByFullPath {
   '/portal/onboarding': typeof PortalOnboardingRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
   '/walks/$slug': typeof WalksSlugRoute
+  '/admin/': typeof AdminIndexRoute
   '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
@@ -614,7 +621,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
@@ -653,6 +659,7 @@ export interface FileRoutesByTo {
   '/portal/onboarding': typeof PortalOnboardingRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
   '/walks/$slug': typeof WalksSlugRoute
+  '/admin': typeof AdminIndexRoute
   '/engine': typeof EngineIndexRoute
   '/ops': typeof OpsIndexRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
@@ -737,6 +744,7 @@ export interface FileRoutesById {
   '/portal/onboarding': typeof PortalOnboardingRoute
   '/portal/roadmap': typeof PortalRoadmapRoute
   '/walks_/$slug': typeof WalksSlugRoute
+  '/admin/': typeof AdminIndexRoute
   '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
@@ -821,6 +829,7 @@ export interface FileRouteTypes {
     | '/portal/onboarding'
     | '/portal/roadmap'
     | '/walks/$slug'
+    | '/admin/'
     | '/engine/'
     | '/ops/'
     | '/portal/'
@@ -862,7 +871,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/admin'
     | '/auth'
     | '/build-my-roadmap'
     | '/insights'
@@ -901,6 +909,7 @@ export interface FileRouteTypes {
     | '/portal/onboarding'
     | '/portal/roadmap'
     | '/walks/$slug'
+    | '/admin'
     | '/engine'
     | '/ops'
     | '/engine/projects/$projectId'
@@ -984,6 +993,7 @@ export interface FileRouteTypes {
     | '/portal/onboarding'
     | '/portal/roadmap'
     | '/walks_/$slug'
+    | '/admin/'
     | '/engine/'
     | '/ops/'
     | '/portal/'
@@ -1181,6 +1191,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/engine/'
       preLoaderRoute: typeof EngineIndexRouteImport
       parentRoute: typeof EngineRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/walks_/$slug': {
       id: '/walks_/$slug'
@@ -1674,12 +1691,14 @@ interface AdminRouteChildren {
   AdminClientPortalsRoute: typeof AdminClientPortalsRoute
   AdminConfigRoute: typeof AdminConfigRoute
   AdminRolesRoute: typeof AdminRolesRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminClientPortalsRoute: AdminClientPortalsRoute,
   AdminConfigRoute: AdminConfigRoute,
   AdminRolesRoute: AdminRolesRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
