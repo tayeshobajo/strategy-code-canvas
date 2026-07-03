@@ -130,6 +130,8 @@ function FilesPage() {
   const email = ctx.data?.email ?? null;
   const { data: files, isLoading, isError, refetch } = useFiles(projectId);
   const qc = useQueryClient();
+  const logFileEvent = useServerFn(logPortalFileEvent);
+
 
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
