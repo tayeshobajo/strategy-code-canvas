@@ -294,7 +294,7 @@ function StripStop({
             ? "text-white/55"
             : "text-ink/60";
   const activeShellFloating =
-    "bg-royal/15 border border-royal/60 shadow-[0_0_0_1px_rgba(47,93,246,0.35),inset_0_0_18px_rgba(47,93,246,0.15)]";
+    "bg-royal/20 border border-royal/70 shadow-[0_0_0_1px_rgba(47,93,246,0.45),inset_0_0_20px_rgba(47,93,246,0.22)]";
   const kinds = Object.entries(kindCounts).sort(
     ([a], [b]) => Number(b === "milestone") - Number(a === "milestone"),
   );
@@ -315,6 +315,14 @@ function StripStop({
             : "border border-transparent hover:bg-ink/[0.03]"
       }`}
     >
+      {active && (
+        <span
+          aria-hidden
+          className={`absolute -top-[3px] left-1/2 -translate-x-1/2 h-1 w-6 rounded-full ${
+            floating ? "bg-royal shadow-[0_0_10px_rgba(47,93,246,0.85)]" : "bg-royal"
+          }`}
+        />
+      )}
       <div
         className={`font-mono text-[9.5px] uppercase tracking-[0.24em] flex items-center gap-1.5 ${toneClass}`}
       >
