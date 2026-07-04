@@ -876,7 +876,17 @@ function RoadmapCanvasStage({
           </p>
         </div>
         <div className="absolute bottom-3 left-3 right-3 pointer-events-auto flex flex-col items-center gap-2">
-          <MapLegend />
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <MapLegend />
+            <RoadmapFilters
+              journey={journey}
+              activeStatuses={statusFilter}
+              activePhases={phaseFilter}
+              onToggleStatus={onToggleStatus}
+              onTogglePhase={onTogglePhase}
+              onReset={onResetFilters}
+            />
+          </div>
           <div className="w-full">
             <RoadmapOverviewMiniMap journey={journey} onJump={onJump} onSelect={onSelect} selectedSlug={selectedSlug} viewMode={viewMode} matchingSlugs={matchingSlugs} />
           </div>
