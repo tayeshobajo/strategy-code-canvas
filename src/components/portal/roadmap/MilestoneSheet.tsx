@@ -63,6 +63,11 @@ type Props = {
   authorEmail?: string | null;
   schedulingUrl?: string | null;
   onClose: () => void;
+  /** Ordered slugs in journey sequence, filtered by the active view mode.
+   *  Powers prev/next navigation and keyboard arrows. */
+  sequence?: string[];
+  /** Select another milestone (keeps drawer open, updates URL/map). */
+  onSelect?: (slug: string) => void;
 };
 
 const STATUS_LABEL: Record<RoadmapMilestone["status"], string> = {
