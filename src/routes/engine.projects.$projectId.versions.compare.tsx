@@ -395,7 +395,7 @@ function PublishTimeline({ projectId, draft, approved, canPublish, adminOnlyReas
   const gate2Done = previewStatus === "approved";
   const gate3Done = !!publishedAt;
 
-  const Gate = ({ n, label, done, sub, action }: { n: number; label: string; done: boolean; sub?: string | null; action?: React.ReactNode }) => (
+  const Gate = ({ n, label, done, sub, action }: { n: number; label: string; done: boolean; sub?: string | null; action?: ReactNode }) => (
     <div className={`flex-1 rounded-lg border p-3 ${done ? "border-[#c4e6d2] bg-[#e6f5ec]" : "border-border bg-white"}`}>
       <div className="flex items-center gap-2">
         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${done ? "bg-[#1f6b3b] text-white" : "bg-paper-soft text-ink/60 border border-border"}`}>
