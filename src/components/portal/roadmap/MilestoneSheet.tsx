@@ -268,12 +268,32 @@ export function MilestoneSheet({
           hideOverlay={!isMobile}
           overlayClassName={isMobile ? undefined : "bg-transparent"}
           onInteractOutside={(e) => {
-            // Desktop: keep the map fully interactive — don't auto-close
-            // when the client clicks the canvas, mini-map, or phase labels.
-            if (!isMobile) e.preventDefault();
+            if (isMobile) return; // mobile: default modal behavior closes
+            const t = e.target as HTMLElement | null;
+            // Clicks on the canvas, mini-map, phase labels or explicit
+            // "roadmap-interactive" surfaces should NOT close the drawer.
+            if (
+              t &&
+              (t.closest("#portal-canvas-scroll") ||
+                t.closest("[data-testid='roadmap-overview-strip']") ||
+                t.closest("[data-phase-key]") ||
+                t.closest("[data-roadmap-interactive]"))
+            ) {
+              e.preventDefault();
+            }
           }}
           onPointerDownOutside={(e) => {
-            if (!isMobile) e.preventDefault();
+            if (isMobile) return;
+            const t = e.target as HTMLElement | null;
+            if (
+              t &&
+              (t.closest("#portal-canvas-scroll") ||
+                t.closest("[data-testid='roadmap-overview-strip']") ||
+                t.closest("[data-phase-key]") ||
+                t.closest("[data-roadmap-interactive]"))
+            ) {
+              e.preventDefault();
+            }
           }}
           className={
             isMobile
