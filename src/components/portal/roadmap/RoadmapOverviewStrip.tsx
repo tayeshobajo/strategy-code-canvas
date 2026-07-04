@@ -47,6 +47,7 @@ export function RoadmapOverviewStrip({
   journey,
   onJump,
   selectedSlug = null,
+  onSelect,
   viewMode = "all",
   matchingSlugs = null,
   variant = "card",
