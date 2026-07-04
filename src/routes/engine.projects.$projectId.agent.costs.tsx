@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { TrendingUp, Wallet, AlertTriangle, Star, Layers, Download, RefreshCw, AlertCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from "recharts";
 import { SectionCard, MetricCard, formatCents } from "@/components/engine/primitives";
+import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
+import { useEngineRole } from "@/hooks/useEngineRole";
 import { getAgentCosts, updateBudgetControls, exportAgentCostsCsv } from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/agent/costs")({
