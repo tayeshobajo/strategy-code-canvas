@@ -533,20 +533,26 @@ export function MilestoneSheet({
                     </Collapsible>
                   )}
 
-                  {dueLabel && (
-                    <Section
-                      label={milestone.dueDate ? "Due" : "Target date"}
-                      icon={milestone.dueDate ? Flag : Calendar}
-                    >
-                      <p>{fmtDate(milestone.dueDate ?? milestone.targetDate)}</p>
-                    </Section>
-                  )}
                   {milestone.clientActionNeeded && (
-                    <div className="rounded-lg border border-royal/25 bg-royal/[0.06] px-4 py-3">
-                      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-royal mb-1.5 flex items-center gap-1.5">
+                    <div
+                      className="relative rounded-lg border px-4 py-3.5 overflow-hidden"
+                      style={{
+                        borderColor: `${accentHex}40`,
+                        background: `linear-gradient(180deg, ${accentHex}0f 0%, ${accentHex}04 100%)`,
+                      }}
+                    >
+                      <div
+                        aria-hidden
+                        className="absolute left-0 top-0 bottom-0 w-[2px]"
+                        style={{ background: accentHex }}
+                      />
+                      <div
+                        className="font-mono text-[10px] uppercase tracking-[0.28em] mb-1.5 flex items-center gap-1.5"
+                        style={{ color: accentHex }}
+                      >
                         <CheckCircle2 className="w-3 h-3" /> Client action needed
                       </div>
-                      <p className="text-[14px] leading-[1.6] text-ink/85">
+                      <p className="text-[14px] leading-[1.6] text-ink/90">
                         {milestone.clientActionNeeded}
                       </p>
                     </div>
@@ -557,9 +563,14 @@ export function MilestoneSheet({
                     </Section>
                   )}
                   {milestone.ownerNote && (
-                    <Section label="Notes from Tai" icon={MessageSquare}>
-                      <p className="italic">{milestone.ownerNote}</p>
-                    </Section>
+                    <div className="relative border-l-2 border-ink/20 pl-4 py-1">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/45 mb-1.5 flex items-center gap-1.5">
+                        <MessageSquare className="w-3 h-3" /> Notes from Tai
+                      </div>
+                      <p className="font-display italic text-[15px] leading-[1.6] text-ink/80">
+                        &ldquo;{milestone.ownerNote}&rdquo;
+                      </p>
+                    </div>
                   )}
 
                   {isReviewed && (
@@ -570,85 +581,118 @@ export function MilestoneSheet({
                   )}
                 </div>
 
-                {/* Sticky CTA footer */}
-                <div className="shrink-0 border-t border-ink/10 bg-white/70 backdrop-blur px-6 pt-4 pb-5 space-y-2.5">
-                  {primaryCta && "href" in primaryCta && primaryCta.href ? (
-                    <Button
-                      asChild
-                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white shadow-[0_8px_20px_-10px_rgba(11,18,32,0.55)]"
-                    >
-                      <a
-                        href={primaryCta.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                {/* ================= EDITORIAL FOOTER ================= */}
+                <div className="shrink-0 border-t border-ink/10 bg-white/60 backdrop-blur-sm">
+                  {/* Continue / previous strip */}
+                  {canNavigate && (prevSlug || nextSlug) && (
+                    <div className="grid grid-cols-2 divide-x divide-ink/10 border-b border-ink/10">
+                      <button
+                        type="button"
+                        onClick={goPrev}
+                        disabled={!prevSlug}
+                        aria-label="Previous milestone"
+                        className="group text-left px-5 py-3 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink/[0.03] transition-colors"
                       >
-                        <Eye className="w-4 h-4 mr-2" />
-                        {primaryCta.label}
-                      </a>
-                    </Button>
-                  ) : primaryCta && "onClick" in primaryCta ? (
-                    <Button
-                      onClick={primaryCta.onClick}
-                      disabled={"disabled" in primaryCta && primaryCta.disabled}
-                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white shadow-[0_8px_20px_-10px_rgba(11,18,32,0.55)]"
-                    >
-                      {kind === "decision" ? (
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                      ) : (
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                      )}
-                      {primaryCta.label}
-                    </Button>
-                  ) : null}
+                        <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-ink/40 flex items-center gap-1">
+                          <ChevronLeft className="w-3 h-3 transition-transform group-hover:-translate-x-0.5" />
+                          Previous
+                        </div>
+                        <div className="mt-1 text-[12.5px] text-ink/75 line-clamp-1 font-medium">
+                          {prevSlug ? formatSlug(prevSlug) : "—"}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        disabled={!nextSlug}
+                        aria-label="Next milestone"
+                        className="group text-right px-5 py-3 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink/[0.03] transition-colors"
+                      >
+                        <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-ink/40 flex items-center justify-end gap-1">
+                          Next
+                          <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                        <div className="mt-1 text-[12.5px] text-ink/75 line-clamp-1 font-medium">
+                          {nextSlug ? formatSlug(nextSlug) : "—"}
+                        </div>
+                      </button>
+                    </div>
+                  )}
 
-                  {/* Secondary CTA */}
-                  <Button
-                    variant="outline"
-                    className="w-full h-9 border-ink/15 text-ink/85 hover:bg-ink/[0.03]"
-                    onClick={() => setClarifyOpen(true)}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-                    {kind === "decision" ? "Ask a question" : "Request clarification"}
-                  </Button>
-
-                  {/* Contextual ghost row */}
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      className="flex-1 h-8 text-[12.5px] text-ink/60 hover:text-ink hover:bg-transparent px-1 justify-center"
-                    >
-                      <Link to="/portal/files" search={{ q: milestone.title }}>
-                        <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                        Related files
-                      </Link>
-                    </Button>
-                    <span aria-hidden className="h-4 w-px bg-ink/10" />
-                    <button
-                      type="button"
-                      onClick={() => setBookOpen(true)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink h-8"
-                    >
-                      <Calendar className="w-3.5 h-3.5" />
-                      Book next call
-                    </button>
-                    {kind === "deliverable" && milestone.fileUrl && (
-                      <>
-                        <span aria-hidden className="h-4 w-px bg-ink/10" />
-                        <a
-                          href={milestone.fileUrl}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink h-8"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          Download
+                  {/* Primary CTA */}
+                  <div className="px-6 pt-4 pb-5 space-y-2.5">
+                    {primaryCta && "href" in primaryCta && primaryCta.href ? (
+                      <Button
+                        asChild
+                        className="w-full h-11 bg-ink hover:bg-ink/90 text-white shadow-[0_10px_24px_-12px_rgba(11,18,32,0.6)] rounded-md text-[13.5px] tracking-[0.02em]"
+                      >
+                        <a href={primaryCta.href} target="_blank" rel="noopener noreferrer">
+                          <Eye className="w-4 h-4 mr-2" />
+                          {primaryCta.label}
                         </a>
-                      </>
-                    )}
+                      </Button>
+                    ) : primaryCta && "onClick" in primaryCta ? (
+                      <Button
+                        onClick={primaryCta.onClick}
+                        disabled={"disabled" in primaryCta && primaryCta.disabled}
+                        className="w-full h-11 bg-ink hover:bg-ink/90 text-white shadow-[0_10px_24px_-12px_rgba(11,18,32,0.6)] rounded-md text-[13.5px] tracking-[0.02em]"
+                      >
+                        {kind === "decision" ? (
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                        )}
+                        {primaryCta.label}
+                      </Button>
+                    ) : null}
+
+                    {/* Ghost link row — subtle text links */}
+                    <div className="flex items-center justify-center gap-4 pt-1 text-[12px] text-ink/55">
+                      <button
+                        type="button"
+                        onClick={() => setClarifyOpen(true)}
+                        className="inline-flex items-center gap-1.5 hover:text-ink transition-colors"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        {kind === "decision" ? "Ask a question" : "Clarify"}
+                      </button>
+                      <span aria-hidden className="h-3 w-px bg-ink/15" />
+                      <button
+                        type="button"
+                        onClick={() => setBookOpen(true)}
+                        className="inline-flex items-center gap-1.5 hover:text-ink transition-colors"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        Book call
+                      </button>
+                      <span aria-hidden className="h-3 w-px bg-ink/15" />
+                      <Link
+                        to="/portal/files"
+                        search={{ q: milestone.title }}
+                        className="inline-flex items-center gap-1.5 hover:text-ink transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Files
+                      </Link>
+                      {kind === "deliverable" && milestone.fileUrl && (
+                        <>
+                          <span aria-hidden className="h-3 w-px bg-ink/15" />
+                          <a
+                            href={milestone.fileUrl}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 hover:text-ink transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download
+                          </a>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
+
               </>
             );
           })()}
