@@ -3,6 +3,8 @@ import { z } from "zod";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
+import { useEngineRole } from "@/hooks/useEngineRole";
 import { FileText, Presentation } from "lucide-react";
 import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
 import { PresentationMode } from "@/components/engine/PresentationMode";
