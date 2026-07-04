@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Bookmark, Check, Loader2, LogOut } from "lucide-react";
+import { ArrowRight, Bookmark, Check, Loader2, LogOut, Paperclip, Trash2, Upload } from "lucide-react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import trustTaiLogoDark from "@/assets/trust-tai-logo.png.asset.json";
 import { Reveal } from "@/hooks/use-reveal";
 import notebookImg from "@/assets/cta-book-cover-desk.png.asset.json";
 import heroMountain from "@/assets/roadmap-hero-mountain.png.asset.json";
+import { supabase } from "@/integrations/supabase/client";
 
 
 
@@ -323,6 +324,12 @@ const REQUIRED_KEYS = QUESTIONS.filter((q) => !q.optional).map((q) => q.key);
 
 
 type AnswerRecord = { response: string; reflected_offered: string | null };
+type AttachmentRecord = {
+  storage_path: string;
+  filename: string;
+  size: number;
+  mime: string | null;
+};
 type ContactState = {
   name: string;
   business: string;
@@ -362,6 +369,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
   const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = React.useState<number | null>(null);
   const [furthestStep, setFurthestStep] = React.useState<number>(-1);
+  const [attachments, setAttachments] = React.useState<AttachmentRecord[]>([]);
 
   const lastSubmitPayload = React.useRef<Record<string, unknown> | null>(null);
 
@@ -414,6 +422,16 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
                 : p.reply_preference) ,
             }));
             setResumeToken(token);
+            if (Array.isArray(res.attachments)) {
+              setAttachments(
+                res.attachments.map((a) => ({
+                  storage_path: String(a.storage_path ?? ""),
+                  filename: String(a.filename ?? ""),
+                  size: Number(a.size ?? 0),
+                  mime: a.mime == null ? null : String(a.mime),
+                })),
+              );
+            }
             // Do NOT advance step here. Begin must remain an explicit user click.
             // The intro screen (step === -1) stays until the user presses Begin.
             try { window.localStorage.setItem(STORAGE_KEY, token); } catch { /* noop */ }
@@ -1014,6 +1032,34 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             <ReviewStep
               answers={answers}
               contact={contact}
+              attachments={attachments}
+              setAttachments={setAttachments}
+              resumeToken={resumeToken}
+              ensureResumeToken={async () => {
+                if (resumeToken) return resumeToken;
+                // Autosave normally creates a token; when nothing has autosaved
+                // (e.g. user reaches review without any content), force a save.
+                if (inflightSave.current) await inflightSave.current;
+                if (resumeToken) return resumeToken;
+                const mod = await import("@/lib/intake.functions");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const res = await mod.saveDraft({
+                  data: {
+                    answers: QUESTIONS.map((q) => ({
+                      key: q.key,
+                      question: `${q.before}${q.accent}${q.after}`,
+                      response: (answers[q.key]?.response ?? "").trim(),
+                      reflected_offered: answers[q.key]?.reflected_offered ?? null,
+                    })).filter((a) => a.response.length > 0),
+                    contact,
+                  },
+                } as any);
+                const t = res?.resume_token as string | undefined;
+                if (!t) throw new Error("Could not initialize draft");
+                setResumeToken(t);
+                try { window.localStorage.setItem(STORAGE_KEY, t); } catch { /* noop */ }
+                return t;
+              }}
               onEdit={(i) => setStep(i)}
               onEditReply={() => setStep(STEP_REPLY)}
               onBack={() => setStep(STEP_REPLY)}
@@ -1731,6 +1777,10 @@ function ReplyDetailsStep({
 function ReviewStep({
   answers,
   contact,
+  attachments,
+  setAttachments,
+  resumeToken,
+  ensureResumeToken,
   onEdit,
   onEditReply,
   onBack,
@@ -1738,6 +1788,10 @@ function ReviewStep({
 }: {
   answers: Record<string, AnswerRecord>;
   contact: ContactState;
+  attachments: AttachmentRecord[];
+  setAttachments: React.Dispatch<React.SetStateAction<AttachmentRecord[]>>;
+  resumeToken: string | null;
+  ensureResumeToken: () => Promise<string>;
   onEdit: (i: number) => void;
   onEditReply: () => void;
   onBack: () => void;
@@ -1834,6 +1888,15 @@ function ReviewStep({
           </dl>
         </li>
       </ul>
+
+      <AttachmentsPanel
+        attachments={attachments}
+        setAttachments={setAttachments}
+        resumeToken={resumeToken}
+        ensureResumeToken={ensureResumeToken}
+      />
+
+
 
       <div className="mt-10 flex items-center justify-between">
         <button
@@ -2835,4 +2898,198 @@ function LeafGlyph() {
       </g>
     </svg>
   );
+}
+
+/* -------------------- ATTACHMENTS PANEL (Review step) -------------------- */
+const INTAKE_BUCKET = "intake-uploads";
+const INTAKE_MAX_BYTES = 25 * 1024 * 1024;
+const INTAKE_ALLOWED_EXT = new Set([
+  "pdf","doc","docx","txt","md","rtf","xls","xlsx","csv","ppt","pptx","key",
+  "png","jpg","jpeg","gif","webp","heic","svg","zip","json","yaml","yml",
+]);
+
+function AttachmentsPanel({
+  attachments,
+  setAttachments,
+  resumeToken,
+  ensureResumeToken,
+}: {
+  attachments: AttachmentRecord[];
+  setAttachments: React.Dispatch<React.SetStateAction<AttachmentRecord[]>>;
+  resumeToken: string | null;
+  ensureResumeToken: () => Promise<string>;
+}) {
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const [removing, setRemoving] = React.useState<string | null>(null);
+
+  const upload = React.useCallback(
+    async (file: File) => {
+      if (file.size === 0) return toast.error("File is empty");
+      if (file.size > INTAKE_MAX_BYTES) return toast.error("File exceeds 25 MB limit");
+      const ext = (file.name.split(".").pop() ?? "").toLowerCase();
+      if (!INTAKE_ALLOWED_EXT.has(ext)) {
+        return toast.error(`".${ext || "unknown"}" files aren't allowed`);
+      }
+      if (attachments.length >= 10) {
+        return toast.error("Attach up to 10 files per intake");
+      }
+
+      setUploading(true);
+      try {
+        const token = await ensureResumeToken();
+        // crypto.randomUUID always available in modern browsers.
+        const cleaned = file.name.replace(/[^\w.\- ]+/g, "_").slice(0, 180);
+        const path = `${token}/${crypto.randomUUID()}-${cleaned}`;
+        const { error: upErr } = await supabase.storage
+          .from(INTAKE_BUCKET)
+          .upload(path, file, {
+            upsert: false,
+            contentType: file.type || undefined,
+          });
+        if (upErr) throw upErr;
+
+        const mod = await import("@/lib/intake.functions");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = await mod.recordIntakeAttachment({
+          data: {
+            resume_token: token,
+            storage_path: path,
+            filename: file.name,
+            size: file.size,
+            mime: file.type || null,
+          },
+        } as any);
+        setAttachments(
+          (res?.attachments ?? []).map((a: AttachmentRecord) => ({
+            storage_path: a.storage_path,
+            filename: a.filename,
+            size: a.size,
+            mime: a.mime,
+          })),
+        );
+        toast.success(`Attached ${file.name}`);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Upload failed");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [attachments.length, ensureResumeToken, setAttachments],
+  );
+
+  const remove = React.useCallback(
+    async (path: string) => {
+      if (!resumeToken) return;
+      setRemoving(path);
+      try {
+        const mod = await import("@/lib/intake.functions");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = await mod.removeIntakeAttachment({
+          data: { resume_token: resumeToken, storage_path: path },
+        } as any);
+        setAttachments(
+          (res?.attachments ?? []).map((a: AttachmentRecord) => ({
+            storage_path: a.storage_path,
+            filename: a.filename,
+            size: a.size,
+            mime: a.mime,
+          })),
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Remove failed");
+      } finally {
+        setRemoving(null);
+      }
+    },
+    [resumeToken, setAttachments],
+  );
+
+  return (
+    <div className="mt-10 rounded-2xl border border-ink/10 bg-white/60 p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
+            Attachments <span className="ml-1 text-ink/40 normal-case tracking-normal">(optional)</span>
+          </p>
+          <h3 className="mt-1 font-display text-[17px] text-ink">
+            Anything we should read before we talk?
+          </h3>
+          <p className="mt-1 max-w-[52ch] text-[13.5px] leading-[1.6] text-ink/60">
+            A one-pager, a board deck, a plan you keep circling. Up to 10 files, 25 MB each.
+          </p>
+        </div>
+        <div>
+          <input
+            ref={inputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void upload(f);
+              if (inputRef.current) inputRef.current.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading || attachments.length >= 10}
+            className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-4 py-2 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {uploading ? (
+              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload aria-hidden="true" className="h-4 w-4" />
+            )}
+            <span>{uploading ? "Uploading…" : "Attach a file"}</span>
+          </button>
+        </div>
+      </div>
+
+      {attachments.length > 0 ? (
+        <ul className="mt-5 divide-y divide-ink/10">
+          {attachments.map((a) => (
+            <li
+              key={a.storage_path}
+              className="flex items-center justify-between gap-4 py-2.5 text-[13.5px]"
+            >
+              <div className="flex min-w-0 items-center gap-2 text-ink/85">
+                <Paperclip aria-hidden="true" className="h-4 w-4 shrink-0 text-ink/50" />
+                <span className="truncate">{a.filename}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="tabular-nums font-mono text-[11px] text-ink/50">
+                  {formatIntakeSize(a.size)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => remove(a.storage_path)}
+                  disabled={removing === a.storage_path}
+                  className="inline-flex items-center gap-1 rounded-md border border-ink/15 px-2 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-ink/60 transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-50"
+                >
+                  {removing === a.storage_path ? (
+                    <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Trash2 aria-hidden="true" className="h-3 w-3" />
+                  )}
+                  Remove
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-[13px] italic text-ink/45">
+          No attachments yet. This step is optional — skip if there's nothing to share.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function formatIntakeSize(bytes: number): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }

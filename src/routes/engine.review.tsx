@@ -32,13 +32,28 @@ const SOURCE_ROUTE: Record<string, string> = {
   "Agent Permission": "Agent permissions",
   "Client Decision": "Client portal · roadmap",
   "Client Clarification": "Client portal · messages",
+  "Intake Ready": "Client portal · onboarding intake",
 };
 
 const TYPES = [
-  "All", "Roadmap Update", "Version Change", "Milestone Brief", "Client Preview",
+  "All", "Intake Ready", "Roadmap Update", "Version Change", "Milestone Brief", "Client Preview",
   "Investment Change", "Delivery Approval", "Agent Permission",
   "Client Decision", "Client Clarification",
 ];
+
+/**
+ * Human-facing labels for review item types. The DB stores the machine value
+ * (e.g. "Intake Ready"); ops sees a warmer phrase.
+ */
+const TYPE_LABEL: Record<string, string> = {
+  "Intake Ready": "Onboarding intake",
+  "Client Decision": "Client decision",
+  "Client Clarification": "Client clarification",
+};
+
+function displayType(t: string): string {
+  return TYPE_LABEL[t] ?? t;
+}
 
 /**
  * Client Decision review items are inserted by respondToPortalDecision with a
@@ -160,13 +175,25 @@ function ReviewApprovalsPage() {
           title="Approval Queue"
           right={
             <div className="flex flex-wrap gap-1">
-              {TYPES.map((t) => (
-                <button key={t} onClick={() => setFilter(t)}
-                  className={cn("text-[11px] px-2.5 py-1 rounded-md border",
-                    filter === t ? "bg-ink text-white border-ink" : "border-border text-ink/70 hover:border-royal/50")}>
-                  {t}
-                </button>
-              ))}
+              {TYPES.map((t) => {
+                const label = t === "All" ? "All" : displayType(t);
+                const count = t === "All"
+                  ? rows.filter((r) => r.status === "pending" || r.status === "in_review").length
+                  : rows.filter((r) => (r.status === "pending" || r.status === "in_review") && r.item_type === t).length;
+                return (
+                  <button key={t} onClick={() => setFilter(t)}
+                    className={cn("text-[11px] px-2.5 py-1 rounded-md border inline-flex items-center gap-1.5",
+                      filter === t ? "bg-ink text-white border-ink" : "border-border text-ink/70 hover:border-royal/50")}>
+                    <span>{label}</span>
+                    {count > 0 ? (
+                      <span className={cn("text-[10px] font-mono px-1 rounded",
+                        filter === t ? "bg-white/20 text-white" : "bg-ink/10 text-ink/70")}>
+                        {count}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           }
         >
@@ -192,6 +219,7 @@ function ReviewApprovalsPage() {
                 <tbody>
                   {filtered.map((r) => {
                     const isPortalDecision = r.item_type === "Client Decision";
+                    const isIntakeReady = r.item_type === "Intake Ready";
                     const parsed = isPortalDecision ? parseClientDecisionTitle(r.title) : null;
                     return (
                     <tr key={r.id} className="border-b border-border/60 hover:bg-paper-soft/40">
@@ -203,11 +231,19 @@ function ReviewApprovalsPage() {
                             <span className="text-ink/70">on</span>
                             <span className="text-ink/90 font-medium">{parsed.milestone}</span>
                           </div>
+                        ) : isIntakeReady ? (
+                          <div className="text-xs text-ink/70 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border bg-royal/5 text-royal border-royal/20">
+                              <Sparkles className="w-3 h-3" />
+                              Onboarding intake
+                            </span>
+                            <span className="text-ink/70">from client portal</span>
+                          </div>
                         ) : (
                           <div className="text-xs text-ink/60">{r.title}</div>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-ink/80 whitespace-nowrap">{r.item_type}</td>
+                      <td className="px-3 py-3 text-ink/80 whitespace-nowrap">{displayType(r.item_type)}</td>
                       <td className="px-3 py-3"><ImpactBadge impact={r.impact} /></td>
                       <td className="px-3 py-3 text-ink/70 whitespace-nowrap">
                         <div>{r.requested_by}</div>
@@ -339,7 +375,7 @@ function RejectDialog({ item, onClose, onSubmit }: { item: ReviewItem; onClose: 
         <header className="flex items-center justify-between p-4 border-b border-border">
           <div>
             <div className="font-display text-lg text-ink">Reject &amp; return</div>
-            <div className="text-xs text-ink/60">{item.project} · {item.item_type}</div>
+            <div className="text-xs text-ink/60">{item.project} · {displayType(item.item_type)}</div>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
         </header>

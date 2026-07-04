@@ -128,14 +128,14 @@ export const loadDraft = createServerFn({ method: "POST" })
             v: string,
           ) => {
             maybeSingle: () => Promise<{
-              data: { answers: unknown; contact: unknown } | null;
+              data: { answers: unknown; contact: unknown; attachments: unknown } | null;
               error: unknown;
             }>;
           };
         };
       }
     )
-      .select("answers, contact")
+      .select("answers, contact, attachments")
       .eq("resume_token", data.resume_token)
       .maybeSingle();
     if (error) {
@@ -148,11 +148,18 @@ export const loadDraft = createServerFn({ method: "POST" })
       response: string;
       reflected_offered: string | null;
     };
+    type AttachmentOut = {
+      storage_path: string;
+      filename: string;
+      size: number;
+      mime: string | null;
+    };
     if (!row)
       return {
         found: false as const,
         answers: [] as AnswerOut[],
         contact: {} as Record<string, string>,
+        attachments: [] as AttachmentOut[],
       };
     const rawAnswers = Array.isArray(row.answers)
       ? (row.answers as Array<Record<string, unknown>>)
@@ -166,7 +173,16 @@ export const loadDraft = createServerFn({ method: "POST" })
     const rawContact = (row.contact ?? {}) as Record<string, unknown>;
     const contact: Record<string, string> = {};
     for (const k of Object.keys(rawContact)) contact[k] = String(rawContact[k] ?? "");
-    return { found: true as const, answers, contact };
+    const rawAtt = Array.isArray(row.attachments)
+      ? (row.attachments as Array<Record<string, unknown>>)
+      : [];
+    const attachments: AttachmentOut[] = rawAtt.map((a) => ({
+      storage_path: String(a.storage_path ?? ""),
+      filename: String(a.filename ?? ""),
+      size: Number(a.size ?? 0),
+      mime: a.mime == null ? null : String(a.mime),
+    }));
+    return { found: true as const, answers, contact, attachments };
   });
 
 const SendResumeInput = z.object({
@@ -228,6 +244,41 @@ export const submitIntake = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { getIntakeClient } = await import("@/integrations/intake/client.server");
     const intake = getIntakeClient();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Attachments live on intake_drafts (server-managed). Read them here so
+    // the browser cannot forge the list at submit time.
+    type AttachmentMeta = {
+      storage_path: string;
+      filename: string;
+      size: number;
+      mime: string | null;
+    };
+    let attachments: AttachmentMeta[] = [];
+    if (data.resume_token) {
+      const { data: draft } = await (
+        supabaseAdmin.from("intake_drafts") as unknown as {
+          select: (s: string) => {
+            eq: (c: string, v: string) => {
+              maybeSingle: () => Promise<{ data: { attachments: unknown } | null }>;
+            };
+          };
+        }
+      )
+        .select("attachments")
+        .eq("resume_token", data.resume_token)
+        .maybeSingle();
+      const rawAtt = Array.isArray(draft?.attachments)
+        ? (draft!.attachments as Array<Record<string, unknown>>)
+        : [];
+      attachments = rawAtt.map((a) => ({
+        storage_path: String(a.storage_path ?? ""),
+        filename: String(a.filename ?? ""),
+        size: Number(a.size ?? 0),
+        mime: a.mime == null ? null : String(a.mime),
+      }));
+    }
+
     const contactExtras = {
       role: data.role || null,
       timeline: data.timeline || null,
@@ -247,6 +298,14 @@ export const submitIntake = createServerFn({ method: "POST" })
       },
       answers: data.answers,
     });
+    const attachmentsBrief = attachments.length
+      ? attachments
+          .map(
+            (a) =>
+              `- ${a.filename} (${a.size} bytes${a.mime ? `, ${a.mime}` : ""}) — bucket:intake-uploads path:${a.storage_path}`,
+          )
+          .join("\n")
+      : "(none)";
     const answersWithMeta = [
       ...data.answers,
       {
@@ -255,7 +314,21 @@ export const submitIntake = createServerFn({ method: "POST" })
         response: JSON.stringify(contactExtras),
         reflected_offered: null,
       },
-      buildRoadmapReviewArtifactAnswer(artifact),
+      {
+        key: "_attachments",
+        question: "Uploaded attachments (bucket: intake-uploads)",
+        response: attachments.length ? attachmentsBrief : "(none)",
+        reflected_offered: null,
+      },
+      buildRoadmapReviewArtifactAnswer({
+        ...artifact,
+        summary: {
+          ...artifact.summary,
+          // Extend the review artifact summary with attachment count so ops
+          // can see uploads at a glance without decoding _attachments.
+          attachment_count: attachments.length,
+        } as typeof artifact.summary & { attachment_count: number },
+      }),
     ];
     const { data: inserted, error } = await intake
       .from("intake_submissions")
@@ -281,7 +354,10 @@ export const submitIntake = createServerFn({ method: "POST" })
       .insert({
         submission_id: inserted.id,
         status: "needs_review",
-        artifact,
+        artifact: {
+          ...artifact,
+          attachments,
+        },
         approval_required: true,
         outbound_blocked: true,
       })
@@ -295,7 +371,6 @@ export const submitIntake = createServerFn({ method: "POST" })
     }
 
     if (data.resume_token) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { error: delErr } = await (
         supabaseAdmin.from("intake_drafts") as unknown as {
           delete: () => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
@@ -306,6 +381,139 @@ export const submitIntake = createServerFn({ method: "POST" })
       if (delErr) {
         console.warn("[submit-intake] draft cleanup failed (non-blocking)", delErr);
       }
+      // Attachments in the intake-uploads bucket are retained: ops needs the
+      // originals during review. A separate cleanup job can prune old files
+      // that were never submitted (drafts abandoned mid-wizard).
     }
     return { ok: true as const, submission_id: inserted.id, review_id: review?.id ?? null };
+  });
+
+// ─── Attachments (public wizard file uploads) ─────────────────────────
+// The browser uploads directly to bucket "intake-uploads" using the anon key.
+// A dedicated storage RLS policy constrains anon INSERTs to
+// "<resume_token>/<filename>" paths. Metadata is recorded here (service role)
+// so submitIntake can compile it into the artifact without trusting the client.
+
+type StoredAttachment = {
+  storage_path: string;
+  filename: string;
+  size: number;
+  mime: string | null;
+  uploaded_at: string;
+};
+
+function normalizeAttachments(raw: unknown): StoredAttachment[] {
+  const arr = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
+  return arr.map((a) => ({
+    storage_path: String(a.storage_path ?? ""),
+    filename: String(a.filename ?? ""),
+    size: Number(a.size ?? 0),
+    mime: a.mime == null ? null : String(a.mime),
+    uploaded_at: String(a.uploaded_at ?? new Date(0).toISOString()),
+  }));
+}
+
+const AttachmentInput = z.object({
+  resume_token: z.string().regex(UUID_RE),
+  storage_path: z.string().min(1).max(1024),
+  filename: z.string().min(1).max(240),
+  size: z.number().int().nonnegative().max(25 * 1024 * 1024),
+  mime: z.string().max(200).nullable().optional(),
+});
+
+export const recordIntakeAttachment = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => AttachmentInput.parse(input))
+  .handler(async ({ data }): Promise<{ attachments: StoredAttachment[] }> => {
+    if (!data.storage_path.startsWith(`${data.resume_token}/`)) {
+      throw new Error("Attachment path must live under this draft's folder");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: existing } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        select: (s: string) => {
+          eq: (c: string, v: string) => {
+            maybeSingle: () => Promise<{ data: { attachments: unknown } | null }>;
+          };
+        };
+      }
+    )
+      .select("attachments")
+      .eq("resume_token", data.resume_token)
+      .maybeSingle();
+
+    const current = normalizeAttachments(existing?.attachments);
+    // Dedupe by storage_path — repeated uploads should replace, not stack.
+    const filtered = current.filter((a) => a.storage_path !== data.storage_path);
+    if (filtered.length >= 10) {
+      throw new Error("Attachment limit reached (10 files per intake).");
+    }
+    const next: StoredAttachment[] = [
+      ...filtered,
+      {
+        storage_path: data.storage_path,
+        filename: data.filename,
+        size: data.size,
+        mime: data.mime ?? null,
+        uploaded_at: new Date().toISOString(),
+      },
+    ];
+
+    const upsertRow = {
+      resume_token: data.resume_token,
+      attachments: next,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        upsert: (r: Record<string, unknown>) => Promise<{ error: unknown }>;
+      }
+    ).upsert(upsertRow);
+    if (error) {
+      console.error("[record-intake-attachment] upsert failed", error);
+      await supabaseAdmin.storage.from("intake-uploads").remove([data.storage_path]);
+      throw new Error("Could not record attachment");
+    }
+    return { attachments: next };
+  });
+
+const RemoveAttachmentInput = z.object({
+  resume_token: z.string().regex(UUID_RE),
+  storage_path: z.string().min(1).max(1024),
+});
+
+export const removeIntakeAttachment = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => RemoveAttachmentInput.parse(input))
+  .handler(async ({ data }): Promise<{ attachments: StoredAttachment[] }> => {
+    if (!data.storage_path.startsWith(`${data.resume_token}/`)) {
+      throw new Error("Attachment path must live under this draft's folder");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.storage.from("intake-uploads").remove([data.storage_path]);
+
+    const { data: existing } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        select: (s: string) => {
+          eq: (c: string, v: string) => {
+            maybeSingle: () => Promise<{ data: { attachments: unknown } | null }>;
+          };
+        };
+      }
+    )
+      .select("attachments")
+      .eq("resume_token", data.resume_token)
+      .maybeSingle();
+    const current = normalizeAttachments(existing?.attachments);
+    const next = current.filter((a) => a.storage_path !== data.storage_path);
+    const { error } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        update: (r: Record<string, unknown>) => {
+          eq: (c: string, v: string) => Promise<{ error: unknown }>;
+        };
+      }
+    )
+      .update({ attachments: next, updated_at: new Date().toISOString() })
+      .eq("resume_token", data.resume_token);
+    if (error) throw new Error("Could not remove attachment");
+    return { attachments: next };
   });

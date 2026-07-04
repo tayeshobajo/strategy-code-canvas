@@ -2484,18 +2484,21 @@ export type Database = {
       intake_drafts: {
         Row: {
           answers: Json
+          attachments: Json
           contact: Json
           resume_token: string
           updated_at: string
         }
         Insert: {
           answers?: Json
+          attachments?: Json
           contact?: Json
           resume_token?: string
           updated_at?: string
         }
         Update: {
           answers?: Json
+          attachments?: Json
           contact?: Json
           resume_token?: string
           updated_at?: string
