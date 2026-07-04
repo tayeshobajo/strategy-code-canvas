@@ -593,6 +593,8 @@ export type Database = {
           owner_name: string | null
           pdf_file_id: string | null
           project_id: string
+          published_at: string | null
+          published_by: string | null
           recommended_next_move: string | null
           risks_dependencies: Json
           roadmap_document_id: string | null
@@ -607,6 +609,7 @@ export type Database = {
           title: string
           updated_at: string
           version_label: string
+          visible_modules: Json
         }
         Insert: {
           acknowledged_at?: string | null
@@ -624,6 +627,8 @@ export type Database = {
           owner_name?: string | null
           pdf_file_id?: string | null
           project_id: string
+          published_at?: string | null
+          published_by?: string | null
           recommended_next_move?: string | null
           risks_dependencies?: Json
           roadmap_document_id?: string | null
@@ -638,6 +643,7 @@ export type Database = {
           title: string
           updated_at?: string
           version_label?: string
+          visible_modules?: Json
         }
         Update: {
           acknowledged_at?: string | null
@@ -655,6 +661,8 @@ export type Database = {
           owner_name?: string | null
           pdf_file_id?: string | null
           project_id?: string
+          published_at?: string | null
+          published_by?: string | null
           recommended_next_move?: string | null
           risks_dependencies?: Json
           roadmap_document_id?: string | null
@@ -669,6 +677,7 @@ export type Database = {
           title?: string
           updated_at?: string
           version_label?: string
+          visible_modules?: Json
         }
         Relationships: [
           {

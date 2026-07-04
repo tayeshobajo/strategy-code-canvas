@@ -5,25 +5,13 @@ import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, FileWarning, Calendar, ClockAlert, HeartPulse, Check, Loader2, RefreshCw } from "lucide-react";
-import { getExecutionAlerts, type ExecAlert } from "@/lib/engine-ops.functions";
+import { getExecutionAlerts, listActiveBuilds, type ExecAlert, type ActiveBuild } from "@/lib/engine-ops.functions";
 
 export const Route = createFileRoute("/engine/execution")({
   component: ExecutionTrackerPage,
 });
 
-type Build = {
-  id: string; client: string; roadmap: string; phase: string; progress: number;
-  health: "on_track" | "at_risk" | "blocked"; milestone: string; nextDeadline: string;
-};
-
-const BUILDS: Build[] = [
-  { id: "b1", client: "Mental Dental Academy", roadmap: "Scale Dental Board Prep", phase: "Phase 1 · Pre-Test Readiness", progress: 62, health: "on_track", milestone: "Q-Bank Engine", nextDeadline: "Oct 1, 2025" },
-  { id: "b2", client: "Valley Precision Painting", roadmap: "Operations & Lead Engine", phase: "Phase 2 · Growth Focus", progress: 44, health: "at_risk", milestone: "Lead Router MVP", nextDeadline: "Aug 12, 2025" },
-  { id: "b3", client: "Gradient Group", roadmap: "Job Board Growth Engine", phase: "Phase 1 · Foundation", progress: 28, health: "on_track", milestone: "Employer onboarding", nextDeadline: "Sep 5, 2025" },
-  { id: "b4", client: "Innago", roadmap: "Platform Modernization", phase: "Phase 3 · Automation", progress: 81, health: "blocked", milestone: "Billing rewrite", nextDeadline: "Jul 22, 2025" },
-];
-
-const HEALTH: Record<Build["health"], { label: string; cls: string; dot: string }> = {
+const HEALTH: Record<ActiveBuild["health"], { label: string; cls: string; dot: string }> = {
   on_track: { label: "On Track", cls: "bg-[#e6f5ec] text-[#1f6b3b] border-[#c4e6d2]", dot: "bg-[#1f6b3b]" },
   at_risk: { label: "At Risk", cls: "bg-[#fbf3e0] text-[#8a6713] border-[#f1e3b9]", dot: "bg-[#c99a20]" },
   blocked: { label: "Blocked", cls: "bg-[#fbe9ec] text-[#a4283c] border-[#f3ced5]", dot: "bg-[#a4283c]" },
@@ -48,10 +36,25 @@ const alertsQO = queryOptions({
   refetchInterval: 30_000,
 });
 
+const buildsQO = queryOptions({
+  queryKey: ["engine", "active-builds"],
+  queryFn: () => listActiveBuilds(),
+  refetchInterval: 60_000,
+});
+
+function formatDeadline(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+
 function ExecutionTrackerPage() {
   const [tab, setTab] = useState<Tab>("all");
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const { data: rawAlerts = [], isLoading, isFetching, dataUpdatedAt, refetch } = useQuery(alertsQO);
+  const { data: builds = [], isLoading: buildsLoading } = useQuery(buildsQO);
   const alerts = rawAlerts.filter((a) => !dismissed.has(a.id));
 
   const counts = useMemo(() => {
@@ -67,6 +70,14 @@ function ExecutionTrackerPage() {
     return b.age_days - a.age_days;
   });
   const showAlertSkeleton = isLoading && rawAlerts.length === 0;
+
+  const upcomingBuilds = useMemo(
+    () => [...builds]
+      .filter((b) => b.next_deadline)
+      .sort((a, b) => (a.next_deadline ?? "").localeCompare(b.next_deadline ?? ""))
+      .slice(0, 3),
+    [builds],
+  );
 
   return (
     <div className="max-w-[1500px]">
@@ -92,7 +103,7 @@ function ExecutionTrackerPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <MetricCard label="Active Builds" value={BUILDS.length} tone="blue" />
+        <MetricCard label="Active Builds" value={builds.length} tone="blue" />
         <MetricCard label="Open Alerts" value={alerts.length} tone={alerts.length > 0 ? "orange" : "green"} />
         <MetricCard label="High Severity" value={highCount} tone="red" />
         <MetricCard label="Delivery Health" value={`${Math.max(0, 100 - alerts.length * 2)}%`} tone="green" hint="Composite score" />
@@ -113,7 +124,15 @@ function ExecutionTrackerPage() {
                 </tr>
               </thead>
               <tbody>
-                {BUILDS.map((b) => (
+                {buildsLoading && builds.length === 0 ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={i} className="border-b border-border/60">
+                      <td className="px-5 py-3" colSpan={6}><Skeleton className="h-5 w-full" /></td>
+                    </tr>
+                  ))
+                ) : builds.length === 0 ? (
+                  <tr><td colSpan={6} className="px-5 py-6 text-center text-ink/50 text-sm">No active builds yet.</td></tr>
+                ) : builds.map((b) => (
                   <tr key={b.id} className="border-b border-border/60 hover:bg-paper-soft/40">
                     <td className="px-5 py-3">
                       <div className="font-medium text-ink">{b.client}</div>
@@ -135,7 +154,7 @@ function ExecutionTrackerPage() {
                         {HEALTH[b.health].label}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-ink/70 whitespace-nowrap">{b.nextDeadline}</td>
+                    <td className="px-5 py-3 text-ink/70 whitespace-nowrap">{formatDeadline(b.next_deadline)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -211,17 +230,21 @@ function ExecutionTrackerPage() {
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
         <SectionCard title="Upcoming Deadlines">
-          <ul className="space-y-2 text-sm">
-            {BUILDS.slice(0, 3).map((b) => (
-              <li key={b.id} className="flex items-start gap-2">
-                <Calendar className="w-3.5 h-3.5 text-royal mt-0.5" />
-                <div>
-                  <div className="text-ink font-medium">{b.client} — {b.milestone}</div>
-                  <div className="text-xs text-ink/60">{b.nextDeadline}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {upcomingBuilds.length === 0 ? (
+            <div className="text-xs text-ink/50">No upcoming milestone deadlines.</div>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {upcomingBuilds.map((b) => (
+                <li key={b.id} className="flex items-start gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-royal mt-0.5" />
+                  <div>
+                    <div className="text-ink font-medium">{b.client} — {b.milestone}</div>
+                    <div className="text-xs text-ink/60">{formatDeadline(b.next_deadline)}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </SectionCard>
         <SectionCard title="Alert Breakdown">
           <ul className="space-y-2 text-sm">
@@ -235,10 +258,10 @@ function ExecutionTrackerPage() {
         </SectionCard>
         <SectionCard title="Health Snapshot">
           <ul className="space-y-2 text-sm">
-            {(["on_track", "at_risk", "blocked"] as Build["health"][]).map((h) => (
+            {(["on_track", "at_risk", "blocked"] as ActiveBuild["health"][]).map((h) => (
               <li key={h} className="flex justify-between items-center">
                 <span className="flex items-center gap-1.5"><span className={cn("w-2 h-2 rounded-full", HEALTH[h].dot)} />{HEALTH[h].label}</span>
-                <span className="font-medium text-ink">{BUILDS.filter((b) => b.health === h).length}</span>
+                <span className="font-medium text-ink">{builds.filter((b) => b.health === h).length}</span>
               </li>
             ))}
           </ul>

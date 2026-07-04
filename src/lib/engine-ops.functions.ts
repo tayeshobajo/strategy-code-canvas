@@ -386,6 +386,92 @@ export const getExecutionAlerts = createServerFn({ method: "GET" })
     return alerts;
   });
 
+// ─── Active Builds (Execution Tracker) ──────────────────────────
+export type ActiveBuild = {
+  id: string;
+  client: string;
+  roadmap: string;
+  phase: string;
+  progress: number;
+  health: "on_track" | "at_risk" | "blocked";
+  milestone: string;
+  next_deadline: string | null;
+};
+
+export const listActiveBuilds = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ActiveBuild[]> => {
+    await assertOps(context as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+
+    const { data: projects, error } = await sb
+      .from("engine_projects")
+      .select("id,name,current_step,progress_pct,approved_version,roadmap_version,agent_status,status,updated_at")
+      .neq("status", "archived")
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(String(error.message ?? error));
+
+    const rows = (projects ?? []) as Array<{
+      id: string; name: string; current_step: string | null; progress_pct: number | null;
+      approved_version: string | null; roadmap_version: string | null;
+      agent_status: string | null; status: string | null;
+    }>;
+
+    // Fetch next upcoming milestone per project (single round trip, in-memory group).
+    const projectIds = rows.map((r) => r.id);
+    let nextByProject: Record<string, { name: string; due_date: string | null; status: string | null }> = {};
+    if (projectIds.length) {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: ms } = await sb
+        .from("engine_milestones")
+        .select("project_id,name,due_date,status,sort_index")
+        .in("project_id", projectIds)
+        .not("status", "in", "(complete,accepted,archived)")
+        .order("due_date", { ascending: true, nullsFirst: false });
+      for (const m of (ms ?? []) as Array<{ project_id: string; name: string; due_date: string | null; status: string | null }>) {
+        if (nextByProject[m.project_id]) continue;
+        nextByProject[m.project_id] = { name: m.name, due_date: m.due_date, status: m.status };
+      }
+      // Health: any overdue open milestone → at_risk; any blocked change event → blocked
+      const { data: overdue } = await sb
+        .from("engine_milestones")
+        .select("project_id")
+        .in("project_id", projectIds)
+        .lt("due_date", today)
+        .not("status", "in", "(complete,accepted,archived)");
+      const overdueSet = new Set(((overdue ?? []) as Array<{ project_id: string }>).map((o) => o.project_id));
+
+      const { data: blockers } = await sb
+        .from("engine_change_events")
+        .select("project_id,severity")
+        .in("project_id", projectIds)
+        .in("severity", ["high", "blocker"]);
+      const blockedSet = new Set(((blockers ?? []) as Array<{ project_id: string }>).map((b) => b.project_id));
+
+      return rows.map((r) => {
+        const next = nextByProject[r.id];
+        const health: ActiveBuild["health"] = blockedSet.has(r.id)
+          ? "blocked"
+          : overdueSet.has(r.id) ? "at_risk" : "on_track";
+        return {
+          id: r.id,
+          client: r.name,
+          roadmap: r.approved_version ?? r.roadmap_version ?? "Draft",
+          phase: r.current_step ?? "—",
+          progress: Math.max(0, Math.min(100, r.progress_pct ?? 0)),
+          health,
+          milestone: next?.name ?? "—",
+          next_deadline: next?.due_date ?? null,
+        };
+      });
+    }
+    return [];
+  });
+
+
+
 // ─── Project Agents ─────────────────────────────────────────────
 export type ProjectAgent = {
   id: string;
@@ -760,6 +846,8 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       version_label: safe.version_label,
       status: "delivered",
       approved_at: nowIso,
+      published_at: nowIso,
+      published_by: actor,
       executive_summary: safe.executive_summary,
       current_diagnosis: safe.current_diagnosis,
       strategic_priorities: safe.strategic_priorities,
