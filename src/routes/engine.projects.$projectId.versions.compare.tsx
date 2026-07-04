@@ -5,6 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { ArrowRightLeft, ShieldCheck, Check, X, Edit3, CheckCircle2, AlertTriangle, FileText, Loader2 } from "lucide-react";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
+import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
+import { useEngineRole } from "@/hooks/useEngineRole";
 import {
   getVersionCompareData,
   listVersionChangeDecisions,
@@ -26,6 +28,7 @@ function VersionComparePage() {
   const approveFn = useServerFn(approveVersion);
   const listDecisionsFn = useServerFn(listVersionChangeDecisions);
   const recordDecisionFn = useServerFn(recordVersionChangeDecision);
+  const { canPublish, adminOnlyReason } = useEngineRole();
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["engine", "versions-compare", projectId],
@@ -112,14 +115,18 @@ function VersionComparePage() {
             <FileText className="w-3.5 h-3.5" /> View Full Versions
           </button>
           <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50">Restore Version</button>
-          <button
-            onClick={() => approveMut.mutate()}
-            disabled={!confirmed || approveMut.isPending || !draft?.id}
-            className="text-xs bg-royal text-white rounded-md px-3 py-1.5 hover:bg-royal/90 disabled:opacity-60 inline-flex items-center gap-1.5"
-          >
-            {approveMut.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-            Approve as New Official Version
-          </button>
+          {canPublish ? (
+            <button
+              onClick={() => approveMut.mutate()}
+              disabled={!confirmed || approveMut.isPending || !draft?.id}
+              className="text-xs bg-royal text-white rounded-md px-3 py-1.5 hover:bg-royal/90 disabled:opacity-60 inline-flex items-center gap-1.5"
+            >
+              {approveMut.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+              Approve as New Official Version
+            </button>
+          ) : (
+            <OperatorLockNotice message={adminOnlyReason} />
+          )}
         </div>
       </div>
 
@@ -313,14 +320,18 @@ function VersionComparePage() {
           <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="accent-royal" />
           I confirm these changes have been reviewed
         </label>
-        <button
-          onClick={() => approveMut.mutate()}
-          disabled={!confirmed || approveMut.isPending || !draft?.id}
-          className="text-sm bg-royal text-white rounded-md px-4 py-2 hover:bg-royal/90 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
-        >
-          {approveMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-          Approve as v{draft?.version ?? "next"} Official Version
-        </button>
+        {canPublish ? (
+          <button
+            onClick={() => approveMut.mutate()}
+            disabled={!confirmed || approveMut.isPending || !draft?.id}
+            className="text-sm bg-royal text-white rounded-md px-4 py-2 hover:bg-royal/90 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
+          >
+            {approveMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            Approve as v{draft?.version ?? "next"} Official Version
+          </button>
+        ) : (
+          <OperatorLockNotice message={adminOnlyReason} />
+        )}
       </div>
       {approveError && (
         <div className="rounded-md border border-[#f3ced5] bg-[#fbe9ec] text-[#a4283c] text-sm px-4 py-2">

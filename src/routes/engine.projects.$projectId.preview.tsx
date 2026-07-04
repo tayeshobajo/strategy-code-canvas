@@ -3,6 +3,8 @@ import { z } from "zod";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
+import { useEngineRole } from "@/hooks/useEngineRole";
 import { FileText, Presentation } from "lucide-react";
 import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
 import { PresentationMode } from "@/components/engine/PresentationMode";
@@ -17,6 +19,7 @@ function ClientPreview() {
   const { project } = useWorkspace(projectId);
   const search = useSearch({ from: "/engine/projects/$projectId/preview" });
   const navigate = useNavigate();
+  const { canEditClientPreview, adminOnlyReason } = useEngineRole();
   const isPresenting = search.present === "1";
   const point_a = project.point_a as { key_diagnosis?: string };
   const point_b = project.point_b as Record<string, string | undefined>;
@@ -105,8 +108,12 @@ function ClientPreview() {
         </section>
       </div>
 
-      <SectionCard title="Edit preview overrides">
-        <StepEditor projectId={projectId} step="preview" data={project.client_preview} />
+      <SectionCard title="Edit preview overrides" right={!canEditClientPreview ? <OperatorLockNotice message={adminOnlyReason} /> : undefined}>
+        {canEditClientPreview ? (
+          <StepEditor projectId={projectId} step="preview" data={project.client_preview} />
+        ) : (
+          <p className="text-sm text-ink/60">Client-facing preview content is admin-only. Operators can view the preview and export the PDF, but cannot edit what the client sees.</p>
+        )}
       </SectionCard>
     </div>
   );

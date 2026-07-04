@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ShieldCheck, Lock, Save } from "lucide-react";
 import { SectionCard } from "@/components/engine/primitives";
+import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
+import { useEngineRole } from "@/hooks/useEngineRole";
 import { getPermissions, updatePermissions } from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/agent/permissions")({
@@ -47,6 +49,7 @@ function AgentPermissionsPage() {
   const qc = useQueryClient();
   const getFn = useServerFn(getPermissions);
   const updFn = useServerFn(updatePermissions);
+  const { canManageAgents, adminOnlyReason } = useEngineRole();
 
   const q = useQuery({
     queryKey: ["engine", "permissions", projectId],
@@ -80,11 +83,15 @@ function AgentPermissionsPage() {
           </h1>
           <p className="text-sm text-ink/60 mt-1">Control what the project agent is allowed to do.</p>
         </div>
-        <button
-          onClick={() => save.mutate()}
-          disabled={save.isPending}
-          className="text-sm bg-royal text-white rounded-md px-4 py-2 flex items-center gap-1.5 hover:bg-royal/90 disabled:opacity-60"
-        ><Save className="w-4 h-4" /> Save Changes</button>
+        {canManageAgents ? (
+          <button
+            onClick={() => save.mutate()}
+            disabled={save.isPending}
+            className="text-sm bg-royal text-white rounded-md px-4 py-2 flex items-center gap-1.5 hover:bg-royal/90 disabled:opacity-60"
+          ><Save className="w-4 h-4" /> Save Changes</button>
+        ) : (
+          <OperatorLockNotice message={adminOnlyReason} />
+        )}
       </div>
 
       {/* Permission mode */}
@@ -93,10 +100,11 @@ function AgentPermissionsPage() {
           {MODES.map((m) => (
             <button
               key={m.value}
+              disabled={!canManageAgents}
               onClick={() => setMode(m.value)}
               className={`text-left rounded-lg border p-4 ${
                 mode === m.value ? "border-royal bg-royal/5" : "border-border hover:border-royal/40"
-              }`}
+              } ${!canManageAgents ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               <div className="font-display text-base text-ink">{m.label}</div>
               <div className="text-xs text-ink/60 mt-1">{m.hint}</div>
@@ -129,7 +137,7 @@ function AgentPermissionsPage() {
                     <td className="py-3 pr-3">
                       <div className="flex gap-1.5">
                         {CHOICES.map((c) => {
-                          const disabled = locked === "blocked" && c !== "blocked";
+                          const disabled = !canManageAgents || (locked === "blocked" && c !== "blocked");
                           const on = value === c;
                           return (
                             <button

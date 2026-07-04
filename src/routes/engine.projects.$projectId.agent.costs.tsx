@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { TrendingUp, Wallet, AlertTriangle, Star, Layers, Download, RefreshCw, AlertCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from "recharts";
 import { SectionCard, MetricCard, formatCents } from "@/components/engine/primitives";
+import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
+import { useEngineRole } from "@/hooks/useEngineRole";
 import { getAgentCosts, updateBudgetControls, exportAgentCostsCsv } from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/agent/costs")({
@@ -24,6 +26,7 @@ function CostCenterPage() {
   const fn = useServerFn(getAgentCosts);
   const updFn = useServerFn(updateBudgetControls);
   const csvFn = useServerFn(exportAgentCostsCsv);
+  const { canManageAgents, adminOnlyReason } = useEngineRole();
 
   const q = useQuery({
     queryKey: ["engine", "costs", projectId],
@@ -347,11 +350,15 @@ function CostCenterPage() {
               className="accent-royal"
             />
           </label>
-          <button
-            onClick={() => save.mutate()}
-            disabled={save.isPending}
-            className="w-full text-sm bg-royal text-white rounded-md py-2 mt-2 hover:bg-royal/90 disabled:opacity-60"
-          >Update Budget Settings</button>
+          {canManageAgents ? (
+            <button
+              onClick={() => save.mutate()}
+              disabled={save.isPending}
+              className="w-full text-sm bg-royal text-white rounded-md py-2 mt-2 hover:bg-royal/90 disabled:opacity-60"
+            >Update Budget Settings</button>
+          ) : (
+            <div className="mt-2"><OperatorLockNotice message={adminOnlyReason} /></div>
+          )}
         </div>
       </div>
     </div>

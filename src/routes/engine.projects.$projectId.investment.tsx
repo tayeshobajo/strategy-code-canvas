@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
+import { useEngineRole } from "@/hooks/useEngineRole";
 
 export const Route = createFileRoute("/engine/projects/$projectId/investment")({
   component: Investment,
@@ -21,6 +23,7 @@ type Phase = {
 function Investment() {
   const { projectId } = Route.useParams();
   const { project } = useWorkspace(projectId);
+  const { canEditInvestment, adminOnlyReason } = useEngineRole();
   const phases = ((project.investment as { phases?: Phase[] })?.phases) ?? [];
   return (
     <div className="space-y-4">
@@ -56,8 +59,12 @@ function Investment() {
           ))}
         </div>
       )}
-      <SectionCard title="Edit investment">
-        <StepEditor projectId={projectId} step="investment" data={project.investment} />
+      <SectionCard title="Edit investment" right={!canEditInvestment ? <OperatorLockNotice message={adminOnlyReason} /> : undefined}>
+        {canEditInvestment ? (
+          <StepEditor projectId={projectId} step="investment" data={project.investment} />
+        ) : (
+          <p className="text-sm text-ink/60">Investment ranges are read-only in the operator view. Ask an admin to adjust phases or amounts.</p>
+        )}
       </SectionCard>
     </div>
   );
