@@ -1,112 +1,171 @@
-# Roadmap Canvas — Phase State Fix + Final Polish
+# Premium Strategic Field Map — Roadmap Canvas Refinement
 
-Two related passes. Part 1 fixes a state-model bug where the top badge changes as the client browses. Part 2 is a scoped visual polish over the same canvas, without restructuring any surface.
+This is a targeted refinement of the existing `/portal/roadmap` canvas, not a rebuild. We keep the route, data model, sheet, modals, and view-mode filters. We rework how the map is *composed* so markers feel anchored to a journey path and phase territories, replace the busy in-progress spinner with calm premium motion, make phases genuinely interactive, and fix text legibility — all while staying data-driven across projects.
+
+## Files touched
+
+- `src/components/portal/roadmap/roadmap-layout.ts` — new path-and-territory layout engine
+- `src/components/portal/roadmap/MapCanvas.tsx` — three-layer canvas (terrain, geometry, markers) + phase interactivity
+- `src/components/portal/roadmap/JourneyCanvas.tsx` — SVG spine path with phase segments and shimmer
+- `src/components/portal/roadmap/MilestoneNode.tsx` — premium active/hover/selected motion, type-based hierarchy
+- `src/components/portal/roadmap/MarkerCluster.tsx` — progressive disclosure for secondary markers
+- `src/components/portal/roadmap/RoadmapOverviewStrip.tsx` — current-vs-viewing phase sync
+- `src/components/portal/roadmap/StatusOverlayCard.tsx` — glass backing + readability
+- `src/components/portal/roadmap/canvas-context.tsx` — `viewingPhase` state alongside `currentPhase`
+- `src/routes/portal.roadmap.tsx` — wire viewing state, remove `Loader2` spinner usage on active markers
+- `src/lib/portal-roadmap-model.ts` — expose `placement` + `priority` in normalized shape (already has phase/type/status/sequence)
+
+No changes to: `MilestoneSheet`, `ClarificationModal`, `BookCallModal`, `MobilePhaseStack` shell, portal server functions, data schema at rest.
 
 ---
 
-## Part 1 — Current phase vs. selected phase
+## A. Three-layer map composition
 
-### Concept
-
-- **Current phase** = operational truth from the journey model. Only changes when project progress changes. Source: `journey.currentPhaseKey` (mirrored into `canvas.currentPhaseKey`).
-- **Selected phase** = what the client is viewing on the map. Changes on phase-stop click, marker click, jump-to, or URL. Source: `canvas.selectedPhaseKey`. When `null`, it *defaults to current phase* for display purposes only — the state itself stays `null` so we can still tell "user is browsing" apart from "user hasn't moved."
-
-### Surface-by-surface behavior
+Reframe the canvas as three explicit layers rendered in one relative container so markers, path, and terrain always align:
 
 ```text
-Surface                          Reads              Label
-────────────────────────────────  ─────────────────  ───────────────────────────
-Top dark pill (CurrentPhasePill)  current only       "Current Phase"
-Left status card                  current only       "Your current status / You are here"
-Focus current phase button        writes selected=current
-Main map highlight                selected ?? current (band + route glow)
-Bottom mini-map active stop       selected ?? viewport ?? current, label "Viewing"
-Mini-map "current" dot indicator  current (unchanged, small dot on stop)
-Marker click                      writes selected = marker.phase
-Drawer close                      does NOT clear selected, does NOT touch current
+┌──────────────────────────────────────────────┐
+│  Layer 1 — Terrain (background image, dim   │
+│  scrim, phase territory tint overlays)       │
+│  Layer 2 — Geometry (SVG spine path, phase   │
+│  segment strokes, branch stubs, glow)        │
+│  Layer 3 — Markers (HTML nodes anchored to   │
+│  path-t values or offset from path normals)  │
+└──────────────────────────────────────────────┘
 ```
 
-### Files to change
+The SVG in Layer 2 owns a single `<path id="spine">` that goes from Point A to Point B, subdivided into phase segments with per-segment stroke variables. Markers in Layer 3 don't get raw x/y from a lookup — they read a `t` value (0..1 along the spine) plus a signed `offset` (perpendicular to the tangent) computed at build time.
 
-**`src/routes/portal.roadmap.tsx`**
-- `CurrentPhasePill` (~L726–760): stop reading `canvas.selectedPhaseKey`. Read only `canvas.currentPhaseKey ?? journey.currentPhaseKey`. Keep label "Current Phase". This is the bug fix — badge no longer moves when the client browses.
-- Marker click flow: in the parent that calls `setSelected(slug)`, also call `canvas.setSelectedPhaseKey(milestone.phase)` so selection and viewing phase stay in sync. Skip when the marker is a Point A/B anchor.
-- Drawer close: verify `onClose` does not call `setSelectedPhaseKey(null)` and does not touch `setCurrentPhaseKey`. It should only clear the `?m=` slug.
+## B. Path-anchored placement engine
 
-**`src/components/portal/roadmap/RoadmapOverviewStrip.tsx`**
-- Header copy (`~L118`): change "Roadmap overview / Click a phase to navigate" secondary line so, when a selected phase exists, it reads `Viewing: Phase N — {name}`. Keep "Current phase" indicator (small dot) on the operational stop, driven by `journey.currentPhaseKey`.
-- Keep `active = useDisplayPhaseKey() ?? journey.currentPhaseKey` — this is the correct source for "which stop is highlighted right now".
-- Add a subtle secondary indicator on the *current* stop (small pulse dot) that is independent of the active/selected highlight, so both concepts are visible at once.
+Extend `roadmap-layout.ts` with a `PlacementEngine`:
 
-**`src/components/portal/roadmap/StatusOverlayCard.tsx`**
-- Already correct (reads `canvas.currentPhaseKey ?? journey.currentPhaseKey`). No change beyond confirming label copy stays "Your current status / You are here".
+```text
+placement:
+  kind: "on-path" | "adjacent" | "branch"
+  t: 0..1                 (position along spine)
+  offset: -1..1           (perpendicular offset, in "lane" units)
+  lane: number            (integer lane for collision)
+```
 
-**`src/components/portal/roadmap/canvas-context.tsx`**
-- No API change. The auto-clear effect that resets `selectedPhaseKey` when the viewport drifts (in `RoadmapOverviewStrip`) already prevents stale selection lock-in.
+Derivation rules (data-driven, no per-project hardcoding):
 
-### Acceptance criteria (Part 1)
+- `t` = phase segment start + `(sequence / phaseCount) * segmentLength`
+- Major milestone → `on-path`, offset 0
+- Deliverable → `adjacent`, offset ±0.4, lane = child of its parent milestone
+- Decision → `branch`, offset ±0.9 with a connector stub back to the path
+- Meeting → `adjacent`, smaller offset, low priority
+- Deadline → flag anchored to its milestone, not standalone
+- Priority + kind drive z-index and default visibility
 
-- Clicking Phase 2 in the mini-map while operationally in Phase 1: top badge still says "Current Phase: Phase 1 — Foundation", left card still says "You are here: Phase 1", mini-map active stop is Phase 2, and its label reads "Viewing: Phase 2".
-- Clicking a Phase 3 marker opens the drawer and sets viewing to Phase 3, but current stays Phase 1.
-- Closing the drawer leaves viewing where it was; does not touch current.
-- Refresh with `?phase=next` restores viewing = Phase 2 without changing current.
+Collision pass: after initial placement, run a 1-D sweep over `t` per lane; if two markers are within a minimum arc-length, push the lower-priority one to the next lane or collapse it into a cluster (see D).
 
----
+The engine takes the existing normalized `PortalRoadmapDoc` shape — no schema migration needed. Fallback: if a project provides explicit `x/y` (legacy), respect it.
 
-## Part 2 — Premium polish pass (no structural changes)
+## C. Journey geometry (Layer 2)
 
-Scoped visual/motion refinements only. No surface added, moved, or removed.
+`JourneyCanvas.tsx` becomes the spine renderer:
 
-### 1. Top command bar (`RoadmapHeader`)
-- Normalize button heights to `h-9`, gap `gap-2`, wrap only when unavoidable.
-- Give the dark `CurrentPhasePill` slightly stronger contrast (`bg-slate-900` → `bg-slate-950`, ring `ring-1 ring-white/10`) so it reads as the anchor of the row.
-- Turn the icon-only buttons into `variant="ghost"` with `border border-ink/10` for a calmer treatment; keep primary "Book next call" as solid.
+- One cubic Bézier per phase, joined C1-continuous, so tangents are smooth
+- Path stroke uses a `stroke-dasharray` mask for phases already complete (solid) vs upcoming (subtly dashed)
+- The segment of the **current phase** gets a slow shimmer via animated `stroke-dashoffset` on an overlaid stroke at low opacity — replaces the marker spinner as the "something is live" signal
+- Selected milestone: its host segment brightens; a thin glow stroke fades in for ~400ms
+- Branch stubs: short quadratic curves drawn from the spine to each `branch` marker
 
-### 2. Terrain map (`MapCanvas`)
-- Add horizontal safe-padding inside `computeMapLayout` so no L1 marker sits within ~4% of the crop edge (extend the existing inset used in `roadmap-layout.ts`).
-- Route polyline: keep width, but split into a base stroke and an outer soft glow with `filter: blur(6px)` at 40% opacity so the selected segment reads dominantly without shouting.
-- Selected segment: bump inner stroke opacity from ~0.75 → 0.9 and give it a slow 2s pulse via CSS `@keyframes` (respect `prefers-reduced-motion`).
+Export a `getPointAt(t)` and `getNormalAt(t)` so markers can position themselves reactively on resize.
 
-### 3. Left status card (`StatusOverlayCard`)
-- Tighten collapsed height: reduce `p-3` → `p-2.5` and internal `mt-2.5`/`mt-3.5` gaps by 2px each.
-- Collapse toggle: fade the expanded content with `transition-[opacity,max-height]` 200ms instead of hard cut.
-- Align "You are here" row so the pin icon aligns to the phrase's cap-height (already close; verify with a 1px baseline tweak).
+## D. Marker hierarchy & progressive disclosure
 
-### 4. Right drawer (`MilestoneSheet`)
-- Increase side padding from `px-5` → `px-6`, section gap uniform `space-y-5`.
-- Replace hard 1px dividers with `border-ink/[0.08]` and add subtle section labels in mono uppercase 9.5px to match status card.
-- Button hierarchy: primary CTA (Acknowledge / Book / etc.) full-width solid; secondary as `variant="outline"`; tertiary as `variant="ghost"` — never two solid buttons stacked.
-- Confirm Escape closes the sheet, click-outside closes, focus trap on open, focus returns to originating marker on close (already wired via `focusNode`; verify).
+`MilestoneNode.tsx` — visual tiers driven by `(kind, priority)`:
 
-### 5. Bottom mini-map (`RoadmapOverviewStrip`)
-- Selected phase stop: keep royal ring, add a 1px inner highlight `inset 0 0 0 1px rgba(255,255,255,0.15)` so it lifts off the dark panel.
-- Route line contrast: raise base opacity 0.14 → 0.2, and thicken from 2px → 2.5px only inside the viewport-window area (drawn as a second overlaid segment clipped to the window rect).
-- Add a subtle "Current: Phase 1" and "Viewing: Phase 2" caption pair in the strip header when the two differ (uses the new phase-state split from Part 1).
+- **Primary milestone**: full node with title, status ring, filled body
+- **Decision**: diamond-ish shape (rotated square with soft corners), muted until hovered
+- **Deliverable**: small dot with icon, title on hover
+- **Meeting**: 6px ring only, label on hover
+- **Deadline**: tag/flag glyph, only shown when within a data-defined threshold or when its parent is selected
 
-### 6. Markers (`MilestoneNode`)
-- Reduce dark-pill density: only L1 (anchor / due-dated / selected) gets the filled dark pill. L2 short labels render as text on a translucent chip (`bg-slate-950/40`), L3 icons stay bare.
-- Hover: 120ms lift `translateY(-2px)` + shadow bump; not a scale change (calmer).
-- Selected: existing 1.12 scale + outer glow ring — keep, but soften ring color from solid royal to `rgba(47,93,246,0.55)` so the route glow stays king.
-- Muted (view-mode dim): opacity 0.6 with `grayscale(20%)` so it feels "resting" not "broken".
+`MarkerCluster.tsx` — when the collision pass finds N secondary markers within a cluster radius, render a single cluster chip ("+3 deliverables") that expands on hover/click to fan out its children along the local path tangent.
 
-### 7. Motion budget
-Allowed: marker hover lift (120ms), tooltip fade (150ms), drawer slide (existing shadcn 200ms), phase-focus pan (smooth scroll 400–600ms), mini-map highlight color transitions (200ms), route selected pulse (2s, subtle). Everything else stays static. All motion behind `useReducedMotion`.
+Default view shows only primary + decisions + any items matching the active view-mode filter. Secondary markers fade in on phase focus or on `View: Full Journey`.
 
-### 8. Accessibility sweep
-- Verify every icon button in the header, status card, drawer, and cluster popover has `aria-label`.
-- Verify `Escape` closes drawer, click-outside closes, focus trap while open (shadcn Sheet handles this — audit that we haven't opted out).
-- Contrast: bump `text-white/60` → `text-white/70` in floating panels where used on `slate-950/85`.
-- Focus rings: standard `focus-visible:ring-2 focus-visible:ring-royal ring-offset-2 ring-offset-background` on all interactive elements in the canvas overlays.
+## E. Premium motion (replace spinner)
 
-### Acceptance criteria (Part 2)
+Remove `Loader2`/`animate-spin` from active-milestone treatment entirely. Replacements:
 
-- At 100% browser zoom on 1480×1022: no clipped markers near map edges, header buttons align on one baseline, mini-map reads as a control (not decoration), drawer feels premium and traps focus, motion never distracts, and the map remains dominant with the drawer open.
-- Client can immediately identify: where they are (current), what they're viewing (selected), what's active (glowing route + selected marker), what needs them (StatusOverlayCard's next action), and how to explore (mini-map + jump-to).
+- **In-progress**: two concentric SVG rings — outer ring uses CSS `@keyframes` breathing (opacity 0.35→0.7, scale 1→1.08, 2.4s ease-in-out infinite). No rotation.
+- **Path shimmer** on the connected segment (see C)
+- **Hover**: `transform: translateY(-1px)` + shadow bump + 120ms ease-out
+- **Selected**: solid halo ring, connected path segment glows, sheet opens
+- Respect `prefers-reduced-motion` — swap breathing for a static ring
 
----
+All motion tokens live in `src/styles.css` as CSS custom properties so they stay consistent.
 
-## Out of scope
+## F. Phase interactivity
 
-- No changes to view-mode logic (`view-mode.ts`) — Part 6 of prompt already lives there.
-- No changes to server functions, data model, or portal auth.
-- No new tests are added; existing perf/visual specs should continue to pass.
+Add `viewingPhase` to `canvas-context.tsx` (distinct from the operational `currentPhase` already in the model).
+
+Phase click behavior:
+
+- Single click on phase label or territory → set `viewingPhase`, animate SVG viewBox toward the phase's bounding arc (~500ms cubic-bezier), dim other territories to ~35% opacity via a mask overlay, filter markers by phase (unless view-mode overrides)
+- Click same phase again → expand phase summary tray inline below the map (or on mobile, above the sheet)
+- Hover → territory tint brightens, phase-segment stroke gains 20% opacity, phase title contrast bumps
+- Deselect → click background or a "Show full journey" chip that appears when `viewingPhase !== null`
+
+Visual distinction between the two states:
+
+- **Current phase** — gold accent border on its territory + `● LIVE` micro-pill
+- **Viewing phase** — soft royal focus ring, camera framed on it, "Viewing" label above overview strip
+
+Both can coexist and be different phases; when they match, the treatments merge cleanly.
+
+## G. Text readability pass
+
+Reading zones per phase title block — a reserved rectangle where the placement engine refuses to drop markers (collision pass treats it as an obstacle).
+
+Contrast treatments applied uniformly:
+
+- Phase title: display serif, `text-white` with a soft dark radial scrim behind it (SVG `<rect>` with gradient fill, ~24% opacity)
+- Phase subtitle: 13px, `text-white/80` with 1px text-shadow
+- Completion pill: solid ink background, gold text, sharper border — not translucent
+- Point A / Point B labels: uppercase mono, on a thin glass chip (`backdrop-blur-md bg-ink/40 border border-white/10`)
+- Milestone labels on the map itself stay hidden by default; appear on hover/selection to keep the field map calm
+
+## H. Overview strip sync
+
+`RoadmapOverviewStrip.tsx`:
+
+- Two-row micro-legend: top row shows the phase sequence with the **current phase** highlighted in gold; bottom row (or same row with a second indicator) shows the **viewing phase** with royal outline
+- Click a phase chip → drives `viewingPhase` (same handler as territory click)
+- Point A and Point B chips are clickable and jump the camera to those extremes
+- If more than ~7 phases exist, collapse mid-phases into a summary node (reuses the cluster logic from D)
+
+## I. Data-adaptive guarantees
+
+The engine already receives `PortalRoadmapDoc`. To confirm it stays project-agnostic:
+
+- No literal Mental Dental strings or coordinates in `MapCanvas` or `JourneyCanvas`
+- Phase count is read from `phases.length`; spine is subdivided accordingly
+- Territory tints are derived from a per-phase color token (falls back to ink/royal/gold rotation)
+- Empty phases render as short quiet segments — no crash, no visual dead zone
+- Dense phases (>6 markers) automatically cluster secondary items via the collision pass
+
+## J. Out of scope
+
+- Rebuilding the sheet, modals, or view-mode filters (already good)
+- Changing server functions or portal data schema
+- Mobile phase stack redesign (keeps current behavior; only receives the current-vs-viewing distinction as a small badge)
+- Persisting `viewingPhase` across reloads (session-only)
+
+## Verification
+
+- Type check + `bunx vitest run` for existing roadmap tests
+- Playwright visual check at `/portal/roadmap?__visual=demo` (desktop 1280×1800): confirm no `animate-spin` on active markers, phase click pans the camera, phase titles remain legible, cluster fans out on hover
+- Mobile 390-wide screenshot to confirm phase stack still works with the new viewing-phase badge
+
+## Acceptance
+
+- Markers visibly ride the spine or are tethered to it via branch stubs
+- No spinning loader treatment anywhere on the map
+- Clicking a phase pans/dims/filters with a single smooth transition
+- Phase titles, subtitles, pills, and Point A/B labels are readable against any terrain
+- Swapping the fixture for a different project shape (different phase count, different milestone density) renders correctly without code changes
