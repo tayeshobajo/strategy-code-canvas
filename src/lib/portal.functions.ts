@@ -1288,6 +1288,7 @@ export const respondToPortalDecision = createServerFn({ method: "POST" })
       .maybeSingle();
     if (engineProj) {
       await supabaseAdmin.from("engine_review_items").insert({
+        project_id: engineProj.id,
         project: engineProj.name,
         item_type: "Client Decision",
         title: `${data.milestoneTitle} — client ${data.decision.replace("_", " ")}`,
