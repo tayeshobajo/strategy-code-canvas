@@ -429,3 +429,102 @@ function TextArea({
     </SectionCard>
   );
 }
+
+const CATEGORY_LABELS: Record<string, string> = {
+  goal: "Client goals",
+  pain: "Pain points",
+  opportunity: "Opportunities",
+  deadline: "Deadlines",
+  constraint: "Constraints",
+  decision_maker: "Decision makers",
+  hidden_asset: "Hidden assets",
+  risk: "Risks",
+  required_system: "Required systems",
+  milestone_candidate: "Milestone candidates",
+  investment_signal: "Investment signals",
+  client_language: "Client language",
+  open_question: "Open questions",
+};
+
+function ExtractedSignalsPanel({ projectId }: { projectId: string }) {
+  const listSignals = useServerFn(listExtractedSignals);
+  const listRuns = useServerFn(listExtractionRuns);
+  const signalsQ = useQuery({
+    queryKey: ["engine", "signals", projectId],
+    queryFn: () => listSignals({ data: { projectId } }),
+    refetchInterval: (q) => {
+      // Poll while a run is active
+      const runs = (q.state.data as { rows?: Array<{ status: string }> } | undefined)?.rows ?? [];
+      return runs.length === 0 ? 5000 : 15000;
+    },
+  });
+  const runsQ = useQuery({
+    queryKey: ["engine", "extraction-runs", projectId],
+    queryFn: () => listRuns({ data: { projectId } }),
+    refetchInterval: (q) => {
+      const rows = (q.state.data as { rows?: Array<{ status: string }> } | undefined)?.rows ?? [];
+      return rows.some((r) => r.status === "running" || r.status === "pending") ? 3000 : 20000;
+    },
+  });
+
+  const runs = runsQ.data?.rows ?? [];
+  const activeRun = runs.find((r) => r.status === "running" || r.status === "pending");
+  const latestRun = runs[0];
+  const signals = signalsQ.data?.rows ?? [];
+
+  const grouped = signals.reduce<Record<string, typeof signals>>((acc, s) => {
+    (acc[s.category] ??= []).push(s);
+    return acc;
+  }, {});
+
+  return (
+    <SectionCard
+      title={
+        <span className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-royal" />
+          Extracted signals
+          <span className="text-xs font-normal text-ink/50">
+            {signals.length} signal{signals.length === 1 ? "" : "s"}
+            {latestRun?.model_structured ? ` · ${latestRun.provider_structured}/${latestRun.model_structured}` : ""}
+          </span>
+        </span>
+      }
+    >
+      {activeRun ? (
+        <div className="flex items-center gap-2 text-sm text-ink/70 py-4">
+          <Loader2 className="w-4 h-4 animate-spin text-royal" />
+          Intelligence pipeline running — signals will appear here shortly.
+        </div>
+      ) : signals.length === 0 ? (
+        <EmptyState
+          title="No signals extracted yet"
+          hint="Add a source (transcript, brief, URL) and run the pipeline from the Versions tab."
+        />
+      ) : (
+        <div className="space-y-4">
+          {Object.entries(grouped).map(([cat, items]) => (
+            <div key={cat}>
+              <div className="text-[11px] uppercase tracking-wider text-ink/50 font-mono mb-2">
+                {CATEGORY_LABELS[cat] ?? cat} · {items.length}
+              </div>
+              <ul className="space-y-1.5">
+                {items.map((s) => (
+                  <li
+                    key={s.id}
+                    className="text-sm text-ink border-l-2 border-royal/30 pl-3 py-1"
+                  >
+                    <div className="font-medium">{s.label}</div>
+                    {s.detail && <div className="text-xs text-ink/60 mt-0.5">{s.detail}</div>}
+                    <div className="text-[10px] text-ink/40 mt-1 font-mono">
+                      confidence {s.confidence}% · from AI extraction
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
