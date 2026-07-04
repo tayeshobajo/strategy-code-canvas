@@ -1,12 +1,15 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, XCircle, Eye, AlertTriangle, Clock, X, RotateCcw, Loader2, Search } from "lucide-react";
-import { listReviewQueue, decideReviewItem, type ReviewItem } from "@/lib/engine-ops.functions";
+import { CheckCircle2, XCircle, Eye, AlertTriangle, Clock, X, RotateCcw, Loader2, Search, Sparkles, ArrowRight, Send } from "lucide-react";
+import {
+  listReviewQueue, decideReviewItem, type ReviewItem,
+  listDraftVersions, submitVersionForApproval, type DraftVersion,
+} from "@/lib/engine-ops.functions";
 
 type AuditSearch = { q?: string; actor?: string; decision?: "all" | "approved" | "sent_back" };
 
