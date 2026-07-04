@@ -316,9 +316,8 @@ export function MilestoneSheet({
             const KindIcon = KIND_ICON[kind];
             const isDeadline = kind === "milestone" && !!milestone.dueDate;
             const displayKindLabel = isDeadline ? "Deadline" : KIND_LABEL[kind];
-            const displayKindAccent = isDeadline
-              ? "bg-[#e11d48]/12 text-[#be123c] border-[#e11d48]/30"
-              : KIND_ACCENT[kind];
+            void KIND_ACCENT; // retained for future kind chips; header uses accentHex directly.
+
             const phaseName =
               milestone.phase === "now"
                 ? "Foundation"
