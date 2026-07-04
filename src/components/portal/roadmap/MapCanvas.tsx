@@ -25,6 +25,30 @@ const DRAWER_WIDTH = 410;
 const ROUTE_GOLD = "240,210,130"; // #F0D282 warm gold
 const ROUTE_GOLD_BRIGHT = "255,235,180"; // lighter highlight
 
+/**
+ * Scale a normalized-space SVG path "d" (values in 0..1) into canvas-space.
+ * Only rescales numeric coordinates; command letters (M/C/Q/T/L/...) pass through.
+ */
+function scalePathD(d: string, w: number, h: number): string {
+  const tokens = d.split(/(\s+|,)/);
+  let numIdx = 0;
+  return tokens
+    .map((tok) => {
+      if (/^-?\d*\.?\d+(?:e-?\d+)?$/.test(tok)) {
+        const n = parseFloat(tok);
+        const scaled = numIdx % 2 === 0 ? n * w : n * h;
+        numIdx++;
+        return String(Math.round(scaled * 100) / 100);
+      }
+      // A letter command resets the alternating x/y counter for its next runs
+      // — but for M/L/C/Q/T/S sequences x/y alternation is preserved across
+      // whitespace, and our generator only emits M and C, so we don't reset.
+      return tok;
+    })
+    .join("");
+}
+
+
 type Props = {
   journey: RoadmapJourney;
   selectedSlug: string | null;
