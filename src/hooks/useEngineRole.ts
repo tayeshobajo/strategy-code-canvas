@@ -8,18 +8,29 @@ export interface EngineRoleState {
   role: EngineRole;
   email: string | null;
   loading: boolean;
-  canApprove: boolean;      // approve / reject / lifecycle transitions
-  canEdit: boolean;         // edit content fields
-  canRegenerate: boolean;   // trigger AI regenerate
+  isAdmin: boolean;
+  isOperator: boolean;
+  // Broadly permissive (operator + admin)
+  canApprove: boolean;
+  canEdit: boolean;
+  canRegenerate: boolean;
   canSendTasks: boolean;
+  // Admin-only, client-affecting / financial actions
+  canPublish: boolean;              // approve version, publish to client portal
+  canSendDelivery: boolean;         // send final delivery to client
+  canEditInvestment: boolean;       // change investment ranges
+  canEditClientPreview: boolean;    // change client-facing preview content
+  canManageAgents: boolean;         // agent permissions + cost controls
   approvalDeniedReason: string;
   editDeniedReason: string;
+  adminOnlyReason: string;
 }
 
 /**
  * Resolves the current signed-in user's role for engine UI gating.
  * team_member = read-only reviewer: cannot approve, edit, regenerate or send.
- * operator = full read/write except role administration.
+ * operator = internal read/write, but cannot publish, send delivery to
+ *   clients, edit investment ranges, or manage agent permissions/costs.
  * admin = everything.
  */
 export function useEngineRole(): EngineRoleState {
@@ -56,16 +67,25 @@ export function useEngineRole(): EngineRoleState {
     return () => { mounted = false; };
   }, []);
 
-  const canApprove = role === "admin" || role === "operator";
-  const canEdit = role === "admin" || role === "operator";
-  const canRegenerate = role === "admin" || role === "operator";
-  const canSendTasks = role === "admin" || role === "operator";
+  const isAdmin = role === "admin";
+  const isOperator = role === "operator";
+  const canApprove = isAdmin || isOperator;
+  const canEdit = isAdmin || isOperator;
+  const canRegenerate = isAdmin || isOperator;
+  const canSendTasks = isAdmin || isOperator;
 
   const teamReason = "Read-only for team members — ask an operator to make changes.";
+  const adminOnlyReason = "Admin only — operators cannot perform this action.";
   return {
-    role, email, loading,
+    role, email, loading, isAdmin, isOperator,
     canApprove, canEdit, canRegenerate, canSendTasks,
+    canPublish: isAdmin,
+    canSendDelivery: isAdmin,
+    canEditInvestment: isAdmin,
+    canEditClientPreview: isAdmin,
+    canManageAgents: isAdmin,
     approvalDeniedReason: canApprove ? "" : teamReason,
     editDeniedReason: canEdit ? "" : teamReason,
+    adminOnlyReason,
   };
 }
