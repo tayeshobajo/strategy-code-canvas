@@ -114,6 +114,31 @@ export function RoadmapOverviewMiniMap({
 
   const maxDotsPerPhase = journey.phases.length > 4 ? 4 : 6;
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const isHoveringRef = useRef(false);
+
+  // Keyboard navigation: ←/→ move between phases when the panel is hovered or focused.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!isHoveringRef.current && !rootRef.current?.contains(document.activeElement)) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const phases = journey.phases;
+      if (!phases.length) return;
+      const currentIdx = selectedKey
+        ? phases.findIndex((p) => p.key === selectedKey)
+        : phases.findIndex((p) => p.key === currentKey);
+      const delta = e.key === "ArrowRight" ? 1 : -1;
+      const nextIdx = Math.max(0, Math.min(phases.length - 1, (currentIdx < 0 ? 0 : currentIdx) + delta));
+      if (nextIdx === currentIdx) return;
+      e.preventDefault();
+      handlePhaseClick(phases[nextIdx]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journey.phases, selectedKey, currentKey]);
+
+
   const handlePhaseClick = (phase: RoadmapJourney["phases"][number]) => {
     canvas.setSelectedPhaseKey(phase.key);
     onJump(phase.key);
