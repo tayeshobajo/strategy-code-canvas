@@ -1889,6 +1889,15 @@ function ReviewStep({
         </li>
       </ul>
 
+      <AttachmentsPanel
+        attachments={attachments}
+        setAttachments={setAttachments}
+        resumeToken={resumeToken}
+        ensureResumeToken={ensureResumeToken}
+      />
+
+
+
       <div className="mt-10 flex items-center justify-between">
         <button
           type="button"
