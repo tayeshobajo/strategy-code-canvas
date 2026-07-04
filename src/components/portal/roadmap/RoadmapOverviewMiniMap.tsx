@@ -595,40 +595,14 @@ function PhaseSegment({
             const kind = effectiveKind(m);
             const dotColor = KIND_COLOR[kind] ?? color;
             return (
-              <button
+              <MilestoneDotPreview
                 key={m.slug}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDotClick(m.slug);
-                }}
-                onKeyDown={(e) => e.stopPropagation()}
-                title={`${m.title}${m.dueDate ? ` · due ${m.dueDate}` : ""}`}
-                aria-label={m.title}
-                className="relative inline-flex items-center justify-center h-4 w-4 rounded-full transition-transform duration-[160ms] hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-[#030A18]"
-              >
-                {isSel && (
-                  <span
-                    aria-hidden
-                    className="absolute inset-0 rounded-full animate-ping"
-                    style={{ background: withAlpha(dotColor, 0.6) }}
-                  />
-                )}
-                <span
-                  className="relative rounded-full border"
-                  style={{
-                    width: isSel ? 9 : 7,
-                    height: isSel ? 9 : 7,
-                    background: dotColor,
-                    borderColor: isSel
-                      ? "#fff"
-                      : "rgba(255,255,255,0.35)",
-                    boxShadow: isSel
-                      ? `0 0 10px ${dotColor}`
-                      : `0 0 4px ${withAlpha(dotColor, 0.55)}`,
-                  }}
-                />
-              </button>
+                milestone={m}
+                kind={kind}
+                dotColor={dotColor}
+                isSel={isSel}
+                onDotClick={onDotClick}
+              />
             );
           })}
 
