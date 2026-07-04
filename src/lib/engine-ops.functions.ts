@@ -283,19 +283,19 @@ export const getExecutionAlerts = createServerFn({ method: "GET" })
       }
     }
 
-    // Overdue milestones (past due_on and not accepted/complete)
+    // Overdue milestones (past due_date and not accepted/complete)
     const today = new Date().toISOString().slice(0, 10);
     const { data: ms } = await sb.from("engine_milestones")
-      .select("id,title,due_on,status,engine_projects(name)")
-      .lt!("due_on", today);
-    for (const m of (ms ?? []) as Array<{ id: string; title: string; due_on: string; status: string | null; engine_projects: { name: string } | null }>) {
+      .select("id,name,due_date,status,engine_projects(name)")
+      .lt!("due_date", today);
+    for (const m of (ms ?? []) as Array<{ id: string; name: string; due_date: string; status: string | null; engine_projects: { name: string } | null }>) {
       const st = (m.status ?? "").toLowerCase();
       if (st === "complete" || st === "accepted" || st === "archived") continue;
-      const age = Math.max(0, Math.round((now - Date.parse(m.due_on)) / 86400000));
+      const age = Math.max(0, Math.round((now - Date.parse(m.due_date)) / 86400000));
       alerts.push({
         id: `ms-${m.id}`, kind: "overdue_approval",
         client: m.engine_projects?.name ?? "Unknown",
-        title: m.title, detail: `Milestone past due by ${age}d`,
+        title: m.name, detail: `Milestone past due by ${age}d`,
         age_days: age, severity: age >= 5 ? "high" : "medium", action: "Escalate",
       });
     }
