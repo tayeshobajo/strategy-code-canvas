@@ -140,6 +140,8 @@ export function MilestoneSheet({
   authorEmail,
   schedulingUrl,
   onClose,
+  sequence,
+  onSelect,
 }: Props) {
   const open = !!milestone;
   const recordReview = useServerFn(recordPortalMilestoneReview);
@@ -152,6 +154,25 @@ export function MilestoneSheet({
   const canvas = useRoadmapCanvas();
   const isMobile = useIsMobile();
   const openedSlugRef = useRef<string | null>(null);
+
+  const { prevSlug, nextSlug } = useMemo(() => {
+    if (!milestone || !sequence || sequence.length === 0)
+      return { prevSlug: null as string | null, nextSlug: null as string | null };
+    const i = sequence.indexOf(milestone.slug);
+    if (i < 0) return { prevSlug: null, nextSlug: null };
+    return {
+      prevSlug: i > 0 ? sequence[i - 1] : null,
+      nextSlug: i < sequence.length - 1 ? sequence[i + 1] : null,
+    };
+  }, [milestone, sequence]);
+
+  const canNavigate = !!onSelect && !!sequence && sequence.length > 1;
+  const goPrev = () => {
+    if (prevSlug && onSelect) onSelect(prevSlug);
+  };
+  const goNext = () => {
+    if (nextSlug && onSelect) onSelect(nextSlug);
+  };
 
   const reviewMut = useMutation({
     mutationFn: (m: RoadmapMilestone) =>
