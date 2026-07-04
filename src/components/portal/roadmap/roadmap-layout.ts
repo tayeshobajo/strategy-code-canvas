@@ -186,25 +186,43 @@ export function computeMapLayout(journey: RoadmapJourney): {
     // Center the marker run inside the band, but never leak past x0 or x1.
     const start = x0 + Math.max(0, (bandWidth - span) / 2);
     const anchors: { key: PhaseKey; nx: number; ny: number }[] = [];
+    // Track prior markers per lane so intra-lane crowding gets a tiny
+    // in-lane nudge (never crossing into another lane).
+    const laneHistory: Record<MarkerLane, { nx: number; nudge: number }[]> = {
+      main: [],
+      upper: [],
+      lower: [],
+      "off-road": [],
+    };
     items.forEach((m, i) => {
       const t = n === 1 ? 0.5 : i / (n - 1);
       const nx = n === 1 ? (x0 + x1) / 2 : start + gap * i;
       // On-road baseline: smooth arc across the phase between yStart and yEnd.
       const baseY = layout.yStart + (layout.yEnd - layout.yStart) * t;
       const attachment = attachmentForKind(m);
-      const offset = attachmentOffset(attachment);
-      // Alternating micro-offset only for adjacent/off-road/fork so on-road
-      // markers stay glued to the spine (no more stagger jitter).
-      const stagger =
-        attachment === "on-road" || attachment === "flag"
-          ? 0
-          : (i % 2 === 0 ? -1 : 1) * 0.012;
+      const lane = laneForAttachment(attachment);
+      const laneOffset = LANE_OFFSETS[lane];
+      // Intra-lane collision nudge: if a same-lane neighbor sits within a
+      // tight nx window, alternate a small ny nudge that stays inside the
+      // lane's visual band (±0.018).
+      const CROWD_NX = 0.045;
+      const IN_LANE_NUDGE = 0.018;
+      const history = laneHistory[lane];
+      const crowded = history.some((h) => Math.abs(h.nx - nx) < CROWD_NX);
+      const lastNudge = history.length ? history[history.length - 1].nudge : 0;
+      const nudge =
+        crowded && lane !== "main"
+          ? (lastNudge >= 0 ? -1 : 1) * IN_LANE_NUDGE
+          : crowded && lane === "main"
+            ? 0 // never push on-road markers off the spine
+            : 0;
+      history.push({ nx, nudge });
       // Clamp Y so a fork/deadline offset never climbs into the phase title,
       // and never drops below the canvas floor.
       const minNy = layout.headingY + PHASE_TITLE_BUFFER;
-      const rawNy = baseY + offset + stagger;
+      const rawNy = baseY + laneOffset + nudge;
       const ny = Math.min(0.94, Math.max(minNy, rawNy));
-      markers.push({ milestone: m, nx, ny, attachment });
+      markers.push({ milestone: m, nx, ny, attachment, lane });
       // The anchor for the spine is the ON-ROAD position (offset stripped)
       // — clamped the same way so the spine can't punch into the title band.
       const anchorNy = Math.min(0.94, Math.max(minNy, baseY));
@@ -212,6 +230,7 @@ export function computeMapLayout(journey: RoadmapJourney): {
     });
     phaseAnchors.push(anchors);
   }
+
 
   // Build per-phase spine segments + full spine "d".
   // Include Point A at the head and Point B at the tail so the spine reads as
