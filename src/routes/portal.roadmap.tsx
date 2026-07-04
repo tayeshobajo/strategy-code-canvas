@@ -389,11 +389,69 @@ function RoadmapJourneyView({
   }, []);
   const isMobile = useIsMobile();
 
-  // Compute the set of milestone slugs that match the current view filter.
-  const matchingSlugs = useMemo(
-    () => (viewMode === "all" ? null : computeMatchingSlugs(journey, viewMode)),
-    [journey, viewMode],
+  // ---- Chip filters (status + phase, aka "quarters") ----
+  const canvasCtx = useRoadmapCanvas();
+  const [statusFilter, setStatusFilter] = useState<Set<MilestoneStatus>>(
+    () => new Set(FILTERABLE_STATUSES),
   );
+  const [phaseFilter, setPhaseFilter] = useState<Set<PhaseKey>>(() => new Set());
+  const toggleStatusFilter = (s: MilestoneStatus) =>
+    setStatusFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      // never allow "nothing selected"; treat empty as reset-to-all.
+      if (next.size === 0) return new Set(FILTERABLE_STATUSES);
+      return next;
+    });
+  const togglePhaseFilter = (p: PhaseKey) =>
+    setPhaseFilter((prev) => {
+      // Empty set = "all phases". First click on a chip switches to
+      // single-select; subsequent clicks toggle it in/out of that set.
+      if (prev.size === 0) return new Set([p]);
+      const next = new Set(prev);
+      if (next.has(p)) next.delete(p);
+      else next.add(p);
+      if (next.size === journey.phases.length) return new Set();
+      return next;
+    });
+  const resetFilters = () => {
+    setStatusFilter(new Set(FILTERABLE_STATUSES));
+    setPhaseFilter(new Set());
+  };
+
+  // Compute the set of milestone slugs that match the current view filter,
+  // legend kind visibility, status chips and phase chips (intersected).
+  const matchingSlugs = useMemo(() => {
+    const base = viewMode === "all" ? null : computeMatchingSlugs(journey, viewMode);
+    const allStatuses = statusFilter.size === FILTERABLE_STATUSES.length;
+    const allPhases = phaseFilter.size === 0;
+    // Legend hidden = visible & muted both false.
+    const legendHidden = new Set<string>();
+    for (const k of ["milestone", "decision", "deliverable", "meeting", "deadline"] as const) {
+      if (!canvasCtx.visibleKinds.has(k) && !canvasCtx.mutedKinds.has(k)) {
+        legendHidden.add(k);
+      }
+    }
+    if (allStatuses && allPhases && legendHidden.size === 0 && !base) return null;
+    const out = new Set<string>();
+    for (const m of journey.milestones) {
+      if (base && !base.has(m.slug)) continue;
+      if (!allStatuses && !statusFilter.has(m.status)) continue;
+      if (!allPhases && !phaseFilter.has(m.phase)) continue;
+      const kindKey = m.dueDate && m.kind === "milestone" ? "deadline" : m.kind;
+      if (legendHidden.has(kindKey)) continue;
+      out.add(m.slug);
+    }
+    return out;
+  }, [
+    journey,
+    viewMode,
+    statusFilter,
+    phaseFilter,
+    canvasCtx.visibleKinds,
+    canvasCtx.mutedKinds,
+  ]);
   const matchingCount = matchingSlugs
     ? matchingSlugs.size
     : journey.milestones.length;
