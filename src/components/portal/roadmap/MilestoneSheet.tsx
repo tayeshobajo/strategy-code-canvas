@@ -362,77 +362,110 @@ export function MilestoneSheet({
               (milestone.actions && milestone.actions.length > 0) ||
               (milestone.dependencies && milestone.dependencies.length > 0);
 
+            const accentHex = isDeadline ? "#E11D48" : KIND_HEX[kind];
+            const positionIdx =
+              sequence && milestone
+                ? Math.max(0, sequence.indexOf(milestone.slug)) + 1
+                : null;
+            const positionTotal = sequence?.length ?? null;
+            const prevMilestoneTitle =
+              prevSlug && sequence
+                ? // Only used for aria; we look up title from the current phase's siblings via canvas would be overkill.
+                  prevSlug.replace(/-/g, " ")
+                : null;
+            const nextMilestoneTitle =
+              nextSlug && sequence ? nextSlug.replace(/-/g, " ") : null;
+
             return (
               <>
-                {/* Header */}
-                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/[0.08] bg-[#FAF8F5]/80">
-                  <div className="flex items-center gap-2 flex-wrap pr-8">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-0.5 text-[10.5px] font-mono uppercase tracking-[0.22em] ${displayKindAccent}`}
+                {/* ================= EDITORIAL HEADER ================= */}
+                <SheetHeader
+                  className="relative text-left space-y-0 px-8 pt-8 pb-6 border-b border-ink/10 bg-transparent"
+                >
+                  {/* Vertical accent bar */}
+                  <span
+                    aria-hidden
+                    className="absolute left-0 top-8 bottom-6 w-[3px] rounded-r-full"
+                    style={{
+                      background: `linear-gradient(180deg, ${accentHex} 0%, ${accentHex}55 100%)`,
+                      boxShadow: `0 0 12px ${accentHex}55`,
+                    }}
+                  />
+
+                  {/* Position numeral, top-right */}
+                  {positionIdx && positionTotal && positionTotal > 1 && (
+                    <div className="absolute top-8 right-8 text-right font-mono">
+                      <div className="text-[10px] uppercase tracking-[0.32em] text-ink/35 leading-none">
+                        Milestone
+                      </div>
+                      <div className="mt-1 text-[13px] tracking-[0.14em] text-ink/70 tabular-nums">
+                        {String(positionIdx).padStart(2, "0")}
+                        <span className="text-ink/25 mx-1">/</span>
+                        {String(positionTotal).padStart(2, "0")}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Kicker — single elegant line, no boxes */}
+                  <div className="font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/50 flex items-center gap-2 pr-24">
+                    <KindIcon className="w-3 h-3" style={{ color: accentHex }} />
+                    <span style={{ color: accentHex }}>{displayKindLabel}</span>
+                    <span className="text-ink/20">—</span>
+                    <span className="truncate">
+                      {phaseNumber != null
+                        ? `Phase ${String(phaseNumber).padStart(2, "0")} · ${phaseName}`
+                        : phaseName}
+                    </span>
+                  </div>
+
+                  {/* Title — bigger, tighter, editorial */}
+                  <SheetTitle
+                    id="milestone-sheet-title"
+                    ref={titleRef}
+                    tabIndex={-1}
+                    className="font-display text-[32px] leading-[1.08] tracking-[-0.01em] text-ink focus:outline-none pt-4"
+                    style={{ fontFeatureSettings: '"ss01", "kern"' }}
+                  >
+                    {milestone.title}
+                  </SheetTitle>
+
+                  {/* Hairline separator */}
+                  <div aria-hidden className="pt-4">
+                    <div className="h-px w-10 bg-ink/25" />
+                  </div>
+
+                  {/* Summary in serif italic */}
+                  {milestone.summary && (
+                    <SheetDescription
+                      id="milestone-sheet-desc"
+                      className="font-display italic text-[16px] leading-[1.55] text-ink/70 pt-3"
                     >
-                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-white/70">
-                        <KindIcon className="w-3 h-3" />
-                      </span>
-                      {displayKindLabel}
-                    </span>
-                    <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
-                      {phaseNumber != null ? `Phase ${phaseNumber} \u00b7 ${phaseName}` : phaseName}
-                    </span>
+                      {milestone.summary}
+                    </SheetDescription>
+                  )}
+
+                  {/* Meta row — status pill + due */}
+                  <div className="flex items-center gap-3 pt-4 pr-24">
                     <span
                       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_TONE[milestone.status]}`}
                     >
                       {STATUS_LABEL[milestone.status]}
                     </span>
+                    {dueLabel && (
+                      <span className="font-mono text-[10.5px] uppercase tracking-[0.24em] text-ink/50 flex items-center gap-1.5">
+                        <Calendar className="w-3 h-3" />
+                        {dueLabel}
+                      </span>
+                    )}
                   </div>
-                  <SheetTitle
-                    id="milestone-sheet-title"
-                    ref={titleRef}
-                    tabIndex={-1}
-                    className="font-display text-[26px] leading-[1.15] text-ink focus:outline-none"
-                  >
-                    {milestone.title}
-                  </SheetTitle>
-                  {milestone.summary && (
-                    <SheetDescription
-                      id="milestone-sheet-desc"
-                      className="text-[14.5px] leading-[1.65] text-ink/70"
-                    >
-                      {milestone.summary}
-                    </SheetDescription>
-                  )}
-                  {canNavigate && (
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={goPrev}
-                        disabled={!prevSlug}
-                        aria-label="Previous milestone"
-                        className="inline-flex items-center gap-1 rounded-md border border-ink/15 bg-white/70 px-2.5 py-1 text-[12px] font-medium text-ink/75 hover:bg-white hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                        Previous
-                      </button>
-                      {sequence && sequence.length > 0 && milestone && (
-                        <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/40">
-                          {Math.max(0, sequence.indexOf(milestone.slug)) + 1} / {sequence.length}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={goNext}
-                        disabled={!nextSlug}
-                        aria-label="Next milestone"
-                        className="inline-flex items-center gap-1 rounded-md border border-ink/15 bg-white/70 px-2.5 py-1 text-[12px] font-medium text-ink/75 hover:bg-white hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        Next
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
                 </SheetHeader>
 
-                {/* Scrollable body — generous spacing (space-y-6) */}
-                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                {/* Scrollable body — generous spacing, keyed for fade-slide */}
+                <div
+                  key={milestone.slug}
+                  className="flex-1 overflow-y-auto px-8 py-7 space-y-7 animate-in fade-in slide-in-from-right-2 duration-300"
+                >
+
                   {kind === "decision" && (
                     <DecisionBody milestone={milestone} />
                   )}
