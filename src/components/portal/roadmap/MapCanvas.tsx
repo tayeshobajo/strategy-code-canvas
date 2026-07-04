@@ -463,7 +463,7 @@ export function MapCanvas({
             style={{ background: "linear-gradient(0deg, rgba(15,10,5,0.3) 0%, rgba(15,10,5,0) 100%)" }}
           />
 
-          {/* === BASE ROUTE PATH — warm golden road, always visible === */}
+          {/* === SPINE PATH — smooth Catmull-Rom, phase-aware === */}
           <svg
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
@@ -481,19 +481,19 @@ export function MapCanvas({
                 </feMerge>
               </filter>
             </defs>
-            {/* Wide warm glow underlay */}
-            <polyline
-              points={baseRouteStr}
+            {/* Wide warm glow underlay for the whole spine */}
+            <path
+              d={spineD}
               fill="none"
-              stroke={`rgba(${ROUTE_GOLD},0.15)`}
+              stroke={`rgba(${ROUTE_GOLD},0.14)`}
               strokeWidth={18}
               strokeLinecap="round"
               strokeLinejoin="round"
               filter="url(#base-route-glow)"
             />
-            {/* Main golden dashed road */}
-            <polyline
-              points={baseRouteStr}
+            {/* Main golden road — smooth continuous curve */}
+            <path
+              d={spineD}
               fill="none"
               stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.55)`}
               strokeWidth={4}
@@ -501,7 +501,58 @@ export function MapCanvas({
               strokeLinejoin="round"
               strokeDasharray="10 6"
             />
+            {/* Per-phase status overlays: completed = solid brighter, current
+                = slow shimmer, upcoming = faint dashed. */}
+            {phaseSegmentDs.map((seg) => {
+              const isCurrent = seg.key === currentPhaseKey;
+              const phaseIdx = journey.phases.findIndex((p) => p.key === seg.key);
+              const currentIdx = journey.phases.findIndex(
+                (p) => p.key === currentPhaseKey,
+              );
+              const isCompleted = currentIdx >= 0 && phaseIdx < currentIdx;
+              if (isCompleted) {
+                return (
+                  <path
+                    key={`seg-${seg.key}`}
+                    d={seg.d}
+                    fill="none"
+                    stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.85)`}
+                    strokeWidth={5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                );
+              }
+              if (isCurrent) {
+                return (
+                  <g key={`seg-${seg.key}`}>
+                    <path
+                      d={seg.d}
+                      fill="none"
+                      stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.9)`}
+                      strokeWidth={6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      filter="url(#base-route-glow)"
+                    />
+                    {!reduced && (
+                      <path
+                        d={seg.d}
+                        fill="none"
+                        stroke="rgba(255,250,235,0.85)"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeDasharray="14 26"
+                        className="roadmap-path-shimmer"
+                      />
+                    )}
+                  </g>
+                );
+              }
+              return null;
+            })}
           </svg>
+
 
           {/* === SELECTED CRITICAL PATH — bright golden glow === */}
           {selectedPathPoints && (
