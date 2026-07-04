@@ -1352,6 +1352,168 @@ export type Database = {
           },
         ]
       }
+      engine_extracted_signals: {
+        Row: {
+          category: Database["public"]["Enums"]["engine_signal_category"]
+          client_safe: boolean
+          confidence: number
+          created_at: string
+          detail: string | null
+          extraction_run_id: string | null
+          id: string
+          label: string
+          metadata: Json
+          project_id: string
+          source_id: string | null
+          updated_at: string
+          used_in_version_id: string | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["engine_signal_category"]
+          client_safe?: boolean
+          confidence?: number
+          created_at?: string
+          detail?: string | null
+          extraction_run_id?: string | null
+          id?: string
+          label: string
+          metadata?: Json
+          project_id: string
+          source_id?: string | null
+          updated_at?: string
+          used_in_version_id?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["engine_signal_category"]
+          client_safe?: boolean
+          confidence?: number
+          created_at?: string
+          detail?: string | null
+          extraction_run_id?: string | null
+          id?: string
+          label?: string
+          metadata?: Json
+          project_id?: string
+          source_id?: string | null
+          updated_at?: string
+          used_in_version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_extracted_signals_extraction_run_id_fkey"
+            columns: ["extraction_run_id"]
+            isOneToOne: false
+            referencedRelation: "engine_extraction_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_extracted_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_extracted_signals_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "engine_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_extracted_signals_used_in_version_id_fkey"
+            columns: ["used_in_version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_extraction_runs: {
+        Row: {
+          cost_cents: number
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          intake_summary: string | null
+          metadata: Json
+          model_intake: string | null
+          model_structured: string | null
+          produced_version_id: string | null
+          project_id: string
+          provider_intake: string | null
+          provider_structured: string | null
+          signals_count: number
+          source_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["engine_extraction_run_status"]
+          updated_at: string
+        }
+        Insert: {
+          cost_cents?: number
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          intake_summary?: string | null
+          metadata?: Json
+          model_intake?: string | null
+          model_structured?: string | null
+          produced_version_id?: string | null
+          project_id: string
+          provider_intake?: string | null
+          provider_structured?: string | null
+          signals_count?: number
+          source_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["engine_extraction_run_status"]
+          updated_at?: string
+        }
+        Update: {
+          cost_cents?: number
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          intake_summary?: string | null
+          metadata?: Json
+          model_intake?: string | null
+          model_structured?: string | null
+          produced_version_id?: string | null
+          project_id?: string
+          provider_intake?: string | null
+          provider_structured?: string | null
+          signals_count?: number
+          source_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["engine_extraction_run_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_extraction_runs_produced_version_id_fkey"
+            columns: ["produced_version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_extraction_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_extraction_runs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "engine_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_intelligence_decisions: {
         Row: {
           action: string
@@ -1946,7 +2108,9 @@ export type Database = {
           approved_by: string | null
           created_at: string
           created_by: string
+          generation_provenance: Json
           id: string
+          label: string | null
           parent_version_id: string | null
           payload: Json
           project_id: string
@@ -1961,7 +2125,9 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           created_by?: string
+          generation_provenance?: Json
           id?: string
+          label?: string | null
           parent_version_id?: string | null
           payload?: Json
           project_id: string
@@ -1976,7 +2142,9 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           created_by?: string
+          generation_provenance?: Json
           id?: string
+          label?: string | null
           parent_version_id?: string | null
           payload?: Json
           project_id?: string
@@ -2062,6 +2230,8 @@ export type Database = {
           updated_at: string
           url: string | null
           used_in_version: string | null
+          used_in_version_ids: string[]
+          visibility: Database["public"]["Enums"]["engine_source_visibility"]
         }
         Insert: {
           confidence?: number
@@ -2083,6 +2253,8 @@ export type Database = {
           updated_at?: string
           url?: string | null
           used_in_version?: string | null
+          used_in_version_ids?: string[]
+          visibility?: Database["public"]["Enums"]["engine_source_visibility"]
         }
         Update: {
           confidence?: number
@@ -2104,6 +2276,8 @@ export type Database = {
           updated_at?: string
           url?: string | null
           used_in_version?: string | null
+          used_in_version_ids?: string[]
+          visibility?: Database["public"]["Enums"]["engine_source_visibility"]
         }
         Relationships: [
           {
@@ -3090,8 +3264,15 @@ export type Database = {
         | "scope_change"
         | "investment_impact"
         | "client_copy_affected"
+      engine_extraction_run_status:
+        | "pending"
+        | "running"
+        | "succeeded"
+        | "failed"
       engine_project_status:
+        | "intake"
         | "active"
+        | "source_processing"
         | "draft"
         | "needs_review"
         | "approved"
@@ -3099,6 +3280,20 @@ export type Database = {
         | "in_execution"
         | "blocked"
         | "archived"
+      engine_signal_category:
+        | "goal"
+        | "pain"
+        | "opportunity"
+        | "deadline"
+        | "constraint"
+        | "decision_maker"
+        | "hidden_asset"
+        | "risk"
+        | "required_system"
+        | "milestone_candidate"
+        | "investment_signal"
+        | "client_language"
+        | "open_question"
       engine_source_status: "queued" | "processing" | "processed" | "failed"
       engine_source_type:
         | "transcript"
@@ -3110,6 +3305,10 @@ export type Database = {
         | "research_note"
         | "competitor_url"
         | "previous_roadmap"
+      engine_source_visibility:
+        | "internal_only"
+        | "operator_only"
+        | "client_safe"
       engine_version_status:
         | "ai_generated"
         | "draft"
@@ -3280,8 +3479,16 @@ export const Constants = {
         "investment_impact",
         "client_copy_affected",
       ],
+      engine_extraction_run_status: [
+        "pending",
+        "running",
+        "succeeded",
+        "failed",
+      ],
       engine_project_status: [
+        "intake",
         "active",
+        "source_processing",
         "draft",
         "needs_review",
         "approved",
@@ -3289,6 +3496,21 @@ export const Constants = {
         "in_execution",
         "blocked",
         "archived",
+      ],
+      engine_signal_category: [
+        "goal",
+        "pain",
+        "opportunity",
+        "deadline",
+        "constraint",
+        "decision_maker",
+        "hidden_asset",
+        "risk",
+        "required_system",
+        "milestone_candidate",
+        "investment_signal",
+        "client_language",
+        "open_question",
       ],
       engine_source_status: ["queued", "processing", "processed", "failed"],
       engine_source_type: [
@@ -3301,6 +3523,11 @@ export const Constants = {
         "research_note",
         "competitor_url",
         "previous_roadmap",
+      ],
+      engine_source_visibility: [
+        "internal_only",
+        "operator_only",
+        "client_safe",
       ],
       engine_version_status: [
         "ai_generated",

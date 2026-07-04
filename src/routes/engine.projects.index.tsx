@@ -11,7 +11,7 @@ import {
   formatCents,
   formatDate,
 } from "@/components/engine/primitives";
-import { toast } from "sonner";
+
 
 const FILTERS = [
   { value: "all", label: "All" },
@@ -65,12 +65,12 @@ function ProjectsPage() {
           <h1 className="font-display text-4xl text-ink mt-1">Projects</h1>
           <p className="text-sm text-ink/60 mt-2">All client roadmap projects in one place.</p>
         </div>
-        <button
-          onClick={() => toast.info("New Project flow lands in the next build")}
+        <Link
+          to="/engine/projects/new"
           className="bg-ink text-white px-4 py-2 rounded-md text-sm hover:bg-ink/90"
         >
           + New project
-        </button>
+        </Link>
       </header>
 
       <div className="flex flex-wrap gap-2">
