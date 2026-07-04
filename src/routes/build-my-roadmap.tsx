@@ -324,6 +324,12 @@ const REQUIRED_KEYS = QUESTIONS.filter((q) => !q.optional).map((q) => q.key);
 
 
 type AnswerRecord = { response: string; reflected_offered: string | null };
+type AttachmentRecord = {
+  storage_path: string;
+  filename: string;
+  size: number;
+  mime: string | null;
+};
 type ContactState = {
   name: string;
   business: string;
