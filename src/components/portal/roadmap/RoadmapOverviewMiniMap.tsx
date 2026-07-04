@@ -342,7 +342,16 @@ export function RoadmapOverviewMiniMap({
           </button>
         </div>
       </div>
+      {/* Screen-reader-only live region — announces phase changes */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
+      </div>
     </div>
+
   );
 }
 
