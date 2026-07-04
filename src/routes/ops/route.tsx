@@ -66,9 +66,15 @@ function OpsLayout() {
     <div className="flex min-h-screen bg-[#f6f6f3] text-[#171c38]">
       <aside className="hidden w-[232px] shrink-0 flex-col border-r border-[#1a1f3d] bg-[#0c1130] text-white md:flex">
         <div className="px-6 pt-7 pb-6">
-          <div className="font-serif text-xl tracking-[0.32em] text-white">TRUST TAI</div>
+          <Link
+            to="/engine/review"
+            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.22em] text-white/60 hover:text-white"
+          >
+            ← Back to Engine
+          </Link>
+          <div className="mt-3 font-serif text-xl tracking-[0.32em] text-white">TRUST TAI</div>
           <div className="mt-1 text-[11px] uppercase tracking-[0.22em] text-white/55">
-            Roadmap Console
+            Roadmap Engine · Submission Queue
           </div>
         </div>
         <nav className="flex-1 px-3 py-2">
@@ -138,8 +144,14 @@ function OpsLayout() {
         <div className="md:hidden border-b border-[#e7e6df] bg-white px-4 py-3">
           <div className="font-serif text-base tracking-[0.28em]">TRUST TAI</div>
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5d6079]">
-            Roadmap Console
+            Roadmap Engine · Submission Queue
           </div>
+          <Link
+            to="/engine/review"
+            className="mt-1 inline-block text-[10px] uppercase tracking-[0.2em] text-[#5d6079] hover:text-[#171c38]"
+          >
+            ← Back to Engine
+          </Link>
           <div className="mt-3 flex gap-1 overflow-x-auto pb-1 text-xs">
             {NAV.map((item) => {
               const [base] = item.to.split("?");
