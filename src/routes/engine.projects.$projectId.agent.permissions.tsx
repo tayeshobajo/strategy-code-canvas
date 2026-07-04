@@ -83,11 +83,15 @@ function AgentPermissionsPage() {
           </h1>
           <p className="text-sm text-ink/60 mt-1">Control what the project agent is allowed to do.</p>
         </div>
-        <button
-          onClick={() => save.mutate()}
-          disabled={save.isPending}
-          className="text-sm bg-royal text-white rounded-md px-4 py-2 flex items-center gap-1.5 hover:bg-royal/90 disabled:opacity-60"
-        ><Save className="w-4 h-4" /> Save Changes</button>
+        {canManageAgents ? (
+          <button
+            onClick={() => save.mutate()}
+            disabled={save.isPending}
+            className="text-sm bg-royal text-white rounded-md px-4 py-2 flex items-center gap-1.5 hover:bg-royal/90 disabled:opacity-60"
+          ><Save className="w-4 h-4" /> Save Changes</button>
+        ) : (
+          <OperatorLockNotice message={adminOnlyReason} />
+        )}
       </div>
 
       {/* Permission mode */}
