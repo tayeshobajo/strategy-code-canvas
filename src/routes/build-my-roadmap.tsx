@@ -363,6 +363,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
   const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = React.useState<number | null>(null);
   const [furthestStep, setFurthestStep] = React.useState<number>(-1);
+  const [attachments, setAttachments] = React.useState<AttachmentRecord[]>([]);
 
   const lastSubmitPayload = React.useRef<Record<string, unknown> | null>(null);
 
