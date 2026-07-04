@@ -30,9 +30,52 @@ const SOURCE_ROUTE: Record<string, string> = {
   "Investment Change": "Investment builder",
   "Delivery Approval": "Delivery prep",
   "Agent Permission": "Agent permissions",
+  "Client Decision": "Client portal · roadmap",
+  "Client Clarification": "Client portal · messages",
 };
 
-const TYPES = ["All", "Roadmap Update", "Version Change", "Milestone Brief", "Client Preview", "Investment Change", "Delivery Approval", "Agent Permission"];
+const TYPES = [
+  "All", "Roadmap Update", "Version Change", "Milestone Brief", "Client Preview",
+  "Investment Change", "Delivery Approval", "Agent Permission",
+  "Client Decision", "Client Clarification",
+];
+
+/**
+ * Client Decision review items are inserted by respondToPortalDecision with a
+ * title shaped as `${milestoneTitle} — client ${decision}` (see
+ * src/lib/portal.functions.ts). Parse it back out so the ops queue can show
+ * the portal decision type and affected milestone at a glance.
+ */
+function parseClientDecisionTitle(title: string): {
+  milestone: string;
+  decision: "approve" | "changes requested" | "declined" | null;
+} {
+  const m = title.match(/^(.*)\s—\sclient\s(approve|changes requested|declined)\s*$/i);
+  if (!m) return { milestone: title, decision: null };
+  const raw = m[2].toLowerCase();
+  const decision =
+    raw === "approve" ? "approve"
+    : raw === "declined" ? "declined"
+    : "changes requested";
+  return { milestone: m[1].trim(), decision };
+}
+
+function DecisionBadge({ decision }: { decision: "approve" | "changes requested" | "declined" }) {
+  const tone =
+    decision === "approve"
+      ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+      : decision === "declined"
+        ? "bg-rose-100 text-rose-800 border-rose-200"
+        : "bg-amber-100 text-amber-900 border-amber-200";
+  const label =
+    decision === "approve" ? "Approved" : decision === "declined" ? "Declined" : "Changes requested";
+  return (
+    <span className={cn("inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border", tone)}>
+      {label}
+    </span>
+  );
+}
+
 
 const reviewQO = queryOptions({
   queryKey: ["engine", "reviews"],
