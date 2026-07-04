@@ -144,7 +144,13 @@ function OpsLayout() {
         <div className="md:hidden border-b border-[#e7e6df] bg-white px-4 py-3">
           <div className="font-serif text-base tracking-[0.28em]">TRUST TAI</div>
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5d6079]">
-            Roadmap Console
+            Roadmap Engine · Submission Queue
+          </div>
+          <Link
+            to="/engine/review"
+            className="mt-1 inline-block text-[10px] uppercase tracking-[0.2em] text-[#5d6079] hover:text-[#171c38]"
+          >
+            ← Back to Engine
           </div>
           <div className="mt-3 flex gap-1 overflow-x-auto pb-1 text-xs">
             {NAV.map((item) => {
