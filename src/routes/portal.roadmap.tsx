@@ -29,10 +29,7 @@ import {
 import { MapCanvas } from "@/components/portal/roadmap/MapCanvas";
 import { MilestoneSheet } from "@/components/portal/roadmap/MilestoneSheet";
 import { SelectionConnector } from "@/components/portal/roadmap/SelectionConnector";
-import {
-  RoadmapOverviewStrip,
-  MapLegend,
-} from "@/components/portal/roadmap/RoadmapOverviewStrip";
+import { MapLegend } from "@/components/portal/roadmap/RoadmapOverviewStrip";
 import { RoadmapOverviewMiniMap } from "@/components/portal/roadmap/RoadmapOverviewMiniMap";
 import { StatusOverlayCard } from "@/components/portal/roadmap/StatusOverlayCard";
 import { MobilePhaseStack } from "@/components/portal/roadmap/MobilePhaseStack";
