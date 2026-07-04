@@ -1420,6 +1420,11 @@ function DemoRoadmapView() {
             matchingCount={matchingCount}
             matchingSlugs={matchingSlugs}
             onResetView={() => setViewMode("all")}
+            statusFilter={new Set(FILTERABLE_STATUSES)}
+            phaseFilter={new Set()}
+            onToggleStatus={() => {}}
+            onTogglePhase={() => {}}
+            onResetFilters={() => {}}
           />
         </div>
       }
