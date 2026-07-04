@@ -201,8 +201,8 @@ export function MilestoneSheet({
           overlayClassName={isMobile ? undefined : "bg-slate-950/[0.08] backdrop-blur-[1px]"}
           className={
             isMobile
-              ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-paper text-ink border-t border-border overflow-y-auto p-0"
-              : "w-full sm:max-w-[410px] bg-paper text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_30px_80px_-30px_rgba(11,18,32,0.35)] p-0 flex flex-col"
+              ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-[#FAF8F5] text-ink border-t border-border overflow-y-auto p-0"
+              : "w-full sm:max-w-[410px] bg-[#FAF8F5] text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_30px_80px_-30px_rgba(11,18,32,0.35)] p-0 flex flex-col"
           }
           aria-labelledby="milestone-sheet-title"
           aria-describedby="milestone-sheet-desc"
@@ -252,7 +252,6 @@ export function MilestoneSheet({
                 ? `Target ${fmtDate(milestone.targetDate)}`
                 : null;
 
-            // Check if there are secondary sections to collapse
             const hasSecondary =
               (milestone.unlocks && milestone.unlocks.length > 0) ||
               (milestone.actions && milestone.actions.length > 0) ||
@@ -261,7 +260,7 @@ export function MilestoneSheet({
             return (
               <>
                 {/* Header */}
-                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/[0.08] bg-[color:var(--paper,#f6f2ea)]/60">
+                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/[0.08] bg-[#FAF8F5]/80">
                   <div className="flex items-center gap-2 flex-wrap pr-8">
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-0.5 text-[10.5px] font-mono uppercase tracking-[0.22em] ${displayKindAccent}`}
@@ -271,7 +270,7 @@ export function MilestoneSheet({
                       </span>
                       {displayKindLabel}
                     </span>
-                    <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/50">
+                    <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
                       {phaseNumber != null ? `Phase ${phaseNumber} \u00b7 ${phaseName}` : phaseName}
                     </span>
                     <span
@@ -298,8 +297,8 @@ export function MilestoneSheet({
                   )}
                 </SheetHeader>
 
-                {/* Scrollable body */}
-                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+                {/* Scrollable body — generous spacing (space-y-6) */}
+                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
                   {kind === "decision" && (
                     <DecisionBody milestone={milestone} />
                   )}
@@ -308,7 +307,7 @@ export function MilestoneSheet({
                   )}
                   {kind === "meeting" && <MeetingBody milestone={milestone} />}
 
-                  {/* Primary detail — always visible */}
+                  {/* Primary detail */}
                   {milestone.detail && milestone.detail !== milestone.summary && (
                     <Section label="Why it matters" icon={Lightbulb}>
                       <p>{milestone.detail}</p>
@@ -320,13 +319,13 @@ export function MilestoneSheet({
                     </Section>
                   )}
 
-                  {/* Secondary details — progressive disclosure */}
+                  {/* Secondary details */}
                   {hasSecondary && (
                     <Collapsible open={secondaryOpen} onOpenChange={setSecondaryOpen}>
                       <CollapsibleTrigger asChild>
                         <button
                           type="button"
-                          className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.24em] text-ink/50 hover:text-ink/70 transition-colors py-1"
+                          className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.24em] text-ink/45 hover:text-ink/70 transition-colors py-1"
                         >
                           <ChevronDown
                             className={`w-3.5 h-3.5 transition-transform duration-200 ${secondaryOpen ? "rotate-180" : ""}`}
@@ -334,7 +333,7 @@ export function MilestoneSheet({
                           {secondaryOpen ? "Hide details" : "More details"}
                         </button>
                       </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-5 pt-3">
+                      <CollapsibleContent className="space-y-6 pt-4">
                         {milestone.unlocks && milestone.unlocks.length > 0 && (
                           <Section label="What it unlocks" icon={Unlock}>
                             <ul className="list-disc pl-5 space-y-1.5">
@@ -405,7 +404,7 @@ export function MilestoneSheet({
                 </div>
 
                 {/* Sticky CTA footer */}
-                <div className="shrink-0 border-t border-ink/10 bg-white/80 backdrop-blur px-6 pt-4 pb-5 space-y-2.5">
+                <div className="shrink-0 border-t border-ink/10 bg-white/70 backdrop-blur px-6 pt-4 pb-5 space-y-2.5">
                   {primaryCta && "href" in primaryCta && primaryCta.href ? (
                     <Button
                       asChild
@@ -569,7 +568,7 @@ function DecisionBody({ milestone }: { milestone: RoadmapMilestone }) {
                   milestone.recommendedOption === o
                     ? "border-royal/40 bg-royal/5 text-ink"
                     : "border-border text-ink/80"
-                }`}
+                }`
               >
                 {o}
                 {milestone.recommendedOption === o && (
@@ -603,7 +602,7 @@ function DeliverableBody({ milestone }: { milestone: RoadmapMilestone }) {
       <dl className="grid grid-cols-3 gap-2 text-[13px]">
         {rows.map(([k, v]) => (
           <div key={k}>
-            <dt className="text-ink/55 uppercase tracking-[0.18em] text-[10px] font-mono">
+            <dt className="text-ink/45 uppercase tracking-[0.18em] text-[10px] font-mono">
               {k}
             </dt>
             <dd className="text-ink mt-0.5">{v}</dd>
@@ -642,7 +641,7 @@ function Section({
 }) {
   return (
     <div>
-      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/50 mb-2 flex items-center gap-1.5">
+      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/45 mb-2 flex items-center gap-1.5">
         {Icon && <Icon className="w-3 h-3 text-royal" />}
         {label}
       </div>
