@@ -653,6 +653,11 @@ function RoadmapCanvasStage({
   matchingCount,
   matchingSlugs,
   onResetView,
+  statusFilter,
+  phaseFilter,
+  onToggleStatus,
+  onTogglePhase,
+  onResetFilters,
 }: {
   journey: ReturnType<typeof buildRoadmapJourney>;
   selectedSlug: string | null;
@@ -662,6 +667,11 @@ function RoadmapCanvasStage({
   matchingCount: number;
   matchingSlugs: Set<string> | null;
   onResetView: () => void;
+  statusFilter: Set<MilestoneStatus>;
+  phaseFilter: Set<PhaseKey>;
+  onToggleStatus: (s: MilestoneStatus) => void;
+  onTogglePhase: (p: PhaseKey) => void;
+  onResetFilters: () => void;
 }) {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/portal/roadmap" });
