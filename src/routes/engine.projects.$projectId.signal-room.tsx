@@ -53,6 +53,9 @@ function SignalRoom() {
         <p className="text-sm text-ink/60 mt-1">Raw truth. Everything the roadmap will be built from.</p>
       </header>
 
+      <ExtractedSignalsPanel projectId={projectId} />
+
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <FileUploader
           projectId={projectId}
