@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Bookmark, Check, Loader2, LogOut } from "lucide-react";
+import { ArrowRight, Bookmark, Check, Loader2, LogOut, Paperclip, Trash2, Upload } from "lucide-react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import trustTaiLogoDark from "@/assets/trust-tai-logo.png.asset.json";
 import { Reveal } from "@/hooks/use-reveal";
 import notebookImg from "@/assets/cta-book-cover-desk.png.asset.json";
 import heroMountain from "@/assets/roadmap-hero-mountain.png.asset.json";
+import { supabase } from "@/integrations/supabase/client";
 
 
 
