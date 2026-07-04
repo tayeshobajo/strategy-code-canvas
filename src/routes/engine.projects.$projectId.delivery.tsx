@@ -37,6 +37,7 @@ function DeliveryPrep() {
   const qc = useQueryClient();
   const sendFn = useServerFn(sendProjectDelivery);
   const saveChecklistFn = useServerFn(saveDeliveryChecklist);
+  const { canSendDelivery, adminOnlyReason } = useEngineRole();
 
   const d = (project.delivery ?? {}) as {
     recipient_name?: string;
