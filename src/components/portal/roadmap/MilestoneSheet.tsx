@@ -224,6 +224,25 @@ export function MilestoneSheet({
     };
   }, [open, isMobile, canvas]);
 
+  // Keyboard: arrow left/right for prev/next, handled globally when drawer is
+  // open and focus isn't in an input/textarea.
+  useEffect(() => {
+    if (!open || !canNavigate) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goNext();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, canNavigate, prevSlug, nextSlug]);
+
   const handleClose = () => {
     const slug = openedSlugRef.current;
     onClose();
