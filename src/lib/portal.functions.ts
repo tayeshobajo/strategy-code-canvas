@@ -629,7 +629,7 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
     }
 
     // IMPORTANT: This SELECT is the client-visible surface for roadmap payloads.
-    // NEVER add internal-engine columns here (supporting_notes, source_version_id,
+    // NEVER add internal-engine columns here (supporting_notes, approved_roadmap_version_id,
     // review flags, agent costs, cost_cents, ai_confidence, internal notes, etc.).
     // Every column below is intentionally client-safe.
     const { data, error } = await context.supabase
@@ -1003,7 +1003,7 @@ export const recordPortalRoadmapEvent = createServerFn({ method: "POST" })
     // Load the portal roadmap and ensure the caller has permission to see it.
     const { data: cpr, error: cprErr } = await context.supabase
       .from("client_portal_roadmaps")
-      .select("id, project_id, acknowledged_at, source_version_id")
+      .select("id, project_id, acknowledged_at, approved_roadmap_version_id")
       .eq("id", data.roadmapId)
       .maybeSingle();
     if (cprErr || !cpr) return { error: "Roadmap not found or not visible" } as const;
