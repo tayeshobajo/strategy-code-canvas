@@ -8,6 +8,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { isAdminEmail, isOperatorEmail } from "@/lib/ops/access";
+
+async function resolveStaffLanding(email: string | null | undefined): Promise<string | null> {
+  const em = (email ?? "").toLowerCase();
+  if (!em) return null;
+  if (isAdminEmail(em) || isOperatorEmail(em)) return "/engine";
+  try {
+    const [{ data: admin }, { data: op }, { data: team }] = await Promise.all([
+      supabase.rpc("has_role_email", { _email: em, _role: "admin" }),
+      supabase.rpc("has_role_email", { _email: em, _role: "operator" }),
+      supabase.rpc("has_role_email", { _email: em, _role: "team_member" }),
+    ]);
+    if (admin === true || op === true || team === true) return "/engine";
+  } catch {
+    // fall through to portal
+  }
+  return null;
+}
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
