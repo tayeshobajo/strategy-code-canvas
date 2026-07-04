@@ -375,7 +375,7 @@ function RejectDialog({ item, onClose, onSubmit }: { item: ReviewItem; onClose: 
         <header className="flex items-center justify-between p-4 border-b border-border">
           <div>
             <div className="font-display text-lg text-ink">Reject &amp; return</div>
-            <div className="text-xs text-ink/60">{item.project} · {item.item_type}</div>
+            <div className="text-xs text-ink/60">{item.project} · {displayType(item.item_type)}</div>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
         </header>
