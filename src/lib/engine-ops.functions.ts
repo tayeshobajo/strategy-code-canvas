@@ -752,7 +752,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       action: "version_published_to_portal",
       summary: `Published ${ver.version} to client portal.`,
       version_id: ver.id,
-      metadata: { portal_roadmap_id: pub.id, portal_project_id: project.client_portal_project_id },
+      metadata: { portal_roadmap_id: pub.id, portal_project_id: portalProjectId },
     });
 
     return { ok: true, portal_roadmap_id: pub.id };
