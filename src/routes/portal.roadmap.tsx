@@ -511,6 +511,14 @@ function RoadmapJourneyView({
         authorEmail={authorEmail}
         schedulingUrl={schedulingUrl}
         onClose={() => setSelected(null)}
+        sequence={
+          matchingSlugs
+            ? journey.milestones
+                .filter((m) => matchingSlugs.has(m.slug))
+                .map((m) => m.slug)
+            : journey.milestones.map((m) => m.slug)
+        }
+        onSelect={(slug) => setSelected(slug)}
       />
       <ClarificationModal
         open={headerClarifyOpen}
