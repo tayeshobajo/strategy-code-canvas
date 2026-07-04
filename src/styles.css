@@ -593,10 +593,29 @@
 .roadmap-territory { transition: opacity 320ms ease-out, background 320ms ease-out; }
 .roadmap-territory[data-hover="true"] { opacity: 1 !important; }
 
+/* Highlighted route segment — a bright warm shimmer that draws the eye
+   to whatever the user just selected (marker click, mini-map click, drawer
+   prev/next). Peaks brighter than the ambient active-segment pulse. */
+@keyframes roadmap-highlighted-pulse {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 12px rgba(255,211,122,0.7)) drop-shadow(0 0 4px rgba(255,255,255,0.5));
+  }
+  50% {
+    opacity: 0.85;
+    filter: drop-shadow(0 0 24px rgba(255,211,122,0.95)) drop-shadow(0 0 8px rgba(255,255,255,0.75));
+  }
+}
+.roadmap-highlighted-segment {
+  animation: roadmap-highlighted-pulse 1.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .roadmap-active-segment,
   .roadmap-phase-glow,
   .roadmap-node-breathe,
-  .roadmap-path-shimmer { animation: none !important; }
+  .roadmap-path-shimmer,
+  .roadmap-highlighted-segment { animation: none !important; }
 }
+
 
