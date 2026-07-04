@@ -63,6 +63,7 @@ import { Route as EngineProjectsIndexRouteImport } from './routes/engine.project
 import { Route as OpsSubmissionsIdRouteImport } from './routes/ops/submissions.$id'
 import { Route as OpsEditorIdRouteImport } from './routes/ops/editor.$id'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as EngineProjectsNewRouteImport } from './routes/engine.projects.new'
 import { Route as EngineProjectsProjectIdRouteImport } from './routes/engine.projects.$projectId'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -363,6 +364,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngineProjectsNewRoute = EngineProjectsNewRouteImport.update({
+  id: '/projects/new',
+  path: '/projects/new',
+  getParentRoute: () => EngineRoute,
+} as any)
 const EngineProjectsProjectIdRoute = EngineProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
@@ -591,6 +597,7 @@ export interface FileRoutesByFullPath {
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
+  '/engine/projects/new': typeof EngineProjectsNewRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
@@ -671,6 +678,7 @@ export interface FileRoutesByTo {
   '/engine': typeof EngineIndexRoute
   '/ops': typeof OpsIndexRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
+  '/engine/projects/new': typeof EngineProjectsNewRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
@@ -758,6 +766,7 @@ export interface FileRoutesById {
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
+  '/engine/projects/new': typeof EngineProjectsNewRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
@@ -844,6 +853,7 @@ export interface FileRouteTypes {
     | '/ops/'
     | '/portal/'
     | '/engine/projects/$projectId'
+    | '/engine/projects/new'
     | '/lovable/email/suppression'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
@@ -924,6 +934,7 @@ export interface FileRouteTypes {
     | '/engine'
     | '/ops'
     | '/engine/projects/$projectId'
+    | '/engine/projects/new'
     | '/lovable/email/suppression'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
@@ -1010,6 +1021,7 @@ export interface FileRouteTypes {
     | '/ops/'
     | '/portal/'
     | '/engine/projects/$projectId'
+    | '/engine/projects/new'
     | '/lovable/email/suppression'
     | '/ops/editor/$id'
     | '/ops/submissions/$id'
@@ -1456,6 +1468,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engine/projects/new': {
+      id: '/engine/projects/new'
+      path: '/projects/new'
+      fullPath: '/engine/projects/new'
+      preLoaderRoute: typeof EngineProjectsNewRouteImport
+      parentRoute: typeof EngineRoute
+    }
     '/engine/projects/$projectId': {
       id: '/engine/projects/$projectId'
       path: '/projects/$projectId'
@@ -1814,6 +1833,7 @@ interface EngineRouteChildren {
   EngineTemplatesRoute: typeof EngineTemplatesRoute
   EngineIndexRoute: typeof EngineIndexRoute
   EngineProjectsProjectIdRoute: typeof EngineProjectsProjectIdRouteWithChildren
+  EngineProjectsNewRoute: typeof EngineProjectsNewRoute
   EngineProjectsIndexRoute: typeof EngineProjectsIndexRoute
 }
 
@@ -1826,6 +1846,7 @@ const EngineRouteChildren: EngineRouteChildren = {
   EngineTemplatesRoute: EngineTemplatesRoute,
   EngineIndexRoute: EngineIndexRoute,
   EngineProjectsProjectIdRoute: EngineProjectsProjectIdRouteWithChildren,
+  EngineProjectsNewRoute: EngineProjectsNewRoute,
   EngineProjectsIndexRoute: EngineProjectsIndexRoute,
 }
 

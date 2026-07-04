@@ -52,18 +52,23 @@ function NewProjectPage() {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const payload: Parameters<typeof createFn>[0]["data"] = {
+      const payload: {
+        projectName: string;
+        engagementType?: string;
+        roadmapType?: string;
+        primaryGoal?: string;
+        criticalDate?: string;
+        clientId?: string;
+        newClient?: { company: string; industry?: string; contact_email?: string };
+        source: { type: string; name: string; raw_text?: string; url?: string };
+      } = {
         projectName: projectName.trim(),
         engagementType: engagementType.trim() || undefined,
         roadmapType: roadmapType.trim() || undefined,
         primaryGoal: primaryGoal.trim() || undefined,
         criticalDate: criticalDate.trim() || undefined,
         source: {
-          type: SourceTypeMap[sourceTab] as z.infer<
-            typeof import("@/lib/engine-project-intake.functions") extends never ? never : never
-          > extends never
-            ? any
-            : any,
+          type: SourceTypeMap[sourceTab],
           name: sourceName.trim() || "Untitled source",
           raw_text: sourceTab === "paste" ? rawText : undefined,
           url: sourceTab === "url" ? sourceUrl : undefined,
