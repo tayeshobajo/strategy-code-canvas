@@ -139,6 +139,10 @@ export function computeMapLayout(journey: RoadmapJourney): {
   // build a coherent spine and route adjacent/fork markers off of it.
   const phaseAnchors: Array<{ key: PhaseKey; nx: number; ny: number }[]> = [];
 
+  // Safety buffer between the phase title and the highest a marker may rise
+  // — prevents fork/deadline offsets from punching into the phase heading.
+  const PHASE_TITLE_BUFFER = 0.055;
+
   for (const phase of journey.phases) {
     const layout = PHASE_LAYOUT[phase.key];
     const items = phase.milestones;
@@ -148,13 +152,19 @@ export function computeMapLayout(journey: RoadmapJourney): {
     const inset = Math.min(0.045, (layout.x1 - layout.x0) * 0.12);
     const x0 = layout.x0 + inset;
     const x1 = layout.x1 - inset;
-    const minGap = 0.052;
-    const span = Math.max(x1 - x0, (n - 1) * minGap);
-    const start = x0 - Math.max(0, (span - (x1 - x0)) / 2);
+    const bandWidth = Math.max(0.001, x1 - x0);
+    // Dynamically shrink the gap between markers so a dense phase stays
+    // inside its band. This guarantees strict Point A → Point B sequence
+    // and prevents phase 1 markers from leaking into phase 2 territory.
+    const idealGap = 0.052;
+    const gap = n <= 1 ? 0 : Math.min(idealGap, bandWidth / Math.max(1, n - 1));
+    const span = gap * Math.max(0, n - 1);
+    // Center the marker run inside the band, but never leak past x0 or x1.
+    const start = x0 + Math.max(0, (bandWidth - span) / 2);
     const anchors: { key: PhaseKey; nx: number; ny: number }[] = [];
     items.forEach((m, i) => {
       const t = n === 1 ? 0.5 : i / (n - 1);
-      const nx = n === 1 ? (x0 + x1) / 2 : start + span * t;
+      const nx = n === 1 ? (x0 + x1) / 2 : start + gap * i;
       // On-road baseline: smooth arc across the phase between yStart and yEnd.
       const baseY = layout.yStart + (layout.yEnd - layout.yStart) * t;
       const attachment = attachmentForKind(m);
@@ -165,10 +175,16 @@ export function computeMapLayout(journey: RoadmapJourney): {
         attachment === "on-road" || attachment === "flag"
           ? 0
           : (i % 2 === 0 ? -1 : 1) * 0.012;
-      const ny = baseY + offset + stagger;
+      // Clamp Y so a fork/deadline offset never climbs into the phase title,
+      // and never drops below the canvas floor.
+      const minNy = layout.headingY + PHASE_TITLE_BUFFER;
+      const rawNy = baseY + offset + stagger;
+      const ny = Math.min(0.94, Math.max(minNy, rawNy));
       markers.push({ milestone: m, nx, ny, attachment });
-      // The anchor for the spine is the ON-ROAD position (offset stripped).
-      anchors.push({ key: phase.key, nx, ny: baseY });
+      // The anchor for the spine is the ON-ROAD position (offset stripped)
+      // — clamped the same way so the spine can't punch into the title band.
+      const anchorNy = Math.min(0.94, Math.max(minNy, baseY));
+      anchors.push({ key: phase.key, nx, ny: anchorNy });
     });
     phaseAnchors.push(anchors);
   }
