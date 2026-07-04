@@ -557,6 +557,7 @@ export const submitVersionForApproval = createServerFn({ method: "POST" })
     }
     await sb.from("engine_roadmap_versions").update({ status: "tai_edited" }).eq("id", ver.id);
     await _enqueueReviewItem(sb as never, {
+      project_id: ver.project_id,
       project: ver.engine_projects?.name ?? "Unknown",
       item_type: "Roadmap Update",
       title: `Approve official version ${ver.version}`,
