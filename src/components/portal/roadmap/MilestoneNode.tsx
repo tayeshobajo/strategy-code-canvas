@@ -2,13 +2,14 @@ import {
   CheckCircle2,
   Circle,
   AlertTriangle,
-  Loader2,
   GitBranch,
   FileText,
   CalendarClock,
   Flag,
   ArrowRight,
+  Zap,
 } from "lucide-react";
+
 import { memo, useEffect, useRef } from "react";
 import type {
   MilestoneKind,
