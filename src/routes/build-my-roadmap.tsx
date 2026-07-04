@@ -1032,6 +1032,34 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             <ReviewStep
               answers={answers}
               contact={contact}
+              attachments={attachments}
+              setAttachments={setAttachments}
+              resumeToken={resumeToken}
+              ensureResumeToken={async () => {
+                if (resumeToken) return resumeToken;
+                // Autosave normally creates a token; when nothing has autosaved
+                // (e.g. user reaches review without any content), force a save.
+                if (inflightSave.current) await inflightSave.current;
+                if (resumeToken) return resumeToken;
+                const mod = await import("@/lib/intake.functions");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const res = await mod.saveDraft({
+                  data: {
+                    answers: QUESTIONS.map((q) => ({
+                      key: q.key,
+                      question: `${q.before}${q.accent}${q.after}`,
+                      response: (answers[q.key]?.response ?? "").trim(),
+                      reflected_offered: answers[q.key]?.reflected_offered ?? null,
+                    })).filter((a) => a.response.length > 0),
+                    contact,
+                  },
+                } as any);
+                const t = res?.resume_token as string | undefined;
+                if (!t) throw new Error("Could not initialize draft");
+                setResumeToken(t);
+                try { window.localStorage.setItem(STORAGE_KEY, t); } catch { /* noop */ }
+                return t;
+              }}
               onEdit={(i) => setStep(i)}
               onEditReply={() => setStep(STEP_REPLY)}
               onBack={() => setStep(STEP_REPLY)}
