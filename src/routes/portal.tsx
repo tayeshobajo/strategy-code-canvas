@@ -239,7 +239,7 @@ function PortalGreeting() {
       : null;
   if (!contactName) return null;
   return (
-    <div className="mt-3 text-[13px] text-white/85 font-display">
+    <div className="mt-3 text-[13px] text-white/80 font-display">
       Hello, {contactName}.
     </div>
   );
@@ -257,8 +257,8 @@ function initialsFromEmail(name: string | null | undefined, email: string) {
 }
 
 /**
- * Combined mission line + user row — one calm bottom zone. Reduced visual
- * weight so it supports the roadmap canvas instead of competing with it.
+ * Combined mission line + user row — one calm bottom zone. Quieted to
+ * support the roadmap canvas instead of competing with it.
  */
 function SidebarAccountZone({
   email,
@@ -274,15 +274,12 @@ function SidebarAccountZone({
   const displayName = contactName || email.split("@")[0] || "Portal user";
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-t border-white/8 bg-white/[0.02] px-4 pt-3 pb-3 space-y-3">
-      {/* Mission — no boxed card, just an accent line and calm copy */}
+    <div className="border-t border-white/[0.06] bg-transparent px-4 pt-3 pb-3 space-y-2.5">
+      {/* Mission — single quiet accent line, no subtitle */}
       <div className="px-1">
-        <div className="h-px w-6 bg-royal/60" />
-        <div className="font-display text-[12.5px] text-white/90 mt-1.5 leading-tight">
+        <div className="h-px w-5 bg-royal/40" />
+        <div className="font-display text-[11.5px] text-white/70 mt-1.5 leading-tight">
           Your success is our mission.
-        </div>
-        <div className="text-[11px] text-white/45 mt-1 leading-snug">
-          We're building the future of your business, together.
         </div>
       </div>
 
@@ -291,26 +288,26 @@ function SidebarAccountZone({
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="w-full flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left hover:bg-white/[0.04] transition-colors"
+            className="w-full flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left hover:bg-white/[0.03] transition-colors"
             aria-label="Account menu"
             aria-expanded={open}
           >
             <span
               aria-hidden
-              className="grid place-items-center h-8 w-8 rounded-full bg-royal/20 border border-royal/35 text-[11px] font-semibold text-white shrink-0"
+              className="grid place-items-center h-7 w-7 rounded-full bg-royal/15 border border-royal/25 text-[10.5px] font-semibold text-white/90 shrink-0"
             >
               {initials}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[12.5px] text-white truncate leading-tight">
+              <span className="block text-[12px] text-white/80 truncate leading-tight">
                 {displayName}
               </span>
-              <span className="block text-[10.5px] text-white/45 truncate leading-tight mt-0.5">
+              <span className="block text-[10px] text-white/35 truncate leading-tight mt-0.5">
                 Client
               </span>
             </span>
             <ChevronUp
-              className={`w-3.5 h-3.5 text-white/45 shrink-0 transition-transform ${
+              className={`w-3 h-3 text-white/35 shrink-0 transition-transform ${
                 open ? "rotate-180" : ""
               }`}
             />
@@ -350,14 +347,14 @@ function PortalNav({ pathname }: { pathname: string }) {
   return (
     <nav
       aria-label="Portal navigation"
-      className="block flex-1 overflow-y-auto px-3 py-4 space-y-1"
+      className="block flex-1 overflow-y-auto px-3 py-4 space-y-0.5"
     >
       {NAV.map((item) => {
         const active =
           pathname === item.to || pathname.startsWith(item.to + "/");
         const Icon = item.icon;
         const lockReason = getLockReason(item.key, portalStatus, hasApprovedRoadmap);
-        const baseClasses = `group relative flex items-center gap-3 px-3 py-2.5 rounded-md text-sm whitespace-nowrap transition-colors`;
+        const baseClasses = `group relative flex items-center gap-3 px-3 py-2 rounded-md text-[13px] whitespace-nowrap transition-colors`;
 
         if (lockReason) {
           return (
@@ -365,11 +362,11 @@ function PortalNav({ pathname }: { pathname: string }) {
               <TooltipTrigger asChild>
                 <div
                   aria-disabled="true"
-                  className={`${baseClasses} text-white/35 cursor-not-allowed`}
+                  className={`${baseClasses} text-white/30 cursor-not-allowed`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="flex-1">{item.label}</span>
-                  <Lock className="w-3 h-3 opacity-70" aria-label="Locked" />
+                  <Lock className="w-3 h-3 opacity-60" aria-label="Locked" />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-[220px] text-xs">
@@ -386,14 +383,14 @@ function PortalNav({ pathname }: { pathname: string }) {
             aria-current={active ? "page" : undefined}
             className={`${baseClasses} ${
               active
-                ? "bg-white/10 text-white"
-                : "text-white/70 hover:text-white hover:bg-white/5"
+                ? "bg-white/[0.08] text-white"
+                : "text-white/60 hover:text-white/90 hover:bg-white/[0.04]"
             }`}
           >
             <span
               aria-hidden
-              className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
-                active ? "bg-royal opacity-100" : "opacity-0 group-hover:opacity-40 bg-white"
+              className={`absolute left-0 top-2 bottom-2 w-[2.5px] rounded-r-full transition-all ${
+                active ? "bg-royal opacity-100" : "opacity-0 group-hover:opacity-30 bg-white"
               }`}
             />
             <Icon className="w-4 h-4" />
