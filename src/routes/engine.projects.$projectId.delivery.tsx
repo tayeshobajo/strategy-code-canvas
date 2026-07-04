@@ -6,6 +6,8 @@ import { Send, CheckCircle2, Loader2, Rocket, Clock } from "lucide-react";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
+import { useEngineRole } from "@/hooks/useEngineRole";
 import {
   sendProjectDelivery,
   saveDeliveryChecklist,
