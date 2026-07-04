@@ -67,12 +67,17 @@ type CanvasCtx = {
   mutedKinds: Set<LegendKind>;
   /** Cluster keys the user has explicitly fanned out ("exploded"). */
   explodedClusterKeys: Set<string>;
+  /** Horizontal pixels reserved on the right for the open drawer (0 when closed
+   *  or when the drawer is a bottom sheet on mobile). Drives pan-offset math
+   *  so the selected marker never hides behind the drawer, at any viewport. */
+  drawerOffset: number;
 
   setScrollState: (s: { scrollWidth: number; scrollLeft: number; clientWidth: number }) => void;
   setCurrentPhaseKey: (k: PhaseKey | null) => void;
   setSelectedPhaseKey: (k: PhaseKey | null) => void;
   setHighlightedSlug: (s: string | null) => void;
   setZoomLevel: (z: ZoomLevel) => void;
+  setDrawerOffset: (px: number) => void;
   /** Cycle a legend kind: visible → muted → hidden → visible. */
   toggleKind: (k: LegendKind) => void;
   /** Toggle whether a cluster is fanned out in place. */
@@ -115,6 +120,7 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
   const [explodedClusterKeys, setExplodedClusterKeys] = useState<Set<string>>(
     () => new Set(),
   );
+  const [drawerOffset, setDrawerOffset] = useState(0);
   const scrollerRef = useRef<HTMLElement | null>(null);
   const nodeRefs = useRef<NodeRefs>(new Map());
 
@@ -216,11 +222,13 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
       visibleKinds,
       mutedKinds,
       explodedClusterKeys,
+      drawerOffset,
       setScrollState,
       setCurrentPhaseKey,
       setSelectedPhaseKey,
       setHighlightedSlug,
       setZoomLevel,
+      setDrawerOffset,
       toggleKind,
       toggleClusterExpanded,
       collapseAllClusters,
@@ -242,6 +250,7 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
       visibleKinds,
       mutedKinds,
       explodedClusterKeys,
+      drawerOffset,
       setScrollState,
       scrollToX,
       scrollToXWithDrawer,

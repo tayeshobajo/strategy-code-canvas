@@ -17,6 +17,9 @@ type Props = {
   onJump: (key: JumpTarget) => void;
   onFullscreen?: () => void;
   selectedSlug?: string | null;
+  /** When set, clicking a phase stop also opens the drawer for the most
+   *  relevant milestone in that phase (active > next upcoming > first). */
+  onSelect?: (slug: string) => void;
   viewMode?: RoadmapViewMode;
   matchingSlugs?: Set<string> | null;
   variant?: "card" | "floating";
@@ -44,6 +47,7 @@ export function RoadmapOverviewStrip({
   journey,
   onJump,
   selectedSlug = null,
+  onSelect,
   viewMode = "all",
   matchingSlugs = null,
   variant = "card",
@@ -72,6 +76,20 @@ export function RoadmapOverviewStrip({
       canvas.setSelectedPhaseKey(null);
     } else {
       canvas.setSelectedPhaseKey(key as PhaseKey);
+      // Also open the drawer for a representative milestone in that phase so
+      // the client sees phase context without losing map focus.
+      if (onSelect) {
+        const phaseKey = key as PhaseKey;
+        const inPhase = journey.milestones.filter(
+          (m) => m.phase === phaseKey && !m.slug.endsWith("-placeholder"),
+        );
+        const pick =
+          inPhase.find((m) => m.status === "in_progress") ??
+          inPhase.find((m) => m.status === "upcoming") ??
+          inPhase.find((m) => m.status !== "completed") ??
+          inPhase[0];
+        if (pick) onSelect(pick.slug);
+      }
     }
     onJump(key);
   };

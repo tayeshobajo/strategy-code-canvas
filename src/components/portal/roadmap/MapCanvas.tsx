@@ -19,7 +19,7 @@ import mapBg from "@/assets/roadmap-map-background.png.asset.json";
 
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 1050;
-const DRAWER_WIDTH = 410;
+// Drawer offset is published dynamically by MilestoneSheet via canvas context.
 
 /** Route path colors — warm golden-white to read as a sunlit road on terrain. */
 const ROUTE_GOLD = "240,210,130"; // #F0D282 warm gold
@@ -345,8 +345,10 @@ export function MapCanvas({
     const el = scrollRef.current;
     if (!el) return;
     const targetX = marker.nx * el.scrollWidth;
-    canvas.scrollToXWithDrawer(targetX, DRAWER_WIDTH);
-  }, [selectedSlug, layout.markers, canvas]);
+    // Re-pans whenever the drawer opens/closes/resizes or the viewport
+    // changes width, so the selected marker never hides behind the drawer.
+    canvas.scrollToXWithDrawer(targetX, canvas.drawerOffset);
+  }, [selectedSlug, layout.markers, canvas, canvas.drawerOffset, canvas.clientWidth]);
 
   const bgUrl = mapBg.url;
 
