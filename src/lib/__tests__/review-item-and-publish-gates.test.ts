@@ -78,6 +78,16 @@ describe("engine_review_items inserts always set project_id", () => {
       }
     });
   }
+
+  it("portal.functions.ts — every review insert also carries client_portal_project_id", () => {
+    const inserts = extractReviewItemInserts(read("src/lib/portal.functions.ts"));
+    expect(inserts.length).toBeGreaterThan(0);
+    for (const literal of inserts) {
+      expect(literal, `portal review insert missing client_portal_project_id:\n${literal}`)
+        .toMatch(/client_portal_project_id\s*:/);
+    }
+  });
+
 });
 
 describe("portal publish path enforces approval gates", () => {
