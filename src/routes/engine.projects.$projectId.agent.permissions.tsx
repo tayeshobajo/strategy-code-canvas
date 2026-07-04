@@ -137,7 +137,7 @@ function AgentPermissionsPage() {
                     <td className="py-3 pr-3">
                       <div className="flex gap-1.5">
                         {CHOICES.map((c) => {
-                          const disabled = locked === "blocked" && c !== "blocked";
+                          const disabled = !canManageAgents || (locked === "blocked" && c !== "blocked");
                           const on = value === c;
                           return (
                             <button
