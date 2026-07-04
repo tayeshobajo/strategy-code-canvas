@@ -59,8 +59,12 @@ function Investment() {
           ))}
         </div>
       )}
-      <SectionCard title="Edit investment">
-        <StepEditor projectId={projectId} step="investment" data={project.investment} />
+      <SectionCard title="Edit investment" right={!canEditInvestment ? <OperatorLockNotice message={adminOnlyReason} /> : undefined}>
+        {canEditInvestment ? (
+          <StepEditor projectId={projectId} step="investment" data={project.investment} />
+        ) : (
+          <p className="text-sm text-ink/60">Investment ranges are read-only in the operator view. Ask an admin to adjust phases or amounts.</p>
+        )}
       </SectionCard>
     </div>
   );
