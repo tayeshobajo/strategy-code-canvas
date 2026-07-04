@@ -852,11 +852,23 @@ function Section({
 }) {
   return (
     <div>
-      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/45 mb-2 flex items-center gap-1.5">
-        {Icon && <Icon className="w-3 h-3 text-royal" />}
-        {label}
+      <div className="flex items-center gap-2 mb-2.5">
+        <span aria-hidden className="h-px w-6 bg-ink/25" />
+        <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-ink/50 flex items-center gap-1.5">
+          {Icon && <Icon className="w-3 h-3 text-ink/40" />}
+          {label}
+        </div>
       </div>
-      <div className="text-[14px] leading-[1.65] text-ink/85">{children}</div>
+      <div className="text-[14.5px] leading-[1.7] text-ink/85">{children}</div>
     </div>
   );
 }
+
+/** Turn a slug like "pre-test-ready" into "Pre Test Ready". Fallback label
+ *  when we only have the slug (prev/next in the footer strip). */
+function formatSlug(slug: string): string {
+  return slug
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
