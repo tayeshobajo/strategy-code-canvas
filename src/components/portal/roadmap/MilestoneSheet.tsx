@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar,
   MessageSquare,
@@ -42,6 +42,8 @@ import {
   FileText,
   CalendarClock,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import type {
   MilestoneKind,
@@ -61,6 +63,11 @@ type Props = {
   authorEmail?: string | null;
   schedulingUrl?: string | null;
   onClose: () => void;
+  /** Ordered slugs in journey sequence, filtered by the active view mode.
+   *  Powers prev/next navigation and keyboard arrows. */
+  sequence?: string[];
+  /** Select another milestone (keeps drawer open, updates URL/map). */
+  onSelect?: (slug: string) => void;
 };
 
 const STATUS_LABEL: Record<RoadmapMilestone["status"], string> = {
@@ -133,6 +140,8 @@ export function MilestoneSheet({
   authorEmail,
   schedulingUrl,
   onClose,
+  sequence,
+  onSelect,
 }: Props) {
   const open = !!milestone;
   const recordReview = useServerFn(recordPortalMilestoneReview);
@@ -145,6 +154,25 @@ export function MilestoneSheet({
   const canvas = useRoadmapCanvas();
   const isMobile = useIsMobile();
   const openedSlugRef = useRef<string | null>(null);
+
+  const { prevSlug, nextSlug } = useMemo(() => {
+    if (!milestone || !sequence || sequence.length === 0)
+      return { prevSlug: null as string | null, nextSlug: null as string | null };
+    const i = sequence.indexOf(milestone.slug);
+    if (i < 0) return { prevSlug: null, nextSlug: null };
+    return {
+      prevSlug: i > 0 ? sequence[i - 1] : null,
+      nextSlug: i < sequence.length - 1 ? sequence[i + 1] : null,
+    };
+  }, [milestone, sequence]);
+
+  const canNavigate = !!onSelect && !!sequence && sequence.length > 1;
+  const goPrev = () => {
+    if (prevSlug && onSelect) onSelect(prevSlug);
+  };
+  const goNext = () => {
+    if (nextSlug && onSelect) onSelect(nextSlug);
+  };
 
   const reviewMut = useMutation({
     mutationFn: (m: RoadmapMilestone) =>
@@ -196,6 +224,25 @@ export function MilestoneSheet({
     };
   }, [open, isMobile, canvas]);
 
+  // Keyboard: arrow left/right for prev/next, handled globally when drawer is
+  // open and focus isn't in an input/textarea.
+  useEffect(() => {
+    if (!open || !canNavigate) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goNext();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, canNavigate, prevSlug, nextSlug]);
+
   const handleClose = () => {
     const slug = openedSlugRef.current;
     onClose();
@@ -221,12 +268,32 @@ export function MilestoneSheet({
           hideOverlay={!isMobile}
           overlayClassName={isMobile ? undefined : "bg-transparent"}
           onInteractOutside={(e) => {
-            // Desktop: keep the map fully interactive — don't auto-close
-            // when the client clicks the canvas, mini-map, or phase labels.
-            if (!isMobile) e.preventDefault();
+            if (isMobile) return; // mobile: default modal behavior closes
+            const t = e.target as HTMLElement | null;
+            // Clicks on the canvas, mini-map, phase labels or explicit
+            // "roadmap-interactive" surfaces should NOT close the drawer.
+            if (
+              t &&
+              (t.closest("#portal-canvas-scroll") ||
+                t.closest("[data-testid='roadmap-overview-strip']") ||
+                t.closest("[data-phase-key]") ||
+                t.closest("[data-roadmap-interactive]"))
+            ) {
+              e.preventDefault();
+            }
           }}
           onPointerDownOutside={(e) => {
-            if (!isMobile) e.preventDefault();
+            if (isMobile) return;
+            const t = e.target as HTMLElement | null;
+            if (
+              t &&
+              (t.closest("#portal-canvas-scroll") ||
+                t.closest("[data-testid='roadmap-overview-strip']") ||
+                t.closest("[data-phase-key]") ||
+                t.closest("[data-roadmap-interactive]"))
+            ) {
+              e.preventDefault();
+            }
           }}
           className={
             isMobile
@@ -323,6 +390,35 @@ export function MilestoneSheet({
                     >
                       {milestone.summary}
                     </SheetDescription>
+                  )}
+                  {canNavigate && (
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={goPrev}
+                        disabled={!prevSlug}
+                        aria-label="Previous milestone"
+                        className="inline-flex items-center gap-1 rounded-md border border-ink/15 bg-white/70 px-2.5 py-1 text-[12px] font-medium text-ink/75 hover:bg-white hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        Previous
+                      </button>
+                      {sequence && sequence.length > 0 && milestone && (
+                        <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/40">
+                          {Math.max(0, sequence.indexOf(milestone.slug)) + 1} / {sequence.length}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        disabled={!nextSlug}
+                        aria-label="Next milestone"
+                        className="inline-flex items-center gap-1 rounded-md border border-ink/15 bg-white/70 px-2.5 py-1 text-[12px] font-medium text-ink/75 hover:bg-white hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Next
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
                 </SheetHeader>
 

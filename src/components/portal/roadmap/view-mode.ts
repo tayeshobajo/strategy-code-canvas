@@ -143,17 +143,24 @@ export function computeMarkerVisibility(
   // View-mode density model — each mode changes what the client sees.
   switch (mode) {
     case "all": {
-      // Full Journey: strategic anchors + current phase milestones get labels.
-      // Meetings and secondary deliverables collapse to icons (or hide at strategic zoom).
-      if (level === 1) return "full";
+      // Full Journey: only the strategic anchors get full labels. Everything
+      // else compacts to an icon (or hides at strategic zoom) so no single
+      // phase — especially Phase 1 — turns into a wall of pills.
+      if (anchor) return "full";
+      if (m.dueDate && m.status !== "completed") return "full";
       if (m.kind === "meeting")
         return zoom === "strategic" ? "hidden" : "icon";
-      if (m.kind === "deliverable" && !inCurrentPhase)
+      if (m.kind === "deliverable")
         return zoom === "strategic" ? "hidden" : "icon";
-      if (inFocusPhase && m.kind === "decision") return "short";
-      if (inFocusPhase && m.kind === "deliverable") return "icon";
-      // Distant-phase supporting markers: icon at phase/detail, hidden at strategic.
-      return zoom === "strategic" ? "hidden" : "icon";
+      if (m.kind === "decision") {
+        // Show decision short labels only when the user has explicitly
+        // focused that phase — keeps Full Journey calm by default.
+        if (selectedPhaseKey && inFocusPhase) return "short";
+        return "icon";
+      }
+      // Milestones: short label only when the user has focused this phase.
+      if (selectedPhaseKey && inFocusPhase) return "short";
+      return zoom === "strategic" ? "icon" : "icon";
     }
 
     case "current": {
