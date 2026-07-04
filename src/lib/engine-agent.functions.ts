@@ -289,12 +289,20 @@ export const updateAgentTaskStatus = createServerFn({ method: "POST" })
   });
 
 /**
- * Apply an agent output into a specific roadmap module. Behavior depends on
- * the project's `agent_permission_level`:
- *   - draft_only     -> marks the task as pending_approval (Tai must apply).
- *   - propose_updates -> writes to the draft module immediately, logs a change event.
- *   - execute_approved -> writes directly and marks the task as applied.
- * Approved snapshot is never overwritten. Only draft state changes.
+ * Apply an agent output into a specific roadmap module.
+ *
+ * P0-5 enforcement: agent writes NEVER touch `engine_projects.<module>`,
+ * `approved_snapshot`, or any published/delivered content. Every agent
+ * application is routed into a draft `engine_roadmap_versions` row (status
+ * = `ai_generated`), which stays behind the approval gate until an operator
+ * approves it via the review queue (see decideReviewItem in engine-ops).
+ *
+ * Behavior by permission level:
+ *   - draft_only     -> marks task pending_approval; no version write.
+ *   - propose_updates -> merges module patch into the latest AI draft version.
+ *   - execute_approved -> same as propose_updates. Legacy name; agent output
+ *                         still goes to draft, never to approved/published.
+ *   - `force: true`  -> Tai explicitly clicked apply; behaves like propose_updates.
  */
 const MODULE_KEYS = [
   "point_a",
@@ -311,6 +319,67 @@ const MODULE_KEYS = [
   // human in the loop (see engine.functions.ts).
 ] as const;
 
+/**
+ * Find the latest AI-draft version for a project, or create a fresh one.
+ * Never touches or forks an `approved` row — approved versions are immutable.
+ */
+async function _findOrCreateAiDraft(
+  sb: any,
+  projectId: string,
+  actorEmail: string | null,
+): Promise<{ id: string; version: string; payload: Record<string, any> }> {
+  const { data: existing } = await sb
+    .from("engine_roadmap_versions")
+    .select("id,version,payload,status")
+    .eq("project_id", projectId)
+    .in("status", ["ai_generated", "draft", "tai_edited"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing) {
+    return {
+      id: existing.id as string,
+      version: existing.version as string,
+      payload: (existing.payload ?? {}) as Record<string, any>,
+    };
+  }
+  // Compute next version label. Use the highest existing version + 0.1, or v0.1.
+  const { data: all } = await sb
+    .from("engine_roadmap_versions")
+    .select("version")
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  const maxMinor = ((all as { version: string }[] | null) ?? []).reduce((max, r) => {
+    const m = /v?(\d+)\.(\d+)/i.exec(r.version ?? "");
+    if (!m) return max;
+    const n = parseInt(m[1], 10) * 100 + parseInt(m[2], 10);
+    return n > max ? n : max;
+  }, 0);
+  const nextMajor = Math.floor(maxMinor / 100);
+  const nextMinor = (maxMinor % 100) + 1;
+  const nextVersion = `v${nextMajor}.${nextMinor}`;
+  const { data: created, error } = await sb
+    .from("engine_roadmap_versions")
+    .insert({
+      project_id: projectId,
+      version: nextVersion,
+      status: "ai_generated",
+      created_by: actorEmail ?? "ai",
+      label: `${nextVersion} — AI draft (Needs Review)`,
+      payload: {},
+      generation_provenance: { source: "agent", origin: "applyAgentTask" },
+    })
+    .select("id,version,payload")
+    .single();
+  if (error) throw new Error(error.message ?? "could not create draft version");
+  return {
+    id: (created as any).id,
+    version: (created as any).version,
+    payload: (created as any).payload ?? {},
+  };
+}
+
 export const applyAgentTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
@@ -323,7 +392,7 @@ export const applyAgentTask = createServerFn({ method: "POST" })
       .parse(raw),
   )
   .handler(
-    async ({ context, data }): Promise<{ ok: true; status: "applied" | "pending_approval" }> => {
+    async ({ context, data }): Promise<{ ok: true; status: "applied" | "pending_approval"; version_id?: string; version?: string }> => {
       await assertAdmin(context);
       const sb = context.supabase as any;
       const email = (context as any).claims?.email ?? null;
@@ -354,8 +423,7 @@ export const applyAgentTask = createServerFn({ method: "POST" })
         throw new Error(`Module "${data.module}" is not in the agent's allowed list.`);
       }
 
-
-      // draft_only: mark as pending, do not touch the module.
+      // draft_only: mark as pending, do not touch any version row.
       if (level === "draft_only" && !data.force) {
         await sb
           .from("engine_agent_tasks")
@@ -381,38 +449,59 @@ export const applyAgentTask = createServerFn({ method: "POST" })
         return { ok: true, status: "pending_approval" };
       }
 
-      // propose_updates or execute_approved (or forced by Tai): write to draft.
-      const patch: Record<string, any> = {};
-      patch[data.module] = { source: "agent", note: task.output };
-      await sb.from("engine_projects").update(patch).eq("id", task.project_id);
+      // propose_updates / execute_approved / forced: route into an AI draft
+      // version. Never write to engine_projects.<module>, never touch approved
+      // snapshots, never touch published portal content.
+      const draft = await _findOrCreateAiDraft(sb, task.project_id, email);
+      const nowIso = new Date().toISOString();
+      const nextPayload = {
+        ...draft.payload,
+        [data.module]: {
+          source: "agent",
+          note: task.output,
+          updated_at: nowIso,
+          updated_by: email ?? "ai",
+          task_id: task.id,
+        },
+      };
+      const { error: vErr } = await sb
+        .from("engine_roadmap_versions")
+        .update({
+          payload: nextPayload,
+          status: "ai_generated",
+          updated_at: nowIso,
+        })
+        .eq("id", draft.id);
+      if (vErr) throw new Error(vErr.message ?? "could not write draft version");
+
       await sb
         .from("engine_agent_tasks")
         .update({
           status: "applied",
           pending_approval: false,
           applied_module: data.module,
-          applied_at: new Date().toISOString(),
+          applied_at: nowIso,
+          roadmap_version_id: draft.id,
         })
         .eq("id", task.id);
       await sb.from("engine_activity").insert({
         project_id: task.project_id,
-        kind: "agent_applied",
-        title: `Agent output applied to ${data.module.replace(/_/g, " ")}`,
-        body: email ? `Applied by ${email}` : null,
-        severity: "success",
+        kind: "agent_applied_to_draft",
+        title: `Agent output merged into draft ${draft.version} (${data.module.replace(/_/g, " ")})`,
+        body: `Draft "Needs Review" — approved roadmap unchanged.${email ? ` Applied by ${email}.` : ""}`,
+        severity: "info",
       });
       await sb.from("engine_audit_log").insert({
         project_id: task.project_id,
         actor_email: email,
-        action: "agent_applied",
-        summary: `Applied agent output to ${data.module.replace(/_/g, " ")} draft. ${
-          data.force ? "Forced override." : `Permission: ${level}.`
-        }`,
+        action: "agent_applied_to_draft",
+        summary: `Applied agent output to draft version ${draft.version} · module ${data.module.replace(/_/g, " ")}. Approved roadmap untouched.`,
         affected_modules: [data.module],
+        version_id: draft.id,
         target_id: task.id,
-        metadata: { permission_level: level, task_id: task.id, forced: data.force },
+        metadata: { permission_level: level, task_id: task.id, forced: data.force, draft_version: draft.version },
       });
-      return { ok: true, status: "applied" };
+      return { ok: true, status: "applied", version_id: draft.id, version: draft.version };
     },
   );
 
