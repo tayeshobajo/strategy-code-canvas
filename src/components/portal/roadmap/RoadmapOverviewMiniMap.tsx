@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, ChevronDown, ChevronUp } from "lucide-react";
 import type {
   PhaseKey,
