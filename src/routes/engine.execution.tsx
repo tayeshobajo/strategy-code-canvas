@@ -5,25 +5,13 @@ import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, FileWarning, Calendar, ClockAlert, HeartPulse, Check, Loader2, RefreshCw } from "lucide-react";
-import { getExecutionAlerts, type ExecAlert } from "@/lib/engine-ops.functions";
+import { getExecutionAlerts, listActiveBuilds, type ExecAlert, type ActiveBuild } from "@/lib/engine-ops.functions";
 
 export const Route = createFileRoute("/engine/execution")({
   component: ExecutionTrackerPage,
 });
 
-type Build = {
-  id: string; client: string; roadmap: string; phase: string; progress: number;
-  health: "on_track" | "at_risk" | "blocked"; milestone: string; nextDeadline: string;
-};
-
-const BUILDS: Build[] = [
-  { id: "b1", client: "Mental Dental Academy", roadmap: "Scale Dental Board Prep", phase: "Phase 1 · Pre-Test Readiness", progress: 62, health: "on_track", milestone: "Q-Bank Engine", nextDeadline: "Oct 1, 2025" },
-  { id: "b2", client: "Valley Precision Painting", roadmap: "Operations & Lead Engine", phase: "Phase 2 · Growth Focus", progress: 44, health: "at_risk", milestone: "Lead Router MVP", nextDeadline: "Aug 12, 2025" },
-  { id: "b3", client: "Gradient Group", roadmap: "Job Board Growth Engine", phase: "Phase 1 · Foundation", progress: 28, health: "on_track", milestone: "Employer onboarding", nextDeadline: "Sep 5, 2025" },
-  { id: "b4", client: "Innago", roadmap: "Platform Modernization", phase: "Phase 3 · Automation", progress: 81, health: "blocked", milestone: "Billing rewrite", nextDeadline: "Jul 22, 2025" },
-];
-
-const HEALTH: Record<Build["health"], { label: string; cls: string; dot: string }> = {
+const HEALTH: Record<ActiveBuild["health"], { label: string; cls: string; dot: string }> = {
   on_track: { label: "On Track", cls: "bg-[#e6f5ec] text-[#1f6b3b] border-[#c4e6d2]", dot: "bg-[#1f6b3b]" },
   at_risk: { label: "At Risk", cls: "bg-[#fbf3e0] text-[#8a6713] border-[#f1e3b9]", dot: "bg-[#c99a20]" },
   blocked: { label: "Blocked", cls: "bg-[#fbe9ec] text-[#a4283c] border-[#f3ced5]", dot: "bg-[#a4283c]" },
@@ -47,6 +35,20 @@ const alertsQO = queryOptions({
   queryFn: () => getExecutionAlerts(),
   refetchInterval: 30_000,
 });
+
+const buildsQO = queryOptions({
+  queryKey: ["engine", "active-builds"],
+  queryFn: () => listActiveBuilds(),
+  refetchInterval: 60_000,
+});
+
+function formatDeadline(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 
 function ExecutionTrackerPage() {
   const [tab, setTab] = useState<Tab>("all");
