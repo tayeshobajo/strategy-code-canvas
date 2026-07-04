@@ -307,7 +307,7 @@ export function MilestoneSheet({
           className={
             isMobile
               ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-[#FAF8F5] text-ink border-t border-border overflow-y-auto p-0"
-              : "w-full sm:max-w-[410px] bg-[#FAF8F5] text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_30px_80px_-30px_rgba(11,18,32,0.35)] p-0 flex flex-col"
+              : "w-full sm:max-w-[480px] bg-[#F7F3EC] text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_40px_100px_-30px_rgba(11,18,32,0.45)] p-0 flex flex-col"
           }
           aria-labelledby="milestone-sheet-title"
           aria-describedby="milestone-sheet-desc"
