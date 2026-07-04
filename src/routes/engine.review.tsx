@@ -234,7 +234,8 @@ function ReviewApprovalsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
