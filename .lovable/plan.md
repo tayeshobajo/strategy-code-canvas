@@ -1,95 +1,95 @@
-# Roadmap Canvas — Marker Intelligence & Drawer Navigation
 
-Scope: refine only marker density, marker interaction, and drawer behavior. Keep layout, terrain, route spine, phase regions, mini-map, status panel, legend, and drawer chrome as-is.
+## Goal
 
-## 1. Marker priority + display levels (`roadmap-layout.ts`)
+Replace the current portal roadmap overview strip with a premium **RoadmapOverviewMiniMap** — a dark-glass command mini-map that matches the mockup: deep navy panel, colored phase route segments, Point A mountain vignette, Point B summit/flag vignette, selected-phase glow, milestone dots with priority-based clustering, and right-side expand/fit controls.
 
-Introduce a `displayLevel: "primary" | "compact" | "clustered"` on each `MarkerPos`, computed from a priority score:
+## Deliverables
 
-```text
-1 active milestone
-2 blocked decision
-3 next major deadline (nearest future dueDate)
-4 next client decision
-5 current phase milestones
-6 future milestones
-7 deliverables
-8 meetings
+### 1. Two generated art assets
+
+- `src/assets/minimap/point-a-mountains.png` — small painterly cluster of snow-capped mountains, dark navy background, edge-vignetted so it blends into the panel. Transparent-bg PNG, ~256×128.
+- `src/assets/minimap/point-b-summit.png` — single tall summit peak with a small red flag on top, matching lighting, transparent PNG.
+
+Both registered via `lovable-assets create` → `.asset.json` pointers, imported into the component.
+
+### 2. New component: `src/components/portal/roadmap/RoadmapOverviewMiniMap.tsx`
+
+Reusable, dynamic, no hardcoded phase count.
+
+**Props**
+```ts
+{
+  journey: RoadmapJourney;         // existing model
+  selectedSlug: string | null;
+  onSelect: (slug: string) => void;
+  onJump: (target: "pointA" | "pointB" | PhaseKey) => void;
+  viewMode?: RoadmapViewMode;
+  matchingSlugs?: Set<string> | null;
+}
 ```
 
-- View mode `full`: primary = Point A, Point B, active, next decision, next deadline, + top 1–2 in selected phase. Everything else → compact, then clustered by proximity.
-- View mode `phase`: primary = all milestones in current phase; other phases → compact/clustered and dimmed.
-- View mode `needs-me`: primary = client decisions, approvals, requested files, upcoming client meetings, blocked items. Hide the rest.
-
-Expose helpers `selectPrimaryMarkers(journey, viewMode, selectedPhase)` and `computeDisplayLevels(markers, viewMode, ctx)`.
-
-## 2. Phase lanes (`roadmap-layout.ts`)
-
-Replace the current single `attachmentOffset` with lane-based offsets around the spine:
+**Layout (single row)**
 
 ```text
-upper lane  (-0.055) → decisions, deadlines
-main lane   ( 0.000) → primary milestones
-lower lane  (+0.055) → deliverables, supporting
-off-road    (+0.095) → meetings, secondary notes
+┌──────────────────────────────────────────────────────────────────────┐
+│ [ROADMAP OVERVIEW]  │  ⛰  ● ● ●   ═══   ● ● ●   ═══   ● ● ● ⛰🚩 │ ⤢ │
+│  Click a phase       │  Point A  Phase 1   Phase 2   Phase 3  B     │ ⌄ │
+│  Current: Phase 1    │                                                    │
+│  Viewing: Phase 2    │                                                    │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-Anchors for the spine still use the main-lane baseline so the road stays smooth. Keep the `PHASE_TITLE_BUFFER` clamp.
+- **Left block (fixed ~150px):** eyebrow "ROADMAP OVERVIEW", helper "Click a phase to navigate", `Current: Phase N` (dot in phase color), and `Viewing: Phase N` shown only when it differs from current.
+- **Main mini-map (flex-1):** an inline SVG that draws:
+  - Point A vignette (left, ~72px) — mountains PNG anchored at bottom with a soft radial gradient behind it.
+  - N phase segments (flex-1 each by default; optionally weighted by `phase.milestones.length` when the toggle prop is set later). Each segment is a rounded lane with:
+    - phase color fill at low alpha, colored route stroke through the middle, glowing on hover,
+    - phase label + subtitle above the lane,
+    - milestone dots placed by sequence, colored by kind (milestone blue / decision purple / deliverable gold / meeting teal / deadline red),
+    - a compact cluster chip (`+N`) when >6 dots after priority filtering.
+  - Point B vignette (right, ~72px) — summit + flag PNG.
+  - Continuous route line stitched across all segments (SVG path scaled to container width via `ResizeObserver`).
+- **Selected phase highlight:** a `2F7DFF` bordered rounded-rect with `rgba(47,125,255,0.18)` fill + soft outer glow around the active segment, animated with 240ms transition.
+- **Current phase marker:** small blue dot label ("● Current") in the phase title area — distinct from the large selected glow.
+- **Selected marker indicator:** a small pulsing ring on the specific dot when `selectedSlug` matches.
+- **Right controls:** Fit-to-field (`Maximize2`) and expand/collapse (`ChevronDown`/`ChevronUp`) — 28px square, `bg-white/[0.06]` on the dark panel.
 
-## 3. Collision detection + clustering (`roadmap-layout.ts` + `MapCanvas.tsx`)
+**Dot priority filtering per phase** (so it stays readable for 5+ phases or dense phases):
 
-After lane assignment, run a simple sweep in normalized space:
-- If two labels overlap → downgrade lower-priority to compact.
-- If ≥3 markers within `thresholdNx` (scaled to zoom) → cluster.
-- Active marker and Level-1 primaries are never absorbed (extend existing `keepFull` set).
+1. selected item, 2. current milestone, 3. blocked decision, 4. deadline, 5. critical-path, 6. deliverable, 7. meeting. Take top `maxDotsPerPhase` (6 default; drops to 4 when `phases.length > 4`). Remaining go into a `+N` cluster chip anchored to the phase.
 
-Reuse `clusterMarkers` and `MarkerCluster` component. Cluster click → popover listing members; clicking a member selects that milestone (same flow as marker click).
+**Phase width logic:** default `flex: 1` per phase; Point A / Point B fixed at 72px. If `phases.length > 4`, reduce label size (`text-[9px]` eyebrow) and cap dots per phase at 4.
 
-## 4. Marker rendering (`MilestoneNode.tsx`, `MapCanvas.tsx`)
+**Interactions**
 
-- Primary: current full pill.
-- Compact: small icon dot with status ring, no label.
-- Hover on compact: scale up, show label + tooltip (title, kind, status, one-line summary), and highlight owning route segment.
-- Selected marker: brighter ring/glow, connected segment glows (already partly implemented), unrelated markers get `opacity-60`. No heavy grey overlay.
+- Click Point A / Point B → `onJump("pointA" | "pointB")`, clears selected phase.
+- Click a phase → sets `selectedPhaseKey`, calls `onJump(key)`, opens drawer for representative milestone (active > next upcoming > first) via `onSelect`.
+- Hover a phase → brightens segment + shows tooltip (phase title, completion %, item count, primary next item).
+- Click a dot → `onSelect(slug)` (parent updates `?m=` and pans main canvas).
+- Keyboard: phases and dots are `<button>` with focus-visible ring; Enter/Space triggers click.
 
-## 5. Drawer navigation (`MilestoneSheet.tsx`)
+**Sync rules**
+- `currentPhaseKey` = `canvas.currentPhaseKey ?? journey.currentPhaseKey` — small blue dot.
+- `selectedPhaseKey` = `canvas.selectedPhaseKey ?? canvas.viewportPhaseKey` — big glow highlight.
+- Selecting a marker in Phase 2 while Phase 1 is current: current dot stays on Phase 1, glow moves to Phase 2, drawer opens — driven entirely from existing canvas context, no state duplication.
 
-Add prev/next controls in the drawer header:
+**Visual tokens (inline, dark panel only)**
+- panel `bg: rgba(3,10,24,0.88)`, `backdrop-blur-xl`, `border: rgba(140,170,220,0.24)`, inner top hairline `rgba(255,255,255,0.06)`, radius `1rem`, shadow `0 20px 60px -20px rgba(0,0,0,0.8)`.
+- selected border `#2F7DFF`, fill `rgba(47,125,255,0.18)`, glow `0 0 24px rgba(47,125,255,0.35)`.
+- phase palette: Phase 1 `#2F7DFF`, Phase 2 `#F59D2A`, Phase 3 `#7DCA54`; if a 4th/5th phase exists, cycle through `#8B5CF6`, `#0EA5A4`.
+- transitions: 160ms hover, 240ms selected/viewport slide, no spinners.
 
-```text
-[←  Previous]                 [Next  →]
-```
+### 3. Wire-up
 
-- Sequence = flattened visible markers in journey order: Point A → Phase 1 → Phase 2 → Phase 3 → Point B, filtered by current view mode.
-- Buttons call `onSelect(prevSlug|nextSlug)`; disable at ends.
-- On change: update selection, mini-map, segment glow, and pan via existing `scrollToXWithDrawer`.
+- `src/routes/portal.roadmap.tsx`: swap the existing `<RoadmapOverviewStrip variant="floating" …/>` render at the sticky bottom overlay for `<RoadmapOverviewMiniMap …/>` with the same props (`journey`, `selectedSlug`, `onSelect`, `onJump`, `viewMode`, `matchingSlugs`). The non-floating (card) usage of `RoadmapOverviewStrip` elsewhere stays untouched.
+- Keep `RoadmapOverviewStrip.tsx` in the repo for the card variant; the new component is additive.
 
-## 6. Keyboard + outside-click (`MilestoneSheet.tsx`)
+### 4. Accessibility
 
-While drawer open:
-- `Escape` → close (already via Radix).
-- `ArrowLeft` / `ArrowRight` → prev/next (attach `keydown` on `window`, ignore when focus is in an input/textarea).
-- Click outside drawer (canvas empty area) → close. Currently `onInteractOutside` is prevented on desktop; change to: allow close when the pointer target is not a marker/cluster/mini-map/phase label (detect via `closest('[data-roadmap-interactive]')`, add that attribute to those elements).
+- Every phase / dot is a real `<button>` with `aria-label` (`"Phase 2, 40% complete, 6 items"`), `aria-pressed` for selected, and visible focus ring (`ring-2 ring-[#2F7DFF] ring-offset-2 ring-offset-[#030A18]`).
+- Tooltip content lives in `title` + a visually-hidden span so screen readers get it.
+- Contrast: white/85 on `#030A18` for labels; phase-color chips use ≥ 4.5:1 tuned tints.
 
-On close: clear `selectedSlug`, strip `?m=` from URL, keep pan/zoom/phase unchanged.
+### 5. Acceptance check
 
-## 7. URL sync (`portal.roadmap.tsx` + `canvas-context.tsx`)
-
-- On mount: if `?m=<slug>` present → set selection, open drawer, pan, highlight segment, sync mini-map.
-- On selection change (marker click, cluster member, mini-map, prev/next): replace URL with `?m=<slug>` (history.replaceState, no scroll).
-- On drawer close: remove `m` param.
-
-## Acceptance
-
-- Phase 1 no longer cramped in Full Journey view.
-- Compact markers expand on hover with tooltip + segment highlight.
-- Clusters appear where ≥3 markers collide; clicking opens popover.
-- Drawer shows Prev/Next; arrow keys work; Esc + outside-click close it.
-- Selected marker stays in sync with drawer, mini-map, URL, and route glow across view/phase changes and resize.
-
-## Technical notes
-
-- Files touched: `roadmap-layout.ts`, `MapCanvas.tsx`, `MilestoneNode.tsx`, `MarkerCluster.tsx`, `MilestoneSheet.tsx`, `RoadmapOverviewStrip.tsx`, `canvas-context.tsx`, `portal.roadmap.tsx`.
-- No schema changes, no new deps.
-- View-mode filtering lives in one helper so `MapCanvas`, `MiniMap`, and drawer prev/next iterate the same sequence.
-- Tooltip uses existing `@/components/ui/tooltip`. Popover uses existing `@/components/ui/popover`.
+Reload `/portal/roadmap`; sticky bottom overlay shows the dark-glass mini-map matching the mockup, with Point A mountains, three colored phase segments (blue/orange/green), highlighted Phase 1, Point B summit + flag, and right-side expand/fit controls. Clicking Phase 2 pans the canvas and moves the glow to Phase 2 while the "Current" dot stays on Phase 1.
