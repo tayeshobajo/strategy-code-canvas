@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
+import { buildClientSafePayload } from "@/lib/roadmap-publish";
 
 async function assertAdminEmail(context: {
   claims?: Record<string, unknown>;
@@ -369,4 +370,307 @@ export const createProjectAgent = createServerFn({ method: "POST" })
     }).select("*").single();
     if (error) throw new Error(String((error as { message?: string }).message ?? error));
     return row as ProjectAgent;
+  });
+
+// ─── Draft Roadmap Versions (review dashboard strip) ─────────────
+export type DraftVersion = {
+  id: string;
+  project_id: string;
+  project_name: string;
+  version: string;
+  label: string | null;
+  status: string;
+  client_preview_status: string;
+  source: string | null;
+  generation_provenance: Record<string, string> | null;
+  signal_count: number;
+  created_at: string;
+  published_to_portal_at: string | null;
+};
+
+export const listDraftVersions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<DraftVersion[]> => {
+    await assertOps(context as never);
+    const sb = context.supabase as never as {
+      from: (t: string) => {
+        select: (s: string) => {
+          in: (c: string, v: string[]) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } };
+          eq?: (c: string, v: string) => Promise<{ data: unknown; error: unknown; count: number | null }>;
+        };
+      };
+    };
+    const { data, error } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,project_id,version,label,status,client_preview_status,generation_provenance,published_to_portal_at,created_at,engine_projects(name)")
+      .in("status", ["ai_generated", "draft", "tai_edited"])
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    const rows = (data ?? []) as Array<{
+      id: string; project_id: string; version: string; label: string | null; status: string;
+      client_preview_status: string; generation_provenance: Record<string, string> | null;
+      published_to_portal_at: string | null; created_at: string;
+      engine_projects: { name: string } | null;
+    }>;
+    // Best-effort signal count per project (cheap, one round trip)
+    const projectIds = Array.from(new Set(rows.map((r) => r.project_id)));
+    const signalCounts: Record<string, number> = {};
+    if (projectIds.length) {
+      const sbCount = context.supabase as never as {
+        from: (t: string) => {
+          select: (s: string, o: { count: "exact"; head: true }) => {
+            eq: (c: string, v: string) => Promise<{ count: number | null; error: unknown }>;
+          };
+        };
+      };
+      await Promise.all(projectIds.map(async (pid) => {
+        const { count } = await sbCount.from("engine_extracted_signals").select("id", { count: "exact", head: true }).eq("project_id", pid);
+        signalCounts[pid] = count ?? 0;
+      }));
+    }
+    return rows.map((r) => ({
+      id: r.id,
+      project_id: r.project_id,
+      project_name: r.engine_projects?.name ?? "Unknown project",
+      version: r.version,
+      label: r.label,
+      status: r.status,
+      client_preview_status: r.client_preview_status,
+      source: (r.generation_provenance as { source?: string } | null)?.source ?? null,
+      generation_provenance: r.generation_provenance,
+      signal_count: signalCounts[r.project_id] ?? 0,
+      created_at: r.created_at,
+      published_to_portal_at: r.published_to_portal_at,
+    }));
+  });
+
+// ─── Approval workflow: submit → approve → preview → publish ─────
+
+async function _enqueueReviewItem(sb: {
+  from: (t: string) => {
+    insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+    select: (s: string) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => { in: (c: string, v: string[]) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } } } };
+  };
+}, args: { project: string; item_type: string; title: string; impact: "high" | "medium" | "low"; requested_by: string; source?: string | null }) {
+  await sb.from("engine_review_items").insert({
+    project: args.project,
+    item_type: args.item_type,
+    title: args.title,
+    impact: args.impact,
+    source: args.source ?? null,
+    requested_by: args.requested_by,
+    status: "pending",
+  });
+}
+
+export const submitVersionForApproval = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ versionId: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const actor = await assertOps(context as never);
+    const sb = context.supabase as never as {
+      from: (t: string) => {
+        select: (s: string) => { eq: (c: string, v: string) => { single: () => Promise<{ data: unknown; error: unknown }> } };
+        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+      };
+    };
+    const { data: v, error } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,status,version,project_id,engine_projects(name)")
+      .eq("id", data.versionId)
+      .single();
+    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    const ver = v as { id: string; status: string; version: string; project_id: string; engine_projects: { name: string } | null };
+    if (!["ai_generated", "draft", "tai_edited"].includes(ver.status)) {
+      throw new Error(`Version is ${ver.status}; only drafts can be submitted for approval.`);
+    }
+    await sb.from("engine_roadmap_versions").update({ status: "tai_edited" }).eq("id", ver.id);
+    await _enqueueReviewItem(sb as never, {
+      project: ver.engine_projects?.name ?? "Unknown",
+      item_type: "Roadmap Update",
+      title: `Approve official version ${ver.version}`,
+      impact: "high",
+      requested_by: actor,
+      source: `version:${ver.id}`,
+    });
+    await sb.from("engine_audit_log").insert({
+      project_id: ver.project_id,
+      actor_email: actor,
+      action: "version_submitted_for_approval",
+      summary: `${ver.version} submitted for Tai approval.`,
+      version_id: ver.id,
+      metadata: { version: ver.version },
+    });
+    return { ok: true };
+  });
+
+export const submitPreviewForApproval = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ versionId: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const actor = await assertOps(context as never);
+    const sb = context.supabase as never as {
+      from: (t: string) => {
+        select: (s: string) => { eq: (c: string, v: string) => { single: () => Promise<{ data: unknown; error: unknown }> } };
+        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+      };
+    };
+    const { data: v, error } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,status,version,project_id,engine_projects(name)")
+      .eq("id", data.versionId)
+      .single();
+    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    const ver = v as { id: string; status: string; version: string; project_id: string; engine_projects: { name: string } | null };
+    if (ver.status !== "approved") {
+      throw new Error("Version must be approved before submitting the client preview for review.");
+    }
+    await sb.from("engine_roadmap_versions").update({ client_preview_status: "draft" }).eq("id", ver.id);
+    await _enqueueReviewItem(sb as never, {
+      project: ver.engine_projects?.name ?? "Unknown",
+      item_type: "Client Preview",
+      title: `Approve client preview for ${ver.version}`,
+      impact: "high",
+      requested_by: actor,
+      source: `version:${ver.id}`,
+    });
+    await sb.from("engine_audit_log").insert({
+      project_id: ver.project_id,
+      actor_email: actor,
+      action: "client_preview_submitted",
+      summary: `Client preview for ${ver.version} submitted for Tai approval.`,
+      version_id: ver.id,
+    });
+    return { ok: true };
+  });
+
+export const approvePreview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ versionId: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const actor = await assertAdminEmail(context as never);
+    const sb = context.supabase as never as {
+      from: (t: string) => {
+        select: (s: string) => { eq: (c: string, v: string) => { single: () => Promise<{ data: unknown; error: unknown }> } };
+        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+      };
+    };
+    const { data: v, error } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,status,client_preview_status,version,project_id")
+      .eq("id", data.versionId)
+      .single();
+    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    const ver = v as { id: string; status: string; client_preview_status: string; version: string; project_id: string };
+    if (ver.status !== "approved") throw new Error("Version must be approved first.");
+    if (ver.client_preview_status !== "draft") throw new Error("Client preview must be submitted before it can be approved.");
+    await sb.from("engine_roadmap_versions").update({
+      client_preview_status: "approved",
+      client_preview_approved_at: new Date().toISOString(),
+      client_preview_approved_by: actor,
+    }).eq("id", ver.id);
+    await sb.from("engine_audit_log").insert({
+      project_id: ver.project_id,
+      actor_email: actor,
+      action: "client_preview_approved",
+      summary: `Client preview for ${ver.version} approved. Ready to publish.`,
+      version_id: ver.id,
+    });
+    return { ok: true };
+  });
+
+export const publishVersionToPortal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ versionId: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const actor = await assertAdminEmail(context as never);
+    const sb = context.supabase as never as {
+      from: (t: string) => {
+        select: (s: string) => { eq: (c: string, v: string) => { single: () => Promise<{ data: unknown; error: unknown }> } };
+        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+        insert: (v: Record<string, unknown>) => { select: (s: string) => { single: () => Promise<{ data: unknown; error: unknown }> } };
+      };
+    };
+    const { data: v, error } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,status,client_preview_status,version,label,payload,project_id")
+      .eq("id", data.versionId)
+      .single();
+    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    const ver = v as {
+      id: string; status: string; client_preview_status: string; version: string;
+      label: string | null; payload: Record<string, unknown> | null; project_id: string;
+    };
+    if (ver.status !== "approved") throw new Error("Only approved versions can be published to the client portal.");
+    if (ver.client_preview_status !== "approved") throw new Error("Client preview must be approved before publishing.");
+
+    // Resolve destination portal project
+    const { data: proj, error: pErr } = await sb
+      .from("engine_projects")
+      .select("id,name,client_preview,client_portal_project_id")
+      .eq("id", ver.project_id)
+      .single();
+    if (pErr) throw new Error(String((pErr as { message?: string }).message ?? pErr));
+    const project = proj as { id: string; name: string; client_preview: Record<string, unknown> | null; client_portal_project_id: string | null };
+    if (!project.client_portal_project_id) {
+      throw new Error("This engine project isn't linked to a client portal project yet. Set client_portal_project_id on engine_projects before publishing.");
+    }
+
+    const safe = buildClientSafePayload({
+      title: project.name,
+      version_label: ver.label ?? ver.version,
+      payload: ver.payload,
+      client_preview_override: project.client_preview,
+    });
+
+    const nowIso = new Date().toISOString();
+    // Mark prior publications superseded (status → approved, not delivered)
+    await (context.supabase as never as {
+      from: (t: string) => {
+        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => Promise<{ error: unknown }> } };
+      };
+    })
+      .from("client_portal_roadmaps")
+      .update({ status: "approved" })
+      .eq("project_id", project.client_portal_project_id)
+      .eq("status", "delivered");
+
+    const { data: published, error: insErr } = await sb.from("client_portal_roadmaps").insert({
+      project_id: project.client_portal_project_id,
+      source_version_id: ver.id,
+      title: safe.title,
+      version_label: safe.version_label,
+      status: "delivered",
+      approved_at: nowIso,
+      executive_summary: safe.executive_summary,
+      current_diagnosis: safe.current_diagnosis,
+      strategic_priorities: safe.strategic_priorities,
+      sequence_30_60_90: safe.sequence_30_60_90,
+      risks_dependencies: safe.risks_dependencies,
+      recommended_next_move: safe.recommended_next_move,
+      supporting_notes: safe.supporting_notes,
+      metadata: { published_by: actor, engine_project_id: project.id },
+    }).select("id").single();
+    if (insErr) throw new Error(String((insErr as { message?: string }).message ?? insErr));
+    const pub = published as { id: string };
+
+    await sb.from("engine_roadmap_versions").update({
+      published_to_portal_at: nowIso,
+      published_portal_roadmap_id: pub.id,
+    }).eq("id", ver.id);
+
+    await sb.from("engine_audit_log").insert({
+      project_id: ver.project_id,
+      actor_email: actor,
+      action: "version_published_to_portal",
+      summary: `Published ${ver.version} to client portal.`,
+      version_id: ver.id,
+      metadata: { portal_roadmap_id: pub.id, portal_project_id: project.client_portal_project_id },
+    });
+
+    return { ok: true, portal_roadmap_id: pub.id };
   });

@@ -2,8 +2,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
-import { ArrowRightLeft, ShieldCheck, Check, X, Edit3, CheckCircle2, AlertTriangle, FileText, Loader2 } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
+import { ArrowRightLeft, ShieldCheck, Check, X, Edit3, CheckCircle2, AlertTriangle, FileText, Loader2, Send } from "lucide-react";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
 import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
 import { useEngineRole } from "@/hooks/useEngineRole";
@@ -13,6 +13,11 @@ import {
   recordVersionChangeDecision,
 } from "@/lib/engine-execution.functions";
 import { approveVersion } from "@/lib/engine-intelligence.functions";
+import {
+  submitPreviewForApproval,
+  approvePreview,
+  publishVersionToPortal,
+} from "@/lib/engine-ops.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/engine/projects/$projectId/versions/compare")({
@@ -165,10 +170,13 @@ function VersionComparePage() {
         </div>
       </div>
 
+      <PublishTimeline projectId={projectId} draft={draft} approved={approved} canPublish={canPublish} adminOnlyReason={adminOnlyReason} />
+
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <MetricCard label="Total changes" value={summary.totalChanges.toString()} tone="blue" hint={`Across ${summary.modulesAffected} modules`} />
         <MetricCard label="Added" value={summary.added.toString()} tone="green" hint="New information" />
+
         <MetricCard label="Modified" value={summary.modified.toString()} tone="orange" hint="Changed" />
         <MetricCard label="Removed" value={summary.removed.toString()} tone="red" hint="No longer relevant" />
         <MetricCard label="Conflicts" value={summary.conflicts.toString()} tone="red" hint="Need resolution" />
@@ -343,6 +351,125 @@ function VersionComparePage() {
           Approved. This draft is now the official version.
         </div>
       )}
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function PublishTimeline({ projectId, draft, approved, canPublish, adminOnlyReason }: { projectId: string; draft: any; approved: any; canPublish: boolean; adminOnlyReason: string | undefined }) {
+  const qc = useQueryClient();
+  const submitPreviewFn = useServerFn(submitPreviewForApproval);
+  const approvePreviewFn = useServerFn(approvePreview);
+  const publishFn = useServerFn(publishVersionToPortal);
+
+  const target = draft?.status === "approved" ? draft : approved;
+  const versionId = target?.id as string | undefined;
+  const versionLabel = target?.version ?? "—";
+  const status = (target?.status ?? "draft") as string;
+  const previewStatus = (target?.client_preview_status ?? "none") as "none" | "draft" | "approved";
+  const publishedAt = target?.published_to_portal_at as string | null | undefined;
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["engine", "versions-compare", projectId] });
+    qc.invalidateQueries({ queryKey: ["engine", "draft-versions"] });
+    qc.invalidateQueries({ queryKey: ["engine", "reviews"] });
+  };
+
+  const submitPreview = useMutation({
+    mutationFn: () => submitPreviewFn({ data: { versionId: versionId! } }),
+    onSuccess: () => { toast.success("Client preview sent to Tai for approval."); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const approvePreviewMut = useMutation({
+    mutationFn: () => approvePreviewFn({ data: { versionId: versionId! } }),
+    onSuccess: () => { toast.success("Client preview approved. Ready to publish."); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const publishMut = useMutation({
+    mutationFn: () => publishFn({ data: { versionId: versionId! } }),
+    onSuccess: () => { toast.success("Published to client portal."); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const gate1Done = status === "approved";
+  const gate2Done = previewStatus === "approved";
+  const gate3Done = !!publishedAt;
+
+  const Gate = ({ n, label, done, sub, action }: { n: number; label: string; done: boolean; sub?: string | null; action?: ReactNode }) => (
+    <div className={`flex-1 rounded-lg border p-3 ${done ? "border-[#c4e6d2] bg-[#e6f5ec]" : "border-border bg-white"}`}>
+      <div className="flex items-center gap-2">
+        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${done ? "bg-[#1f6b3b] text-white" : "bg-paper-soft text-ink/60 border border-border"}`}>
+          {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : n}
+        </span>
+        <div className="text-sm font-medium text-ink">{label}</div>
+      </div>
+      {sub ? <div className="text-xs text-ink/60 mt-1 ml-8">{sub}</div> : null}
+      {action ? <div className="mt-2 ml-8">{action}</div> : null}
+    </div>
+  );
+
+  if (!versionId) return null;
+
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="font-display text-base text-ink">Publish pipeline · {versionLabel}</div>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-ink/50">Official → Preview → Portal</div>
+      </div>
+      <div className="flex flex-col md:flex-row gap-3">
+        <Gate
+          n={1}
+          label="Official version approved"
+          done={gate1Done}
+          sub={gate1Done ? `Approved${target?.approved_at ? ` on ${new Date(target.approved_at).toLocaleDateString()}` : ""}.` : "Approve the draft as the official version to unlock the client preview gate."}
+        />
+        <Gate
+          n={2}
+          label="Client preview approved"
+          done={gate2Done}
+          sub={
+            gate2Done
+              ? "Preview signed off. Ready to publish."
+              : previewStatus === "draft"
+                ? "Preview submitted; waiting on Tai approval."
+                : "Submit the client-safe preview to Tai for approval."
+          }
+          action={
+            canPublish && gate1Done ? (
+              previewStatus === "none" ? (
+                <button onClick={() => submitPreview.mutate()} disabled={submitPreview.isPending} className="text-xs bg-ink text-white rounded px-2 py-1 hover:bg-ink/90 disabled:opacity-40 inline-flex items-center gap-1">
+                  {submitPreview.isPending && <Loader2 className="w-3 h-3 animate-spin" />} Submit preview to Tai
+                </button>
+              ) : previewStatus === "draft" ? (
+                <button onClick={() => approvePreviewMut.mutate()} disabled={approvePreviewMut.isPending} className="text-xs bg-royal text-white rounded px-2 py-1 hover:bg-royal/90 disabled:opacity-40 inline-flex items-center gap-1">
+                  {approvePreviewMut.isPending && <Loader2 className="w-3 h-3 animate-spin" />} Approve preview
+                </button>
+              ) : null
+            ) : !canPublish && gate1Done ? (
+              <span className="text-[11px] text-ink/50" title={adminOnlyReason}>Admin only</span>
+            ) : null
+          }
+        />
+        <Gate
+          n={3}
+          label="Published to client portal"
+          done={gate3Done}
+          sub={
+            gate3Done
+              ? `Live in the client portal as of ${new Date(publishedAt!).toLocaleString()}.`
+              : gate2Done
+                ? "Ready to publish."
+                : "Waiting on the preview gate."
+          }
+          action={
+            canPublish && gate2Done && !gate3Done ? (
+              <button onClick={() => publishMut.mutate()} disabled={publishMut.isPending} className="text-xs bg-[#1f6b3b] text-white rounded px-2 py-1 hover:bg-[#164d2b] disabled:opacity-40 inline-flex items-center gap-1">
+                {publishMut.isPending && <Loader2 className="w-3 h-3 animate-spin" />} <Send className="w-3 h-3" /> Publish to portal
+              </button>
+            ) : null
+          }
+        />
+      </div>
     </div>
   );
 }

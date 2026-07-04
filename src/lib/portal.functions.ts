@@ -1195,3 +1195,156 @@ export const resolvePortalFollowUp = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+
+// ─── Client portal → engine feedback loop ──────────────────────────
+// Client responses to milestone decisions and clarification requests
+// created here also enqueue an engine_review_item so the operator queue
+// picks them up on next refetch.
+async function _resolvePortalMembership(
+  context: {
+    claims?: Record<string, unknown>;
+    supabase: {
+      from: (t: string) => {
+        select: (s: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }> } };
+      };
+    };
+  },
+  portalProjectId: string,
+) {
+  const email = ((context.claims?.email as string | undefined) ?? "").toLowerCase();
+  if (!email) throw new Error("Not signed in");
+  const { data, error } = await context.supabase
+    .from("client_portal_permissions")
+    .select("id")
+    .eq("project_id", portalProjectId)
+    .maybeSingle();
+  if (error || !data) throw new Error("Forbidden: no portal access to this project");
+  return email;
+}
+
+export const respondToPortalDecision = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      portalProjectId: z.string().uuid(),
+      milestoneId: z.string().min(1).max(200),
+      milestoneTitle: z.string().min(1).max(300),
+      decision: z.enum(["approve", "changes_requested", "declined"]),
+      note: z.string().max(2000).optional(),
+    }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const email = await _resolvePortalMembership(context as never, data.portalProjectId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const nowIso = new Date().toISOString();
+
+    // 1. Portal-side: activity + message so the client sees their action.
+    await context.supabase.rpc("log_client_portal_activity", {
+      _project_id: data.portalProjectId,
+      _actor_type: "client",
+      _actor_email: email,
+      _event_type: `milestone_${data.decision}`,
+      _summary: `Client responded to milestone "${data.milestoneTitle}": ${data.decision.replace("_", " ")}.`,
+      _client_visible: true,
+      _metadata: { milestone_id: data.milestoneId, decision: data.decision, note: data.note ?? null } as unknown as never,
+    });
+    await supabaseAdmin.from("client_portal_messages").insert({
+      project_id: data.portalProjectId,
+      sender_type: "client",
+      author_email: email,
+      subject: `Decision: ${data.milestoneTitle}`,
+      body: data.note ?? `Client decision: ${data.decision.replace("_", " ")}`,
+      message_type: "decision",
+      action_required: data.decision !== "approve",
+      visible_to_client: true,
+      metadata: { milestone_id: data.milestoneId, decision: data.decision },
+    });
+
+    // 2. Engine side: create a review item on the linked engine_project (if any).
+    const { data: engineProj } = await supabaseAdmin
+      .from("engine_projects")
+      .select("id,name")
+      .eq("client_portal_project_id", data.portalProjectId)
+      .maybeSingle();
+    if (engineProj) {
+      await supabaseAdmin.from("engine_review_items").insert({
+        project: engineProj.name,
+        item_type: "Client Decision",
+        title: `${data.milestoneTitle} — client ${data.decision.replace("_", " ")}`,
+        impact: data.decision === "approve" ? "low" : "high",
+        source: `portal:${data.portalProjectId}`,
+        requested_by: email,
+        status: "pending",
+      });
+      await supabaseAdmin.from("engine_audit_log").insert({
+        project_id: engineProj.id,
+        actor_email: email,
+        action: `client_${data.decision}`,
+        summary: `Client responded on "${data.milestoneTitle}".`,
+        metadata: { milestone_id: data.milestoneId, note: data.note ?? null, decision: data.decision, at: nowIso },
+      });
+    }
+    return { ok: true as const };
+  });
+
+export const requestPortalClarification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      portalProjectId: z.string().uuid(),
+      milestoneId: z.string().min(1).max(200).optional(),
+      milestoneTitle: z.string().min(1).max(300).optional(),
+      question: z.string().min(3).max(2000),
+    }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const email = await _resolvePortalMembership(context as never, data.portalProjectId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const subject = data.milestoneTitle ? `Clarification: ${data.milestoneTitle}` : "Clarification request";
+
+    await supabaseAdmin.from("client_portal_messages").insert({
+      project_id: data.portalProjectId,
+      sender_type: "client",
+      author_email: email,
+      subject,
+      body: data.question,
+      message_type: "clarification",
+      action_required: true,
+      visible_to_client: true,
+      metadata: { milestone_id: data.milestoneId ?? null },
+    });
+    await context.supabase.rpc("log_client_portal_activity", {
+      _project_id: data.portalProjectId,
+      _actor_type: "client",
+      _actor_email: email,
+      _event_type: "clarification_requested",
+      _summary: subject,
+      _client_visible: true,
+      _metadata: { milestone_id: data.milestoneId ?? null, question: data.question } as unknown as never,
+    });
+
+    const { data: engineProj } = await supabaseAdmin
+      .from("engine_projects")
+      .select("id,name")
+      .eq("client_portal_project_id", data.portalProjectId)
+      .maybeSingle();
+    if (engineProj) {
+      await supabaseAdmin.from("engine_review_items").insert({
+        project: engineProj.name,
+        item_type: "Client Clarification",
+        title: subject,
+        impact: "medium",
+        source: `portal:${data.portalProjectId}`,
+        requested_by: email,
+        status: "pending",
+      });
+      await supabaseAdmin.from("engine_audit_log").insert({
+        project_id: engineProj.id,
+        actor_email: email,
+        action: "client_clarification_requested",
+        summary: subject,
+        metadata: { milestone_id: data.milestoneId ?? null, question: data.question },
+      });
+    }
+    return { ok: true as const };
+  });

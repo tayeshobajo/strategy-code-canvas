@@ -1891,6 +1891,7 @@ export type Database = {
           approved_version: string | null
           blueprint: Json
           client_id: string
+          client_portal_project_id: string | null
           client_preview: Json
           created_at: string
           current_step: string
@@ -1930,6 +1931,7 @@ export type Database = {
           approved_version?: string | null
           blueprint?: Json
           client_id: string
+          client_portal_project_id?: string | null
           client_preview?: Json
           created_at?: string
           current_step?: string
@@ -1969,6 +1971,7 @@ export type Database = {
           approved_version?: string | null
           blueprint?: Json
           client_id?: string
+          client_portal_project_id?: string | null
           client_preview?: Json
           created_at?: string
           current_step?: string
@@ -2001,6 +2004,20 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "engine_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_projects_client_portal_project_id_fkey"
+            columns: ["client_portal_project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_projects_client_portal_project_id_fkey"
+            columns: ["client_portal_project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
             referencedColumns: ["id"]
           },
         ]
@@ -2106,6 +2123,9 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          client_preview_approved_at: string | null
+          client_preview_approved_by: string | null
+          client_preview_status: string
           created_at: string
           created_by: string
           generation_provenance: Json
@@ -2114,6 +2134,8 @@ export type Database = {
           parent_version_id: string | null
           payload: Json
           project_id: string
+          published_portal_roadmap_id: string | null
+          published_to_portal_at: string | null
           source_ids: string[]
           status: Database["public"]["Enums"]["engine_version_status"]
           summary: string | null
@@ -2123,6 +2145,9 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          client_preview_approved_at?: string | null
+          client_preview_approved_by?: string | null
+          client_preview_status?: string
           created_at?: string
           created_by?: string
           generation_provenance?: Json
@@ -2131,6 +2156,8 @@ export type Database = {
           parent_version_id?: string | null
           payload?: Json
           project_id: string
+          published_portal_roadmap_id?: string | null
+          published_to_portal_at?: string | null
           source_ids?: string[]
           status?: Database["public"]["Enums"]["engine_version_status"]
           summary?: string | null
@@ -2140,6 +2167,9 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          client_preview_approved_at?: string | null
+          client_preview_approved_by?: string | null
+          client_preview_status?: string
           created_at?: string
           created_by?: string
           generation_provenance?: Json
@@ -2148,6 +2178,8 @@ export type Database = {
           parent_version_id?: string | null
           payload?: Json
           project_id?: string
+          published_portal_roadmap_id?: string | null
+          published_to_portal_at?: string | null
           source_ids?: string[]
           status?: Database["public"]["Enums"]["engine_version_status"]
           summary?: string | null
@@ -2167,6 +2199,20 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_roadmap_versions_published_portal_roadmap_id_fkey"
+            columns: ["published_portal_roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_roadmaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_roadmap_versions_published_portal_roadmap_id_fkey"
+            columns: ["published_portal_roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "portal_roadmaps_v"
             referencedColumns: ["id"]
           },
         ]
