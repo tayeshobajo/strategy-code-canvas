@@ -788,3 +788,125 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
 
     return { ok: true, portal_roadmap_id: pub.id };
   });
+
+// ─── Portal Link Management (P1-5 manual override) ──────────────────────
+/**
+ * Returns the current portal linkage for an engine project plus a shortlist
+ * of candidate portal projects for the operator to pick from. Candidates are
+ * ranked by email match first, then by name similarity, then recency.
+ */
+export const getProjectPortalLink = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ projectId: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    await assertOps(context as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: proj, error } = await sb
+      .from("engine_projects")
+      .select("id,name,client_portal_project_id,client_id")
+      .eq("id", data.projectId)
+      .single();
+    if (error) throw new Error(String(error.message ?? error));
+    const project = proj as { id: string; name: string; client_portal_project_id: string | null; client_id: string | null };
+
+    let linked: { id: string; project_name: string | null; primary_email: string | null } | null = null;
+    if (project.client_portal_project_id) {
+      const { data: l } = await sb
+        .from("client_portal_projects")
+        .select("id,project_name,primary_email")
+        .eq("id", project.client_portal_project_id)
+        .maybeSingle();
+      linked = (l ?? null) as typeof linked;
+    }
+
+    let contactEmail: string | null = null;
+    if (project.client_id) {
+      const { data: c } = await sb
+        .from("engine_clients")
+        .select("contact_email")
+        .eq("id", project.client_id)
+        .maybeSingle();
+      contactEmail = ((c as { contact_email?: string | null } | null)?.contact_email ?? null);
+    }
+
+    const { data: all } = await sb
+      .from("client_portal_projects")
+      .select("id,project_name,primary_email,created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    const list = (all ?? []) as Array<{ id: string; project_name: string | null; primary_email: string | null; created_at: string }>;
+    const emailNorm = (contactEmail ?? "").trim().toLowerCase();
+    const nameNorm = project.name.trim().toLowerCase();
+    const scored = list.map((p) => {
+      const em = (p.primary_email ?? "").trim().toLowerCase();
+      const nm = (p.project_name ?? "").trim().toLowerCase();
+      let score = 0;
+      if (emailNorm && em === emailNorm) score += 100;
+      else if (emailNorm && em.split("@")[1] && emailNorm.split("@")[1] && em.split("@")[1] === emailNorm.split("@")[1]) score += 10;
+      if (nameNorm && nm === nameNorm) score += 50;
+      else if (nameNorm && nm.includes(nameNorm)) score += 20;
+      return { ...p, score };
+    }).sort((a, b) => b.score - a.score).slice(0, 20);
+
+    return {
+      project_id: project.id,
+      linked_portal_project_id: project.client_portal_project_id,
+      linked,
+      contact_email: contactEmail,
+      candidates: scored,
+    };
+  });
+
+/**
+ * Manually set (or clear) an engine project's portal linkage. Writes an
+ * audit-log entry so the change is traceable.
+ */
+export const setProjectPortalLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      projectId: z.string().uuid(),
+      portalProjectId: z.string().uuid().nullable(),
+    }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const actor = await assertAdminEmail(context as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+
+    if (data.portalProjectId) {
+      const { data: portal, error } = await sb
+        .from("client_portal_projects")
+        .select("id,project_name")
+        .eq("id", data.portalProjectId)
+        .maybeSingle();
+      if (error) throw new Error(String(error.message ?? error));
+      if (!portal) throw new Error("Portal project not found.");
+    }
+
+    const { error: uErr } = await sb
+      .from("engine_projects")
+      .update({ client_portal_project_id: data.portalProjectId })
+      .eq("id", data.projectId);
+    if (uErr) throw new Error(String(uErr.message ?? uErr));
+
+    // Keep existing review items in sync so filter/join works.
+    await sb
+      .from("engine_review_items")
+      .update({ client_portal_project_id: data.portalProjectId })
+      .eq("project_id", data.projectId);
+
+    await sb.from("engine_audit_log").insert({
+      project_id: data.projectId,
+      actor_email: actor,
+      action: data.portalProjectId ? "portal_link_set" : "portal_link_cleared",
+      summary: data.portalProjectId
+        ? `Portal project linked (${data.portalProjectId}).`
+        : "Portal project link cleared.",
+      metadata: { portal_project_id: data.portalProjectId },
+    });
+
+    return { ok: true, linked_portal_project_id: data.portalProjectId };
+  });
+
