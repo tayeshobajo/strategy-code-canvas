@@ -650,3 +650,148 @@ function withAlpha(hex: string, alpha: number): string {
   const b = bigint & 255;
   return `rgba(${r},${g},${b},${alpha})`;
 }
+
+/* ------------------------------------------------------------------------ */
+
+const STATUS_META: Record<
+  string,
+  { label: string; icon: typeof CircleDot; tone: string }
+> = {
+  completed: { label: "Completed", icon: CheckCircle2, tone: "text-emerald-600 bg-emerald-500/10 border-emerald-500/25" },
+  in_progress: { label: "In progress", icon: CircleDot, tone: "text-sky-600 bg-sky-500/10 border-sky-500/25" },
+  upcoming: { label: "Upcoming", icon: Clock, tone: "text-ink/70 bg-ink/5 border-ink/15" },
+  blocked: { label: "Blocked", icon: AlertCircle, tone: "text-rose-600 bg-rose-500/10 border-rose-500/25" },
+};
+
+const KIND_LABEL: Record<string, string> = {
+  milestone: "Milestone",
+  decision: "Decision",
+  deliverable: "Deliverable",
+  meeting: "Meeting",
+  deadline: "Deadline",
+};
+
+function fmtDate(iso?: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function MilestoneDotPreview({
+  milestone,
+  kind,
+  dotColor,
+  isSel,
+  onDotClick,
+}: {
+  milestone: RoadmapMilestone;
+  kind: string;
+  dotColor: string;
+  isSel: boolean;
+  onDotClick: (slug: string) => void;
+}) {
+  const status = STATUS_META[milestone.status] ?? STATUS_META.upcoming;
+  const StatusIcon = status.icon;
+  const kindLabel = KIND_LABEL[kind] ?? kind;
+  const due = fmtDate(milestone.dueDate) ?? fmtDate(milestone.targetDate);
+  const dueLabel = milestone.dueDate ? "Due" : milestone.targetDate ? "Target" : null;
+
+  return (
+    <HoverCard openDelay={120} closeDelay={80}>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDotClick(milestone.slug);
+          }}
+          onKeyDown={(e) => e.stopPropagation()}
+          aria-label={milestone.title}
+          className="relative inline-flex items-center justify-center h-4 w-4 rounded-full transition-transform duration-[160ms] hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-[#030A18]"
+        >
+          {isSel && (
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full animate-ping"
+              style={{ background: withAlpha(dotColor, 0.6) }}
+            />
+          )}
+          <span
+            className="relative rounded-full border"
+            style={{
+              width: isSel ? 9 : 7,
+              height: isSel ? 9 : 7,
+              background: dotColor,
+              borderColor: isSel ? "#fff" : "rgba(255,255,255,0.35)",
+              boxShadow: isSel
+                ? `0 0 10px ${dotColor}`
+                : `0 0 4px ${withAlpha(dotColor, 0.55)}`,
+            }}
+          />
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent
+        side="top"
+        sideOffset={10}
+        align="center"
+        className="w-72 p-0 border-ink/10 bg-[#F7F3EC] text-ink shadow-[0_24px_60px_-20px_rgba(11,18,32,0.45)] rounded-xl overflow-hidden"
+        data-roadmap-interactive
+      >
+        {/* Accent bar */}
+        <div
+          aria-hidden
+          className="h-[3px] w-full"
+          style={{
+            background: `linear-gradient(90deg, ${dotColor} 0%, ${withAlpha(dotColor, 0.35)} 100%)`,
+          }}
+        />
+        <div className="px-4 pt-3 pb-3.5 space-y-2.5">
+          {/* Kicker */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] flex items-center gap-1.5" style={{ color: dotColor }}>
+              <span
+                aria-hidden
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: dotColor, boxShadow: `0 0 6px ${dotColor}` }}
+              />
+              {kindLabel}
+            </div>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.tone}`}
+            >
+              <StatusIcon className="w-2.5 h-2.5" />
+              {status.label}
+            </span>
+          </div>
+
+          {/* Title */}
+          <div className="font-display text-[16px] leading-[1.2] tracking-[-0.005em] text-ink">
+            {milestone.title}
+          </div>
+
+          {/* Summary */}
+          {milestone.summary && (
+            <p className="text-[12px] leading-[1.5] text-ink/70 line-clamp-3">
+              {milestone.summary}
+            </p>
+          )}
+
+          {/* Meta row */}
+          {due && (
+            <div className="flex items-center gap-1.5 pt-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/55">
+              <Calendar className="w-3 h-3" />
+              <span>{dueLabel} {due}</span>
+            </div>
+          )}
+
+          {/* Hint */}
+          <div className="pt-1.5 mt-1 border-t border-ink/10 text-[10.5px] text-ink/50 flex items-center justify-between">
+            <span>Click to open</span>
+            <span className="font-mono tracking-[0.14em] uppercase text-ink/40">Preview</span>
+          </div>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
