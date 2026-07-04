@@ -323,3 +323,96 @@ function ImpactBadge({ impact }: { impact: "high" | "medium" | "low" }) {
     </span>
   );
 }
+
+const draftVersionsQO = queryOptions({
+  queryKey: ["engine", "draft-versions"],
+  queryFn: () => listDraftVersions(),
+});
+
+function DraftVersionsStrip() {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery(draftVersionsQO);
+  const submitFn = useServerFn(submitVersionForApproval);
+  const submit = useMutation({
+    mutationFn: (versionId: string) => submitFn({ data: { versionId } }),
+    onSuccess: () => {
+      toast.success("Prepared for Tai review. Item added to approval queue.");
+      qc.invalidateQueries({ queryKey: ["engine", "draft-versions"] });
+      qc.invalidateQueries({ queryKey: ["engine", "reviews"] });
+    },
+    onError: (e: Error) => toast.error(e.message ?? "Could not prepare draft"),
+  });
+  const drafts = data ?? [];
+  if (isLoading) {
+    return (
+      <div className="mb-6 rounded-xl border border-border bg-card p-4 flex items-center gap-2 text-sm text-ink/60">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading draft roadmap versions…
+      </div>
+    );
+  }
+  if (drafts.length === 0) return null;
+  return (
+    <div className="mb-6 rounded-xl border border-[#cdd6f3] bg-[#f5f7fd] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-royal" />
+          <h2 className="font-display text-lg text-ink">New AI-drafted roadmap versions</h2>
+          <span className="text-xs text-ink/50">({drafts.length})</span>
+        </div>
+        <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-royal/70">
+          Awaiting Tai review
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {drafts.map((d: DraftVersion) => (
+          <div key={d.id} className="rounded-lg border border-border bg-white p-3 flex flex-col gap-2">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-wider text-ink/50">
+                  {d.project_name}
+                </div>
+                <div className="font-display text-base text-ink mt-0.5">
+                  {d.version}
+                  {d.label ? <span className="text-ink/60 font-sans text-sm"> — {d.label}</span> : null}
+                </div>
+              </div>
+              <span className={cn(
+                "text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded-full border",
+                d.status === "ai_generated"
+                  ? "bg-[#e9eefb] text-[#2842a4] border-[#cdd6f3]"
+                  : d.status === "tai_edited"
+                    ? "bg-[#fbf3e0] text-[#8a6713] border-[#f1e3b9]"
+                    : "bg-paper-soft text-ink/60 border-border",
+              )}>
+                {d.status.replace("_", " ")}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-ink/60">
+              <span>{d.signal_count} signals</span>
+              {d.source ? <span>· {d.source}</span> : null}
+              <span>· {new Date(d.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <Link
+                to="/engine/projects/$projectId/versions/compare"
+                params={{ projectId: d.project_id }}
+                className="text-xs inline-flex items-center gap-1 border border-border rounded px-2 py-1 hover:border-royal/50"
+              >
+                Open in builder <ArrowRight className="w-3 h-3" />
+              </Link>
+              <button
+                onClick={() => submit.mutate(d.id)}
+                disabled={submit.isPending || d.status === "tai_edited"}
+                className="text-xs inline-flex items-center gap-1 bg-royal text-white rounded px-2 py-1 hover:bg-royal/90 disabled:opacity-40"
+                title={d.status === "tai_edited" ? "Already in Tai's queue" : "Prepare for Tai review"}
+              >
+                <Send className="w-3 h-3" />
+                {d.status === "tai_edited" ? "Queued" : "Prepare for Tai review"}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
