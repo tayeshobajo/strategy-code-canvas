@@ -628,31 +628,50 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
       return { docs: [] as PortalRoadmapDoc[], revoked: false as const };
     }
 
+    // IMPORTANT: This SELECT is the client-visible surface for roadmap payloads.
+    // NEVER add internal-engine columns here (supporting_notes, source_version_id,
+    // review flags, agent costs, cost_cents, ai_confidence, internal notes, etc.).
+    // Every column below is intentionally client-safe.
     const { data, error } = await context.supabase
       .from("client_portal_roadmaps")
       .select(
-        "id, project_id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, supporting_notes, current_focus, owner_name, next_milestone, next_meeting_at, acknowledged_at, share_url, approved_at, updated_at, version_label",
+        "id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, current_focus, owner_name, next_milestone, next_meeting_at, share_url, approved_at, updated_at, version_label",
       )
       .in("project_id", projectIds)
       .in("status", ["approved", "delivered"])
       .order("approved_at", { ascending: false });
     if (error) throw error;
 
-    // IMPORTANT: only client-safe fields are projected below. Internal engine
-    // metadata (source_version_id, review flags, agent costs, etc.) is
-    // intentionally NOT exposed. Audit new columns before adding to the select.
-    const docs: PortalRoadmapDoc[] = (data ?? []).map((r: any) => ({
-      id: r.id,
-      title: r.version_label ? `${r.title} — ${r.version_label}` : r.title,
-      body_md: renderRoadmapMarkdown(r),
-      // Prefer the approved share URL (hosted PDF) when the engine has
-      // attached one to the roadmap version.
-      file_url: r.share_url ?? null,
-      published_at: r.approved_at,
-      updated_at: r.updated_at,
-      raw: r,
-      project: null,
-    }));
+    const docs: PortalRoadmapDoc[] = (data ?? []).map((r: any) => {
+      // Whitelisted raw projection — no internal IDs, no share URL, no ack timestamps.
+      const safeRaw = {
+        id: r.id,
+        title: r.title,
+        version_label: r.version_label ?? null,
+        executive_summary: r.executive_summary ?? null,
+        current_diagnosis: r.current_diagnosis ?? null,
+        strategic_priorities: r.strategic_priorities ?? null,
+        sequence_30_60_90: r.sequence_30_60_90 ?? null,
+        risks_dependencies: r.risks_dependencies ?? null,
+        recommended_next_move: r.recommended_next_move ?? null,
+        current_focus: r.current_focus ?? null,
+        owner_name: r.owner_name ?? null,
+        next_milestone: r.next_milestone ?? null,
+        next_meeting_at: r.next_meeting_at ?? null,
+        approved_at: r.approved_at ?? null,
+        updated_at: r.updated_at ?? null,
+      };
+      return {
+        id: r.id,
+        title: r.version_label ? `${r.title} — ${r.version_label}` : r.title,
+        body_md: renderRoadmapMarkdown(r),
+        file_url: r.share_url ?? null,
+        published_at: r.approved_at,
+        updated_at: r.updated_at,
+        raw: safeRaw,
+        project: null,
+      };
+    });
     return { docs, revoked: false as const };
   });
 
@@ -1203,20 +1222,21 @@ export const resolvePortalFollowUp = createServerFn({ method: "POST" })
 async function _resolvePortalMembership(
   context: {
     claims?: Record<string, unknown>;
-    supabase: {
-      from: (t: string) => {
-        select: (s: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }> } };
-      };
-    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    supabase: any;
   },
   portalProjectId: string,
 ) {
   const email = ((context.claims?.email as string | undefined) ?? "").toLowerCase();
   if (!email) throw new Error("Not signed in");
+  // Explicit email match in application code — belt-and-braces over RLS so a
+  // client cannot request another workspace's project id even if RLS regresses.
   const { data, error } = await context.supabase
     .from("client_portal_permissions")
     .select("id")
     .eq("project_id", portalProjectId)
+    .ilike("email", email)
+    .is("revoked_at", null)
     .maybeSingle();
   if (error || !data) throw new Error("Forbidden: no portal access to this project");
   return email;
@@ -1347,4 +1367,41 @@ export const requestPortalClarification = createServerFn({ method: "POST" })
       });
     }
     return { ok: true as const };
+  });
+
+// ─── Server-side client message send ──────────────────────────────
+// Portal messages MUST go through this fn — never a direct browser insert —
+// because sender_type / visible_to_client are trust boundaries. The old
+// client-side insert let a user forge sender_type: 'tai' or hide messages
+// from themselves via devtools.
+export const sendPortalMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      portalProjectId: z.string().uuid(),
+      body: z.string().min(1).max(10_000),
+      relatedFileIds: z.array(z.string().uuid()).max(20).optional(),
+      messageType: z.enum(["reply", "clarification", "decision"]).optional(),
+    }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const email = await _resolvePortalMembership(context as never, data.portalProjectId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: row, error } = await sb
+      .from("client_portal_messages")
+      .insert({
+        project_id: data.portalProjectId,
+        // Hardcoded server-side — client cannot forge these.
+        sender_type: "client",
+        visible_to_client: true,
+        author_email: email,
+        body: data.body,
+        message_type: data.messageType ?? "reply",
+        related_file_ids: data.relatedFileIds ?? [],
+      })
+      .select("id, created_at")
+      .single();
+    if (error) throw new Error(error.message ?? "message send failed");
+    return { id: row.id as string, created_at: row.created_at as string };
   });

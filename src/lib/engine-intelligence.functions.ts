@@ -416,13 +416,32 @@ export const approveVersion = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<{ ok: true; version: string }> => {
     await assertAdmin(context);
     const sb = context.supabase as any;
-    const email = (context as any).claims?.email ?? null;
+    const email = ((context as any).claims?.email ?? "").toString().toLowerCase() || null;
+
+    // Load the target version once — we need created_by + project_id.
+    const { data: current, error: curErr } = await sb
+      .from("engine_roadmap_versions")
+      .select("id, project_id, created_by, status")
+      .eq("id", data.id)
+      .single();
+    if (curErr || !current) throw new Error(curErr?.message ?? "version not found");
+    if (current.status === "approved") {
+      throw new Error("Version is already approved.");
+    }
+
+    // Self-approval guard: the same human who authored the version cannot approve it.
+    // AI-authored versions (created_by = 'ai') are still allowed because the
+    // approver is by definition a different actor (the human operator).
+    const createdBy = (current.created_by ?? "").toString().toLowerCase();
+    if (createdBy && createdBy !== "ai" && email && createdBy === email) {
+      throw new Error("You cannot approve a version you authored yourself — a second reviewer must approve it.");
+    }
 
     // Guard: block approving if any critical change_event is still unresolved.
     const { data: openCritical } = await sb
       .from("engine_change_events")
       .select("id")
-      .eq("project_id", (await sb.from("engine_roadmap_versions").select("project_id").eq("id", data.id).single()).data?.project_id)
+      .eq("project_id", current.project_id)
       .eq("severity", "critical")
       .is("resolved_at", null);
     if ((openCritical ?? []).length) {

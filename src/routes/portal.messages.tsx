@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { sendPortalMessage } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { usePortalContext } from "@/hooks/use-portal-context";
@@ -245,16 +246,14 @@ function MessagesPage() {
   const send = useMutation({
     mutationFn: async (payload: { text: string; fileIds: string[] }) => {
       if (!projectId) throw new Error("No workspace yet");
-      const { error } = await supabase.from("client_portal_messages").insert({
-        project_id: projectId,
-        sender_type: "client",
-        author_email: email,
-        body: payload.text,
-        message_type: "reply",
-        visible_to_client: true,
-        related_file_ids: payload.fileIds,
+      await sendPortalMessage({
+        data: {
+          portalProjectId: projectId,
+          body: payload.text,
+          relatedFileIds: payload.fileIds,
+          messageType: "reply",
+        },
       });
-      if (error) throw new Error(error.message);
     },
     onMutate: async (payload) => {
       await qc.cancelQueries({ queryKey: ["portal", "messages", projectId] });

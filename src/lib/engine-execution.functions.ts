@@ -773,9 +773,11 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
     }
 
     // Resolve the approved engine version (required to satisfy the portal FK trigger).
+    // Also enforce the client-preview approval gate here — sendProjectDelivery
+    // must NOT bypass what publishVersionToPortal enforces.
     const { data: approvedVersion } = await sb
       .from("engine_roadmap_versions")
-      .select("id,version,payload,approved_at")
+      .select("id,version,payload,approved_at,client_preview_status")
       .eq("project_id", data.projectId)
       .not("approved_at", "is", null)
       .order("approved_at", { ascending: false })
@@ -783,6 +785,9 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!approvedVersion?.id) {
       throw new Error("Cannot send: no approved roadmap version row found in engine_roadmap_versions.");
+    }
+    if (approvedVersion.client_preview_status !== "approved") {
+      throw new Error("Cannot send: the client preview for the approved version has not been approved yet.");
     }
 
     // Resolve client + recipient.
@@ -844,6 +849,14 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
         },
         { onConflict: "project_id,email" },
       );
+
+    // Auto-link the engine project to its portal project so future publish
+    // operations resolve the destination without manual DB edits.
+    await sb
+      .from("engine_projects")
+      .update({ client_portal_project_id: portalProjectId })
+      .eq("id", data.projectId);
+
 
 
 

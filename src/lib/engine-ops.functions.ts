@@ -201,17 +201,12 @@ export const decideReviewItem = createServerFn({ method: "POST" })
   }).parse(raw))
   .handler(async ({ data, context }) => {
     const actor = await assertOps(context as never);
-    const sb = context.supabase as never as {
-      from: (t: string) => {
-        select: (s: string) => { eq: (c: string, v: string) => { single: () => Promise<{ data: unknown; error: unknown }> } };
-        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
-        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
-      };
-    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
     const { data: item, error: rErr } = await sb.from("engine_review_items")
-      .select("project,item_type,title").eq("id", data.id).single();
+      .select("project,project_id,item_type,title").eq("id", data.id).single();
     if (rErr) throw new Error(String((rErr as { message?: string }).message ?? rErr));
-    const it = item as { project: string; item_type: string; title: string };
+    const it = item as { project: string; project_id: string | null; item_type: string; title: string };
     const nextStatus = data.action === "approved" ? "approved" : data.action === "rejected" ? "rejected" : "sent_back";
     const { error: uErr } = await sb.from("engine_review_items")
       .update({ status: nextStatus }).eq("id", data.id);
@@ -222,12 +217,85 @@ export const decideReviewItem = createServerFn({ method: "POST" })
       routed_to: data.action === "approved" ? null : (SOURCE_ROUTE[it.item_type] ?? null),
       actor,
     });
+    // Resolve project row for downstream writes.
+    let projId = it.project_id ?? null;
+    if (!projId) {
+      const { data: proj } = await sb.from("engine_projects")
+        .select("id").eq("name", it.project).single() as unknown as { data: { id: string } | null };
+      projId = proj?.id ?? null;
+    }
+
+    // P0-4: When a "roadmap_version" (or "Roadmap Update") review item is
+    // approved, also flip the matching engine_roadmap_versions row to approved
+    // and lock the approved snapshot on the project. Previously these were
+    // two disconnected flows — operators thought they'd approved the roadmap
+    // but the version stayed in ai_generated / tai_edited.
+    if (data.action === "approved"
+        && (it.item_type === "roadmap_version" || it.item_type === "Roadmap Update")
+        && projId) {
+      // The intelligence pipeline stores the review title === version.label,
+      // e.g. "v0.2 — AI draft from ...". Match on label first, then fall back
+      // to the most recent pending version on the project.
+      const { data: matches } = await sb
+        .from("engine_roadmap_versions")
+        .select("id, version, payload, created_by, status, label")
+        .eq("project_id", projId)
+        .in("status", ["ai_generated", "tai_edited", "draft"])
+        .order("created_at", { ascending: false })
+        .limit(20) as unknown as { data: Array<{
+          id: string; version: string; payload: Record<string, unknown> | null;
+          created_by: string | null; status: string; label: string | null;
+        }> | null };
+      const rows = matches ?? [];
+      const target = rows.find((r) => (r.label ?? "").trim() === it.title.trim()) ?? rows[0] ?? null;
+      if (target) {
+        const createdBy = (target.created_by ?? "").toString().toLowerCase();
+        // Self-approval guard mirrors approveVersion.
+        if (createdBy && createdBy !== "ai" && createdBy === actor.toLowerCase()) {
+          throw new Error("You cannot approve a version you authored yourself — a second reviewer must approve this review item.");
+        }
+        // Block on unresolved critical change events.
+        const { data: openCritical } = await sb
+          .from("engine_change_events")
+          .select("id").eq("project_id", projId)
+          .eq("severity", "critical").is("resolved_at", null);
+        if ((openCritical ?? []).length) {
+          throw new Error("Resolve open critical change events before approving this version.");
+        }
+        const nowIso = new Date().toISOString();
+        const { error: vErr } = await sb.from("engine_roadmap_versions")
+          .update({ status: "approved", approved_by: actor, approved_at: nowIso })
+          .eq("id", target.id);
+        if (vErr) throw new Error(String((vErr as { message?: string }).message ?? vErr));
+        await sb.from("engine_projects").update({
+          approved_version: target.version,
+          roadmap_version: target.version,
+          approved_snapshot: target.payload ?? {},
+          approved_at: nowIso,
+          approved_by_email: actor,
+        }).eq("id", projId);
+        await sb.from("engine_activity").insert({
+          project_id: projId,
+          kind: "version_approved",
+          title: `Version ${target.version} approved`,
+          body: `Approved by ${actor} via review queue`,
+          severity: "success",
+        });
+        await sb.from("roadmap_approvals").insert({
+          version_id: target.id,
+          project_id: projId,
+          snapshot_version: target.version,
+          approver_email: actor,
+          review_item_id: data.id,
+          notes: data.reason ?? null,
+        });
+      }
+    }
+
     // Also write to the global audit log so the project-level audit view sees it.
-    const { data: proj } = await sb.from("engine_projects")
-      .select("id").eq("name", it.project).single() as unknown as { data: { id: string } | null };
-    if (proj?.id) {
+    if (projId) {
       await sb.from("engine_audit_log").insert({
-        project_id: proj.id,
+        project_id: projId,
         actor_email: actor,
         action: `review_${data.action}`,
         summary: `Review "${it.title}" (${it.item_type}) → ${data.action}${data.reason ? ` — ${data.reason}` : ""}.`,
