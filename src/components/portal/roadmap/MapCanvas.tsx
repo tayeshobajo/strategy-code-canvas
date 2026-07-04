@@ -19,7 +19,7 @@ import mapBg from "@/assets/roadmap-map-background.png.asset.json";
 
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 1050;
-const DRAWER_WIDTH = 410;
+// Drawer offset is published dynamically by MilestoneSheet via canvas context.
 
 /** Route path colors — warm golden-white to read as a sunlit road on terrain. */
 const ROUTE_GOLD = "240,210,130"; // #F0D282 warm gold
