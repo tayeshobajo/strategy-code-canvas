@@ -70,13 +70,16 @@ function statusIcon(m: RoadmapMilestone) {
     case "completed":
       return CheckCircle2;
     case "in_progress":
-      return Loader2;
+      // Premium replacement for the old animate-spin Loader2 — a calm zap
+      // glyph; the breathing halo below carries the live-state signal.
+      return Zap;
     case "blocked":
       return AlertTriangle;
     default:
       return Circle;
   }
 }
+
 
 function statusSubline(m: RoadmapMilestone): string | null {
   if (m.status === "in_progress") return "In progress";
