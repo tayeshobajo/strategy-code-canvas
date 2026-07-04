@@ -105,7 +105,13 @@ const KIND_ACCENT: Record<MilestoneKind, string> = {
   decision: "bg-[#8b5cf6]/15 text-[#7c3aed] border-[#8b5cf6]/30",
   deliverable: "bg-[#f59e0b]/15 text-[#b45309] border-[#f59e0b]/30",
   meeting: "bg-[#0ea5a4]/15 text-[#0f766e] border-[#0ea5a4]/30",
+const KIND_HEX: Record<MilestoneKind, string> = {
+  milestone: "#2F7DFF",
+  decision: "#8B5CF6",
+  deliverable: "#F59D2A",
+  meeting: "#0EA5A4",
 };
+
 
 function fmtDate(d?: string) {
   if (!d) return null;
