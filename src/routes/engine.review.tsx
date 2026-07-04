@@ -190,11 +190,22 @@ function ReviewApprovalsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((r) => (
+                  {filtered.map((r) => {
+                    const isPortalDecision = r.item_type === "Client Decision";
+                    const parsed = isPortalDecision ? parseClientDecisionTitle(r.title) : null;
+                    return (
                     <tr key={r.id} className="border-b border-border/60 hover:bg-paper-soft/40">
                       <td className="px-5 py-3">
                         <div className="font-medium text-ink">{r.project}</div>
-                        <div className="text-xs text-ink/60">{r.title}</div>
+                        {parsed && parsed.decision ? (
+                          <div className="text-xs text-ink/60 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <DecisionBadge decision={parsed.decision} />
+                            <span className="text-ink/70">on</span>
+                            <span className="text-ink/90 font-medium">{parsed.milestone}</span>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-ink/60">{r.title}</div>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-ink/80 whitespace-nowrap">{r.item_type}</td>
                       <td className="px-3 py-3"><ImpactBadge impact={r.impact} /></td>
