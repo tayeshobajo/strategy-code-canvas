@@ -905,7 +905,7 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
       .from("client_portal_roadmaps")
       .insert({
         project_id: portalProjectId,
-        source_version_id: approvedVersion.id,
+        approved_roadmap_version_id: approvedVersion.id,
         roadmap_document_id: doc.id,
         title: `${proj.name} — Roadmap ${approvedVersion.version ?? ""}`.trim(),
         version_label: approvedVersion.version ?? "Version 1",
@@ -937,7 +937,7 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
       _event_type: "roadmap_delivered",
       _summary: "Your approved roadmap has been delivered.",
       _client_visible: true,
-      _metadata: { source_version_id: approvedVersion.id, portal_roadmap_id: portalRoadmapId } as any,
+      _metadata: { approved_roadmap_version_id: approvedVersion.id, portal_roadmap_id: portalRoadmapId } as any,
     });
 
     // Persist checklist state + delivery marker onto the engine project.
@@ -997,7 +997,7 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
         approved_version: proj.approved_version,
         portal_project_id: portalProjectId,
         portal_roadmap_id: portalRoadmapId,
-        source_version_id: approvedVersion.id,
+        approved_roadmap_version_id: approvedVersion.id,
       },
     });
 
