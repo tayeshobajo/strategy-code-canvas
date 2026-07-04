@@ -33,14 +33,10 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 export const Route = createFileRoute("/portal")({
   ssr: false,
   beforeLoad: async ({ location }) => {
-    // Public sub-routes that must render without an authenticated session.
     const PUBLIC_PATHS = ["/portal/login", "/portal/access-denied"];
     if (PUBLIC_PATHS.includes(location.pathname)) {
       return { user: null };
     }
-    // Visual regression / design-review flag: /portal/roadmap?__visual=demo
-    // renders a self-contained fixture and skips every server call, so
-    // Playwright can snapshot the canvas without a Supabase session.
     if (
       location.pathname === "/portal/roadmap" &&
       /(?:^|[?&])__visual=demo(?:&|$)/.test(location.searchStr ?? "")
@@ -76,9 +72,6 @@ const NAV: Array<{
   { key: "account", to: "/portal/account", label: "Account", icon: User },
 ];
 
-// Lifecycle-driven lock rules. Items appear in the sidebar always so clients
-// see the shape of the engagement, but are disabled until the internal
-// Roadmap Engine has produced approved output for that surface.
 const ROADMAP_UNLOCK_STATUSES = new Set([
   "roadmap_ready",
   "roadmap_delivered",
@@ -119,7 +112,6 @@ function PortalLayout() {
   const isPublicPage =
     pathname === "/portal/login" || pathname === "/portal/access-denied";
 
-  // Close the mobile drawer whenever the route changes
   useEffect(() => {
     setMobileNavOpen(false);
   }, [pathname]);
@@ -186,7 +178,6 @@ function PortalLayout() {
   return (
     <TooltipProvider delayDuration={150}>
       <div className="min-h-screen flex flex-col bg-paper overflow-x-clip">
-        {/* Mobile top bar with hamburger — hidden on lg+ */}
         <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between h-14 px-4 bg-ink text-white border-b border-white/10">
           <Link to="/" aria-label="Trust Tai home" className="block">
             <img
@@ -245,7 +236,6 @@ function PortalGreeting() {
   );
 }
 
-
 function initialsFromEmail(name: string | null | undefined, email: string) {
   const src = (name && name.trim()) || email || "";
   if (!src) return "?";
@@ -256,10 +246,6 @@ function initialsFromEmail(name: string | null | undefined, email: string) {
   return (first + second || first).toUpperCase();
 }
 
-/**
- * Combined mission line + user row — one calm bottom zone. Quieted to
- * support the roadmap canvas instead of competing with it.
- */
 function SidebarAccountZone({
   email,
   onSignOut,
@@ -275,7 +261,6 @@ function SidebarAccountZone({
   const [open, setOpen] = useState(false);
   return (
     <div className="border-t border-white/[0.06] bg-transparent px-4 pt-3 pb-3 space-y-2.5">
-      {/* Mission — single quiet accent line, no subtitle */}
       <div className="px-1">
         <div className="h-px w-5 bg-royal/40" />
         <div className="font-display text-[11.5px] text-white/70 mt-1.5 leading-tight">
@@ -283,7 +268,6 @@ function SidebarAccountZone({
         </div>
       </div>
 
-      {/* User row + popover for sign-out */}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
@@ -309,8 +293,8 @@ function SidebarAccountZone({
             <ChevronUp
               className={`w-3 h-3 text-white/35 shrink-0 transition-transform ${
                 open ? "rotate-180" : ""
-              }`}
-            />
+              }`
+            }
           </button>
         </PopoverTrigger>
         <PopoverContent
