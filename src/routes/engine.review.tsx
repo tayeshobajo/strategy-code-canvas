@@ -102,12 +102,15 @@ function ReviewApprovalsPage() {
         </div>
       </div>
 
+      <DraftVersionsStrip />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <MetricCard label="Pending" value={pending} tone="orange" hint="Awaiting review" />
         <MetricCard label="High Impact" value={highImpact} tone="red" hint="Priority items" />
         <MetricCard label="In Review" value={inReview} tone="blue" hint="Currently open" />
         <MetricCard label="Sent Back" value={sentBack} tone="purple" hint="All-time" />
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
         <SectionCard
