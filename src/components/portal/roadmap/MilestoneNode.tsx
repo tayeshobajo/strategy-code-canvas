@@ -2,13 +2,14 @@ import {
   CheckCircle2,
   Circle,
   AlertTriangle,
-  Loader2,
   GitBranch,
   FileText,
   CalendarClock,
   Flag,
   ArrowRight,
+  Zap,
 } from "lucide-react";
+
 import { memo, useEffect, useRef } from "react";
 import type {
   MilestoneKind,
@@ -69,13 +70,16 @@ function statusIcon(m: RoadmapMilestone) {
     case "completed":
       return CheckCircle2;
     case "in_progress":
-      return Loader2;
+      // Premium replacement for the old animate-spin Loader2 — a calm zap
+      // glyph; the breathing halo below carries the live-state signal.
+      return Zap;
     case "blocked":
       return AlertTriangle;
     default:
       return Circle;
   }
 }
+
 
 function statusSubline(m: RoadmapMilestone): string | null {
   if (m.status === "in_progress") return "In progress";
@@ -200,18 +204,20 @@ export const MilestoneNode = memo(function MilestoneNode({
       title={iconOnly ? undefined : `${kindLabel}: ${milestone.title}`}
     >
       <span
-        className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-white shrink-0 transition-shadow duration-200 group-hover:shadow-[0_0_12px_rgba(47,93,246,0.4)] ${accent}`}
+        className={`relative inline-flex items-center justify-center h-6 w-6 rounded-full text-white shrink-0 transition-shadow duration-200 group-hover:shadow-[0_0_12px_rgba(47,93,246,0.4)] ${accent}`}
         aria-hidden="true"
       >
-        <Icon
-          className={`w-3.5 h-3.5 ${
-            milestone.status === "in_progress" &&
-            milestone.kind === "milestone"
-              ? "animate-spin"
-              : ""
-          }`}
-        />
+        {milestone.status === "in_progress" &&
+          milestone.kind === "milestone" && (
+            <span
+              aria-hidden="true"
+              className="roadmap-node-breathe absolute -inset-1.5 rounded-full border border-white/60 pointer-events-none"
+              style={{ boxShadow: "0 0 18px 2px rgba(240,210,130,0.35)" }}
+            />
+          )}
+        <Icon className="w-3.5 h-3.5" />
       </span>
+
       {!iconOnly && (
         <span className="flex flex-col items-start leading-tight text-left">
           <span

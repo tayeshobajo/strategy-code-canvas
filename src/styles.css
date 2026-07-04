@@ -556,7 +556,7 @@
 
 
 
-/* Roadmap canvas — Pass 2 interactions */
+/* Roadmap canvas — premium motion tokens */
 @keyframes roadmap-active-pulse {
   0%, 100% { opacity: 0.95; }
   50% { opacity: 0.55; }
@@ -569,7 +569,34 @@
 }
 .roadmap-phase-glow { animation: roadmap-phase-glow-pulse 4s ease-in-out infinite; }
 
+/* Calm breathing halo for in-progress milestone nodes. No rotation. */
+@keyframes roadmap-node-breathe {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.14); }
+}
+.roadmap-node-breathe {
+  animation: roadmap-node-breathe 2.6s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Slow shimmer along the current phase spine segment. */
+@keyframes roadmap-path-shimmer {
+  0% { stroke-dashoffset: 0; opacity: 0.55; }
+  50% { opacity: 0.9; }
+  100% { stroke-dashoffset: -80; opacity: 0.55; }
+}
+.roadmap-path-shimmer {
+  animation: roadmap-path-shimmer 5.5s linear infinite;
+}
+
+/* Territory hover polish — subtle brighten. */
+.roadmap-territory { transition: opacity 320ms ease-out, background 320ms ease-out; }
+.roadmap-territory[data-hover="true"] { opacity: 1 !important; }
+
 @media (prefers-reduced-motion: reduce) {
   .roadmap-active-segment,
-  .roadmap-phase-glow { animation: none !important; }
+  .roadmap-phase-glow,
+  .roadmap-node-breathe,
+  .roadmap-path-shimmer { animation: none !important; }
 }
+

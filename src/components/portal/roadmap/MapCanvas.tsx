@@ -25,6 +25,30 @@ const DRAWER_WIDTH = 410;
 const ROUTE_GOLD = "240,210,130"; // #F0D282 warm gold
 const ROUTE_GOLD_BRIGHT = "255,235,180"; // lighter highlight
 
+/**
+ * Scale a normalized-space SVG path "d" (values in 0..1) into canvas-space.
+ * Only rescales numeric coordinates; command letters (M/C/Q/T/L/...) pass through.
+ */
+function scalePathD(d: string, w: number, h: number): string {
+  const tokens = d.split(/(\s+|,)/);
+  let numIdx = 0;
+  return tokens
+    .map((tok) => {
+      if (/^-?\d*\.?\d+(?:e-?\d+)?$/.test(tok)) {
+        const n = parseFloat(tok);
+        const scaled = numIdx % 2 === 0 ? n * w : n * h;
+        numIdx++;
+        return String(Math.round(scaled * 100) / 100);
+      }
+      // A letter command resets the alternating x/y counter for its next runs
+      // — but for M/L/C/Q/T/S sequences x/y alternation is preserved across
+      // whitespace, and our generator only emits M and C, so we don't reset.
+      return tok;
+    })
+    .join("");
+}
+
+
 type Props = {
   journey: RoadmapJourney;
   selectedSlug: string | null;
@@ -336,17 +360,18 @@ export function MapCanvas({
   const currentPhaseKey = canvas.currentPhaseKey ?? journey.currentPhaseKey;
   const selectedPhaseKey = canvas.selectedPhaseKey;
 
-  // Base route: Point A → all markers → Point B (always visible, warm golden)
-  const baseRouteStr = useMemo(() => {
-    const pts: string[] = [];
-    pts.push(`${POINT_A_POS.nx * CANVAS_WIDTH},${POINT_A_POS.ny * CANVAS_HEIGHT}`);
-    for (const m of layout.markers) {
-      if (m.milestone.slug.endsWith("-placeholder")) continue;
-      pts.push(`${m.nx * CANVAS_WIDTH},${m.ny * CANVAS_HEIGHT}`);
-    }
-    pts.push(`${POINT_B_POS.nx * CANVAS_WIDTH},${POINT_B_POS.ny * CANVAS_HEIGHT}`);
-    return pts.join(" ");
-  }, [layout.markers]);
+  // Smooth spine: normalized "d" from the layout engine, projected to canvas
+  // space. This replaces the old zig-zag polyline through markers.
+  const spineD = useMemo(() => {
+    return scalePathD(layout.spineD, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }, [layout.spineD]);
+
+  const phaseSegmentDs = useMemo(() => {
+    return layout.spineSegments.map((seg) => ({
+      key: seg.key,
+      d: scalePathD(seg.d, CANVAS_WIDTH, CANVAS_HEIGHT),
+    }));
+  }, [layout.spineSegments]);
 
   // Selected critical path overlay
   const selectedPathPoints = useMemo(() => {
@@ -358,6 +383,7 @@ export function MapCanvas({
       .join(" ");
     return pts || null;
   }, [selectedSlug, journey.criticalPathSlugs, layout.markers]);
+
 
   return (
     <div
@@ -461,7 +487,7 @@ export function MapCanvas({
             style={{ background: "linear-gradient(0deg, rgba(15,10,5,0.3) 0%, rgba(15,10,5,0) 100%)" }}
           />
 
-          {/* === BASE ROUTE PATH — warm golden road, always visible === */}
+          {/* === SPINE PATH — smooth Catmull-Rom, phase-aware === */}
           <svg
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
@@ -479,19 +505,19 @@ export function MapCanvas({
                 </feMerge>
               </filter>
             </defs>
-            {/* Wide warm glow underlay */}
-            <polyline
-              points={baseRouteStr}
+            {/* Wide warm glow underlay for the whole spine */}
+            <path
+              d={spineD}
               fill="none"
-              stroke={`rgba(${ROUTE_GOLD},0.15)`}
+              stroke={`rgba(${ROUTE_GOLD},0.14)`}
               strokeWidth={18}
               strokeLinecap="round"
               strokeLinejoin="round"
               filter="url(#base-route-glow)"
             />
-            {/* Main golden dashed road */}
-            <polyline
-              points={baseRouteStr}
+            {/* Main golden road — smooth continuous curve */}
+            <path
+              d={spineD}
               fill="none"
               stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.55)`}
               strokeWidth={4}
@@ -499,7 +525,58 @@ export function MapCanvas({
               strokeLinejoin="round"
               strokeDasharray="10 6"
             />
+            {/* Per-phase status overlays: completed = solid brighter, current
+                = slow shimmer, upcoming = faint dashed. */}
+            {phaseSegmentDs.map((seg) => {
+              const isCurrent = seg.key === currentPhaseKey;
+              const phaseIdx = journey.phases.findIndex((p) => p.key === seg.key);
+              const currentIdx = journey.phases.findIndex(
+                (p) => p.key === currentPhaseKey,
+              );
+              const isCompleted = currentIdx >= 0 && phaseIdx < currentIdx;
+              if (isCompleted) {
+                return (
+                  <path
+                    key={`seg-${seg.key}`}
+                    d={seg.d}
+                    fill="none"
+                    stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.85)`}
+                    strokeWidth={5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                );
+              }
+              if (isCurrent) {
+                return (
+                  <g key={`seg-${seg.key}`}>
+                    <path
+                      d={seg.d}
+                      fill="none"
+                      stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.9)`}
+                      strokeWidth={6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      filter="url(#base-route-glow)"
+                    />
+                    {!reduced && (
+                      <path
+                        d={seg.d}
+                        fill="none"
+                        stroke="rgba(255,250,235,0.85)"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeDasharray="14 26"
+                        className="roadmap-path-shimmer"
+                      />
+                    )}
+                  </g>
+                );
+              }
+              return null;
+            })}
           </svg>
+
 
           {/* === SELECTED CRITICAL PATH — bright golden glow === */}
           {selectedPathPoints && (
@@ -533,33 +610,83 @@ export function MapCanvas({
             const y = band.headingY * CANVAS_HEIGHT;
             const pct = Math.round(band.completionRatio * 100);
             const isCurrent = phase.key === currentPhaseKey;
+            const isViewing = selectedPhaseKey === phase.key;
+            const displayLabel =
+              phase.label === "Now"
+                ? "Foundation"
+                : phase.label === "Next"
+                  ? "Core Platform Build"
+                  : phase.label === "Later"
+                    ? "Scale Systems"
+                    : phase.label;
             return (
-              <div
+              <button
+                type="button"
                 key={phase.key}
-                className="absolute -translate-x-1/2 text-white pointer-events-none"
+                data-no-drag
+                data-phase-key={phase.key}
+                aria-pressed={isViewing}
+                aria-label={`Focus phase ${i + 1}: ${displayLabel}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  canvas.setSelectedPhaseKey(isViewing ? null : phase.key);
+                }}
+                className="absolute -translate-x-1/2 text-white text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-royal rounded-xl"
                 style={{ left: `${x}px`, top: `${y}px`, zIndex: 6 }}
               >
-                <div className={`font-mono text-[10px] uppercase tracking-[0.32em] ${isCurrent ? "text-royal-glow" : "text-white/70"}`}>
-                  Phase {i + 1}{isCurrent && <span className="ml-1.5 text-royal-glow">·</span>}
-                </div>
-                <div className="font-display text-2xl mt-1 leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
-                  {phase.label === "Now" ? "Foundation" : phase.label === "Next" ? "Core Platform Build" : "Scale Systems"}
-                </div>
-                {phase.milestones[0]?.summary && (
-                  <div className="text-[12.5px] text-white/75 mt-1 max-w-[220px] leading-snug drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
-                    {phase.milestones[0].summary}
+                {/* Reading zone scrim — keeps title legible on any terrain */}
+                <span
+                  aria-hidden
+                  className="absolute -inset-x-6 -inset-y-4 rounded-2xl pointer-events-none"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse 70% 70% at 50% 50%, rgba(6,10,22,0.62) 0%, rgba(6,10,22,0.28) 55%, rgba(6,10,22,0) 100%)",
+                  }}
+                />
+                <div className="relative">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`font-mono text-[10px] uppercase tracking-[0.32em] ${
+                        isCurrent ? "text-royal-glow" : "text-white/85"
+                      }`}
+                    >
+                      Phase {i + 1}
+                    </div>
+                    {isCurrent && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(240,210,130,0.18)] border border-[rgba(240,210,130,0.5)] px-1.5 py-[1px] text-[9px] font-mono uppercase tracking-[0.22em] text-[#f0d282]">
+                        <span className="h-1 w-1 rounded-full bg-[#f0d282]" />
+                        Current
+                      </span>
+                    )}
+                    {isViewing && !isCurrent && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-royal/25 border border-royal/60 px-1.5 py-[1px] text-[9px] font-mono uppercase tracking-[0.22em] text-white">
+                        <span className="h-1 w-1 rounded-full bg-royal-glow" />
+                        Viewing
+                      </span>
+                    )}
                   </div>
-                )}
-                <div
-                  className={`mt-2 inline-flex items-center rounded-full backdrop-blur px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.24em] ${
-                    isCurrent ? "bg-royal/25 border border-royal/60" : "bg-white/10 border border-white/20"
-                  }`}
-                >
-                  {pct}% complete
+                  <div className="font-display text-2xl mt-1 leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]">
+                    {displayLabel}
+                  </div>
+                  {phase.milestones[0]?.summary && (
+                    <div className="text-[12.5px] text-white/90 mt-1 max-w-[220px] leading-snug drop-shadow-[0_1px_4px_rgba(0,0,0,0.75)]">
+                      {phase.milestones[0].summary}
+                    </div>
+                  )}
+                  <div
+                    className={`mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.24em] ${
+                      isCurrent
+                        ? "bg-[rgba(240,210,130,0.22)] border border-[rgba(240,210,130,0.6)] text-[#fce9c1]"
+                        : "bg-slate-900/75 border border-white/25 text-white"
+                    }`}
+                  >
+                    {pct}% complete
+                  </div>
                 </div>
-              </div>
+              </button>
             );
           })}
+
 
           {/* Point A */}
           <div
