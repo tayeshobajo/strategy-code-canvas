@@ -841,7 +841,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
 
     const { data: published, error: insErr } = await sb.from("client_portal_roadmaps").insert({
       project_id: portalProjectId,
-      source_version_id: ver.id,
+      approved_roadmap_version_id: ver.id,
       title: safe.title,
       version_label: safe.version_label,
       status: "delivered",

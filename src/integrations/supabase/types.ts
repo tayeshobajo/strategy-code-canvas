@@ -581,6 +581,7 @@ export type Database = {
           acknowledged_at: string | null
           acknowledged_by_email: string | null
           approved_at: string | null
+          approved_roadmap_version_id: string | null
           created_at: string
           current_diagnosis: string | null
           current_focus: string | null
@@ -602,7 +603,6 @@ export type Database = {
           share_url: string | null
           source_review_id: string | null
           source_submission_id: string | null
-          source_version_id: string | null
           status: string
           strategic_priorities: Json
           supporting_notes: string | null
@@ -615,6 +615,7 @@ export type Database = {
           acknowledged_at?: string | null
           acknowledged_by_email?: string | null
           approved_at?: string | null
+          approved_roadmap_version_id?: string | null
           created_at?: string
           current_diagnosis?: string | null
           current_focus?: string | null
@@ -636,7 +637,6 @@ export type Database = {
           share_url?: string | null
           source_review_id?: string | null
           source_submission_id?: string | null
-          source_version_id?: string | null
           status?: string
           strategic_priorities?: Json
           supporting_notes?: string | null
@@ -649,6 +649,7 @@ export type Database = {
           acknowledged_at?: string | null
           acknowledged_by_email?: string | null
           approved_at?: string | null
+          approved_roadmap_version_id?: string | null
           created_at?: string
           current_diagnosis?: string | null
           current_focus?: string | null
@@ -670,7 +671,6 @@ export type Database = {
           share_url?: string | null
           source_review_id?: string | null
           source_submission_id?: string | null
-          source_version_id?: string | null
           status?: string
           strategic_priorities?: Json
           supporting_notes?: string | null
@@ -731,7 +731,7 @@ export type Database = {
           },
           {
             foreignKeyName: "client_portal_roadmaps_source_version_id_fkey"
-            columns: ["source_version_id"]
+            columns: ["approved_roadmap_version_id"]
             isOneToOne: false
             referencedRelation: "engine_roadmap_versions"
             referencedColumns: ["id"]
