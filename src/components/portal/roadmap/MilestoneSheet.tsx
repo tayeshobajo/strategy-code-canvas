@@ -222,7 +222,7 @@ export function MilestoneSheet({
       return;
     }
     const measure = () => {
-      const w = Math.min(430, Math.max(320, Math.round(window.innerWidth * 0.32)));
+      const w = Math.min(480, Math.max(360, Math.round(window.innerWidth * 0.34)));
       canvas.setDrawerOffset(w);
     };
     measure();
