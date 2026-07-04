@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Maximize2, ChevronDown, ChevronUp } from "lucide-react";
+import { Maximize2, ChevronDown, ChevronUp, Calendar, CircleDot, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import type {
   PhaseKey,
   RoadmapJourney,
@@ -7,6 +7,7 @@ import type {
 } from "@/lib/portal-roadmap-model";
 import { useRoadmapCanvas } from "./canvas-context";
 import type { RoadmapViewMode } from "./view-mode";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import pointAAsset from "@/assets/minimap/point-a.png.asset.json";
 import pointBAsset from "@/assets/minimap/point-b.png.asset.json";
 
