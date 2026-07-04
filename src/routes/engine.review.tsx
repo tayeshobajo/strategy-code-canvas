@@ -175,13 +175,25 @@ function ReviewApprovalsPage() {
           title="Approval Queue"
           right={
             <div className="flex flex-wrap gap-1">
-              {TYPES.map((t) => (
-                <button key={t} onClick={() => setFilter(t)}
-                  className={cn("text-[11px] px-2.5 py-1 rounded-md border",
-                    filter === t ? "bg-ink text-white border-ink" : "border-border text-ink/70 hover:border-royal/50")}>
-                  {t}
-                </button>
-              ))}
+              {TYPES.map((t) => {
+                const label = t === "All" ? "All" : displayType(t);
+                const count = t === "All"
+                  ? rows.filter((r) => r.status === "pending" || r.status === "in_review").length
+                  : rows.filter((r) => (r.status === "pending" || r.status === "in_review") && r.item_type === t).length;
+                return (
+                  <button key={t} onClick={() => setFilter(t)}
+                    className={cn("text-[11px] px-2.5 py-1 rounded-md border inline-flex items-center gap-1.5",
+                      filter === t ? "bg-ink text-white border-ink" : "border-border text-ink/70 hover:border-royal/50")}>
+                    <span>{label}</span>
+                    {count > 0 ? (
+                      <span className={cn("text-[10px] font-mono px-1 rounded",
+                        filter === t ? "bg-white/20 text-white" : "bg-ink/10 text-ink/70")}>
+                        {count}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           }
         >
