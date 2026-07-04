@@ -17,8 +17,11 @@ import {
   submitPreviewForApproval,
   approvePreview,
   publishVersionToPortal,
+  getProjectPortalLink,
+  setProjectPortalLink,
 } from "@/lib/engine-ops.functions";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/engine/projects/$projectId/versions/compare")({
   component: VersionComparePage,
@@ -411,11 +414,13 @@ function PublishTimeline({ projectId, draft, approved, canPublish, adminOnlyReas
   if (!versionId) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
+      <div className="flex items-center justify-between">
         <div className="font-display text-base text-ink">Publish pipeline · {versionLabel}</div>
         <div className="text-[10px] font-mono uppercase tracking-wider text-ink/50">Official → Preview → Portal</div>
       </div>
+      <PortalLinkCard projectId={projectId} canPublish={canPublish} adminOnlyReason={adminOnlyReason} />
+
       <div className="flex flex-col md:flex-row gap-3">
         <Gate
           n={1}
@@ -473,3 +478,111 @@ function PublishTimeline({ projectId, draft, approved, canPublish, adminOnlyReas
     </div>
   );
 }
+
+function PortalLinkCard({ projectId, canPublish, adminOnlyReason }: { projectId: string; canPublish: boolean; adminOnlyReason: string | undefined }) {
+  const qc = useQueryClient();
+  const getLinkFn = useServerFn(getProjectPortalLink);
+  const setLinkFn = useServerFn(setProjectPortalLink);
+  const [picking, setPicking] = useState(false);
+  const [selected, setSelected] = useState<string>("");
+
+  const q = useQuery({
+    queryKey: ["engine", "portal-link", projectId],
+    queryFn: () => getLinkFn({ data: { projectId } }),
+  });
+  const d = q.data as {
+    linked_portal_project_id: string | null;
+    linked: { id: string; project_name: string | null; primary_email: string | null } | null;
+    contact_email: string | null;
+    candidates: Array<{ id: string; project_name: string | null; primary_email: string | null; score: number }>;
+  } | undefined;
+
+  const setMut = useMutation({
+    mutationFn: (portalProjectId: string | null) => setLinkFn({ data: { projectId, portalProjectId } }),
+    onSuccess: () => {
+      toast.success("Portal link updated.");
+      setPicking(false);
+      qc.invalidateQueries({ queryKey: ["engine", "portal-link", projectId] });
+      qc.invalidateQueries({ queryKey: ["engine", "versions-compare", projectId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (q.isLoading) {
+    return <div className="rounded-lg border border-border bg-paper-soft/40 p-3 text-xs text-ink/60">Loading portal link…</div>;
+  }
+
+  const linked = d?.linked ?? null;
+  const linkedId = d?.linked_portal_project_id ?? null;
+
+  return (
+    <div className={`rounded-lg border p-3 ${linkedId ? "border-[#c4e6d2] bg-[#e6f5ec]" : "border-[#f5d9a3] bg-[#fdf3df]"}`}>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex items-start gap-2">
+          {linkedId ? <CheckCircle2 className="w-4 h-4 text-[#1f6b3b] mt-0.5" /> : <AlertTriangle className="w-4 h-4 text-[#8a5a12] mt-0.5" />}
+          <div>
+            <div className="text-sm font-medium text-ink">Client portal link</div>
+            {linkedId && linked ? (
+              <div className="text-xs text-ink/70 mt-0.5">
+                Linked to <span className="font-medium">{linked.project_name ?? linked.id}</span>
+                {linked.primary_email ? <span className="text-ink/50"> · {linked.primary_email}</span> : null}
+              </div>
+            ) : (
+              <div className="text-xs text-[#8a5a12] mt-0.5">
+                Not linked to a portal project yet. Publishing will fail until this is set.
+                {d?.contact_email ? <span className="text-ink/60"> Contact: {d.contact_email}</span> : null}
+              </div>
+            )}
+          </div>
+        </div>
+        {canPublish ? (
+          <div className="flex items-center gap-2">
+            {!picking ? (
+              <button onClick={() => { setSelected(linkedId ?? ""); setPicking(true); }} className="text-xs border border-ink/20 rounded px-2 py-1 text-ink hover:bg-white">
+                {linkedId ? "Change" : "Link portal project"}
+              </button>
+            ) : null}
+            {linkedId && !picking ? (
+              <button onClick={() => setMut.mutate(null)} disabled={setMut.isPending} className="text-xs text-[#a4283c] hover:underline disabled:opacity-40">
+                Clear
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <span className="text-[11px] text-ink/50" title={adminOnlyReason}>Admin only</span>
+        )}
+      </div>
+
+      {picking && canPublish ? (
+        <div className="mt-3 space-y-2">
+          <select
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+            className="w-full text-sm border border-border rounded px-2 py-1.5 bg-white"
+          >
+            <option value="">— Select a portal project —</option>
+            {(d?.candidates ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {(c.project_name ?? c.id)}{c.primary_email ? ` · ${c.primary_email}` : ""}{c.score > 0 ? "  ★" : ""}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMut.mutate(selected || null)}
+              disabled={setMut.isPending || !selected}
+              className="text-xs bg-royal text-white rounded px-2 py-1 hover:bg-royal/90 disabled:opacity-40 inline-flex items-center gap-1"
+            >
+              {setMut.isPending && <Loader2 className="w-3 h-3 animate-spin" />} Save link
+            </button>
+            <button onClick={() => setPicking(false)} className="text-xs text-ink/60 hover:underline">
+              Cancel
+            </button>
+            <span className="text-[10px] text-ink/50 ml-auto">★ = suggested match</span>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
