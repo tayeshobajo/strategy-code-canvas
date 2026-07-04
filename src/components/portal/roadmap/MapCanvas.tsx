@@ -336,17 +336,18 @@ export function MapCanvas({
   const currentPhaseKey = canvas.currentPhaseKey ?? journey.currentPhaseKey;
   const selectedPhaseKey = canvas.selectedPhaseKey;
 
-  // Base route: Point A → all markers → Point B (always visible, warm golden)
-  const baseRouteStr = useMemo(() => {
-    const pts: string[] = [];
-    pts.push(`${POINT_A_POS.nx * CANVAS_WIDTH},${POINT_A_POS.ny * CANVAS_HEIGHT}`);
-    for (const m of layout.markers) {
-      if (m.milestone.slug.endsWith("-placeholder")) continue;
-      pts.push(`${m.nx * CANVAS_WIDTH},${m.ny * CANVAS_HEIGHT}`);
-    }
-    pts.push(`${POINT_B_POS.nx * CANVAS_WIDTH},${POINT_B_POS.ny * CANVAS_HEIGHT}`);
-    return pts.join(" ");
-  }, [layout.markers]);
+  // Smooth spine: normalized "d" from the layout engine, projected to canvas
+  // space. This replaces the old zig-zag polyline through markers.
+  const spineD = useMemo(() => {
+    return scalePathD(layout.spineD, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }, [layout.spineD]);
+
+  const phaseSegmentDs = useMemo(() => {
+    return layout.spineSegments.map((seg) => ({
+      key: seg.key,
+      d: scalePathD(seg.d, CANVAS_WIDTH, CANVAS_HEIGHT),
+    }));
+  }, [layout.spineSegments]);
 
   // Selected critical path overlay
   const selectedPathPoints = useMemo(() => {
@@ -358,6 +359,7 @@ export function MapCanvas({
       .join(" ");
     return pts || null;
   }, [selectedSlug, journey.criticalPathSlugs, layout.markers]);
+
 
   return (
     <div
