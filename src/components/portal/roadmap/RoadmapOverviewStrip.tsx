@@ -76,6 +76,20 @@ export function RoadmapOverviewStrip({
       canvas.setSelectedPhaseKey(null);
     } else {
       canvas.setSelectedPhaseKey(key as PhaseKey);
+      // Also open the drawer for a representative milestone in that phase so
+      // the client sees phase context without losing map focus.
+      if (onSelect) {
+        const phaseKey = key as PhaseKey;
+        const inPhase = journey.milestones.filter(
+          (m) => m.phase === phaseKey && !m.slug.endsWith("-placeholder"),
+        );
+        const pick =
+          inPhase.find((m) => m.status === "in_progress") ??
+          inPhase.find((m) => m.status === "upcoming") ??
+          inPhase.find((m) => m.status !== "completed") ??
+          inPhase[0];
+        if (pick) onSelect(pick.slug);
+      }
     }
     onJump(key);
   };
