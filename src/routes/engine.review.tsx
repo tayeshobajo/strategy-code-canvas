@@ -30,6 +30,8 @@ const SOURCE_ROUTE: Record<string, string> = {
   "Investment Change": "Investment builder",
   "Delivery Approval": "Delivery prep",
   "Agent Permission": "Agent permissions",
+  "Agent-suggested": "Agent proposal · workspace",
+  "Portal publish": "Delivery · publish to portal",
   "Client Decision": "Client portal · roadmap",
   "Client Clarification": "Client portal · messages",
   "Intake Ready": "Client portal · onboarding intake",
@@ -37,7 +39,8 @@ const SOURCE_ROUTE: Record<string, string> = {
 
 const TYPES = [
   "All", "Intake Ready", "Roadmap Update", "Version Change", "Milestone Brief", "Client Preview",
-  "Investment Change", "Delivery Approval", "Agent Permission",
+  "Investment Change", "Delivery Approval", "Portal publish",
+  "Agent Permission", "Agent-suggested",
   "Client Decision", "Client Clarification",
 ];
 
@@ -49,6 +52,8 @@ const TYPE_LABEL: Record<string, string> = {
   "Intake Ready": "Onboarding intake",
   "Client Decision": "Client decision",
   "Client Clarification": "Client clarification",
+  "Portal publish": "Portal publish",
+  "Agent-suggested": "Agent suggestion",
 };
 
 function displayType(t: string): string {
