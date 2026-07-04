@@ -600,6 +600,7 @@ export const submitPreviewForApproval = createServerFn({ method: "POST" })
     }
     await sb.from("engine_roadmap_versions").update({ client_preview_status: "draft" }).eq("id", ver.id);
     await _enqueueReviewItem(sb as never, {
+      project_id: ver.project_id,
       project: ver.engine_projects?.name ?? "Unknown",
       item_type: "Client Preview",
       title: `Approve client preview for ${ver.version}`,
