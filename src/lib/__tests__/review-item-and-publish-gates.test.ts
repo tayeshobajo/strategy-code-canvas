@@ -36,7 +36,10 @@ function extractReviewItemInserts(src: string): string[] {
     const at = src.indexOf(marker, cursor);
     if (at === -1) break;
     const insertAt = src.indexOf(".insert(", at);
-    if (insertAt === -1) {
+    const nextFrom = src.indexOf(".from(", at + marker.length);
+    if (insertAt === -1 || (nextFrom !== -1 && nextFrom < insertAt)) {
+      // Not chained on this from() (e.g. followed by a select/update on
+      // this table and an insert on a different table). Skip.
       cursor = at + marker.length;
       continue;
     }
