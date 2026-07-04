@@ -100,10 +100,11 @@ function AgentPermissionsPage() {
           {MODES.map((m) => (
             <button
               key={m.value}
+              disabled={!canManageAgents}
               onClick={() => setMode(m.value)}
               className={`text-left rounded-lg border p-4 ${
                 mode === m.value ? "border-royal bg-royal/5" : "border-border hover:border-royal/40"
-              }`}
+              } ${!canManageAgents ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               <div className="font-display text-base text-ink">{m.label}</div>
               <div className="text-xs text-ink/60 mt-1">{m.hint}</div>
