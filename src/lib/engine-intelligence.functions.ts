@@ -792,256 +792,359 @@ export const resolveChangeEvent = createServerFn({ method: "POST" })
 
 export const runIntelligencePipeline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) => z.object({ projectId: z.string().uuid() }).parse(raw))
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        projectId: z.string().uuid(),
+        sourceIds: z.array(z.string().uuid()).optional(),
+      })
+      .parse(raw),
+  )
   .handler(
-    async ({ context, data }): Promise<{ version_id: string; version: string }> => {
+    async ({
+      context,
+      data,
+    }): Promise<{ version_id: string; version: string; run_id: string; signals: number }> => {
       await assertAdmin(context);
       const sb = context.supabase as any;
-
-      const { data: project } = await sb
-        .from("engine_projects")
-        .select(
-          "id,name,roadmap_version,approved_version,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview, engine_clients(company,industry)",
-        )
-        .eq("id", data.projectId)
-        .single();
-      if (!project) throw new Error("Project not found");
-
-      const { data: sources } = await sb
-        .from("engine_sources")
-        .select("id,name,type,url,raw_text,storage_path,status")
-        .eq("project_id", data.projectId)
-        .order("created_at", { ascending: false });
-
-      const srcRows = (sources ?? []) as any[];
-
-      // Mark all as processing
-      if (srcRows.length) {
-        await sb
-          .from("engine_sources")
-          .update({ status: "processing" })
-          .eq("project_id", data.projectId)
-          .in("id", srcRows.map((s) => s.id));
-      }
-
-      // Activity: pipeline started + stages
-      const stages = [
-        "reading",
-        "extracting",
-        "point_a",
-        "point_b",
-        "hidden_assets",
-        "gap_map",
-        "blueprint",
-        "roadmap",
-        "deadlines",
-        "investment",
-        "client_preview",
-      ];
-      await sb.from("engine_activity").insert({
-        project_id: data.projectId,
-        kind: "pipeline_started",
-        title: "Intelligence update started",
-        body: `${srcRows.length} sources`,
-        severity: "info",
+      const actor = (context as any).claims?.email ?? null;
+      return await runIntelligencePipelineInternal(sb, {
+        projectId: data.projectId,
+        sourceIds: data.sourceIds,
+        actorEmail: actor,
       });
-
-      // Build prompt
-      const sourceSummary = srcRows
-        .map(
-          (s, i) =>
-            `[${i + 1}] (${s.type}) ${s.name}${s.url ? ` — ${s.url}` : ""}${
-              s.raw_text ? `\n${s.raw_text.slice(0, 4000)}` : ""
-            }`,
-        )
-        .join("\n\n");
-
-      const system = `You are the Trust Tai Roadmap Intelligence Engine. Read the provided sources and produce a strictly-valid JSON roadmap draft. Never invent facts. When unknown, say "unknown". Confidence is 0-100. Keep language sentence-case, no em-dashes, no exclamation points.`;
-
-      const user = `PROJECT: ${project.name} (${project.engine_clients?.company ?? "—"})
-CURRENT APPROVED VERSION: ${project.approved_version ?? "none"}
-CURRENT DRAFT: ${project.roadmap_version ?? "none"}
-
-CURRENT MODULES (JSON, may be empty):
-${JSON.stringify(
-  {
-    extraction: project.extraction,
-    point_a: project.point_a,
-    point_b: project.point_b,
-    hidden_assets: project.hidden_assets,
-    gap_map: project.gap_map,
-    blueprint: project.blueprint,
-    roadmap: project.roadmap,
-    sequencing: project.sequencing,
-    deadlines: project.deadlines,
-    investment: project.investment,
-    client_preview: project.client_preview,
-  },
-  null,
-  2,
-).slice(0, 12000)}
-
-NEW SOURCES:
-${sourceSummary || "(no new sources — refresh drafts from existing state)"}
-
-Return JSON with this exact shape:
-{
-  "summary": "1-2 sentence description of what changed",
-  "overall_confidence": 0-100,
-  "modules": {
-    "extraction": { "confidence": 0-100, "items": ["..."] },
-    "point_a": { "confidence": 0-100, "diagnosis": "..." },
-    "point_b": { "confidence": 0-100, "destination": "..." },
-    "hidden_assets": { "confidence": 0-100, "assets": ["..."] },
-    "gap_map": { "confidence": 0-100, "gaps": ["..."] },
-    "blueprint": { "confidence": 0-100, "nodes": ["..."] },
-    "roadmap": { "confidence": 0-100, "phases": [{"name":"","milestones":["..."]}] },
-    "sequencing": { "confidence": 0-100, "order": ["..."] },
-    "deadlines": { "confidence": 0-100, "critical": [{"label":"","due_on":""}] },
-    "investment": { "confidence": 0-100, "range_low_usd": 0, "range_high_usd": 0, "notes": "" },
-    "client_preview": { "confidence": 0-100, "executive_summary": "" }
-  },
-  "change_events": [
-    { "kind": "new_info|conflict|opportunity|risk|deadline_change|scope_change|investment_impact|client_copy_affected",
-      "title": "", "body": "", "severity": "info|warn|critical", "affected_module": "" }
-  ]
-}`;
-
-      const { callLovableAi, parseJsonOutput } = await import("@/lib/engine-ai.server");
-      const ai = await callLovableAi(
-        [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        { json: true, temperature: 0.3 },
-      );
-
-      type PipelineOutput = {
-        summary?: string;
-        overall_confidence?: number;
-        modules?: Record<string, any>;
-        change_events?: Array<{
-          kind: string;
-          title: string;
-          body?: string;
-          severity?: string;
-          affected_module?: string;
-        }>;
-      };
-      const parsed = parseJsonOutput<PipelineOutput>(ai.text);
-      if (!parsed) {
-        await sb
-          .from("engine_sources")
-          .update({ status: "failed", error: "AI output not JSON" })
-          .eq("project_id", data.projectId)
-          .in("id", srcRows.map((s) => s.id));
-        throw new Error("AI returned invalid JSON. Try again.");
-      }
-
-      // Stage activity log
-      for (const stage of stages) {
-        await sb.from("engine_activity").insert({
-          project_id: data.projectId,
-          kind: "pipeline_stage",
-          title: stage,
-          body: "Completed",
-          severity: "info",
-        });
-      }
-
-      const nextVersion = bumpVersion(project.roadmap_version ?? project.approved_version ?? null);
-
-      const { data: version, error: vErr } = await sb
-        .from("engine_roadmap_versions")
-        .insert({
-          project_id: data.projectId,
-          version: nextVersion,
-          status: "ai_generated",
-          created_by: "ai",
-          source_ids: srcRows.map((s) => s.id),
-          summary: parsed.summary ?? "Draft updated from new sources.",
-          payload: parsed.modules ?? {},
-        })
-        .select("id, version")
-        .single();
-      if (vErr) throw new Error(vErr.message ?? "version insert failed");
-
-      // Update project draft pointer and module JSONB (draft state)
-      const moduleUpdates: Record<string, any> = {
-        roadmap_version: nextVersion,
-      };
-      const modKeyMap: Record<string, string> = {
-        extraction: "extraction",
-        point_a: "point_a",
-        point_b: "point_b",
-        hidden_assets: "hidden_assets",
-        gap_map: "gap_map",
-        blueprint: "blueprint",
-        roadmap: "roadmap",
-        sequencing: "sequencing",
-        deadlines: "deadlines",
-        investment: "investment",
-        client_preview: "client_preview",
-      };
-      for (const [k, col] of Object.entries(modKeyMap)) {
-        if (parsed.modules?.[k]) moduleUpdates[col] = parsed.modules[k];
-      }
-      await sb.from("engine_projects").update(moduleUpdates).eq("id", data.projectId);
-
-      // Change events
-      for (const ev of parsed.change_events ?? []) {
-        await sb.from("engine_change_events").insert({
-          project_id: data.projectId,
-          kind: ev.kind,
-          title: ev.title,
-          body: ev.body ?? null,
-          severity: ev.severity ?? "info",
-          affected_module: ev.affected_module ?? null,
-          version_id: version.id,
-        });
-      }
-
-      // Mark sources processed with confidence
-      if (srcRows.length) {
-        const confidence = Math.min(100, Math.max(0, parsed.overall_confidence ?? 70));
-        await sb
-          .from("engine_sources")
-          .update({
-            status: "processed",
-            confidence,
-            used_in_version: nextVersion,
-            signals_count: (parsed.change_events ?? []).length,
-          })
-          .eq("project_id", data.projectId)
-          .in("id", srcRows.map((s) => s.id));
-      }
-
-      // Charge to project spend (cost estimate)
-      await sb.rpc("noop", {}).catch(() => null); // no-op if not present
-      const { data: proj } = await sb
-        .from("engine_projects")
-        .select("agent_spend_month_cents")
-        .eq("id", data.projectId)
-        .single();
-      await sb
-        .from("engine_projects")
-        .update({
-          agent_spend_month_cents: (proj?.agent_spend_month_cents ?? 0) + ai.cost_cents,
-          last_activity_at: new Date().toISOString(),
-        })
-        .eq("id", data.projectId);
-
-      await sb.from("engine_activity").insert({
-        project_id: data.projectId,
-        kind: "pipeline_completed",
-        title: `Draft ${nextVersion} generated`,
-        body: parsed.summary ?? null,
-        severity: "success",
-      });
-
-      return { version_id: version.id, version: nextVersion };
     },
   );
+
+/**
+ * Internal pipeline runner. Callable from server code (createProjectFromSource,
+ * fire-and-forget). Uses the hybrid AI provider layer.
+ */
+export async function runIntelligencePipelineInternal(
+  sb: any,
+  args: { projectId: string; sourceIds?: string[]; actorEmail: string | null },
+): Promise<{ version_id: string; version: string; run_id: string; signals: number }> {
+  const { runIntakePass, runStructuredPass } = await import("@/lib/engine-ai-providers.server");
+
+  const { data: project } = await sb
+    .from("engine_projects")
+    .select(
+      "id,name,roadmap_version,approved_version,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview, engine_clients(company,industry)",
+    )
+    .eq("id", args.projectId)
+    .single();
+  if (!project) throw new Error("Project not found");
+
+  // Select sources to process. If sourceIds passed, use those; else use all
+  // sources for the project that aren't archived.
+  let sourceQuery = sb
+    .from("engine_sources")
+    .select("id,name,type,url,raw_text,storage_path,status")
+    .eq("project_id", args.projectId)
+    .order("created_at", { ascending: false });
+  if (args.sourceIds?.length) sourceQuery = sourceQuery.in("id", args.sourceIds);
+  const { data: sources } = await sourceQuery;
+
+  const srcRows = (sources ?? []) as any[];
+  const primarySourceId = srcRows[0]?.id ?? null;
+
+  // Insert extraction run row (status: running)
+  const startedAt = new Date().toISOString();
+  const { data: runRow, error: runErr } = await sb
+    .from("engine_extraction_runs")
+    .insert({
+      project_id: args.projectId,
+      source_id: primarySourceId,
+      status: "running",
+      started_at: startedAt,
+      metadata: { source_ids: srcRows.map((s) => s.id) },
+    })
+    .select("id")
+    .single();
+  if (runErr) throw new Error(runErr.message ?? "extraction run insert failed");
+  const runId = runRow.id as string;
+
+  // Set project to source_processing while we work
+  await sb
+    .from("engine_projects")
+    .update({ status: "source_processing", last_activity_at: startedAt })
+    .eq("id", args.projectId);
+
+  if (srcRows.length) {
+    await sb
+      .from("engine_sources")
+      .update({ status: "processing" })
+      .eq("project_id", args.projectId)
+      .in("id", srcRows.map((s: any) => s.id));
+  }
+
+  await sb.from("engine_activity").insert({
+    project_id: args.projectId,
+    kind: "pipeline_started",
+    title: "Intelligence update started",
+    body: `${srcRows.length} source${srcRows.length === 1 ? "" : "s"} · hybrid AI (Gemini intake → Claude structured)`,
+    severity: "info",
+  });
+
+  // Pull raw text for each source (download from storage if needed)
+  const sourceTexts: string[] = [];
+  for (const src of srcRows) {
+    let content = src.raw_text ?? "";
+    if (!content && src.url) {
+      try {
+        const res = await fetch(src.url);
+        content = (await res.text()).slice(0, 60_000);
+      } catch {
+        content = "";
+      }
+    }
+    if (!content && src.storage_path) {
+      try {
+        const { data: dl } = await sb.storage.from("engine-signals").download(src.storage_path);
+        if (dl) content = (await dl.text()).slice(0, 60_000);
+      } catch {
+        content = `[binary asset ${src.name}]`;
+      }
+    }
+    if (content && !src.raw_text) {
+      await sb.from("engine_sources").update({ raw_text: content }).eq("id", src.id);
+    }
+    sourceTexts.push(content);
+  }
+
+  let intakeTotalCost = 0;
+  let structuredCost = 0;
+  let parsed: Awaited<ReturnType<typeof runStructuredPass>>;
+  let intakeResults: Awaited<ReturnType<typeof runIntakePass>>[] = [];
+
+  try {
+    // Stage 1: intake pass (Gemini) for every source in parallel
+    intakeResults = await Promise.all(
+      srcRows.map((src, i) =>
+        runIntakePass({ sourceName: src.name, sourceType: src.type, text: sourceTexts[i] ?? "" }),
+      ),
+    );
+    intakeTotalCost = intakeResults.reduce((a, r) => a + r.cost_cents, 0);
+
+    // Stage 2: structured pass (Claude) that produces signals + modules
+    parsed = await runStructuredPass({
+      projectName: project.name,
+      clientCompany: project.engine_clients?.company ?? null,
+      currentApprovedVersion: project.approved_version,
+      currentDraftVersion: project.roadmap_version,
+      currentModules: {
+        extraction: project.extraction,
+        point_a: project.point_a,
+        point_b: project.point_b,
+        hidden_assets: project.hidden_assets,
+        gap_map: project.gap_map,
+        blueprint: project.blueprint,
+        roadmap: project.roadmap,
+        sequencing: project.sequencing,
+        deadlines: project.deadlines,
+        investment: project.investment,
+        client_preview: project.client_preview,
+      },
+      intake: intakeResults,
+      sources: srcRows.map((s) => ({ id: s.id, name: s.name, type: s.type, url: s.url })),
+    });
+    structuredCost = parsed.cost_cents;
+  } catch (e: any) {
+    const msg = e?.message ?? "AI extraction failed";
+    await sb
+      .from("engine_extraction_runs")
+      .update({ status: "failed", error: msg, finished_at: new Date().toISOString() })
+      .eq("id", runId);
+    if (srcRows.length) {
+      await sb
+        .from("engine_sources")
+        .update({ status: "failed", error: msg })
+        .eq("project_id", args.projectId)
+        .in("id", srcRows.map((s: any) => s.id));
+    }
+    await sb.from("engine_projects").update({ status: "needs_review" }).eq("id", args.projectId);
+    await sb.from("engine_activity").insert({
+      project_id: args.projectId,
+      kind: "pipeline_failed",
+      title: "Intelligence update failed",
+      body: msg,
+      severity: "critical",
+    });
+    await logAudit(sb, {
+      project_id: args.projectId,
+      actor_email: args.actorEmail,
+      action: "pipeline_failed",
+      summary: msg,
+      metadata: { run_id: runId },
+    });
+    throw e;
+  }
+
+  const nextVersion = bumpVersion(project.roadmap_version ?? project.approved_version ?? null);
+  const primarySourceName = srcRows[0]?.name ?? "existing state";
+  const versionLabel = `${nextVersion} — AI draft from ${primarySourceName}${srcRows.length > 1 ? ` (+${srcRows.length - 1} more)` : ""}`;
+
+  const { data: version, error: vErr } = await sb
+    .from("engine_roadmap_versions")
+    .insert({
+      project_id: args.projectId,
+      version: nextVersion,
+      status: "ai_generated",
+      created_by: "ai",
+      source_ids: srcRows.map((s) => s.id),
+      summary: parsed.summary,
+      payload: parsed.modules ?? {},
+      label: versionLabel,
+      generation_provenance: {
+        intake_provider: "lovable-gemini",
+        intake_model: intakeResults[0]?.model ?? null,
+        structured_provider: parsed.provider,
+        structured_model: parsed.model,
+        source_ids: srcRows.map((s) => s.id),
+        run_id: runId,
+        generated_at: new Date().toISOString(),
+      },
+    })
+    .select("id, version")
+    .single();
+  if (vErr) throw new Error(vErr.message ?? "version insert failed");
+
+  // Insert extracted signals
+  const signalRows = (parsed.signals ?? []).map((sig) => ({
+    project_id: args.projectId,
+    source_id: primarySourceId,
+    extraction_run_id: runId,
+    category: sig.category,
+    label: sig.label.slice(0, 500),
+    detail: sig.detail?.slice(0, 4000) ?? null,
+    confidence: Math.min(100, Math.max(0, Math.round(sig.confidence ?? 70))),
+    client_safe: sig.client_safe ?? false,
+    used_in_version_id: version.id,
+    metadata: {},
+  }));
+  if (signalRows.length) {
+    await sb.from("engine_extracted_signals").insert(signalRows);
+  }
+
+  // Update project draft pointer + JSONB modules
+  const moduleUpdates: Record<string, any> = {
+    roadmap_version: nextVersion,
+    status: "needs_review",
+  };
+  const modKeyMap: Record<string, string> = {
+    extraction: "extraction",
+    point_a: "point_a",
+    point_b: "point_b",
+    hidden_assets: "hidden_assets",
+    gap_map: "gap_map",
+    blueprint: "blueprint",
+    roadmap: "roadmap",
+    sequencing: "sequencing",
+    deadlines: "deadlines",
+    investment: "investment",
+    client_preview: "client_preview",
+  };
+  for (const [k, col] of Object.entries(modKeyMap)) {
+    if (parsed.modules?.[k as keyof typeof parsed.modules]) {
+      moduleUpdates[col] = parsed.modules[k as keyof typeof parsed.modules];
+    }
+  }
+  await sb.from("engine_projects").update(moduleUpdates).eq("id", args.projectId);
+
+  // Change events
+  for (const ev of parsed.change_events ?? []) {
+    await sb.from("engine_change_events").insert({
+      project_id: args.projectId,
+      kind: ev.kind,
+      title: ev.title,
+      body: ev.body ?? null,
+      severity: ev.severity ?? "info",
+      affected_module: ev.affected_module ?? null,
+      version_id: version.id,
+    });
+  }
+
+  // Mark sources processed + append to used_in_version_ids
+  if (srcRows.length) {
+    const confidence = parsed.overall_confidence;
+    for (const src of srcRows) {
+      const existing = (src.used_in_version_ids ?? []) as string[];
+      await sb
+        .from("engine_sources")
+        .update({
+          status: "processed",
+          confidence,
+          used_in_version: nextVersion,
+          used_in_version_ids: Array.from(new Set([...existing, version.id])),
+          signals_count: signalRows.length,
+        })
+        .eq("id", src.id);
+    }
+  }
+
+  // Enqueue review item
+  await sb.from("engine_review_items").insert({
+    project_id: args.projectId,
+    project: project.name,
+    item_type: "roadmap_version",
+    title: versionLabel,
+    impact: "high",
+    source: "ai",
+    requested_by: "ai",
+    status: "pending",
+  });
+
+  // Update project spend + activity
+  const { data: proj } = await sb
+    .from("engine_projects")
+    .select("agent_spend_month_cents")
+    .eq("id", args.projectId)
+    .single();
+  const totalCost = intakeTotalCost + structuredCost;
+  await sb
+    .from("engine_projects")
+    .update({
+      agent_spend_month_cents: (proj?.agent_spend_month_cents ?? 0) + totalCost,
+      last_activity_at: new Date().toISOString(),
+    })
+    .eq("id", args.projectId);
+
+  // Finalize extraction run
+  await sb
+    .from("engine_extraction_runs")
+    .update({
+      status: "succeeded",
+      finished_at: new Date().toISOString(),
+      signals_count: signalRows.length,
+      cost_cents: totalCost,
+      produced_version_id: version.id,
+      provider_intake: "lovable-gemini",
+      provider_structured: parsed.provider,
+      model_intake: intakeResults[0]?.model ?? null,
+      model_structured: parsed.model,
+      intake_summary: intakeResults.map((r) => r.summary).filter(Boolean).join("\n\n").slice(0, 4000),
+    })
+    .eq("id", runId);
+
+  await sb.from("engine_activity").insert({
+    project_id: args.projectId,
+    kind: "pipeline_completed",
+    title: `Draft ${nextVersion} generated`,
+    body: `${signalRows.length} signals extracted · queued for review`,
+    severity: "success",
+  });
+
+  await logAudit(sb, {
+    project_id: args.projectId,
+    actor_email: args.actorEmail,
+    action: "pipeline_completed",
+    summary: `Generated ${nextVersion} from ${srcRows.length} source(s) with ${signalRows.length} signals`,
+    version_id: version.id,
+    metadata: { run_id: runId, cost_cents: totalCost, provider: parsed.provider, model: parsed.model },
+  });
+
+  return { version_id: version.id, version: nextVersion, run_id: runId, signals: signalRows.length };
+}
 
 /* ============================================================
  * File upload signed URL (uses engine-signals bucket)
