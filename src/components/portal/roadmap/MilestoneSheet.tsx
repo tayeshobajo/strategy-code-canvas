@@ -391,6 +391,35 @@ export function MilestoneSheet({
                       {milestone.summary}
                     </SheetDescription>
                   )}
+                  {canNavigate && (
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={goPrev}
+                        disabled={!prevSlug}
+                        aria-label="Previous milestone"
+                        className="inline-flex items-center gap-1 rounded-md border border-ink/15 bg-white/70 px-2.5 py-1 text-[12px] font-medium text-ink/75 hover:bg-white hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        Previous
+                      </button>
+                      {sequence && sequence.length > 0 && milestone && (
+                        <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/40">
+                          {Math.max(0, sequence.indexOf(milestone.slug)) + 1} / {sequence.length}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        disabled={!nextSlug}
+                        aria-label="Next milestone"
+                        className="inline-flex items-center gap-1 rounded-md border border-ink/15 bg-white/70 px-2.5 py-1 text-[12px] font-medium text-ink/75 hover:bg-white hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Next
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </SheetHeader>
 
                 {/* Scrollable body — generous spacing (space-y-6) */}
