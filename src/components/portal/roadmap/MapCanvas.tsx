@@ -610,33 +610,83 @@ export function MapCanvas({
             const y = band.headingY * CANVAS_HEIGHT;
             const pct = Math.round(band.completionRatio * 100);
             const isCurrent = phase.key === currentPhaseKey;
+            const isViewing = selectedPhaseKey === phase.key;
+            const displayLabel =
+              phase.label === "Now"
+                ? "Foundation"
+                : phase.label === "Next"
+                  ? "Core Platform Build"
+                  : phase.label === "Later"
+                    ? "Scale Systems"
+                    : phase.label;
             return (
-              <div
+              <button
+                type="button"
                 key={phase.key}
-                className="absolute -translate-x-1/2 text-white pointer-events-none"
+                data-no-drag
+                data-phase-key={phase.key}
+                aria-pressed={isViewing}
+                aria-label={`Focus phase ${i + 1}: ${displayLabel}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  canvas.setSelectedPhaseKey(isViewing ? null : phase.key);
+                }}
+                className="absolute -translate-x-1/2 text-white text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-royal rounded-xl"
                 style={{ left: `${x}px`, top: `${y}px`, zIndex: 6 }}
               >
-                <div className={`font-mono text-[10px] uppercase tracking-[0.32em] ${isCurrent ? "text-royal-glow" : "text-white/70"}`}>
-                  Phase {i + 1}{isCurrent && <span className="ml-1.5 text-royal-glow">·</span>}
-                </div>
-                <div className="font-display text-2xl mt-1 leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
-                  {phase.label === "Now" ? "Foundation" : phase.label === "Next" ? "Core Platform Build" : "Scale Systems"}
-                </div>
-                {phase.milestones[0]?.summary && (
-                  <div className="text-[12.5px] text-white/75 mt-1 max-w-[220px] leading-snug drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
-                    {phase.milestones[0].summary}
+                {/* Reading zone scrim — keeps title legible on any terrain */}
+                <span
+                  aria-hidden
+                  className="absolute -inset-x-6 -inset-y-4 rounded-2xl pointer-events-none"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse 70% 70% at 50% 50%, rgba(6,10,22,0.62) 0%, rgba(6,10,22,0.28) 55%, rgba(6,10,22,0) 100%)",
+                  }}
+                />
+                <div className="relative">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`font-mono text-[10px] uppercase tracking-[0.32em] ${
+                        isCurrent ? "text-royal-glow" : "text-white/85"
+                      }`}
+                    >
+                      Phase {i + 1}
+                    </div>
+                    {isCurrent && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(240,210,130,0.18)] border border-[rgba(240,210,130,0.5)] px-1.5 py-[1px] text-[9px] font-mono uppercase tracking-[0.22em] text-[#f0d282]">
+                        <span className="h-1 w-1 rounded-full bg-[#f0d282]" />
+                        Current
+                      </span>
+                    )}
+                    {isViewing && !isCurrent && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-royal/25 border border-royal/60 px-1.5 py-[1px] text-[9px] font-mono uppercase tracking-[0.22em] text-white">
+                        <span className="h-1 w-1 rounded-full bg-royal-glow" />
+                        Viewing
+                      </span>
+                    )}
                   </div>
-                )}
-                <div
-                  className={`mt-2 inline-flex items-center rounded-full backdrop-blur px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.24em] ${
-                    isCurrent ? "bg-royal/25 border border-royal/60" : "bg-white/10 border border-white/20"
-                  }`}
-                >
-                  {pct}% complete
+                  <div className="font-display text-2xl mt-1 leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]">
+                    {displayLabel}
+                  </div>
+                  {phase.milestones[0]?.summary && (
+                    <div className="text-[12.5px] text-white/90 mt-1 max-w-[220px] leading-snug drop-shadow-[0_1px_4px_rgba(0,0,0,0.75)]">
+                      {phase.milestones[0].summary}
+                    </div>
+                  )}
+                  <div
+                    className={`mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.24em] ${
+                      isCurrent
+                        ? "bg-[rgba(240,210,130,0.22)] border border-[rgba(240,210,130,0.6)] text-[#fce9c1]"
+                        : "bg-slate-900/75 border border-white/25 text-white"
+                    }`}
+                  >
+                    {pct}% complete
+                  </div>
                 </div>
-              </div>
+              </button>
             );
           })}
+
 
           {/* Point A */}
           <div
