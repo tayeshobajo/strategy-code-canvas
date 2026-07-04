@@ -1777,6 +1777,10 @@ function ReplyDetailsStep({
 function ReviewStep({
   answers,
   contact,
+  attachments,
+  setAttachments,
+  resumeToken,
+  ensureResumeToken,
   onEdit,
   onEditReply,
   onBack,
@@ -1784,6 +1788,10 @@ function ReviewStep({
 }: {
   answers: Record<string, AnswerRecord>;
   contact: ContactState;
+  attachments: AttachmentRecord[];
+  setAttachments: React.Dispatch<React.SetStateAction<AttachmentRecord[]>>;
+  resumeToken: string | null;
+  ensureResumeToken: () => Promise<string>;
   onEdit: (i: number) => void;
   onEditReply: () => void;
   onBack: () => void;
