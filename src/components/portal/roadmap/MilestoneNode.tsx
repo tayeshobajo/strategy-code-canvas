@@ -148,9 +148,9 @@ export const MilestoneNode = memo(function MilestoneNode({
   const opacity = isHidden
     ? 0
     : isMuted
-      ? 0.6
+      ? 0.5
       : mutedBySelection
-        ? 0.9
+        ? 0.5
         : 1;
   const transform = isSelected ? "scale(1.12)" : undefined;
   const filter = isMuted ? "grayscale(20%)" : undefined;
@@ -192,7 +192,7 @@ export const MilestoneNode = memo(function MilestoneNode({
           canvas.setHighlightedSlug(null);
       }}
       style={{ transform, transformOrigin: "center" }}
-      className={`group flex items-center gap-2 rounded-full border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 hover:-translate-y-[2px] hover:shadow-[0_10px_24px_-8px_rgba(4,10,25,0.55)] ${
+      className={`group flex items-center gap-2 rounded-full border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 hover:-translate-y-[2px] hover:shadow-[0_12px_28px_-8px_rgba(4,10,25,0.6),0_0_20px_-4px_rgba(47,93,246,0.25)] ${
         isSelected ? selectedShell : restingShell
       } ${isPlaceholder ? "opacity-60" : ""} ${
         iconOnly ? "p-1.5" : "pl-1.5 pr-3 py-1.5"
@@ -200,7 +200,7 @@ export const MilestoneNode = memo(function MilestoneNode({
       title={iconOnly ? undefined : `${kindLabel}: ${milestone.title}`}
     >
       <span
-        className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-white shrink-0 ${accent}`}
+        className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-white shrink-0 transition-shadow duration-200 group-hover:shadow-[0_0_12px_rgba(47,93,246,0.4)] ${accent}`}
         aria-hidden="true"
       >
         <Icon
