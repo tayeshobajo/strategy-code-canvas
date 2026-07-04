@@ -382,7 +382,7 @@ export type DraftVersion = {
   status: string;
   client_preview_status: string;
   source: string | null;
-  generation_provenance: Record<string, unknown> | null;
+  generation_provenance: Record<string, string> | null;
   signal_count: number;
   created_at: string;
   published_to_portal_at: string | null;
@@ -409,7 +409,7 @@ export const listDraftVersions = createServerFn({ method: "GET" })
     if (error) throw new Error(String((error as { message?: string }).message ?? error));
     const rows = (data ?? []) as Array<{
       id: string; project_id: string; version: string; label: string | null; status: string;
-      client_preview_status: string; generation_provenance: Record<string, unknown> | null;
+      client_preview_status: string; generation_provenance: Record<string, string> | null;
       published_to_portal_at: string | null; created_at: string;
       engine_projects: { name: string } | null;
     }>;
