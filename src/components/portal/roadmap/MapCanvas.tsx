@@ -593,8 +593,10 @@ export function MapCanvas({
           {/* === SELECTED CRITICAL PATH — bright golden glow === */}
           {selectedPathPoints && (
             <svg
+              key={selectedSlug ?? "none"}
               aria-hidden="true"
-              className="absolute inset-0 pointer-events-none"
+              className="absolute inset-0 pointer-events-none animate-fade-in"
+
               width={CANVAS_WIDTH}
               height={CANVAS_HEIGHT}
               viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
