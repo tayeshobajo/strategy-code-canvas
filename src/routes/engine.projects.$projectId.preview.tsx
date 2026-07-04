@@ -19,6 +19,7 @@ function ClientPreview() {
   const { project } = useWorkspace(projectId);
   const search = useSearch({ from: "/engine/projects/$projectId/preview" });
   const navigate = useNavigate();
+  const { canEditClientPreview, adminOnlyReason } = useEngineRole();
   const isPresenting = search.present === "1";
   const point_a = project.point_a as { key_diagnosis?: string };
   const point_b = project.point_b as Record<string, string | undefined>;
