@@ -654,6 +654,37 @@ export const approvePreview = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * P1-5: Try to auto-link an engine project to its client portal project by
+ * matching engine_clients.contact_email → client_portal_projects.primary_email.
+ * On success, persists client_portal_project_id on engine_projects so subsequent
+ * publishes are instant. Returns the resolved portal project id, or null.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function _tryAutoLinkPortalProject(sb: any, engineProjectId: string, clientId: string | null): Promise<string | null> {
+  if (!clientId) return null;
+  const { data: client } = await sb
+    .from("engine_clients")
+    .select("contact_email")
+    .eq("id", clientId)
+    .maybeSingle();
+  const email = ((client as { contact_email?: string | null } | null)?.contact_email ?? "").trim().toLowerCase();
+  if (!email) return null;
+  const { data: portal } = await sb
+    .from("client_portal_projects")
+    .select("id")
+    .ilike("primary_email", email)
+    .maybeSingle();
+  const portalId = (portal as { id?: string } | null)?.id ?? null;
+  if (!portalId) return null;
+  await sb.from("engine_projects")
+    .update({ client_portal_project_id: portalId })
+    .eq("id", engineProjectId);
+  return portalId;
+}
+
+
+
 export const publishVersionToPortal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ versionId: z.string().uuid() }).parse(raw))
