@@ -79,7 +79,6 @@ export type RoadmapJourney = {
   progressPercent: number;
   executiveSummary: string | null;
   recommendedNextMove: string | null;
-  supportingNotes: string | null;
   risksDependencies: string[];
   strategicPriorities: Array<{ title: string; detail?: string }>;
   shareUrl: string | null;
@@ -439,7 +438,6 @@ export function buildRoadmapJourney(
     progressPercent,
     executiveSummary: row?.executive_summary ?? null,
     recommendedNextMove: row?.recommended_next_move ?? null,
-    supportingNotes: row?.supporting_notes ?? null,
     risksDependencies: toStringArray(row?.risks_dependencies),
     strategicPriorities: priorities,
     shareUrl: row?.share_url ?? null,
