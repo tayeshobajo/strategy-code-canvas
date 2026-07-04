@@ -23,6 +23,7 @@ type Phase = {
 function Investment() {
   const { projectId } = Route.useParams();
   const { project } = useWorkspace(projectId);
+  const { canEditInvestment, adminOnlyReason } = useEngineRole();
   const phases = ((project.investment as { phases?: Phase[] })?.phases) ?? [];
   return (
     <div className="space-y-4">
