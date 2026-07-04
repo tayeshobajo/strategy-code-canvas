@@ -45,22 +45,21 @@ export function ClarificationModal({
   const [question, setQuestion] = useState("");
   const [sent, setSent] = useState(false);
 
+  const requestFn = useServerFn(requestPortalClarification);
   const send = useMutation({
     mutationFn: async () => {
       if (!projectId) throw new Error("No workspace yet");
       const contextLine = context
         ? `[Roadmap — ${context.kind ?? "milestone"}: "${context.title}"${context.phase ? ` · Phase ${context.phase}` : ""}]\n\n`
         : "";
-      const { error } = await supabase.from("client_portal_messages").insert({
-        project_id: projectId,
-        sender_type: "client",
-        author_email: authorEmail ?? null,
-        subject: context ? `Clarification: ${context.title}` : "Clarification",
-        body: `${contextLine}${question.trim()}`,
-        message_type: "reply",
-        visible_to_client: true,
+      await requestFn({
+        data: {
+          portalProjectId: projectId,
+          milestoneId: context?.title ? context.title.slice(0, 200) : undefined,
+          milestoneTitle: context?.title,
+          question: `${contextLine}${question.trim()}`,
+        },
       });
-      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       setSent(true);
