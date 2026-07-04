@@ -269,33 +269,33 @@ export const getExecutionAlerts = createServerFn({ method: "GET" })
 
     // Blocked decisions from change events
     const { data: ce } = await sb.from("engine_change_events")
-      .select("id,project_id,title,description,severity,created_at,engine_projects(name)")
+      .select("id,project_id,title,body,severity,created_at,engine_projects(name)")
       .order!("created_at", { ascending: false }).limit(50);
-    for (const e of (ce ?? []) as Array<{ id: string; title: string; description: string | null; severity: string | null; created_at: string; engine_projects: { name: string } | null }>) {
+    for (const e of (ce ?? []) as Array<{ id: string; title: string; body: string | null; severity: string | null; created_at: string; engine_projects: { name: string } | null }>) {
       if ((e.severity ?? "").toLowerCase() === "high" || (e.severity ?? "").toLowerCase() === "blocker") {
         alerts.push({
           id: `ce-${e.id}`, kind: "blocked_decision",
           client: e.engine_projects?.name ?? "Unknown",
-          title: e.title, detail: e.description ?? "Blocking change event",
+          title: e.title, detail: e.body ?? "Blocking change event",
           age_days: Math.max(0, Math.round((now - Date.parse(e.created_at)) / 86400000)),
           severity: "high", action: "Open build",
         });
       }
     }
 
-    // Overdue milestones (past due_on and not accepted/complete)
+    // Overdue milestones (past due_date and not accepted/complete)
     const today = new Date().toISOString().slice(0, 10);
     const { data: ms } = await sb.from("engine_milestones")
-      .select("id,title,due_on,status,engine_projects(name)")
-      .lt!("due_on", today);
-    for (const m of (ms ?? []) as Array<{ id: string; title: string; due_on: string; status: string | null; engine_projects: { name: string } | null }>) {
+      .select("id,name,due_date,status,engine_projects(name)")
+      .lt!("due_date", today);
+    for (const m of (ms ?? []) as Array<{ id: string; name: string; due_date: string; status: string | null; engine_projects: { name: string } | null }>) {
       const st = (m.status ?? "").toLowerCase();
       if (st === "complete" || st === "accepted" || st === "archived") continue;
-      const age = Math.max(0, Math.round((now - Date.parse(m.due_on)) / 86400000));
+      const age = Math.max(0, Math.round((now - Date.parse(m.due_date)) / 86400000));
       alerts.push({
         id: `ms-${m.id}`, kind: "overdue_approval",
         client: m.engine_projects?.name ?? "Unknown",
-        title: m.title, detail: `Milestone past due by ${age}d`,
+        title: m.name, detail: `Milestone past due by ${age}d`,
         age_days: age, severity: age >= 5 ? "high" : "medium", action: "Escalate",
       });
     }
