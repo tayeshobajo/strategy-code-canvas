@@ -1,80 +1,95 @@
+# Roadmap Canvas — Marker Intelligence & Drawer Navigation
 
-# Roadmap QA Pass — Focused Implementation Plan
+Scope: refine only marker density, marker interaction, and drawer behavior. Keep layout, terrain, route spine, phase regions, mini-map, status panel, legend, and drawer chrome as-is.
 
-The canvas architecture (path-anchored layout, spine, phase focus, breathing halos) already landed in the previous pass. This plan closes the remaining gaps from the QA checklist, grouped by the "must-pass before client use" items and the highest-impact fails. Non-must-pass polish is called out but deferred unless a must-pass touches the same file.
+## 1. Marker priority + display levels (`roadmap-layout.ts`)
 
-## 1. Viewport & layout fit (Section 2 — must pass at 100% zoom)
+Introduce a `displayLevel: "primary" | "compact" | "clustered"` on each `MarkerPos`, computed from a priority score:
 
-- `src/routes/portal.roadmap.tsx`: convert the page shell into a fixed-height app layout (`h-[100dvh] overflow-hidden`, `grid-rows-[auto_1fr_auto]`) so sidebar + top bar + canvas + bottom overview always fit without page scroll.
-- `MapCanvas.tsx`: canvas becomes the only vertically-flexing region; internal pan/zoom stays but the outer frame no longer grows the document.
-- `RoadmapOverviewStrip.tsx`: pin as the bottom row of the grid (not a scroll-in footer); reduce vertical padding so it holds at 100% zoom on 1280×800.
-- Right drawer: keep as an overlay panel, cap width at ~410px, and shift canvas focus target left when open (already have `viewingPhase` — reuse to re-center) so the selected marker stays visible instead of being covered.
+```text
+1 active milestone
+2 blocked decision
+3 next major deadline (nearest future dueDate)
+4 next client decision
+5 current phase milestones
+6 future milestones
+7 deliverables
+8 meetings
+```
 
-## 2. Phase interaction & state model (Section 8 — must pass)
+- View mode `full`: primary = Point A, Point B, active, next decision, next deadline, + top 1–2 in selected phase. Everything else → compact, then clustered by proximity.
+- View mode `phase`: primary = all milestones in current phase; other phases → compact/clustered and dimmed.
+- View mode `needs-me`: primary = client decisions, approvals, requested files, upcoming client meetings, blocked items. Hide the rest.
 
-- `canvas-context.tsx`: formalize two distinct fields — `currentPhaseId` (project truth, read-only from data) and `viewingPhaseId` (client exploration, user-controlled). Add `focusPhase(id)`, `clearPhaseFocus()`.
-- Top status badge always reads `currentPhaseId`; left "Current Phase" card reads `currentPhaseId`; mini-map highlight and phase-region dimming read `viewingPhaseId`.
-- `MapCanvas.tsx` phase labels: on click → `focusPhase`, pan+zoom to phase bbox, dim non-selected territories; second click on same phase → `clearPhaseFocus`.
-- Mini-map + Jump-to nav both drive `viewingPhaseId`, not `currentPhaseId`.
+Expose helpers `selectPrimaryMarkers(journey, viewMode, selectedPhase)` and `computeDisplayLevels(markers, viewMode, ctx)`.
 
-## 3. Mini-map sync (Section 10 — must pass)
+## 2. Phase lanes (`roadmap-layout.ts`)
 
-- `RoadmapOverviewStrip.tsx` + `MiniMap.tsx`: render Point A, three phases, Point B on the same normalized spine used by the main canvas (`spineD` scaled down). Show:
-  - gold ring on **current** phase
-  - royal-blue ring on **viewing** phase
-  - dot for currently selected marker (projected onto spine)
-- Wire click handlers for Point A / each phase / Point B to `focusPhase` (and pan camera).
-- Subscribe to canvas pan/zoom so the mini-map viewport indicator moves live.
+Replace the current single `attachmentOffset` with lane-based offsets around the spine:
 
-## 4. View modes actually filter (Section 12 — must pass)
+```text
+upper lane  (-0.055) → decisions, deadlines
+main lane   ( 0.000) → primary milestones
+lower lane  (+0.055) → deliverables, supporting
+off-road    (+0.095) → meetings, secondary notes
+```
 
-- `view-mode.ts`: implement predicates for each of Full Journey / Current Phase / What needs me / Critical Path / Deliverables / Deadlines.
-- `MapCanvas.tsx` marker render pass: apply predicate → hidden markers are removed (not just faded) except Level-1 anchors (Point A, Point B, current milestone, next decision, next deadline) which remain in Full Journey.
-- Update the View dropdown to show active mode and a subtle "showing N of M" count.
+Anchors for the spine still use the main-lane baseline so the road stays smooth. Keep the `PHASE_TITLE_BUFFER` clamp.
 
-## 5. Legend becomes controls (Section 13)
+## 3. Collision detection + clustering (`roadmap-layout.ts` + `MapCanvas.tsx`)
 
-- Legend chips in `MapCanvas.tsx` become buttons with pressed/unpressed states backed by `visibleTypes` in `canvas-context`. Defaults: milestones/decisions/deadlines on; meetings/deliverables muted (opacity 0.35, icon-only) until toggled.
+After lane assignment, run a simple sweep in normalized space:
+- If two labels overlap → downgrade lower-priority to compact.
+- If ≥3 markers within `thresholdNx` (scaled to zoom) → cluster.
+- Active marker and Level-1 primaries are never absorbed (extend existing `keepFull` set).
 
-## 6. Motion cleanup (Section 7 — must pass "no spinning")
+Reuse `clusterMarkers` and `MarkerCluster` component. Cluster click → popover listing members; clicking a member selects that milestone (same flow as marker click).
 
-- Grep for `animate-spin` under `src/components/portal/roadmap/**` and `src/routes/portal.roadmap.tsx`; replace any remaining in-progress spinners with the existing `roadmap-node-breathe` halo or a static `Zap` icon. Loading states (data fetch only) may keep a spinner but not milestone status.
+## 4. Marker rendering (`MilestoneNode.tsx`, `MapCanvas.tsx`)
 
-## 7. Drawer polish (Section 11 — must pass "feels premium and connected")
+- Primary: current full pill.
+- Compact: small icon dot with status ring, no label.
+- Hover on compact: scale up, show label + tooltip (title, kind, status, one-line summary), and highlight owning route segment.
+- Selected marker: brighter ring/glow, connected segment glows (already partly implemented), unrelated markers get `opacity-60`. No heavy grey overlay.
 
-- `MilestoneSheet.tsx`: split into three type-specific bodies (Milestone / Decision / Deliverable) using the field lists in the checklist. Keep one shell (header, close, ESC, outside-click).
-- Ensure selected marker retains its selection ring while drawer is open; remove any full-screen scrim (use a light right-edge shadow only).
-- CTA hierarchy: primary (Acknowledge / Respond / Open file), secondary (Request clarification / Book next call).
+## 5. Drawer navigation (`MilestoneSheet.tsx`)
 
-## 8. Readability protection (Section 9)
+Add prev/next controls in the drawer header:
 
-- Phase titles, Point A/B labels, completion pills: wrap in the existing radial-scrim utility; add a `text-shadow` token for marker labels sitting over bright terrain.
+```text
+[←  Previous]                 [Next  →]
+```
 
-## 9. Client-safe content sweep (Section 15 — must pass)
+- Sequence = flattened visible markers in journey order: Point A → Phase 1 → Phase 2 → Phase 3 → Point B, filtered by current view mode.
+- Buttons call `onSelect(prevSlug|nextSlug)`; disable at ends.
+- On change: update selection, mini-map, segment glow, and pan via existing `scrollToXWithDrawer`.
 
-- Audit the roadmap fixture and any status strings; whitelist statuses to: Planned, In preparation, In progress, Waiting on decision, Under review, Delivered, Completed, Paused. Strip any `confidence`, `cost`, `draft`, `internal`, `ai-generated` fields from render paths.
+## 6. Keyboard + outside-click (`MilestoneSheet.tsx`)
 
-## Explicitly deferred (not in this pass)
+While drawer open:
+- `Escape` → close (already via Radix).
+- `ArrowLeft` / `ArrowRight` → prev/next (attach `keydown` on `window`, ignore when focus is in an input/textarea).
+- Click outside drawer (canvas empty area) → close. Currently `onInteractOutside` is prevented on desktop; change to: allow close when the pointer target is not a marker/cluster/mini-map/phase label (detect via `closest('[data-roadmap-interactive]')`, add that attribute to those elements).
 
-- Full clustering redesign beyond current `MarkerCluster.tsx` behavior.
-- Deep adaptability refactor (Section 14) — the layout engine is already data-driven; a schema audit ships only if a must-pass item forces changes.
-- Sidebar visual redesign (Section 3) beyond spacing tightening required to hit the 100%-zoom fit.
+On close: clear `selectedSlug`, strip `?m=` from URL, keep pan/zoom/phase unchanged.
 
-## Files expected to change
+## 7. URL sync (`portal.roadmap.tsx` + `canvas-context.tsx`)
 
-- `src/routes/portal.roadmap.tsx`
-- `src/components/portal/roadmap/canvas-context.tsx`
-- `src/components/portal/roadmap/MapCanvas.tsx`
-- `src/components/portal/roadmap/MiniMap.tsx`
-- `src/components/portal/roadmap/RoadmapOverviewStrip.tsx`
-- `src/components/portal/roadmap/MilestoneSheet.tsx`
-- `src/components/portal/roadmap/MilestoneNode.tsx`
-- `src/components/portal/roadmap/view-mode.ts`
-- `src/styles.css` (text-shadow + scrim tokens if missing)
+- On mount: if `?m=<slug>` present → set selection, open drawer, pan, highlight segment, sync mini-map.
+- On selection change (marker click, cluster member, mini-map, prev/next): replace URL with `?m=<slug>` (history.replaceState, no scroll).
+- On drawer close: remove `m` param.
 
-## Verification
+## Acceptance
 
-- Playwright at 1280×800: assert sidebar, top bar, canvas, bottom strip all visible with no page scroll; open drawer and confirm selected node still in view.
-- Click each phase in main canvas and mini-map; assert `viewingPhaseId` updates and `currentPhaseId` does not.
-- Switch through all six view modes; assert marker count changes per mode.
-- Grep repo for `animate-spin` in roadmap files → expect zero matches on status markers.
+- Phase 1 no longer cramped in Full Journey view.
+- Compact markers expand on hover with tooltip + segment highlight.
+- Clusters appear where ≥3 markers collide; clicking opens popover.
+- Drawer shows Prev/Next; arrow keys work; Esc + outside-click close it.
+- Selected marker stays in sync with drawer, mini-map, URL, and route glow across view/phase changes and resize.
+
+## Technical notes
+
+- Files touched: `roadmap-layout.ts`, `MapCanvas.tsx`, `MilestoneNode.tsx`, `MarkerCluster.tsx`, `MilestoneSheet.tsx`, `RoadmapOverviewStrip.tsx`, `canvas-context.tsx`, `portal.roadmap.tsx`.
+- No schema changes, no new deps.
+- View-mode filtering lives in one helper so `MapCanvas`, `MiniMap`, and drawer prev/next iterate the same sequence.
+- Tooltip uses existing `@/components/ui/tooltip`. Popover uses existing `@/components/ui/popover`.
