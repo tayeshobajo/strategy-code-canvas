@@ -394,6 +394,25 @@ export const submitIntake = createServerFn({ method: "POST" })
 // "<resume_token>/<filename>" paths. Metadata is recorded here (service role)
 // so submitIntake can compile it into the artifact without trusting the client.
 
+type StoredAttachment = {
+  storage_path: string;
+  filename: string;
+  size: number;
+  mime: string | null;
+  uploaded_at: string;
+};
+
+function normalizeAttachments(raw: unknown): StoredAttachment[] {
+  const arr = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
+  return arr.map((a) => ({
+    storage_path: String(a.storage_path ?? ""),
+    filename: String(a.filename ?? ""),
+    size: Number(a.size ?? 0),
+    mime: a.mime == null ? null : String(a.mime),
+    uploaded_at: String(a.uploaded_at ?? new Date(0).toISOString()),
+  }));
+}
+
 const AttachmentInput = z.object({
   resume_token: z.string().regex(UUID_RE),
   storage_path: z.string().min(1).max(1024),
@@ -404,13 +423,12 @@ const AttachmentInput = z.object({
 
 export const recordIntakeAttachment = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => AttachmentInput.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<{ attachments: StoredAttachment[] }> => {
     if (!data.storage_path.startsWith(`${data.resume_token}/`)) {
       throw new Error("Attachment path must live under this draft's folder");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Ensure a draft row exists for this token so the FK-like link holds.
     const { data: existing } = await (
       supabaseAdmin.from("intake_drafts") as unknown as {
         select: (s: string) => {
@@ -424,15 +442,13 @@ export const recordIntakeAttachment = createServerFn({ method: "POST" })
       .eq("resume_token", data.resume_token)
       .maybeSingle();
 
-    const current = Array.isArray(existing?.attachments)
-      ? (existing!.attachments as Array<Record<string, unknown>>)
-      : [];
+    const current = normalizeAttachments(existing?.attachments);
     // Dedupe by storage_path — repeated uploads should replace, not stack.
-    const filtered = current.filter((a) => String(a.storage_path ?? "") !== data.storage_path);
+    const filtered = current.filter((a) => a.storage_path !== data.storage_path);
     if (filtered.length >= 10) {
       throw new Error("Attachment limit reached (10 files per intake).");
     }
-    const next = [
+    const next: StoredAttachment[] = [
       ...filtered,
       {
         storage_path: data.storage_path,
@@ -455,7 +471,6 @@ export const recordIntakeAttachment = createServerFn({ method: "POST" })
     ).upsert(upsertRow);
     if (error) {
       console.error("[record-intake-attachment] upsert failed", error);
-      // Best-effort cleanup of the just-uploaded object.
       await supabaseAdmin.storage.from("intake-uploads").remove([data.storage_path]);
       throw new Error("Could not record attachment");
     }
@@ -469,7 +484,7 @@ const RemoveAttachmentInput = z.object({
 
 export const removeIntakeAttachment = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => RemoveAttachmentInput.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<{ attachments: StoredAttachment[] }> => {
     if (!data.storage_path.startsWith(`${data.resume_token}/`)) {
       throw new Error("Attachment path must live under this draft's folder");
     }
@@ -488,10 +503,8 @@ export const removeIntakeAttachment = createServerFn({ method: "POST" })
       .select("attachments")
       .eq("resume_token", data.resume_token)
       .maybeSingle();
-    const current = Array.isArray(existing?.attachments)
-      ? (existing!.attachments as Array<Record<string, unknown>>)
-      : [];
-    const next = current.filter((a) => String(a.storage_path ?? "") !== data.storage_path);
+    const current = normalizeAttachments(existing?.attachments);
+    const next = current.filter((a) => a.storage_path !== data.storage_path);
     const { error } = await (
       supabaseAdmin.from("intake_drafts") as unknown as {
         update: (r: Record<string, unknown>) => {
