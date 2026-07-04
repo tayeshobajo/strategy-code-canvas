@@ -32,13 +32,28 @@ const SOURCE_ROUTE: Record<string, string> = {
   "Agent Permission": "Agent permissions",
   "Client Decision": "Client portal · roadmap",
   "Client Clarification": "Client portal · messages",
+  "Intake Ready": "Client portal · onboarding intake",
 };
 
 const TYPES = [
-  "All", "Roadmap Update", "Version Change", "Milestone Brief", "Client Preview",
+  "All", "Intake Ready", "Roadmap Update", "Version Change", "Milestone Brief", "Client Preview",
   "Investment Change", "Delivery Approval", "Agent Permission",
   "Client Decision", "Client Clarification",
 ];
+
+/**
+ * Human-facing labels for review item types. The DB stores the machine value
+ * (e.g. "Intake Ready"); ops sees a warmer phrase.
+ */
+const TYPE_LABEL: Record<string, string> = {
+  "Intake Ready": "Onboarding intake",
+  "Client Decision": "Client decision",
+  "Client Clarification": "Client clarification",
+};
+
+function displayType(t: string): string {
+  return TYPE_LABEL[t] ?? t;
+}
 
 /**
  * Client Decision review items are inserted by respondToPortalDecision with a
