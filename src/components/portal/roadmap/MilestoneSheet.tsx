@@ -35,8 +35,8 @@ import {
   Eye,
   Lightbulb,
   Unlock,
-  Flag,
   ListChecks,
+
   GitBranch,
   CircleDot,
   FileText,
@@ -106,6 +106,15 @@ const KIND_ACCENT: Record<MilestoneKind, string> = {
   deliverable: "bg-[#f59e0b]/15 text-[#b45309] border-[#f59e0b]/30",
   meeting: "bg-[#0ea5a4]/15 text-[#0f766e] border-[#0ea5a4]/30",
 };
+
+const KIND_HEX: Record<MilestoneKind, string> = {
+
+  milestone: "#2F7DFF",
+  decision: "#8B5CF6",
+  deliverable: "#F59D2A",
+  meeting: "#0EA5A4",
+};
+
 
 function fmtDate(d?: string) {
   if (!d) return null;
@@ -213,7 +222,7 @@ export function MilestoneSheet({
       return;
     }
     const measure = () => {
-      const w = Math.min(430, Math.max(320, Math.round(window.innerWidth * 0.32)));
+      const w = Math.min(480, Math.max(360, Math.round(window.innerWidth * 0.34)));
       canvas.setDrawerOffset(w);
     };
     measure();
@@ -298,7 +307,7 @@ export function MilestoneSheet({
           className={
             isMobile
               ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-[#FAF8F5] text-ink border-t border-border overflow-y-auto p-0"
-              : "w-full sm:max-w-[410px] bg-[#FAF8F5] text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_30px_80px_-30px_rgba(11,18,32,0.35)] p-0 flex flex-col"
+              : "w-full sm:max-w-[480px] bg-[#F7F3EC] text-ink border-l border-ink/10 rounded-l-2xl shadow-[0_40px_100px_-30px_rgba(11,18,32,0.45)] p-0 flex flex-col"
           }
           aria-labelledby="milestone-sheet-title"
           aria-describedby="milestone-sheet-desc"
@@ -307,9 +316,8 @@ export function MilestoneSheet({
             const KindIcon = KIND_ICON[kind];
             const isDeadline = kind === "milestone" && !!milestone.dueDate;
             const displayKindLabel = isDeadline ? "Deadline" : KIND_LABEL[kind];
-            const displayKindAccent = isDeadline
-              ? "bg-[#e11d48]/12 text-[#be123c] border-[#e11d48]/30"
-              : KIND_ACCENT[kind];
+            void KIND_ACCENT; // retained for future kind chips; header uses accentHex directly.
+
             const phaseName =
               milestone.phase === "now"
                 ? "Foundation"
@@ -353,77 +361,104 @@ export function MilestoneSheet({
               (milestone.actions && milestone.actions.length > 0) ||
               (milestone.dependencies && milestone.dependencies.length > 0);
 
+            const accentHex = isDeadline ? "#E11D48" : KIND_HEX[kind];
+            const positionIdx =
+              sequence && milestone
+                ? Math.max(0, sequence.indexOf(milestone.slug)) + 1
+                : null;
+            const positionTotal = sequence?.length ?? null;
+
+
             return (
               <>
-                {/* Header */}
-                <SheetHeader className="text-left space-y-3 px-6 pt-6 pb-5 border-b border-ink/[0.08] bg-[#FAF8F5]/80">
-                  <div className="flex items-center gap-2 flex-wrap pr-8">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-0.5 text-[10.5px] font-mono uppercase tracking-[0.22em] ${displayKindAccent}`}
+                {/* ================= EDITORIAL HEADER ================= */}
+                <SheetHeader
+                  className="relative text-left space-y-0 px-8 pt-8 pb-6 border-b border-ink/10 bg-transparent"
+                >
+                  {/* Vertical accent bar */}
+                  <span
+                    aria-hidden
+                    className="absolute left-0 top-8 bottom-6 w-[3px] rounded-r-full"
+                    style={{
+                      background: `linear-gradient(180deg, ${accentHex} 0%, ${accentHex}55 100%)`,
+                      boxShadow: `0 0 12px ${accentHex}55`,
+                    }}
+                  />
+
+                  {/* Position numeral, top-right */}
+                  {positionIdx && positionTotal && positionTotal > 1 && (
+                    <div className="absolute top-8 right-8 text-right font-mono">
+                      <div className="text-[10px] uppercase tracking-[0.32em] text-ink/35 leading-none">
+                        Milestone
+                      </div>
+                      <div className="mt-1 text-[13px] tracking-[0.14em] text-ink/70 tabular-nums">
+                        {String(positionIdx).padStart(2, "0")}
+                        <span className="text-ink/25 mx-1">/</span>
+                        {String(positionTotal).padStart(2, "0")}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Kicker — single elegant line, no boxes */}
+                  <div className="font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/50 flex items-center gap-2 pr-24">
+                    <KindIcon className="w-3 h-3" style={{ color: accentHex }} />
+                    <span style={{ color: accentHex }}>{displayKindLabel}</span>
+                    <span className="text-ink/20">—</span>
+                    <span className="truncate">
+                      {phaseNumber != null
+                        ? `Phase ${String(phaseNumber).padStart(2, "0")} · ${phaseName}`
+                        : phaseName}
+                    </span>
+                  </div>
+
+                  {/* Title — bigger, tighter, editorial */}
+                  <SheetTitle
+                    id="milestone-sheet-title"
+                    ref={titleRef}
+                    tabIndex={-1}
+                    className="font-display text-[32px] leading-[1.08] tracking-[-0.01em] text-ink focus:outline-none pt-4"
+                    style={{ fontFeatureSettings: '"ss01", "kern"' }}
+                  >
+                    {milestone.title}
+                  </SheetTitle>
+
+                  {/* Hairline separator */}
+                  <div aria-hidden className="pt-4">
+                    <div className="h-px w-10 bg-ink/25" />
+                  </div>
+
+                  {/* Summary in serif italic */}
+                  {milestone.summary && (
+                    <SheetDescription
+                      id="milestone-sheet-desc"
+                      className="font-display italic text-[16px] leading-[1.55] text-ink/70 pt-3"
                     >
-                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-white/70">
-                        <KindIcon className="w-3 h-3" />
-                      </span>
-                      {displayKindLabel}
-                    </span>
-                    <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
-                      {phaseNumber != null ? `Phase ${phaseNumber} \u00b7 ${phaseName}` : phaseName}
-                    </span>
+                      {milestone.summary}
+                    </SheetDescription>
+                  )}
+
+                  {/* Meta row — status pill + due */}
+                  <div className="flex items-center gap-3 pt-4 pr-24">
                     <span
                       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_TONE[milestone.status]}`}
                     >
                       {STATUS_LABEL[milestone.status]}
                     </span>
+                    {dueLabel && (
+                      <span className="font-mono text-[10.5px] uppercase tracking-[0.24em] text-ink/50 flex items-center gap-1.5">
+                        <Calendar className="w-3 h-3" />
+                        {dueLabel}
+                      </span>
+                    )}
                   </div>
-                  <SheetTitle
-                    id="milestone-sheet-title"
-                    ref={titleRef}
-                    tabIndex={-1}
-                    className="font-display text-[26px] leading-[1.15] text-ink focus:outline-none"
-                  >
-                    {milestone.title}
-                  </SheetTitle>
-                  {milestone.summary && (
-                    <SheetDescription
-                      id="milestone-sheet-desc"
-                      className="text-[14.5px] leading-[1.65] text-ink/70"
-                    >
-                      {milestone.summary}
-                    </SheetDescription>
-                  )}
-                  {canNavigate && (
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={goPrev}
-                        disabled={!prevSlug}
-                        aria-label="Previous milestone"
-                        className="inline-flex items-center gap-1 rounded-md border border-ink/15 bg-white/70 px-2.5 py-1 text-[12px] font-medium text-ink/75 hover:bg-white hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                        Previous
-                      </button>
-                      {sequence && sequence.length > 0 && milestone && (
-                        <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/40">
-                          {Math.max(0, sequence.indexOf(milestone.slug)) + 1} / {sequence.length}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={goNext}
-                        disabled={!nextSlug}
-                        aria-label="Next milestone"
-                        className="inline-flex items-center gap-1 rounded-md border border-ink/15 bg-white/70 px-2.5 py-1 text-[12px] font-medium text-ink/75 hover:bg-white hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        Next
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
                 </SheetHeader>
 
-                {/* Scrollable body — generous spacing (space-y-6) */}
-                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                {/* Scrollable body — generous spacing, keyed for fade-slide */}
+                <div
+                  key={milestone.slug}
+                  className="flex-1 overflow-y-auto px-8 py-7 space-y-7 animate-in fade-in slide-in-from-right-2 duration-300"
+                >
+
                   {kind === "decision" && (
                     <DecisionBody milestone={milestone} />
                   )}
@@ -491,20 +526,26 @@ export function MilestoneSheet({
                     </Collapsible>
                   )}
 
-                  {dueLabel && (
-                    <Section
-                      label={milestone.dueDate ? "Due" : "Target date"}
-                      icon={milestone.dueDate ? Flag : Calendar}
-                    >
-                      <p>{fmtDate(milestone.dueDate ?? milestone.targetDate)}</p>
-                    </Section>
-                  )}
                   {milestone.clientActionNeeded && (
-                    <div className="rounded-lg border border-royal/25 bg-royal/[0.06] px-4 py-3">
-                      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-royal mb-1.5 flex items-center gap-1.5">
+                    <div
+                      className="relative rounded-lg border px-4 py-3.5 overflow-hidden"
+                      style={{
+                        borderColor: `${accentHex}40`,
+                        background: `linear-gradient(180deg, ${accentHex}0f 0%, ${accentHex}04 100%)`,
+                      }}
+                    >
+                      <div
+                        aria-hidden
+                        className="absolute left-0 top-0 bottom-0 w-[2px]"
+                        style={{ background: accentHex }}
+                      />
+                      <div
+                        className="font-mono text-[10px] uppercase tracking-[0.28em] mb-1.5 flex items-center gap-1.5"
+                        style={{ color: accentHex }}
+                      >
                         <CheckCircle2 className="w-3 h-3" /> Client action needed
                       </div>
-                      <p className="text-[14px] leading-[1.6] text-ink/85">
+                      <p className="text-[14px] leading-[1.6] text-ink/90">
                         {milestone.clientActionNeeded}
                       </p>
                     </div>
@@ -515,9 +556,14 @@ export function MilestoneSheet({
                     </Section>
                   )}
                   {milestone.ownerNote && (
-                    <Section label="Notes from Tai" icon={MessageSquare}>
-                      <p className="italic">{milestone.ownerNote}</p>
-                    </Section>
+                    <div className="relative border-l-2 border-ink/20 pl-4 py-1">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/45 mb-1.5 flex items-center gap-1.5">
+                        <MessageSquare className="w-3 h-3" /> Notes from Tai
+                      </div>
+                      <p className="font-display italic text-[15px] leading-[1.6] text-ink/80">
+                        &ldquo;{milestone.ownerNote}&rdquo;
+                      </p>
+                    </div>
                   )}
 
                   {isReviewed && (
@@ -528,85 +574,118 @@ export function MilestoneSheet({
                   )}
                 </div>
 
-                {/* Sticky CTA footer */}
-                <div className="shrink-0 border-t border-ink/10 bg-white/70 backdrop-blur px-6 pt-4 pb-5 space-y-2.5">
-                  {primaryCta && "href" in primaryCta && primaryCta.href ? (
-                    <Button
-                      asChild
-                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white shadow-[0_8px_20px_-10px_rgba(11,18,32,0.55)]"
-                    >
-                      <a
-                        href={primaryCta.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                {/* ================= EDITORIAL FOOTER ================= */}
+                <div className="shrink-0 border-t border-ink/10 bg-white/60 backdrop-blur-sm">
+                  {/* Continue / previous strip */}
+                  {canNavigate && (prevSlug || nextSlug) && (
+                    <div className="grid grid-cols-2 divide-x divide-ink/10 border-b border-ink/10">
+                      <button
+                        type="button"
+                        onClick={goPrev}
+                        disabled={!prevSlug}
+                        aria-label="Previous milestone"
+                        className="group text-left px-5 py-3 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink/[0.03] transition-colors"
                       >
-                        <Eye className="w-4 h-4 mr-2" />
-                        {primaryCta.label}
-                      </a>
-                    </Button>
-                  ) : primaryCta && "onClick" in primaryCta ? (
-                    <Button
-                      onClick={primaryCta.onClick}
-                      disabled={"disabled" in primaryCta && primaryCta.disabled}
-                      className="w-full h-10 bg-ink hover:bg-ink/90 text-white shadow-[0_8px_20px_-10px_rgba(11,18,32,0.55)]"
-                    >
-                      {kind === "decision" ? (
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                      ) : (
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                      )}
-                      {primaryCta.label}
-                    </Button>
-                  ) : null}
+                        <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-ink/40 flex items-center gap-1">
+                          <ChevronLeft className="w-3 h-3 transition-transform group-hover:-translate-x-0.5" />
+                          Previous
+                        </div>
+                        <div className="mt-1 text-[12.5px] text-ink/75 line-clamp-1 font-medium">
+                          {prevSlug ? formatSlug(prevSlug) : "—"}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        disabled={!nextSlug}
+                        aria-label="Next milestone"
+                        className="group text-right px-5 py-3 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink/[0.03] transition-colors"
+                      >
+                        <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-ink/40 flex items-center justify-end gap-1">
+                          Next
+                          <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                        <div className="mt-1 text-[12.5px] text-ink/75 line-clamp-1 font-medium">
+                          {nextSlug ? formatSlug(nextSlug) : "—"}
+                        </div>
+                      </button>
+                    </div>
+                  )}
 
-                  {/* Secondary CTA */}
-                  <Button
-                    variant="outline"
-                    className="w-full h-9 border-ink/15 text-ink/85 hover:bg-ink/[0.03]"
-                    onClick={() => setClarifyOpen(true)}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-                    {kind === "decision" ? "Ask a question" : "Request clarification"}
-                  </Button>
-
-                  {/* Contextual ghost row */}
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      className="flex-1 h-8 text-[12.5px] text-ink/60 hover:text-ink hover:bg-transparent px-1 justify-center"
-                    >
-                      <Link to="/portal/files" search={{ q: milestone.title }}>
-                        <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                        Related files
-                      </Link>
-                    </Button>
-                    <span aria-hidden className="h-4 w-px bg-ink/10" />
-                    <button
-                      type="button"
-                      onClick={() => setBookOpen(true)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink h-8"
-                    >
-                      <Calendar className="w-3.5 h-3.5" />
-                      Book next call
-                    </button>
-                    {kind === "deliverable" && milestone.fileUrl && (
-                      <>
-                        <span aria-hidden className="h-4 w-px bg-ink/10" />
-                        <a
-                          href={milestone.fileUrl}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-[12.5px] text-ink/60 hover:text-ink h-8"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          Download
+                  {/* Primary CTA */}
+                  <div className="px-6 pt-4 pb-5 space-y-2.5">
+                    {primaryCta && "href" in primaryCta && primaryCta.href ? (
+                      <Button
+                        asChild
+                        className="w-full h-11 bg-ink hover:bg-ink/90 text-white shadow-[0_10px_24px_-12px_rgba(11,18,32,0.6)] rounded-md text-[13.5px] tracking-[0.02em]"
+                      >
+                        <a href={primaryCta.href} target="_blank" rel="noopener noreferrer">
+                          <Eye className="w-4 h-4 mr-2" />
+                          {primaryCta.label}
                         </a>
-                      </>
-                    )}
+                      </Button>
+                    ) : primaryCta && "onClick" in primaryCta ? (
+                      <Button
+                        onClick={primaryCta.onClick}
+                        disabled={"disabled" in primaryCta && primaryCta.disabled}
+                        className="w-full h-11 bg-ink hover:bg-ink/90 text-white shadow-[0_10px_24px_-12px_rgba(11,18,32,0.6)] rounded-md text-[13.5px] tracking-[0.02em]"
+                      >
+                        {kind === "decision" ? (
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                        )}
+                        {primaryCta.label}
+                      </Button>
+                    ) : null}
+
+                    {/* Ghost link row — subtle text links */}
+                    <div className="flex items-center justify-center gap-4 pt-1 text-[12px] text-ink/55">
+                      <button
+                        type="button"
+                        onClick={() => setClarifyOpen(true)}
+                        className="inline-flex items-center gap-1.5 hover:text-ink transition-colors"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        {kind === "decision" ? "Ask a question" : "Clarify"}
+                      </button>
+                      <span aria-hidden className="h-3 w-px bg-ink/15" />
+                      <button
+                        type="button"
+                        onClick={() => setBookOpen(true)}
+                        className="inline-flex items-center gap-1.5 hover:text-ink transition-colors"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        Book call
+                      </button>
+                      <span aria-hidden className="h-3 w-px bg-ink/15" />
+                      <Link
+                        to="/portal/files"
+                        search={{ q: milestone.title }}
+                        className="inline-flex items-center gap-1.5 hover:text-ink transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Files
+                      </Link>
+                      {kind === "deliverable" && milestone.fileUrl && (
+                        <>
+                          <span aria-hidden className="h-3 w-px bg-ink/15" />
+                          <a
+                            href={milestone.fileUrl}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 hover:text-ink transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download
+                          </a>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
+
               </>
             );
           })()}
@@ -766,11 +845,23 @@ function Section({
 }) {
   return (
     <div>
-      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/45 mb-2 flex items-center gap-1.5">
-        {Icon && <Icon className="w-3 h-3 text-royal" />}
-        {label}
+      <div className="flex items-center gap-2 mb-2.5">
+        <span aria-hidden className="h-px w-6 bg-ink/25" />
+        <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-ink/50 flex items-center gap-1.5">
+          {Icon && <Icon className="w-3 h-3 text-ink/40" />}
+          {label}
+        </div>
       </div>
-      <div className="text-[14px] leading-[1.65] text-ink/85">{children}</div>
+      <div className="text-[14.5px] leading-[1.7] text-ink/85">{children}</div>
     </div>
   );
 }
+
+/** Turn a slug like "pre-test-ready" into "Pre Test Ready". Fallback label
+ *  when we only have the slug (prev/next in the footer strip). */
+function formatSlug(slug: string): string {
+  return slug
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
