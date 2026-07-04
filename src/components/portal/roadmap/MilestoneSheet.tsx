@@ -52,6 +52,7 @@ import type {
 import { recordPortalMilestoneReview } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { ClarificationModal } from "./ClarificationModal";
+import { DecisionResponseModal } from "./DecisionResponseModal";
 import { BookCallModal } from "./BookCallModal";
 import { useRoadmapCanvas } from "./canvas-context";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -158,6 +159,7 @@ export function MilestoneSheet({
   const [ackOpen, setAckOpen] = useState(false);
   const [clarifyOpen, setClarifyOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
+  const [decisionOpen, setDecisionOpen] = useState(false);
   const [secondaryOpen, setSecondaryOpen] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const canvas = useRoadmapCanvas();
@@ -335,7 +337,7 @@ export function MilestoneSheet({
                     : null;
             const primaryCta =
               kind === "decision"
-                ? { label: "Respond", onClick: () => setClarifyOpen(true) }
+                ? { label: "Respond", onClick: () => setDecisionOpen(true), disabled: !projectId }
                 : kind === "deliverable"
                   ? milestone.fileUrl
                     ? {
@@ -734,6 +736,17 @@ export function MilestoneSheet({
                 phase: milestone.phase,
                 kind: KIND_LABEL[kind],
               }
+            : null
+        }
+      />
+
+      <DecisionResponseModal
+        open={decisionOpen}
+        onOpenChange={setDecisionOpen}
+        projectId={projectId}
+        milestone={
+          milestone
+            ? { slug: milestone.slug, title: milestone.title, phase: milestone.phase }
             : null
         }
       />

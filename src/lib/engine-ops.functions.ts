@@ -520,8 +520,9 @@ async function _enqueueReviewItem(sb: {
     insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
     select: (s: string) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => { in: (c: string, v: string[]) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } } } };
   };
-}, args: { project: string; item_type: string; title: string; impact: "high" | "medium" | "low"; requested_by: string; source?: string | null }) {
+}, args: { project_id: string; project: string; item_type: string; title: string; impact: "high" | "medium" | "low"; requested_by: string; source?: string | null }) {
   await sb.from("engine_review_items").insert({
+    project_id: args.project_id,
     project: args.project,
     item_type: args.item_type,
     title: args.title,
@@ -556,6 +557,7 @@ export const submitVersionForApproval = createServerFn({ method: "POST" })
     }
     await sb.from("engine_roadmap_versions").update({ status: "tai_edited" }).eq("id", ver.id);
     await _enqueueReviewItem(sb as never, {
+      project_id: ver.project_id,
       project: ver.engine_projects?.name ?? "Unknown",
       item_type: "Roadmap Update",
       title: `Approve official version ${ver.version}`,
@@ -598,6 +600,7 @@ export const submitPreviewForApproval = createServerFn({ method: "POST" })
     }
     await sb.from("engine_roadmap_versions").update({ client_preview_status: "draft" }).eq("id", ver.id);
     await _enqueueReviewItem(sb as never, {
+      project_id: ver.project_id,
       project: ver.engine_projects?.name ?? "Unknown",
       item_type: "Client Preview",
       title: `Approve client preview for ${ver.version}`,
