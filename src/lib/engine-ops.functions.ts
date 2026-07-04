@@ -654,6 +654,37 @@ export const approvePreview = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * P1-5: Try to auto-link an engine project to its client portal project by
+ * matching engine_clients.contact_email → client_portal_projects.primary_email.
+ * On success, persists client_portal_project_id on engine_projects so subsequent
+ * publishes are instant. Returns the resolved portal project id, or null.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function _tryAutoLinkPortalProject(sb: any, engineProjectId: string, clientId: string | null): Promise<string | null> {
+  if (!clientId) return null;
+  const { data: client } = await sb
+    .from("engine_clients")
+    .select("contact_email")
+    .eq("id", clientId)
+    .maybeSingle();
+  const email = ((client as { contact_email?: string | null } | null)?.contact_email ?? "").trim().toLowerCase();
+  if (!email) return null;
+  const { data: portal } = await sb
+    .from("client_portal_projects")
+    .select("id")
+    .ilike("primary_email", email)
+    .maybeSingle();
+  const portalId = (portal as { id?: string } | null)?.id ?? null;
+  if (!portalId) return null;
+  await sb.from("engine_projects")
+    .update({ client_portal_project_id: portalId })
+    .eq("id", engineProjectId);
+  return portalId;
+}
+
+
+
 export const publishVersionToPortal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ versionId: z.string().uuid() }).parse(raw))
@@ -679,17 +710,29 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
     if (ver.status !== "approved") throw new Error("Only approved versions can be published to the client portal.");
     if (ver.client_preview_status !== "approved") throw new Error("Client preview must be approved before publishing.");
 
-    // Resolve destination portal project
+    // Resolve destination portal project (auto-link when possible).
     const { data: proj, error: pErr } = await sb
       .from("engine_projects")
-      .select("id,name,client_preview,client_portal_project_id")
+      .select("id,name,client_preview,client_portal_project_id,client_id")
       .eq("id", ver.project_id)
       .single();
     if (pErr) throw new Error(String((pErr as { message?: string }).message ?? pErr));
-    const project = proj as { id: string; name: string; client_preview: Record<string, unknown> | null; client_portal_project_id: string | null };
-    if (!project.client_portal_project_id) {
-      throw new Error("This engine project isn't linked to a client portal project yet. Set client_portal_project_id on engine_projects before publishing.");
+    const project = proj as {
+      id: string; name: string; client_preview: Record<string, unknown> | null;
+      client_portal_project_id: string | null; client_id: string | null;
+    };
+    let portalProjectId = project.client_portal_project_id;
+    if (!portalProjectId) {
+      portalProjectId = await _tryAutoLinkPortalProject(sb, project.id, project.client_id);
     }
+    if (!portalProjectId) {
+      throw new Error(
+        "This engine project isn't linked to a client portal project yet. " +
+        "Auto-link failed — no client_portal_projects row matches this project's client contact email. " +
+        "Create/associate a portal project (or set client_portal_project_id manually) before publishing.",
+      );
+    }
+
 
     const safe = buildClientSafePayload({
       title: project.name,
@@ -707,11 +750,11 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
     })
       .from("client_portal_roadmaps")
       .update({ status: "approved" })
-      .eq("project_id", project.client_portal_project_id)
+      .eq("project_id", portalProjectId)
       .eq("status", "delivered");
 
     const { data: published, error: insErr } = await sb.from("client_portal_roadmaps").insert({
-      project_id: project.client_portal_project_id,
+      project_id: portalProjectId,
       source_version_id: ver.id,
       title: safe.title,
       version_label: safe.version_label,
@@ -740,7 +783,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       action: "version_published_to_portal",
       summary: `Published ${ver.version} to client portal.`,
       version_id: ver.id,
-      metadata: { portal_roadmap_id: pub.id, portal_project_id: project.client_portal_project_id },
+      metadata: { portal_roadmap_id: pub.id, portal_project_id: portalProjectId },
     });
 
     return { ok: true, portal_roadmap_id: pub.id };
