@@ -293,8 +293,8 @@ function SidebarAccountZone({
             <ChevronUp
               className={`w-3 h-3 text-white/35 shrink-0 transition-transform ${
                 open ? "rotate-180" : ""
-              }`
-            }
+              }`}
+            />
           </button>
         </PopoverTrigger>
         <PopoverContent
