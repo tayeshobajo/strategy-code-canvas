@@ -801,11 +801,11 @@ function RoadmapCanvasStage({
             A clear path. Strategic milestones. Real outcomes.
           </p>
         </div>
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 pointer-events-auto">
+        <div className="absolute bottom-3 left-3 right-3 pointer-events-auto flex flex-col items-center gap-2">
           <MapLegend />
-        </div>
-        <div className="absolute bottom-3 left-3 right-3 pointer-events-auto">
-          <RoadmapOverviewMiniMap journey={journey} onJump={onJump} onSelect={onSelect} selectedSlug={selectedSlug} viewMode={viewMode} matchingSlugs={matchingSlugs} />
+          <div className="w-full">
+            <RoadmapOverviewMiniMap journey={journey} onJump={onJump} onSelect={onSelect} selectedSlug={selectedSlug} viewMode={viewMode} matchingSlugs={matchingSlugs} />
+          </div>
         </div>
       </div>
       {viewMode !== "all" && matchingCount === 0 && (
