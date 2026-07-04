@@ -320,14 +320,18 @@ function VersionComparePage() {
           <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="accent-royal" />
           I confirm these changes have been reviewed
         </label>
-        <button
-          onClick={() => approveMut.mutate()}
-          disabled={!confirmed || approveMut.isPending || !draft?.id}
-          className="text-sm bg-royal text-white rounded-md px-4 py-2 hover:bg-royal/90 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
-        >
-          {approveMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-          Approve as v{draft?.version ?? "next"} Official Version
-        </button>
+        {canPublish ? (
+          <button
+            onClick={() => approveMut.mutate()}
+            disabled={!confirmed || approveMut.isPending || !draft?.id}
+            className="text-sm bg-royal text-white rounded-md px-4 py-2 hover:bg-royal/90 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
+          >
+            {approveMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            Approve as v{draft?.version ?? "next"} Official Version
+          </button>
+        ) : (
+          <OperatorLockNotice message={adminOnlyReason} />
+        )}
       </div>
       {approveError && (
         <div className="rounded-md border border-[#f3ced5] bg-[#fbe9ec] text-[#a4283c] text-sm px-4 py-2">
