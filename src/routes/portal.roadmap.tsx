@@ -29,10 +29,8 @@ import {
 import { MapCanvas } from "@/components/portal/roadmap/MapCanvas";
 import { MilestoneSheet } from "@/components/portal/roadmap/MilestoneSheet";
 import { SelectionConnector } from "@/components/portal/roadmap/SelectionConnector";
-import {
-  RoadmapOverviewStrip,
-  MapLegend,
-} from "@/components/portal/roadmap/RoadmapOverviewStrip";
+import { MapLegend } from "@/components/portal/roadmap/RoadmapOverviewStrip";
+import { RoadmapOverviewMiniMap } from "@/components/portal/roadmap/RoadmapOverviewMiniMap";
 import { StatusOverlayCard } from "@/components/portal/roadmap/StatusOverlayCard";
 import { MobilePhaseStack } from "@/components/portal/roadmap/MobilePhaseStack";
 import { ClarificationModal } from "@/components/portal/roadmap/ClarificationModal";
@@ -711,7 +709,7 @@ function RoadmapCanvasStage({
           <MapLegend />
         </div>
         <div className="absolute bottom-3 left-3 right-3 pointer-events-auto">
-          <RoadmapOverviewStrip journey={journey} onJump={onJump} onSelect={onSelect} variant="floating" selectedSlug={selectedSlug} viewMode={viewMode} matchingSlugs={matchingSlugs} />
+          <RoadmapOverviewMiniMap journey={journey} onJump={onJump} onSelect={onSelect} selectedSlug={selectedSlug} viewMode={viewMode} matchingSlugs={matchingSlugs} />
         </div>
       </div>
       {viewMode !== "all" && matchingCount === 0 && (
