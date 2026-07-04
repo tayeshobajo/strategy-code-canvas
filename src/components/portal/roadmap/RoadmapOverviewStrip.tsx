@@ -95,13 +95,13 @@ export function RoadmapOverviewStrip({
     <div
       className={
         floating
-          ? "rounded-2xl bg-slate-950/85 backdrop-blur-md border border-white/12 px-4 pt-3 pb-3.5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)] text-white"
+          ? "rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-white/10 px-3.5 pt-2.5 pb-3 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)] text-white"
           : "rounded-2xl bg-card border border-border p-4 lg:p-5"
       }
       data-testid="roadmap-overview-strip"
     >
-      <div className="flex items-center gap-5">
-        <div className="shrink-0 min-w-[148px]">
+      <div className="flex items-center gap-4">
+        <div className="shrink-0 min-w-[130px]">
           <div
             className={`font-mono text-[10px] uppercase tracking-[0.28em] ${floating ? "text-royal-glow" : "text-royal"}`}
           >
@@ -153,7 +153,7 @@ export function RoadmapOverviewStrip({
 
         {expanded && (
           <div className="flex-1 min-w-0 relative">
-            {/* Route line — base opacity raised from 0.14 to 0.2 for visibility */}
+            {/* Route line */}
             <div
               aria-hidden
               className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2.5px] rounded-full transition-colors duration-300"
@@ -195,7 +195,7 @@ export function RoadmapOverviewStrip({
               </span>
             )}
 
-            <div className="relative flex items-stretch gap-1">
+            <div className="relative flex items-stretch gap-0.5">
               <StripStop
                 label="Point A"
                 sub="Current State"
@@ -260,7 +260,7 @@ export function RoadmapOverviewStrip({
             }}
             className={
               floating
-                ? "inline-flex items-center justify-center h-8 w-8 rounded-md border border-white/15 bg-white/[0.06] hover:bg-white/15 text-white/85"
+                ? "inline-flex items-center justify-center h-7 w-7 rounded-md border border-white/15 bg-white/[0.06] hover:bg-white/15 text-white/85"
                 : "inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
             }
             aria-label="Fit map to field"
@@ -273,7 +273,7 @@ export function RoadmapOverviewStrip({
             onClick={() => setExpanded((v) => !v)}
             className={
               floating
-                ? "inline-flex items-center justify-center h-8 w-8 rounded-md border border-white/15 bg-white/[0.06] hover:bg-white/15 text-white/85"
+                ? "inline-flex items-center justify-center h-7 w-7 rounded-md border border-white/15 bg-white/[0.06] hover:bg-white/15 text-white/85"
                 : "inline-flex items-center justify-center h-8 w-8 rounded-md border border-ink/15 bg-white hover:bg-ink/5"
             }
             aria-label={expanded ? "Collapse overview" : "Expand overview"}
@@ -344,7 +344,7 @@ function StripStop({
             ? "text-white/65"
             : "text-ink/60";
   const activeShellFloating =
-    "bg-royal/20 border border-royal/70 shadow-[0_0_0_1px_rgba(47,93,246,0.45),inset_0_0_0_1px_rgba(255,255,255,0.15),inset_0_0_20px_rgba(47,93,246,0.22)]";
+    "bg-royal/20 border border-royal/60 shadow-[0_0_0_1px_rgba(47,93,246,0.45),inset_0_0_0_1px_rgba(255,255,255,0.12),inset_0_0_16px_rgba(47,93,246,0.25),0_0_20px_rgba(47,93,246,0.15)]";
   const kinds = Object.entries(kindCounts).sort(
     ([a], [b]) => Number(b === "milestone") - Number(a === "milestone"),
   );
@@ -355,7 +355,7 @@ function StripStop({
       data-testid={testId}
       data-active={active ? "true" : "false"}
       data-current-phase={current ? "true" : "false"}
-      className={`relative flex-1 min-w-0 rounded-lg px-3 py-2 text-left transition-all ${
+      className={`relative flex-1 min-w-0 rounded-lg px-2.5 py-1.5 text-left transition-all ${
         active
           ? floating
             ? activeShellFloating
@@ -368,13 +368,13 @@ function StripStop({
       {active && (
         <span
           aria-hidden
-          className={`absolute -top-[3px] left-1/2 -translate-x-1/2 h-1 w-6 rounded-full ${
-            floating ? "bg-royal shadow-[0_0_10px_rgba(47,93,246,0.85)]" : "bg-royal"
+          className={`absolute -top-[3px] left-1/2 -translate-x-1/2 h-1 w-5 rounded-full ${
+            floating ? "bg-royal shadow-[0_0_8px_rgba(47,93,246,0.85)]" : "bg-royal"
           }`}
         />
       )}
       <div
-        className={`font-mono text-[9.5px] uppercase tracking-[0.24em] flex items-center gap-1.5 ${toneClass}`}
+        className={`font-mono text-[9px] uppercase tracking-[0.22em] flex items-center gap-1 ${toneClass}`}
       >
         <span>{label}</span>
         {current && (
@@ -385,16 +385,16 @@ function StripStop({
         )}
       </div>
       <div
-        className={`text-[12px] font-medium truncate mt-0.5 ${floating ? (active ? "text-white" : "text-white/90") : "text-ink"}`}
+        className={`text-[11px] font-medium truncate mt-0.5 leading-tight ${floating ? (active ? "text-white" : "text-white/85") : "text-ink"}`}
       >
         {sub}
       </div>
       {showRoute && kinds.length > 0 && (
-        <div className="mt-1.5 flex items-center gap-1">
+        <div className="mt-1 flex items-center gap-0.5">
           {kinds.slice(0, 5).map(([k, count]) => (
             <span
               key={k}
-              className={`inline-block h-1.5 w-1.5 rounded-full ${KIND_DOT[k] ?? "bg-white/40"}`}
+              className={`inline-block h-1 w-1 rounded-full ${KIND_DOT[k] ?? "bg-white/40"}`}
               title={`${count} ${k}${count === 1 ? "" : "s"}`}
             />
           ))}
@@ -445,7 +445,7 @@ export function MapLegend() {
                 : isMuted
                   ? "bg-transparent text-white/65 hover:bg-white/5"
                   : "bg-transparent text-white/35 line-through hover:bg-white/5"
-            }`
+            }`}
           >
             <span
               className={`inline-block h-2.5 w-2.5 rounded-full ${it.color} ${!isVisible ? "opacity-40" : ""}`}
