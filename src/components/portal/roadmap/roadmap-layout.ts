@@ -7,6 +7,16 @@ import type {
 
 export type MarkerAttachment = "on-road" | "fork" | "beside" | "flag" | "off-road";
 
+/**
+ * Phase lanes — every marker lives in exactly one lane so they stay anchored
+ * to the spine and never overlap awkwardly across kinds:
+ *   • main      → the road itself (on-road milestones, dated flags)
+ *   • upper     → decisions / fork points (above the road)
+ *   • lower     → deliverables / supporting artifacts (below the road)
+ *   • off-road  → meetings / notes (further below, off the spine)
+ */
+export type MarkerLane = "main" | "upper" | "lower" | "off-road";
+
 export type MarkerPos = {
   milestone: RoadmapMilestone;
   /** normalized 0..1 x within the canvas */
@@ -15,6 +25,8 @@ export type MarkerPos = {
   ny: number;
   /** how this marker relates to the road */
   attachment: MarkerAttachment;
+  /** which lane this marker occupies */
+  lane: MarkerLane;
 };
 
 export type PhaseBand = {
@@ -46,6 +58,19 @@ const PHASE_LAYOUT: Record<
 export const POINT_A_POS = { nx: 0.09, ny: 0.86 };
 export const POINT_B_POS = { nx: 0.94, ny: 0.13 };
 
+/**
+ * Fixed perpendicular offset (in normalized-y) per lane. Keeping these as
+ * discrete rows — rather than per-marker jitter — guarantees a decision
+ * always sits above the road and a deliverable always sits below, so the
+ * eye can read the roadmap as three parallel tracks.
+ */
+const LANE_OFFSETS: Record<MarkerLane, number> = {
+  upper: -0.055,
+  main: 0,
+  lower: 0.055,
+  "off-road": 0.095,
+};
+
 /** Marker placement rule → default attachment for each kind. */
 export function attachmentForKind(m: RoadmapMilestone): MarkerAttachment {
   if (m.kind === "decision") return "fork";
@@ -55,20 +80,19 @@ export function attachmentForKind(m: RoadmapMilestone): MarkerAttachment {
   return "on-road";
 }
 
-/** Perpendicular offset (in normalized-y) applied by attachment type. */
-function attachmentOffset(a: MarkerAttachment): number {
+/** Which lane an attachment renders into. */
+export function laneForAttachment(a: MarkerAttachment): MarkerLane {
   switch (a) {
     case "fork":
-      return -0.045;
+      return "upper";
     case "beside":
-      return 0.05;
+      return "lower";
     case "off-road":
-      return 0.09;
+      return "off-road";
     case "flag":
-      return -0.02;
     case "on-road":
     default:
-      return 0;
+      return "main";
   }
 }
 
