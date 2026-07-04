@@ -414,11 +414,13 @@ function PublishTimeline({ projectId, draft, approved, canPublish, adminOnlyReas
   if (!versionId) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
+      <div className="flex items-center justify-between">
         <div className="font-display text-base text-ink">Publish pipeline · {versionLabel}</div>
         <div className="text-[10px] font-mono uppercase tracking-wider text-ink/50">Official → Preview → Portal</div>
       </div>
+      <PortalLinkCard projectId={projectId} canPublish={canPublish} adminOnlyReason={adminOnlyReason} />
+
       <div className="flex flex-col md:flex-row gap-3">
         <Gate
           n={1}
