@@ -719,11 +719,11 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
     })
       .from("client_portal_roadmaps")
       .update({ status: "approved" })
-      .eq("project_id", project.client_portal_project_id)
+      .eq("project_id", portalProjectId)
       .eq("status", "delivered");
 
     const { data: published, error: insErr } = await sb.from("client_portal_roadmaps").insert({
-      project_id: project.client_portal_project_id,
+      project_id: portalProjectId,
       source_version_id: ver.id,
       title: safe.title,
       version_label: safe.version_label,
