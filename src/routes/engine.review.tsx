@@ -219,6 +219,7 @@ function ReviewApprovalsPage() {
                 <tbody>
                   {filtered.map((r) => {
                     const isPortalDecision = r.item_type === "Client Decision";
+                    const isIntakeReady = r.item_type === "Intake Ready";
                     const parsed = isPortalDecision ? parseClientDecisionTitle(r.title) : null;
                     return (
                     <tr key={r.id} className="border-b border-border/60 hover:bg-paper-soft/40">
@@ -230,11 +231,19 @@ function ReviewApprovalsPage() {
                             <span className="text-ink/70">on</span>
                             <span className="text-ink/90 font-medium">{parsed.milestone}</span>
                           </div>
+                        ) : isIntakeReady ? (
+                          <div className="text-xs text-ink/70 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border bg-royal/5 text-royal border-royal/20">
+                              <Sparkles className="w-3 h-3" />
+                              Onboarding intake
+                            </span>
+                            <span className="text-ink/70">from client portal</span>
+                          </div>
                         ) : (
                           <div className="text-xs text-ink/60">{r.title}</div>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-ink/80 whitespace-nowrap">{r.item_type}</td>
+                      <td className="px-3 py-3 text-ink/80 whitespace-nowrap">{displayType(r.item_type)}</td>
                       <td className="px-3 py-3"><ImpactBadge impact={r.impact} /></td>
                       <td className="px-3 py-3 text-ink/70 whitespace-nowrap">
                         <div>{r.requested_by}</div>
