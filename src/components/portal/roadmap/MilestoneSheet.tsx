@@ -52,6 +52,7 @@ import type {
 import { recordPortalMilestoneReview } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { ClarificationModal } from "./ClarificationModal";
+import { DecisionResponseModal } from "./DecisionResponseModal";
 import { BookCallModal } from "./BookCallModal";
 import { useRoadmapCanvas } from "./canvas-context";
 import { useIsMobile } from "@/hooks/use-mobile";
