@@ -159,6 +159,7 @@ export function MilestoneSheet({
   const [ackOpen, setAckOpen] = useState(false);
   const [clarifyOpen, setClarifyOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
+  const [decisionOpen, setDecisionOpen] = useState(false);
   const [secondaryOpen, setSecondaryOpen] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const canvas = useRoadmapCanvas();
