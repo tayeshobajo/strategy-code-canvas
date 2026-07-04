@@ -649,36 +649,132 @@ function RoadmapCanvasStage({
     }
   }, [canvas.selectedPhaseKey, search.phase, navigate]);
 
-  // On first mount, pan the viewport to sit over the current phase so the
-  // mini-map, pill, and canvas center all agree from the start.
+  // On first mount, run a short guided "journey" intro that pans from
+  // Point A → Phase 1 → the current phase, so the map feels alive from load.
+  // Session-scoped so we never replay it in the same browser session.
   const didInitialSnap = useRef(false);
   useEffect(() => {
     if (didInitialSnap.current) return;
     const el = document.getElementById("portal-canvas-scroll");
     if (!el || el.scrollWidth <= el.clientWidth) return;
+    didInitialSnap.current = true;
+
     const total = el.scrollWidth;
-    const map: Record<string, number> = {
+    const phaseMap: Record<string, number> = {
       now: total * 0.15,
       next: total * 0.45,
       later: total * 0.75,
     };
-    const target = map[journey.currentPhaseKey] ?? 0;
-    el.scrollTo({ left: target, behavior: "auto" });
-    didInitialSnap.current = true;
+    const currentTarget = phaseMap[journey.currentPhaseKey] ?? 0;
+
+    // Honor reduced motion + only intro once per session.
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const alreadyPlayed =
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem("portal.roadmap.introPlayed") === "1";
+
+    if (reduced || alreadyPlayed) {
+      el.scrollTo({ left: currentTarget, behavior: "auto" });
+      return;
+    }
+
+    // Start at Point A, then glide toward the current phase in two beats.
+    el.scrollTo({ left: 0, behavior: "auto" });
+    const firstBeat = window.setTimeout(() => {
+      el.scrollTo({ left: total * 0.15, behavior: "smooth" });
+    }, 350);
+    const secondBeat = window.setTimeout(() => {
+      el.scrollTo({ left: currentTarget, behavior: "smooth" });
+    }, 1500);
+    try {
+      window.sessionStorage.setItem("portal.roadmap.introPlayed", "1");
+    } catch {
+      /* ignore */
+    }
+    return () => {
+      window.clearTimeout(firstBeat);
+      window.clearTimeout(secondBeat);
+    };
   }, [journey.currentPhaseKey]);
 
-  // Selecting a marker sets the "viewing" phase to that marker's phase, so
-  // the mini-map and main-map highlight follow. Never touches currentPhase.
+  // Selecting a marker sets the "viewing" phase to that marker's phase AND
+  // highlights the adjacent route segment on the main canvas so jumping
+  // between milestones feels animated and premium.
   useEffect(() => {
-    if (!selectedSlug) return;
+    if (!selectedSlug) {
+      canvas.setHighlightedSlug(null);
+      return;
+    }
     const m = journey.milestones.find((x) => x.slug === selectedSlug);
     if (!m) return;
     const phase = m.phase as PhaseKey;
     if (phase && phase !== canvas.selectedPhaseKey) {
       canvas.setSelectedPhaseKey(phase);
     }
+    canvas.setHighlightedSlug(selectedSlug);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSlug]);
+
+  // Phase-completion celebration: fire confetti + toast the first time a
+  // phase hits 100%, once per phase per session. Reduced-motion skips the
+  // confetti and keeps only the toast.
+  useEffect(() => {
+    let cancelled = false;
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    journey.phases.forEach((p, i) => {
+      const real = p.milestones.filter((m) => !m.slug.endsWith("-placeholder"));
+      if (real.length === 0) return;
+      const done = real.filter((m) => m.status === "completed").length;
+      if (done !== real.length) return;
+      const key = `portal.roadmap.celebrated.${p.key}`;
+      try {
+        if (window.sessionStorage.getItem(key) === "1") return;
+        window.sessionStorage.setItem(key, "1");
+      } catch {
+        /* ignore */
+      }
+      const label = `Phase ${i + 1}`;
+      const message = p.summary?.trim() || p.label;
+      window.setTimeout(() => {
+        if (cancelled) return;
+        toast.success(`${label} complete — ${message}`, {
+          description: "One more chapter of the journey behind you.",
+          duration: 6000,
+        });
+        if (!reduced) {
+          import("canvas-confetti")
+            .then(({ default: confetti }) => {
+              const fire = (opts: Parameters<typeof confetti>[0]) =>
+                confetti({
+                  particleCount: 60,
+                  spread: 70,
+                  origin: { y: 0.7 },
+                  colors: ["#2F7DFF", "#F0D282", "#7DCA54", "#FFFFFF"],
+                  ticks: 200,
+                  ...opts,
+                });
+              fire({ angle: 60, origin: { x: 0.15, y: 0.75 } });
+              fire({ angle: 120, origin: { x: 0.85, y: 0.75 } });
+              window.setTimeout(
+                () => fire({ angle: 90, origin: { x: 0.5, y: 0.6 }, spread: 100 }),
+                300,
+              );
+            })
+            .catch(() => {
+              /* confetti is a nice-to-have; failing silently is fine */
+            });
+        }
+      }, 900);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [journey.phases]);
+
 
   return (
     <div className="relative h-full w-full">

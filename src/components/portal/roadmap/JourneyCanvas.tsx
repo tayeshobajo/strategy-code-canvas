@@ -376,16 +376,19 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect, matchingSlugs }
               canvas.highlightedSlug &&
               (seg.rightSlug === canvas.highlightedSlug ||
                 seg.leftSlug === canvas.highlightedSlug);
-            const stroke = isCompleted
-              ? "url(#road-progress)"
-              : isActive
+            const stroke = isHighlighted
+              ? "#FFD37A"
+              : isCompleted
                 ? "url(#road-progress)"
-                : isBlocked
-                  ? "rgba(183, 129, 0, 0.6)"
-                  : "rgba(255,255,255,0.25)";
-            const strokeWidth = isHighlighted ? 8 : isActive ? 7 : 6;
-            const drop =
-              isCompleted || isActive
+                : isActive
+                  ? "url(#road-progress)"
+                  : isBlocked
+                    ? "rgba(183, 129, 0, 0.6)"
+                    : "rgba(255,255,255,0.25)";
+            const strokeWidth = isHighlighted ? 9 : isActive ? 7 : 6;
+            const drop = isHighlighted
+              ? "drop-shadow(0 0 18px rgba(255,211,122,0.85)) drop-shadow(0 0 6px rgba(255,255,255,0.6))"
+              : isCompleted || isActive
                 ? "drop-shadow(0 0 12px color-mix(in oklch, var(--royal) 45%, transparent))"
                 : "none";
             return (
@@ -397,17 +400,22 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect, matchingSlugs }
                 strokeWidth={strokeWidth}
                 strokeLinecap="round"
                 className={
-                  isActive && !reduced ? "roadmap-active-segment" : undefined
+                  isHighlighted && !reduced
+                    ? "roadmap-highlighted-segment"
+                    : isActive && !reduced
+                      ? "roadmap-active-segment"
+                      : undefined
                 }
                 style={{
                   filter: drop,
                   transition: reduced
                     ? "none"
-                    : "stroke-width 200ms ease-out, opacity 400ms ease-out",
+                    : "stroke-width 240ms ease-out, opacity 400ms ease-out, filter 240ms ease-out",
                   strokeDasharray: pathDrawn ? "none" : "3000",
                   strokeDashoffset: pathDrawn ? 0 : 3000,
                 }}
               />
+
             );
           })}
         </svg>

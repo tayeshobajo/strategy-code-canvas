@@ -166,6 +166,23 @@ export function RoadmapOverviewMiniMap({
       ? phaseLabel(selectedPhaseIndex)
       : null;
 
+  // Live announcement for screen readers when the viewing phase changes.
+  const [announcement, setAnnouncement] = useState<string>("");
+  useEffect(() => {
+    if (selectedPhaseIndex < 0) {
+      setAnnouncement("");
+      return;
+    }
+    const p = journey.phases[selectedPhaseIndex];
+    if (!p) return;
+    const real = p.milestones.filter((m) => !m.slug.endsWith("-placeholder"));
+    const done = real.filter((m) => m.status === "completed").length;
+    setAnnouncement(
+      `Viewing ${phaseLabel(selectedPhaseIndex)}: ${p.summary?.trim() || p.label}. ${done} of ${real.length} milestones complete.`,
+    );
+  }, [selectedPhaseIndex, journey.phases]);
+
+
   return (
     <div
       ref={rootRef}
@@ -325,7 +342,16 @@ export function RoadmapOverviewMiniMap({
           </button>
         </div>
       </div>
+      {/* Screen-reader-only live region — announces phase changes */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
+      </div>
     </div>
+
   );
 }
 
