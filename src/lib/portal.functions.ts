@@ -1438,3 +1438,266 @@ export const sendPortalMessage = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message ?? "message send failed");
     return { id: row.id as string, created_at: row.created_at as string };
   });
+
+// ─── Portal onboarding (client wizard) ────────────────────────────────
+// Five-step wizard: business_basics, current_state, goals_priorities,
+// assets_docs, review_submit. Progress is stored as `completion_percent`
+// and `current_step` on client_portal_onboarding. Submission cross-writes
+// an engine_source and activity entry so the ops pipeline can pick it up.
+
+type OnboardingSectionKey =
+  | "business_basics"
+  | "current_state"
+  | "goals_priorities"
+  | "assets_docs"
+  | "review_submit";
+
+const ONBOARDING_SECTIONS: OnboardingSectionKey[] = [
+  "business_basics",
+  "current_state",
+  "goals_priorities",
+  "assets_docs",
+  "review_submit",
+];
+
+export const getPortalOnboarding = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ portalProjectId: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    await _resolvePortalMembership(context as never, data.portalProjectId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: row, error } = await sb
+      .from("client_portal_onboarding")
+      .select("*")
+      .eq("project_id", data.portalProjectId)
+      .maybeSingle();
+    if (error) throw new Error(error.message ?? "load onboarding failed");
+
+    if (!row) {
+      const { data: created, error: insErr } = await sb
+        .from("client_portal_onboarding")
+        .insert({ project_id: data.portalProjectId })
+        .select("*")
+        .single();
+      if (insErr) throw new Error(insErr.message ?? "create onboarding failed");
+      return { onboarding: created };
+    }
+    return { onboarding: row };
+  });
+
+const SectionEnum = z.enum([
+  "business_basics",
+  "current_state",
+  "goals_priorities",
+  "assets_docs",
+  "review_submit",
+]);
+
+export const savePortalOnboardingSection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        portalProjectId: z.string().uuid(),
+        section: SectionEnum,
+        data: z.record(z.string(), z.unknown()).default({}),
+        currentStep: z.number().int().min(1).max(5).optional(),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    await _resolvePortalMembership(context as never, data.portalProjectId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    // Load current row to recompute completion.
+    const { data: existing } = await sb
+      .from("client_portal_onboarding")
+      .select("*")
+      .eq("project_id", data.portalProjectId)
+      .maybeSingle();
+    const merged: Record<OnboardingSectionKey, Record<string, unknown>> = {
+      business_basics: (existing?.business_basics ?? {}) as Record<string, unknown>,
+      current_state: (existing?.current_state ?? {}) as Record<string, unknown>,
+      goals_priorities: (existing?.goals_priorities ?? {}) as Record<string, unknown>,
+      assets_docs: (existing?.assets_docs ?? {}) as Record<string, unknown>,
+      review_submit: (existing?.review_submit ?? {}) as Record<string, unknown>,
+    };
+    merged[data.section] = data.data;
+    // Completion = number of non-empty non-review sections.
+    const filled = (["business_basics", "current_state", "goals_priorities", "assets_docs"] as const)
+      .filter((k) => Object.keys(merged[k] ?? {}).length > 0).length;
+    const completion = Math.min(100, Math.round((filled / 4) * 100));
+
+    const patch: Record<string, unknown> = {
+      [data.section]: data.data,
+      completion_percent: completion,
+      last_saved_at: new Date().toISOString(),
+    };
+    if (typeof data.currentStep === "number") patch.current_step = data.currentStep;
+
+    if (existing) {
+      const { error } = await sb
+        .from("client_portal_onboarding")
+        .update(patch)
+        .eq("project_id", data.portalProjectId);
+      if (error) throw new Error(error.message ?? "save onboarding failed");
+    } else {
+      const { error } = await sb
+        .from("client_portal_onboarding")
+        .insert({ project_id: data.portalProjectId, ...patch });
+      if (error) throw new Error(error.message ?? "save onboarding failed");
+    }
+    return { ok: true as const, completion_percent: completion };
+  });
+
+function _compileOnboardingBrief(
+  onboarding: Record<string, unknown>,
+  files: Array<{ file_name: string; category: string | null; size_bytes: number | null }>,
+): string {
+  const sec = (label: string, key: OnboardingSectionKey) => {
+    const obj = (onboarding[key] ?? {}) as Record<string, unknown>;
+    const entries = Object.entries(obj).filter(
+      ([, v]) => v !== undefined && v !== null && String(v).trim().length > 0,
+    );
+    if (entries.length === 0) return `## ${label}\n(not provided)\n`;
+    return `## ${label}\n${entries
+      .map(([k, v]) => `- ${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`)
+      .join("\n")}\n`;
+  };
+  const fileBlock =
+    files.length > 0
+      ? `## Uploaded assets\n${files
+          .map((f) => `- ${f.file_name}${f.category ? ` (${f.category})` : ""}`)
+          .join("\n")}\n`
+      : "## Uploaded assets\n(none)\n";
+  return [
+    "# Client onboarding intake",
+    sec("Business basics", "business_basics"),
+    sec("Current state", "current_state"),
+    sec("Goals & priorities", "goals_priorities"),
+    sec("Assets & docs (notes)", "assets_docs"),
+    fileBlock,
+  ].join("\n");
+}
+
+export const submitPortalOnboarding = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ portalProjectId: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const email = await _resolvePortalMembership(context as never, data.portalProjectId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const nowIso = new Date().toISOString();
+
+    const { data: existing, error: readErr } = await supabaseAdmin
+      .from("client_portal_onboarding")
+      .select("*")
+      .eq("project_id", data.portalProjectId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message ?? "load onboarding failed");
+    if (!existing) throw new Error("No onboarding to submit — fill in a section first");
+
+    const { error: updErr } = await supabaseAdmin
+      .from("client_portal_onboarding")
+      .update({
+        status: "submitted",
+        submitted_at: nowIso,
+        current_step: 5,
+        completion_percent: 100,
+      })
+      .eq("project_id", data.portalProjectId);
+    if (updErr) throw new Error(updErr.message ?? "submit onboarding failed");
+
+    // Client-facing activity
+    await supabaseAdmin.rpc("log_client_portal_activity", {
+      _project_id: data.portalProjectId,
+      _actor_type: "client",
+      _actor_email: email,
+      _event_type: "onboarding_submitted",
+      _summary: "Client submitted intake onboarding",
+      _client_visible: true,
+      _metadata: { at: nowIso } as unknown as never,
+    });
+
+    // Cross-write to engine (P1-2). Only when a linked engine_project exists.
+    const { data: engineProj } = await supabaseAdmin
+      .from("engine_projects")
+      .select("id, name")
+      .eq("client_portal_project_id", data.portalProjectId)
+      .maybeSingle();
+
+    let engineSourceId: string | null = null;
+    if (engineProj) {
+      const { data: files } = await supabaseAdmin
+        .from("client_portal_files")
+        .select("id, file_name, category, size_bytes, storage_path")
+        .eq("project_id", data.portalProjectId)
+        .eq("category", "onboarding_assets");
+
+      const brief = _compileOnboardingBrief(
+        existing as Record<string, unknown>,
+        (files ?? []) as Array<{
+          file_name: string;
+          category: string | null;
+          size_bytes: number | null;
+        }>,
+      );
+
+      const { data: src, error: srcErr } = await supabaseAdmin
+        .from("engine_sources")
+        .insert({
+          project_id: engineProj.id,
+          name: "Client onboarding intake",
+          type: "brief",
+          raw_text: brief,
+          status: "queued",
+          created_by_email: email,
+          visibility: "internal_only",
+        })
+        .select("id")
+        .single();
+      if (srcErr) {
+        console.warn("[submitPortalOnboarding] engine_source insert failed", srcErr);
+      } else {
+        engineSourceId = src.id as string;
+      }
+
+      await supabaseAdmin.from("engine_activity").insert({
+        project_id: engineProj.id,
+        kind: "client_onboarding_submitted",
+        title: "Client submitted onboarding intake",
+        body: `Cross-written as engine source${engineSourceId ? ` ${engineSourceId}` : ""}. ${
+          files?.length ?? 0
+        } file(s) attached.`,
+        severity: "info",
+      });
+      await supabaseAdmin.from("engine_review_items").insert({
+        project_id: engineProj.id,
+        project: engineProj.name,
+        item_type: "Intake Ready",
+        title: "Onboarding intake ready for review",
+        impact: "medium",
+        source: `portal:${data.portalProjectId}`,
+        requested_by: email,
+        status: "pending",
+      });
+      await supabaseAdmin.from("engine_audit_log").insert({
+        project_id: engineProj.id,
+        actor_email: email,
+        action: "client_onboarding_submitted",
+        summary: "Client submitted onboarding intake",
+        metadata: {
+          portal_project_id: data.portalProjectId,
+          engine_source_id: engineSourceId,
+          file_count: files?.length ?? 0,
+          at: nowIso,
+        },
+      });
+    }
+
+    return { ok: true as const, engineSourceId };
+  });
