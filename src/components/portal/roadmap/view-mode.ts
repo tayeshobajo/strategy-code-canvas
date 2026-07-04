@@ -81,8 +81,8 @@ function kindKey(m: RoadmapMilestone): LegendKind {
 
 /**
  * Priority tier used by the "smart map" density model.
- *  1 — always visible (strategic anchors, deadlines)
- *  2 — primary items in the focus phase (milestones, decisions, active deliverables)
+ *  1 — always visible (strategic anchors, current phase milestones, deadlines)
+ *  2 — primary items in the focus phase (decisions, active deliverables)
  *  3 — supporting items (meetings, secondary deliverables, distant phases)
  */
 function priorityLevel(
@@ -92,11 +92,13 @@ function priorityLevel(
 ): 1 | 2 | 3 {
   if (isStrategicAnchor(m, journey)) return 1;
   if (m.dueDate && m.status !== "completed") return 1;
+  // Current phase milestones are always visible (Level 1)
+  if (m.phase === currentPhaseKey && m.kind === "milestone") return 1;
   if (m.phase === currentPhaseKey) {
-    if (m.kind === "milestone") return 2;
     if (m.kind === "decision") return 2;
     if (m.kind === "deliverable" && m.status !== "completed") return 2;
   }
+  // Selected phase primary items
   return 3;
 }
 
@@ -141,15 +143,15 @@ export function computeMarkerVisibility(
   // View-mode density model — each mode changes what the client sees.
   switch (mode) {
     case "all": {
-      // Full Journey: only strategic anchors + phase-level milestones get labels.
+      // Full Journey: strategic anchors + current phase milestones get labels.
       // Meetings and secondary deliverables collapse to icons (or hide at strategic zoom).
       if (level === 1) return "full";
       if (m.kind === "meeting")
         return zoom === "strategic" ? "hidden" : "icon";
       if (m.kind === "deliverable" && !inCurrentPhase)
         return zoom === "strategic" ? "hidden" : "icon";
-      if (inCurrentPhase && m.kind === "milestone") return "short";
-      if (inCurrentPhase) return "icon";
+      if (inFocusPhase && m.kind === "decision") return "short";
+      if (inFocusPhase && m.kind === "deliverable") return "icon";
       // Distant-phase supporting markers: icon at phase/detail, hidden at strategic.
       return zoom === "strategic" ? "hidden" : "icon";
     }
@@ -256,4 +258,3 @@ export function computeMatchingSlugs(
   }
   return set;
 }
-

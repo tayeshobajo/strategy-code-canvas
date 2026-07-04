@@ -99,13 +99,13 @@ export function StatusOverlayCard({
 
   return (
     <div
-      className={`rounded-2xl bg-white/95 backdrop-blur-md border border-white/60 shadow-[0_20px_60px_-20px_rgba(4,10,25,0.55)] text-ink overflow-hidden transition-[width,padding] duration-200 ${
+      className={`rounded-2xl bg-white/88 backdrop-blur-md border border-white/40 shadow-[0_12px_40px_-16px_rgba(4,10,25,0.35)] text-ink overflow-hidden transition-[width,padding] duration-200 ${
         collapsed ? "w-[240px]" : "w-[280px]"
       }`}
       data-testid="status-overlay-card"
       data-collapsed={collapsed ? "true" : "false"}
     >
-      <div className={collapsed ? "p-2.5" : "p-4"}>
+      <div className={collapsed ? "p-3" : "p-4"}>
         {/* Header + collapse toggle */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -142,7 +142,7 @@ export function StatusOverlayCard({
         </div>
 
         {/* Progress */}
-        <div className="mt-2.5">
+        <div className="mt-3">
           <div className="h-1.5 rounded-full bg-ink/10 overflow-hidden">
             <div
               className="h-full bg-royal transition-all"
@@ -155,9 +155,9 @@ export function StatusOverlayCard({
           </div>
         </div>
 
-        {/* Blocked alert — shown when active or current-phase milestone is blocked */}
+        {/* Blocked alert */}
         {(isActiveBlocked || blockedMilestone) && (
-          <div className="mt-2.5 rounded-lg border border-[#a4283c]/30 bg-[#a4283c]/[0.06] px-3 py-2">
+          <div className="mt-3 rounded-lg border border-[#a4283c]/30 bg-[#a4283c]/[0.06] px-3 py-2">
             <div className="flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-[0.22em] text-[#a4283c]">
               <AlertTriangle className="w-3 h-3" />
               {isActiveBlocked ? "Action needed" : "Blocked item"}
@@ -173,7 +173,7 @@ export function StatusOverlayCard({
           </div>
         )}
 
-        {/* Next action — visible in both states */}
+        {/* Next action */}
         {nextAction && (
           <Section label="Next action">
             <button
@@ -203,7 +203,7 @@ export function StatusOverlayCard({
         )}
       </div>
 
-      {/* Expanded sections — smooth height + opacity transition */}
+      {/* Expanded sections */}
       <div
         ref={expandRef}
         className="transition-[max-height,opacity] duration-200 ease-out overflow-hidden"
@@ -212,7 +212,7 @@ export function StatusOverlayCard({
           opacity: collapsed ? 0 : 1,
         }}
       >
-        <div className={collapsed ? "px-2.5 pb-2.5" : "px-4 pb-4"}>
+        <div className={collapsed ? "px-3 pb-3" : "px-4 pb-4"}>
           {nextMeetingDate && (
             <Section label="Upcoming meeting">
               <div className="mt-1 flex items-center gap-2 rounded-lg border border-ink/10 bg-white px-2.5 py-2">
