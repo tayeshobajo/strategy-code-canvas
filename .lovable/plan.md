@@ -1,86 +1,72 @@
-# Roadmap Canvas — "10/10" Polish Pass
+# Roadmap polish plan
 
-Goal: take the current roadmap from "very good" to a signature, high-ticket, cinematic experience that clients screenshot and share. Every change below is scoped to the roadmap surface (canvas + mini-map + drawer). No backend, no data-model changes.
+## 1. Fix the hidden kind legend (Milestone / Decision / Deliverable / Meeting / Deadline)
 
----
+**Root cause:** `MapLegend` is absolutely positioned at `bottom-24` (~96px), but the expanded `RoadmapOverviewMiniMap` occupies the bottom ~140px of the canvas. The legend gets covered.
 
-## 1. Cinematic first impression
+**Fix:** Integrate the legend into the mini-map itself so it's always visible and never fights for space.
 
-- **Intro sequence (once per session):** on first mount, camera pans from Point A → current phase over ~1.4s with easing (`easeInOutCubic`), route line "draws in" left-to-right using stroke-dashoffset, and the current-phase pin does a soft pulse-in. Respect `prefers-reduced-motion` (skip pan, fade route in).
-- **Parallax depth:** background map image gets a subtle 2-layer parallax on pointer move (max 6px translate) so the map "breathes." Off on touch + reduced motion.
-- **Ambient life:** slow twinkle on 3–4 distant "beacon" points near Point B, and a very faint glowing route pulse that travels A→B every ~8s. Purely decorative, pausable via reduced motion.
+- Remove the free-floating `<MapLegend />` from `src/routes/portal.roadmap.tsx` (bottom-24 block).
+- Add a compact, inline legend row inside `RoadmapOverviewMiniMap`:
+  - Position: top-right of the panel (a thin bar above the phase strip, right of "Roadmap overview"), or a slim strip pinned along the top border of the panel.
+  - Same 5 chips (Milestone / Decision / Deliverable / Meeting / Deadline) with the existing `KIND_COLOR` dots.
+  - Chips remain click-to-toggle (mute/hide) — reuse the existing `visibleKinds` / `mutedKinds` state so filtering still works.
+  - When collapsed (chevron down), keep the legend row visible — only the phase strip collapses.
+- Ensure the panel's overall height doesn't grow noticeably: the legend row is ~22px tall, mono 10px chips.
 
-## 2. Route as a living story
+## 2. Premium, dynamic, interactive polish (prioritized)
 
-- **Traveled vs. untraveled route:** everything from Point A up to the current milestone renders in a warm gold gradient with a soft glow; everything ahead renders as a cool, thinner dashed line. Instantly communicates progress without reading a number.
-- **Segment highlight on selection:** when a phase or milestone is selected, only that segment brightens to full opacity; the rest dims to ~55%. Reinforces focus.
-- **"You are here" pin:** upgrade the current-phase marker to an animated compass/beacon (soft ring pulse + tiny drifting particles). This is the emotional anchor of the whole map.
+### A. Mini-map as a living "control surface"
+- **Hover scrub**: hovering a phase segment previews that phase on the main canvas (soft pan/zoom without committing selection); clicking commits.
+- **Milestone dot tooltips**: on hover, show a small floating card with title, status pill, and due date. Currently only the segment has a title-attribute tooltip.
+- **Progress fill shimmer**: the traveled portion of each phase lane gets a very slow left-to-right sheen (2% opacity, 6s loop) so the "you are here" beacon feels alive without being noisy.
+- **Micro-sparkline** under each phase: 6-tick bar showing on-track / at-risk / blocked distribution.
 
-## 3. Marker intelligence, next level
+### B. Cinematic canvas moments
+- **Selection cinematic**: when a milestone is picked, briefly dim the rest of the map (radial vignette), pulse the selected node twice, then settle. Currently the highlight is static.
+- **Phase "arrival" pan**: switching phases from the mini-map does a short ease-in pan with a subtle parallax on the terrain layer (foreground slower than background).
+- **Route reveal on scroll**: as the user scrolls horizontally across the field, the golden route is drawn (stroke-dashoffset) up to the current viewport — makes exploring feel like uncovering.
+- **Ambient world**: slow drifting clouds, faint mist near the shoreline, and a very subtle day/twilight tint tied to overall completion %.
 
-- **Zoom-aware density:** at low zoom, only priority-1/2 markers show labels; at higher zoom, secondary markers reveal labels with a 120ms fade. Uses the existing priority function — no new data.
-- **Collision-safe labels:** labels flip side (left/right of pin) automatically when they'd overlap the next marker in the same lane. Extends the existing lane logic.
-- **Cluster hover peek:** hovering a `+N` cluster on the main canvas expands a small radial preview of the hidden markers (like Google Maps cluster expand), click-to-lock.
-- **Blocked items breathe:** blocked decision pins get a slow red halo pulse so the client's eye is drawn to what needs their input.
+### C. High-ticket drawer refinements
+- **Milestone sequence rail** at the drawer's left edge: 17 hairline ticks representing every milestone, current one highlighted — gives the user spatial context inside the drawer.
+- **Prev/Next as swipe cards**: keep the footer nav, add left/right arrow keys and a subtle swipe hint icon.
+- **"Related" strip**: dependencies + unlocks rendered as chips that scroll the canvas + open on click.
+- **Reading progress bar** at the top of the drawer body for long milestones.
 
-## 4. Mini-map upgrades
+### D. Status, feedback, and delight
+- **Beacon on the current milestone** on the main canvas (soft pulsing halo, matching the mini-map "you are here" beacon).
+- **On-hover audio pings** (optional, opt-in via a small sound toggle in the header) — a single wooden "tick" on dot hover, a soft chime on phase complete.
+- **Celebration upgrades**: when a phase hits 100%, in addition to confetti, briefly render a golden ribbon across that phase's lane on the mini-map and etch a small badge next to the phase title.
+- **Empty/blocked states with personality**: for blocked items, render a small red compass pin on the canvas and pulse it every 8s until acknowledged.
 
-- **Progress fill inside each phase lane:** the phase segment fills left-to-right based on `phaseCompletion` — a thin luminous bar behind the dots. Turns the mini-map into a progress dashboard at a glance.
-- **Now-line indicator:** a vertical "today" marker across the mini-map so clients see where in time they are vs. the plan.
-- **Drag-to-scrub:** clicking + dragging across the mini-map scrubs the main canvas viewport in real time, like a video timeline.
-- **Mini-map keyboard nav:** ←/→ to move between phases, ↑/↓ to move between milestones in the selected phase, `Enter` to open drawer, `Esc` to close. Announces changes via `aria-live`.
+### E. Command layer (power users, feels premium)
+- **`⌘K` command palette**: jump to any milestone by name, toggle kinds, focus current phase, "take me to what needs my attention."
+- **Keyboard shortcuts overlay** (press `?`): shows arrows for phase nav, `J/K` for milestone nav, `F` for fit-to-field, `esc` closes drawer.
+- **Deep-linkable state**: `?m=content-import-structuring` opens the drawer and pans the canvas — makes shared links feel like a product, not a page.
 
-## 5. Drawer polish
+### F. Presentation polish
+- **Typography tightening**: the phase titles ("Foundation", "Core Platform Build") already use a serif; add ligatures + `ss01` and reduce tracking slightly at large sizes for that editorial look.
+- **Consistent focus rings**: use a single warm gold focus ring (`#FFD37A`) app-wide on the roadmap — currently mixed royal-blue rings.
+- **Subtle grain overlay** on the canvas (already partial): raise to 3% and mask out around the current phase so it feels lit.
+- **Motion budget**: cap simultaneous animations to 2; respect `prefers-reduced-motion` (already partial) across all new effects.
 
-- **Contextual mini-map inside drawer:** the drawer header shows a tiny 3-dot strip: previous / current / next milestone, so the client always knows where they are in the sequence.
-- **Momentum + spring transitions:** Previous/Next uses a spring animation (framer-motion) with directional slide (left/right), matching the camera pan direction on the canvas.
-- **Rich content blocks:** structured sections — "Why this matters," "What we'll deliver," "What we need from you," "Linked decisions" — with iconography and subtle dividers. Empty sections are hidden.
-- **Inline actions:** "Book working session," "Ask a question about this milestone," "Mark blocker resolved" (role-gated). Elevates from viewer → participant.
+## Recommended first slice to ship
 
-## 6. Ambient audio (opt-in, off by default)
+If you approve, I'd start with the highest-impact, lowest-risk set:
 
-- Small speaker toggle in the top toolbar. When on: faint wind/atmosphere loop on the canvas, soft "chime" on phase change, subtle "click" on marker select. Uses HTMLAudio, preloaded, ≤ 40KB total. Off, muted, and hidden by default for accessibility.
+1. **Fix the legend** (integrate into mini-map, remove the floating one).
+2. **Milestone dot tooltips** in the mini-map.
+3. **Beacon on the current milestone** on the main canvas.
+4. **Selection cinematic** (dim + double-pulse) when a milestone is picked.
+5. **`⌘K` command palette** for jumping between milestones.
 
-## 7. Shareable moments
+Everything else is a follow-up slice. Confirm and I'll implement slice 1.
 
-- **"Share this view" button:** captures current viewport + selected milestone into a URL (already partly there via `?m=`) plus a generated OG image server-side. Clients love sending "look at where we are" screenshots.
-- **Milestone celebration:** when a milestone flips to `completed`, trigger a one-time confetti burst + gold ring on that pin (respect reduced motion). Feels like a win.
+## Technical notes
 
-## 8. Craft details that signal "premium"
-
-- **Typography rhythm:** phase labels use tighter tracking + a hairline underline on hover. Milestone titles get a font-feature-settings `"ss01"` tweak for elegant numerals on dates.
-- **Consistent shadow language:** one shadow token for elevated glass (`--shadow-glass`), one for floating pins (`--shadow-pin`). Removes inconsistent ad-hoc shadows.
-- **Focus rings:** all interactive elements share one royal-blue ring token with a 2px offset against the dark map — currently mixed.
-- **Loading skeleton:** the canvas gets a shimmering topographic-line skeleton instead of a blank state on first paint.
-- **Empty phase state:** phases with 0 real milestones show a soft "Coming into focus" placeholder card instead of an empty lane.
-
-## 9. Accessibility + performance guardrails
-
-- All new animations gated behind `prefers-reduced-motion`.
-- Route drawing uses one SVG `<path>` per phase, memoized — no per-frame React re-renders.
-- Ambient loops and pulses use CSS animations or `requestAnimationFrame` with visibility-page pausing.
-- Every new interactive element is a real `<button>` with `aria-label` and visible focus.
-
----
-
-## Suggested build order (each is a shippable slice)
-
-1. Traveled-vs-untraveled route + "you are here" beacon + segment-highlight-on-select. *(Biggest wow-per-effort.)*
-2. Intro pan + route draw-in animation.
-3. Mini-map progress-fill + now-line + drag-to-scrub.
-4. Drawer redesign (mini-strip header, structured sections, spring transitions, inline actions).
-5. Marker collision-safe labels + cluster hover peek + blocked-item halo.
-6. Craft pass: shadow/focus/typography tokens, skeleton, empty states.
-7. Celebration confetti + share-this-view.
-8. Optional: ambient audio + parallax + beacon twinkle.
-
-## Technical notes (for reference)
-
-- Animations: reuse existing `framer-motion` dep; add no new libs. Confetti via `canvas-confetti` (~5KB) only if we ship #7.
-- All new tokens go into `src/styles.css` under `@theme` — no hardcoded colors in components.
-- Extend `useRoadmapCanvas` with `travelProgress` (0..1) derived from current milestone index, so the route-fill and now-line share one source of truth.
-- No changes to `portal-roadmap-model.ts` or Supabase.
-
----
-
-**Pick any subset.** I'd recommend starting with steps 1 + 2 + 4 for the largest perceived jump in quality, then layering the rest.
+- Legend integration: move `MapLegend` JSX (or its content) into `RoadmapOverviewMiniMap.tsx`, keep the same `useLegendState` hook so the canvas filtering logic in `view-mode.ts` continues to work unchanged.
+- Tooltips: use existing shadcn `Tooltip` primitive so keyboard focus also triggers them (a11y).
+- Beacon: add a new `<PulseHalo>` layer in `JourneyCanvas.tsx` bound to `journey.activeMilestone.slug`.
+- Command palette: shadcn `Command` component with `cmdk`, opened via a `useHotkey` on `⌘+K` / `Ctrl+K`.
+- Deep links: read `?m=` in the route's `useSearch`, sync to `selectedSlug`; write back on selection.
