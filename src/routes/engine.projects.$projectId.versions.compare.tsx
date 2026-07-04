@@ -13,6 +13,11 @@ import {
   recordVersionChangeDecision,
 } from "@/lib/engine-execution.functions";
 import { approveVersion } from "@/lib/engine-intelligence.functions";
+import {
+  submitPreviewForApproval,
+  approvePreview,
+  publishVersionToPortal,
+} from "@/lib/engine-ops.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/engine/projects/$projectId/versions/compare")({
