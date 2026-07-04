@@ -603,6 +603,46 @@ export function MapCanvas({
               <polyline points={selectedPathPoints} fill="none" stroke="rgba(255,250,240,0.95)" strokeWidth={2.5} strokeDasharray="6 6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
+          {/* === SELECTED PHASE SEGMENT — segment that owns the active marker
+              stays lit while the drawer is open, so the client can always see
+              where on the road they are. */}
+          {(() => {
+            const activePhaseKey = selectedSlug
+              ? layout.markers.find((m) => m.milestone.slug === selectedSlug)?.milestone.phase
+              : canvas.selectedPhaseKey;
+            if (!activePhaseKey) return null;
+            const seg = phaseSegmentDs.find((s) => s.key === activePhaseKey);
+            if (!seg) return null;
+            return (
+              <svg
+                aria-hidden="true"
+                className="absolute inset-0 pointer-events-none"
+                width={CANVAS_WIDTH}
+                height={CANVAS_HEIGHT}
+                viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+                style={{ zIndex: 7 }}
+              >
+                <path
+                  d={seg.d}
+                  fill="none"
+                  stroke={`rgba(${ROUTE_GOLD},0.35)`}
+                  strokeWidth={20}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  filter="url(#sel-route-outer)"
+                />
+                <path
+                  d={seg.d}
+                  fill="none"
+                  stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.95)`}
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            );
+          })()}
+
 
           {journey.phases.map((phase, i) => {
             const band = layout.bands[i];

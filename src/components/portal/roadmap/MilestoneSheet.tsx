@@ -192,13 +192,23 @@ export function MilestoneSheet({
     <>
       <Sheet
         open={open}
+        modal={isMobile}
         onOpenChange={(o) => {
           if (!o) handleClose();
         }}
       >
         <SheetContent
           side={isMobile ? "bottom" : "right"}
-          overlayClassName={isMobile ? undefined : "bg-slate-950/[0.08] backdrop-blur-[1px]"}
+          hideOverlay={!isMobile}
+          overlayClassName={isMobile ? undefined : "bg-transparent"}
+          onInteractOutside={(e) => {
+            // Desktop: keep the map fully interactive — don't auto-close
+            // when the client clicks the canvas, mini-map, or phase labels.
+            if (!isMobile) e.preventDefault();
+          }}
+          onPointerDownOutside={(e) => {
+            if (!isMobile) e.preventDefault();
+          }}
           className={
             isMobile
               ? "h-[100dvh] w-full max-w-none sm:max-w-none bg-[#FAF8F5] text-ink border-t border-border overflow-y-auto p-0"
