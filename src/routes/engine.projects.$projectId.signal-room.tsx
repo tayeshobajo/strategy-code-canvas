@@ -4,10 +4,11 @@ import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { updateProjectStep } from "@/lib/engine.functions";
-import { Upload, ImagePlus, Link2, FileText, Loader2, Trash2, ExternalLink, StickyNote } from "lucide-react";
+import { listExtractedSignals, listExtractionRuns } from "@/lib/engine-project-intake.functions";
+import { Upload, ImagePlus, Link2, FileText, Loader2, Trash2, ExternalLink, StickyNote, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/engine/projects/$projectId/signal-room")({
