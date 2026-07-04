@@ -367,13 +367,7 @@ export function MilestoneSheet({
                 ? Math.max(0, sequence.indexOf(milestone.slug)) + 1
                 : null;
             const positionTotal = sequence?.length ?? null;
-            const prevMilestoneTitle =
-              prevSlug && sequence
-                ? // Only used for aria; we look up title from the current phase's siblings via canvas would be overkill.
-                  prevSlug.replace(/-/g, " ")
-                : null;
-            const nextMilestoneTitle =
-              nextSlug && sequence ? nextSlug.replace(/-/g, " ") : null;
+
 
             return (
               <>
