@@ -760,6 +760,8 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       version_label: safe.version_label,
       status: "delivered",
       approved_at: nowIso,
+      published_at: nowIso,
+      published_by: actor,
       executive_summary: safe.executive_summary,
       current_diagnosis: safe.current_diagnosis,
       strategic_priorities: safe.strategic_priorities,
