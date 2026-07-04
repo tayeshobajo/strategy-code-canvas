@@ -531,6 +531,11 @@ function RoadmapJourneyView({
             matchingCount={matchingCount}
             matchingSlugs={matchingSlugs}
             onResetView={() => setViewMode("all")}
+            statusFilter={statusFilter}
+            phaseFilter={phaseFilter}
+            onToggleStatus={toggleStatusFilter}
+            onTogglePhase={togglePhaseFilter}
+            onResetFilters={resetFilters}
           />
         )
       }
