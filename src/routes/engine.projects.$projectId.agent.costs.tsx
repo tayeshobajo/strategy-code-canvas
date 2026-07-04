@@ -350,11 +350,15 @@ function CostCenterPage() {
               className="accent-royal"
             />
           </label>
-          <button
-            onClick={() => save.mutate()}
-            disabled={save.isPending}
-            className="w-full text-sm bg-royal text-white rounded-md py-2 mt-2 hover:bg-royal/90 disabled:opacity-60"
-          >Update Budget Settings</button>
+          {canManageAgents ? (
+            <button
+              onClick={() => save.mutate()}
+              disabled={save.isPending}
+              className="w-full text-sm bg-royal text-white rounded-md py-2 mt-2 hover:bg-royal/90 disabled:opacity-60"
+            >Update Budget Settings</button>
+          ) : (
+            <div className="mt-2"><OperatorLockNotice message={adminOnlyReason} /></div>
+          )}
         </div>
       </div>
     </div>
