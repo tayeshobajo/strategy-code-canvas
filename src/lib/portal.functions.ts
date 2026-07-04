@@ -1303,6 +1303,7 @@ export const respondToPortalDecision = createServerFn({ method: "POST" })
 
       await supabaseAdmin.from("engine_review_items").insert({
         project_id: engineProj.id,
+        client_portal_project_id: data.portalProjectId,
         project: engineProj.name,
         item_type: "Client Decision",
         title: `${data.milestoneTitle} — client ${decisionLabel}`,
@@ -1311,6 +1312,7 @@ export const respondToPortalDecision = createServerFn({ method: "POST" })
         requested_by: email,
         status: "pending",
       });
+
       await supabaseAdmin.from("engine_audit_log").insert({
         project_id: engineProj.id,
         actor_email: email,
