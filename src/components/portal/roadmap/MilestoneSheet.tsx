@@ -568,7 +568,7 @@ function DecisionBody({ milestone }: { milestone: RoadmapMilestone }) {
                   milestone.recommendedOption === o
                     ? "border-royal/40 bg-royal/5 text-ink"
                     : "border-border text-ink/80"
-                }`
+                }`}
               >
                 {o}
                 {milestone.recommendedOption === o && (
