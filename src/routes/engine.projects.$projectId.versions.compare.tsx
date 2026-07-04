@@ -127,6 +127,7 @@ function VersionComparePage() {
           ) : (
             <OperatorLockNotice message={adminOnlyReason} />
           )}
+        </div>
       </div>
 
       {/* From / To */}
