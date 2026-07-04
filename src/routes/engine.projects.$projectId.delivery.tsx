@@ -163,14 +163,20 @@ function DeliveryPrep() {
               </label>
             )}
 
-            <button
-              disabled={alreadySent || !allChecked || !confirmedSend || sendMut.isPending}
-              onClick={() => sendMut.mutate()}
-              className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-ink text-white text-sm rounded-md px-3 py-2 hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {sendMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {alreadySent ? "Already sent" : "Send approved roadmap"}
-            </button>
+            {canSendDelivery ? (
+              <button
+                disabled={alreadySent || !allChecked || !confirmedSend || sendMut.isPending}
+                onClick={() => sendMut.mutate()}
+                className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-ink text-white text-sm rounded-md px-3 py-2 hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sendMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {alreadySent ? "Already sent" : "Send approved roadmap"}
+              </button>
+            ) : (
+              <div className="mt-3">
+                <OperatorLockNotice message={adminOnlyReason} />
+              </div>
+            )}
 
             {error && (
               <div className="mt-2 rounded-md border border-[#f3ced5] bg-[#fbe9ec] text-[#a4283c] text-xs px-3 py-2">
