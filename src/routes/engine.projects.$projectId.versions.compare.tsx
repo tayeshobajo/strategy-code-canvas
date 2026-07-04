@@ -170,10 +170,13 @@ function VersionComparePage() {
         </div>
       </div>
 
+      <PublishTimeline projectId={projectId} draft={draft} approved={approved} canPublish={canPublish} adminOnlyReason={adminOnlyReason} />
+
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <MetricCard label="Total changes" value={summary.totalChanges.toString()} tone="blue" hint={`Across ${summary.modulesAffected} modules`} />
         <MetricCard label="Added" value={summary.added.toString()} tone="green" hint="New information" />
+
         <MetricCard label="Modified" value={summary.modified.toString()} tone="orange" hint="Changed" />
         <MetricCard label="Removed" value={summary.removed.toString()} tone="red" hint="No longer relevant" />
         <MetricCard label="Conflicts" value={summary.conflicts.toString()} tone="red" hint="Need resolution" />
