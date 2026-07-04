@@ -740,6 +740,17 @@ export function MilestoneSheet({
         }
       />
 
+      <DecisionResponseModal
+        open={decisionOpen}
+        onOpenChange={setDecisionOpen}
+        projectId={projectId}
+        milestone={
+          milestone
+            ? { slug: milestone.slug, title: milestone.title, phase: milestone.phase }
+            : null
+        }
+      />
+
       <BookCallModal
         open={bookOpen}
         onOpenChange={setBookOpen}
