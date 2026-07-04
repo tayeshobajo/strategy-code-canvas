@@ -120,6 +120,7 @@ export function RoadmapCanvasProvider({ children }: { children: React.ReactNode 
   const [explodedClusterKeys, setExplodedClusterKeys] = useState<Set<string>>(
     () => new Set(),
   );
+  const [drawerOffset, setDrawerOffset] = useState(0);
   const scrollerRef = useRef<HTMLElement | null>(null);
   const nodeRefs = useRef<NodeRefs>(new Map());
 
