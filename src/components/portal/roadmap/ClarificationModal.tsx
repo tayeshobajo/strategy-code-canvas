@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { requestPortalClarification } from "@/lib/portal.functions";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 
