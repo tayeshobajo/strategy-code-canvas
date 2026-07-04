@@ -26,6 +26,7 @@ function CostCenterPage() {
   const fn = useServerFn(getAgentCosts);
   const updFn = useServerFn(updateBudgetControls);
   const csvFn = useServerFn(exportAgentCostsCsv);
+  const { canManageAgents, adminOnlyReason } = useEngineRole();
 
   const q = useQuery({
     queryKey: ["engine", "costs", projectId],
