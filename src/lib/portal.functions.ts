@@ -1351,6 +1351,7 @@ export const requestPortalClarification = createServerFn({ method: "POST" })
       .maybeSingle();
     if (engineProj) {
       await supabaseAdmin.from("engine_review_items").insert({
+        project_id: engineProj.id,
         project: engineProj.name,
         item_type: "Client Clarification",
         title: subject,
