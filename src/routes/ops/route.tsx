@@ -151,7 +151,7 @@ function OpsLayout() {
             className="mt-1 inline-block text-[10px] uppercase tracking-[0.2em] text-[#5d6079] hover:text-[#171c38]"
           >
             ← Back to Engine
-          </div>
+          </Link>
           <div className="mt-3 flex gap-1 overflow-x-auto pb-1 text-xs">
             {NAV.map((item) => {
               const [base] = item.to.split("?");
