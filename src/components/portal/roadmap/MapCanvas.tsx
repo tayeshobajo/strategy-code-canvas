@@ -333,6 +333,9 @@ export function MapCanvas({
   const scaledWidth = fitHeight ? CANVAS_WIDTH * scale : CANVAS_WIDTH;
   const scaledHeight = fitHeight ? CANVAS_HEIGHT * scale : CANVAS_HEIGHT;
 
+  const currentPhaseKey = canvas.currentPhaseKey ?? journey.currentPhaseKey;
+  const selectedPhaseKey = canvas.selectedPhaseKey;
+
   // Base route: Point A → all markers → Point B (always visible, warm golden)
   const baseRouteStr = useMemo(() => {
     const pts: string[] = [];
@@ -392,7 +395,7 @@ export function MapCanvas({
             style={{ filter: "brightness(1.05) saturate(1.1) contrast(1.03)" }}
           />
 
-          {/* Warm golden overlay — shifts the cool terrain toward the mockup's sun-lit mood */}
+          {/* Warm golden overlay */}
           <div
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
@@ -402,7 +405,39 @@ export function MapCanvas({
             }}
           />
 
-          {/* Atmospheric vignette — subtle dark edges */
+          {/* === PHASE TERRITORY OVERLAYS (task 5) === */}
+          {layout.bands.map((band, i) => {
+            const phase = journey.phases[i];
+            if (!phase) return null;
+            const isCurrent = phase.key === currentPhaseKey;
+            const isSelected = selectedPhaseKey === phase.key;
+            const isDimmed = selectedPhaseKey !== null && !isSelected && !isCurrent;
+            const x0 = band.x0 * CANVAS_WIDTH;
+            const x1 = band.x1 * CANVAS_WIDTH;
+            const w = x1 - x0;
+            return (
+              <div
+                key={`territory-${phase.key}`}
+                aria-hidden="true"
+                className="absolute pointer-events-none transition-opacity duration-300"
+                style={{
+                  left: `${x0}px`,
+                  top: 0,
+                  width: `${w}px`,
+                  height: `${CANVAS_HEIGHT}px`,
+                  opacity: isDimmed ? 0.5 : 1,
+                  background: isSelected
+                    ? "linear-gradient(180deg, rgba(47,93,246,0.06) 0%, rgba(47,93,246,0.02) 50%, rgba(47,93,246,0.06) 100%)"
+                    : isCurrent
+                      ? "linear-gradient(180deg, rgba(240,210,130,0.05) 0%, rgba(240,210,130,0.02) 50%, rgba(240,210,130,0.05) 100%)"
+                      : "transparent",
+                  borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.04)" : undefined,
+                }}
+              />
+            );
+          })}
+
+          {/* Atmospheric vignette — subtle dark edges */}
           <div
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
@@ -486,11 +521,8 @@ export function MapCanvas({
                   <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
               </defs>
-              {/* Wide outer glow */}
               <polyline points={selectedPathPoints} fill="none" stroke={`rgba(${ROUTE_GOLD},0.4)`} strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" filter="url(#sel-route-outer)" />
-              {/* Main bright stroke */}
               <polyline points={selectedPathPoints} fill="none" stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.85)`} strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" filter="url(#sel-route-inner)" />
-              {/* Crisp white-gold center line */}
               <polyline points={selectedPathPoints} fill="none" stroke="rgba(255,250,240,0.95)" strokeWidth={2.5} strokeDasharray="6 6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
@@ -500,7 +532,7 @@ export function MapCanvas({
             const x = ((band.x0 + band.x1) / 2) * CANVAS_WIDTH;
             const y = band.headingY * CANVAS_HEIGHT;
             const pct = Math.round(band.completionRatio * 100);
-            const isCurrent = phase.key === (canvas.currentPhaseKey ?? journey.currentPhaseKey);
+            const isCurrent = phase.key === currentPhaseKey;
             return (
               <div
                 key={phase.key}
