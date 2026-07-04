@@ -28,6 +28,7 @@ function VersionComparePage() {
   const approveFn = useServerFn(approveVersion);
   const listDecisionsFn = useServerFn(listVersionChangeDecisions);
   const recordDecisionFn = useServerFn(recordVersionChangeDecision);
+  const { canPublish, adminOnlyReason } = useEngineRole();
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["engine", "versions-compare", projectId],
