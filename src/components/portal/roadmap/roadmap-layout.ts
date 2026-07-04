@@ -131,8 +131,18 @@ export type PhaseSpineSegment = {
   endY: number;
 };
 
-/** Deterministic marker layout for the map canvas. */
-export function computeMapLayout(journey: RoadmapJourney): {
+/**
+ * Deterministic marker layout for the map canvas.
+ *
+ * `opts.paddingScale` widens lane offsets, marker gap, and the phase-title
+ * buffer for narrow / zoomed-out viewports so pills never overlap when the
+ * canvas is scaled down. `1` = design baseline; values >1 add breathing
+ * room; values <1 tighten (rarely useful).
+ */
+export function computeMapLayout(
+  journey: RoadmapJourney,
+  opts?: { paddingScale?: number },
+): {
   markers: MarkerPos[];
   bands: PhaseBand[];
   /** Smooth spine path from Point A through phase anchors to Point B. */
@@ -140,6 +150,8 @@ export function computeMapLayout(journey: RoadmapJourney): {
   /** Per-phase spine segments, so the current phase can shimmer. */
   spineSegments: PhaseSpineSegment[];
 } {
+  const paddingScale = Math.max(0.85, Math.min(1.75, opts?.paddingScale ?? 1));
+
   const bands: PhaseBand[] = journey.phases.map((p, i) => {
     const layout = PHASE_LAYOUT[p.key];
     const real = p.milestones.filter((m) => !m.slug.endsWith("-placeholder"));
