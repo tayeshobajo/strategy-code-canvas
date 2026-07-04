@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, ChevronDown, ChevronUp } from "lucide-react";
 import type {
   PhaseKey,
@@ -114,6 +114,31 @@ export function RoadmapOverviewMiniMap({
 
   const maxDotsPerPhase = journey.phases.length > 4 ? 4 : 6;
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const isHoveringRef = useRef(false);
+
+  // Keyboard navigation: ←/→ move between phases when the panel is hovered or focused.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!isHoveringRef.current && !rootRef.current?.contains(document.activeElement)) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const phases = journey.phases;
+      if (!phases.length) return;
+      const currentIdx = selectedKey
+        ? phases.findIndex((p) => p.key === selectedKey)
+        : phases.findIndex((p) => p.key === currentKey);
+      const delta = e.key === "ArrowRight" ? 1 : -1;
+      const nextIdx = Math.max(0, Math.min(phases.length - 1, (currentIdx < 0 ? 0 : currentIdx) + delta));
+      if (nextIdx === currentIdx) return;
+      e.preventDefault();
+      handlePhaseClick(phases[nextIdx]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journey.phases, selectedKey, currentKey]);
+
+
   const handlePhaseClick = (phase: RoadmapJourney["phases"][number]) => {
     canvas.setSelectedPhaseKey(phase.key);
     onJump(phase.key);
@@ -143,7 +168,11 @@ export function RoadmapOverviewMiniMap({
 
   return (
     <div
+      ref={rootRef}
+      onMouseEnter={() => { isHoveringRef.current = true; }}
+      onMouseLeave={() => { isHoveringRef.current = false; }}
       className="rounded-2xl border text-white overflow-hidden"
+
       style={{
         background: "rgba(3,10,24,0.88)",
         backdropFilter: "blur(18px)",
@@ -490,15 +519,48 @@ function PhaseSegment({
 
       {/* Route line + dots */}
       <div className="absolute left-2 right-2 top-1/2 mt-3 h-[32px]">
+        {/* Untraveled base track — dim, dashed */}
         <div
           aria-hidden
-          className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full transition-opacity duration-[160ms] group-hover:opacity-100"
+          className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full"
           style={{
-            background: `linear-gradient(90deg, ${withAlpha(color, 0.35)} 0%, ${color} 50%, ${withAlpha(color, 0.35)} 100%)`,
-            opacity: isSelected ? 1 : 0.75,
-            boxShadow: `0 0 8px ${withAlpha(color, isSelected ? 0.6 : 0.35)}`,
+            backgroundImage: `repeating-linear-gradient(90deg, ${withAlpha(color, 0.35)} 0 4px, transparent 4px 8px)`,
+            opacity: 0.55,
           }}
         />
+        {/* Traveled progress — solid, glowing, animates to completion */}
+        <div
+          aria-hidden
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full transition-[width] duration-[600ms] ease-out"
+          style={{
+            width: `${Math.max(2, completion)}%`,
+            background: `linear-gradient(90deg, ${withAlpha(color, 0.6)} 0%, ${color} 60%, #FFD37A 100%)`,
+            boxShadow: `0 0 10px ${withAlpha(color, isSelected ? 0.75 : 0.5)}, 0 0 2px #FFD37A`,
+            opacity: isSelected ? 1 : 0.9,
+          }}
+        />
+        {/* "You are here" beacon on the current phase, at completion % */}
+        {isCurrent && (
+          <div
+            aria-hidden
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center"
+            style={{ left: `${Math.min(98, Math.max(2, completion))}%` }}
+          >
+            <span
+              className="absolute h-4 w-4 rounded-full animate-ping"
+              style={{ background: withAlpha("#FFD37A", 0.55) }}
+            />
+            <span
+              className="relative h-2 w-2 rounded-full"
+              style={{
+                background: "#FFD37A",
+                boxShadow: `0 0 8px #FFD37A, 0 0 16px ${withAlpha(color, 0.6)}`,
+                border: "1px solid rgba(255,255,255,0.9)",
+              }}
+            />
+          </div>
+        )}
+
 
         <div className="relative w-full h-full flex items-center justify-around">
           {dots.shown.map((m) => {

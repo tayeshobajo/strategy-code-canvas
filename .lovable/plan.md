@@ -1,95 +1,86 @@
+# Roadmap Canvas — "10/10" Polish Pass
 
-## Goal
+Goal: take the current roadmap from "very good" to a signature, high-ticket, cinematic experience that clients screenshot and share. Every change below is scoped to the roadmap surface (canvas + mini-map + drawer). No backend, no data-model changes.
 
-Replace the current portal roadmap overview strip with a premium **RoadmapOverviewMiniMap** — a dark-glass command mini-map that matches the mockup: deep navy panel, colored phase route segments, Point A mountain vignette, Point B summit/flag vignette, selected-phase glow, milestone dots with priority-based clustering, and right-side expand/fit controls.
+---
 
-## Deliverables
+## 1. Cinematic first impression
 
-### 1. Two generated art assets
+- **Intro sequence (once per session):** on first mount, camera pans from Point A → current phase over ~1.4s with easing (`easeInOutCubic`), route line "draws in" left-to-right using stroke-dashoffset, and the current-phase pin does a soft pulse-in. Respect `prefers-reduced-motion` (skip pan, fade route in).
+- **Parallax depth:** background map image gets a subtle 2-layer parallax on pointer move (max 6px translate) so the map "breathes." Off on touch + reduced motion.
+- **Ambient life:** slow twinkle on 3–4 distant "beacon" points near Point B, and a very faint glowing route pulse that travels A→B every ~8s. Purely decorative, pausable via reduced motion.
 
-- `src/assets/minimap/point-a-mountains.png` — small painterly cluster of snow-capped mountains, dark navy background, edge-vignetted so it blends into the panel. Transparent-bg PNG, ~256×128.
-- `src/assets/minimap/point-b-summit.png` — single tall summit peak with a small red flag on top, matching lighting, transparent PNG.
+## 2. Route as a living story
 
-Both registered via `lovable-assets create` → `.asset.json` pointers, imported into the component.
+- **Traveled vs. untraveled route:** everything from Point A up to the current milestone renders in a warm gold gradient with a soft glow; everything ahead renders as a cool, thinner dashed line. Instantly communicates progress without reading a number.
+- **Segment highlight on selection:** when a phase or milestone is selected, only that segment brightens to full opacity; the rest dims to ~55%. Reinforces focus.
+- **"You are here" pin:** upgrade the current-phase marker to an animated compass/beacon (soft ring pulse + tiny drifting particles). This is the emotional anchor of the whole map.
 
-### 2. New component: `src/components/portal/roadmap/RoadmapOverviewMiniMap.tsx`
+## 3. Marker intelligence, next level
 
-Reusable, dynamic, no hardcoded phase count.
+- **Zoom-aware density:** at low zoom, only priority-1/2 markers show labels; at higher zoom, secondary markers reveal labels with a 120ms fade. Uses the existing priority function — no new data.
+- **Collision-safe labels:** labels flip side (left/right of pin) automatically when they'd overlap the next marker in the same lane. Extends the existing lane logic.
+- **Cluster hover peek:** hovering a `+N` cluster on the main canvas expands a small radial preview of the hidden markers (like Google Maps cluster expand), click-to-lock.
+- **Blocked items breathe:** blocked decision pins get a slow red halo pulse so the client's eye is drawn to what needs their input.
 
-**Props**
-```ts
-{
-  journey: RoadmapJourney;         // existing model
-  selectedSlug: string | null;
-  onSelect: (slug: string) => void;
-  onJump: (target: "pointA" | "pointB" | PhaseKey) => void;
-  viewMode?: RoadmapViewMode;
-  matchingSlugs?: Set<string> | null;
-}
-```
+## 4. Mini-map upgrades
 
-**Layout (single row)**
+- **Progress fill inside each phase lane:** the phase segment fills left-to-right based on `phaseCompletion` — a thin luminous bar behind the dots. Turns the mini-map into a progress dashboard at a glance.
+- **Now-line indicator:** a vertical "today" marker across the mini-map so clients see where in time they are vs. the plan.
+- **Drag-to-scrub:** clicking + dragging across the mini-map scrubs the main canvas viewport in real time, like a video timeline.
+- **Mini-map keyboard nav:** ←/→ to move between phases, ↑/↓ to move between milestones in the selected phase, `Enter` to open drawer, `Esc` to close. Announces changes via `aria-live`.
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ [ROADMAP OVERVIEW]  │  ⛰  ● ● ●   ═══   ● ● ●   ═══   ● ● ● ⛰🚩 │ ⤢ │
-│  Click a phase       │  Point A  Phase 1   Phase 2   Phase 3  B     │ ⌄ │
-│  Current: Phase 1    │                                                    │
-│  Viewing: Phase 2    │                                                    │
-└──────────────────────────────────────────────────────────────────────┘
-```
+## 5. Drawer polish
 
-- **Left block (fixed ~150px):** eyebrow "ROADMAP OVERVIEW", helper "Click a phase to navigate", `Current: Phase N` (dot in phase color), and `Viewing: Phase N` shown only when it differs from current.
-- **Main mini-map (flex-1):** an inline SVG that draws:
-  - Point A vignette (left, ~72px) — mountains PNG anchored at bottom with a soft radial gradient behind it.
-  - N phase segments (flex-1 each by default; optionally weighted by `phase.milestones.length` when the toggle prop is set later). Each segment is a rounded lane with:
-    - phase color fill at low alpha, colored route stroke through the middle, glowing on hover,
-    - phase label + subtitle above the lane,
-    - milestone dots placed by sequence, colored by kind (milestone blue / decision purple / deliverable gold / meeting teal / deadline red),
-    - a compact cluster chip (`+N`) when >6 dots after priority filtering.
-  - Point B vignette (right, ~72px) — summit + flag PNG.
-  - Continuous route line stitched across all segments (SVG path scaled to container width via `ResizeObserver`).
-- **Selected phase highlight:** a `2F7DFF` bordered rounded-rect with `rgba(47,125,255,0.18)` fill + soft outer glow around the active segment, animated with 240ms transition.
-- **Current phase marker:** small blue dot label ("● Current") in the phase title area — distinct from the large selected glow.
-- **Selected marker indicator:** a small pulsing ring on the specific dot when `selectedSlug` matches.
-- **Right controls:** Fit-to-field (`Maximize2`) and expand/collapse (`ChevronDown`/`ChevronUp`) — 28px square, `bg-white/[0.06]` on the dark panel.
+- **Contextual mini-map inside drawer:** the drawer header shows a tiny 3-dot strip: previous / current / next milestone, so the client always knows where they are in the sequence.
+- **Momentum + spring transitions:** Previous/Next uses a spring animation (framer-motion) with directional slide (left/right), matching the camera pan direction on the canvas.
+- **Rich content blocks:** structured sections — "Why this matters," "What we'll deliver," "What we need from you," "Linked decisions" — with iconography and subtle dividers. Empty sections are hidden.
+- **Inline actions:** "Book working session," "Ask a question about this milestone," "Mark blocker resolved" (role-gated). Elevates from viewer → participant.
 
-**Dot priority filtering per phase** (so it stays readable for 5+ phases or dense phases):
+## 6. Ambient audio (opt-in, off by default)
 
-1. selected item, 2. current milestone, 3. blocked decision, 4. deadline, 5. critical-path, 6. deliverable, 7. meeting. Take top `maxDotsPerPhase` (6 default; drops to 4 when `phases.length > 4`). Remaining go into a `+N` cluster chip anchored to the phase.
+- Small speaker toggle in the top toolbar. When on: faint wind/atmosphere loop on the canvas, soft "chime" on phase change, subtle "click" on marker select. Uses HTMLAudio, preloaded, ≤ 40KB total. Off, muted, and hidden by default for accessibility.
 
-**Phase width logic:** default `flex: 1` per phase; Point A / Point B fixed at 72px. If `phases.length > 4`, reduce label size (`text-[9px]` eyebrow) and cap dots per phase at 4.
+## 7. Shareable moments
 
-**Interactions**
+- **"Share this view" button:** captures current viewport + selected milestone into a URL (already partly there via `?m=`) plus a generated OG image server-side. Clients love sending "look at where we are" screenshots.
+- **Milestone celebration:** when a milestone flips to `completed`, trigger a one-time confetti burst + gold ring on that pin (respect reduced motion). Feels like a win.
 
-- Click Point A / Point B → `onJump("pointA" | "pointB")`, clears selected phase.
-- Click a phase → sets `selectedPhaseKey`, calls `onJump(key)`, opens drawer for representative milestone (active > next upcoming > first) via `onSelect`.
-- Hover a phase → brightens segment + shows tooltip (phase title, completion %, item count, primary next item).
-- Click a dot → `onSelect(slug)` (parent updates `?m=` and pans main canvas).
-- Keyboard: phases and dots are `<button>` with focus-visible ring; Enter/Space triggers click.
+## 8. Craft details that signal "premium"
 
-**Sync rules**
-- `currentPhaseKey` = `canvas.currentPhaseKey ?? journey.currentPhaseKey` — small blue dot.
-- `selectedPhaseKey` = `canvas.selectedPhaseKey ?? canvas.viewportPhaseKey` — big glow highlight.
-- Selecting a marker in Phase 2 while Phase 1 is current: current dot stays on Phase 1, glow moves to Phase 2, drawer opens — driven entirely from existing canvas context, no state duplication.
+- **Typography rhythm:** phase labels use tighter tracking + a hairline underline on hover. Milestone titles get a font-feature-settings `"ss01"` tweak for elegant numerals on dates.
+- **Consistent shadow language:** one shadow token for elevated glass (`--shadow-glass`), one for floating pins (`--shadow-pin`). Removes inconsistent ad-hoc shadows.
+- **Focus rings:** all interactive elements share one royal-blue ring token with a 2px offset against the dark map — currently mixed.
+- **Loading skeleton:** the canvas gets a shimmering topographic-line skeleton instead of a blank state on first paint.
+- **Empty phase state:** phases with 0 real milestones show a soft "Coming into focus" placeholder card instead of an empty lane.
 
-**Visual tokens (inline, dark panel only)**
-- panel `bg: rgba(3,10,24,0.88)`, `backdrop-blur-xl`, `border: rgba(140,170,220,0.24)`, inner top hairline `rgba(255,255,255,0.06)`, radius `1rem`, shadow `0 20px 60px -20px rgba(0,0,0,0.8)`.
-- selected border `#2F7DFF`, fill `rgba(47,125,255,0.18)`, glow `0 0 24px rgba(47,125,255,0.35)`.
-- phase palette: Phase 1 `#2F7DFF`, Phase 2 `#F59D2A`, Phase 3 `#7DCA54`; if a 4th/5th phase exists, cycle through `#8B5CF6`, `#0EA5A4`.
-- transitions: 160ms hover, 240ms selected/viewport slide, no spinners.
+## 9. Accessibility + performance guardrails
 
-### 3. Wire-up
+- All new animations gated behind `prefers-reduced-motion`.
+- Route drawing uses one SVG `<path>` per phase, memoized — no per-frame React re-renders.
+- Ambient loops and pulses use CSS animations or `requestAnimationFrame` with visibility-page pausing.
+- Every new interactive element is a real `<button>` with `aria-label` and visible focus.
 
-- `src/routes/portal.roadmap.tsx`: swap the existing `<RoadmapOverviewStrip variant="floating" …/>` render at the sticky bottom overlay for `<RoadmapOverviewMiniMap …/>` with the same props (`journey`, `selectedSlug`, `onSelect`, `onJump`, `viewMode`, `matchingSlugs`). The non-floating (card) usage of `RoadmapOverviewStrip` elsewhere stays untouched.
-- Keep `RoadmapOverviewStrip.tsx` in the repo for the card variant; the new component is additive.
+---
 
-### 4. Accessibility
+## Suggested build order (each is a shippable slice)
 
-- Every phase / dot is a real `<button>` with `aria-label` (`"Phase 2, 40% complete, 6 items"`), `aria-pressed` for selected, and visible focus ring (`ring-2 ring-[#2F7DFF] ring-offset-2 ring-offset-[#030A18]`).
-- Tooltip content lives in `title` + a visually-hidden span so screen readers get it.
-- Contrast: white/85 on `#030A18` for labels; phase-color chips use ≥ 4.5:1 tuned tints.
+1. Traveled-vs-untraveled route + "you are here" beacon + segment-highlight-on-select. *(Biggest wow-per-effort.)*
+2. Intro pan + route draw-in animation.
+3. Mini-map progress-fill + now-line + drag-to-scrub.
+4. Drawer redesign (mini-strip header, structured sections, spring transitions, inline actions).
+5. Marker collision-safe labels + cluster hover peek + blocked-item halo.
+6. Craft pass: shadow/focus/typography tokens, skeleton, empty states.
+7. Celebration confetti + share-this-view.
+8. Optional: ambient audio + parallax + beacon twinkle.
 
-### 5. Acceptance check
+## Technical notes (for reference)
 
-Reload `/portal/roadmap`; sticky bottom overlay shows the dark-glass mini-map matching the mockup, with Point A mountains, three colored phase segments (blue/orange/green), highlighted Phase 1, Point B summit + flag, and right-side expand/fit controls. Clicking Phase 2 pans the canvas and moves the glow to Phase 2 while the "Current" dot stays on Phase 1.
+- Animations: reuse existing `framer-motion` dep; add no new libs. Confetti via `canvas-confetti` (~5KB) only if we ship #7.
+- All new tokens go into `src/styles.css` under `@theme` — no hardcoded colors in components.
+- Extend `useRoadmapCanvas` with `travelProgress` (0..1) derived from current milestone index, so the route-fill and now-line share one source of truth.
+- No changes to `portal-roadmap-model.ts` or Supabase.
+
+---
+
+**Pick any subset.** I'd recommend starting with steps 1 + 2 + 4 for the largest perceived jump in quality, then layering the rest.
