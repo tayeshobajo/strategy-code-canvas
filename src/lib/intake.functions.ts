@@ -128,14 +128,14 @@ export const loadDraft = createServerFn({ method: "POST" })
             v: string,
           ) => {
             maybeSingle: () => Promise<{
-              data: { answers: unknown; contact: unknown } | null;
+              data: { answers: unknown; contact: unknown; attachments: unknown } | null;
               error: unknown;
             }>;
           };
         };
       }
     )
-      .select("answers, contact")
+      .select("answers, contact, attachments")
       .eq("resume_token", data.resume_token)
       .maybeSingle();
     if (error) {
@@ -148,11 +148,18 @@ export const loadDraft = createServerFn({ method: "POST" })
       response: string;
       reflected_offered: string | null;
     };
+    type AttachmentOut = {
+      storage_path: string;
+      filename: string;
+      size: number;
+      mime: string | null;
+    };
     if (!row)
       return {
         found: false as const,
         answers: [] as AnswerOut[],
         contact: {} as Record<string, string>,
+        attachments: [] as AttachmentOut[],
       };
     const rawAnswers = Array.isArray(row.answers)
       ? (row.answers as Array<Record<string, unknown>>)
@@ -166,7 +173,16 @@ export const loadDraft = createServerFn({ method: "POST" })
     const rawContact = (row.contact ?? {}) as Record<string, unknown>;
     const contact: Record<string, string> = {};
     for (const k of Object.keys(rawContact)) contact[k] = String(rawContact[k] ?? "");
-    return { found: true as const, answers, contact };
+    const rawAtt = Array.isArray(row.attachments)
+      ? (row.attachments as Array<Record<string, unknown>>)
+      : [];
+    const attachments: AttachmentOut[] = rawAtt.map((a) => ({
+      storage_path: String(a.storage_path ?? ""),
+      filename: String(a.filename ?? ""),
+      size: Number(a.size ?? 0),
+      mime: a.mime == null ? null : String(a.mime),
+    }));
+    return { found: true as const, answers, contact, attachments };
   });
 
 const SendResumeInput = z.object({
