@@ -52,9 +52,14 @@ function AuthPage() {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    const sub = supabase.auth.onAuthStateChange((event) => {
+    const sub = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN") {
-        navigate({ to: search.redirect || "/portal" });
+        const staffLanding = await resolveStaffLanding(session?.user?.email);
+        // Only honor an explicit ?redirect= if it's set to something other than
+        // the default. Staff should always land in /engine on a fresh sign-in.
+        const explicit =
+          search.redirect && search.redirect !== "/portal" ? search.redirect : null;
+        navigate({ to: staffLanding ?? explicit ?? "/portal" });
       }
     });
     return () => {
