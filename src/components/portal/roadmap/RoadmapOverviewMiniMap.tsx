@@ -168,7 +168,11 @@ export function RoadmapOverviewMiniMap({
 
   return (
     <div
+      ref={rootRef}
+      onMouseEnter={() => { isHoveringRef.current = true; }}
+      onMouseLeave={() => { isHoveringRef.current = false; }}
       className="rounded-2xl border text-white overflow-hidden"
+
       style={{
         background: "rgba(3,10,24,0.88)",
         backdropFilter: "blur(18px)",
