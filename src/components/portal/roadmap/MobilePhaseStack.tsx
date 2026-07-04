@@ -187,17 +187,13 @@ export function MobilePhaseStack({ journey, selectedSlug, onSelect, matchingSlug
                         } ${dim ? "opacity-40" : "opacity-100"}`}
                       >
                         <span
-                          className={`shrink-0 mt-0.5 inline-flex items-center justify-center h-8 w-8 rounded-full border-2 ${STATUS_TONE[m.status]}`}
+                          className={`shrink-0 mt-0.5 inline-flex items-center justify-center h-8 w-8 rounded-full border-2 ${STATUS_TONE[m.status]} ${
+                            m.status === "in_progress" && m.kind === "milestone"
+                              ? "roadmap-node-breathe"
+                              : ""
+                          }`}
                         >
-                          <Icon
-                            aria-hidden="true"
-                            className={`w-4 h-4 ${
-                              m.status === "in_progress" &&
-                              m.kind === "milestone"
-                                ? "animate-spin"
-                                : ""
-                            }`}
-                          />
+                          <Icon aria-hidden="true" className="w-4 h-4" />
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block font-mono text-[10px] uppercase tracking-[0.22em] text-royal">
