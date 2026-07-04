@@ -1283,15 +1283,29 @@ export const respondToPortalDecision = createServerFn({ method: "POST" })
     // 2. Engine side: create a review item on the linked engine_project (if any).
     const { data: engineProj } = await supabaseAdmin
       .from("engine_projects")
-      .select("id,name")
+      .select("id,name,approved_version")
       .eq("client_portal_project_id", data.portalProjectId)
       .maybeSingle();
     if (engineProj) {
+      // Link to the latest approved engine_roadmap_version so the audit trail
+      // ties the client's response back to the exact plan they saw.
+      const { data: latestVersion } = await supabaseAdmin
+        .from("engine_roadmap_versions")
+        .select("id,version")
+        .eq("project_id", engineProj.id)
+        .eq("status", "approved")
+        .order("approved_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const versionId = latestVersion?.id ?? null;
+      const versionLabel = latestVersion?.version ?? engineProj.approved_version ?? null;
+      const decisionLabel = data.decision.replace("_", " ");
+
       await supabaseAdmin.from("engine_review_items").insert({
         project_id: engineProj.id,
         project: engineProj.name,
         item_type: "Client Decision",
-        title: `${data.milestoneTitle} — client ${data.decision.replace("_", " ")}`,
+        title: `${data.milestoneTitle} — client ${decisionLabel}`,
         impact: data.decision === "approve" ? "low" : "high",
         source: `portal:${data.portalProjectId}`,
         requested_by: email,
@@ -1301,12 +1315,29 @@ export const respondToPortalDecision = createServerFn({ method: "POST" })
         project_id: engineProj.id,
         actor_email: email,
         action: `client_${data.decision}`,
-        summary: `Client responded on "${data.milestoneTitle}".`,
-        metadata: { milestone_id: data.milestoneId, note: data.note ?? null, decision: data.decision, at: nowIso },
+        summary: `Client ${decisionLabel} "${data.milestoneTitle}".`,
+        version_id: versionId,
+        metadata: {
+          milestone_id: data.milestoneId,
+          milestone_title: data.milestoneTitle,
+          note: data.note ?? null,
+          decision: data.decision,
+          version_label: versionLabel,
+          portal_project_id: data.portalProjectId,
+          at: nowIso,
+        },
+      });
+      await supabaseAdmin.from("engine_activity").insert({
+        project_id: engineProj.id,
+        kind: `client_${data.decision}`,
+        title: `Client ${decisionLabel}: ${data.milestoneTitle}`,
+        body: data.note ?? null,
+        severity: data.decision === "approve" ? "info" : "warning",
       });
     }
     return { ok: true as const };
   });
+
 
 export const requestPortalClarification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
