@@ -88,7 +88,15 @@ function ReviewApprovalsPage() {
           <h1 className="font-display text-4xl text-ink mt-1 mb-2">Review &amp; Approvals</h1>
           <p className="text-ink/60 mb-6">Approve items or send them back to their source view — every decision is saved to audit history.</p>
         </div>
-        {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-ink/40 mt-2" /> : null}
+        <div className="flex items-center gap-3">
+          {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-ink/40 mt-2" /> : null}
+          <a
+            href="/ops/queue"
+            className="text-xs font-mono uppercase tracking-[0.2em] text-royal hover:underline whitespace-nowrap"
+          >
+            Submission Queue →
+          </a>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
