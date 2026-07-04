@@ -115,15 +115,18 @@ function VersionComparePage() {
             <FileText className="w-3.5 h-3.5" /> View Full Versions
           </button>
           <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50">Restore Version</button>
-          <button
-            onClick={() => approveMut.mutate()}
-            disabled={!confirmed || approveMut.isPending || !draft?.id}
-            className="text-xs bg-royal text-white rounded-md px-3 py-1.5 hover:bg-royal/90 disabled:opacity-60 inline-flex items-center gap-1.5"
-          >
-            {approveMut.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-            Approve as New Official Version
-          </button>
-        </div>
+          {canPublish ? (
+            <button
+              onClick={() => approveMut.mutate()}
+              disabled={!confirmed || approveMut.isPending || !draft?.id}
+              className="text-xs bg-royal text-white rounded-md px-3 py-1.5 hover:bg-royal/90 disabled:opacity-60 inline-flex items-center gap-1.5"
+            >
+              {approveMut.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+              Approve as New Official Version
+            </button>
+          ) : (
+            <OperatorLockNotice message={adminOnlyReason} />
+          )}
       </div>
 
       {/* From / To */}
