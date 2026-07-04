@@ -422,6 +422,16 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
                 : p.reply_preference) ,
             }));
             setResumeToken(token);
+            if (Array.isArray(res.attachments)) {
+              setAttachments(
+                res.attachments.map((a) => ({
+                  storage_path: String(a.storage_path ?? ""),
+                  filename: String(a.filename ?? ""),
+                  size: Number(a.size ?? 0),
+                  mime: a.mime == null ? null : String(a.mime),
+                })),
+              );
+            }
             // Do NOT advance step here. Begin must remain an explicit user click.
             // The intro screen (step === -1) stays until the user presses Begin.
             try { window.localStorage.setItem(STORAGE_KEY, token); } catch { /* noop */ }
