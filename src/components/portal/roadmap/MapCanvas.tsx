@@ -81,7 +81,17 @@ export function MapCanvas({
   const [ready, setReady] = useState(false);
   const [scale, setScale] = useState(1);
 
-  const layout = useMemo(() => computeMapLayout(journey), [journey]);
+  // Widen lane offsets, marker gap, and title buffer when the canvas is
+  // scaled down (short viewport / browser zoom-out) so lanes stay visually
+  // separated and pills don't overlap. Baseline scale=1 → paddingScale=1.
+  const paddingScale = useMemo(
+    () => Math.max(1, Math.min(1.6, 1 / Math.max(scale, 0.5))),
+    [scale],
+  );
+  const layout = useMemo(
+    () => computeMapLayout(journey, { paddingScale }),
+    [journey, paddingScale],
+  );
 
   useLayoutEffect(() => {
     if (!fitHeight) return;

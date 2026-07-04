@@ -131,8 +131,18 @@ export type PhaseSpineSegment = {
   endY: number;
 };
 
-/** Deterministic marker layout for the map canvas. */
-export function computeMapLayout(journey: RoadmapJourney): {
+/**
+ * Deterministic marker layout for the map canvas.
+ *
+ * `opts.paddingScale` widens lane offsets, marker gap, and the phase-title
+ * buffer for narrow / zoomed-out viewports so pills never overlap when the
+ * canvas is scaled down. `1` = design baseline; values >1 add breathing
+ * room; values <1 tighten (rarely useful).
+ */
+export function computeMapLayout(
+  journey: RoadmapJourney,
+  opts?: { paddingScale?: number },
+): {
   markers: MarkerPos[];
   bands: PhaseBand[];
   /** Smooth spine path from Point A through phase anchors to Point B. */
@@ -140,6 +150,8 @@ export function computeMapLayout(journey: RoadmapJourney): {
   /** Per-phase spine segments, so the current phase can shimmer. */
   spineSegments: PhaseSpineSegment[];
 } {
+  const paddingScale = Math.max(0.85, Math.min(1.75, opts?.paddingScale ?? 1));
+
   const bands: PhaseBand[] = journey.phases.map((p, i) => {
     const layout = PHASE_LAYOUT[p.key];
     const real = p.milestones.filter((m) => !m.slug.endsWith("-placeholder"));
@@ -165,22 +177,30 @@ export function computeMapLayout(journey: RoadmapJourney): {
 
   // Safety buffer between the phase title and the highest a marker may rise
   // — prevents fork/deadline offsets from punching into the phase heading.
-  const PHASE_TITLE_BUFFER = 0.055;
+  // Scaled with paddingScale so at narrow viewports the title never collides
+  // with the upper decisions lane.
+  const PHASE_TITLE_BUFFER = 0.055 * paddingScale;
 
   for (const phase of journey.phases) {
     const layout = PHASE_LAYOUT[phase.key];
     const items = phase.milestones;
     const n = items.length;
     // Inset the marker band inside each phase so items don't hug the borders
-    // and adjacent phases don't collide at their shared edge.
-    const inset = Math.min(0.045, (layout.x1 - layout.x0) * 0.12);
+    // and adjacent phases don't collide at their shared edge. Grows slightly
+    // with paddingScale so narrow viewports keep phase borders clean.
+    const inset = Math.min(
+      0.06,
+      Math.max(0.03, (layout.x1 - layout.x0) * 0.12) * paddingScale,
+    );
     const x0 = layout.x0 + inset;
     const x1 = layout.x1 - inset;
     const bandWidth = Math.max(0.001, x1 - x0);
     // Dynamically shrink the gap between markers so a dense phase stays
     // inside its band. This guarantees strict Point A → Point B sequence
     // and prevents phase 1 markers from leaking into phase 2 territory.
-    const idealGap = 0.052;
+    // idealGap widens with paddingScale so pills don't overlap horizontally
+    // when the canvas is scaled down at narrow viewports / zoom levels.
+    const idealGap = 0.052 * paddingScale;
     const gap = n <= 1 ? 0 : Math.min(idealGap, bandWidth / Math.max(1, n - 1));
     const span = gap * Math.max(0, n - 1);
     // Center the marker run inside the band, but never leak past x0 or x1.
@@ -201,12 +221,14 @@ export function computeMapLayout(journey: RoadmapJourney): {
       const baseY = layout.yStart + (layout.yEnd - layout.yStart) * t;
       const attachment = attachmentForKind(m);
       const lane = laneForAttachment(attachment);
-      const laneOffset = LANE_OFFSETS[lane];
+      // Lane offset scales with paddingScale so lanes stay visually
+      // separated at any viewport width / zoom level.
+      const laneOffset = LANE_OFFSETS[lane] * paddingScale;
       // Intra-lane collision nudge: if a same-lane neighbor sits within a
       // tight nx window, alternate a small ny nudge that stays inside the
-      // lane's visual band (±0.018).
-      const CROWD_NX = 0.045;
-      const IN_LANE_NUDGE = 0.018;
+      // lane's visual band. Threshold + nudge both scale with paddingScale.
+      const CROWD_NX = 0.045 * paddingScale;
+      const IN_LANE_NUDGE = 0.018 * paddingScale;
       const history = laneHistory[lane];
       const crowded = history.some((h) => Math.abs(h.nx - nx) < CROWD_NX);
       const lastNudge = history.length ? history[history.length - 1].nudge : 0;
@@ -217,6 +239,7 @@ export function computeMapLayout(journey: RoadmapJourney): {
             ? 0 // never push on-road markers off the spine
             : 0;
       history.push({ nx, nudge });
+
       // Clamp Y so a fork/deadline offset never climbs into the phase title,
       // and never drops below the canvas floor.
       const minNy = layout.headingY + PHASE_TITLE_BUFFER;
