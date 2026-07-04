@@ -33,6 +33,7 @@ import {
   RoadmapOverviewStrip,
   MapLegend,
 } from "@/components/portal/roadmap/RoadmapOverviewStrip";
+import { RoadmapOverviewMiniMap } from "@/components/portal/roadmap/RoadmapOverviewMiniMap";
 import { StatusOverlayCard } from "@/components/portal/roadmap/StatusOverlayCard";
 import { MobilePhaseStack } from "@/components/portal/roadmap/MobilePhaseStack";
 import { ClarificationModal } from "@/components/portal/roadmap/ClarificationModal";
