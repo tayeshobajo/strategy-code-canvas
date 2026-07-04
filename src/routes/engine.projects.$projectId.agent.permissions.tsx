@@ -49,6 +49,7 @@ function AgentPermissionsPage() {
   const qc = useQueryClient();
   const getFn = useServerFn(getPermissions);
   const updFn = useServerFn(updatePermissions);
+  const { canManageAgents, adminOnlyReason } = useEngineRole();
 
   const q = useQuery({
     queryKey: ["engine", "permissions", projectId],
