@@ -2071,12 +2071,13 @@ export type Database = {
       }
       engine_review_items: {
         Row: {
+          client_portal_project_id: string | null
           created_at: string
           id: string
           impact: string
           item_type: string
           project: string
-          project_id: string | null
+          project_id: string
           requested_by: string | null
           source: string | null
           status: string
@@ -2084,12 +2085,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          client_portal_project_id?: string | null
           created_at?: string
           id?: string
           impact?: string
           item_type: string
           project: string
-          project_id?: string | null
+          project_id: string
           requested_by?: string | null
           source?: string | null
           status?: string
@@ -2097,12 +2099,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          client_portal_project_id?: string | null
           created_at?: string
           id?: string
           impact?: string
           item_type?: string
           project?: string
-          project_id?: string | null
+          project_id?: string
           requested_by?: string | null
           source?: string | null
           status?: string
@@ -2110,6 +2113,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_review_items_client_portal_project_id_fkey"
+            columns: ["client_portal_project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_review_items_client_portal_project_id_fkey"
+            columns: ["client_portal_project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "engine_review_items_project_id_fkey"
             columns: ["project_id"]
