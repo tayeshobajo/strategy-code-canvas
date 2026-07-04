@@ -2899,3 +2899,197 @@ function LeafGlyph() {
     </svg>
   );
 }
+
+/* -------------------- ATTACHMENTS PANEL (Review step) -------------------- */
+const INTAKE_BUCKET = "intake-uploads";
+const INTAKE_MAX_BYTES = 25 * 1024 * 1024;
+const INTAKE_ALLOWED_EXT = new Set([
+  "pdf","doc","docx","txt","md","rtf","xls","xlsx","csv","ppt","pptx","key",
+  "png","jpg","jpeg","gif","webp","heic","svg","zip","json","yaml","yml",
+]);
+
+function AttachmentsPanel({
+  attachments,
+  setAttachments,
+  resumeToken,
+  ensureResumeToken,
+}: {
+  attachments: AttachmentRecord[];
+  setAttachments: React.Dispatch<React.SetStateAction<AttachmentRecord[]>>;
+  resumeToken: string | null;
+  ensureResumeToken: () => Promise<string>;
+}) {
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const [removing, setRemoving] = React.useState<string | null>(null);
+
+  const upload = React.useCallback(
+    async (file: File) => {
+      if (file.size === 0) return toast.error("File is empty");
+      if (file.size > INTAKE_MAX_BYTES) return toast.error("File exceeds 25 MB limit");
+      const ext = (file.name.split(".").pop() ?? "").toLowerCase();
+      if (!INTAKE_ALLOWED_EXT.has(ext)) {
+        return toast.error(`".${ext || "unknown"}" files aren't allowed`);
+      }
+      if (attachments.length >= 10) {
+        return toast.error("Attach up to 10 files per intake");
+      }
+
+      setUploading(true);
+      try {
+        const token = await ensureResumeToken();
+        // crypto.randomUUID always available in modern browsers.
+        const cleaned = file.name.replace(/[^\w.\- ]+/g, "_").slice(0, 180);
+        const path = `${token}/${crypto.randomUUID()}-${cleaned}`;
+        const { error: upErr } = await supabase.storage
+          .from(INTAKE_BUCKET)
+          .upload(path, file, {
+            upsert: false,
+            contentType: file.type || undefined,
+          });
+        if (upErr) throw upErr;
+
+        const mod = await import("@/lib/intake.functions");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = await mod.recordIntakeAttachment({
+          data: {
+            resume_token: token,
+            storage_path: path,
+            filename: file.name,
+            size: file.size,
+            mime: file.type || null,
+          },
+        } as any);
+        setAttachments(
+          (res?.attachments ?? []).map((a: AttachmentRecord) => ({
+            storage_path: a.storage_path,
+            filename: a.filename,
+            size: a.size,
+            mime: a.mime,
+          })),
+        );
+        toast.success(`Attached ${file.name}`);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Upload failed");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [attachments.length, ensureResumeToken, setAttachments],
+  );
+
+  const remove = React.useCallback(
+    async (path: string) => {
+      if (!resumeToken) return;
+      setRemoving(path);
+      try {
+        const mod = await import("@/lib/intake.functions");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = await mod.removeIntakeAttachment({
+          data: { resume_token: resumeToken, storage_path: path },
+        } as any);
+        setAttachments(
+          (res?.attachments ?? []).map((a: AttachmentRecord) => ({
+            storage_path: a.storage_path,
+            filename: a.filename,
+            size: a.size,
+            mime: a.mime,
+          })),
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Remove failed");
+      } finally {
+        setRemoving(null);
+      }
+    },
+    [resumeToken, setAttachments],
+  );
+
+  return (
+    <div className="mt-10 rounded-2xl border border-ink/10 bg-white/60 p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
+            Attachments <span className="ml-1 text-ink/40 normal-case tracking-normal">(optional)</span>
+          </p>
+          <h3 className="mt-1 font-display text-[17px] text-ink">
+            Anything we should read before we talk?
+          </h3>
+          <p className="mt-1 max-w-[52ch] text-[13.5px] leading-[1.6] text-ink/60">
+            A one-pager, a board deck, a plan you keep circling. Up to 10 files, 25 MB each.
+          </p>
+        </div>
+        <div>
+          <input
+            ref={inputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void upload(f);
+              if (inputRef.current) inputRef.current.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading || attachments.length >= 10}
+            className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-4 py-2 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {uploading ? (
+              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload aria-hidden="true" className="h-4 w-4" />
+            )}
+            <span>{uploading ? "Uploading…" : "Attach a file"}</span>
+          </button>
+        </div>
+      </div>
+
+      {attachments.length > 0 ? (
+        <ul className="mt-5 divide-y divide-ink/10">
+          {attachments.map((a) => (
+            <li
+              key={a.storage_path}
+              className="flex items-center justify-between gap-4 py-2.5 text-[13.5px]"
+            >
+              <div className="flex min-w-0 items-center gap-2 text-ink/85">
+                <Paperclip aria-hidden="true" className="h-4 w-4 shrink-0 text-ink/50" />
+                <span className="truncate">{a.filename}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="tabular-nums font-mono text-[11px] text-ink/50">
+                  {formatIntakeSize(a.size)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => remove(a.storage_path)}
+                  disabled={removing === a.storage_path}
+                  className="inline-flex items-center gap-1 rounded-md border border-ink/15 px-2 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-ink/60 transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-50"
+                >
+                  {removing === a.storage_path ? (
+                    <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Trash2 aria-hidden="true" className="h-3 w-3" />
+                  )}
+                  Remove
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-[13px] italic text-ink/45">
+          No attachments yet. This step is optional — skip if there's nothing to share.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function formatIntakeSize(bytes: number): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
