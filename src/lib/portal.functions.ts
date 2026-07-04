@@ -1368,3 +1368,40 @@ export const requestPortalClarification = createServerFn({ method: "POST" })
     }
     return { ok: true as const };
   });
+
+// ─── Server-side client message send ──────────────────────────────
+// Portal messages MUST go through this fn — never a direct browser insert —
+// because sender_type / visible_to_client are trust boundaries. The old
+// client-side insert let a user forge sender_type: 'tai' or hide messages
+// from themselves via devtools.
+export const sendPortalMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      portalProjectId: z.string().uuid(),
+      body: z.string().min(1).max(10_000),
+      relatedFileIds: z.array(z.string().uuid()).max(20).optional(),
+      messageType: z.enum(["reply", "clarification", "decision"]).optional(),
+    }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const email = await _resolvePortalMembership(context as never, data.portalProjectId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: row, error } = await sb
+      .from("client_portal_messages")
+      .insert({
+        project_id: data.portalProjectId,
+        // Hardcoded server-side — client cannot forge these.
+        sender_type: "client",
+        visible_to_client: true,
+        author_email: email,
+        body: data.body,
+        message_type: data.messageType ?? "reply",
+        related_file_ids: data.relatedFileIds ?? [],
+      })
+      .select("id, created_at")
+      .single();
+    if (error) throw new Error(error.message ?? "message send failed");
+    return { id: row.id as string, created_at: row.created_at as string };
+  });
