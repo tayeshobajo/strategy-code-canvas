@@ -279,12 +279,12 @@ export function MilestoneSheet({
           onInteractOutside={(e) => {
             if (isMobile) return; // mobile: default modal behavior closes
             const t = e.target as HTMLElement | null;
-            // Clicks on the canvas, mini-map, phase labels or explicit
-            // "roadmap-interactive" surfaces should NOT close the drawer.
+            // Only protect explicit interactive surfaces (mini-map, phase
+            // labels, milestone dots, custom controls). Clicking empty
+            // space on the canvas SHOULD close the drawer.
             if (
               t &&
-              (t.closest("#portal-canvas-scroll") ||
-                t.closest("[data-testid='roadmap-overview-strip']") ||
+              (t.closest("[data-testid='roadmap-overview-strip']") ||
                 t.closest("[data-phase-key]") ||
                 t.closest("[data-roadmap-interactive]"))
             ) {
@@ -296,8 +296,7 @@ export function MilestoneSheet({
             const t = e.target as HTMLElement | null;
             if (
               t &&
-              (t.closest("#portal-canvas-scroll") ||
-                t.closest("[data-testid='roadmap-overview-strip']") ||
+              (t.closest("[data-testid='roadmap-overview-strip']") ||
                 t.closest("[data-phase-key]") ||
                 t.closest("[data-roadmap-interactive]"))
             ) {
