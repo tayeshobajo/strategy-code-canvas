@@ -177,6 +177,25 @@ export function MilestoneSheet({
     }
   }, [open, milestone?.slug]);
 
+  // Publish the drawer's horizontal footprint so the canvas can pan the
+  // selected marker out from behind it — and re-pan on viewport resize.
+  useEffect(() => {
+    if (!open || isMobile) {
+      canvas.setDrawerOffset(0);
+      return;
+    }
+    const measure = () => {
+      const w = Math.min(430, Math.max(320, Math.round(window.innerWidth * 0.32)));
+      canvas.setDrawerOffset(w);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      canvas.setDrawerOffset(0);
+    };
+  }, [open, isMobile, canvas]);
+
   const handleClose = () => {
     const slug = openedSlugRef.current;
     onClose();
