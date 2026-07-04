@@ -337,7 +337,7 @@ export function MilestoneSheet({
                     : null;
             const primaryCta =
               kind === "decision"
-                ? { label: "Respond", onClick: () => setClarifyOpen(true) }
+                ? { label: "Respond", onClick: () => setDecisionOpen(true), disabled: !projectId }
                 : kind === "deliverable"
                   ? milestone.fileUrl
                     ? {
