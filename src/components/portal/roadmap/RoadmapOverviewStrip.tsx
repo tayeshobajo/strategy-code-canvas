@@ -17,6 +17,9 @@ type Props = {
   onJump: (key: JumpTarget) => void;
   onFullscreen?: () => void;
   selectedSlug?: string | null;
+  /** When set, clicking a phase stop also opens the drawer for the most
+   *  relevant milestone in that phase (active > next upcoming > first). */
+  onSelect?: (slug: string) => void;
   viewMode?: RoadmapViewMode;
   matchingSlugs?: Set<string> | null;
   variant?: "card" | "floating";
