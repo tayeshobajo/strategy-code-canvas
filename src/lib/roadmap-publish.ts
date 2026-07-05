@@ -96,7 +96,7 @@ export function buildClientSafePayload(input: {
   const pointA = src.point_a ?? {};
   const blueprint = src.blueprint ?? {};
 
-  return {
+  const out: ClientSafeRoadmap = {
     title: input.title,
     version_label: input.version_label,
     executive_summary:
@@ -121,6 +121,21 @@ export function buildClientSafePayload(input: {
     supporting_notes:
       pickString(src.supporting_notes) ?? pickString(src.client_notes) ?? null,
   };
+
+  // Runtime allowlist guard — belt-and-suspenders against future refactors
+  // that accidentally spread internal fields onto the client payload. In
+  // dev/test this throws; in prod it logs so we don't take down publishing
+  // over a benign new key, but the log will surface in ops immediately.
+  const extra = Object.keys(out).filter(
+    (k) => !CLIENT_SAFE_KEYS.includes(k as (typeof CLIENT_SAFE_KEYS)[number]),
+  );
+  if (extra.length) {
+    const msg = `buildClientSafePayload: non-allowlisted keys detected: ${extra.join(", ")}`;
+    if (process.env.NODE_ENV !== "production") throw new Error(msg);
+    // eslint-disable-next-line no-console
+    console.error(msg);
+  }
+  return out;
 }
 
 /**
