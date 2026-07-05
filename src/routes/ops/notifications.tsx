@@ -50,10 +50,9 @@ function NotificationsPage() {
   return (
     <div className="mx-auto max-w-4xl p-6">
       <PageHeader
-        eyebrow="Ops"
         title="Notifications"
         subtitle={`${unread} unread`}
-        actions={
+        right={
           <Button
             variant="outline"
             disabled={markAll.isPending || unread === 0}

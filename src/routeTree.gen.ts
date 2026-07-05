@@ -41,6 +41,7 @@ import { Route as PortalActivityRouteImport } from './routes/portal.activity'
 import { Route as PortalAccountRouteImport } from './routes/portal.account'
 import { Route as PortalAccessDeniedRouteImport } from './routes/portal.access-denied'
 import { Route as OpsQueueRouteImport } from './routes/ops/queue'
+import { Route as OpsNotificationsRouteImport } from './routes/ops/notifications'
 import { Route as OpsInsightsRouteImport } from './routes/ops/insights'
 import { Route as OpsHistoryRouteImport } from './routes/ops/history'
 import { Route as OpsEmailsRouteImport } from './routes/ops/emails'
@@ -56,6 +57,7 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AdminRolesRouteImport } from './routes/admin.roles'
+import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-alerts'
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
 import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
@@ -254,6 +256,11 @@ const OpsQueueRoute = OpsQueueRouteImport.update({
   path: '/queue',
   getParentRoute: () => OpsRouteRoute,
 } as any)
+const OpsNotificationsRoute = OpsNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => OpsRouteRoute,
+} as any)
 const OpsInsightsRoute = OpsInsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
@@ -327,6 +334,11 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
 const AdminRolesRoute = AdminRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminIntakeAlertsRoute = AdminIntakeAlertsRouteImport.update({
+  id: '/intake-alerts',
+  path: '/intake-alerts',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminConfigRoute = AdminConfigRouteImport.update({
@@ -564,6 +576,7 @@ export interface FileRoutesByFullPath {
   '/what-we-build': typeof WhatWeBuildRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -579,6 +592,7 @@ export interface FileRoutesByFullPath {
   '/ops/emails': typeof OpsEmailsRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
+  '/ops/notifications': typeof OpsNotificationsRoute
   '/ops/queue': typeof OpsQueueRoute
   '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/account': typeof PortalAccountRoute
@@ -646,6 +660,7 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalIndexRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -661,6 +676,7 @@ export interface FileRoutesByTo {
   '/ops/emails': typeof OpsEmailsRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
+  '/ops/notifications': typeof OpsNotificationsRoute
   '/ops/queue': typeof OpsQueueRoute
   '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/account': typeof PortalAccountRoute
@@ -733,6 +749,7 @@ export interface FileRoutesById {
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -748,6 +765,7 @@ export interface FileRoutesById {
   '/ops/emails': typeof OpsEmailsRoute
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
+  '/ops/notifications': typeof OpsNotificationsRoute
   '/ops/queue': typeof OpsQueueRoute
   '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/account': typeof PortalAccountRoute
@@ -820,6 +838,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/admin/client-portals'
     | '/admin/config'
+    | '/admin/intake-alerts'
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -835,6 +854,7 @@ export interface FileRouteTypes {
     | '/ops/emails'
     | '/ops/history'
     | '/ops/insights'
+    | '/ops/notifications'
     | '/ops/queue'
     | '/portal/access-denied'
     | '/portal/account'
@@ -902,6 +922,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/admin/client-portals'
     | '/admin/config'
+    | '/admin/intake-alerts'
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -917,6 +938,7 @@ export interface FileRouteTypes {
     | '/ops/emails'
     | '/ops/history'
     | '/ops/insights'
+    | '/ops/notifications'
     | '/ops/queue'
     | '/portal/access-denied'
     | '/portal/account'
@@ -988,6 +1010,7 @@ export interface FileRouteTypes {
     | '/_authenticated/portal'
     | '/admin/client-portals'
     | '/admin/config'
+    | '/admin/intake-alerts'
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -1003,6 +1026,7 @@ export interface FileRouteTypes {
     | '/ops/emails'
     | '/ops/history'
     | '/ops/insights'
+    | '/ops/notifications'
     | '/ops/queue'
     | '/portal/access-denied'
     | '/portal/account'
@@ -1314,6 +1338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpsQueueRouteImport
       parentRoute: typeof OpsRouteRoute
     }
+    '/ops/notifications': {
+      id: '/ops/notifications'
+      path: '/notifications'
+      fullPath: '/ops/notifications'
+      preLoaderRoute: typeof OpsNotificationsRouteImport
+      parentRoute: typeof OpsRouteRoute
+    }
     '/ops/insights': {
       id: '/ops/insights'
       path: '/insights'
@@ -1417,6 +1448,13 @@ declare module '@tanstack/react-router' {
       path: '/roles'
       fullPath: '/admin/roles'
       preLoaderRoute: typeof AdminRolesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/intake-alerts': {
+      id: '/admin/intake-alerts'
+      path: '/intake-alerts'
+      fullPath: '/admin/intake-alerts'
+      preLoaderRoute: typeof AdminIntakeAlertsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/config': {
@@ -1704,6 +1742,7 @@ interface OpsRouteRouteChildren {
   OpsEmailsRoute: typeof OpsEmailsRoute
   OpsHistoryRoute: typeof OpsHistoryRoute
   OpsInsightsRoute: typeof OpsInsightsRoute
+  OpsNotificationsRoute: typeof OpsNotificationsRoute
   OpsQueueRoute: typeof OpsQueueRoute
   OpsIndexRoute: typeof OpsIndexRoute
   OpsEditorIdRoute: typeof OpsEditorIdRoute
@@ -1715,6 +1754,7 @@ const OpsRouteRouteChildren: OpsRouteRouteChildren = {
   OpsEmailsRoute: OpsEmailsRoute,
   OpsHistoryRoute: OpsHistoryRoute,
   OpsInsightsRoute: OpsInsightsRoute,
+  OpsNotificationsRoute: OpsNotificationsRoute,
   OpsQueueRoute: OpsQueueRoute,
   OpsIndexRoute: OpsIndexRoute,
   OpsEditorIdRoute: OpsEditorIdRoute,
@@ -1728,6 +1768,7 @@ const OpsRouteRouteWithChildren = OpsRouteRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminClientPortalsRoute: typeof AdminClientPortalsRoute
   AdminConfigRoute: typeof AdminConfigRoute
+  AdminIntakeAlertsRoute: typeof AdminIntakeAlertsRoute
   AdminRolesRoute: typeof AdminRolesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -1735,6 +1776,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminClientPortalsRoute: AdminClientPortalsRoute,
   AdminConfigRoute: AdminConfigRoute,
+  AdminIntakeAlertsRoute: AdminIntakeAlertsRoute,
   AdminRolesRoute: AdminRolesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
