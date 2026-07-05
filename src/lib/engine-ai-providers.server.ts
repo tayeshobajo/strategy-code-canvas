@@ -31,7 +31,9 @@ export type ExtractedSignalInput = {
     | "milestone_candidate"
     | "investment_signal"
     | "client_language"
-    | "open_question";
+    | "open_question"
+    | "business_model"
+    | "current_system";
   label: string;
   detail?: string;
   confidence?: number;
