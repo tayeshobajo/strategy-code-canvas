@@ -1065,11 +1065,13 @@ export async function runIntelligencePipelineInternal(
   // suggested_milestone_changes (added/modified/removed) and stash them on
   // the version payload so Tai can review the diff and approve, rather than
   // silently mutating the approved roadmap.
-  let suggestedMilestoneChanges: {
+  type MilestoneDiff = {
     added: Array<{ name: string; phase: string | null; evidence: unknown[] }>;
     modified: Array<{ existing_id: string; name: string; from_phase: string | null; to_phase: string | null; evidence: unknown[] }>;
     removed: Array<{ existing_id: string; name: string; phase: string | null }>;
-  } | null = null;
+  };
+  let suggestedMilestoneChanges: MilestoneDiff | null = null;
+
 
   try {
     const { data: existingRows } = await sb
