@@ -226,7 +226,14 @@ All 10 ✅ PASS. Portal only shows approved, operator/portal separate, project s
 ### P2 — Workspace depth ✅ DONE (2026-07-05)
 8. **§8 Per-step state machine**: added `engine_projects.step_states` jsonb; `setStepState` server fn writes audit + activity; edits auto-flip step to `draft`. `StepStateBar` chip + Draft/Review/Approved toggle now on every step page. Source evidence panel (`SourceEvidence`) reads `engine_extracted_signals` by per-step category map.
 9. **§12 Roadmap Builder**: reads live `engine_milestones` via `listMilestonesLive`; added `engine_milestones.source_evidence` jsonb; `reorderMilestone` server fn swaps `sort_index`, resets builder step to draft, and emits audit + change_event. Legacy JSON fallback preserved with an amber advisory.
-10. **§6 Extraction**: `engine_signal_category` enum extended with `business_model` and `current_system`; AI provider prompt + type union updated; extraction UI shows both categories.
+
+
+### Invariants Stage A — Spine safety ✅ DONE (2026-07-05)
+- **Portal safety guard**: added `src/lib/__tests__/portal-safety-guard.test.ts` — static scan of `portal.functions.ts` blocks any `.from("engine_*")` read outside `supabaseAdmin` mirror writes; asserts `CLIENT_SAFE_KEYS` covers every `ClientSafeRoadmap` field; asserts the AI-draft backstop migration exists.
+- **buildClientSafePayload runtime allowlist**: throws in dev/test if any non-allowlisted key is present on the client payload; logs in prod so a benign new key doesn't take down publishing.
+- **DB backstop trigger**: `tg_client_portal_roadmaps_require_source_version` now refuses `approved/delivered` when the referenced `engine_roadmap_versions.status = 'ai_generated'` — verified via smoke test.
+- **Source → milestone traceability**: intelligence pipeline now materializes AI-drafted milestones into `engine_milestones` with `source_evidence` linking each row back to the run's signals + source ids. Only runs when the project has no existing milestones (never overwrites operator work).
+
 
 
 ### P3 — Automation & completeness
