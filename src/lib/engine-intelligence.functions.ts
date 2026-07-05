@@ -1167,7 +1167,9 @@ export async function runIntelligencePipelineInternal(
     }
   }
 
-  // Enqueue review item
+  // Enqueue review item — G-3: link directly to the version we just produced
+  // so decideReviewItem approves this exact draft (no label-based guessing
+  // between co-existing pending drafts).
   await sb.from("engine_review_items").insert({
     project_id: args.projectId,
     project: project.name,
@@ -1177,7 +1179,9 @@ export async function runIntelligencePipelineInternal(
     source: "ai",
     requested_by: "ai",
     status: "pending",
+    version_id: version.id,
   });
+
 
   // Update project spend + activity
   const { data: proj } = await sb
