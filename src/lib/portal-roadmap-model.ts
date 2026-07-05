@@ -506,11 +506,19 @@ export function buildRoadmapJourney(
     acknowledgedAt,
     pointA: {
       label: "Current state",
-      detail: project?.point_a ?? row?.current_diagnosis ?? undefined,
+      detail:
+        (canvas?.pointA?.detail as string | undefined) ??
+        project?.point_a ??
+        row?.current_diagnosis ??
+        undefined,
     },
     pointB: {
       label: "Destination",
-      detail: project?.point_b ?? row?.executive_summary ?? undefined,
+      detail:
+        (canvas?.pointB?.detail as string | undefined) ??
+        project?.point_b ??
+        row?.executive_summary ??
+        undefined,
     },
     phases,
     milestones: flat,

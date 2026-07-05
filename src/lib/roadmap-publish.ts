@@ -429,6 +429,13 @@ export function buildClientSafePayload(input: {
   title: string;
   payload: Any;
   client_preview_override?: Any;
+  /**
+   * Authoritative Point A / Point B from engine_projects. When present these
+   * override any derived fallback so the portal canvas always renders the
+   * engine-authored fields — the biggest brand fidelity gap in the portal.
+   */
+  project_point_a?: string | null;
+  project_point_b?: string | null;
 }): ClientSafeRoadmap {
   // Prefer the operator-curated `client_preview` block if the payload carries
   // one (engine workspace stores this as project.client_preview and mirrors it
@@ -470,8 +477,11 @@ export function buildClientSafePayload(input: {
     pickString(src.supporting_notes) ?? pickString(src.client_notes) ?? null;
 
   const client_safe_canvas = buildClientSafeCanvas(src, {
-    pointA: current_diagnosis,
-    pointB: executive_summary,
+    // Prefer the engine-authored Point A / Point B — these are the map, not
+    // decorative. Fall back to derived diagnosis / summary only when the
+    // engine project has no explicit values.
+    pointA: pickString(input.project_point_a) ?? current_diagnosis,
+    pointB: pickString(input.project_point_b) ?? executive_summary,
     sequence: sequence_30_60_90,
     priorities: strategic_priorities,
   });

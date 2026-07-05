@@ -1,17 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { z } from "zod";
+import { toast } from "sonner";
 import { Card, EmptyState, PageHeader, StatTile } from "@/components/ops/Primitives";
 import { StatusBadge, STATUS_FILTERS } from "@/components/ops/StatusBadge";
-import { getQueueStats, listSubmissions } from "@/lib/ops.functions";
-import { ClipboardList, Edit3, Clock, Send, Search, ArrowUpDown } from "lucide-react";
+import { getQueueStats, listSubmissions, bulkSetReviewStatus } from "@/lib/ops.functions";
+import { Button } from "@/components/ui/button";
+import { ClipboardList, Edit3, Clock, Send, Search, ArrowUpDown, Loader2 } from "lucide-react";
 
 const searchSchema = z.object({
   status: z.string().optional(),
   q: z.string().optional(),
   sort: z.enum(["oldest", "newest"]).optional(),
 });
+
 
 export const Route = createFileRoute("/ops/queue")({
   validateSearch: searchSchema,
@@ -56,6 +60,38 @@ function QueuePage() {
       }),
     staleTime: 15_000,
   });
+
+  const qc = useQueryClient();
+  const bulkFn = useServerFn(bulkSetReviewStatus);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const rows = submissions.data ?? [];
+  const allIds = rows.map((r) => r.submission_id);
+  const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
+  const someSelected = selected.size > 0 && !allSelected;
+  const bulk = useMutation({
+    mutationFn: (status: "in_review" | "approved" | "rejected" | "archived") =>
+      bulkFn({ data: { ids: Array.from(selected), status } }),
+    onSuccess: (r) => {
+      const errCount = r.errors?.length ?? 0;
+      toast.success(
+        errCount
+          ? `Updated ${r.processed}, ${errCount} failed`
+          : `Updated ${r.processed} submissions`,
+      );
+      setSelected(new Set());
+      qc.invalidateQueries({ queryKey: ["ops"] });
+    },
+    onError: (e: unknown) => toast.error(String((e as Error)?.message ?? e)),
+  });
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = () =>
+    setSelected((prev) => (allSelected ? new Set() : new Set(allIds)));
 
   const heading = useMemo(() => {
     switch (status) {
@@ -151,10 +187,56 @@ function QueuePage() {
           </button>
         </div>
 
+        {selected.size > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#eeeee7] bg-[#fafaf5] px-5 py-2 text-xs">
+            <span className="text-[#5d6079]">
+              {selected.size} selected
+            </span>
+            {(
+              [
+                { s: "in_review" as const, label: "Mark in review" },
+                { s: "approved" as const, label: "Approve" },
+                { s: "rejected" as const, label: "Reject" },
+                { s: "archived" as const, label: "Archive" },
+              ]
+            ).map(({ s, label }) => (
+              <Button
+                key={s}
+                size="sm"
+                variant="outline"
+                disabled={bulk.isPending}
+                onClick={() => bulk.mutate(s)}
+              >
+                {bulk.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                {label}
+              </Button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="ml-2 text-[#5d6079] hover:text-[#171c38]"
+            >
+              Clear
+            </button>
+          </div>
+        ) : null}
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[12px] uppercase tracking-wider text-[#7d8095]">
+                <th className="px-4 py-3 font-medium w-8">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all"
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected;
+                    }}
+                    onChange={toggleAll}
+                    disabled={allIds.length === 0}
+                  />
+                </th>
                 <th className="px-5 py-3 font-medium">Founder</th>
                 <th className="px-5 py-3 font-medium">Company</th>
                 <th className="px-5 py-3 font-medium">Submitted</th>
@@ -167,13 +249,13 @@ function QueuePage() {
             <tbody>
               {submissions.isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-sm text-[#7d8095]">
+                  <td colSpan={8} className="px-5 py-12 text-center text-sm text-[#7d8095]">
                     Loading…
                   </td>
                 </tr>
-              ) : (submissions.data?.length ?? 0) === 0 ? (
+              ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12">
+                  <td colSpan={8} className="px-5 py-12">
                     <EmptyState
                       title="Nothing waiting"
                       body="When new founder submissions come in, they will land here for review."
@@ -181,11 +263,21 @@ function QueuePage() {
                   </td>
                 </tr>
               ) : (
-                submissions.data!.map((row) => (
+                rows.map((row) => (
                   <tr
                     key={row.review_id}
-                    className="border-t border-[#f1f1ea] hover:bg-[#fafaf5]"
+                    className={`border-t border-[#f1f1ea] hover:bg-[#fafaf5] ${
+                      selected.has(row.submission_id) ? "bg-[#eef1fb]/40" : ""
+                    }`}
                   >
+                    <td className="px-4 py-4 align-top">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${row.name}`}
+                        checked={selected.has(row.submission_id)}
+                        onChange={() => toggle(row.submission_id)}
+                      />
+                    </td>
                     <td className="px-5 py-4 align-top">
                       <div className="font-medium text-[#171c38]">{row.name}</div>
                       <div className="text-[12px] text-[#7d8095]">{row.email}</div>

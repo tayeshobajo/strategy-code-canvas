@@ -662,6 +662,18 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
         updated_at: r.updated_at ?? null,
         client_safe_canvas: r.client_safe_canvas ?? null,
       };
+      // Bridge: expose engine-authored Point A / Point B via the published
+      // snapshot only. The portal never reads engine_projects directly — the
+      // publish pipeline stamps these into client_safe_canvas.pointA/pointB.
+      const canvas =
+        r.client_safe_canvas && typeof r.client_safe_canvas === "object" ? r.client_safe_canvas : null;
+      const project =
+        canvas && (canvas.pointA?.detail || canvas.pointB?.detail)
+          ? {
+              point_a: (canvas.pointA?.detail as string | null) ?? null,
+              point_b: (canvas.pointB?.detail as string | null) ?? null,
+            }
+          : null;
       return {
         id: r.id,
         title: r.version_label ? `${r.title} — ${r.version_label}` : r.title,
@@ -670,7 +682,7 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
         published_at: r.approved_at,
         updated_at: r.updated_at,
         raw: safeRaw,
-        project: null,
+        project,
       };
     });
     return { docs, revoked: false as const };
@@ -1140,6 +1152,27 @@ export const recordPortalMilestoneReview = createServerFn({ method: "POST" })
       } as unknown as never,
     });
 
+    // Mirror into engine_activity so mission control sees the client signal.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: engineProj } = await supabaseAdmin
+        .from("engine_projects")
+        .select("id")
+        .eq("client_portal_project_id", cpr.project_id)
+        .maybeSingle();
+      if (engineProj) {
+        await supabaseAdmin.from("engine_activity").insert({
+          project_id: engineProj.id,
+          kind: "client_milestone_reviewed",
+          title: `Client reviewed: ${data.milestoneTitle}`,
+          body: null,
+          severity: "info",
+        });
+      }
+    } catch (e) {
+      console.warn("[recordPortalMilestoneReview] engine mirror failed", e);
+    }
+
     return { ok: true as const };
   });
 
@@ -1166,6 +1199,47 @@ export const logPortalFileEvent = createServerFn({ method: "POST" })
       _event: data.event,
     });
     if (error) return { ok: false as const, error: error.message ?? "log failed" };
+
+    // Mirror to engine_activity for important docs only (roadmaps, contracts,
+    // deliverables). Skip for everyday attachments so we don't create noise.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: fileRow } = await supabaseAdmin
+        .from("client_portal_files")
+        .select("project_id, file_name, category")
+        .eq("id", data.fileId)
+        .maybeSingle();
+      const importantCategories = new Set([
+        "roadmap",
+        "contract",
+        "deliverable",
+        "invoice",
+        "proposal",
+      ]);
+      if (
+        fileRow &&
+        fileRow.category &&
+        importantCategories.has(String(fileRow.category).toLowerCase())
+      ) {
+        const { data: engineProj } = await supabaseAdmin
+          .from("engine_projects")
+          .select("id")
+          .eq("client_portal_project_id", fileRow.project_id)
+          .maybeSingle();
+        if (engineProj) {
+          await supabaseAdmin.from("engine_activity").insert({
+            project_id: engineProj.id,
+            kind: `client_file_${data.event}`,
+            title: `Client ${data.event}: ${fileRow.file_name}`,
+            body: null,
+            severity: "info",
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("[logPortalFileEvent] engine mirror failed", e);
+    }
+
     return { ok: true as const };
   });
 
@@ -1441,6 +1515,30 @@ export const sendPortalMessage = createServerFn({ method: "POST" })
       .select("id, created_at")
       .single();
     if (error) throw new Error(error.message ?? "message send failed");
+
+    // Mirror to engine_activity so operators see inbound client messages in
+    // mission control, not just email/inbox.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: engineProj } = await supabaseAdmin
+        .from("engine_projects")
+        .select("id")
+        .eq("client_portal_project_id", data.portalProjectId)
+        .maybeSingle();
+      if (engineProj) {
+        const preview = data.body.length > 240 ? `${data.body.slice(0, 240)}…` : data.body;
+        await supabaseAdmin.from("engine_activity").insert({
+          project_id: engineProj.id,
+          kind: "client_message",
+          title: `Client message from ${email}`,
+          body: preview,
+          severity: "info",
+        });
+      }
+    } catch (e) {
+      console.warn("[sendPortalMessage] engine mirror failed", e);
+    }
+
     return { id: row.id as string, created_at: row.created_at as string };
   });
 

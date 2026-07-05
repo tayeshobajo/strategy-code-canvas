@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail, isOperatorEmail } from "./ops/access";
 import {
@@ -284,6 +285,50 @@ export const setReviewStatus = createServerFn({ method: "POST" })
               : "opened";
     await writeAudit(intake, data.id, operatorEmail, action, { reason: data.reason || null });
     return { ok: true as const };
+  });
+
+// Bulk mark-as-reviewed for the queue. Applies the chosen status to every
+// selected submission and writes one audit entry per row.
+const BulkSetReviewStatusInput = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(200),
+  status: z.enum(["in_review", "approved", "rejected", "archived"]),
+  reason: z.string().max(1000).optional(),
+});
+
+export const bulkSetReviewStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => BulkSetReviewStatusInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { operatorEmail } = await requireOperatorContext(
+      context.claims as Record<string, unknown> | undefined,
+      context.supabase as unknown as Parameters<typeof requireOperatorContext>[1],
+    );
+    const intake = await loadIntake();
+    const status = data.status as ReviewStatus;
+    const action: AuditAction =
+      status === "in_review"
+        ? "marked_in_review"
+        : status === "approved"
+          ? "approved"
+          : status === "rejected"
+            ? "rejected"
+            : "archived";
+
+    let processed = 0;
+    const errors: Array<{ id: string; error: string }> = [];
+    for (const id of data.ids) {
+      try {
+        await updateReviewStatus(intake, id, status, operatorEmail);
+        await writeAudit(intake, id, operatorEmail, action, {
+          reason: data.reason || null,
+          bulk: true,
+        });
+        processed += 1;
+      } catch (e) {
+        errors.push({ id, error: String((e as Error)?.message ?? e) });
+      }
+    }
+    return { ok: true as const, processed, errors };
   });
 
 export const archiveSubmission = createServerFn({ method: "POST" })

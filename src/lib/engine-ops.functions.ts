@@ -843,13 +843,14 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
     // Resolve destination portal project (auto-link when possible).
     const { data: proj, error: pErr } = await sb
       .from("engine_projects")
-      .select("id,name,client_preview,client_portal_project_id,client_id")
+      .select("id,name,client_preview,client_portal_project_id,client_id,point_a,point_b")
       .eq("id", ver.project_id)
       .single();
     if (pErr) throw new Error(String((pErr as { message?: string }).message ?? pErr));
     const project = proj as {
       id: string; name: string; client_preview: Record<string, unknown> | null;
       client_portal_project_id: string | null; client_id: string | null;
+      point_a: string | null; point_b: string | null;
     };
     let portalProjectId = project.client_portal_project_id;
     if (!portalProjectId) {
@@ -869,6 +870,8 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       version_label: ver.label ?? ver.version,
       payload: ver.payload,
       client_preview_override: project.client_preview,
+      project_point_a: project.point_a,
+      project_point_b: project.point_b,
     });
 
     const nowIso = new Date().toISOString();

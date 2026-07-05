@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { Bell, Check } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   listOperatorNotifications,
   markNotificationRead,
@@ -49,6 +50,24 @@ export function NotificationBell() {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
+
+  // Realtime: refresh unread badge the instant a new operator notification
+  // lands, instead of waiting up to 30s for the poll interval.
+  useEffect(() => {
+    const channel = supabase
+      .channel("operator-notifications-bell")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "operator_notifications" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["operator-notifications"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   const unread = notifs.data?.unread ?? 0;
   const items = notifs.data?.items ?? [];
