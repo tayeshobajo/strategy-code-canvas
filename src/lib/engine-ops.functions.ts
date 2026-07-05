@@ -1026,8 +1026,8 @@ export type AuditLogEntry = {
   actor_email: string | null;
   summary: string | null;
   field_changed: string | null;
-  old_value: unknown | null;
-  new_value: unknown | null;
+  old_value: string | number | boolean | Record<string, unknown> | unknown[] | null;
+  new_value: string | number | boolean | Record<string, unknown> | unknown[] | null;
   reason: string | null;
   affected_modules: string[];
   version_id: string | null;
