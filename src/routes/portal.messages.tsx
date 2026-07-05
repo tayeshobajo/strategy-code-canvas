@@ -437,9 +437,57 @@ function MessagesPage() {
               const fileIds = attachments
                 .filter((a) => a.status === "success" && a.uploadedId)
                 .map((a) => a.uploadedId!) as string[];
-              send.mutate({ text, fileIds });
+              const msTitle = ctxOptions?.milestones.find((m) => m.slug === composerMilestone)?.title;
+              send.mutate({
+                text,
+                fileIds,
+                phaseKey: composerPhase || undefined,
+                milestoneSlug: composerMilestone || undefined,
+                milestoneTitle: msTitle,
+              });
             }}
           >
+            {/* Roadmap context picker */}
+            {(ctxOptions?.phases?.length || ctxOptions?.milestones?.length) ? (
+              <div className="mb-3 flex flex-wrap gap-2 items-center">
+                <span className="text-[11px] uppercase tracking-wider text-ink/50">Link to:</span>
+                {ctxOptions.phases.length > 0 && (
+                  <select
+                    value={composerPhase}
+                    onChange={(e) => setComposerPhase(e.target.value)}
+                    className="text-[12px] rounded-md border border-rule-soft bg-card px-2 py-1"
+                    aria-label="Related phase"
+                  >
+                    <option value="">Any phase</option>
+                    {ctxOptions.phases.map((p) => (
+                      <option key={p.key} value={p.key}>{p.label}</option>
+                    ))}
+                  </select>
+                )}
+                {ctxOptions.milestones.length > 0 && (
+                  <select
+                    value={composerMilestone}
+                    onChange={(e) => setComposerMilestone(e.target.value)}
+                    className="text-[12px] rounded-md border border-rule-soft bg-card px-2 py-1 max-w-[260px]"
+                    aria-label="Related milestone"
+                  >
+                    <option value="">Any milestone</option>
+                    {ctxOptions.milestones.map((m) => (
+                      <option key={m.slug} value={m.slug}>{m.title}</option>
+                    ))}
+                  </select>
+                )}
+                {(composerPhase || composerMilestone) && (
+                  <button
+                    type="button"
+                    onClick={() => { setComposerPhase(""); setComposerMilestone(""); }}
+                    className="text-[11px] text-ink/50 hover:text-ink underline"
+                  >
+                    clear
+                  </button>
+                )}
+              </div>
+            ) : null}
             <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -448,6 +496,7 @@ function MessagesPage() {
               rows={2}
               className="resize-none bg-card border-rule-soft focus-visible:ring-royal/40"
             />
+
 
             {attachments.length > 0 && (
               <ul className="mt-3 flex flex-col gap-1.5">
