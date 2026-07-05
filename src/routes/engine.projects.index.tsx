@@ -107,14 +107,17 @@ function ProjectsPage() {
                 <tr className="text-left text-[11px] uppercase tracking-wider text-ink/50 border-b border-border">
                   <th className="py-2 px-5 font-medium">Client / project</th>
                   <th className="py-2 px-2 font-medium">Status</th>
-                  <th className="py-2 px-2 font-medium">Current step</th>
+                  <th className="py-2 px-2 font-medium">Phase</th>
+                  <th className="py-2 px-2 font-medium">Step</th>
                   <th className="py-2 px-2 font-medium">Version</th>
+                  <th className="py-2 px-2 font-medium">Sources</th>
+                  <th className="py-2 px-2 font-medium">Portal</th>
                   <th className="py-2 px-2 font-medium">Agent</th>
                   <th className="py-2 px-2 font-medium">Last updated</th>
                   <th className="py-2 px-2 font-medium">Critical deadline</th>
                   <th className="py-2 px-2 font-medium">Decisions</th>
                   <th className="py-2 px-2 font-medium">Spend</th>
-                  <th className="py-2 px-5 font-medium">Next action</th>
+                  <th className="py-2 px-5 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -131,10 +134,22 @@ function ProjectsPage() {
                       </Link>
                     </td>
                     <td className="py-3 px-2"><EngineStatusBadge status={r.status} /></td>
+                    <td className="py-3 px-2 text-ink/70">{r.current_phase}</td>
                     <td className="py-3 px-2 text-ink/70 capitalize">{r.current_step.replace(/_/g, " ")}</td>
                     <td className="py-3 px-2 text-ink/70">
                       <div>{r.roadmap_version ?? "—"}</div>
                       <div className="text-xs text-ink/40">approved {r.approved_version ?? "—"}</div>
+                    </td>
+                    <td className="py-3 px-2 text-ink/70 whitespace-nowrap">
+                      <div>{r.source_count}</div>
+                      <div className="text-xs text-ink/40">
+                        {r.latest_source_processed
+                          ? `last ${formatDate(r.latest_source_processed)}`
+                          : "none processed"}
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 whitespace-nowrap">
+                      <PortalPublishBadge status={r.portal_publish_status} />
                     </td>
                     <td className="py-3 px-2 text-ink/70 capitalize">{r.agent_status}</td>
                     <td className="py-3 px-2 text-ink/70 whitespace-nowrap">{formatDate(r.last_activity_at)}</td>
@@ -150,12 +165,18 @@ function ProjectsPage() {
                     </td>
                     <td className="py-3 px-2 text-ink/70">{r.open_decisions}</td>
                     <td className="py-3 px-2 text-ink/70 whitespace-nowrap">{formatCents(r.agent_spend_month_cents)}</td>
-                    <td className="py-3 px-5 text-ink/70">{r.next_action ?? "—"}</td>
+                    <td className="py-3 px-5 text-ink/70">
+                      <RowActions
+                        projectId={r.id}
+                        portalPublishStatus={r.portal_publish_status}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
         )}
       </SectionCard>
     </div>
