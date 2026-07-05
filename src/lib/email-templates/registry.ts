@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import { template as adminAccessGranted } from './admin-access-granted'
+import { template as intakeSubmissionOperatorAlert } from './intake-submission-operator-alert'
 
 export interface TemplateEntry {
   component: ComponentType<any>
