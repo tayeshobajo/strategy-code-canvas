@@ -114,6 +114,37 @@ function SubmissionPage() {
   const artifact = review?.artifact ?? null;
   const status = review?.status ?? "needs_review";
 
+  // Pillar 1 — bridge from intake submission to engine project.
+  // Compose the submission's Q&A into a pre-fillable "notes" blob and open
+  // /engine/projects/new with the fields already populated.
+  const bridgeNotes = [
+    `Intake submission ${submission.id}`,
+    `Founder: ${submission.name ?? ""}`.trim(),
+    `Company: ${submission.business ?? ""}`.trim(),
+    submission.website ? `Website: ${submission.website}` : "",
+    submission.email ? `Email: ${submission.email}` : "",
+    "",
+    ...answers.map((a) => `Q: ${a.question || a.key}\nA: ${a.response || "—"}\n`),
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .slice(0, 20000);
+  const bridgeSearch = {
+    submissionId: submission.id,
+    company: submission.business ?? undefined,
+    contactEmail: submission.email ?? undefined,
+    projectName: submission.business
+      ? `${submission.business} Roadmap`
+      : submission.name
+        ? `${submission.name} Roadmap`
+        : undefined,
+    notes: bridgeNotes,
+  } as const;
+  const bridgedAudit = audit.find(
+    (a) => a.action === "bridged_to_engine" || a.action === "engine_project_created",
+  );
+
+
   return (
     <div className="px-6 py-6 md:px-10 md:py-8 space-y-6">
       <div className="flex items-center justify-between gap-4">
