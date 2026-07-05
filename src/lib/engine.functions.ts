@@ -662,6 +662,8 @@ export const getProjectWorkspace = createServerFn({ method: "GET" })
       last_activity_at: row.last_activity_at as string,
       client_company: row.engine_clients?.company ?? "—",
       client_owner_email: row.engine_clients?.owner_email ?? null,
+      step_states: (row.step_states as Record<string, import("@/lib/engine-workspace").StepState>) ?? {},
+
       signal_room: (row.signal_room as import("@/lib/engine-workspace").Json) ?? {},
       extraction: (row.extraction as import("@/lib/engine-workspace").Json) ?? {},
       point_a: (row.point_a as import("@/lib/engine-workspace").Json) ?? {},
