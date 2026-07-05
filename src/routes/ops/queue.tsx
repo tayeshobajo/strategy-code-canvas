@@ -1,11 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { z } from "zod";
+import { toast } from "sonner";
 import { Card, EmptyState, PageHeader, StatTile } from "@/components/ops/Primitives";
 import { StatusBadge, STATUS_FILTERS } from "@/components/ops/StatusBadge";
-import { getQueueStats, listSubmissions } from "@/lib/ops.functions";
-import { ClipboardList, Edit3, Clock, Send, Search, ArrowUpDown } from "lucide-react";
+import { getQueueStats, listSubmissions, bulkSetReviewStatus } from "@/lib/ops.functions";
+import { Button } from "@/components/ui/button";
+import { ClipboardList, Edit3, Clock, Send, Search, ArrowUpDown, Loader2 } from "lucide-react";
+
+const searchSchema = z.object({
+  status: z.string().optional(),
+  q: z.string().optional(),
+  sort: z.enum(["oldest", "newest"]).optional(),
+});
 
 const searchSchema = z.object({
   status: z.string().optional(),
