@@ -175,11 +175,15 @@ function DeliveryRoomPage() {
                         {STATUS_META[d.status].label}
                       </span>
                     </td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <PortalPublishBadge status={d.portal_publish_status} url={d.portal_share_url} />
+                    </td>
                     <td className="px-3 py-3">
                       <div className="text-ink">{d.recipient}</div>
                       <div className="text-xs text-ink/60">{d.recipient_role}</div>
                     </td>
                     <td className="px-3 py-3 text-xs text-ink/70 whitespace-nowrap">{d.last_action}</td>
+
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap justify-end gap-1">
                         {TRANSITIONS[d.status].map((t) => (
