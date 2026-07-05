@@ -65,6 +65,12 @@ function AdminLayout() {
           >
             <ClipboardList className="w-4 h-4" /> Roadmap intake queue
           </Link>
+          <Link
+            to="/admin/intake-alerts"
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/intake-alerts") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <MailCheck className="w-4 h-4" /> Intake alerts
+          </Link>
         </nav>
       </aside>
       <main className="flex-1 p-8 text-white">
