@@ -93,6 +93,20 @@ function DeliveryRoomPage() {
       });
     },
   });
+  const setStatusFn = useServerFn(setPortalRoadmapStatus);
+  const setPortal = useMutation({
+    mutationFn: (v: { portalRoadmapId: string; status: "delivered" | "archived" }) =>
+      setStatusFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["engine", "deliveries"] });
+      qc.invalidateQueries({ queryKey: ["engine", "audit-log"] });
+      toast.success("Portal roadmap status updated");
+    },
+    onError: (err) =>
+      toast.error("Couldn't change portal status", {
+        description: (err as Error).message,
+      }),
+  });
 
   const rows = tab === "all" ? items : items.filter((d) => d.status === tab);
   const counts = useMemo(() => {
