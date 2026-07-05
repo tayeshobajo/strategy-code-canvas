@@ -116,7 +116,7 @@ function AuditRow({ row }: { row: AuditLogEntry }) {
           ) : (
             <div className="text-xs text-ink/50">No field-level detail recorded.</div>
           )}
-          {row.metadata && Object.keys(row.metadata).length > 0 ? (
+          {row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) && Object.keys(row.metadata as Record<string, unknown>).length > 0 ? (
             <div>
               <div className="font-mono text-[10px] uppercase tracking-wider text-ink/50 mb-1">Metadata</div>
               <pre className="whitespace-pre-wrap break-words text-[11px] bg-white border border-border rounded p-2 text-ink/70 max-h-40 overflow-auto">
