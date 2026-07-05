@@ -154,10 +154,12 @@ function DeliveryRoomPage() {
                   <th className="px-3 py-2.5">Roadmap</th>
                   <th className="px-3 py-2.5">Ver</th>
                   <th className="px-3 py-2.5">Status</th>
+                  <th className="px-3 py-2.5">Portal</th>
                   <th className="px-3 py-2.5">Recipient</th>
                   <th className="px-3 py-2.5">Last Action</th>
                   <th className="px-5 py-2.5 text-right">Next Steps</th>
                 </tr>
+
               </thead>
               <tbody>
                 {rows.map((d) => (
