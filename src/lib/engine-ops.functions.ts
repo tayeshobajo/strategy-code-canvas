@@ -1020,19 +1020,21 @@ export const setProjectPortalLink = createServerFn({ method: "POST" })
 
 
 // ─── Audit Log Surfacing ────────────────────────────────────────
+type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | JsonValue[] | { [k: string]: JsonValue };
 export type AuditLogEntry = {
   id: string;
   action: string;
   actor_email: string | null;
   summary: string | null;
   field_changed: string | null;
-  old_value: string | number | boolean | null;
-  new_value: string | number | boolean | null;
+  old_value: JsonValue;
+  new_value: JsonValue;
   reason: string | null;
   affected_modules: string[];
   version_id: string | null;
   target_id: string | null;
-  metadata: Record<string, unknown>;
+  metadata: JsonValue;
   created_at: string;
 };
 
