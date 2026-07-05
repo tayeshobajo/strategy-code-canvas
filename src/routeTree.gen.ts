@@ -57,6 +57,7 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AdminRolesRouteImport } from './routes/admin.roles'
+import { Route as AdminMilestoneChangesRouteImport } from './routes/admin.milestone-changes'
 import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-alerts'
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
 import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
@@ -336,6 +337,11 @@ const AdminRolesRoute = AdminRolesRouteImport.update({
   path: '/roles',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMilestoneChangesRoute = AdminMilestoneChangesRouteImport.update({
+  id: '/milestone-changes',
+  path: '/milestone-changes',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminIntakeAlertsRoute = AdminIntakeAlertsRouteImport.update({
   id: '/intake-alerts',
   path: '/intake-alerts',
@@ -577,6 +583,7 @@ export interface FileRoutesByFullPath {
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
+  '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -661,6 +668,7 @@ export interface FileRoutesByTo {
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
+  '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -750,6 +758,7 @@ export interface FileRoutesById {
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
+  '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -839,6 +848,7 @@ export interface FileRouteTypes {
     | '/admin/client-portals'
     | '/admin/config'
     | '/admin/intake-alerts'
+    | '/admin/milestone-changes'
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -923,6 +933,7 @@ export interface FileRouteTypes {
     | '/admin/client-portals'
     | '/admin/config'
     | '/admin/intake-alerts'
+    | '/admin/milestone-changes'
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -1011,6 +1022,7 @@ export interface FileRouteTypes {
     | '/admin/client-portals'
     | '/admin/config'
     | '/admin/intake-alerts'
+    | '/admin/milestone-changes'
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -1450,6 +1462,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRolesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/milestone-changes': {
+      id: '/admin/milestone-changes'
+      path: '/milestone-changes'
+      fullPath: '/admin/milestone-changes'
+      preLoaderRoute: typeof AdminMilestoneChangesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/intake-alerts': {
       id: '/admin/intake-alerts'
       path: '/intake-alerts'
@@ -1769,6 +1788,7 @@ interface AdminRouteChildren {
   AdminClientPortalsRoute: typeof AdminClientPortalsRoute
   AdminConfigRoute: typeof AdminConfigRoute
   AdminIntakeAlertsRoute: typeof AdminIntakeAlertsRoute
+  AdminMilestoneChangesRoute: typeof AdminMilestoneChangesRoute
   AdminRolesRoute: typeof AdminRolesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -1777,6 +1797,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminClientPortalsRoute: AdminClientPortalsRoute,
   AdminConfigRoute: AdminConfigRoute,
   AdminIntakeAlertsRoute: AdminIntakeAlertsRoute,
+  AdminMilestoneChangesRoute: AdminMilestoneChangesRoute,
   AdminRolesRoute: AdminRolesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
