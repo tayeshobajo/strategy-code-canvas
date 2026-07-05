@@ -1494,6 +1494,11 @@ export const sendPortalMessage = createServerFn({ method: "POST" })
       body: z.string().min(1).max(10_000),
       relatedFileIds: z.array(z.string().uuid()).max(20).optional(),
       messageType: z.enum(["reply", "clarification", "decision"]).optional(),
+      relatedProjectId: z.string().uuid().optional(),
+      relatedMilestoneId: z.string().uuid().optional(),
+      relatedDecisionId: z.string().uuid().optional(),
+      relatedDeliverableId: z.string().uuid().optional(),
+      relatedPhaseId: z.string().uuid().optional(),
     }).parse(raw),
   )
   .handler(async ({ data, context }) => {
@@ -1511,6 +1516,11 @@ export const sendPortalMessage = createServerFn({ method: "POST" })
         body: data.body,
         message_type: data.messageType ?? "reply",
         related_file_ids: data.relatedFileIds ?? [],
+        related_project_id: data.relatedProjectId ?? null,
+        related_milestone_id: data.relatedMilestoneId ?? null,
+        related_decision_id: data.relatedDecisionId ?? null,
+        related_deliverable_id: data.relatedDeliverableId ?? null,
+        related_phase_id: data.relatedPhaseId ?? null,
       })
       .select("id, created_at")
       .single();
