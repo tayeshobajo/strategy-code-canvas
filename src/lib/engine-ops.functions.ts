@@ -258,17 +258,22 @@ export const decideReviewItem = createServerFn({ method: "POST" })
       // exactly at the draft this review was created for. Fall back to
       // label matching only for legacy review items created before the
       // FK was added (version_id IS NULL).
-      let target: {
-        id: string; version: string; payload: Record<string, unknown> | null;
-        created_by: string | null; status: string; label: string | null;
-      } | null = null;
+      type ReviewTargetVersion = {
+        id: string;
+        version: string;
+        payload: Record<string, unknown> | null;
+        created_by: string | null;
+        status: string;
+        label: string | null;
+      };
+      let target: ReviewTargetVersion | null = null;
 
       if (it.version_id) {
         const { data: v } = await sb
           .from("engine_roadmap_versions")
           .select("id, version, payload, created_by, status, label")
           .eq("id", it.version_id)
-          .maybeSingle() as unknown as { data: typeof target };
+          .maybeSingle() as unknown as { data: ReviewTargetVersion | null };
         target = v ?? null;
         if (target && !["ai_generated", "tai_edited", "draft"].includes(target.status)) {
           throw new Error(`Cannot approve: linked version is already ${target.status}.`);
@@ -281,10 +286,11 @@ export const decideReviewItem = createServerFn({ method: "POST" })
           .eq("project_id", projId)
           .in("status", ["ai_generated", "tai_edited", "draft"])
           .order("created_at", { ascending: false })
-          .limit(20) as unknown as { data: Array<NonNullable<typeof target>> | null };
+          .limit(20) as unknown as { data: ReviewTargetVersion[] | null };
         const rows = matches ?? [];
         target = rows.find((r) => (r.label ?? "").trim() === it.title.trim()) ?? rows[0] ?? null;
       }
+
 
       if (target) {
         const createdBy = (target.created_by ?? "").toString().toLowerCase();
