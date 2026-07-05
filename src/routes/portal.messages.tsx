@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { sendPortalMessage } from "@/lib/portal.functions";
+import { sendPortalMessage, getPortalRoadmapContextOptions } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { usePortalContext } from "@/hooks/use-portal-context";
@@ -59,6 +59,9 @@ type Message = {
   action_required: boolean;
   action_completed_at: string | null;
   related_file_ids: string[];
+  related_milestone_id: string | null;
+  related_phase_id: string | null;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 };
 
