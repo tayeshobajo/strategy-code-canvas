@@ -385,8 +385,107 @@ export const submitIntake = createServerFn({ method: "POST" })
       // originals during review. A separate cleanup job can prune old files
       // that were never submitted (drafts abandoned mid-wizard).
     }
+
+    // Notify every operator/admin that a new intake needs review.
+    // Non-blocking: submission success does not depend on email delivery.
+    try {
+      await notifyOperatorsOfIntake({
+        submissionId: inserted.id,
+        founderName: data.name,
+        business: data.business || null,
+        founderEmail: data.email,
+        website: data.website || null,
+        role: data.role || null,
+        timeline: data.timeline || null,
+        replyPreference: data.reply_preference || null,
+        attachmentCount: attachments.length,
+      });
+    } catch (notifyErr) {
+      console.warn("[submit-intake] operator notification failed (non-blocking)", notifyErr);
+    }
+
     return { ok: true as const, submission_id: inserted.id, review_id: review?.id ?? null };
   });
+
+// ─── Operator notification ─────────────────────────────────────────────
+// Fans out an "intake submitted" alert to every operator/admin so no
+// submission sits in the review queue unseen. Recipients are the union of
+// the static ADMIN_EMAILS + OPERATOR_EMAILS allowlists AND anyone with
+// role 'admin' or 'operator' in public.user_roles. Each recipient gets a
+// per-submission idempotency key so a retry never double-sends.
+async function notifyOperatorsOfIntake(input: {
+  submissionId: string;
+  founderName: string;
+  business: string | null;
+  founderEmail: string;
+  website: string | null;
+  role: string | null;
+  timeline: string | null;
+  replyPreference: string | null;
+  attachmentCount: number;
+}): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { ADMIN_EMAILS, OPERATOR_EMAILS } = await import("@/lib/ops/access");
+  const { enqueueTransactionalEmail } = await import("@/lib/email/enqueue-transactional.server");
+  const { absoluteUrl } = await import("@/lib/site-url");
+
+  const recipients = new Set<string>();
+  for (const e of [...ADMIN_EMAILS, ...OPERATOR_EMAILS]) {
+    const norm = e.trim().toLowerCase();
+    if (norm) recipients.add(norm);
+  }
+  try {
+    const { data: roleRows } = await (
+      supabaseAdmin.from("user_roles") as unknown as {
+        select: (s: string) => {
+          in: (c: string, v: string[]) => Promise<{ data: Array<{ email: string | null }> | null }>;
+        };
+      }
+    )
+      .select("email")
+      .in("role", ["admin", "operator"]);
+    for (const row of roleRows ?? []) {
+      const e = (row.email ?? "").trim().toLowerCase();
+      if (e) recipients.add(e);
+    }
+  } catch (roleErr) {
+    console.warn("[submit-intake] role lookup for notifications failed", roleErr);
+  }
+
+  if (recipients.size === 0) return;
+
+  const reviewUrl = absoluteUrl(`/ops/submissions/${input.submissionId}`);
+  const queueUrl = absoluteUrl(`/ops/queue`);
+  const submittedAt = new Date().toISOString();
+
+  const results = await Promise.allSettled(
+    Array.from(recipients).map((recipient) =>
+      enqueueTransactionalEmail({
+        templateName: "intake-submission-operator-alert",
+        recipientEmail: recipient,
+        idempotencyKey: `intake-alert-${input.submissionId}-${recipient}`,
+        templateData: {
+          founderName: input.founderName,
+          business: input.business,
+          founderEmail: input.founderEmail,
+          website: input.website,
+          role: input.role,
+          timeline: input.timeline,
+          replyPreference: input.replyPreference,
+          submittedAt,
+          reviewUrl,
+          queueUrl,
+          attachmentCount: input.attachmentCount,
+        },
+      }),
+    ),
+  );
+  for (const r of results) {
+    if (r.status === "rejected") {
+      console.warn("[submit-intake] operator alert send failed", r.reason);
+    }
+  }
+}
 
 // ─── Attachments (public wizard file uploads) ─────────────────────────
 // The browser uploads directly to bucket "intake-uploads" using the anon key.
