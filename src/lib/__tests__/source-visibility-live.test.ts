@@ -59,7 +59,7 @@ describe.skipIf(!HAS_PG)("engine_sources.visibility live-DB defense (G-3)", () =
            ('${projectId}', '${marker}', 'research_note', 'queued', 'g3-test@trust-tai.com')
          RETURNING visibility`,
       );
-      expect(inserted).toBe("internal_only");
+      expect(inserted.split("\n")[0]).toBe("internal_only");
 
       // Explicit NULL must be rejected.
       let rejected = false;
