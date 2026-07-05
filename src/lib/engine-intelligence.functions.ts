@@ -1061,50 +1061,115 @@ export async function runIntelligencePipelineInternal(
   // Persist AI-drafted milestones into engine_milestones with source_evidence
   // so every milestone in the Builder traces back to the source(s) that
   // produced it. Only runs when the project has no existing milestones —
-  // never overwrite operator-authored rows.
+  // never overwrite operator-authored rows. On re-runs, we instead compute
+  // suggested_milestone_changes (added/modified/removed) and stash them on
+  // the version payload so Tai can review the diff and approve, rather than
+  // silently mutating the approved roadmap.
+  type MilestoneDiff = {
+    added: Array<{ name: string; phase: string | null; evidence: unknown[] }>;
+    modified: Array<{ existing_id: string; name: string; from_phase: string | null; to_phase: string | null; evidence: unknown[] }>;
+    removed: Array<{ existing_id: string; name: string; phase: string | null }>;
+  };
+  let suggestedMilestoneChanges: MilestoneDiff | null = null;
+
+
   try {
-    const { count: existingMs } = await sb
+    const { data: existingRows } = await sb
       .from("engine_milestones")
-      .select("id", { count: "exact", head: true })
+      .select("id, name, phase, approval_status")
       .eq("project_id", args.projectId);
-    if ((existingMs ?? 0) === 0) {
-      const phases = (parsed.modules?.roadmap as { phases?: Array<{ name: string; milestones: string[] }> } | undefined)?.phases ?? [];
-      const milestoneCandidates = insertedSignals.filter((s) => s.category === "milestone_candidate");
-      const evidenceForName = (name: string) => {
-        const lower = name.toLowerCase();
-        const matched = milestoneCandidates
-          .filter((c) => lower.includes(c.label.toLowerCase().slice(0, 24)) || c.label.toLowerCase().includes(lower.slice(0, 24)))
-          .slice(0, 3)
-          .map((c) => ({ signal_id: c.id, source_id: primarySourceId, snippet: c.label, category: c.category }));
-        if (matched.length) return matched;
-        // Fallback: attribute to every source in this run (still traceable).
-        return srcRows.map((s) => ({ source_id: s.id, snippet: `Derived from ${s.name}` }));
-      };
-      let sortIndex = 0;
-      const msRows: Array<Record<string, unknown>> = [];
-      for (const phase of phases) {
-        for (const name of phase.milestones ?? []) {
-          if (!name || typeof name !== "string") continue;
-          msRows.push({
-            project_id: args.projectId,
-            name: name.slice(0, 240),
-            phase: phase.name?.slice(0, 120) ?? null,
-            status: "draft",
-            approval_status: "draft",
-            sort_index: sortIndex++,
-            roadmap_version_id: version.id,
-            created_by_kind: "ai",
-            source_evidence: evidenceForName(name),
-          });
-        }
+    const existing = (existingRows ?? []) as Array<{ id: string; name: string; phase: string | null; approval_status: string | null }>;
+
+    const phases = (parsed.modules?.roadmap as { phases?: Array<{ name: string; milestones: string[] }> } | undefined)?.phases ?? [];
+    const milestoneCandidates = insertedSignals.filter((s) => s.category === "milestone_candidate");
+    const evidenceForName = (name: string) => {
+      const lower = name.toLowerCase();
+      const matched = milestoneCandidates
+        .filter((c) => lower.includes(c.label.toLowerCase().slice(0, 24)) || c.label.toLowerCase().includes(lower.slice(0, 24)))
+        .slice(0, 3)
+        .map((c) => ({ signal_id: c.id, source_id: primarySourceId, snippet: c.label, category: c.category }));
+      if (matched.length) return matched;
+      return srcRows.map((s) => ({ source_id: s.id, snippet: `Derived from ${s.name}` }));
+    };
+
+    // Build candidate list (flattened phases).
+    const candidates: Array<{ name: string; phase: string | null }> = [];
+    for (const phase of phases) {
+      for (const name of phase.milestones ?? []) {
+        if (!name || typeof name !== "string") continue;
+        candidates.push({ name: name.slice(0, 240), phase: phase.name?.slice(0, 120) ?? null });
       }
+    }
+
+    if (existing.length === 0) {
+      // First run: materialize directly so Builder is populated.
+      let sortIndex = 0;
+      const msRows = candidates.map((c) => ({
+        project_id: args.projectId,
+        name: c.name,
+        phase: c.phase,
+        status: "draft",
+        approval_status: "draft",
+        sort_index: sortIndex++,
+        roadmap_version_id: version.id,
+        created_by_kind: "ai",
+        source_evidence: evidenceForName(c.name),
+      }));
       if (msRows.length) {
         await sb.from("engine_milestones").insert(msRows);
       }
+    } else {
+      // Re-run: compute a diff and stash suggested changes on the version payload.
+      // Do NOT mutate engine_milestones — Tai must approve via version compare.
+      const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+      const existingByName = new Map(existing.map((e) => [normalize(e.name), e] as const));
+      const candidateByName = new Map(candidates.map((c) => [normalize(c.name), c] as const));
+
+      const added: MilestoneDiff["added"] = [];
+      const modified: MilestoneDiff["modified"] = [];
+      const removed: MilestoneDiff["removed"] = [];
+
+      for (const c of candidates) {
+        const key = normalize(c.name);
+        const match = existingByName.get(key);
+        if (!match) {
+          added.push({ name: c.name, phase: c.phase, evidence: evidenceForName(c.name) });
+        } else if ((match.phase ?? null) !== (c.phase ?? null)) {
+          modified.push({
+            existing_id: match.id,
+            name: match.name,
+            from_phase: match.phase ?? null,
+            to_phase: c.phase ?? null,
+            evidence: evidenceForName(c.name),
+          });
+        }
+      }
+      for (const e of existing) {
+        const key = normalize(e.name);
+        if (!candidateByName.has(key)) {
+          removed.push({ existing_id: e.id, name: e.name, phase: e.phase ?? null });
+        }
+      }
+
+      suggestedMilestoneChanges = { added, modified, removed };
+
+      // Merge suggested changes into the version payload so the compare/review
+      // surface can render them.
+      const mergedPayload = {
+        ...(parsed.modules ?? {}),
+        suggested_milestone_changes: suggestedMilestoneChanges,
+      };
+      await sb
+        .from("engine_roadmap_versions")
+        .update({ payload: mergedPayload })
+        .eq("id", version.id);
     }
-  } catch {
-    /* non-fatal: milestone materialization is best-effort */
+  } catch (e) {
+    // Non-fatal: milestone diff is best-effort; the version + review item
+    // are already in place so Tai can still act on the draft.
+    console.warn("[runIntelligencePipeline] milestone diff failed", e);
   }
+
 
   // Update project draft pointer + JSONB modules
   const moduleUpdates: Record<string, any> = {
@@ -1170,11 +1235,17 @@ export async function runIntelligencePipelineInternal(
   // Enqueue review item — G-3: link directly to the version we just produced
   // so decideReviewItem approves this exact draft (no label-based guessing
   // between co-existing pending drafts).
+  const diffCounts = suggestedMilestoneChanges
+    ? suggestedMilestoneChanges.added.length + suggestedMilestoneChanges.modified.length + suggestedMilestoneChanges.removed.length
+    : 0;
+  const reviewTitle = diffCounts > 0
+    ? `${versionLabel} · ${suggestedMilestoneChanges!.added.length} added / ${suggestedMilestoneChanges!.modified.length} modified / ${suggestedMilestoneChanges!.removed.length} removed milestone(s)`
+    : versionLabel;
   await sb.from("engine_review_items").insert({
     project_id: args.projectId,
     project: project.name,
     item_type: "roadmap_version",
-    title: versionLabel,
+    title: reviewTitle,
     impact: "high",
     source: "ai",
     requested_by: "ai",
