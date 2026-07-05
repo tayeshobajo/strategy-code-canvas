@@ -72,7 +72,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
     const email = `${marker}@trust-tai-e2e.local`;
 
     // ── 1. Seed engine client + engine project ──────────────────────────
-    const clientId = psql(
+    const clientId = insertReturning(
       `INSERT INTO public.engine_clients (company, status)
        VALUES ('${marker} Co', 'active') RETURNING id`,
     );
@@ -81,7 +81,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
     // engine_projects has many NOT NULL jsonb columns; they default OK, but
     // we set point_a / point_b explicitly since the publish pipeline reads
     // them for the canvas.
-    const projectId = psql(
+    const projectId = insertReturning(
       `INSERT INTO public.engine_projects
          (client_id, name, point_a, point_b)
        VALUES
@@ -129,7 +129,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
         ],
       },
     };
-    const versionId = psql(
+    const versionId = insertReturning(
       `INSERT INTO public.engine_roadmap_versions
          (project_id, version, status, client_preview_status, label, payload)
        VALUES
@@ -140,7 +140,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
     cleanup.push(`DELETE FROM public.engine_roadmap_versions WHERE id='${versionId}'`);
 
     // ── 3. Seed a client portal project + permission for our test client ────
-    const portalProjectId = psql(
+    const portalProjectId = insertReturning(
       `INSERT INTO public.client_portal_projects
          (primary_email, portal_status, payment_status, current_phase, metadata)
        VALUES
@@ -149,7 +149,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
     );
     cleanup.push(`DELETE FROM public.client_portal_projects WHERE id='${portalProjectId}'`);
 
-    const permId = psql(
+    const permId = insertReturning(
       `INSERT INTO public.client_portal_permissions
          (project_id, email, role, can_view_roadmap, can_message, can_upload_files, can_view_billing)
        VALUES
@@ -182,7 +182,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
 
     // ── 5. Insert into client_portal_roadmaps as delivered ────────────────
     const nowIso = new Date().toISOString();
-    const portalRoadmapId = psql(
+    const portalRoadmapId = insertReturning(
       `INSERT INTO public.client_portal_roadmaps (
          project_id, approved_roadmap_version_id, title, version_label,
          status, approved_at, published_at,
