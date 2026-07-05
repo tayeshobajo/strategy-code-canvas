@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Eye, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Eye, Loader2, Sparkles } from "lucide-react";
 import { Card, PageHeader } from "@/components/ops/Primitives";
 import { StatusBadge } from "@/components/ops/StatusBadge";
 import {
@@ -14,6 +14,7 @@ import {
   setReviewStatus,
 } from "@/lib/ops.functions";
 import type { IntakeAnswer } from "@/lib/ops/intake-types";
+
 
 export const Route = createFileRoute("/ops/submissions/$id")({
   component: SubmissionPage,
