@@ -103,3 +103,21 @@ export const changeSourceVisibility = createServerFn({ method: "POST" })
       newVisibility: data.visibility,
     };
   });
+
+/**
+ * Admin-only listing of engine sources for a project, including the
+ * current visibility. Used by the admin visibility management panel.
+ */
+export const listProjectSourcesForAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => ListInput.parse(raw))
+  .handler(async ({ data, context }): Promise<{ rows: AdminSourceRow[] }> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    const { data: rows, error } = await context.supabase
+      .from("engine_sources")
+      .select("id,name,visibility,status,kind,updated_at")
+      .eq("project_id", data.projectId)
+      .order("updated_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return { rows: (rows ?? []) as AdminSourceRow[] };
+  });
