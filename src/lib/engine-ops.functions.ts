@@ -49,6 +49,8 @@ export type DeliveryStatus =
 
 export type DeliveryItem = {
   id: string;
+  project_id: string | null;
+  client_portal_roadmap_id: string | null;
   client: string;
   roadmap: string;
   version: string;
@@ -76,7 +78,7 @@ export const listDeliveries = createServerFn({ method: "GET" })
     };
     const { data, error } = await sb
       .from("engine_delivery_items")
-      .select("id,client,roadmap,version,status,channel,recipient,recipient_role,prepared_by,approved_by,last_action,updated_at,client_portal_roadmap_id,engine_delivery_history(id,from_status,to_status,note,at,actor),client_portal_roadmaps:client_portal_roadmap_id(status,share_url)")
+      .select("id,project_id,client,roadmap,version,status,channel,recipient,recipient_role,prepared_by,approved_by,last_action,updated_at,client_portal_roadmap_id,engine_delivery_history(id,from_status,to_status,note,at,actor),client_portal_roadmaps:client_portal_roadmap_id(status,share_url)")
       .order("updated_at", { ascending: false });
     if (error) throw new Error(String((error as { message?: string }).message ?? error));
     const rows = (data ?? []) as Array<DeliveryItem & {
@@ -87,7 +89,7 @@ export const listDeliveries = createServerFn({ method: "GET" })
       const s = (r.client_portal_roadmaps?.status ?? "").toLowerCase();
       const portal_publish_status: DeliveryItem["portal_publish_status"] = !r.client_portal_roadmaps
         ? "not_published"
-        : s === "published" || s === "client_facing"
+        : s === "published" || s === "client_facing" || s === "delivered"
           ? "published"
           : s === "archived"
             ? "archived"
@@ -1016,3 +1018,106 @@ export const setProjectPortalLink = createServerFn({ method: "POST" })
     return { ok: true, linked_portal_project_id: data.portalProjectId };
   });
 
+
+// ─── Audit Log Surfacing ────────────────────────────────────────
+type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | JsonValue[] | { [k: string]: JsonValue };
+export type AuditLogEntry = {
+  id: string;
+  action: string;
+  actor_email: string | null;
+  summary: string | null;
+  field_changed: string | null;
+  old_value: JsonValue;
+  new_value: JsonValue;
+  reason: string | null;
+  affected_modules: string[];
+  version_id: string | null;
+  target_id: string | null;
+  metadata: JsonValue;
+  created_at: string;
+};
+
+export const listProjectAuditLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      projectId: z.string().uuid(),
+      limit: z.number().int().min(1).max(500).default(100),
+    }).parse(raw),
+  )
+  .handler(async ({ data, context }): Promise<AuditLogEntry[]> => {
+    await assertOps(context as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: rows, error } = await sb
+      .from("engine_audit_log")
+      .select("id,action,actor_email,summary,field_changed,old_value,new_value,reason,affected_modules,version_id,target_id,metadata,created_at")
+      .eq("project_id", data.projectId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    return (rows ?? []) as AuditLogEntry[];
+  });
+
+// ─── Portal roadmap publish status change (P3) ──────────────────
+export const setPortalRoadmapStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      portalRoadmapId: z.string().uuid(),
+      status: z.enum(["delivered", "approved", "archived"]),
+      reason: z.string().max(500).optional(),
+    }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const actor = await assertAdminEmail(context as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: row, error: rErr } = await sb
+      .from("client_portal_roadmaps")
+      .select("id,status,project_id,approved_roadmap_version_id,approved_at,title,version_label")
+      .eq("id", data.portalRoadmapId)
+      .single();
+    if (rErr) throw new Error(String((rErr as { message?: string }).message ?? rErr));
+    const r = row as {
+      id: string; status: string; project_id: string;
+      approved_roadmap_version_id: string | null; approved_at: string | null;
+      title: string | null; version_label: string | null;
+    };
+    if ((data.status === "delivered" || data.status === "approved")
+        && (!r.approved_roadmap_version_id || !r.approved_at)) {
+      throw new Error("Cannot mark as delivered/approved without a linked approved_roadmap_version_id and approved_at.");
+    }
+    const patch: Record<string, unknown> = { status: data.status };
+    if (data.status === "delivered" && !r.approved_at) patch.published_at = new Date().toISOString();
+    const { error: uErr } = await sb
+      .from("client_portal_roadmaps")
+      .update(patch)
+      .eq("id", data.portalRoadmapId);
+    if (uErr) throw new Error(String((uErr as { message?: string }).message ?? uErr));
+
+    // Find matching engine project id for audit log linkage.
+    const { data: eng } = await sb
+      .from("engine_projects")
+      .select("id")
+      .eq("client_portal_project_id", r.project_id)
+      .maybeSingle();
+    const engProjectId = (eng as { id?: string } | null)?.id ?? null;
+    if (engProjectId) {
+      await sb.from("engine_audit_log").insert({
+        project_id: engProjectId,
+        actor_email: actor,
+        action: "portal_status_changed",
+        summary: `Portal roadmap "${r.title ?? r.version_label ?? r.id}" ${r.status} → ${data.status}${data.reason ? ` — ${data.reason}` : ""}.`,
+        field_changed: "client_portal_roadmaps.status",
+        old_value: r.status,
+        new_value: data.status,
+        reason: data.reason ?? null,
+        version_id: r.approved_roadmap_version_id,
+        target_id: r.id,
+        metadata: { portal_roadmap_id: r.id, portal_project_id: r.project_id },
+      });
+    }
+    return { ok: true, status: data.status };
+  });

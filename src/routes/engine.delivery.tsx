@@ -1,13 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { SectionCard, MetricCard } from "@/components/engine/primitives";
+import { AuditTrailCard } from "@/components/engine/AuditTrail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Send, Eye, MessageCircle, CheckCircle2, Archive, Calendar, AlertCircle, X, ArrowRight, PlayCircle, Loader2, RefreshCw } from "lucide-react";
-import { listDeliveries, transitionDelivery, type DeliveryItem, type DeliveryStatus } from "@/lib/engine-ops.functions";
+import { Send, Eye, MessageCircle, CheckCircle2, Archive, Calendar, AlertCircle, X, ArrowRight, PlayCircle, Loader2, RefreshCw, Rocket, RotateCcw } from "lucide-react";
+import { listDeliveries, transitionDelivery, setPortalRoadmapStatus, type DeliveryItem, type DeliveryStatus } from "@/lib/engine-ops.functions";
 
 export const Route = createFileRoute("/engine/delivery")({
   component: DeliveryRoomPage,
@@ -91,6 +92,20 @@ function DeliveryRoomPage() {
         action: { label: "Retry", onClick: () => mutate.mutate(vars) },
       });
     },
+  });
+  const setStatusFn = useServerFn(setPortalRoadmapStatus);
+  const setPortal = useMutation({
+    mutationFn: (v: { portalRoadmapId: string; status: "delivered" | "archived" }) =>
+      setStatusFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["engine", "deliveries"] });
+      qc.invalidateQueries({ queryKey: ["engine", "audit-log"] });
+      toast.success("Portal roadmap status updated");
+    },
+    onError: (err) =>
+      toast.error("Couldn't change portal status", {
+        description: (err as Error).message,
+      }),
   });
 
   const rows = tab === "all" ? items : items.filter((d) => d.status === tab);
@@ -194,6 +209,44 @@ function DeliveryRoomPage() {
                             {t.icon}{t.label}
                           </button>
                         ))}
+                        {d.project_id ? (
+                          <Link
+                            to="/engine/projects/$projectId/preview"
+                            params={{ projectId: d.project_id }}
+                            className="inline-flex items-center gap-1 text-[11px] border border-border rounded px-2 py-1 hover:border-royal/50 hover:bg-paper-soft text-ink"
+                            title="Submit / approve client preview and publish to portal"
+                          >
+                            <Rocket className="w-3 h-3" /> Publish gate
+                          </Link>
+                        ) : null}
+                        {d.client_portal_roadmap_id && d.portal_publish_status !== "archived" ? (
+                          <button
+                            disabled={setPortal.isPending}
+                            onClick={() =>
+                              setPortal.mutate({
+                                portalRoadmapId: d.client_portal_roadmap_id!,
+                                status: "archived",
+                              })
+                            }
+                            className="inline-flex items-center gap-1 text-[11px] border border-border rounded px-2 py-1 hover:border-[#f1e3b9] hover:bg-[#fbf3e0] text-ink disabled:opacity-40"
+                          >
+                            <Archive className="w-3 h-3" /> Archive portal
+                          </button>
+                        ) : null}
+                        {d.client_portal_roadmap_id && d.portal_publish_status === "archived" ? (
+                          <button
+                            disabled={setPortal.isPending}
+                            onClick={() =>
+                              setPortal.mutate({
+                                portalRoadmapId: d.client_portal_roadmap_id!,
+                                status: "delivered",
+                              })
+                            }
+                            className="inline-flex items-center gap-1 text-[11px] border border-border rounded px-2 py-1 hover:border-royal/50 hover:bg-paper-soft text-ink disabled:opacity-40"
+                          >
+                            <RotateCcw className="w-3 h-3" /> Restore portal
+                          </button>
+                        ) : null}
                         <button onClick={() => setHistoryOpen(d)}
                           className="inline-flex items-center gap-1 text-[11px] text-ink/60 hover:text-ink px-2 py-1">
                           History ({d.history.length})
@@ -264,7 +317,7 @@ function DeliveryRoomPage() {
 function HistoryDialog({ delivery, onClose }: { delivery: DeliveryItem; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
-      <div className="bg-card rounded-xl border border-border shadow-lg max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-card rounded-xl border border-border shadow-lg max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <header className="flex items-center justify-between p-4 border-b border-border">
           <div>
             <div className="font-display text-lg text-ink">{delivery.client}</div>
@@ -272,28 +325,38 @@ function HistoryDialog({ delivery, onClose }: { delivery: DeliveryItem; onClose:
           </div>
           <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
         </header>
-        <div className="p-4">
-          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink/50 mb-2">Status History</div>
-          {delivery.history.length === 0 ? (
-            <div className="text-sm text-ink/60">No transitions logged yet.</div>
-          ) : (
-            <ol className="space-y-2">
-              {delivery.history.map((h, i) => (
-                <li key={h.id} className="flex items-start gap-2 text-sm">
-                  <span className="font-mono text-xs text-ink/40 w-4">{i + 1}</span>
-                  <div className="flex-1">
-                    <div className="text-ink">
-                      <span className="text-ink/60">{h.from_status ? (STATUS_META[h.from_status as DeliveryStatus]?.label ?? h.from_status) : "—"}</span>
-                      {" → "}
-                      <span className="font-medium">{STATUS_META[h.to_status as DeliveryStatus]?.label ?? h.to_status}</span>
+        <div className="p-4 overflow-auto space-y-5">
+          <section>
+            <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink/50 mb-2">Delivery status history</div>
+            {delivery.history.length === 0 ? (
+              <div className="text-sm text-ink/60">No transitions logged yet.</div>
+            ) : (
+              <ol className="space-y-2">
+                {delivery.history.map((h, i) => (
+                  <li key={h.id} className="flex items-start gap-2 text-sm">
+                    <span className="font-mono text-xs text-ink/40 w-4">{i + 1}</span>
+                    <div className="flex-1">
+                      <div className="text-ink">
+                        <span className="text-ink/60">{h.from_status ? (STATUS_META[h.from_status as DeliveryStatus]?.label ?? h.from_status) : "—"}</span>
+                        {" → "}
+                        <span className="font-medium">{STATUS_META[h.to_status as DeliveryStatus]?.label ?? h.to_status}</span>
+                      </div>
+                      <div className="text-xs text-ink/60">{new Date(h.at).toLocaleString()}{h.actor ? ` · ${h.actor}` : ""}</div>
+                      {h.note ? <div className="text-xs text-ink/70 italic mt-0.5">"{h.note}"</div> : null}
                     </div>
-                    <div className="text-xs text-ink/60">{new Date(h.at).toLocaleString()}{h.actor ? ` · ${h.actor}` : ""}</div>
-                    {h.note ? <div className="text-xs text-ink/70 italic mt-0.5">"{h.note}"</div> : null}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+          {delivery.project_id ? (
+            <section>
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink/50 mb-2">
+                Project audit trail
+              </div>
+              <AuditTrailCard projectId={delivery.project_id} limit={30} compact />
+            </section>
+          ) : null}
         </div>
       </div>
     </div>
