@@ -299,3 +299,28 @@ function HistoryDialog({ delivery, onClose }: { delivery: DeliveryItem; onClose:
     </div>
   );
 }
+
+function PortalPublishBadge({
+  status,
+  url,
+}: {
+  status: "not_published" | "draft" | "published" | "archived";
+  url: string | null;
+}) {
+  const meta: Record<typeof status, { label: string; cls: string }> = {
+    not_published: { label: "Not published", cls: "bg-paper-soft text-ink/60 border-border" },
+    draft: { label: "Portal draft", cls: "bg-[#efe9fb] text-[#5435a4] border-[#dccdf3]" },
+    published: { label: "Published", cls: "bg-[#e6f5ec] text-[#1f6b3b] border-[#c4e6d2]" },
+    archived: { label: "Archived", cls: "bg-[#ecedf0] text-[#5a5d70] border-[#d6d8df]" },
+  };
+  const m = meta[status];
+  const pill = (
+    <span className={cn("inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border whitespace-nowrap", m.cls)}>
+      {m.label}
+    </span>
+  );
+  return status === "published" && url ? (
+    <a href={url} target="_blank" rel="noreferrer" className="hover:underline">{pill}</a>
+  ) : pill;
+}
+
