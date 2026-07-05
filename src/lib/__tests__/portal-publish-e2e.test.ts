@@ -29,11 +29,15 @@ import { buildClientSafePayload } from "@/lib/roadmap-publish";
 const HAS_PG = !!process.env.PGHOST;
 
 function psql(sql: string): string {
-  return execSync(`psql -tAX -v ON_ERROR_STOP=1`, {
+  return execSync(`psql -tAX -q -v ON_ERROR_STOP=1`, {
     encoding: "utf8",
     input: sql,
     stdio: ["pipe", "pipe", "pipe"],
   }).trim();
+}
+// Wrap INSERT ... RETURNING so psql only emits the tuple, never the tag.
+function insertReturning(sql: string): string {
+  return psql(`WITH ins AS (${sql}) SELECT * FROM ins`).split("\n")[0].trim();
 }
 
 // Same client-visible projection getPortalRoadmapDocs uses.
