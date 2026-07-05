@@ -148,17 +148,29 @@ function MessagesPage() {
   const projectId = project?.id;
   const { data: messages, isLoading, isError, refetch } = useMessages(projectId);
   const { data: fileMap } = useMessageFiles(projectId);
+  const loadCtxOptions = useServerFn(getPortalRoadmapContextOptions);
+  const { data: ctxOptions } = useQuery({
+    queryKey: ["portal", "messages", "ctx-options", projectId],
+    enabled: !!projectId,
+    queryFn: () => loadCtxOptions({ data: { portalProjectId: projectId! } }),
+  });
   const qc = useQueryClient();
   const search = Route.useSearch();
   const [body, setBody] = useState("");
   const [tab, setTab] = useState<Tab>("all");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [previewFile, setPreviewFile] = useState<FileMeta | null>(null);
+  const [composerPhase, setComposerPhase] = useState<string>("");
+  const [composerMilestone, setComposerMilestone] = useState<string>("");
+  const [filterPhase, setFilterPhase] = useState<string>("");
+  const [filterMilestone, setFilterMilestone] = useState<string>("");
+  const [filterProject, setFilterProject] = useState<"any" | "mine">("any");
   const scrollerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prefillApplied = useRef(false);
 
   const email = ctx.data?.email ?? "";
+
 
   // Pre-fill compose textarea when linked from a roadmap milestone.
   useEffect(() => {
