@@ -37,6 +37,7 @@ export type EngineProjectRow = {
   client_industry: string | null;
   status: EngineProjectStatus;
   current_step: string;
+  current_phase: string;
   roadmap_version: string | null;
   approved_version: string | null;
   agent_status: string;
@@ -46,15 +47,21 @@ export type EngineProjectRow = {
   next_action: string | null;
   last_activity_at: string;
   next_critical_date: { label: string; due_on: string } | null;
+  source_count: number;
+  latest_source_processed: string | null;
+  portal_publish_status: "not_published" | "draft" | "published" | "archived";
+  client_portal_project_id: string | null;
 };
 
 export type CommandCenterPayload = {
   metrics: {
     active_projects: number;
     new_signals: number;
+    sources_processing: number;
     roadmaps_in_progress: number;
     needs_review: number;
     approved: number;
+    portal_published: number;
     deliveries_pending: number;
     in_execution: number;
     blocked_decisions: number;
@@ -68,6 +75,14 @@ export type CommandCenterPayload = {
     client_company: string;
     status: EngineProjectStatus;
     next_action: string | null;
+    due_on: string | null;
+  }>;
+  next_best_actions: Array<{
+    project_id: string;
+    project_name: string;
+    client_company: string;
+    action: string;
+    reason: string;
     due_on: string | null;
   }>;
   active_projects: EngineProjectRow[];
@@ -91,6 +106,7 @@ export type CommandCenterPayload = {
   execution_queue: EngineProjectRow[];
 };
 
+
 type ProjectDbRow = {
   id: string;
   name: string;
@@ -105,12 +121,47 @@ type ProjectDbRow = {
   open_decisions: number;
   next_action: string | null;
   last_activity_at: string;
+  client_portal_project_id: string | null;
   engine_clients: { company: string; industry: string | null } | null;
 };
+
+type ProjectAggregates = {
+  sourceCountByProject: Map<string, number>;
+  sourcesProcessing: number;
+  latestProcessedByProject: Map<string, string>;
+  portalStatusByProject: Map<string, "not_published" | "draft" | "published" | "archived">;
+  portalPublishedCount: number;
+  systemHealth: "green" | "amber" | "red";
+};
+
+// Human-friendly phase label derived from the internal step key. Keeps the
+// projects list readable without adding a new column to engine_projects.
+const STEP_TO_PHASE: Record<string, string> = {
+  intelligence: "Discovery",
+  signal_room: "Discovery",
+  extraction: "Discovery",
+  point_a: "Diagnosis",
+  point_b: "Diagnosis",
+  hidden_assets: "Diagnosis",
+  gap_map: "Diagnosis",
+  blueprint: "Roadmap",
+  roadmap_drafting: "Roadmap",
+  builder: "Roadmap",
+  sequencing: "Roadmap",
+  deadlines: "Roadmap",
+  investment: "Roadmap",
+  preview: "Delivery",
+  delivery: "Delivery",
+};
+
+function phaseFromStep(step: string): string {
+  return STEP_TO_PHASE[step] ?? step.replace(/_/g, " ");
+}
 
 function mapRow(
   r: ProjectDbRow,
   dateByProject: Map<string, { label: string; due_on: string }>,
+  agg: ProjectAggregates,
 ): EngineProjectRow {
   return {
     id: r.id,
@@ -120,6 +171,7 @@ function mapRow(
     client_industry: r.engine_clients?.industry ?? null,
     status: r.status,
     current_step: r.current_step,
+    current_phase: phaseFromStep(r.current_step),
     roadmap_version: r.roadmap_version,
     approved_version: r.approved_version,
     agent_status: r.agent_status,
@@ -129,6 +181,12 @@ function mapRow(
     next_action: r.next_action,
     last_activity_at: r.last_activity_at,
     next_critical_date: dateByProject.get(r.id) ?? null,
+    source_count: agg.sourceCountByProject.get(r.id) ?? 0,
+    latest_source_processed: agg.latestProcessedByProject.get(r.id) ?? null,
+    portal_publish_status: r.client_portal_project_id
+      ? (agg.portalStatusByProject.get(r.client_portal_project_id) ?? "not_published")
+      : "not_published",
+    client_portal_project_id: r.client_portal_project_id,
   };
 }
 
@@ -145,11 +203,15 @@ async function fetchProjects(
       };
     };
   },
-): Promise<{ rows: ProjectDbRow[]; dates: Map<string, { label: string; due_on: string }> }> {
+): Promise<{
+  rows: ProjectDbRow[];
+  dates: Map<string, { label: string; due_on: string }>;
+  agg: ProjectAggregates;
+}> {
   const { data, error } = await supabase
     .from("engine_projects")
     .select(
-      "id,name,client_id,status,current_step,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at, engine_clients(company,industry)",
+      "id,name,client_id,status,current_step,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at,client_portal_project_id, engine_clients(company,industry)",
     )
     .order("last_activity_at", { ascending: false });
   if (error) throw new Error((error as { message?: string }).message ?? "load projects failed");
@@ -163,15 +225,97 @@ async function fetchProjects(
   for (const d of (dateData ?? []) as Array<{ project_id: string; label: string; due_on: string }>) {
     if (!dates.has(d.project_id)) dates.set(d.project_id, { label: d.label, due_on: d.due_on });
   }
-  return { rows, dates };
+
+  // Source aggregates (count per project, latest processed timestamp, and
+  // in-flight extraction count for the Command Center metric).
+  const sourceCountByProject = new Map<string, number>();
+  const latestProcessedByProject = new Map<string, string>();
+  let sourcesProcessing = 0;
+  const { data: srcData } = await supabase
+    .from("engine_sources")
+    .select("project_id,status,updated_at")
+    .order("updated_at", { ascending: false });
+  for (const s of (srcData ?? []) as Array<{
+    project_id: string;
+    status: string;
+    updated_at: string;
+  }>) {
+    sourceCountByProject.set(s.project_id, (sourceCountByProject.get(s.project_id) ?? 0) + 1);
+    if (s.status === "processed" && !latestProcessedByProject.has(s.project_id)) {
+      latestProcessedByProject.set(s.project_id, s.updated_at);
+    }
+    if (s.status === "queued" || s.status === "processing") sourcesProcessing += 1;
+  }
+
+  // Portal publish status per portal project (rows already ordered newest first).
+  const portalStatusByProject = new Map<
+    string,
+    "not_published" | "draft" | "published" | "archived"
+  >();
+  const { data: portalData } = await supabase
+    .from("client_portal_roadmaps")
+    .select("project_id,status,updated_at")
+    .order("updated_at", { ascending: false });
+  for (const p of (portalData ?? []) as Array<{ project_id: string; status: string }>) {
+    if (portalStatusByProject.has(p.project_id)) continue;
+    const s = (p.status ?? "").toLowerCase();
+    const mapped: "not_published" | "draft" | "published" | "archived" =
+      s === "published" || s === "client_facing"
+        ? "published"
+        : s === "archived"
+          ? "archived"
+          : "draft";
+    portalStatusByProject.set(p.project_id, mapped);
+  }
+  const portalPublishedCount = Array.from(portalStatusByProject.values()).filter(
+    (v) => v === "published",
+  ).length;
+
+  // System health: red if any extraction failed in the last 24h or any
+  // agent alert with severity error; amber for warnings; else green.
+  let systemHealth: "green" | "amber" | "red" = "green";
+  const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { data: failedSrc } = await supabase
+    .from("engine_sources")
+    .select("id,status,updated_at")
+    .order("updated_at", { ascending: false });
+  for (const s of (failedSrc ?? []) as Array<{ status: string; updated_at: string }>) {
+    if (s.status === "failed" && s.updated_at >= dayAgo) {
+      systemHealth = "red";
+      break;
+    }
+  }
+  if (systemHealth === "green") {
+    const { data: sev } = await supabase
+      .from("engine_activity")
+      .select("severity,created_at")
+      .order("created_at", { ascending: false });
+    for (const a of ((sev ?? []) as Array<{ severity: string; created_at: string }>).slice(0, 25)) {
+      if (a.severity === "error") { systemHealth = "red"; break; }
+      if (a.severity === "warning" || a.severity === "warn") systemHealth = "amber";
+    }
+  }
+
+  return {
+    rows,
+    dates,
+    agg: {
+      sourceCountByProject,
+      sourcesProcessing,
+      latestProcessedByProject,
+      portalStatusByProject,
+      portalPublishedCount,
+      systemHealth,
+    },
+  };
 }
 
 export const getCommandCenter = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<CommandCenterPayload> => {
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
-    const { rows, dates } = await fetchProjects(context.supabase as never);
-    const projects = rows.map((r) => mapRow(r, dates));
+    const { rows, dates, agg } = await fetchProjects(context.supabase as never);
+    const projects = rows.map((r) => mapRow(r, dates, agg));
 
     const now = Date.now();
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
@@ -236,17 +380,19 @@ export const getCommandCenter = createServerFn({ method: "GET" })
     const metrics = {
       active_projects: projects.filter((p) => p.status === "active").length,
       new_signals: signalCount ?? 0,
+      sources_processing: agg.sourcesProcessing,
       roadmaps_in_progress: projects.filter(
         (p) => p.status === "draft" || p.current_step === "roadmap_drafting",
       ).length,
       needs_review: projects.filter((p) => p.status === "needs_review").length,
       approved: projects.filter((p) => p.status === "approved").length,
+      portal_published: agg.portalPublishedCount,
       deliveries_pending: projects.filter((p) => p.status === "delivered").length,
       in_execution: projects.filter((p) => p.status === "in_execution").length,
       blocked_decisions: projects.filter((p) => p.status === "blocked").length,
       agent_spend_cents: projects.reduce((s, p) => s + p.agent_spend_month_cents, 0),
       agent_budget_cents: projects.reduce((s, p) => s + p.agent_budget_monthly_cents, 0),
-      system_health: "green" as const,
+      system_health: agg.systemHealth,
     };
 
     const priority = projects
@@ -266,9 +412,56 @@ export const getCommandCenter = createServerFn({ method: "GET" })
         due_on: p.next_critical_date?.due_on ?? null,
       }));
 
+    // Next Best Actions — ranked by status urgency + deadline. Purely
+    // derived so operators see one aggregate to-do list across the portfolio.
+    const STATUS_WEIGHT: Partial<Record<EngineProjectStatus, number>> = {
+      blocked: 100,
+      needs_review: 80,
+      approved: 60,
+      delivered: 40,
+      in_execution: 20,
+      active: 10,
+      draft: 5,
+    };
+    const REASON: Partial<Record<EngineProjectStatus, string>> = {
+      blocked: "Blocked on a client decision — unblock or reassign.",
+      needs_review: "Draft is waiting on operator review.",
+      approved: "Approved — publish to the client portal.",
+      delivered: "Delivered — chase acknowledgement and move to execution.",
+      in_execution: "Execution in flight — check for blocked tasks.",
+      active: "Keep momentum on the current step.",
+      draft: "Draft in progress — send to review when ready.",
+    };
+    const nextBestActions = projects
+      .filter((p) => p.next_action || STATUS_WEIGHT[p.status])
+      .map((p) => ({
+        project_id: p.id,
+        project_name: p.name,
+        client_company: p.client_company,
+        action: p.next_action ?? `Advance ${p.name}`,
+        reason: REASON[p.status] ?? "Follow up on next step.",
+        due_on: p.next_critical_date?.due_on ?? null,
+        _rank:
+          (STATUS_WEIGHT[p.status] ?? 0) +
+          (p.next_critical_date
+            ? Math.max(
+                0,
+                40 -
+                  Math.floor(
+                    (new Date(p.next_critical_date.due_on).getTime() - now) /
+                      (24 * 3600 * 1000),
+                  ),
+              )
+            : 0),
+      }))
+      .sort((a, b) => b._rank - a._rank)
+      .slice(0, 6)
+      .map(({ _rank: _r, ...rest }) => rest);
+
     return {
       metrics,
       priority_queue: priority,
+      next_best_actions: nextBestActions,
       active_projects: projects.filter((p) => p.status === "active").slice(0, 6),
       agent_alerts: alerts,
       upcoming_deadlines: upcoming,
@@ -277,6 +470,7 @@ export const getCommandCenter = createServerFn({ method: "GET" })
       execution_queue: projects.filter((p) => p.status === "in_execution").slice(0, 5),
     };
   });
+
 
 const ListInput = z.object({
   filter: z
@@ -300,8 +494,8 @@ export const listProjects = createServerFn({ method: "GET" })
   .inputValidator((raw: unknown) => ListInput.parse(raw ?? {}))
   .handler(async ({ context, data }): Promise<{ rows: EngineProjectRow[] }> => {
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
-    const { rows, dates } = await fetchProjects(context.supabase as never);
-    let out = rows.map((r) => mapRow(r, dates));
+    const { rows, dates, agg } = await fetchProjects(context.supabase as never);
+    let out = rows.map((r) => mapRow(r, dates, agg));
     if (data.filter !== "all") out = out.filter((r) => r.status === data.filter);
     if (data.q) {
       const q = data.q.toLowerCase();

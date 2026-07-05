@@ -35,15 +35,17 @@ function CommandCenter() {
         </p>
       </header>
 
-      <section aria-labelledby="metrics" className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <section aria-labelledby="metrics" className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <h2 id="metrics" className="sr-only">
           Key metrics
         </h2>
         <MetricCard label="Active Projects" value={data.metrics.active_projects} tone="green" />
         <MetricCard label="New Signals" value={data.metrics.new_signals} tone="blue" />
+        <MetricCard label="Sources Processing" value={data.metrics.sources_processing} tone="blue" />
         <MetricCard label="Roadmaps Drafting" value={data.metrics.roadmaps_in_progress} tone="blue" />
         <MetricCard label="Needs Review" value={data.metrics.needs_review} tone="orange" />
         <MetricCard label="Approved" value={data.metrics.approved} tone="green" />
+        <MetricCard label="Portal Published" value={data.metrics.portal_published} tone="green" />
         <MetricCard label="Deliveries Pending" value={data.metrics.deliveries_pending} tone="purple" />
         <MetricCard label="In Execution" value={data.metrics.in_execution} tone="blue" />
         <MetricCard label="Blocked" value={data.metrics.blocked_decisions} tone="red" />
@@ -54,10 +56,34 @@ function CommandCenter() {
         />
         <MetricCard
           label="System Health"
-          value={data.metrics.system_health === "green" ? "OK" : data.metrics.system_health}
-          tone={data.metrics.system_health === "green" ? "green" : "orange"}
+          value={data.metrics.system_health === "green" ? "OK" : data.metrics.system_health.toUpperCase()}
+          tone={data.metrics.system_health === "green" ? "green" : data.metrics.system_health === "amber" ? "orange" : "red"}
         />
       </section>
+
+      <SectionCard title="Next best actions" right={<span className="text-xs text-ink/50">Ranked by status + deadline</span>}>
+        {data.next_best_actions.length === 0 ? (
+          <EmptyState title="Everything is on track" hint="No actions ranked for now." />
+        ) : (
+          <ol className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {data.next_best_actions.map((a) => (
+              <li key={`${a.project_id}-${a.action}`} className="rounded-lg border border-border p-3 hover:border-royal/50 transition">
+                <Link
+                  to="/engine/projects/$projectId/overview"
+                  params={{ projectId: a.project_id }}
+                  className="block"
+                >
+                  <div className="text-xs text-ink/50">{a.client_company} · {a.project_name}</div>
+                  <div className="text-sm text-ink font-medium mt-1">{a.action}</div>
+                  <div className="text-xs text-ink/60 mt-1">{a.reason}</div>
+                  {a.due_on ? <div className="text-[11px] text-ink/50 mt-1 font-mono">Due {formatDate(a.due_on)}</div> : null}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        )}
+      </SectionCard>
+
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <SectionCard title="Priority queue" className="xl:col-span-2">

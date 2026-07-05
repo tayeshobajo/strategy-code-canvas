@@ -154,10 +154,12 @@ function DeliveryRoomPage() {
                   <th className="px-3 py-2.5">Roadmap</th>
                   <th className="px-3 py-2.5">Ver</th>
                   <th className="px-3 py-2.5">Status</th>
+                  <th className="px-3 py-2.5">Portal</th>
                   <th className="px-3 py-2.5">Recipient</th>
                   <th className="px-3 py-2.5">Last Action</th>
                   <th className="px-5 py-2.5 text-right">Next Steps</th>
                 </tr>
+
               </thead>
               <tbody>
                 {rows.map((d) => (
@@ -173,11 +175,15 @@ function DeliveryRoomPage() {
                         {STATUS_META[d.status].label}
                       </span>
                     </td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <PortalPublishBadge status={d.portal_publish_status} url={d.portal_share_url} />
+                    </td>
                     <td className="px-3 py-3">
                       <div className="text-ink">{d.recipient}</div>
                       <div className="text-xs text-ink/60">{d.recipient_role}</div>
                     </td>
                     <td className="px-3 py-3 text-xs text-ink/70 whitespace-nowrap">{d.last_action}</td>
+
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap justify-end gap-1">
                         {TRANSITIONS[d.status].map((t) => (
@@ -199,13 +205,14 @@ function DeliveryRoomPage() {
                 {showSkeleton ? (
                   Array.from({ length: 4 }).map((_, i) => (
                     <tr key={`sk-${i}`} className="border-b border-border/60">
-                      {Array.from({ length: 7 }).map((__, j) => (
+                      {Array.from({ length: 8 }).map((__, j) => (
                         <td key={j} className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
                       ))}
                     </tr>
                   ))
                 ) : rows.length === 0 ? (
-                  <tr><td colSpan={7} className="px-5 py-8 text-center text-ink/50 text-sm">No deliveries in this view.</td></tr>
+                  <tr><td colSpan={8} className="px-5 py-8 text-center text-ink/50 text-sm">No deliveries in this view.</td></tr>
+
                 ) : null}
               </tbody>
             </table>
@@ -292,3 +299,28 @@ function HistoryDialog({ delivery, onClose }: { delivery: DeliveryItem; onClose:
     </div>
   );
 }
+
+function PortalPublishBadge({
+  status,
+  url,
+}: {
+  status: "not_published" | "draft" | "published" | "archived";
+  url: string | null;
+}) {
+  const meta: Record<typeof status, { label: string; cls: string }> = {
+    not_published: { label: "Not published", cls: "bg-paper-soft text-ink/60 border-border" },
+    draft: { label: "Portal draft", cls: "bg-[#efe9fb] text-[#5435a4] border-[#dccdf3]" },
+    published: { label: "Published", cls: "bg-[#e6f5ec] text-[#1f6b3b] border-[#c4e6d2]" },
+    archived: { label: "Archived", cls: "bg-[#ecedf0] text-[#5a5d70] border-[#d6d8df]" },
+  };
+  const m = meta[status];
+  const pill = (
+    <span className={cn("inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border whitespace-nowrap", m.cls)}>
+      {m.label}
+    </span>
+  );
+  return status === "published" && url ? (
+    <a href={url} target="_blank" rel="noreferrer" className="hover:underline">{pill}</a>
+  ) : pill;
+}
+

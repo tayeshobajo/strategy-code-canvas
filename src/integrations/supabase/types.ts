@@ -1088,9 +1088,13 @@ export type Database = {
           actor_email: string | null
           affected_modules: string[]
           created_at: string
+          field_changed: string | null
           id: string
           metadata: Json
+          new_value: Json | null
+          old_value: Json | null
           project_id: string
+          reason: string | null
           summary: string | null
           target_id: string | null
           version_id: string | null
@@ -1100,9 +1104,13 @@ export type Database = {
           actor_email?: string | null
           affected_modules?: string[]
           created_at?: string
+          field_changed?: string | null
           id?: string
           metadata?: Json
+          new_value?: Json | null
+          old_value?: Json | null
           project_id: string
+          reason?: string | null
           summary?: string | null
           target_id?: string | null
           version_id?: string | null
@@ -1112,9 +1120,13 @@ export type Database = {
           actor_email?: string | null
           affected_modules?: string[]
           created_at?: string
+          field_changed?: string | null
           id?: string
           metadata?: Json
+          new_value?: Json | null
+          old_value?: Json | null
           project_id?: string
+          reason?: string | null
           summary?: string | null
           target_id?: string | null
           version_id?: string | null
