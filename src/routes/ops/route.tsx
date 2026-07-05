@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/ops/NotificationBell";
 import {
   Archive,
   CheckCircle2,
