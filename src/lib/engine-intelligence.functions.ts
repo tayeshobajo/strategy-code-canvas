@@ -1253,6 +1253,36 @@ export async function runIntelligencePipelineInternal(
     version_id: version.id,
   });
 
+  // Fan out an in-app operator notification when a re-run produced a
+  // milestone diff. Non-blocking; email/review-queue signal is still primary.
+  if (diffCounts > 0) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await (supabaseAdmin.from("operator_notifications") as unknown as {
+        insert: (r: Record<string, unknown>) => Promise<{ error: unknown }>;
+      }).insert({
+        kind: "milestone_review",
+        submission_id: null,
+        title: `Milestone changes suggested for ${project.name} (${nextVersion})`,
+        body: `${suggestedMilestoneChanges!.added.length} added · ${suggestedMilestoneChanges!.modified.length} modified · ${suggestedMilestoneChanges!.removed.length} removed`,
+        href: `/engine/projects/${args.projectId}/versions/compare?version=${version.id}`,
+        metadata: {
+          project_id: args.projectId,
+          project_name: project.name,
+          version_id: version.id,
+          version: nextVersion,
+          added: suggestedMilestoneChanges!.added.length,
+          modified: suggestedMilestoneChanges!.modified.length,
+          removed: suggestedMilestoneChanges!.removed.length,
+        },
+      });
+    } catch (notifErr) {
+      console.warn("[runIntelligencePipeline] operator notification insert failed", notifErr);
+    }
+  }
+
+
+
 
   // Update project spend + activity
   const { data: proj } = await sb

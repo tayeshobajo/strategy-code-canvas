@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect, Link, useRouterState } from "@tansta
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
 import { isAdminEmail } from "@/lib/ops/access";
-import { ClipboardList, Users, Settings, ShieldCheck, MailCheck } from "lucide-react";
+import { ClipboardList, Users, Settings, ShieldCheck, MailCheck, GitBranch } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -70,6 +70,12 @@ function AdminLayout() {
             className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/intake-alerts") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
           >
             <MailCheck className="w-4 h-4" /> Intake alerts
+          </Link>
+          <Link
+            to="/admin/milestone-changes"
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/milestone-changes") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <GitBranch className="w-4 h-4" /> Milestone changes
           </Link>
         </nav>
       </aside>

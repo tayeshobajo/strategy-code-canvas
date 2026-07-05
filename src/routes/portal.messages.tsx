@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
@@ -26,7 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { sendPortalMessage } from "@/lib/portal.functions";
+import { sendPortalMessage, getPortalRoadmapContextOptions } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { usePortalContext } from "@/hooks/use-portal-context";
@@ -59,6 +60,9 @@ type Message = {
   action_required: boolean;
   action_completed_at: string | null;
   related_file_ids: string[];
+  related_milestone_id: string | null;
+  related_phase_id: string | null;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 };
 
@@ -93,7 +97,7 @@ function useMessages(projectId: string | undefined) {
       const { data, error } = await supabase
         .from("client_portal_messages")
         .select(
-          "id, project_id, sender_type, author_email, subject, body, message_type, action_required, action_completed_at, related_file_ids, created_at",
+          "id, project_id, sender_type, author_email, subject, body, message_type, action_required, action_completed_at, related_file_ids, related_milestone_id, related_phase_id, metadata, created_at",
         )
         .eq("project_id", projectId!)
         .eq("visible_to_client", true)
@@ -145,17 +149,29 @@ function MessagesPage() {
   const projectId = project?.id;
   const { data: messages, isLoading, isError, refetch } = useMessages(projectId);
   const { data: fileMap } = useMessageFiles(projectId);
+  const loadCtxOptions = useServerFn(getPortalRoadmapContextOptions);
+  const { data: ctxOptions } = useQuery({
+    queryKey: ["portal", "messages", "ctx-options", projectId],
+    enabled: !!projectId,
+    queryFn: () => loadCtxOptions({ data: { portalProjectId: projectId! } }),
+  });
   const qc = useQueryClient();
   const search = Route.useSearch();
   const [body, setBody] = useState("");
   const [tab, setTab] = useState<Tab>("all");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [previewFile, setPreviewFile] = useState<FileMeta | null>(null);
+  const [composerPhase, setComposerPhase] = useState<string>("");
+  const [composerMilestone, setComposerMilestone] = useState<string>("");
+  const [filterPhase, setFilterPhase] = useState<string>("");
+  const [filterMilestone, setFilterMilestone] = useState<string>("");
+  const [filterProject, setFilterProject] = useState<"any" | "mine">("any");
   const scrollerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prefillApplied = useRef(false);
 
   const email = ctx.data?.email ?? "";
+
 
   // Pre-fill compose textarea when linked from a roadmap milestone.
   useEffect(() => {
@@ -244,7 +260,7 @@ function MessagesPage() {
   const uploadsPending = attachments.some((a) => a.status === "uploading" || a.status === "queued");
 
   const send = useMutation({
-    mutationFn: async (payload: { text: string; fileIds: string[] }) => {
+    mutationFn: async (payload: { text: string; fileIds: string[]; phaseKey?: string; milestoneSlug?: string; milestoneTitle?: string }) => {
       if (!projectId) throw new Error("No workspace yet");
       await sendPortalMessage({
         data: {
@@ -252,6 +268,14 @@ function MessagesPage() {
           body: payload.text,
           relatedFileIds: payload.fileIds,
           messageType: "reply",
+          roadmapContext:
+            payload.phaseKey || payload.milestoneSlug
+              ? {
+                  phaseKey: payload.phaseKey || undefined,
+                  milestoneSlug: payload.milestoneSlug || undefined,
+                  milestoneTitle: payload.milestoneTitle || undefined,
+                }
+              : undefined,
         },
       });
     },
@@ -269,6 +293,9 @@ function MessagesPage() {
         action_required: false,
         action_completed_at: null,
         related_file_ids: payload.fileIds,
+        related_milestone_id: null,
+        related_phase_id: null,
+        metadata: null,
         created_at: new Date().toISOString(),
       };
       qc.setQueryData<Message[]>(
@@ -277,6 +304,8 @@ function MessagesPage() {
       );
       setBody("");
       setAttachments([]);
+      setComposerPhase("");
+      setComposerMilestone("");
       return { previous };
     },
     onError: (e: Error, _p, ctx) => {
@@ -294,11 +323,27 @@ function MessagesPage() {
 
   const filtered = useMemo(() => {
     if (!messages) return [];
-    if (tab === "updates") return messages.filter((m) => m.sender_type !== "client");
-    if (tab === "replies") return messages.filter((m) => m.sender_type === "client");
-    if (tab === "actions") return messages.filter((m) => m.action_required && !m.action_completed_at);
-    return messages;
-  }, [messages, tab]);
+    let list = messages;
+    if (tab === "updates") list = list.filter((m) => m.sender_type !== "client");
+    else if (tab === "replies") list = list.filter((m) => m.sender_type === "client");
+    else if (tab === "actions") list = list.filter((m) => m.action_required && !m.action_completed_at);
+    if (filterProject === "mine") {
+      list = list.filter((m) => (m.metadata as { roadmap_context?: unknown } | null)?.roadmap_context || m.related_milestone_id);
+    }
+    if (filterPhase) {
+      list = list.filter((m) => {
+        const rc = (m.metadata as { roadmap_context?: { phaseKey?: string } } | null)?.roadmap_context;
+        return rc?.phaseKey === filterPhase;
+      });
+    }
+    if (filterMilestone) {
+      list = list.filter((m) => {
+        const rc = (m.metadata as { roadmap_context?: { milestoneSlug?: string } } | null)?.roadmap_context;
+        return rc?.milestoneSlug === filterMilestone;
+      });
+    }
+    return list;
+  }, [messages, tab, filterPhase, filterMilestone, filterProject]);
 
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
 
@@ -356,6 +401,57 @@ function MessagesPage() {
             ))}
           </div>
 
+          {/* Filters */}
+          {(ctxOptions?.phases?.length || ctxOptions?.milestones?.length) ? (
+            <div className="flex items-center gap-2 flex-wrap border-b border-rule-soft px-6 py-2.5 text-[12px] bg-paper-soft/40">
+              <span className="text-[11px] uppercase tracking-wider text-ink/50 mr-1">Filter:</span>
+              <select
+                value={filterProject}
+                onChange={(e) => setFilterProject(e.target.value as "any" | "mine")}
+                className="rounded-md border border-rule-soft bg-card px-2 py-1"
+                aria-label="Filter by project"
+              >
+                <option value="any">Any project link</option>
+                <option value="mine">Roadmap-linked only</option>
+              </select>
+              {ctxOptions.phases.length > 0 && (
+                <select
+                  value={filterPhase}
+                  onChange={(e) => setFilterPhase(e.target.value)}
+                  className="rounded-md border border-rule-soft bg-card px-2 py-1"
+                  aria-label="Filter by phase"
+                >
+                  <option value="">Any phase</option>
+                  {ctxOptions.phases.map((p) => (
+                    <option key={p.key} value={p.key}>{p.label}</option>
+                  ))}
+                </select>
+              )}
+              {ctxOptions.milestones.length > 0 && (
+                <select
+                  value={filterMilestone}
+                  onChange={(e) => setFilterMilestone(e.target.value)}
+                  className="rounded-md border border-rule-soft bg-card px-2 py-1 max-w-[240px]"
+                  aria-label="Filter by milestone"
+                >
+                  <option value="">Any milestone</option>
+                  {ctxOptions.milestones.map((m) => (
+                    <option key={m.slug} value={m.slug}>{m.title}</option>
+                  ))}
+                </select>
+              )}
+              {(filterPhase || filterMilestone || filterProject !== "any") && (
+                <button
+                  type="button"
+                  onClick={() => { setFilterPhase(""); setFilterMilestone(""); setFilterProject("any"); }}
+                  className="text-[11px] text-ink/50 hover:text-ink underline"
+                >
+                  clear
+                </button>
+              )}
+            </div>
+          ) : null}
+
           {/* Scroller */}
           <div
             ref={scrollerRef}
@@ -392,9 +488,57 @@ function MessagesPage() {
               const fileIds = attachments
                 .filter((a) => a.status === "success" && a.uploadedId)
                 .map((a) => a.uploadedId!) as string[];
-              send.mutate({ text, fileIds });
+              const msTitle = ctxOptions?.milestones.find((m) => m.slug === composerMilestone)?.title;
+              send.mutate({
+                text,
+                fileIds,
+                phaseKey: composerPhase || undefined,
+                milestoneSlug: composerMilestone || undefined,
+                milestoneTitle: msTitle,
+              });
             }}
           >
+            {/* Roadmap context picker */}
+            {(ctxOptions?.phases?.length || ctxOptions?.milestones?.length) ? (
+              <div className="mb-3 flex flex-wrap gap-2 items-center">
+                <span className="text-[11px] uppercase tracking-wider text-ink/50">Link to:</span>
+                {ctxOptions.phases.length > 0 && (
+                  <select
+                    value={composerPhase}
+                    onChange={(e) => setComposerPhase(e.target.value)}
+                    className="text-[12px] rounded-md border border-rule-soft bg-card px-2 py-1"
+                    aria-label="Related phase"
+                  >
+                    <option value="">Any phase</option>
+                    {ctxOptions.phases.map((p) => (
+                      <option key={p.key} value={p.key}>{p.label}</option>
+                    ))}
+                  </select>
+                )}
+                {ctxOptions.milestones.length > 0 && (
+                  <select
+                    value={composerMilestone}
+                    onChange={(e) => setComposerMilestone(e.target.value)}
+                    className="text-[12px] rounded-md border border-rule-soft bg-card px-2 py-1 max-w-[260px]"
+                    aria-label="Related milestone"
+                  >
+                    <option value="">Any milestone</option>
+                    {ctxOptions.milestones.map((m) => (
+                      <option key={m.slug} value={m.slug}>{m.title}</option>
+                    ))}
+                  </select>
+                )}
+                {(composerPhase || composerMilestone) && (
+                  <button
+                    type="button"
+                    onClick={() => { setComposerPhase(""); setComposerMilestone(""); }}
+                    className="text-[11px] text-ink/50 hover:text-ink underline"
+                  >
+                    clear
+                  </button>
+                )}
+              </div>
+            ) : null}
             <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -403,6 +547,7 @@ function MessagesPage() {
               rows={2}
               className="resize-none bg-card border-rule-soft focus-visible:ring-royal/40"
             />
+
 
             {attachments.length > 0 && (
               <ul className="mt-3 flex flex-col gap-1.5">
