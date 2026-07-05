@@ -2110,6 +2110,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          version_id: string | null
         }
         Insert: {
           client_portal_project_id?: string | null
@@ -2124,6 +2125,7 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          version_id?: string | null
         }
         Update: {
           client_portal_project_id?: string | null
@@ -2138,6 +2140,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          version_id?: string | null
         }
         Relationships: [
           {
@@ -2159,6 +2162,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_review_items_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
             referencedColumns: ["id"]
           },
         ]
