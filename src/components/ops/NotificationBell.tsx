@@ -63,13 +63,6 @@ export function NotificationBell() {
           qc.invalidateQueries({ queryKey: ["operator-notifications"] });
         },
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "operator_notification_reads" },
-        () => {
-          qc.invalidateQueries({ queryKey: ["operator-notifications"] });
-        },
-      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
