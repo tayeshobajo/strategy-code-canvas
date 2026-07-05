@@ -1,76 +1,55 @@
-## G-4 — No more half-born projects
+# Bridge Plan Verification Audit
 
-### Problem (audit-confirmed)
+Most of the Phase 0–4 bridge work already landed in earlier turns. This plan does a systematic top-to-bottom verification, runs the existing tests, and fixes anything that fails or is missing — without redesigning UI.
 
-`createProjectFromSource` inserts six sibling rows best-effort (project agent, agent permissions, v0.0 roadmap container, portal project, portal permission, portal back-link). Any failure logs an `integrity_warning` in `engine_activity` and continues. Result: an `engine_projects` row can exist without agent config, without a container version, or without portal linkage, and the intake UI reports success. `verifyProjectIntegrity` already exists as a diagnostic, but nothing gates on it.
+## Approach
 
-### Contract this change enforces
+For each phase, I will:
+1. Read the current implementation.
+2. Run the corresponding test(s).
+3. Report status (green / gap / broken).
+4. Patch gaps in the same pass.
 
-1. **Every project declares its delivery mode at creation.**
-2. **Hard-required siblings are always required** — a project with no agent config or no v0.0 container is never created.
-3. **Portal linkage is required only when the project is client-facing** — internal experiments do not force a portal project.
-4. **On any required-sibling failure, the project is rolled back**, not left half-born.
+## Phase 0 — Publish integrity
 
-### Design
+- **0.1 Publish column** — Confirm `publishVersionToPortal` writes `approved_roadmap_version_id` and that `tg_client_portal_roadmaps_require_source_version` reads the same column. Run `publish-column-integrity.test.ts` and `review-item-and-publish-gates.test.ts`. Verify draft (`status = 'ai_generated'`) cannot be published.
+- **0.2 Source visibility** — Confirm DB default `engine_sources.visibility = 'internal_only'` and every insert path sets it explicitly (`createProjectFromSource`, `createSource`, `submitPortalOnboarding`, `reprocessSource`, Signal Room, transcript imports, notes, URLs). Run `source-visibility-*.test.ts` and `portal-cannot-read-engine-sources.test.ts`.
+- **0.3 Review-item version_id** — Confirm `engine_review_items.version_id` FK exists, is populated on AI pipeline + `submitVersionForApproval`, and `decideReviewItem` approves by `version_id` (no `rows[0]` fallback). Run `review-item-version-fk.test.ts`.
 
-#### 1. New column: `engine_projects.delivery_mode`
+## Phase 1 — Intake becomes intelligence
 
-Migration adds:
-- Enum type `engine_delivery_mode`: `internal_only | client_portal_required`.
-- Column `delivery_mode engine_delivery_mode NOT NULL DEFAULT 'client_portal_required'`.
-  - Default is client-facing because that's the shipping-product norm; operators opt into `internal_only` for experiments.
+- **1.1 Onboarding → pipeline** — Confirm `submitPortalOnboarding` inserts source with `visibility='internal_only'` then calls `runIntelligencePipelineInternal`, transitions source/project/extraction_run statuses, creates draft version + review item, and never exposes draft to portal. Run `onboarding-triggers-extraction.test.ts`.
+- **1.2 Extraction retry/failure** — Verify failed runs mark `engine_extraction_runs.status='failed'` with error, and expose a retry action (admin or `/engine/projects/:id/extraction`). Add a test for retry if missing.
+- **1.3 Creation-time file upload** — Inspect `/engine/projects/new` upload tab. If it is a stub, disable/hide it (no fake path). If wired, add a smoke test.
 
-Backfill for existing rows: any row with `client_portal_project_id IS NOT NULL` stays `client_portal_required`; rows without a linked portal but with a `client_id` whose `contact_email` is null become `internal_only`; anything else stays the default.
+## Phase 2 — Project creation integrity
 
-#### 2. Extend `CreateInput` for `createProjectFromSource`
+- **2.1 `verifyProjectIntegrity` after `createProjectFromSource`** — Confirm it runs immediately, respects `delivery_mode`, and rolls back or hard-warns on missing siblings. Run `project-integrity-rollback.test.ts`.
+- **2.2 delivery_mode enforcement** — Confirm `client_portal_required` blocks creation without `client_portal_project_id`.
+- **2.3 Repair action** — Verify an admin surface exists to repair orphaned engine/portal projects. If absent, add a `repairProjectIntegrity` server fn + admin button.
 
-Accept optional `deliveryMode: 'internal_only' | 'client_portal_required'`. If not supplied, derive:
-- Contact email present (either via `newClient.contact_email` or the resolved existing client) → `client_portal_required`.
-- Otherwise → `internal_only`.
+## Phase 3 — Portal canvas fidelity
 
-Store the resolved mode on `engine_projects.delivery_mode` in the initial insert.
+- **3.1 `client_safe_canvas` shape** — Read `buildClientSafeCanvas` in `roadmap-publish.ts`. Confirm it emits `{pointA, pointB, phases, milestones, decisions, deliverables, deadlines, clientActions}` with the required per-phase and per-milestone fields.
+- **3.2 Portal reads canvas first** — Confirm `getPortalRoadmapDocs` reads `client_safe_canvas` first and only falls back to `sequence_30_60_90` when absent. Fix bridge so Point A/B resolves from canvas, never falls back to summary/diagnosis when approved values exist.
+- **3.3 No direct engine reads** — Grep `/portal/*` code to confirm no route reads `engine_*` tables directly.
 
-#### 3. Integrity gate — replace best-effort with fail-and-rollback
+## Phase 4 — Feedback loop
 
-After the sibling insert block, call an inline `assertProjectIntegrity(projectId, deliveryMode)` helper:
+- **4.1 Portal → engine_activity mirrors** — Confirm mirrors exist for `sendPortalMessage`, `recordPortalMilestoneReview`, important file view/download, onboarding submit. Verify `action_required=true` messages create a follow-up review item or task.
+- **4.2 Canonical messages table** — Confirm `portal_messages` is dropped and `/portal/messages` reads/writes `client_portal_messages` with structured `related_*` fields.
 
-- **Always required:** `engine_project_agents`, `engine_agent_permissions`, `engine_roadmap_versions` (v0.0 container).
-- **Additionally required when `delivery_mode = 'client_portal_required'`:** `client_portal_project_id` link on `engine_projects`, `client_portal_projects` row, at least one non-revoked `client_portal_permissions` row.
-- On mismatch: log a single `integrity_failure` `engine_activity` (kept for audit), then delete the just-created `engine_projects` row. FK cascades handle sibling rows for the tables that already cascade; explicitly delete the agent/permission/version rows for those that don't. Then `throw new Error("Project creation failed integrity check: <missing list>")`. Do not proceed to source insert or pipeline kick-off.
-- If `client_portal_required` and no contact email is available, refuse at the top of the handler with a clear error before any inserts run — avoids the wasted round-trip.
+## Deliverables
 
-#### 4. Keep `verifyProjectIntegrity` as ongoing diagnostic
+For every phase item above, one of:
+- Green (test passes, no change needed) — noted in final report.
+- Gap (missing test or code) — added in this pass.
+- Broken (test fails) — fixed in this pass.
 
-Extend it to also return `delivery_mode` and adjust the `ok` calculation: missing portal rows are only a failure when `delivery_mode = 'client_portal_required'`. Internal-only projects with no portal linkage report `portal_project: null` and stay `ok: true`.
+Final report enumerates status per item plus a list of any files changed.
 
-### Files touched
+## Notes
 
-- **Migration** (new): add enum + `delivery_mode` column + backfill.
-- **`src/integrations/supabase/types.ts`**: regenerated after migration approval (automatic).
-- **`src/lib/engine-project-intake.functions.ts`**:
-  - Extend `CreateInput` with optional `deliveryMode`.
-  - Resolve/set `delivery_mode` on the project insert.
-  - Add `assertProjectIntegrity` inline helper; call it before source insert / pipeline kick-off.
-  - Rollback path: delete the project row on failure, log `integrity_failure`, throw.
-  - Extend `verifyProjectIntegrity` to honour `delivery_mode`.
-- **Guard test** (new): `src/lib/__tests__/project-integrity-rollback.test.ts`
-  - `createProjectFromSource` source contains `assertProjectIntegrity` call before source insert.
-  - Rollback deletes the project row on failure (asserted by grep on the rollback branch).
-  - `client_portal_required` with no contact email throws before any insert (regex).
-  - `verifyProjectIntegrity` returns `ok: true` for internal_only projects with no portal linkage.
-- **`.lovable/engine-qa-audit.md`**: add G-4 closure log entry.
-
-### What this plan explicitly does **not** do
-
-- No wrap in a Postgres transaction / RPC-based single-shot insert (would need a `SECURITY DEFINER` function; over-engineered for the win here — sequential inserts + rollback is enough and easier to audit).
-- No change to `submitPortalOnboarding` or `createSource` — those don't create engine projects.
-- No UI surfacing of `delivery_mode` in the intake form yet — the auto-derive rule covers today's flows, and an explicit toggle can land in a follow-up.
-
-### Success criteria
-
-- Migration approved and applied; `engine_projects.delivery_mode` exists with the enum and correct default.
-- New tests pass.
-- Existing G-0…G-3 guard tests still pass.
-- Manually simulated failure of any required sibling insert during creation results in the `engine_projects` row being gone and the caller receiving an error (verifiable via a follow-up ops check).
-
-Ready to switch to build mode when you approve.
+- No UI redesign.
+- No schema changes unless a gap requires one (e.g. missing DB default). Schema changes go through the migration tool with GRANT + RLS.
+- All new server fns follow `createServerFn` + `requireSupabaseAuth` conventions.

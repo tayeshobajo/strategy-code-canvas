@@ -27,7 +27,7 @@ function psql(sql: string): string {
 
 
 describe.skipIf(!HAS_PG)("engine_sources.visibility live-DB defense (G-3)", () => {
-  it("inserting a source without visibility yields visibility='internal_only'", () => {
+  it("inserting a source without visibility yields visibility='internal_only'", { timeout: 30000 }, () => {
     // Need a real engine_project row to satisfy the FK.
     const projectId = psql(
       `SELECT id FROM public.engine_projects ORDER BY created_at DESC LIMIT 1`,

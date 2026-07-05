@@ -19,7 +19,7 @@ const bullet: React.CSSProperties = {
 const Email = ({
   recipientName,
   grantedByName,
-  adminDashboardUrl = 'https://www.trust-tai.com/admin',
+  adminDashboardUrl = 'https://trusttai.com/admin',
 }: AdminAccessGrantedProps) => {
   const greeting = recipientName ? `Hi ${recipientName},` : 'Hi there,'
   const grantedLine = grantedByName
@@ -62,7 +62,7 @@ export const template = {
   previewData: {
     recipientName: 'Tai',
     grantedByName: 'Trust Tai system',
-    adminDashboardUrl: 'https://www.trust-tai.com/admin',
+    adminDashboardUrl: 'https://trusttai.com/admin',
   } satisfies AdminAccessGrantedProps,
 } satisfies TemplateEntry
 

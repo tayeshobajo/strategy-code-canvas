@@ -600,3 +600,244 @@ export const verifyProjectIntegrity = createServerFn({ method: "POST" })
   });
 
 
+/* ============================================================
+ * repairProjectIntegrity — Stage C safety net
+ *
+ * For an existing project that verifyProjectIntegrity flagged as incomplete,
+ * insert only the SAFE missing siblings:
+ *   - engine_project_agents  (default Roadmap Agent, draft-only)
+ *   - engine_agent_permissions (draft_only)
+ *   - engine_roadmap_versions v0.0 container
+ *
+ * Portal linkage (client_portal_projects + permissions) is intentionally NOT
+ * auto-repaired here — it requires a real client contact email and belongs to
+ * the intentional client-portal flow. Returns the post-repair integrity
+ * report so the admin surface can decide next steps.
+ * ============================================================ */
+
+export type ProjectIntegrityRepairResult = {
+  project_id: string;
+  repaired: string[];
+  still_missing: string[];
+  report: ProjectIntegrityReport;
+};
+
+export const repairProjectIntegrity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ projectId: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }): Promise<ProjectIntegrityRepairResult> => {
+    await assertOpsOrAdmin(context);
+    const sb = (context as any).supabase;
+    const actor = ((context as any).claims?.email as string | undefined) ?? null;
+    const repaired: string[] = [];
+
+    const { data: proj } = await sb
+      .from("engine_projects")
+      .select("id, delivery_mode")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (!proj) throw new Error("Project not found");
+
+    const deliveryMode = (proj.delivery_mode as DeliveryMode | null) ?? "client_portal_required";
+
+    // 1. Default agent row
+    {
+      const { count } = await sb
+        .from("engine_project_agents")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", data.projectId);
+      if ((count ?? 0) < 1) {
+        const { error } = await sb.from("engine_project_agents").insert({
+          project_id: data.projectId,
+          name: "Roadmap Agent",
+          status: "Draft",
+          health: "Healthy",
+          policy: "Draft only",
+        });
+        if (!error) repaired.push("engine_project_agents");
+      }
+    }
+
+    // 2. Default agent permissions
+    {
+      const { count } = await sb
+        .from("engine_agent_permissions")
+        .select("project_id", { count: "exact", head: true })
+        .eq("project_id", data.projectId);
+      if ((count ?? 0) < 1) {
+        const { error } = await sb.from("engine_agent_permissions").insert({
+          project_id: data.projectId,
+          permission_mode: "draft_only",
+        });
+        if (!error) repaired.push("engine_agent_permissions");
+      }
+    }
+
+    // 3. v0.0 container roadmap version
+    {
+      const { count } = await sb
+        .from("engine_roadmap_versions")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", data.projectId);
+      if ((count ?? 0) < 1) {
+        const { error } = await sb.from("engine_roadmap_versions").insert({
+          project_id: data.projectId,
+          version: "v0.0",
+          status: "draft",
+          created_by: "system",
+          summary: "Project container — created during integrity repair",
+        });
+        if (!error) repaired.push("engine_roadmap_versions v0.0");
+      }
+    }
+
+    // Audit trail
+    if (repaired.length > 0) {
+      try {
+        await sb.from("engine_activity").insert({
+          project_id: data.projectId,
+          kind: "integrity_repair",
+          title: `Integrity repair by ${actor ?? "system"}`,
+          body: `Repaired: ${repaired.join(", ")}`,
+          severity: "info",
+        });
+      } catch {
+        /* audit is best-effort */
+      }
+    }
+
+    // Recompute report inline (same logic as verifyProjectIntegrity, but
+    // without re-invoking the server fn wrapper).
+    const missing: string[] = [];
+    const [{ count: agentCount }, { count: permCount }, { count: verCount }] = await Promise.all([
+      sb.from("engine_project_agents").select("id", { count: "exact", head: true }).eq("project_id", data.projectId),
+      sb.from("engine_agent_permissions").select("project_id", { count: "exact", head: true }).eq("project_id", data.projectId),
+      sb.from("engine_roadmap_versions").select("id", { count: "exact", head: true }).eq("project_id", data.projectId),
+    ]);
+    const agent = (agentCount ?? 0) > 0;
+    const agent_permissions = (permCount ?? 0) > 0;
+    const container_version = (verCount ?? 0) > 0;
+    if (!agent) missing.push("engine_project_agents");
+    if (!agent_permissions) missing.push("engine_agent_permissions");
+    if (!container_version) missing.push("engine_roadmap_versions");
+
+    let portal_project: boolean | null = null;
+    let portal_owner_permission: boolean | null = null;
+    const { data: proj2 } = await sb
+      .from("engine_projects")
+      .select("client_portal_project_id")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (deliveryMode === "internal_only") {
+      portal_project = null;
+      portal_owner_permission = null;
+    } else if (proj2?.client_portal_project_id) {
+      portal_project = true;
+      const { count: permCnt } = await sb
+        .from("client_portal_permissions")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", proj2.client_portal_project_id)
+        .is("revoked_at", null);
+      portal_owner_permission = (permCnt ?? 0) > 0;
+      if (!portal_owner_permission) missing.push("client_portal_permissions");
+    } else {
+      portal_project = false;
+      portal_owner_permission = false;
+      missing.push("client_portal_projects");
+    }
+
+    const report: ProjectIntegrityReport = {
+      project_id: data.projectId,
+      ok: missing.length === 0,
+      delivery_mode: deliveryMode,
+      checks: {
+        project: true,
+        agent,
+        agent_permissions,
+        container_version,
+        portal_project,
+        portal_owner_permission,
+      },
+      missing,
+    };
+
+    return {
+      project_id: data.projectId,
+      repaired,
+      still_missing: missing,
+      report,
+    };
+  });
+
+/* ============================================================
+ * listProjectsWithIntegrityIssues — admin surface data source
+ * Returns projects that verifyProjectIntegrity would flag. Uses aggregate
+ * queries to stay fast even with hundreds of projects.
+ * ============================================================ */
+
+export type IntegrityIssueRow = {
+  project_id: string;
+  project_name: string;
+  delivery_mode: DeliveryMode;
+  missing: string[];
+};
+
+export const listProjectsWithIntegrityIssues = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ rows: IntegrityIssueRow[] }> => {
+    await assertOpsOrAdmin(context);
+    const sb = (context as any).supabase;
+
+    const { data: projects, error } = await sb
+      .from("engine_projects")
+      .select("id, name, delivery_mode, client_portal_project_id")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) throw new Error(error.message ?? "list projects failed");
+
+    const rows: IntegrityIssueRow[] = [];
+    for (const p of (projects ?? []) as Array<{
+      id: string;
+      name: string | null;
+      delivery_mode: DeliveryMode | null;
+      client_portal_project_id: string | null;
+    }>) {
+      const deliveryMode = (p.delivery_mode as DeliveryMode | null) ?? "client_portal_required";
+      const missing: string[] = [];
+      const [{ count: agentCount }, { count: permCount }, { count: verCount }] = await Promise.all([
+        sb.from("engine_project_agents").select("id", { count: "exact", head: true }).eq("project_id", p.id),
+        sb.from("engine_agent_permissions").select("project_id", { count: "exact", head: true }).eq("project_id", p.id),
+        sb.from("engine_roadmap_versions").select("id", { count: "exact", head: true }).eq("project_id", p.id),
+      ]);
+      if ((agentCount ?? 0) < 1) missing.push("engine_project_agents");
+      if ((permCount ?? 0) < 1) missing.push("engine_agent_permissions");
+      if ((verCount ?? 0) < 1) missing.push("engine_roadmap_versions");
+
+      if (deliveryMode === "client_portal_required") {
+        if (!p.client_portal_project_id) {
+          missing.push("client_portal_projects");
+        } else {
+          const { count: ownerCount } = await sb
+            .from("client_portal_permissions")
+            .select("id", { count: "exact", head: true })
+            .eq("project_id", p.client_portal_project_id)
+            .is("revoked_at", null);
+          if ((ownerCount ?? 0) < 1) missing.push("client_portal_permissions");
+        }
+      }
+
+      if (missing.length > 0) {
+        rows.push({
+          project_id: p.id,
+          project_name: p.name ?? "(untitled)",
+          delivery_mode: deliveryMode,
+          missing,
+        });
+      }
+    }
+
+    return { rows };
+  });
+
+
+

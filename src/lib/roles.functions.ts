@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail, type AppRole } from "@/lib/ops/access";
+import { absoluteUrl } from "@/lib/site-url";
 
 const RoleEnum = z.enum(["admin", "operator", "user"]);
 
@@ -67,7 +68,7 @@ export const grantUserRole = createServerFn({ method: "POST" })
           idempotencyKey: `admin-access-${data.email}-${id}`,
           templateData: {
             grantedByName: callerEmail,
-            adminDashboardUrl: "https://www.trust-tai.com/admin",
+            adminDashboardUrl: absoluteUrl("/admin", process.env as { PUBLIC_SITE_URL?: string }),
           },
         });
       } catch (err) {
