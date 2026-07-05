@@ -104,7 +104,7 @@ export const listOperatorNotifications = createServerFn({ method: "POST" })
         title: r.title,
         body: r.body,
         href: r.href,
-        metadata: r.metadata ?? {},
+        metadata: (r.metadata ?? {}) as Record<string, string | number | boolean | null>,
         created_at: r.created_at,
         read_at: readMap.get(r.id) ?? null,
       };
