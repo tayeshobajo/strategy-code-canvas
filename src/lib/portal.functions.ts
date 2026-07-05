@@ -1499,12 +1499,53 @@ export const sendPortalMessage = createServerFn({ method: "POST" })
       relatedDecisionId: z.string().uuid().optional(),
       relatedDeliverableId: z.string().uuid().optional(),
       relatedPhaseId: z.string().uuid().optional(),
+      // Slug-based context from the client portal canvas. The client only
+      // knows canvas slugs (not engine UUIDs); we resolve to uuid columns
+      // server-side where possible and persist the slugs into metadata for
+      // filtering + audit.
+      roadmapContext: z
+        .object({
+          phaseKey: z.string().max(60).optional(),
+          milestoneSlug: z.string().max(200).optional(),
+          milestoneTitle: z.string().max(400).optional(),
+          decisionSlug: z.string().max(200).optional(),
+          deliverableSlug: z.string().max(200).optional(),
+        })
+        .optional(),
     }).parse(raw),
   )
   .handler(async ({ data, context }) => {
     const email = await _resolvePortalMembership(context as never, data.portalProjectId);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
+
+    // Resolve slug → uuid where possible using admin (portal RLS can't reach
+    // engine tables directly). Best-effort; never fails the send.
+    let resolvedMilestoneId: string | null = data.relatedMilestoneId ?? null;
+    let resolvedProjectId: string | null = data.relatedProjectId ?? null;
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: engineProj } = await supabaseAdmin
+        .from("engine_projects")
+        .select("id")
+        .eq("client_portal_project_id", data.portalProjectId)
+        .maybeSingle();
+      if (engineProj) {
+        resolvedProjectId = resolvedProjectId ?? engineProj.id;
+        const wantTitle = data.roadmapContext?.milestoneTitle?.trim();
+        if (!resolvedMilestoneId && wantTitle) {
+          const { data: ms } = await supabaseAdmin
+            .from("engine_milestones")
+            .select("id, name")
+            .eq("project_id", engineProj.id)
+            .ilike("name", wantTitle);
+          if (ms && ms.length > 0) resolvedMilestoneId = ms[0].id;
+        }
+      }
+    } catch (e) {
+      console.warn("[sendPortalMessage] slug resolution failed", e);
+    }
+
     const { data: row, error } = await sb
       .from("client_portal_messages")
       .insert({
@@ -1516,11 +1557,14 @@ export const sendPortalMessage = createServerFn({ method: "POST" })
         body: data.body,
         message_type: data.messageType ?? "reply",
         related_file_ids: data.relatedFileIds ?? [],
-        related_project_id: data.relatedProjectId ?? null,
-        related_milestone_id: data.relatedMilestoneId ?? null,
+        related_project_id: resolvedProjectId,
+        related_milestone_id: resolvedMilestoneId,
         related_decision_id: data.relatedDecisionId ?? null,
         related_deliverable_id: data.relatedDeliverableId ?? null,
         related_phase_id: data.relatedPhaseId ?? null,
+        metadata: data.roadmapContext
+          ? { roadmap_context: data.roadmapContext }
+          : {},
       })
       .select("id, created_at")
       .single();
@@ -1551,6 +1595,56 @@ export const sendPortalMessage = createServerFn({ method: "POST" })
 
     return { id: row.id as string, created_at: row.created_at as string };
   });
+
+/**
+ * Portal-safe listing of roadmap context options for the message composer /
+ * filters. Sourced from the currently approved client_safe_canvas, so nothing
+ * client-internal leaks.
+ */
+export const getPortalRoadmapContextOptions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ portalProjectId: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    await _resolvePortalMembership(context as never, data.portalProjectId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: rm } = await sb
+      .from("client_portal_roadmaps")
+      .select("client_safe_canvas")
+      .eq("project_id", data.portalProjectId)
+      .in("status", ["approved", "delivered"])
+      .order("approved_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const canvas =
+      rm?.client_safe_canvas && typeof rm.client_safe_canvas === "object"
+        ? (rm.client_safe_canvas as Record<string, unknown>)
+        : null;
+    if (!canvas) {
+      return { phases: [], milestones: [], decisions: [], deliverables: [] };
+    }
+    type Item = { slug?: string; title?: string; phase?: string; type?: string };
+    const items = Array.isArray(canvas.milestones) ? (canvas.milestones as Item[]) : [];
+    const phasesRaw = Array.isArray(canvas.phases) ? (canvas.phases as Item[]) : [];
+    return {
+      phases: phasesRaw
+        .filter((p) => p && (p.slug || p.title))
+        .map((p) => ({ key: (p.slug ?? p.title ?? "").toString(), label: (p.title ?? p.slug ?? "").toString() })),
+      milestones: items
+        .filter((m) => m && (m.slug || m.title) && (m.type ?? "milestone") === "milestone")
+        .map((m) => ({ slug: (m.slug ?? m.title ?? "").toString(), title: (m.title ?? m.slug ?? "").toString(), phase: (m.phase ?? "").toString() || null })),
+      decisions: items
+        .filter((m) => m && (m.type === "decision"))
+        .map((m) => ({ slug: (m.slug ?? m.title ?? "").toString(), title: (m.title ?? m.slug ?? "").toString() })),
+      deliverables: items
+        .filter((m) => m && (m.type === "deliverable"))
+        .map((m) => ({ slug: (m.slug ?? m.title ?? "").toString(), title: (m.title ?? m.slug ?? "").toString() })),
+    };
+  });
+
+
 
 // ─── Portal onboarding (client wizard) ────────────────────────────────
 // Five-step wizard: business_basics, current_state, goals_priorities,
