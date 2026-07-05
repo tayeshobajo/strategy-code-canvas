@@ -261,20 +261,10 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
     );
     expect(linkedVersion).toBe(versionId);
 
-    // Publish stamp on the source version should now point back at the
-    // portal roadmap (mirrors what publishVersionToPortal does at the end).
-    // We didn't call the server fn, so this is optional — write it here so
-    // the assertion documents the contract.
-    psql(
-      `UPDATE public.engine_roadmap_versions
-          SET published_to_portal_at = '${nowIso}',
-              published_portal_roadmap_id = '${portalRoadmapId}'
-        WHERE id = '${versionId}'`,
-    );
-    const stamp = psql(
-      `SELECT published_portal_roadmap_id::text
-         FROM public.engine_roadmap_versions WHERE id='${versionId}'`,
-    );
-    expect(stamp).toBe(portalRoadmapId);
+    // Note: publishVersionToPortal also stamps engine_roadmap_versions
+    // (published_to_portal_at / published_portal_roadmap_id). That write
+    // requires the operator/admin server-fn context and is out of scope for
+    // this E2E, which asserts the client-facing surface. The stamp is
+    // covered by publish-column-integrity.test.ts.
   });
 });
