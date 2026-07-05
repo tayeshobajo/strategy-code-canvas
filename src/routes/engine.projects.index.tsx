@@ -182,3 +182,55 @@ function ProjectsPage() {
     </div>
   );
 }
+
+function PortalPublishBadge({
+  status,
+}: {
+  status: "not_published" | "draft" | "published" | "archived";
+}) {
+  const meta: Record<typeof status, { label: string; cls: string }> = {
+    not_published: { label: "Not published", cls: "bg-paper-soft text-ink/60 border-border" },
+    draft: { label: "Draft", cls: "bg-[#efe9fb] text-[#5435a4] border-[#dccdf3]" },
+    published: { label: "Published", cls: "bg-[#e6f5ec] text-[#1f6b3b] border-[#c4e6d2]" },
+    archived: { label: "Archived", cls: "bg-[#ecedf0] text-[#5a5d70] border-[#d6d8df]" },
+  };
+  const m = meta[status];
+  return (
+    <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border ${m.cls}`}>
+      {m.label}
+    </span>
+  );
+}
+
+function RowActions({
+  projectId,
+  portalPublishStatus,
+}: {
+  projectId: string;
+  portalPublishStatus: "not_published" | "draft" | "published" | "archived";
+}) {
+  const linkCls =
+    "text-[11px] text-royal hover:underline whitespace-nowrap";
+  return (
+    <div className="flex flex-col gap-1">
+      <Link
+        to="/engine/projects/$projectId/signal-room"
+        params={{ projectId }}
+        className={linkCls}
+      >
+        + Add source
+      </Link>
+      <Link to="/engine/review" search={{ project: projectId }} className={linkCls}>
+        Review items
+      </Link>
+      <Link
+        to="/engine/projects/$projectId/preview"
+        params={{ projectId }}
+        className={linkCls}
+      >
+        Portal: {portalPublishStatus === "not_published" ? "publish" : portalPublishStatus}
+      </Link>
+    </div>
+  );
+}
+
