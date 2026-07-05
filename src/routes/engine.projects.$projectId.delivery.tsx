@@ -6,6 +6,7 @@ import { Send, CheckCircle2, Loader2, Rocket, Clock } from "lucide-react";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
 import { useEngineRole } from "@/hooks/useEngineRole";
 import {
@@ -96,6 +97,9 @@ function DeliveryPrep() {
         <h2 className="font-display text-3xl text-ink mt-1">Delivery Prep</h2>
         <p className="text-sm text-ink/60 mt-1">Final gate before the roadmap leaves your desk.</p>
       </header>
+      <StepStateBar projectId={projectId} step="delivery" current={project.step_states?.["delivery"]} />
+      <SourceEvidence projectId={projectId} step="delivery" />
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">

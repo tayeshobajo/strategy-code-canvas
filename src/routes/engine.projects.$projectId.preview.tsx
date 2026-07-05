@@ -3,6 +3,7 @@ import { z } from "zod";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
 import { useEngineRole } from "@/hooks/useEngineRole";
 import { FileText, Presentation } from "lucide-react";
@@ -55,6 +56,9 @@ function ClientPreview() {
           </button>
         </div>
       </header>
+      <StepStateBar projectId={projectId} step="preview" current={project.step_states?.["preview"]} />
+      <SourceEvidence projectId={projectId} step="preview" />
+
 
       <div className="rounded-xl border border-border bg-paper-soft p-8 shadow-sm space-y-8">
         <section>

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 
 export const Route = createFileRoute("/engine/projects/$projectId/builder")({
   component: Builder,
@@ -34,6 +35,9 @@ function Builder() {
         <h2 className="font-display text-3xl text-ink mt-1">Roadmap Builder</h2>
         <p className="text-sm text-ink/60 mt-1">Blueprint nodes become ordered, dependency-aware milestones.</p>
       </header>
+      <StepStateBar projectId={projectId} step="builder" current={project.step_states?.["builder"]} />
+      <SourceEvidence projectId={projectId} step="builder" />
+
       {ms.length === 0 ? (
         <SectionCard title="Milestones"><EmptyState title="No milestones yet" hint="Add milestones through the JSON editor below." /></SectionCard>
       ) : (

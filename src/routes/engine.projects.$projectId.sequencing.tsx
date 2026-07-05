@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 
 export const Route = createFileRoute("/engine/projects/$projectId/sequencing")({
   component: Sequencing,
@@ -28,6 +29,9 @@ function Sequencing() {
         <h2 className="font-display text-3xl text-ink mt-1">Sequencing View</h2>
         <p className="text-sm text-ink/60 mt-1">Why the milestones are in the right order.</p>
       </header>
+      <StepStateBar projectId={projectId} step="sequencing" current={project.step_states?.["sequencing"]} />
+      <SourceEvidence projectId={projectId} step="sequencing" />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {LANES.map((l) => (
           <SectionCard key={l.key} title={l.label}>

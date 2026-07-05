@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState, formatDate } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 
 export const Route = createFileRoute("/engine/projects/$projectId/deadlines")({
   component: Deadlines,
@@ -28,6 +29,9 @@ function Deadlines() {
         <h2 className="font-display text-3xl text-ink mt-1">Deadline Plan</h2>
         <p className="text-sm text-ink/60 mt-1">Protect the real dates the business is counting on.</p>
       </header>
+      <StepStateBar projectId={projectId} step="deadlines" current={project.step_states?.["deadlines"]} />
+      <SourceEvidence projectId={projectId} step="deadlines" />
+
       {ms.length === 0 ? (
         <SectionCard title="Deadlines"><EmptyState title="No deadlines set" /></SectionCard>
       ) : (

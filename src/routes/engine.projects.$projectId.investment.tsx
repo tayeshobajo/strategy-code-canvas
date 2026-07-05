@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
 import { useEngineRole } from "@/hooks/useEngineRole";
 
@@ -32,6 +33,9 @@ function Investment() {
         <h2 className="font-display text-3xl text-ink mt-1">Investment Builder</h2>
         <p className="text-sm text-ink/60 mt-1">Roadmap turned into a phased, transparent investment plan.</p>
       </header>
+      <StepStateBar projectId={projectId} step="investment" current={project.step_states?.["investment"]} />
+      <SourceEvidence projectId={projectId} step="investment" />
+
       {phases.length === 0 ? (
         <SectionCard title="Phases"><EmptyState title="No phases yet" /></SectionCard>
       ) : (
