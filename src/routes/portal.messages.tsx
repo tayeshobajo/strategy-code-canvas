@@ -96,7 +96,7 @@ function useMessages(projectId: string | undefined) {
       const { data, error } = await supabase
         .from("client_portal_messages")
         .select(
-          "id, project_id, sender_type, author_email, subject, body, message_type, action_required, action_completed_at, related_file_ids, created_at",
+          "id, project_id, sender_type, author_email, subject, body, message_type, action_required, action_completed_at, related_file_ids, related_milestone_id, related_phase_id, metadata, created_at",
         )
         .eq("project_id", projectId!)
         .eq("visible_to_client", true)
