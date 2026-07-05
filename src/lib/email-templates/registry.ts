@@ -17,4 +17,5 @@ export interface TemplateEntry {
  */
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'admin-access-granted': adminAccessGranted,
+  'intake-submission-operator-alert': intakeSubmissionOperatorAlert,
 }
