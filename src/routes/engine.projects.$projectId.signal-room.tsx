@@ -57,6 +57,7 @@ function SignalRoom() {
       <StepStateBar projectId={projectId} step="signal-room" current={project.step_states?.["signal-room"]} />
       <SourceEvidence projectId={projectId} step="signal-room" />
 
+      <SourceVisibilityPanel projectId={projectId} />
 
       <ExtractedSignalsPanel projectId={projectId} />
 
