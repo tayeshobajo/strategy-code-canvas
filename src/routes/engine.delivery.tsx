@@ -317,7 +317,7 @@ function DeliveryRoomPage() {
 function HistoryDialog({ delivery, onClose }: { delivery: DeliveryItem; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
-      <div className="bg-card rounded-xl border border-border shadow-lg max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-card rounded-xl border border-border shadow-lg max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <header className="flex items-center justify-between p-4 border-b border-border">
           <div>
             <div className="font-display text-lg text-ink">{delivery.client}</div>
@@ -325,28 +325,38 @@ function HistoryDialog({ delivery, onClose }: { delivery: DeliveryItem; onClose:
           </div>
           <button onClick={onClose} className="p-1 hover:bg-paper-soft rounded"><X className="w-4 h-4" /></button>
         </header>
-        <div className="p-4">
-          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink/50 mb-2">Status History</div>
-          {delivery.history.length === 0 ? (
-            <div className="text-sm text-ink/60">No transitions logged yet.</div>
-          ) : (
-            <ol className="space-y-2">
-              {delivery.history.map((h, i) => (
-                <li key={h.id} className="flex items-start gap-2 text-sm">
-                  <span className="font-mono text-xs text-ink/40 w-4">{i + 1}</span>
-                  <div className="flex-1">
-                    <div className="text-ink">
-                      <span className="text-ink/60">{h.from_status ? (STATUS_META[h.from_status as DeliveryStatus]?.label ?? h.from_status) : "—"}</span>
-                      {" → "}
-                      <span className="font-medium">{STATUS_META[h.to_status as DeliveryStatus]?.label ?? h.to_status}</span>
+        <div className="p-4 overflow-auto space-y-5">
+          <section>
+            <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink/50 mb-2">Delivery status history</div>
+            {delivery.history.length === 0 ? (
+              <div className="text-sm text-ink/60">No transitions logged yet.</div>
+            ) : (
+              <ol className="space-y-2">
+                {delivery.history.map((h, i) => (
+                  <li key={h.id} className="flex items-start gap-2 text-sm">
+                    <span className="font-mono text-xs text-ink/40 w-4">{i + 1}</span>
+                    <div className="flex-1">
+                      <div className="text-ink">
+                        <span className="text-ink/60">{h.from_status ? (STATUS_META[h.from_status as DeliveryStatus]?.label ?? h.from_status) : "—"}</span>
+                        {" → "}
+                        <span className="font-medium">{STATUS_META[h.to_status as DeliveryStatus]?.label ?? h.to_status}</span>
+                      </div>
+                      <div className="text-xs text-ink/60">{new Date(h.at).toLocaleString()}{h.actor ? ` · ${h.actor}` : ""}</div>
+                      {h.note ? <div className="text-xs text-ink/70 italic mt-0.5">"{h.note}"</div> : null}
                     </div>
-                    <div className="text-xs text-ink/60">{new Date(h.at).toLocaleString()}{h.actor ? ` · ${h.actor}` : ""}</div>
-                    {h.note ? <div className="text-xs text-ink/70 italic mt-0.5">"{h.note}"</div> : null}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+          {delivery.project_id ? (
+            <section>
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink/50 mb-2">
+                Project audit trail
+              </div>
+              <AuditTrailCard projectId={delivery.project_id} limit={30} compact />
+            </section>
+          ) : null}
         </div>
       </div>
     </div>
