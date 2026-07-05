@@ -41,7 +41,7 @@ export type OperatorNotification = {
   title: string;
   body: string | null;
   href: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, string | number | boolean | null>;
   created_at: string;
   read_at: string | null;
 };
