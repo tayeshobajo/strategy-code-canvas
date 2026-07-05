@@ -1152,6 +1152,27 @@ export const recordPortalMilestoneReview = createServerFn({ method: "POST" })
       } as unknown as never,
     });
 
+    // Mirror into engine_activity so mission control sees the client signal.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: engineProj } = await supabaseAdmin
+        .from("engine_projects")
+        .select("id")
+        .eq("client_portal_project_id", cpr.project_id)
+        .maybeSingle();
+      if (engineProj) {
+        await supabaseAdmin.from("engine_activity").insert({
+          project_id: engineProj.id,
+          kind: "client_milestone_reviewed",
+          title: `Client reviewed: ${data.milestoneTitle}`,
+          body: null,
+          severity: "info",
+        });
+      }
+    } catch (e) {
+      console.warn("[recordPortalMilestoneReview] engine mirror failed", e);
+    }
+
     return { ok: true as const };
   });
 
@@ -1178,6 +1199,47 @@ export const logPortalFileEvent = createServerFn({ method: "POST" })
       _event: data.event,
     });
     if (error) return { ok: false as const, error: error.message ?? "log failed" };
+
+    // Mirror to engine_activity for important docs only (roadmaps, contracts,
+    // deliverables). Skip for everyday attachments so we don't create noise.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: fileRow } = await supabaseAdmin
+        .from("client_portal_files")
+        .select("project_id, file_name, category")
+        .eq("id", data.fileId)
+        .maybeSingle();
+      const importantCategories = new Set([
+        "roadmap",
+        "contract",
+        "deliverable",
+        "invoice",
+        "proposal",
+      ]);
+      if (
+        fileRow &&
+        fileRow.category &&
+        importantCategories.has(String(fileRow.category).toLowerCase())
+      ) {
+        const { data: engineProj } = await supabaseAdmin
+          .from("engine_projects")
+          .select("id")
+          .eq("client_portal_project_id", fileRow.project_id)
+          .maybeSingle();
+        if (engineProj) {
+          await supabaseAdmin.from("engine_activity").insert({
+            project_id: engineProj.id,
+            kind: `client_file_${data.event}`,
+            title: `Client ${data.event}: ${fileRow.file_name}`,
+            body: null,
+            severity: "info",
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("[logPortalFileEvent] engine mirror failed", e);
+    }
+
     return { ok: true as const };
   });
 
