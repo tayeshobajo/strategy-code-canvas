@@ -57,6 +57,7 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AdminRolesRouteImport } from './routes/admin.roles'
+import { Route as AdminProjectIntegrityRouteImport } from './routes/admin.project-integrity'
 import { Route as AdminMilestoneChangesRouteImport } from './routes/admin.milestone-changes'
 import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-alerts'
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
@@ -337,6 +338,11 @@ const AdminRolesRoute = AdminRolesRouteImport.update({
   path: '/roles',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminProjectIntegrityRoute = AdminProjectIntegrityRouteImport.update({
+  id: '/project-integrity',
+  path: '/project-integrity',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMilestoneChangesRoute = AdminMilestoneChangesRouteImport.update({
   id: '/milestone-changes',
   path: '/milestone-changes',
@@ -584,6 +590,7 @@ export interface FileRoutesByFullPath {
   '/admin/config': typeof AdminConfigRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
+  '/admin/project-integrity': typeof AdminProjectIntegrityRoute
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -669,6 +676,7 @@ export interface FileRoutesByTo {
   '/admin/config': typeof AdminConfigRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
+  '/admin/project-integrity': typeof AdminProjectIntegrityRoute
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -759,6 +767,7 @@ export interface FileRoutesById {
   '/admin/config': typeof AdminConfigRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
+  '/admin/project-integrity': typeof AdminProjectIntegrityRoute
   '/admin/roles': typeof AdminRolesRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -849,6 +858,7 @@ export interface FileRouteTypes {
     | '/admin/config'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
+    | '/admin/project-integrity'
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -934,6 +944,7 @@ export interface FileRouteTypes {
     | '/admin/config'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
+    | '/admin/project-integrity'
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -1023,6 +1034,7 @@ export interface FileRouteTypes {
     | '/admin/config'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
+    | '/admin/project-integrity'
     | '/admin/roles'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -1462,6 +1474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRolesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/project-integrity': {
+      id: '/admin/project-integrity'
+      path: '/project-integrity'
+      fullPath: '/admin/project-integrity'
+      preLoaderRoute: typeof AdminProjectIntegrityRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/milestone-changes': {
       id: '/admin/milestone-changes'
       path: '/milestone-changes'
@@ -1789,6 +1808,7 @@ interface AdminRouteChildren {
   AdminConfigRoute: typeof AdminConfigRoute
   AdminIntakeAlertsRoute: typeof AdminIntakeAlertsRoute
   AdminMilestoneChangesRoute: typeof AdminMilestoneChangesRoute
+  AdminProjectIntegrityRoute: typeof AdminProjectIntegrityRoute
   AdminRolesRoute: typeof AdminRolesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -1798,6 +1818,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminConfigRoute: AdminConfigRoute,
   AdminIntakeAlertsRoute: AdminIntakeAlertsRoute,
   AdminMilestoneChangesRoute: AdminMilestoneChangesRoute,
+  AdminProjectIntegrityRoute: AdminProjectIntegrityRoute,
   AdminRolesRoute: AdminRolesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
