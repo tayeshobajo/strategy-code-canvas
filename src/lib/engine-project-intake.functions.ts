@@ -352,3 +352,105 @@ export const listClientsForPicker = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message ?? "list clients failed");
     return { rows: data ?? [] };
   });
+
+/* ============================================================
+ * verifyProjectIntegrity — Stage B safety net
+ * Reports which sibling rows a project is missing.
+ * ============================================================ */
+
+export type ProjectIntegrityReport = {
+  project_id: string;
+  ok: boolean;
+  checks: {
+    project: boolean;
+    agent: boolean;
+    agent_permissions: boolean;
+    container_version: boolean;
+    portal_project: boolean | null; // null = not applicable (no contact email)
+    portal_owner_permission: boolean | null;
+  };
+  missing: string[];
+};
+
+export const verifyProjectIntegrity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ projectId: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }): Promise<ProjectIntegrityReport> => {
+    await assertOpsOrAdmin(context);
+    const sb = (context as any).supabase;
+    const missing: string[] = [];
+
+    const { data: proj } = await sb
+      .from("engine_projects")
+      .select("id, client_id, client_portal_project_id")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (!proj) {
+      return {
+        project_id: data.projectId,
+        ok: false,
+        checks: {
+          project: false,
+          agent: false,
+          agent_permissions: false,
+          container_version: false,
+          portal_project: null,
+          portal_owner_permission: null,
+        },
+        missing: ["engine_projects row not found"],
+      };
+    }
+
+    const [{ count: agentCount }, { count: permCount }, { count: verCount }] = await Promise.all([
+      sb.from("engine_project_agents").select("id", { count: "exact", head: true }).eq("project_id", data.projectId),
+      sb.from("engine_agent_permissions").select("project_id", { count: "exact", head: true }).eq("project_id", data.projectId),
+      sb.from("engine_roadmap_versions").select("id", { count: "exact", head: true }).eq("project_id", data.projectId),
+    ]);
+
+    const agent = (agentCount ?? 0) > 0;
+    const agent_permissions = (permCount ?? 0) > 0;
+    const container_version = (verCount ?? 0) > 0;
+    if (!agent) missing.push("engine_project_agents");
+    if (!agent_permissions) missing.push("engine_agent_permissions");
+    if (!container_version) missing.push("engine_roadmap_versions");
+
+    let portal_project: boolean | null = null;
+    let portal_owner_permission: boolean | null = null;
+    if (proj.client_portal_project_id) {
+      portal_project = true;
+      const { count: permCnt } = await sb
+        .from("client_portal_permissions")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", proj.client_portal_project_id)
+        .is("revoked_at", null);
+      portal_owner_permission = (permCnt ?? 0) > 0;
+      if (!portal_owner_permission) missing.push("client_portal_permissions");
+    } else if (proj.client_id) {
+      // client exists but no portal link — check if the client has a contact email
+      const { data: c } = await sb
+        .from("engine_clients")
+        .select("contact_email")
+        .eq("id", proj.client_id)
+        .maybeSingle();
+      if (c?.contact_email) {
+        portal_project = false;
+        portal_owner_permission = false;
+        missing.push("client_portal_projects");
+      }
+    }
+
+    return {
+      project_id: data.projectId,
+      ok: missing.length === 0,
+      checks: {
+        project: true,
+        agent,
+        agent_permissions,
+        container_version,
+        portal_project,
+        portal_owner_permission,
+      },
+      missing,
+    };
+  });
+
