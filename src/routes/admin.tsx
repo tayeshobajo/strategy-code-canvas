@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect, Link, useRouterState } from "@tansta
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
 import { isAdminEmail } from "@/lib/ops/access";
-import { ClipboardList, Users, Settings, ShieldCheck, MailCheck } from "lucide-react";
+import { ClipboardList, Users, Settings, ShieldCheck, MailCheck, GitBranch } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
