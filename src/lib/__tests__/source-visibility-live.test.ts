@@ -17,11 +17,12 @@ const HAS_PG = !!process.env.PGHOST;
 
 function psql(sql: string): string {
   // Pipe SQL via stdin so multiline queries and quoting are preserved.
-  return execSync(`psql -tAX`, {
+  return execSync(`psql -tAX -v ON_ERROR_STOP=1`, {
     encoding: "utf8",
     input: sql,
     stdio: ["pipe", "pipe", "pipe"],
   }).trim();
+
 }
 
 
