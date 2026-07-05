@@ -223,10 +223,11 @@ All 10 ✅ PASS. Portal only shows approved, operator/portal separate, project s
 7. **§9 Audit log**: added `field_changed`, `old_value`, `new_value`, `reason` columns on `engine_audit_log`.
 
 
-### P2 — Workspace depth
-8. **§8 Per-step state machine** (`draft/review/approved` per step) + **§8 source evidence** on each step page
-9. **§12 Roadmap Builder**: read live `engine_milestones`, add `source_evidence` column, add reorder server fn that emits draft change, add AI suggestion UI
-10. **§6 Extraction**: add `business_model` + `current_system` signal categories
+### P2 — Workspace depth ✅ DONE (2026-07-05)
+8. **§8 Per-step state machine**: added `engine_projects.step_states` jsonb; `setStepState` server fn writes audit + activity; edits auto-flip step to `draft`. `StepStateBar` chip + Draft/Review/Approved toggle now on every step page. Source evidence panel (`SourceEvidence`) reads `engine_extracted_signals` by per-step category map.
+9. **§12 Roadmap Builder**: reads live `engine_milestones` via `listMilestonesLive`; added `engine_milestones.source_evidence` jsonb; `reorderMilestone` server fn swaps `sort_index`, resets builder step to draft, and emits audit + change_event. Legacy JSON fallback preserved with an amber advisory.
+10. **§6 Extraction**: `engine_signal_category` enum extended with `business_model` and `current_system`; AI provider prompt + type union updated; extraction UI shows both categories.
+
 
 ### P3 — Automation & completeness
 11. **§4 New Project Creation**: wire actual file upload, add intake-form / product-spec / notes tabs, create agent + workspace records at intake
