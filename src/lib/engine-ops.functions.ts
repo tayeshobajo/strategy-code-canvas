@@ -60,6 +60,8 @@ export type DeliveryItem = {
   approved_by: string | null;
   last_action: string | null;
   updated_at: string;
+  portal_publish_status: "not_published" | "draft" | "published" | "archived";
+  portal_share_url: string | null;
   history: Array<{ id: string; from_status: string | null; to_status: string; note: string | null; at: string; actor: string | null }>;
 };
 
@@ -74,15 +76,31 @@ export const listDeliveries = createServerFn({ method: "GET" })
     };
     const { data, error } = await sb
       .from("engine_delivery_items")
-      .select("id,client,roadmap,version,status,channel,recipient,recipient_role,prepared_by,approved_by,last_action,updated_at,engine_delivery_history(id,from_status,to_status,note,at,actor)")
+      .select("id,client,roadmap,version,status,channel,recipient,recipient_role,prepared_by,approved_by,last_action,updated_at,client_portal_roadmap_id,engine_delivery_history(id,from_status,to_status,note,at,actor),client_portal_roadmaps:client_portal_roadmap_id(status,share_url)")
       .order("updated_at", { ascending: false });
     if (error) throw new Error(String((error as { message?: string }).message ?? error));
-    const rows = (data ?? []) as Array<DeliveryItem & { engine_delivery_history: DeliveryItem["history"] }>;
-    return rows.map((r) => ({
-      ...r,
-      history: (r.engine_delivery_history ?? []).slice().sort((a, b) => a.at.localeCompare(b.at)),
-    }));
+    const rows = (data ?? []) as Array<DeliveryItem & {
+      engine_delivery_history: DeliveryItem["history"];
+      client_portal_roadmaps: { status: string | null; share_url: string | null } | null;
+    }>;
+    return rows.map((r) => {
+      const s = (r.client_portal_roadmaps?.status ?? "").toLowerCase();
+      const portal_publish_status: DeliveryItem["portal_publish_status"] = !r.client_portal_roadmaps
+        ? "not_published"
+        : s === "published" || s === "client_facing"
+          ? "published"
+          : s === "archived"
+            ? "archived"
+            : "draft";
+      return {
+        ...r,
+        portal_publish_status,
+        portal_share_url: r.client_portal_roadmaps?.share_url ?? null,
+        history: (r.engine_delivery_history ?? []).slice().sort((a, b) => a.at.localeCompare(b.at)),
+      };
+    });
   });
+
 
 export const transitionDelivery = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
