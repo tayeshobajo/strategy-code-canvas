@@ -224,9 +224,10 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
     const { data: item, error: rErr } = await sb.from("engine_review_items")
-      .select("project,project_id,item_type,title").eq("id", data.id).single();
+      .select("project,project_id,item_type,title,version_id").eq("id", data.id).single();
     if (rErr) throw new Error(String((rErr as { message?: string }).message ?? rErr));
-    const it = item as { project: string; project_id: string | null; item_type: string; title: string };
+    const it = item as { project: string; project_id: string | null; item_type: string; title: string; version_id: string | null };
+
     const nextStatus = data.action === "approved" ? "approved" : data.action === "rejected" ? "rejected" : "sent_back";
     const { error: uErr } = await sb.from("engine_review_items")
       .update({ status: nextStatus }).eq("id", data.id);
