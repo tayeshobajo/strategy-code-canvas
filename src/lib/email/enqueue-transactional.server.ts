@@ -122,6 +122,7 @@ export async function enqueueTransactionalEmail(opts: {
     template_name: opts.templateName,
     recipient_email: effectiveRecipient,
     status: 'pending',
+    metadata: logMetadata as unknown as Json,
   })
 
   const { error: enqErr } = await supabaseAdmin.rpc('enqueue_email', {
@@ -148,6 +149,7 @@ export async function enqueueTransactionalEmail(opts: {
       recipient_email: effectiveRecipient,
       status: 'failed',
       error_message: enqErr.message,
+      metadata: logMetadata as unknown as Json,
     })
     throw new Error(`enqueue_email failed: ${enqErr.message}`)
   }
