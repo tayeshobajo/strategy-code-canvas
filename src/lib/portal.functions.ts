@@ -662,6 +662,18 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
         updated_at: r.updated_at ?? null,
         client_safe_canvas: r.client_safe_canvas ?? null,
       };
+      // Bridge: expose engine-authored Point A / Point B via the published
+      // snapshot only. The portal never reads engine_projects directly — the
+      // publish pipeline stamps these into client_safe_canvas.pointA/pointB.
+      const canvas =
+        r.client_safe_canvas && typeof r.client_safe_canvas === "object" ? r.client_safe_canvas : null;
+      const project =
+        canvas && (canvas.pointA?.detail || canvas.pointB?.detail)
+          ? {
+              point_a: (canvas.pointA?.detail as string | null) ?? null,
+              point_b: (canvas.pointB?.detail as string | null) ?? null,
+            }
+          : null;
       return {
         id: r.id,
         title: r.version_label ? `${r.title} — ${r.version_label}` : r.title,
@@ -670,7 +682,7 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
         published_at: r.approved_at,
         updated_at: r.updated_at,
         raw: safeRaw,
-        project: null,
+        project,
       };
     });
     return { docs, revoked: false as const };
