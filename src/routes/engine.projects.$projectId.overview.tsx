@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState, formatDate, formatCents } from "@/components/engine/primitives";
+import { AuditTrailCard } from "@/components/engine/AuditTrail";
 import { BrainCircuit, Layers, Eye, PackageCheck, AlertCircle } from "lucide-react";
 import { getVersionCompareData } from "@/lib/engine-execution.functions";
 
