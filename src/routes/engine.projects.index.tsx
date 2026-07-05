@@ -220,9 +220,10 @@ function RowActions({
       >
         + Add source
       </Link>
-      <Link to="/engine/review" search={{ project: projectId }} className={linkCls}>
+      <Link to="/engine/review" className={linkCls}>
         Review items
       </Link>
+
       <Link
         to="/engine/projects/$projectId/preview"
         params={{ projectId }}
