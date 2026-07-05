@@ -1515,6 +1515,30 @@ export const sendPortalMessage = createServerFn({ method: "POST" })
       .select("id, created_at")
       .single();
     if (error) throw new Error(error.message ?? "message send failed");
+
+    // Mirror to engine_activity so operators see inbound client messages in
+    // mission control, not just email/inbox.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: engineProj } = await supabaseAdmin
+        .from("engine_projects")
+        .select("id")
+        .eq("client_portal_project_id", data.portalProjectId)
+        .maybeSingle();
+      if (engineProj) {
+        const preview = data.body.length > 240 ? `${data.body.slice(0, 240)}…` : data.body;
+        await supabaseAdmin.from("engine_activity").insert({
+          project_id: engineProj.id,
+          kind: "client_message",
+          title: `Client message from ${email}`,
+          body: preview,
+          severity: "info",
+        });
+      }
+    } catch (e) {
+      console.warn("[sendPortalMessage] engine mirror failed", e);
+    }
+
     return { id: row.id as string, created_at: row.created_at as string };
   });
 
