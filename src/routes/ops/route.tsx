@@ -125,6 +125,7 @@ function OpsLayout() {
               <div className="truncate text-sm text-white">Tai</div>
               <div className="truncate text-[11px] text-white/55">{operatorEmail}</div>
             </div>
+            <NotificationBell />
             <button
               type="button"
               onClick={async () => {
