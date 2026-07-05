@@ -27,7 +27,7 @@ export type AdminSourceRow = {
   name: string;
   visibility: SourceVisibility;
   status: string | null;
-  kind: string | null;
+  type: string | null;
   updated_at: string | null;
 };
 
@@ -115,7 +115,7 @@ export const listProjectSourcesForAdmin = createServerFn({ method: "GET" })
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
     const { data: rows, error } = await context.supabase
       .from("engine_sources")
-      .select("id,name,visibility,status,kind,updated_at")
+      .select("id,name,visibility,status,type,updated_at")
       .eq("project_id", data.projectId)
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
