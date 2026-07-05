@@ -282,32 +282,43 @@ export function buildRoadmapJourney(
   row: AnyJson,
   project?: { point_a?: string | null; point_b?: string | null } | null,
 ): RoadmapJourney {
-  const buckets = bucketSequence(row?.sequence_30_60_90);
+  // Prefer the typed client_safe_canvas snapshot generated at publish time.
+  // Falls back to the legacy sequence_30_60_90 pipeline when the snapshot is
+  // missing (older published rows) or intentionally empty.
+  const canvas = row?.client_safe_canvas && typeof row.client_safe_canvas === "object"
+    ? row.client_safe_canvas
+    : null;
+  const canvasItemCount =
+    (Array.isArray(canvas?.milestones) ? canvas.milestones.length : 0) +
+    (Array.isArray(canvas?.decisions) ? canvas.decisions.length : 0) +
+    (Array.isArray(canvas?.deliverables) ? canvas.deliverables.length : 0) +
+    (Array.isArray(canvas?.deadlines) ? canvas.deadlines.length : 0) +
+    (Array.isArray(canvas?.clientActions) ? canvas.clientActions.length : 0);
+  const useCanvas = !!canvas && canvasItemCount > 0;
+
   const priorities = normalizePriorities(row?.strategic_priorities);
-
-  // Seed Now bucket with strategic priorities so anchor milestones always exist.
-  if (buckets.now.length === 0 && priorities.length > 0) {
-    buckets.now = priorities.map((p) => ({
-      title: p.title,
-      summary: p.detail,
-    }));
-  }
-
   const usedSlugs = new Set<string>();
-  const phases: RoadmapPhase[] = (Object.keys(PHASE_LABELS) as PhaseKey[]).map(
-    (key) => {
+  let phases: RoadmapPhase[];
+
+  if (useCanvas) {
+    phases = phasesFromCanvas(canvas, usedSlugs);
+  } else {
+    const buckets = bucketSequence(row?.sequence_30_60_90);
+    // Seed Now bucket with strategic priorities so anchor milestones always exist.
+    if (buckets.now.length === 0 && priorities.length > 0) {
+      buckets.now = priorities.map((p) => ({ title: p.title, summary: p.detail }));
+    }
+    phases = (Object.keys(PHASE_LABELS) as PhaseKey[]).map((key) => {
       const items = buckets[key];
-      const milestones = items.map((it, i) =>
-        toMilestone(it, key, i, usedSlugs),
-      );
+      const milestones = items.map((it, i) => toMilestone(it, key, i, usedSlugs));
       return {
         key,
         label: PHASE_LABELS[key].label,
         timeframe: PHASE_LABELS[key].timeframe,
         milestones,
       };
-    },
-  );
+    });
+  }
 
   // Ensure every phase has at least a placeholder so the canvas keeps shape.
   for (const p of phases) {
