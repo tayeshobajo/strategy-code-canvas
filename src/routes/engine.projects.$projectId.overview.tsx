@@ -103,6 +103,10 @@ function ProjectOverview() {
               </ul>
             )}
           </SectionCard>
+
+          <SectionCard title="Audit trail">
+            <AuditTrailCard projectId={projectId} limit={50} compact />
+          </SectionCard>
         </div>
 
 
