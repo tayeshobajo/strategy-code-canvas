@@ -336,6 +336,30 @@ function SubmissionPage() {
 
           <Card>
             <div className="text-[11px] uppercase tracking-wider text-[#7d8095]">
+              Engine bridge
+            </div>
+            <p className="mt-2 text-[13px] leading-relaxed text-[#3b3f55]">
+              Turn this submission into a live engine project. The Q&amp;A becomes the
+              first source; the founder's contact stays attached.
+            </p>
+            <Link
+              to="/engine/projects/new"
+              search={bridgeSearch}
+              className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-md bg-[#3a4fcf] px-3 py-2.5 text-sm font-medium text-white hover:bg-[#2f41a8]"
+            >
+              <Sparkles className="h-4 w-4" />
+              {bridgedAudit ? "Create another engine project" : "Create engine project"}
+            </Link>
+            {bridgedAudit ? (
+              <div className="mt-2 text-[11px] text-[#7d8095]">
+                Previously bridged {formatStamp(bridgedAudit.created_at)}
+              </div>
+            ) : null}
+          </Card>
+
+
+          <Card>
+            <div className="text-[11px] uppercase tracking-wider text-[#7d8095]">
               Internal notes
             </div>
             <textarea
