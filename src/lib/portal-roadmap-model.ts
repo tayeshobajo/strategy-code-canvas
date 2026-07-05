@@ -275,6 +275,80 @@ function toMilestone(
 }
 
 /**
+ * Build the phase list from a typed client_safe_canvas snapshot. Canvas
+ * phases can have arbitrary IDs; we map the first three (in `sequence`
+ * order) onto the UI's now/next/later keys so the existing canvas layout
+ * keeps working. Any additional phases roll into "later". Items without a
+ * matching phaseId are placed in the first phase.
+ */
+function phasesFromCanvas(canvas: AnyJson, usedSlugs: Set<string>): RoadmapPhase[] {
+  const canvasPhases: AnyJson[] = Array.isArray(canvas?.phases) ? [...canvas.phases] : [];
+  canvasPhases.sort((a, b) => (a?.sequence ?? 0) - (b?.sequence ?? 0));
+
+  const phaseKeys: PhaseKey[] = ["now", "next", "later"];
+  const idToKey: Record<string, PhaseKey> = {};
+  const phases: RoadmapPhase[] = phaseKeys.map((key, i) => {
+    const cp = canvasPhases[i];
+    if (cp?.id) idToKey[String(cp.id)] = key;
+    return {
+      key,
+      label: cp?.label ? String(cp.label) : PHASE_LABELS[key].label,
+      timeframe: cp?.timeframe ? String(cp.timeframe) : PHASE_LABELS[key].timeframe,
+      summary: cp?.summary ? String(cp.summary) : undefined,
+      milestones: [],
+    };
+  });
+  // Extra canvas phases (beyond 3) collapse into "later".
+  for (let i = 3; i < canvasPhases.length; i++) {
+    const cp = canvasPhases[i];
+    if (cp?.id) idToKey[String(cp.id)] = "later";
+  }
+
+  const push = (items: AnyJson[]) => {
+    if (!Array.isArray(items)) return;
+    for (const raw of items) {
+      if (!raw || typeof raw !== "object") continue;
+      const phaseKey: PhaseKey = idToKey[String(raw.phaseId ?? "")] ?? phases[0].key;
+      // Adapt canvas item shape to the toMilestone() input contract.
+      const mapped = {
+        title: raw.title,
+        status: raw.status,
+        type: raw.type,
+        description: raw.clientSafeDescription,
+        summary: raw.clientSafeDescription,
+        detail: raw.whyItMatters,
+        unlocks: raw.whatItUnlocks,
+        target_date: raw.targetDate,
+        due_date: raw.targetDate,
+        client_action_needed: raw.actionNeeded,
+        file_url: Array.isArray(raw.relatedFiles) && raw.relatedFiles[0]?.url,
+      };
+      const idx = phases.find((p) => p.key === phaseKey)!.milestones.length;
+      const m = toMilestone(mapped, phaseKey, idx, usedSlugs);
+      // Preserve canvas-provided stable id when present.
+      if (typeof raw.id === "string" && raw.id.trim()) {
+        usedSlugs.delete(m.slug);
+        let id = raw.id.trim();
+        let attempt = 1;
+        while (usedSlugs.has(id)) id = `${raw.id}-${++attempt}`;
+        usedSlugs.add(id);
+        m.slug = id;
+      }
+      phases.find((p) => p.key === phaseKey)!.milestones.push(m);
+    }
+  };
+
+  push(canvas?.milestones);
+  push(canvas?.decisions);
+  push(canvas?.deliverables);
+  push(canvas?.deadlines);
+  push(canvas?.clientActions);
+
+  return phases;
+}
+
+
+/**
  * Transform an approved roadmap row into a journey model. Missing fields fall
  * back to a small illustrative default so the canvas still tells a story.
  */
@@ -282,32 +356,43 @@ export function buildRoadmapJourney(
   row: AnyJson,
   project?: { point_a?: string | null; point_b?: string | null } | null,
 ): RoadmapJourney {
-  const buckets = bucketSequence(row?.sequence_30_60_90);
+  // Prefer the typed client_safe_canvas snapshot generated at publish time.
+  // Falls back to the legacy sequence_30_60_90 pipeline when the snapshot is
+  // missing (older published rows) or intentionally empty.
+  const canvas = row?.client_safe_canvas && typeof row.client_safe_canvas === "object"
+    ? row.client_safe_canvas
+    : null;
+  const canvasItemCount =
+    (Array.isArray(canvas?.milestones) ? canvas.milestones.length : 0) +
+    (Array.isArray(canvas?.decisions) ? canvas.decisions.length : 0) +
+    (Array.isArray(canvas?.deliverables) ? canvas.deliverables.length : 0) +
+    (Array.isArray(canvas?.deadlines) ? canvas.deadlines.length : 0) +
+    (Array.isArray(canvas?.clientActions) ? canvas.clientActions.length : 0);
+  const useCanvas = !!canvas && canvasItemCount > 0;
+
   const priorities = normalizePriorities(row?.strategic_priorities);
-
-  // Seed Now bucket with strategic priorities so anchor milestones always exist.
-  if (buckets.now.length === 0 && priorities.length > 0) {
-    buckets.now = priorities.map((p) => ({
-      title: p.title,
-      summary: p.detail,
-    }));
-  }
-
   const usedSlugs = new Set<string>();
-  const phases: RoadmapPhase[] = (Object.keys(PHASE_LABELS) as PhaseKey[]).map(
-    (key) => {
+  let phases: RoadmapPhase[];
+
+  if (useCanvas) {
+    phases = phasesFromCanvas(canvas, usedSlugs);
+  } else {
+    const buckets = bucketSequence(row?.sequence_30_60_90);
+    // Seed Now bucket with strategic priorities so anchor milestones always exist.
+    if (buckets.now.length === 0 && priorities.length > 0) {
+      buckets.now = priorities.map((p) => ({ title: p.title, summary: p.detail }));
+    }
+    phases = (Object.keys(PHASE_LABELS) as PhaseKey[]).map((key) => {
       const items = buckets[key];
-      const milestones = items.map((it, i) =>
-        toMilestone(it, key, i, usedSlugs),
-      );
+      const milestones = items.map((it, i) => toMilestone(it, key, i, usedSlugs));
       return {
         key,
         label: PHASE_LABELS[key].label,
         timeframe: PHASE_LABELS[key].timeframe,
         milestones,
       };
-    },
-  );
+    });
+  }
 
   // Ensure every phase has at least a placeholder so the canvas keeps shape.
   for (const p of phases) {

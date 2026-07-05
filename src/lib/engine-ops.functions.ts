@@ -899,6 +899,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       risks_dependencies: safe.risks_dependencies,
       recommended_next_move: safe.recommended_next_move,
       supporting_notes: safe.supporting_notes,
+      client_safe_canvas: safe.client_safe_canvas,
       metadata: { published_by: actor, engine_project_id: project.id },
     }).select("id").single();
     if (insErr) throw new Error(String((insErr as { message?: string }).message ?? insErr));

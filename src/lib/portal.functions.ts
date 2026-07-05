@@ -635,7 +635,7 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("client_portal_roadmaps")
       .select(
-        "id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, current_focus, owner_name, next_milestone, next_meeting_at, share_url, approved_at, updated_at, version_label",
+        "id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, current_focus, owner_name, next_milestone, next_meeting_at, share_url, approved_at, updated_at, version_label, client_safe_canvas",
       )
       .in("project_id", projectIds)
       .in("status", ["approved", "delivered"])
@@ -660,6 +660,7 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
         next_meeting_at: r.next_meeting_at ?? null,
         approved_at: r.approved_at ?? null,
         updated_at: r.updated_at ?? null,
+        client_safe_canvas: r.client_safe_canvas ?? null,
       };
       return {
         id: r.id,
