@@ -224,9 +224,10 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
     const { data: item, error: rErr } = await sb.from("engine_review_items")
-      .select("project,project_id,item_type,title").eq("id", data.id).single();
+      .select("project,project_id,item_type,title,version_id").eq("id", data.id).single();
     if (rErr) throw new Error(String((rErr as { message?: string }).message ?? rErr));
-    const it = item as { project: string; project_id: string | null; item_type: string; title: string };
+    const it = item as { project: string; project_id: string | null; item_type: string; title: string; version_id: string | null };
+
     const nextStatus = data.action === "approved" ? "approved" : data.action === "rejected" ? "rejected" : "sent_back";
     const { error: uErr } = await sb.from("engine_review_items")
       .update({ status: nextStatus }).eq("id", data.id);
@@ -253,21 +254,44 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     if (data.action === "approved"
         && (it.item_type === "roadmap_version" || it.item_type === "Roadmap Update")
         && projId) {
-      // The intelligence pipeline stores the review title === version.label,
-      // e.g. "v0.2 — AI draft from ...". Match on label first, then fall back
-      // to the most recent pending version on the project.
-      const { data: matches } = await sb
-        .from("engine_roadmap_versions")
-        .select("id, version, payload, created_by, status, label")
-        .eq("project_id", projId)
-        .in("status", ["ai_generated", "tai_edited", "draft"])
-        .order("created_at", { ascending: false })
-        .limit(20) as unknown as { data: Array<{
-          id: string; version: string; payload: Record<string, unknown> | null;
-          created_by: string | null; status: string; label: string | null;
-        }> | null };
-      const rows = matches ?? [];
-      const target = rows.find((r) => (r.label ?? "").trim() === it.title.trim()) ?? rows[0] ?? null;
+      // G-3: prefer the FK `version_id` on the review item — it points
+      // exactly at the draft this review was created for. Fall back to
+      // label matching only for legacy review items created before the
+      // FK was added (version_id IS NULL).
+      type ReviewTargetVersion = {
+        id: string;
+        version: string;
+        payload: Record<string, unknown> | null;
+        created_by: string | null;
+        status: string;
+        label: string | null;
+      };
+      let target: ReviewTargetVersion | null = null;
+
+      if (it.version_id) {
+        const { data: v } = await sb
+          .from("engine_roadmap_versions")
+          .select("id, version, payload, created_by, status, label")
+          .eq("id", it.version_id)
+          .maybeSingle() as unknown as { data: ReviewTargetVersion | null };
+        target = v ?? null;
+        if (target && !["ai_generated", "tai_edited", "draft"].includes(target.status)) {
+          throw new Error(`Cannot approve: linked version is already ${target.status}.`);
+        }
+      } else {
+        // Legacy fallback — label match, then most-recent pending.
+        const { data: matches } = await sb
+          .from("engine_roadmap_versions")
+          .select("id, version, payload, created_by, status, label")
+          .eq("project_id", projId)
+          .in("status", ["ai_generated", "tai_edited", "draft"])
+          .order("created_at", { ascending: false })
+          .limit(20) as unknown as { data: ReviewTargetVersion[] | null };
+        const rows = matches ?? [];
+        target = rows.find((r) => (r.label ?? "").trim() === it.title.trim()) ?? rows[0] ?? null;
+      }
+
+
       if (target) {
         const createdBy = (target.created_by ?? "").toString().toLowerCase();
         // Self-approval guard mirrors approveVersion.
