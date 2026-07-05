@@ -1715,6 +1715,7 @@ export type Database = {
           risks: Json
           roadmap_version_id: string | null
           sort_index: number | null
+          source_evidence: Json
           status: string
           updated_at: string
         }
@@ -1748,6 +1749,7 @@ export type Database = {
           risks?: Json
           roadmap_version_id?: string | null
           sort_index?: number | null
+          source_evidence?: Json
           status?: string
           updated_at?: string
         }
@@ -1781,6 +1783,7 @@ export type Database = {
           risks?: Json
           roadmap_version_id?: string | null
           sort_index?: number | null
+          source_evidence?: Json
           status?: string
           updated_at?: string
         }
@@ -1937,6 +1940,7 @@ export type Database = {
           sequencing: Json
           signal_room: Json
           status: Database["public"]["Enums"]["engine_project_status"]
+          step_states: Json
           updated_at: string
         }
         Insert: {
@@ -1977,6 +1981,7 @@ export type Database = {
           sequencing?: Json
           signal_room?: Json
           status?: Database["public"]["Enums"]["engine_project_status"]
+          step_states?: Json
           updated_at?: string
         }
         Update: {
@@ -2017,6 +2022,7 @@ export type Database = {
           sequencing?: Json
           signal_room?: Json
           status?: Database["public"]["Enums"]["engine_project_status"]
+          step_states?: Json
           updated_at?: string
         }
         Relationships: [
@@ -3381,6 +3387,8 @@ export type Database = {
         | "investment_signal"
         | "client_language"
         | "open_question"
+        | "business_model"
+        | "current_system"
       engine_source_status: "queued" | "processing" | "processed" | "failed"
       engine_source_type:
         | "transcript"
@@ -3598,6 +3606,8 @@ export const Constants = {
         "investment_signal",
         "client_language",
         "open_question",
+        "business_model",
+        "current_system",
       ],
       engine_source_status: ["queued", "processing", "processed", "failed"],
       engine_source_type: [
