@@ -205,13 +205,14 @@ function DeliveryRoomPage() {
                 {showSkeleton ? (
                   Array.from({ length: 4 }).map((_, i) => (
                     <tr key={`sk-${i}`} className="border-b border-border/60">
-                      {Array.from({ length: 7 }).map((__, j) => (
+                      {Array.from({ length: 8 }).map((__, j) => (
                         <td key={j} className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
                       ))}
                     </tr>
                   ))
                 ) : rows.length === 0 ? (
-                  <tr><td colSpan={7} className="px-5 py-8 text-center text-ink/50 text-sm">No deliveries in this view.</td></tr>
+                  <tr><td colSpan={8} className="px-5 py-8 text-center text-ink/50 text-sm">No deliveries in this view.</td></tr>
+
                 ) : null}
               </tbody>
             </table>
