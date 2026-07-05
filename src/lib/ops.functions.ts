@@ -289,7 +289,7 @@ export const setReviewStatus = createServerFn({ method: "POST" })
 
 // Bulk mark-as-reviewed for the queue. Applies the chosen status to every
 // selected submission and writes one audit entry per row.
-const BulkSetReviewStatusInput = (z as unknown as typeof import("zod").z).object({
+const BulkSetReviewStatusInput = z.object({
   ids: z.array(z.string().uuid()).min(1).max(200),
   status: z.enum(["in_review", "approved", "rejected", "archived"]),
   reason: z.string().max(1000).optional(),
