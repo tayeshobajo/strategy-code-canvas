@@ -260,7 +260,7 @@ function MessagesPage() {
   const uploadsPending = attachments.some((a) => a.status === "uploading" || a.status === "queued");
 
   const send = useMutation({
-    mutationFn: async (payload: { text: string; fileIds: string[] }) => {
+    mutationFn: async (payload: { text: string; fileIds: string[]; phaseKey?: string; milestoneSlug?: string; milestoneTitle?: string }) => {
       if (!projectId) throw new Error("No workspace yet");
       await sendPortalMessage({
         data: {
@@ -268,6 +268,14 @@ function MessagesPage() {
           body: payload.text,
           relatedFileIds: payload.fileIds,
           messageType: "reply",
+          roadmapContext:
+            payload.phaseKey || payload.milestoneSlug
+              ? {
+                  phaseKey: payload.phaseKey || undefined,
+                  milestoneSlug: payload.milestoneSlug || undefined,
+                  milestoneTitle: payload.milestoneTitle || undefined,
+                }
+              : undefined,
         },
       });
     },
