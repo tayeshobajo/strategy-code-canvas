@@ -304,6 +304,8 @@ function MessagesPage() {
       );
       setBody("");
       setAttachments([]);
+      setComposerPhase("");
+      setComposerMilestone("");
       return { previous };
     },
     onError: (e: Error, _p, ctx) => {
