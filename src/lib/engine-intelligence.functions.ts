@@ -1041,8 +1041,63 @@ export async function runIntelligencePipelineInternal(
     used_in_version_id: version.id,
     metadata: {},
   }));
+  const insertedSignals: Array<{ id: string; category: string; label: string }> = [];
   if (signalRows.length) {
-    await sb.from("engine_extracted_signals").insert(signalRows);
+    const { data: sigInserted } = await sb
+      .from("engine_extracted_signals")
+      .insert(signalRows)
+      .select("id, category, label");
+    for (const r of (sigInserted ?? []) as Array<{ id: string; category: string; label: string }>) {
+      insertedSignals.push(r);
+    }
+  }
+
+  // Persist AI-drafted milestones into engine_milestones with source_evidence
+  // so every milestone in the Builder traces back to the source(s) that
+  // produced it. Only runs when the project has no existing milestones —
+  // never overwrite operator-authored rows.
+  try {
+    const { count: existingMs } = await sb
+      .from("engine_milestones")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", args.projectId);
+    if ((existingMs ?? 0) === 0) {
+      const phases = (parsed.modules?.roadmap as { phases?: Array<{ name: string; milestones: string[] }> } | undefined)?.phases ?? [];
+      const milestoneCandidates = insertedSignals.filter((s) => s.category === "milestone_candidate");
+      const evidenceForName = (name: string) => {
+        const lower = name.toLowerCase();
+        const matched = milestoneCandidates
+          .filter((c) => lower.includes(c.label.toLowerCase().slice(0, 24)) || c.label.toLowerCase().includes(lower.slice(0, 24)))
+          .slice(0, 3)
+          .map((c) => ({ signal_id: c.id, source_id: primarySourceId, snippet: c.label, category: c.category }));
+        if (matched.length) return matched;
+        // Fallback: attribute to every source in this run (still traceable).
+        return srcRows.map((s) => ({ source_id: s.id, snippet: `Derived from ${s.name}` }));
+      };
+      let sortIndex = 0;
+      const msRows: Array<Record<string, unknown>> = [];
+      for (const phase of phases) {
+        for (const name of phase.milestones ?? []) {
+          if (!name || typeof name !== "string") continue;
+          msRows.push({
+            project_id: args.projectId,
+            name: name.slice(0, 240),
+            phase: phase.name?.slice(0, 120) ?? null,
+            status: "draft",
+            approval_status: "draft",
+            sort_index: sortIndex++,
+            roadmap_version_id: version.id,
+            created_by_kind: "ai",
+            source_evidence: evidenceForName(name),
+          });
+        }
+      }
+      if (msRows.length) {
+        await sb.from("engine_milestones").insert(msRows);
+      }
+    }
+  } catch {
+    /* non-fatal: milestone materialization is best-effort */
   }
 
   // Update project draft pointer + JSONB modules
