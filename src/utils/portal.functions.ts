@@ -172,32 +172,6 @@ export const reactivateSubscription = createServerFn({ method: "POST" })
     }
   });
 
-export const sendPortalMessage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { body: string }) => {
-    const body = d.body?.trim();
-    if (!body) throw new Error("Message is empty");
-    if (body.length > 4000) throw new Error("Message too long");
-    return { body };
-  })
-  .handler(async ({ data, context }): Promise<Result<{ ok: true }>> => {
-    const email = context.claims?.email;
-    if (!email) return { error: "No email on account" };
-    const { error } = await context.supabase
-      .from("portal_messages")
-      .insert({ client_email: email, sender: "client", body: data.body });
-    if (error) return { error: error.message };
-    try {
-      await context.supabase.rpc("enqueue_email", {
-        queue_name: "emails",
-        payload: {
-          to: "tai@trusttai.com",
-          subject: `Portal message from ${email}`,
-          text: data.body,
-        },
-      });
-    } catch (e) {
-      console.error(e);
-    }
-    return { ok: true };
-  });
+// Legacy sendPortalMessage removed. The canonical implementation lives in
+// `src/lib/portal.functions.ts` and writes to `client_portal_messages`.
+// The legacy `portal_messages` table has been dropped.
