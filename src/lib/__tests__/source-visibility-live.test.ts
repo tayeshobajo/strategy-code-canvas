@@ -16,11 +16,14 @@ import { randomUUID } from "node:crypto";
 const HAS_PG = !!process.env.PGHOST;
 
 function psql(sql: string): string {
-  return execSync(`psql -tAX -c ${JSON.stringify(sql)}`, {
+  // Pipe SQL via stdin so multiline queries and quoting are preserved.
+  return execSync(`psql -tAX`, {
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
+    input: sql,
+    stdio: ["pipe", "pipe", "pipe"],
   }).trim();
 }
+
 
 describe.skipIf(!HAS_PG)("engine_sources.visibility live-DB defense (G-3)", () => {
   it("inserting a source without visibility yields visibility='internal_only'", () => {
