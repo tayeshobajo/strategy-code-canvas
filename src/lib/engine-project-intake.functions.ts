@@ -121,6 +121,99 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       severity: "info",
     });
 
+    // ---- Stage B: ensure all sibling rows exist so no project is orphaned ----
+    const integrityErrors: string[] = [];
+
+    // 1. Default agent row
+    {
+      const { error } = await sb.from("engine_project_agents").insert({
+        project_id: projectId,
+        name: "Roadmap Agent",
+        status: "Draft",
+        health: "Healthy",
+        policy: "Draft only",
+      });
+      if (error) integrityErrors.push(`engine_project_agents: ${error.message}`);
+    }
+
+    // 2. Default agent permissions row
+    {
+      const { error } = await sb.from("engine_agent_permissions").insert({
+        project_id: projectId,
+        permission_mode: "draft_only",
+      });
+      if (error) integrityErrors.push(`engine_agent_permissions: ${error.message}`);
+    }
+
+    // 3. v0.0 container roadmap version (parent for future AI drafts)
+    {
+      const { error } = await sb.from("engine_roadmap_versions").insert({
+        project_id: projectId,
+        version: "v0.0",
+        status: "draft",
+        created_by: "system",
+        summary: "Project container — created at intake",
+      });
+      if (error && !/duplicate|unique/i.test(error.message ?? "")) {
+        integrityErrors.push(`engine_roadmap_versions v0.0: ${error.message}`);
+      }
+    }
+
+    // 4. Client portal linkage (upsert portal project + owner permission)
+    const contactEmail =
+      (data.newClient?.contact_email ?? "").trim().toLowerCase() || null;
+    if (contactEmail) {
+      const { data: portalRow, error: upErr } = await sb
+        .from("client_portal_projects")
+        .upsert(
+          {
+            primary_email: contactEmail,
+            contact_name: data.newClient?.primary_contact ?? null,
+            company_name: data.newClient?.company ?? null,
+            portal_status: "onboarding_pending",
+            payment_status: "paid",
+            current_phase: "Onboarding",
+            owner_email: actor,
+          },
+          { onConflict: "primary_email" },
+        )
+        .select("id")
+        .single();
+      if (upErr) {
+        integrityErrors.push(`client_portal_projects: ${upErr.message}`);
+      } else if (portalRow?.id) {
+        const portalId = portalRow.id as string;
+        const { error: linkErr } = await sb
+          .from("engine_projects")
+          .update({ client_portal_project_id: portalId })
+          .eq("id", projectId);
+        if (linkErr) integrityErrors.push(`engine_projects link: ${linkErr.message}`);
+
+        const { error: permErr } = await sb
+          .from("client_portal_permissions")
+          .upsert(
+            {
+              project_id: portalId,
+              email: contactEmail,
+              role: "owner",
+              granted_by: actor,
+            },
+            { onConflict: "project_id,email" },
+          );
+        if (permErr) integrityErrors.push(`client_portal_permissions: ${permErr.message}`);
+      }
+    }
+
+    if (integrityErrors.length > 0) {
+      await sb.from("engine_activity").insert({
+        project_id: projectId,
+        kind: "integrity_warning",
+        title: "Project created with missing sibling rows",
+        body: integrityErrors.join(" | "),
+        severity: "warning",
+      });
+    }
+
     // Insert source (unless blank source name is a marker for manual start)
     const hasContent =
       !!data.source.raw_text?.trim() || !!data.source.url || !!data.source.storage_path;
