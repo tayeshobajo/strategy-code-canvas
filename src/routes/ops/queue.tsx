@@ -16,11 +16,6 @@ const searchSchema = z.object({
   sort: z.enum(["oldest", "newest"]).optional(),
 });
 
-const searchSchema = z.object({
-  status: z.string().optional(),
-  q: z.string().optional(),
-  sort: z.enum(["oldest", "newest"]).optional(),
-});
 
 export const Route = createFileRoute("/ops/queue")({
   validateSearch: searchSchema,
