@@ -78,6 +78,8 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
 
     // Resolve client
     let clientId = data.clientId ?? "";
+    let resolvedContactEmail: string | null =
+      (data.newClient?.contact_email ?? "").trim().toLowerCase() || null;
     if (!clientId && data.newClient) {
       const { data: c, error } = await sb
         .from("engine_clients")
@@ -92,6 +94,28 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         .single();
       if (error) throw new Error(error.message ?? "client insert failed");
       clientId = c.id;
+    } else if (clientId && !resolvedContactEmail) {
+      // Existing client path — look up contact_email so delivery-mode inference works.
+      const { data: c } = await sb
+        .from("engine_clients")
+        .select("contact_email")
+        .eq("id", clientId)
+        .maybeSingle();
+      resolvedContactEmail =
+        ((c?.contact_email as string | undefined) ?? "").trim().toLowerCase() || null;
+    }
+
+    // G-4: resolve delivery mode. Explicit input wins; otherwise derive from
+    // contact-email presence. If the caller asks for client_portal_required
+    // but we have no contact email to hang the portal linkage on, refuse
+    // before any inserts run — this is the "half-born" case we're closing.
+    const deliveryMode: DeliveryMode =
+      data.deliveryMode ??
+      (resolvedContactEmail ? "client_portal_required" : "internal_only");
+    if (deliveryMode === "client_portal_required" && !resolvedContactEmail) {
+      throw new Error(
+        "Project creation failed integrity check: client_portal_required delivery mode needs a client contact_email to create the portal linkage.",
+      );
     }
 
     // Create project (status = intake)
@@ -106,6 +130,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         agent_status: "inactive",
         next_action: data.primaryGoal ?? "Awaiting source processing",
         last_activity_at: nowIso,
+        delivery_mode: deliveryMode,
         signal_room: {
           engagement_type: data.engagementType ?? null,
           roadmap_type: data.roadmapType ?? null,
@@ -117,6 +142,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       .single();
     if (projErr) throw new Error(projErr.message ?? "project insert failed");
     const projectId = proj.id as string;
+
 
     // Log create
     await sb.from("engine_activity").insert({
