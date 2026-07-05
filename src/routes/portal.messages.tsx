@@ -323,11 +323,27 @@ function MessagesPage() {
 
   const filtered = useMemo(() => {
     if (!messages) return [];
-    if (tab === "updates") return messages.filter((m) => m.sender_type !== "client");
-    if (tab === "replies") return messages.filter((m) => m.sender_type === "client");
-    if (tab === "actions") return messages.filter((m) => m.action_required && !m.action_completed_at);
-    return messages;
-  }, [messages, tab]);
+    let list = messages;
+    if (tab === "updates") list = list.filter((m) => m.sender_type !== "client");
+    else if (tab === "replies") list = list.filter((m) => m.sender_type === "client");
+    else if (tab === "actions") list = list.filter((m) => m.action_required && !m.action_completed_at);
+    if (filterProject === "mine") {
+      list = list.filter((m) => (m.metadata as { roadmap_context?: unknown } | null)?.roadmap_context || m.related_milestone_id);
+    }
+    if (filterPhase) {
+      list = list.filter((m) => {
+        const rc = (m.metadata as { roadmap_context?: { phaseKey?: string } } | null)?.roadmap_context;
+        return rc?.phaseKey === filterPhase;
+      });
+    }
+    if (filterMilestone) {
+      list = list.filter((m) => {
+        const rc = (m.metadata as { roadmap_context?: { milestoneSlug?: string } } | null)?.roadmap_context;
+        return rc?.milestoneSlug === filterMilestone;
+      });
+    }
+    return list;
+  }, [messages, tab, filterPhase, filterMilestone, filterProject]);
 
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
 
