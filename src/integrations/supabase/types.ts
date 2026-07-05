@@ -582,6 +582,7 @@ export type Database = {
           acknowledged_by_email: string | null
           approved_at: string | null
           approved_roadmap_version_id: string | null
+          client_safe_canvas: Json
           created_at: string
           current_diagnosis: string | null
           current_focus: string | null
@@ -616,6 +617,7 @@ export type Database = {
           acknowledged_by_email?: string | null
           approved_at?: string | null
           approved_roadmap_version_id?: string | null
+          client_safe_canvas?: Json
           created_at?: string
           current_diagnosis?: string | null
           current_focus?: string | null
@@ -650,6 +652,7 @@ export type Database = {
           acknowledged_by_email?: string | null
           approved_at?: string | null
           approved_roadmap_version_id?: string | null
+          client_safe_canvas?: Json
           created_at?: string
           current_diagnosis?: string | null
           current_focus?: string | null
