@@ -130,7 +130,13 @@ export const createSource = createServerFn({ method: "POST" })
         storage_path: data.storage_path ?? null,
         status: "queued",
         created_by_email: email,
+        // G-2: defense-in-depth. DB default is also 'internal_only' NOT NULL,
+        // but setting it explicitly here means any future default change (or
+        // a raw insert path that skips defaults) cannot silently leak a
+        // client-safe row into the pipeline.
+        visibility: "internal_only",
       })
+
       .select("id")
       .single();
     if (error) throw new Error(error.message ?? "create source failed");
