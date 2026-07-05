@@ -64,7 +64,7 @@ afterAll(() => {
       /* ignore */
     }
   }
-});
+}, 60000);
 
 describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-safe only)", () => {
   it("publishes approved version and portal reads see ONLY client_safe_canvas content", { timeout: 45000 }, () => {
