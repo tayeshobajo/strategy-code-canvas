@@ -11,7 +11,18 @@ import { SectionCard } from "@/components/engine/primitives";
 import { toast } from "sonner";
 import { Loader2, Upload, Link2, FileText, StickyNote, ArrowRight } from "lucide-react";
 
+const PrefillSearchSchema = z.object({
+  // Pillar 1 — intake bridge. When present, the New Project form is pre-filled
+  // from an ops/intake submission and the user just confirms + submits.
+  submissionId: z.string().uuid().optional(),
+  company: z.string().max(200).optional(),
+  contactEmail: z.string().max(255).optional(),
+  projectName: z.string().max(200).optional(),
+  notes: z.string().max(20000).optional(),
+});
+
 export const Route = createFileRoute("/engine/projects/new")({
+  validateSearch: (search) => PrefillSearchSchema.parse(search),
   component: NewProjectPage,
 });
 
@@ -26,6 +37,7 @@ const SourceTypeMap: Record<SourceTab, string> = {
 
 function NewProjectPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const createFn = useServerFn(createProjectFromSource);
   const listClients = useServerFn(listClientsForPicker);
 
@@ -34,21 +46,24 @@ function NewProjectPage() {
     queryFn: () => listClients(),
   });
 
-  const [projectName, setProjectName] = useState("");
+  const [projectName, setProjectName] = useState(search.projectName ?? "");
   const [clientMode, setClientMode] = useState<"existing" | "new">("new");
   const [clientId, setClientId] = useState<string>("");
-  const [newCompany, setNewCompany] = useState("");
+  const [newCompany, setNewCompany] = useState(search.company ?? "");
   const [newIndustry, setNewIndustry] = useState("");
-  const [newContactEmail, setNewContactEmail] = useState("");
+  const [newContactEmail, setNewContactEmail] = useState(search.contactEmail ?? "");
   const [engagementType, setEngagementType] = useState("");
   const [roadmapType, setRoadmapType] = useState("");
   const [primaryGoal, setPrimaryGoal] = useState("");
   const [criticalDate, setCriticalDate] = useState("");
 
-  const [sourceTab, setSourceTab] = useState<SourceTab>("paste");
-  const [sourceName, setSourceName] = useState("");
-  const [rawText, setRawText] = useState("");
+  const [sourceTab, setSourceTab] = useState<SourceTab>(search.notes ? "paste" : "paste");
+  const [sourceName, setSourceName] = useState(
+    search.submissionId ? `Intake submission ${search.submissionId.slice(0, 8)}` : "",
+  );
+  const [rawText, setRawText] = useState(search.notes ?? "");
   const [sourceUrl, setSourceUrl] = useState("");
+
 
   const mutation = useMutation({
     mutationFn: async () => {

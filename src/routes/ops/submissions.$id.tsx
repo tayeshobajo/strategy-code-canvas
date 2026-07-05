@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Eye, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Eye, Loader2, Sparkles } from "lucide-react";
 import { Card, PageHeader } from "@/components/ops/Primitives";
 import { StatusBadge } from "@/components/ops/StatusBadge";
 import {
@@ -14,6 +14,7 @@ import {
   setReviewStatus,
 } from "@/lib/ops.functions";
 import type { IntakeAnswer } from "@/lib/ops/intake-types";
+
 
 export const Route = createFileRoute("/ops/submissions/$id")({
   component: SubmissionPage,
@@ -112,6 +113,37 @@ function SubmissionPage() {
   const answers: IntakeAnswer[] = submission.answers ?? [];
   const artifact = review?.artifact ?? null;
   const status = review?.status ?? "needs_review";
+
+  // Pillar 1 — bridge from intake submission to engine project.
+  // Compose the submission's Q&A into a pre-fillable "notes" blob and open
+  // /engine/projects/new with the fields already populated.
+  const bridgeNotes = [
+    `Intake submission ${submission.id}`,
+    `Founder: ${submission.name ?? ""}`.trim(),
+    `Company: ${submission.business ?? ""}`.trim(),
+    submission.website ? `Website: ${submission.website}` : "",
+    submission.email ? `Email: ${submission.email}` : "",
+    "",
+    ...answers.map((a) => `Q: ${a.question || a.key}\nA: ${a.response || "—"}\n`),
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .slice(0, 20000);
+  const bridgeSearch = {
+    submissionId: submission.id,
+    company: submission.business ?? undefined,
+    contactEmail: submission.email ?? undefined,
+    projectName: submission.business
+      ? `${submission.business} Roadmap`
+      : submission.name
+        ? `${submission.name} Roadmap`
+        : undefined,
+    notes: bridgeNotes,
+  } as const;
+  const bridgedAudit = audit.find(
+    (a) => a.action === "bridged_to_engine" || a.action === "engine_project_created",
+  );
+
 
   return (
     <div className="px-6 py-6 md:px-10 md:py-8 space-y-6">
@@ -301,6 +333,30 @@ function SubmissionPage() {
               </div>
             ) : null}
           </Card>
+
+          <Card>
+            <div className="text-[11px] uppercase tracking-wider text-[#7d8095]">
+              Engine bridge
+            </div>
+            <p className="mt-2 text-[13px] leading-relaxed text-[#3b3f55]">
+              Turn this submission into a live engine project. The Q&amp;A becomes the
+              first source; the founder's contact stays attached.
+            </p>
+            <Link
+              to="/engine/projects/new"
+              search={bridgeSearch}
+              className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-md bg-[#3a4fcf] px-3 py-2.5 text-sm font-medium text-white hover:bg-[#2f41a8]"
+            >
+              <Sparkles className="h-4 w-4" />
+              {bridgedAudit ? "Create another engine project" : "Create engine project"}
+            </Link>
+            {bridgedAudit ? (
+              <div className="mt-2 text-[11px] text-[#7d8095]">
+                Previously bridged {formatStamp(bridgedAudit.created_at)}
+              </div>
+            ) : null}
+          </Card>
+
 
           <Card>
             <div className="text-[11px] uppercase tracking-wider text-[#7d8095]">

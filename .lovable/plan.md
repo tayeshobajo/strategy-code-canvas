@@ -1,55 +1,75 @@
-# Bridge Plan Verification Audit
+# Roadmap Engine Audit Remediation — Pillars 1→12
 
-Most of the Phase 0–4 bridge work already landed in earlier turns. This plan does a systematic top-to-bottom verification, runs the existing tests, and fixes anything that fails or is missing — without redesigning UI.
+Goal: turn every PARTIAL / FAIL into PASS, in numerical order. Pillars 3 (Source Room) and the core of 4 & 5 are already PASS — they still get small tightening because the audit flagged caveats. No new tests; each pillar ends with a manual verify (build clean + click-through on the affected screen).
 
-## Approach
+Approach per pillar: read the exact files → make the smallest change that closes the audit finding → verify → move to the next. No batching, no parallel pillars.
 
-For each phase, I will:
-1. Read the current implementation.
-2. Run the corresponding test(s).
-3. Report status (green / gap / broken).
-4. Patch gaps in the same pass.
+---
 
-## Phase 0 — Publish integrity
+## Pillar 1 — Intake (PARTIAL → PASS)
+**Finding:** portal onboarding auto-extracts, public wizard doesn't; no bridge from intake submission to project.
+- Add a "Create project from submission" server fn in `src/lib/intake.functions.ts` that calls `createProjectFromSource` with the submission's text as a `research_note` source.
+- Add a button on the ops intake review console (`scripts/intake/001_review_console.sql` surface → the admin route that lists `intake_submissions`) wired to that fn.
+- On success, stamp `intake_submissions.linked_project_id` so we don't double-create.
 
-- **0.1 Publish column** — Confirm `publishVersionToPortal` writes `approved_roadmap_version_id` and that `tg_client_portal_roadmaps_require_source_version` reads the same column. Run `publish-column-integrity.test.ts` and `review-item-and-publish-gates.test.ts`. Verify draft (`status = 'ai_generated'`) cannot be published.
-- **0.2 Source visibility** — Confirm DB default `engine_sources.visibility = 'internal_only'` and every insert path sets it explicitly (`createProjectFromSource`, `createSource`, `submitPortalOnboarding`, `reprocessSource`, Signal Room, transcript imports, notes, URLs). Run `source-visibility-*.test.ts` and `portal-cannot-read-engine-sources.test.ts`.
-- **0.3 Review-item version_id** — Confirm `engine_review_items.version_id` FK exists, is populated on AI pipeline + `submitVersionForApproval`, and `decideReviewItem` approves by `version_id` (no `rows[0]` fallback). Run `review-item-version-fk.test.ts`.
+## Pillar 2 — Project Creation (PARTIAL → PASS)
+**Finding:** integrity checks exist but no transaction; rollback orphans records and deletes its own audit trail.
+- Wrap the multi-insert sequence in `createProjectFromSource` in a single Postgres RPC (`create_project_atomic`) so all sibling inserts (project, agent, permissions, v0.0 version, portal linkage) commit or rollback together.
+- Keep the current `integrity_failure` activity log, but write it to a separate table (`engine_project_intake_failures`) so rollback doesn't wipe the failure record.
 
-## Phase 1 — Intake becomes intelligence
+## Pillar 4 — Intelligence Layer (PASS caveat)
+**Finding:** two divergent extraction paths; UI reads a schema the pipeline doesn't write.
+- Delete/redirect the older extraction path so only `runIntelligenceExtraction` writes `engine_extracted_signals`.
+- Align the Intelligence Layer step UI to read the exact keys the pipeline emits (audit the mismatch first, then fix the reader — not the writer).
 
-- **1.1 Onboarding → pipeline** — Confirm `submitPortalOnboarding` inserts source with `visibility='internal_only'` then calls `runIntelligencePipelineInternal`, transitions source/project/extraction_run statuses, creates draft version + review item, and never exposes draft to portal. Run `onboarding-triggers-extraction.test.ts`.
-- **1.2 Extraction retry/failure** — Verify failed runs mark `engine_extraction_runs.status='failed'` with error, and expose a retry action (admin or `/engine/projects/:id/extraction`). Add a test for retry if missing.
-- **1.3 Creation-time file upload** — Inspect `/engine/projects/new` upload tab. If it is a stub, disable/hide it (no fake path). If wired, add a smoke test.
+## Pillar 5 — Draft Roadmap (PASS caveat)
+**Finding:** approved versions safe, but pipeline clobbers live workspace state.
+- In the pipeline's post-draft write, skip any workspace step whose `step_states[step].state === 'approved'`.
+- Only fields on `draft`/`review` steps get overwritten by re-runs.
 
-## Phase 2 — Project creation integrity
+## Pillar 6 — Operator Review (PARTIAL → PASS)
+**Finding:** operators can approve sacred parts (Point A, Point B, Vision); can't edit what the vision says they should.
+- Extend `PROTECTED_APPROVED_FIELDS` (in `engine-agent.functions.ts`) to include `vision`, `point_a`, `point_b` for the `operator` role at review time.
+- Add an "Only Tai can approve" guard on those specific review-item sub-fields; operators can comment but not click Approve on them.
 
-- **2.1 `verifyProjectIntegrity` after `createProjectFromSource`** — Confirm it runs immediately, respects `delivery_mode`, and rolls back or hard-warns on missing siblings. Run `project-integrity-rollback.test.ts`.
-- **2.2 delivery_mode enforcement** — Confirm `client_portal_required` blocks creation without `client_portal_project_id`.
-- **2.3 Repair action** — Verify an admin surface exists to repair orphaned engine/portal projects. If absent, add a `repairProjectIntegrity` server fn + admin button.
+## Pillar 7 — Review & Approvals (PARTIAL → PASS)
+**Findings:** 5 of 6 gates real, Investment gate is a label only, Version gate leaks to operators.
+- Turn the Investment gate into a real check: block publish/version-approve until `engine_projects.investment_confirmed_at` is set (add column + Tai-only setter).
+- On the Version gate, filter `listReviewItems` by role: operators see everything except `type = 'version_approval'`; only admin/Tai sees those rows.
 
-## Phase 3 — Portal canvas fidelity
+## Pillar 8 — Client Portal (PARTIAL → PASS)
+**Finding:** one real leak — a `select("*")` ships internal fields to browser.
+- Grep `src/lib/portal.functions.ts` and `src/routes/portal.*` for `.select("*")` and replace each with an explicit safe-column projection matching `CLIENT_SAFE_KEYS`.
+- Runtime allowlist in `buildClientSafePayload` already exists — extend it to also strip unknown keys from any portal fetcher's result before return (belt + suspenders).
 
-- **3.1 `client_safe_canvas` shape** — Read `buildClientSafeCanvas` in `roadmap-publish.ts`. Confirm it emits `{pointA, pointB, phases, milestones, decisions, deliverables, deadlines, clientActions}` with the required per-phase and per-milestone fields.
-- **3.2 Portal reads canvas first** — Confirm `getPortalRoadmapDocs` reads `client_safe_canvas` first and only falls back to `sequence_30_60_90` when absent. Fix bridge so Point A/B resolves from canvas, never falls back to summary/diagnosis when approved values exist.
-- **3.3 No direct engine reads** — Grep `/portal/*` code to confirm no route reads `engine_*` tables directly.
+## Pillar 9 — Roadmap Canvas (FAIL → PASS)
+**Finding:** Point A never renders. Hardcoded demo copy for every client. Centerpiece shows placeholders.
+- In `MapCanvas` / `JourneyCanvas` / `RoadmapOverviewStrip`, remove the `portal-roadmap-demo-fixture` fallback for real portal loads (keep it only behind an explicit `?demo=1` flag).
+- Read Point A / Point B / phases / milestones from `client_safe_canvas` returned by `getPortalRoadmapDocs`. If missing, render an empty-state ("Your roadmap is being prepared") — never demo copy.
+- Fix the Point A renderer to actually mount when `canvas.pointA` is present (audit the current conditional first).
 
-## Phase 4 — Feedback loop
+## Pillar 10 — Client Feedback Loop (PARTIAL → PASS)
+**Finding:** decisions/acks close the loop; file uploads and messages don't reach engine.
+- On portal file upload (`client_portal_files` insert), add trigger or server-fn hook that writes an `engine_activity` row (`type: 'client_file_uploaded'`) and creates a review item for Tai.
+- On portal message send, mirror to `engine_activity` (`type: 'client_message'`) with `related_project_id` — extend the message composer changes already shipped in the prior turn.
 
-- **4.1 Portal → engine_activity mirrors** — Confirm mirrors exist for `sendPortalMessage`, `recordPortalMilestoneReview`, important file view/download, onboarding submit. Verify `action_required=true` messages create a follow-up review item or task.
-- **4.2 Canonical messages table** — Confirm `portal_messages` is dropped and `/portal/messages` reads/writes `client_portal_messages` with structured `related_*` fields.
+## Pillar 11 — Execution Tracker (PARTIAL → PASS)
+**Finding:** gating solid; task-to-milestone linkage not enforced; demo data seeds into production.
+- Replace the hardcoded `BUILDS` array in `src/routes/engine.execution.tsx` with a live query over `engine_agent_tasks` joined to `engine_milestones` (the P0 backlog item from the QA doc — do it here).
+- Add a NOT NULL FK check: `engine_agent_tasks.milestone_id REFERENCES engine_milestones(id)`; migrate existing null rows to a placeholder milestone or archive them.
 
-## Deliverables
+## Pillar 12 — Intelligence Memory (PARTIAL → PASS)
+**Finding:** table exists, taxonomy right; nothing writes automatically, nothing reads at generation time.
+- On successful extraction run, auto-insert into `engine_intelligence_memory`: stable patterns (recurring signal categories, repeated phase shapes, common risks).
+- In the draft-generation prompt (`engine-agent-prompts.ts`), inject the top-N relevant memory rows for the current client + globally, so the AI actually uses accumulated learning.
 
-For every phase item above, one of:
-- Green (test passes, no change needed) — noted in final report.
-- Gap (missing test or code) — added in this pass.
-- Broken (test fails) — fixed in this pass.
+---
 
-Final report enumerates status per item plus a list of any files changed.
+## Order of execution
 
-## Notes
+1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12 — one at a time. After each pillar: build clean, click the affected screen, mark PASS in `.lovable/engine-qa-audit.md`, move on.
 
-- No UI redesign.
-- No schema changes unless a gap requires one (e.g. missing DB default). Schema changes go through the migration tool with GRANT + RLS.
-- All new server fns follow `createServerFn` + `requireSupabaseAuth` conventions.
+## Out of scope
+- No new automated tests (per your call).
+- No visual redesigns of any surface — only the data/logic fixes above.
+- Pillar 3 already PASS — untouched.
