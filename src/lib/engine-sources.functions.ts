@@ -70,8 +70,8 @@ export const changeSourceVisibility = createServerFn({ method: "POST" })
       affected_modules: ["engine_sources"],
       target_id: data.sourceId,
       field_changed: "visibility",
-      old_value: oldVisibility as unknown as object,
-      new_value: data.visibility as unknown as object,
+      old_value: oldVisibility,
+      new_value: data.visibility,
       reason: data.reason,
       metadata: { source_name: existing.name },
     });
