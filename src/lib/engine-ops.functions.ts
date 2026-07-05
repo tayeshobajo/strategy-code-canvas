@@ -49,6 +49,8 @@ export type DeliveryStatus =
 
 export type DeliveryItem = {
   id: string;
+  project_id: string | null;
+  client_portal_roadmap_id: string | null;
   client: string;
   roadmap: string;
   version: string;
@@ -76,7 +78,7 @@ export const listDeliveries = createServerFn({ method: "GET" })
     };
     const { data, error } = await sb
       .from("engine_delivery_items")
-      .select("id,client,roadmap,version,status,channel,recipient,recipient_role,prepared_by,approved_by,last_action,updated_at,client_portal_roadmap_id,engine_delivery_history(id,from_status,to_status,note,at,actor),client_portal_roadmaps:client_portal_roadmap_id(status,share_url)")
+      .select("id,project_id,client,roadmap,version,status,channel,recipient,recipient_role,prepared_by,approved_by,last_action,updated_at,client_portal_roadmap_id,engine_delivery_history(id,from_status,to_status,note,at,actor),client_portal_roadmaps:client_portal_roadmap_id(status,share_url)")
       .order("updated_at", { ascending: false });
     if (error) throw new Error(String((error as { message?: string }).message ?? error));
     const rows = (data ?? []) as Array<DeliveryItem & {
@@ -87,7 +89,7 @@ export const listDeliveries = createServerFn({ method: "GET" })
       const s = (r.client_portal_roadmaps?.status ?? "").toLowerCase();
       const portal_publish_status: DeliveryItem["portal_publish_status"] = !r.client_portal_roadmaps
         ? "not_published"
-        : s === "published" || s === "client_facing"
+        : s === "published" || s === "client_facing" || s === "delivered"
           ? "published"
           : s === "archived"
             ? "archived"
