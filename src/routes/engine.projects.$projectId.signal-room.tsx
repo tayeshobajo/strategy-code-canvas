@@ -3,6 +3,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
+import { SourceVisibilityPanel } from "@/components/engine/SourceVisibilityPanel";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
