@@ -1668,7 +1668,29 @@ export const submitPortalOnboarding = createServerFn({ method: "POST" })
         console.warn("[submitPortalOnboarding] engine_source insert failed", srcErr);
       } else {
         engineSourceId = src.id as string;
+        // G-1: auto-run the intelligence extraction pipeline so onboarding
+        // intake feeds signals/milestone drafts without operator intervention.
+        // Fire-and-forget: the client response returns immediately; the
+        // pipeline logs its own errors into engine_activity / engine_extraction_runs.
+        void (async () => {
+          try {
+            const { runIntelligencePipelineInternal } = await import(
+              "@/lib/engine-intelligence.functions"
+            );
+            await runIntelligencePipelineInternal(supabaseAdmin, {
+              projectId: engineProj.id,
+              sourceIds: [engineSourceId as string],
+              actorEmail: email,
+            });
+          } catch (e) {
+            console.warn(
+              "[submitPortalOnboarding] intelligence pipeline failed",
+              (e as Error)?.message ?? e,
+            );
+          }
+        })();
       }
+
 
       await supabaseAdmin.from("engine_activity").insert({
         project_id: engineProj.id,
