@@ -80,7 +80,7 @@ export async function enqueueTransactionalEmail(opts: {
       template_name: opts.templateName,
       recipient_email: effectiveRecipient,
       status: 'suppressed',
-      metadata: logMetadata,
+      metadata: logMetadata as unknown as Record<string, unknown>,
     })
     return { queued: false, reason: 'email_suppressed' }
   }
