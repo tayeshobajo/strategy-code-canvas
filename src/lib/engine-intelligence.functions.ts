@@ -1235,11 +1235,17 @@ export async function runIntelligencePipelineInternal(
   // Enqueue review item — G-3: link directly to the version we just produced
   // so decideReviewItem approves this exact draft (no label-based guessing
   // between co-existing pending drafts).
+  const diffCounts = suggestedMilestoneChanges
+    ? suggestedMilestoneChanges.added.length + suggestedMilestoneChanges.modified.length + suggestedMilestoneChanges.removed.length
+    : 0;
+  const reviewTitle = diffCounts > 0
+    ? `${versionLabel} · ${suggestedMilestoneChanges!.added.length} added / ${suggestedMilestoneChanges!.modified.length} modified / ${suggestedMilestoneChanges!.removed.length} removed milestone(s)`
+    : versionLabel;
   await sb.from("engine_review_items").insert({
     project_id: args.projectId,
     project: project.name,
     item_type: "roadmap_version",
-    title: versionLabel,
+    title: reviewTitle,
     impact: "high",
     source: "ai",
     requested_by: "ai",
