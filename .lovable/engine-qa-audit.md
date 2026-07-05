@@ -284,3 +284,32 @@ Tables: `engine_projects`, `engine_sources`, `engine_extracted_signals`, `engine
 - `src/lib/__tests__/source-visibility-live.test.ts` — live-DB test (skipped when `PGHOST` absent): inserts a source without `visibility` and asserts the DB default fills `internal_only`; asserts NULL is rejected; asserts column metadata via `information_schema`.
 
 Portal audiences see raw source truth only when it has been deliberately promoted into `client_portal_roadmaps` / `client_portal_files` / `client_portal_messages` through the approved-roadmap publish flow (G-0 concern, separately closed).
+
+
+### Gap Closure Log — G-4: No half-born projects ✅ DONE (2026-07-05)
+
+**Status:** Closed. `createProjectFromSource` now either produces a complete project (all required siblings present) or produces nothing at all — no partial rows left behind, no silent `integrity_warning` masking a broken project.
+
+**Contract enforced:**
+1. Every project declares its `delivery_mode` at creation (`internal_only` | `client_portal_required`).
+2. Always-required siblings: `engine_project_agents`, `engine_agent_permissions`, `engine_roadmap_versions` (v0.0 container).
+3. Additionally required when `delivery_mode = 'client_portal_required'`: `client_portal_projects` row, `engine_projects.client_portal_project_id` link, non-revoked owner `client_portal_permissions` row.
+4. `client_portal_required` requested without a client contact_email → refuse before any inserts.
+5. Any post-insert integrity failure → log `integrity_failure` `engine_activity`, delete the project + purgeable siblings (`engine_project_agents`, `engine_agent_permissions`, `engine_roadmap_versions`, `engine_activity`, `engine_sources`), then throw. Source insert and pipeline kick-off never happen for a half-born project.
+
+**Delivery mode inference (when caller omits it):**
+- Client contact email resolvable (either from `newClient.contact_email` or the existing client row) → `client_portal_required`.
+- Otherwise → `internal_only`.
+
+**Diagnostic parity:** `verifyProjectIntegrity` now returns `delivery_mode` and treats missing portal rows as `ok: true` for `internal_only` projects (portal linkage intentionally absent). Only `client_portal_required` projects fail on missing portal rows.
+
+**Backfill:** existing rows without portal linkage and without a client contact_email were flipped to `internal_only`; everything else stays on the `client_portal_required` default.
+
+**Files:**
+- `supabase/migrations/…_add_engine_delivery_mode.sql` — enum + column + backfill + index.
+- `src/lib/engine-project-intake.functions.ts` — resolved-delivery-mode logic, integrity gate + rollback, updated `verifyProjectIntegrity`.
+- `src/lib/__tests__/project-integrity-rollback.test.ts` — 7 guard tests locking each contract line.
+
+**Explicitly out of scope for this pass:**
+- No Postgres-transaction / RPC-wrapped single-shot insert; sequential inserts + explicit rollback is enough and easier to audit.
+- No UI toggle for `delivery_mode` in the intake form yet — auto-derive covers today's flows; explicit toggle can land later.

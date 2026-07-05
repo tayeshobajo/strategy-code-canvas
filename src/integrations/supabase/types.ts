@@ -1922,6 +1922,7 @@ export type Database = {
           current_step_num: number
           deadlines: Json
           delivery: Json
+          delivery_mode: Database["public"]["Enums"]["engine_delivery_mode"]
           extraction: Json
           gap_map: Json
           health_score: number
@@ -1963,6 +1964,7 @@ export type Database = {
           current_step_num?: number
           deadlines?: Json
           delivery?: Json
+          delivery_mode?: Database["public"]["Enums"]["engine_delivery_mode"]
           extraction?: Json
           gap_map?: Json
           health_score?: number
@@ -2004,6 +2006,7 @@ export type Database = {
           current_step_num?: number
           deadlines?: Json
           delivery?: Json
+          delivery_mode?: Database["public"]["Enums"]["engine_delivery_mode"]
           extraction?: Json
           gap_map?: Json
           health_score?: number
@@ -3367,6 +3370,7 @@ export type Database = {
         | "scope_change"
         | "investment_impact"
         | "client_copy_affected"
+      engine_delivery_mode: "internal_only" | "client_portal_required"
       engine_extraction_run_status:
         | "pending"
         | "running"
@@ -3584,6 +3588,7 @@ export const Constants = {
         "investment_impact",
         "client_copy_affected",
       ],
+      engine_delivery_mode: ["internal_only", "client_portal_required"],
       engine_extraction_run_status: [
         "pending",
         "running",

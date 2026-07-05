@@ -26,6 +26,9 @@ const SOURCE_TYPES = [
   "previous_roadmap",
 ] as const;
 
+const DELIVERY_MODES = ["internal_only", "client_portal_required"] as const;
+type DeliveryMode = (typeof DELIVERY_MODES)[number];
+
 const CreateInput = z.object({
   clientId: z.string().uuid().optional(),
   newClient: z
@@ -41,6 +44,8 @@ const CreateInput = z.object({
   roadmapType: z.string().max(120).optional(),
   primaryGoal: z.string().max(500).optional(),
   criticalDate: z.string().max(200).optional(),
+  // G-4: explicit delivery-mode override. When omitted, derived from contact-email presence.
+  deliveryMode: z.enum(DELIVERY_MODES).optional(),
   source: z.object({
     type: z.enum(SOURCE_TYPES),
     name: z.string().min(1).max(240),
@@ -49,6 +54,7 @@ const CreateInput = z.object({
     storage_path: z.string().max(1024).optional(),
   }),
 });
+
 
 export type CreateProjectFromSourceResult = {
   project_id: string;
@@ -72,6 +78,8 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
 
     // Resolve client
     let clientId = data.clientId ?? "";
+    let resolvedContactEmail: string | null =
+      (data.newClient?.contact_email ?? "").trim().toLowerCase() || null;
     if (!clientId && data.newClient) {
       const { data: c, error } = await sb
         .from("engine_clients")
@@ -86,6 +94,28 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         .single();
       if (error) throw new Error(error.message ?? "client insert failed");
       clientId = c.id;
+    } else if (clientId && !resolvedContactEmail) {
+      // Existing client path — look up contact_email so delivery-mode inference works.
+      const { data: c } = await sb
+        .from("engine_clients")
+        .select("contact_email")
+        .eq("id", clientId)
+        .maybeSingle();
+      resolvedContactEmail =
+        ((c?.contact_email as string | undefined) ?? "").trim().toLowerCase() || null;
+    }
+
+    // G-4: resolve delivery mode. Explicit input wins; otherwise derive from
+    // contact-email presence. If the caller asks for client_portal_required
+    // but we have no contact email to hang the portal linkage on, refuse
+    // before any inserts run — this is the "half-born" case we're closing.
+    const deliveryMode: DeliveryMode =
+      data.deliveryMode ??
+      (resolvedContactEmail ? "client_portal_required" : "internal_only");
+    if (deliveryMode === "client_portal_required" && !resolvedContactEmail) {
+      throw new Error(
+        "Project creation failed integrity check: client_portal_required delivery mode needs a client contact_email to create the portal linkage.",
+      );
     }
 
     // Create project (status = intake)
@@ -100,6 +130,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         agent_status: "inactive",
         next_action: data.primaryGoal ?? "Awaiting source processing",
         last_activity_at: nowIso,
+        delivery_mode: deliveryMode,
         signal_room: {
           engagement_type: data.engagementType ?? null,
           roadmap_type: data.roadmapType ?? null,
@@ -111,6 +142,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       .single();
     if (projErr) throw new Error(projErr.message ?? "project insert failed");
     const projectId = proj.id as string;
+
 
     // Log create
     await sb.from("engine_activity").insert({
@@ -159,15 +191,16 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       }
     }
 
-    // 4. Client portal linkage (upsert portal project + owner permission)
-    const contactEmail =
-      (data.newClient?.contact_email ?? "").trim().toLowerCase() || null;
-    if (contactEmail) {
+    // 4. Client portal linkage (upsert portal project + owner permission).
+    // Only wire portal linkage when we have a contact email to hang it on.
+    // For internal_only projects with no contact email, portal linkage is
+    // intentionally absent and NOT considered an integrity failure.
+    if (resolvedContactEmail) {
       const { data: portalRow, error: upErr } = await sb
         .from("client_portal_projects")
         .upsert(
           {
-            primary_email: contactEmail,
+            primary_email: resolvedContactEmail,
             contact_name: data.newClient?.primary_contact ?? null,
             company_name: data.newClient?.company ?? null,
             portal_status: "onboarding_pending",
@@ -194,7 +227,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
           .upsert(
             {
               project_id: portalId,
-              email: contactEmail,
+              email: resolvedContactEmail,
               role: "owner",
               granted_by: actor,
             },
@@ -204,15 +237,44 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       }
     }
 
+    // G-4: hard integrity gate. Re-read the DB to confirm every required
+    // sibling is present. Portal linkage is only required when the project's
+    // resolved delivery_mode is client_portal_required. On any missing
+    // required sibling, roll back the project row (FKs cascade what they
+    // can; we explicitly delete siblings without CASCADE), log an
+    // integrity_failure activity, and throw — no half-born projects.
+    const failures = await assertProjectIntegrity(sb, projectId, deliveryMode);
+    if (failures.length > 0) {
+      const combined = [...integrityErrors, ...failures].join(" | ");
+      // Best-effort audit trail BEFORE we delete the row. The activity row
+      // references project_id via FK; log to a project-agnostic path too.
+      try {
+        await sb.from("engine_activity").insert({
+          project_id: projectId,
+          kind: "integrity_failure",
+          title: "Project creation rolled back",
+          body: combined,
+          severity: "error",
+        });
+      } catch {
+        /* audit log is best-effort */
+      }
+      await rollbackHalfBornProject(sb, projectId);
+      throw new Error(`Project creation failed integrity check: ${combined}`);
+    }
+
+    // Non-fatal soft warnings from the sibling insert block (e.g. duplicate
+    // v0.0 on a retry) — surface but do not block.
     if (integrityErrors.length > 0) {
       await sb.from("engine_activity").insert({
         project_id: projectId,
         kind: "integrity_warning",
-        title: "Project created with missing sibling rows",
+        title: "Project created with non-fatal sibling warnings",
         body: integrityErrors.join(" | "),
         severity: "warning",
       });
     }
+
 
     // Insert source (unless blank source name is a marker for manual start)
     const hasContent =
@@ -354,19 +416,100 @@ export const listClientsForPicker = createServerFn({ method: "GET" })
   });
 
 /* ============================================================
+ * G-4: internal integrity helpers used by createProjectFromSource
+ * ============================================================ */
+
+/**
+ * assertProjectIntegrity — re-reads the DB and returns a list of missing
+ * required siblings. Portal linkage is only required when deliveryMode is
+ * client_portal_required. Empty array = OK.
+ */
+async function assertProjectIntegrity(
+  sb: any,
+  projectId: string,
+  deliveryMode: DeliveryMode,
+): Promise<string[]> {
+  const missing: string[] = [];
+
+  const { data: proj } = await sb
+    .from("engine_projects")
+    .select("id, client_portal_project_id")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (!proj) return ["engine_projects row missing"];
+
+  const [{ count: agentCount }, { count: permCount }, { count: verCount }] = await Promise.all([
+    sb.from("engine_project_agents").select("id", { count: "exact", head: true }).eq("project_id", projectId),
+    sb.from("engine_agent_permissions").select("project_id", { count: "exact", head: true }).eq("project_id", projectId),
+    sb.from("engine_roadmap_versions").select("id", { count: "exact", head: true }).eq("project_id", projectId),
+  ]);
+  if ((agentCount ?? 0) < 1) missing.push("engine_project_agents");
+  if ((permCount ?? 0) < 1) missing.push("engine_agent_permissions");
+  if ((verCount ?? 0) < 1) missing.push("engine_roadmap_versions (v0.0 container)");
+
+  if (deliveryMode === "client_portal_required") {
+    if (!proj.client_portal_project_id) {
+      missing.push("engine_projects.client_portal_project_id link");
+    } else {
+      const [{ count: portalCount }, { count: ownerCount }] = await Promise.all([
+        sb.from("client_portal_projects").select("id", { count: "exact", head: true }).eq("id", proj.client_portal_project_id),
+        sb.from("client_portal_permissions").select("id", { count: "exact", head: true }).eq("project_id", proj.client_portal_project_id).is("revoked_at", null),
+      ]);
+      if ((portalCount ?? 0) < 1) missing.push("client_portal_projects");
+      if ((ownerCount ?? 0) < 1) missing.push("client_portal_permissions (owner)");
+    }
+  }
+
+  return missing;
+}
+
+/**
+ * rollbackHalfBornProject — deletes the just-created project and any sibling
+ * rows that don't already CASCADE on engine_projects deletion. Best-effort
+ * on individual deletes so a partial rollback still removes as much as
+ * possible; the caller throws after this returns.
+ */
+async function rollbackHalfBornProject(sb: any, projectId: string): Promise<void> {
+  // Explicit deletes for tables whose FKs may not cascade in every install.
+  const targets: Array<{ table: string; column: string }> = [
+    { table: "engine_project_agents", column: "project_id" },
+    { table: "engine_agent_permissions", column: "project_id" },
+    { table: "engine_roadmap_versions", column: "project_id" },
+    { table: "engine_activity", column: "project_id" },
+    { table: "engine_sources", column: "project_id" },
+  ];
+  for (const { table, column } of targets) {
+    try {
+      await sb.from(table).delete().eq(column, projectId);
+    } catch {
+      /* best-effort */
+    }
+  }
+  // Finally, remove the project row itself.
+  try {
+    await sb.from("engine_projects").delete().eq("id", projectId);
+  } catch {
+    /* best-effort — if this fails, verifyProjectIntegrity will still flag the orphan */
+  }
+}
+
+/* ============================================================
  * verifyProjectIntegrity — Stage B safety net
  * Reports which sibling rows a project is missing.
+ * Honours engine_projects.delivery_mode (G-4): internal_only projects with
+ * no portal linkage are OK, not failing.
  * ============================================================ */
 
 export type ProjectIntegrityReport = {
   project_id: string;
   ok: boolean;
+  delivery_mode: DeliveryMode | null;
   checks: {
     project: boolean;
     agent: boolean;
     agent_permissions: boolean;
     container_version: boolean;
-    portal_project: boolean | null; // null = not applicable (no contact email)
+    portal_project: boolean | null; // null = not applicable (internal_only)
     portal_owner_permission: boolean | null;
   };
   missing: string[];
@@ -382,13 +525,14 @@ export const verifyProjectIntegrity = createServerFn({ method: "POST" })
 
     const { data: proj } = await sb
       .from("engine_projects")
-      .select("id, client_id, client_portal_project_id")
+      .select("id, client_id, client_portal_project_id, delivery_mode")
       .eq("id", data.projectId)
       .maybeSingle();
     if (!proj) {
       return {
         project_id: data.projectId,
         ok: false,
+        delivery_mode: null,
         checks: {
           project: false,
           agent: false,
@@ -400,6 +544,8 @@ export const verifyProjectIntegrity = createServerFn({ method: "POST" })
         missing: ["engine_projects row not found"],
       };
     }
+
+    const deliveryMode = (proj.delivery_mode as DeliveryMode | null) ?? "client_portal_required";
 
     const [{ count: agentCount }, { count: permCount }, { count: verCount }] = await Promise.all([
       sb.from("engine_project_agents").select("id", { count: "exact", head: true }).eq("project_id", data.projectId),
@@ -416,7 +562,12 @@ export const verifyProjectIntegrity = createServerFn({ method: "POST" })
 
     let portal_project: boolean | null = null;
     let portal_owner_permission: boolean | null = null;
-    if (proj.client_portal_project_id) {
+
+    if (deliveryMode === "internal_only") {
+      // Portal linkage intentionally absent for internal experiments.
+      portal_project = null;
+      portal_owner_permission = null;
+    } else if (proj.client_portal_project_id) {
       portal_project = true;
       const { count: permCnt } = await sb
         .from("client_portal_permissions")
@@ -425,23 +576,17 @@ export const verifyProjectIntegrity = createServerFn({ method: "POST" })
         .is("revoked_at", null);
       portal_owner_permission = (permCnt ?? 0) > 0;
       if (!portal_owner_permission) missing.push("client_portal_permissions");
-    } else if (proj.client_id) {
-      // client exists but no portal link — check if the client has a contact email
-      const { data: c } = await sb
-        .from("engine_clients")
-        .select("contact_email")
-        .eq("id", proj.client_id)
-        .maybeSingle();
-      if (c?.contact_email) {
-        portal_project = false;
-        portal_owner_permission = false;
-        missing.push("client_portal_projects");
-      }
+    } else {
+      // client_portal_required but no linkage — that's the failure case.
+      portal_project = false;
+      portal_owner_permission = false;
+      missing.push("client_portal_projects");
     }
 
     return {
       project_id: data.projectId,
       ok: missing.length === 0,
+      delivery_mode: deliveryMode,
       checks: {
         project: true,
         agent,
@@ -453,4 +598,5 @@ export const verifyProjectIntegrity = createServerFn({ method: "POST" })
       missing,
     };
   });
+
 
