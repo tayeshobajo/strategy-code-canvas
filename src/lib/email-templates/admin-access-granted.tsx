@@ -62,7 +62,7 @@ export const template = {
   previewData: {
     recipientName: 'Tai',
     grantedByName: 'Trust Tai system',
-    adminDashboardUrl: 'https://www.trust-tai.com/admin',
+    adminDashboardUrl: 'https://trusttai.com/admin',
   } satisfies AdminAccessGrantedProps,
 } satisfies TemplateEntry
 
