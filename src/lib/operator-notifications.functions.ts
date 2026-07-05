@@ -48,7 +48,9 @@ export type OperatorNotification = {
 
 const ListInput = z.object({
   limit: z.number().int().positive().max(100).default(50),
+  offset: z.number().int().min(0).max(10_000).default(0),
   unread_only: z.boolean().default(false),
+  submission_id: z.string().uuid().optional(),
 });
 
 export const listOperatorNotifications = createServerFn({ method: "POST" })
@@ -60,30 +62,43 @@ export const listOperatorNotifications = createServerFn({ method: "POST" })
       context.supabase as unknown as Parameters<typeof requireOperator>[1],
     );
 
-    const { data: rows, error } = await context.supabase
+    // Global unread count (independent of pagination + filters) so the bell
+    // and inbox always agree on the true unread total.
+    const { count: totalCount } = await context.supabase
       .from("operator_notifications")
-      .select("id, kind, submission_id, title, body, href, metadata, created_at")
-      .order("created_at", { ascending: false })
-      .limit(data.limit);
+      .select("id", { count: "exact", head: true });
+    const { data: allReads } = await context.supabase
+      .from("operator_notification_reads")
+      .select("notification_id")
+      .eq("email", email);
+    const readIds = new Set(
+      (allReads ?? []).map((r) => (r as { notification_id: string }).notification_id),
+    );
+    const unread = Math.max(0, (totalCount ?? 0) - readIds.size);
+
+    let query = context.supabase
+      .from("operator_notifications")
+      .select("id, kind, submission_id, title, body, href, metadata, created_at", {
+        count: "exact",
+      })
+      .order("created_at", { ascending: false });
+
+    if (data.submission_id) {
+      query = query.eq("submission_id", data.submission_id);
+    }
+    if (data.unread_only && readIds.size > 0) {
+      // Postgrest doesn't accept unbounded `.not("id","in",...)` cleanly for
+      // huge sets; cap by reasonable size — we page anyway.
+      const list = Array.from(readIds).slice(0, 500);
+      query = query.not("id", "in", `(${list.join(",")})`);
+    }
+
+    query = query.range(data.offset, data.offset + data.limit - 1);
+
+    const { data: rows, error, count: pageCount } = await query;
     if (error) {
       console.error("[operator-notifications.list] failed", error);
       throw new Error("Could not load notifications");
-    }
-
-    const ids = (rows ?? []).map((r) => (r as { id: string }).id);
-    let readMap = new Map<string, string>();
-    if (ids.length > 0) {
-      const { data: reads } = await context.supabase
-        .from("operator_notification_reads")
-        .select("notification_id, read_at")
-        .eq("email", email)
-        .in("notification_id", ids);
-      readMap = new Map(
-        (reads ?? []).map((r) => [
-          (r as { notification_id: string }).notification_id,
-          (r as { read_at: string }).read_at,
-        ]),
-      );
     }
 
     const items: OperatorNotification[] = (rows ?? []).map((raw) => {
@@ -106,14 +121,17 @@ export const listOperatorNotifications = createServerFn({ method: "POST" })
         href: r.href,
         metadata: (r.metadata ?? {}) as Record<string, string | number | boolean | null>,
         created_at: r.created_at,
-        read_at: readMap.get(r.id) ?? null,
+        read_at: readIds.has(r.id) ? "read" : null,
       };
     });
-    const unread = items.filter((n) => n.read_at === null).length;
 
-    let filtered = items;
-    if (data.unread_only) filtered = items.filter((n) => n.read_at === null);
-    return { items: filtered, unread };
+    return {
+      items,
+      unread,
+      total: pageCount ?? items.length,
+      offset: data.offset,
+      limit: data.limit,
+    };
   });
 
 const MarkInput = z.object({ id: z.string().uuid() });
