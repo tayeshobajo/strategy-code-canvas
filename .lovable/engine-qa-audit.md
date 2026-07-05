@@ -216,11 +216,12 @@ All 10 ✅ PASS. Portal only shows approved, operator/portal separate, project s
 2. **§17 rename publication columns** to spec (`source_version_id → approved_roadmap_version_id`, `approved_at → published_at`, promote `published_by` out of metadata) + add **`visible_modules`**
 3. **§11 add Portal publish + Agent-suggested review types** and make `engine_review_items.source` a FK to source/version
 
-### P1 — Surface parity
-4. **§2 Command Center**: add `sources_processing`, `portal_published`, `next_best_actions`; wire real `system_health`
-5. **§3 Projects list**: add `current_phase`, `source_count`, `latest_source_processed`, `portal_publish_status` columns + per-row quick actions
-6. **§18 Delivery Room**: add portal publish status column
-7. **§9 Audit log**: add `field_changed / old_value / new_value / reason` columns (or store as `metadata` schema convention)
+### P1 — Surface parity ✅ DONE (2026-07-05)
+4. **§2 Command Center**: added `sources_processing`, `portal_published`, `next_best_actions`; wired real `system_health` (fails/warnings → amber/red).
+5. **§3 Projects list**: added `current_phase`, `source_count`, `latest_source_processed`, `portal_publish_status` columns + per-row quick actions (Add source · Review items · Portal).
+6. **§18 Delivery Room**: added Portal publish status column (links to portal share URL when published).
+7. **§9 Audit log**: added `field_changed`, `old_value`, `new_value`, `reason` columns on `engine_audit_log`.
+
 
 ### P2 — Workspace depth
 8. **§8 Per-step state machine** (`draft/review/approved` per step) + **§8 source evidence** on each step page
