@@ -1103,8 +1103,13 @@ export async function runIntelligencePipelineInternal(
   // Update project draft pointer + JSONB modules
   const moduleUpdates: Record<string, any> = {
     roadmap_version: nextVersion,
-    status: "needs_review",
+    // G-1 status transition: AI draft has landed. Move project back to
+    // `draft` (from `source_processing`) so the workspace reflects a
+    // reviewable draft. The enqueued review_item below is the review signal;
+    // the project status stays product-truthful.
+    status: "draft",
   };
+
   const modKeyMap: Record<string, string> = {
     extraction: "extraction",
     point_a: "point_a",
