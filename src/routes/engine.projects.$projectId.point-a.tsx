@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 import { cn } from "@/lib/utils";
 import { Share2, StickyNote, MoreHorizontal, Quote, AlertTriangle, Shield } from "lucide-react";
 
@@ -52,6 +53,9 @@ function PointA() {
           </button>
         </div>
       </header>
+      <StepStateBar projectId={projectId} step="point-a" current={project.step_states?.["point-a"]} />
+      <SourceEvidence projectId={projectId} step="point-a" />
+
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         <div className="xl:col-span-3 space-y-6">

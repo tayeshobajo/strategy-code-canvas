@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 
 export const Route = createFileRoute("/engine/projects/$projectId/blueprint")({
   component: Blueprint,
@@ -27,6 +28,9 @@ function Blueprint() {
         <h2 className="font-display text-3xl text-ink mt-1">System Blueprint</h2>
         <p className="text-sm text-ink/60 mt-1">The future operating system, node by node.</p>
       </header>
+      <StepStateBar projectId={projectId} step="blueprint" current={project.step_states?.["blueprint"]} />
+      <SourceEvidence projectId={projectId} step="blueprint" />
+
       {nodes.length === 0 ? (
         <SectionCard title="Blueprint"><EmptyState title="No blueprint yet" /></SectionCard>
       ) : (

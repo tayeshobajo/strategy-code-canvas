@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 
 export const Route = createFileRoute("/engine/projects/$projectId/point-b")({
   component: PointB,
@@ -29,6 +30,9 @@ function PointB() {
         <h2 className="font-display text-3xl text-ink mt-1">Point B Definition</h2>
         <p className="text-sm text-ink/60 mt-1">Where the business is headed and what "there" looks like.</p>
       </header>
+      <StepStateBar projectId={projectId} step="point-b" current={project.step_states?.["point-b"]} />
+      <SourceEvidence projectId={projectId} step="point-b" />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {SECTIONS.map((s) => (
           <SectionCard key={s.key} title={s.label}>

@@ -619,7 +619,7 @@ export const getProject = createServerFn({ method: "GET" })
   });
 
 const WORKSPACE_SELECT =
-  "id,name,status,current_step_num,progress_pct,health_score,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview,delivery, engine_clients(company,owner_email)";
+  "id,name,status,current_step_num,progress_pct,health_score,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at,step_states,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview,delivery, engine_clients(company,owner_email)";
 
 export const getProjectWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -662,6 +662,8 @@ export const getProjectWorkspace = createServerFn({ method: "GET" })
       last_activity_at: row.last_activity_at as string,
       client_company: row.engine_clients?.company ?? "—",
       client_owner_email: row.engine_clients?.owner_email ?? null,
+      step_states: (row.step_states as Record<string, import("@/lib/engine-workspace").StepState>) ?? {},
+
       signal_room: (row.signal_room as import("@/lib/engine-workspace").Json) ?? {},
       extraction: (row.extraction as import("@/lib/engine-workspace").Json) ?? {},
       point_a: (row.point_a as import("@/lib/engine-workspace").Json) ?? {},
@@ -717,15 +719,27 @@ export const updateProjectStep = createServerFn({ method: "POST" })
     const col = STEP_COLUMNS[data.step as WorkspaceStepKey];
     if (!col) throw new Error("Unknown step");
     const email = ((context as unknown as { claims?: { email?: string } }).claims?.email) ?? null;
-    const sb = context.supabase as unknown as {
-      from: (t: string) => {
-        update: (v: Record<string, unknown>) => {
-          eq: (c: string, v: string) => Promise<{ error: unknown }>;
-        };
-        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
-      };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+
+    // Read current step_states so we can merge (edits reset to draft unless already draft).
+    const { data: cur } = await sb
+      .from("engine_projects")
+      .select("step_states")
+      .eq("id", data.id)
+      .single();
+    const states = (cur?.step_states ?? {}) as Record<string, import("@/lib/engine-workspace").StepState>;
+    states[data.step] = {
+      state: "draft",
+      updated_at: new Date().toISOString(),
+      updated_by: email,
+      note: states[data.step]?.note ?? null,
     };
-    const { error } = await sb.from("engine_projects").update({ [col]: data.data }).eq("id", data.id);
+
+    const { error } = await sb
+      .from("engine_projects")
+      .update({ [col]: data.data, step_states: states })
+      .eq("id", data.id);
     if (error) throw new Error((error as { message?: string }).message ?? "update failed");
 
     // High-impact steps get an audit row: investment shifts and client-preview
@@ -748,4 +762,211 @@ export const updateProjectStep = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+/* ------------------------------------------------------------------
+ * P2-8: Per-step state machine
+ * ---------------------------------------------------------------- */
+
+const SetStepStateInput = z.object({
+  id: z.string().uuid(),
+  step: z.enum([
+    "signal-room","extraction","point-a","point-b","hidden-assets","gap-map","blueprint","builder","sequencing","deadlines","investment","preview","delivery",
+  ]),
+  state: z.enum(["draft", "review", "approved"]),
+  note: z.string().max(500).nullable().optional(),
+});
+
+export const setStepState = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => SetStepStateInput.parse(raw))
+  .handler(async ({ context, data }): Promise<{ ok: true }> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    const email = ((context as unknown as { claims?: { email?: string } }).claims?.email) ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: cur } = await sb
+      .from("engine_projects")
+      .select("step_states")
+      .eq("id", data.id)
+      .single();
+    const states = (cur?.step_states ?? {}) as Record<string, import("@/lib/engine-workspace").StepState>;
+    const prev = states[data.step]?.state ?? null;
+    states[data.step] = {
+      state: data.state,
+      updated_at: new Date().toISOString(),
+      updated_by: email,
+      note: data.note ?? null,
+    };
+    const { error } = await sb.from("engine_projects").update({ step_states: states }).eq("id", data.id);
+    if (error) throw new Error((error as { message?: string }).message ?? "state update failed");
+
+    await sb.from("engine_audit_log").insert({
+      project_id: data.id,
+      actor_email: email,
+      action: "step_state_changed",
+      summary: `Step "${data.step}" ${prev ?? "unset"} → ${data.state}`,
+      field_changed: `step_states.${data.step}.state`,
+      old_value: prev,
+      new_value: data.state,
+      reason: data.note ?? null,
+      metadata: { step: data.step },
+    });
+    await sb.from("engine_activity").insert({
+      project_id: data.id,
+      kind: "step_state_changed",
+      title: `${data.step} → ${data.state}`,
+      body: email ? `By ${email}` : null,
+      severity: "info",
+    });
+    return { ok: true };
+  });
+
+/* ------------------------------------------------------------------
+ * P2-8: Source evidence per step — reads extracted signals by category
+ * ---------------------------------------------------------------- */
+
+export type StepEvidence = {
+  id: string;
+  category: string;
+  label: string;
+  detail: string | null;
+  confidence: number;
+  source_id: string | null;
+  source_name: string | null;
+  created_at: string;
+};
+
+export const listStepEvidence = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      categories: z.array(z.string()).max(20).default([]),
+    }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<StepEvidence[]> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    let q = sb
+      .from("engine_extracted_signals")
+      .select("id,category,label,detail,confidence,source_id,created_at, engine_sources(name)")
+      .eq("project_id", data.id)
+      .order("confidence", { ascending: false })
+      .limit(50);
+    if (data.categories.length) q = q.in("category", data.categories);
+    const { data: rows, error } = await q;
+    if (error) throw new Error((error as { message?: string }).message ?? "evidence fetch failed");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((rows ?? []) as any[]).map((r) => ({
+      id: r.id,
+      category: r.category,
+      label: r.label,
+      detail: r.detail,
+      confidence: r.confidence ?? 0,
+      source_id: r.source_id,
+      source_name: r.engine_sources?.name ?? null,
+      created_at: r.created_at,
+    }));
+  });
+
+/* ------------------------------------------------------------------
+ * P2-9: Live milestones + reorder
+ * ---------------------------------------------------------------- */
+
+export type LiveMilestone = {
+  id: string;
+  name: string;
+  phase: string | null;
+  status: string;
+  sort_index: number;
+  approval_status: string;
+  due_date: string | null;
+  deadline_relevance: string | null;
+  brief_md: string | null;
+  client_safe_md: string | null;
+  related_gap: string | null;
+  related_hidden_asset: string | null;
+  related_system_node: string | null;
+  source_evidence: Array<{ source_id?: string; signal_id?: string; snippet: string; category?: string }>;
+};
+
+export const listMilestonesLive = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }): Promise<LiveMilestone[]> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: rows, error } = await sb
+      .from("engine_milestones")
+      .select("id,name,phase,status,sort_index,approval_status,due_date,deadline_relevance,brief_md,client_safe_md,related_gap,related_hidden_asset,related_system_node,source_evidence")
+      .eq("project_id", data.id)
+      .order("sort_index", { ascending: true });
+    if (error) throw new Error((error as { message?: string }).message ?? "milestones fetch failed");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((rows ?? []) as any[]).map((r) => ({ ...r, source_evidence: r.source_evidence ?? [] }));
+  });
+
+export const reorderMilestone = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      projectId: z.string().uuid(),
+      milestoneId: z.string().uuid(),
+      direction: z.enum(["up", "down"]),
+    }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true }> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    const email = ((context as unknown as { claims?: { email?: string } }).claims?.email) ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: list } = await sb
+      .from("engine_milestones")
+      .select("id,name,sort_index")
+      .eq("project_id", data.projectId)
+      .order("sort_index", { ascending: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = (list ?? []) as any[];
+    const idx = rows.findIndex((r) => r.id === data.milestoneId);
+    if (idx < 0) throw new Error("Milestone not found");
+    const swapWith = data.direction === "up" ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= rows.length) return { ok: true };
+    const a = rows[idx];
+    const b = rows[swapWith];
+    await sb.from("engine_milestones").update({ sort_index: b.sort_index }).eq("id", a.id);
+    await sb.from("engine_milestones").update({ sort_index: a.sort_index }).eq("id", b.id);
+
+    // Reorder counts as a draft change — reset builder step to draft.
+    const { data: proj } = await sb.from("engine_projects").select("step_states").eq("id", data.projectId).single();
+    const states = (proj?.step_states ?? {}) as Record<string, import("@/lib/engine-workspace").StepState>;
+    states.builder = {
+      state: "draft",
+      updated_at: new Date().toISOString(),
+      updated_by: email,
+      note: states.builder?.note ?? null,
+    };
+    await sb.from("engine_projects").update({ step_states: states }).eq("id", data.projectId);
+
+    await sb.from("engine_audit_log").insert({
+      project_id: data.projectId,
+      actor_email: email,
+      action: "milestone_reordered",
+      summary: `Moved milestone "${a.name}" ${data.direction}`,
+      field_changed: `engine_milestones.sort_index`,
+      old_value: String(a.sort_index),
+      new_value: String(b.sort_index),
+      metadata: { milestone_id: a.id, direction: data.direction },
+    });
+    await sb.from("engine_change_events").insert({
+      project_id: data.projectId,
+      kind: "scope_change",
+      title: `Milestone reordered: ${a.name}`,
+      severity: "info",
+      affected_module: "roadmap",
+    });
+    return { ok: true };
+  });
+
 

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
+import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -52,6 +53,9 @@ function SignalRoom() {
         <h2 className="font-display text-3xl text-ink mt-1">Signal Room</h2>
         <p className="text-sm text-ink/60 mt-1">Raw truth. Everything the roadmap will be built from.</p>
       </header>
+      <StepStateBar projectId={projectId} step="signal-room" current={project.step_states?.["signal-room"]} />
+      <SourceEvidence projectId={projectId} step="signal-room" />
+
 
       <ExtractedSignalsPanel projectId={projectId} />
 

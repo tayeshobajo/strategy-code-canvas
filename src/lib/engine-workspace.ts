@@ -19,6 +19,35 @@ export type WorkspaceStepKey = (typeof WORKSPACE_STEPS)[number]["key"];
 
 export type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
 
+export type StepState = {
+  state: "draft" | "review" | "approved";
+  updated_at: string;
+  updated_by: string | null;
+  note?: string | null;
+};
+
+/**
+ * Categories from `engine_extracted_signals.category` that should surface as
+ * source evidence for each step's workspace page. Kept as a soft mapping —
+ * signals with a matching category are shown; unmatched signals still exist
+ * in the Signal Room.
+ */
+export const STEP_EVIDENCE_CATEGORIES: Record<string, string[]> = {
+  "signal-room": [],
+  extraction: [],
+  "point-a": ["pain", "constraint", "risk", "current_system"],
+  "point-b": ["goal", "opportunity", "business_model"],
+  "hidden-assets": ["hidden_asset"],
+  "gap-map": ["pain", "risk", "constraint", "required_system"],
+  blueprint: ["required_system", "current_system"],
+  builder: ["milestone_candidate", "goal", "opportunity"],
+  sequencing: ["milestone_candidate", "deadline"],
+  deadlines: ["deadline"],
+  investment: ["investment_signal"],
+  preview: ["client_language", "open_question"],
+  delivery: ["decision_maker", "client_language"],
+};
+
 export type WorkspaceProject = {
   id: string;
   name: string;
@@ -36,6 +65,7 @@ export type WorkspaceProject = {
   last_activity_at: string;
   client_company: string;
   client_owner_email: string | null;
+  step_states: Record<string, StepState>;
   signal_room: Json;
   extraction: Json;
   point_a: Json;

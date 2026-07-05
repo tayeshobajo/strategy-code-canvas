@@ -31,7 +31,9 @@ export type ExtractedSignalInput = {
     | "milestone_candidate"
     | "investment_signal"
     | "client_language"
-    | "open_question";
+    | "open_question"
+    | "business_model"
+    | "current_system";
   label: string;
   detail?: string;
   confidence?: number;
@@ -211,7 +213,7 @@ Return JSON with this exact shape:
   "summary": "1-2 sentence description of what changed",
   "overall_confidence": 0-100,
   "signals": [
-    { "category": "goal|pain|opportunity|deadline|constraint|decision_maker|hidden_asset|risk|required_system|milestone_candidate|investment_signal|client_language|open_question",
+    { "category": "goal|pain|opportunity|deadline|constraint|decision_maker|hidden_asset|risk|required_system|milestone_candidate|investment_signal|client_language|open_question|business_model|current_system",
       "label": "short one-line signal",
       "detail": "supporting detail from the source",
       "confidence": 0-100,
