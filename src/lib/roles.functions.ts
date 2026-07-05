@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail, type AppRole } from "@/lib/ops/access";
+import { absoluteUrl } from "@/lib/site-url";
 
 const RoleEnum = z.enum(["admin", "operator", "user"]);
 
