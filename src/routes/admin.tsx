@@ -77,6 +77,12 @@ function AdminLayout() {
           >
             <GitBranch className="w-4 h-4" /> Milestone changes
           </Link>
+          <Link
+            to="/admin/project-integrity"
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/project-integrity") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <Wrench className="w-4 h-4" /> Project integrity
+          </Link>
         </nav>
       </aside>
       <main className="flex-1 p-8 text-white">
