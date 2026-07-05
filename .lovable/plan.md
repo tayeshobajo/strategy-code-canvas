@@ -1,51 +1,76 @@
-## G-3 Extension — Source visibility, defense across every path
+## G-4 — No more half-born projects
 
-### What's already in place (verified live)
+### Problem (audit-confirmed)
 
-| Layer | State | Evidence |
-|---|---|---|
-| DB column | `engine_sources.visibility` = `NOT NULL DEFAULT 'internal_only'` (enum: `internal_only` \| `operator_only` \| `client_safe`) | `\d engine_sources` |
-| App inserters | All 3 set `visibility: "internal_only"` explicitly | `createSource`, `createProjectFromSource`, `submitPortalOnboarding` |
-| RLS on `engine_sources` | Single policy, admin-only. No `anon`, no operator, no client-portal role | `pg_policies` inspection |
-| Portal reads | Portal UI never queries `engine_sources` — reads `client_portal_roadmaps` / `_files` / `_messages` only | Grep across `src/routes/portal.*` and `src/lib/portal.functions.ts` |
+`createProjectFromSource` inserts six sibling rows best-effort (project agent, agent permissions, v0.0 roadmap container, portal project, portal permission, portal back-link). Any failure logs an `integrity_warning` in `engine_activity` and continues. Result: an `engine_projects` row can exist without agent config, without a container version, or without portal linkage, and the intake UI reports success. `verifyProjectIntegrity` already exists as a diagnostic, but nothing gates on it.
 
-**About the "extra paths" you listed** (Plaud, transcript, website URL, uploaded docs, manual notes): these don't have separate inserter functions in the codebase. The Signal Room / Intelligence Layer UI funnels **all** of them through `createSource`, which takes a `type` discriminator (`transcript` \| `brief` \| `website_url` \| `document` \| `screenshot` \| `email_note` \| `research_note` \| `competitor_url` \| `previous_roadmap`). One inserter, many `type` values. That inserter already sets `visibility: 'internal_only'`, so every type inherits it. `reprocessSource` operates on an existing row — it does not create or clone.
+### Contract this change enforces
 
-### What this plan adds
+1. **Every project declares its delivery mode at creation.**
+2. **Hard-required siblings are always required** — a project with no agent config or no v0.0 container is never created.
+3. **Portal linkage is required only when the project is client-facing** — internal experiments do not force a portal project.
+4. **On any required-sibling failure, the project is rolled back**, not left half-born.
 
-The runtime is already safe. This is about **making the guarantees provably locked** so a future path can't quietly break the rule.
+### Design
 
-1. **Widen the existing G-2 guard test** into a stricter multi-layer contract:
-   - Scan **every** `from("engine_sources").insert(...)` in `src/**` (not just the 3 known ones); assert each carries `visibility: "internal_only"`. Any new inserter added later without visibility fails CI.
-   - Assert the `SOURCE_TYPES` enum covers all the audience-facing source flavors (transcript, brief, website_url, document, screenshot, email_note, research_note, competitor_url, previous_roadmap) so the "one inserter, many types" contract is durable.
+#### 1. New column: `engine_projects.delivery_mode`
 
-2. **Add a portal-isolation guard test** (new file):
-   - Scan `src/routes/portal.*`, `src/lib/portal.functions.ts`, and all portal components: assert **zero** references to `"engine_sources"` (any SELECT/INSERT/UPDATE/DELETE). Portal is not allowed to touch the table.
-   - Assert the RLS migration for `engine_sources` uses `has_role(..., 'admin')` (or admin/operator) and never grants a broader audience.
+Migration adds:
+- Enum type `engine_delivery_mode`: `internal_only | client_portal_required`.
+- Column `delivery_mode engine_delivery_mode NOT NULL DEFAULT 'client_portal_required'`.
+  - Default is client-facing because that's the shipping-product norm; operators opt into `internal_only` for experiments.
 
-3. **Add a live-DB integration test** (`src/lib/__tests__/source-visibility-live.test.ts`, gated on `PGHOST`):
-   - Insert a row into `engine_sources` **omitting** `visibility`; assert the returned row has `visibility = 'internal_only'` (proves the DB default). Cleanup after.
-   - Attempt to select `engine_sources` under a non-admin JWT context and assert RLS blocks it (skip cleanly if we can't mint a portal-scope JWT in test env).
+Backfill for existing rows: any row with `client_portal_project_id IS NOT NULL` stays `client_portal_required`; rows without a linked portal but with a `client_id` whose `contact_email` is null become `internal_only`; anything else stays the default.
 
-4. **Add an audit-doc anchor** in `.lovable/engine-qa-audit.md` noting G-3 is closed with a link to the three guard tests, so future audits don't re-flag it.
+#### 2. Extend `CreateInput` for `createProjectFromSource`
 
-### What this plan explicitly does **not** do
+Accept optional `deliveryMode: 'internal_only' | 'client_portal_required'`. If not supplied, derive:
+- Contact email present (either via `newClient.contact_email` or the resolved existing client) → `client_portal_required`.
+- Otherwise → `internal_only`.
 
-- No new migration (DB default is already correct; RLS is already admin-only).
-- No code changes to `createSource`, `createProjectFromSource`, or `submitPortalOnboarding` (already explicit).
-- No new "client_safe" write path — promoting content to client-visibility still happens only through the approved-roadmap → `client_portal_*` publish flow, which is a separate G-0 concern already closed.
+Store the resolved mode on `engine_projects.delivery_mode` in the initial insert.
+
+#### 3. Integrity gate — replace best-effort with fail-and-rollback
+
+After the sibling insert block, call an inline `assertProjectIntegrity(projectId, deliveryMode)` helper:
+
+- **Always required:** `engine_project_agents`, `engine_agent_permissions`, `engine_roadmap_versions` (v0.0 container).
+- **Additionally required when `delivery_mode = 'client_portal_required'`:** `client_portal_project_id` link on `engine_projects`, `client_portal_projects` row, at least one non-revoked `client_portal_permissions` row.
+- On mismatch: log a single `integrity_failure` `engine_activity` (kept for audit), then delete the just-created `engine_projects` row. FK cascades handle sibling rows for the tables that already cascade; explicitly delete the agent/permission/version rows for those that don't. Then `throw new Error("Project creation failed integrity check: <missing list>")`. Do not proceed to source insert or pipeline kick-off.
+- If `client_portal_required` and no contact email is available, refuse at the top of the handler with a clear error before any inserts run — avoids the wasted round-trip.
+
+#### 4. Keep `verifyProjectIntegrity` as ongoing diagnostic
+
+Extend it to also return `delivery_mode` and adjust the `ok` calculation: missing portal rows are only a failure when `delivery_mode = 'client_portal_required'`. Internal-only projects with no portal linkage report `portal_project: null` and stay `ok: true`.
 
 ### Files touched
 
-- `src/lib/__tests__/source-visibility-defense.test.ts` — widen (scan all inserters; assert type enum)
-- `src/lib/__tests__/portal-cannot-read-engine-sources.test.ts` — **new** (portal isolation)
-- `src/lib/__tests__/source-visibility-live.test.ts` — **new** (live-DB default + RLS block)
-- `.lovable/engine-qa-audit.md` — mark G-3 closed with test references
+- **Migration** (new): add enum + `delivery_mode` column + backfill.
+- **`src/integrations/supabase/types.ts`**: regenerated after migration approval (automatic).
+- **`src/lib/engine-project-intake.functions.ts`**:
+  - Extend `CreateInput` with optional `deliveryMode`.
+  - Resolve/set `delivery_mode` on the project insert.
+  - Add `assertProjectIntegrity` inline helper; call it before source insert / pipeline kick-off.
+  - Rollback path: delete the project row on failure, log `integrity_failure`, throw.
+  - Extend `verifyProjectIntegrity` to honour `delivery_mode`.
+- **Guard test** (new): `src/lib/__tests__/project-integrity-rollback.test.ts`
+  - `createProjectFromSource` source contains `assertProjectIntegrity` call before source insert.
+  - Rollback deletes the project row on failure (asserted by grep on the rollback branch).
+  - `client_portal_required` with no contact email throws before any insert (regex).
+  - `verifyProjectIntegrity` returns `ok: true` for internal_only projects with no portal linkage.
+- **`.lovable/engine-qa-audit.md`**: add G-4 closure log entry.
+
+### What this plan explicitly does **not** do
+
+- No wrap in a Postgres transaction / RPC-based single-shot insert (would need a `SECURITY DEFINER` function; over-engineered for the win here — sequential inserts + rollback is enough and easier to audit).
+- No change to `submitPortalOnboarding` or `createSource` — those don't create engine projects.
+- No UI surfacing of `delivery_mode` in the intake form yet — the auto-derive rule covers today's flows, and an explicit toggle can land in a follow-up.
 
 ### Success criteria
 
-- All new / widened tests pass locally (`vitest run`).
-- Adding a hypothetical new `from("engine_sources").insert(...)` without `visibility` fails at least one test (proven by mentally walking the regex).
-- Live-DB test proves the DB default is authoritative even if a future refactor removes the explicit app-level line.
+- Migration approved and applied; `engine_projects.delivery_mode` exists with the enum and correct default.
+- New tests pass.
+- Existing G-0…G-3 guard tests still pass.
+- Manually simulated failure of any required sibling insert during creation results in the `engine_projects` row being gone and the caller receiving an error (verifiable via a follow-up ops check).
 
 Ready to switch to build mode when you approve.
