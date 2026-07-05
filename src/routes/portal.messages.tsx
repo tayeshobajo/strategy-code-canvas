@@ -272,6 +272,9 @@ function MessagesPage() {
         action_required: false,
         action_completed_at: null,
         related_file_ids: payload.fileIds,
+        related_milestone_id: null,
+        related_phase_id: null,
+        metadata: null,
         created_at: new Date().toISOString(),
       };
       qc.setQueryData<Message[]>(
