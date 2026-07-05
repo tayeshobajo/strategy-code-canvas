@@ -71,6 +71,11 @@ function AdminLayout() {
           >
             <MailCheck className="w-4 h-4" /> Intake alerts
           </Link>
+          <Link
+            to="/admin/milestone-changes"
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${pathname.startsWith("/admin/milestone-changes") ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <GitBranch className="w-4 h-4" /> Milestone changes
         </nav>
       </aside>
       <main className="flex-1 p-8 text-white">
