@@ -1125,9 +1125,9 @@ export async function runIntelligencePipelineInternal(
       const existingByName = new Map(existing.map((e) => [normalize(e.name), e] as const));
       const candidateByName = new Map(candidates.map((c) => [normalize(c.name), c] as const));
 
-      const added: typeof suggestedMilestoneChanges extends null ? never : NonNullable<typeof suggestedMilestoneChanges>["added"] = [];
-      const modified: NonNullable<typeof suggestedMilestoneChanges>["modified"] = [];
-      const removed: NonNullable<typeof suggestedMilestoneChanges>["removed"] = [];
+      const added: MilestoneDiff["added"] = [];
+      const modified: MilestoneDiff["modified"] = [];
+      const removed: MilestoneDiff["removed"] = [];
 
       for (const c of candidates) {
         const key = normalize(c.name);
