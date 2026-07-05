@@ -3,8 +3,10 @@ import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/ops/NotificationBell";
 import {
   Archive,
+  Bell,
   CheckCircle2,
   ClipboardList,
   History as HistoryIcon,
@@ -46,6 +48,7 @@ const NAV: Array<{ to: string; label: string; icon: typeof ClipboardList }> = [
   { to: "/ops/queue?status=in_review", label: "In Review", icon: Eye },
   { to: "/ops/queue?status=approved", label: "Approved", icon: CheckCircle2 },
   { to: "/ops/queue?status=archived", label: "Archived", icon: Archive },
+  { to: "/ops/notifications", label: "Notifications", icon: Bell },
   { to: "/ops/history", label: "History", icon: HistoryIcon },
   { to: "/ops/insights", label: "Analytics", icon: LineChart },
   { to: "/ops/access-events", label: "Access events", icon: ShieldAlert },
@@ -125,6 +128,7 @@ function OpsLayout() {
               <div className="truncate text-sm text-white">Tai</div>
               <div className="truncate text-[11px] text-white/55">{operatorEmail}</div>
             </div>
+            <NotificationBell />
             <button
               type="button"
               onClick={async () => {

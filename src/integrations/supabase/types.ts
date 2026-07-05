@@ -2604,6 +2604,65 @@ export type Database = {
         }
         Relationships: []
       }
+      operator_notification_reads: {
+        Row: {
+          email: string
+          notification_id: string
+          read_at: string
+        }
+        Insert: {
+          email: string
+          notification_id: string
+          read_at?: string
+        }
+        Update: {
+          email?: string
+          notification_id?: string
+          read_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_notification_reads_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "operator_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operator_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          href: string | null
+          id: string
+          kind: string
+          metadata: Json
+          submission_id: string | null
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          href?: string | null
+          id?: string
+          kind: string
+          metadata?: Json
+          submission_id?: string | null
+          title: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          href?: string | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          submission_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           amount_total: number

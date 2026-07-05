@@ -458,12 +458,42 @@ async function notifyOperatorsOfIntake(input: {
   const queueUrl = absoluteUrl(`/ops/queue`);
   const submittedAt = new Date().toISOString();
 
+  // Insert one in-app notification row so operators see the intake in the
+  // bell / inbox without depending on email delivery.
+  try {
+    const businessLine = input.business ? ` · ${input.business}` : "";
+    await (supabaseAdmin.from("operator_notifications") as unknown as {
+      insert: (r: Record<string, unknown>) => Promise<{ error: unknown }>;
+    }).insert({
+      kind: "intake_submitted",
+      submission_id: input.submissionId,
+      title: `New roadmap intake: ${input.founderName}${businessLine}`,
+      body: `${input.founderEmail}${input.timeline ? ` · timeline ${input.timeline}` : ""}${input.attachmentCount ? ` · ${input.attachmentCount} attachment(s)` : ""}`,
+      href: `/ops/submissions/${input.submissionId}`,
+      metadata: {
+        founder_email: input.founderEmail,
+        website: input.website,
+        role: input.role,
+        timeline: input.timeline,
+        reply_preference: input.replyPreference,
+        attachment_count: input.attachmentCount,
+        recipient_count: recipients.size,
+      },
+    });
+  } catch (notifErr) {
+    console.warn("[submit-intake] in-app notification insert failed", notifErr);
+  }
+
   const results = await Promise.allSettled(
     Array.from(recipients).map((recipient) =>
       enqueueTransactionalEmail({
         templateName: "intake-submission-operator-alert",
         recipientEmail: recipient,
         idempotencyKey: `intake-alert-${input.submissionId}-${recipient}`,
+        metadata: {
+          submission_id: input.submissionId,
+          kind: "intake_submission_operator_alert",
+        },
         templateData: {
           founderName: input.founderName,
           business: input.business,

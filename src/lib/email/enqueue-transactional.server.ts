@@ -2,6 +2,7 @@ import * as React from 'react'
 import { render } from 'react-email'
 import { TEMPLATES } from '@/lib/email-templates/registry'
 import { supabaseAdmin } from '@/integrations/supabase/client.server'
+import type { Json } from '@/integrations/supabase/types'
 
 const SITE_NAME = 'Trust Tai'
 const SENDER_DOMAIN = 'notify.trusttai.com'
@@ -24,6 +25,12 @@ export async function enqueueTransactionalEmail(opts: {
   recipientEmail: string
   templateData?: Record<string, unknown>
   idempotencyKey?: string
+  /**
+   * Extra metadata persisted on every `email_send_log` row for this send.
+   * The helper always merges `idempotency_key` in so ops tooling can
+   * correlate sends across retries.
+   */
+  metadata?: Record<string, unknown>
 }): Promise<{ queued: boolean; reason?: string; messageId?: string }> {
   const template = TEMPLATES[opts.templateName]
   if (!template) {
@@ -36,6 +43,30 @@ export async function enqueueTransactionalEmail(opts: {
   const messageId = crypto.randomUUID()
   const idempotencyKey = opts.idempotencyKey ?? messageId
   const data = opts.templateData ?? {}
+  const logMetadata: Record<string, unknown> = {
+    ...(opts.metadata ?? {}),
+    idempotency_key: idempotencyKey,
+  }
+
+  // Idempotency guard: if a prior send with the same idempotency key is
+  // already pending or has succeeded, do not re-enqueue. Retries after a
+  // failed / dlq / suppressed attempt are allowed so the manual resend
+  // action in ops tooling can heal transient provider failures.
+  const { data: prior, error: priorErr } = await supabaseAdmin
+    .from('email_send_log')
+    .select('id,status,message_id')
+    .contains('metadata', { idempotency_key: idempotencyKey })
+    .in('status', ['pending', 'sent'])
+    .limit(1)
+  if (priorErr) {
+    console.warn('[enqueueTransactionalEmail] idempotency lookup warned', priorErr)
+  } else if (prior && prior.length > 0) {
+    return {
+      queued: false,
+      reason: 'duplicate_idempotency_key',
+      messageId: (prior[0] as { message_id: string | null }).message_id ?? undefined,
+    }
+  }
 
   // Suppression check (fail-closed)
   const { data: suppressed, error: suppErr } = await supabaseAdmin
@@ -50,9 +81,11 @@ export async function enqueueTransactionalEmail(opts: {
       template_name: opts.templateName,
       recipient_email: effectiveRecipient,
       status: 'suppressed',
+      metadata: logMetadata as unknown as Json,
     })
     return { queued: false, reason: 'email_suppressed' }
   }
+
 
   // Get or create unsubscribe token
   let unsubscribeToken: string
@@ -89,6 +122,7 @@ export async function enqueueTransactionalEmail(opts: {
     template_name: opts.templateName,
     recipient_email: effectiveRecipient,
     status: 'pending',
+    metadata: logMetadata as unknown as Json,
   })
 
   const { error: enqErr } = await supabaseAdmin.rpc('enqueue_email', {
@@ -115,6 +149,7 @@ export async function enqueueTransactionalEmail(opts: {
       recipient_email: effectiveRecipient,
       status: 'failed',
       error_message: enqErr.message,
+      metadata: logMetadata as unknown as Json,
     })
     throw new Error(`enqueue_email failed: ${enqErr.message}`)
   }
