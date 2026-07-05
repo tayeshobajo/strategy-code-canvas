@@ -48,6 +48,7 @@ const NAV: Array<{ to: string; label: string; icon: typeof ClipboardList }> = [
   { to: "/ops/queue?status=in_review", label: "In Review", icon: Eye },
   { to: "/ops/queue?status=approved", label: "Approved", icon: CheckCircle2 },
   { to: "/ops/queue?status=archived", label: "Archived", icon: Archive },
+  { to: "/ops/notifications", label: "Notifications", icon: Bell },
   { to: "/ops/history", label: "History", icon: HistoryIcon },
   { to: "/ops/insights", label: "Analytics", icon: LineChart },
   { to: "/ops/access-events", label: "Access events", icon: ShieldAlert },
