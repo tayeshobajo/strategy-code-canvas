@@ -191,15 +191,16 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       }
     }
 
-    // 4. Client portal linkage (upsert portal project + owner permission)
-    const contactEmail =
-      (data.newClient?.contact_email ?? "").trim().toLowerCase() || null;
-    if (contactEmail) {
+    // 4. Client portal linkage (upsert portal project + owner permission).
+    // Only wire portal linkage when we have a contact email to hang it on.
+    // For internal_only projects with no contact email, portal linkage is
+    // intentionally absent and NOT considered an integrity failure.
+    if (resolvedContactEmail) {
       const { data: portalRow, error: upErr } = await sb
         .from("client_portal_projects")
         .upsert(
           {
-            primary_email: contactEmail,
+            primary_email: resolvedContactEmail,
             contact_name: data.newClient?.primary_contact ?? null,
             company_name: data.newClient?.company ?? null,
             portal_status: "onboarding_pending",
@@ -226,7 +227,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
           .upsert(
             {
               project_id: portalId,
-              email: contactEmail,
+              email: resolvedContactEmail,
               role: "owner",
               granted_by: actor,
             },
@@ -236,15 +237,44 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       }
     }
 
+    // G-4: hard integrity gate. Re-read the DB to confirm every required
+    // sibling is present. Portal linkage is only required when the project's
+    // resolved delivery_mode is client_portal_required. On any missing
+    // required sibling, roll back the project row (FKs cascade what they
+    // can; we explicitly delete siblings without CASCADE), log an
+    // integrity_failure activity, and throw — no half-born projects.
+    const failures = await assertProjectIntegrity(sb, projectId, deliveryMode);
+    if (failures.length > 0) {
+      const combined = [...integrityErrors, ...failures].join(" | ");
+      // Best-effort audit trail BEFORE we delete the row. The activity row
+      // references project_id via FK; log to a project-agnostic path too.
+      try {
+        await sb.from("engine_activity").insert({
+          project_id: projectId,
+          kind: "integrity_failure",
+          title: "Project creation rolled back",
+          body: combined,
+          severity: "error",
+        });
+      } catch {
+        /* audit log is best-effort */
+      }
+      await rollbackHalfBornProject(sb, projectId);
+      throw new Error(`Project creation failed integrity check: ${combined}`);
+    }
+
+    // Non-fatal soft warnings from the sibling insert block (e.g. duplicate
+    // v0.0 on a retry) — surface but do not block.
     if (integrityErrors.length > 0) {
       await sb.from("engine_activity").insert({
         project_id: projectId,
         kind: "integrity_warning",
-        title: "Project created with missing sibling rows",
+        title: "Project created with non-fatal sibling warnings",
         body: integrityErrors.join(" | "),
         severity: "warning",
       });
     }
+
 
     // Insert source (unless blank source name is a marker for manual start)
     const hasContent =
