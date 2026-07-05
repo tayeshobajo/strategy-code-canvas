@@ -187,10 +187,56 @@ function QueuePage() {
           </button>
         </div>
 
+        {selected.size > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#eeeee7] bg-[#fafaf5] px-5 py-2 text-xs">
+            <span className="text-[#5d6079]">
+              {selected.size} selected
+            </span>
+            {(
+              [
+                { s: "in_review" as const, label: "Mark in review" },
+                { s: "approved" as const, label: "Approve" },
+                { s: "rejected" as const, label: "Reject" },
+                { s: "archived" as const, label: "Archive" },
+              ]
+            ).map(({ s, label }) => (
+              <Button
+                key={s}
+                size="sm"
+                variant="outline"
+                disabled={bulk.isPending}
+                onClick={() => bulk.mutate(s)}
+              >
+                {bulk.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                {label}
+              </Button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="ml-2 text-[#5d6079] hover:text-[#171c38]"
+            >
+              Clear
+            </button>
+          </div>
+        ) : null}
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[12px] uppercase tracking-wider text-[#7d8095]">
+                <th className="px-4 py-3 font-medium w-8">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all"
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected;
+                    }}
+                    onChange={toggleAll}
+                    disabled={allIds.length === 0}
+                  />
+                </th>
                 <th className="px-5 py-3 font-medium">Founder</th>
                 <th className="px-5 py-3 font-medium">Company</th>
                 <th className="px-5 py-3 font-medium">Submitted</th>
@@ -203,13 +249,13 @@ function QueuePage() {
             <tbody>
               {submissions.isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-sm text-[#7d8095]">
+                  <td colSpan={8} className="px-5 py-12 text-center text-sm text-[#7d8095]">
                     Loading…
                   </td>
                 </tr>
-              ) : (submissions.data?.length ?? 0) === 0 ? (
+              ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12">
+                  <td colSpan={8} className="px-5 py-12">
                     <EmptyState
                       title="Nothing waiting"
                       body="When new founder submissions come in, they will land here for review."
@@ -217,11 +263,21 @@ function QueuePage() {
                   </td>
                 </tr>
               ) : (
-                submissions.data!.map((row) => (
+                rows.map((row) => (
                   <tr
                     key={row.review_id}
-                    className="border-t border-[#f1f1ea] hover:bg-[#fafaf5]"
+                    className={`border-t border-[#f1f1ea] hover:bg-[#fafaf5] ${
+                      selected.has(row.submission_id) ? "bg-[#eef1fb]/40" : ""
+                    }`}
                   >
+                    <td className="px-4 py-4 align-top">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${row.name}`}
+                        checked={selected.has(row.submission_id)}
+                        onChange={() => toggle(row.submission_id)}
+                      />
+                    </td>
                     <td className="px-5 py-4 align-top">
                       <div className="font-medium text-[#171c38]">{row.name}</div>
                       <div className="text-[12px] text-[#7d8095]">{row.email}</div>
