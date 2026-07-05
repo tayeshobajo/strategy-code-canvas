@@ -45,3 +45,39 @@ describe("submitPortalOnboarding auto-fires the extraction pipeline (G-1)", () =
     expect(pipeIdx).toBeGreaterThan(elseIdx);
   });
 });
+
+describe("pipeline transitions engine_projects.status correctly (G-1)", () => {
+  const pipeline = readFileSync(
+    resolve(process.cwd(), "src/lib/engine-intelligence.functions.ts"),
+    "utf8",
+  );
+
+  it("sets status='source_processing' at pipeline start", () => {
+    expect(pipeline).toMatch(
+      /\.update\(\{\s*status:\s*"source_processing"[\s\S]*?\}\)\s*\.eq\("id",\s*args\.projectId\)/,
+    );
+  });
+
+  it("sets status='draft' when the AI version lands (success path)", () => {
+    // The success-path module updates object must carry status: "draft".
+    const anchor = "G-1 status transition: AI draft has landed";
+    const idx = pipeline.indexOf(anchor);
+    expect(idx, "expected success-path draft transition anchor comment").toBeGreaterThan(-1);
+    const window = pipeline.slice(idx, idx + 400);
+    expect(window).toMatch(/status:\s*"draft"/);
+    expect(window).not.toMatch(/status:\s*"needs_review"/);
+  });
+
+
+  it("sets status='intake' when extraction fails (failure path)", () => {
+    // In the catch block, project status must NOT be left as source_processing
+    // and must NOT be misleadingly 'needs_review' — nothing was produced.
+    const catchIdx = pipeline.indexOf("pipeline_failed");
+    expect(catchIdx).toBeGreaterThan(-1);
+    const window = pipeline.slice(Math.max(0, catchIdx - 800), catchIdx);
+    expect(window).toMatch(
+      /engine_projects"\)\.update\(\{\s*status:\s*"intake"\s*\}\)\.eq\("id",\s*args\.projectId\)/,
+    );
+  });
+});
+
