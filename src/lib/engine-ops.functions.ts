@@ -333,8 +333,106 @@ export const decideReviewItem = createServerFn({ method: "POST" })
           review_item_id: data.id,
           notes: data.reason ?? null,
         });
+
+        // Apply suggested milestone changes (added / modified / removed) from
+        // the version payload. Past approved versions are NOT mutated — we
+        // only touch engine_milestones for this project. This is where the
+        // "engine learned, but roadmap didn't evolve" gap gets closed.
+        try {
+          const payload = (target.payload ?? {}) as Record<string, unknown>;
+          const diff = payload.suggested_milestone_changes as
+            | {
+                added?: Array<{ name: string; phase: string | null; evidence?: unknown[] }>;
+                modified?: Array<{ existing_id: string; from_phase: string | null; to_phase: string | null }>;
+                removed?: Array<{ existing_id: string; name: string }>;
+              }
+            | undefined;
+          if (diff) {
+            const added = diff.added ?? [];
+            const modified = diff.modified ?? [];
+            const removed = diff.removed ?? [];
+
+            if (added.length) {
+              const { data: maxRow } = await sb
+                .from("engine_milestones")
+                .select("sort_index")
+                .eq("project_id", projId)
+                .order("sort_index", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              let sortIndex = ((maxRow?.sort_index as number | null) ?? -1) + 1;
+              const rows = added.map((a) => ({
+                project_id: projId,
+                name: a.name.slice(0, 240),
+                phase: a.phase?.slice(0, 120) ?? null,
+                status: "draft",
+                approval_status: "approved",
+                approved_at: nowIso,
+                approved_by_email: actor,
+                sort_index: sortIndex++,
+                roadmap_version_id: target.id,
+                created_by_kind: "ai",
+                source_evidence: a.evidence ?? [],
+              }));
+              await sb.from("engine_milestones").insert(rows);
+            }
+
+            for (const m of modified) {
+              await sb
+                .from("engine_milestones")
+                .update({
+                  phase: m.to_phase?.slice(0, 120) ?? null,
+                  approval_status: "approved",
+                  approved_at: nowIso,
+                  approved_by_email: actor,
+                  roadmap_version_id: target.id,
+                })
+                .eq("id", m.existing_id)
+                .eq("project_id", projId);
+            }
+
+            for (const r of removed) {
+              await sb
+                .from("engine_milestones")
+                .update({
+                  approval_status: "removed",
+                  status: "dropped",
+                  roadmap_version_id: target.id,
+                })
+                .eq("id", r.existing_id)
+                .eq("project_id", projId);
+            }
+
+            if (added.length || modified.length || removed.length) {
+              await sb.from("engine_activity").insert({
+                project_id: projId,
+                kind: "milestones_applied",
+                title: `Milestone changes applied for ${target.version}`,
+                body: `${added.length} added, ${modified.length} modified, ${removed.length} removed.`,
+                severity: "info",
+              });
+              await sb.from("engine_audit_log").insert({
+                project_id: projId,
+                actor_email: actor,
+                action: "milestones_applied",
+                summary: `Applied suggested milestone changes for ${target.version}: +${added.length} / ~${modified.length} / -${removed.length}.`,
+                affected_modules: ["roadmap"],
+                target_id: target.id,
+                metadata: {
+                  version_id: target.id,
+                  added: added.length,
+                  modified: modified.length,
+                  removed: removed.length,
+                },
+              });
+            }
+          }
+        } catch (diffErr) {
+          console.warn("[decideReviewItem] milestone diff apply failed", diffErr);
+        }
       }
     }
+
 
     // Also write to the global audit log so the project-level audit view sees it.
     if (projId) {
