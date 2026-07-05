@@ -20,6 +20,17 @@ const ChangeInput = z.object({
   reason: z.string().trim().min(3).max(500),
 });
 
+const ListInput = z.object({ projectId: z.string().uuid() });
+
+export type AdminSourceRow = {
+  id: string;
+  name: string;
+  visibility: SourceVisibility;
+  status: string | null;
+  kind: string | null;
+  updated_at: string | null;
+};
+
 async function assertAdmin(context: {
   claims?: Record<string, unknown>;
   supabase: { rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> };
