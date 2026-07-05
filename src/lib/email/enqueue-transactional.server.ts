@@ -80,9 +80,11 @@ export async function enqueueTransactionalEmail(opts: {
       template_name: opts.templateName,
       recipient_email: effectiveRecipient,
       status: 'suppressed',
+      metadata: logMetadata,
     })
     return { queued: false, reason: 'email_suppressed' }
   }
+
 
   // Get or create unsubscribe token
   let unsubscribeToken: string
