@@ -144,7 +144,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
       `INSERT INTO public.client_portal_projects
          (primary_email, portal_status, payment_status, current_phase, metadata)
        VALUES
-         ('${email}', 'active', 'paid', 'kickoff', '{}'::jsonb)
+         ('${email}', 'roadmap_delivered', 'paid', 'kickoff', '{}'::jsonb)
        RETURNING id`,
     );
     cleanup.push(`DELETE FROM public.client_portal_projects WHERE id='${portalProjectId}'`);
