@@ -263,3 +263,24 @@ Tables: `engine_projects`, `engine_sources`, `engine_extracted_signals`, `engine
 - `createProjectFromSource` now provisions every required sibling row in one call: `engine_project_agents`, `engine_agent_permissions`, a `v0.0` container in `engine_roadmap_versions`, and (when a client contact email exists) an upserted `client_portal_projects` row with FK linkage on `engine_projects.client_portal_project_id` plus an owner `client_portal_permissions` row.
 - Failures on any sibling insert don't abort project creation but are surfaced as a single `engine_activity` `integrity_warning` for triage.
 - New `verifyProjectIntegrity` server fn (`engine-project-intake.functions.ts`) returns a per-project checklist for use by ops UI / smoke tests.
+
+
+### Gap Closure Log — G-3: Source visibility defense-in-depth ✅ DONE (2026-07-05)
+
+**Status:** Closed. The engine's source-visibility contract — "every source is `internal_only` unless Tai deliberately approves otherwise" — is enforced at three layers with regression tests locking each layer.
+
+**Enforcement layers:**
+1. **DB default (authoritative):** `engine_sources.visibility` is `NOT NULL DEFAULT 'internal_only'` (migration `20260704152247_45f7e7ee...sql`). Insert without visibility → row is `internal_only`. Insert with `NULL` → rejected.
+2. **App layer:** All three engine_sources inserters set `visibility: "internal_only"` explicitly:
+   - `src/lib/engine-intelligence.functions.ts` → `createSource` (Signal Room / Intelligence Layer UI: covers `transcript`, `brief`, `website_url`, `document`, `screenshot`, `email_note`, `research_note`, `competitor_url`, `previous_roadmap` — Plaud transcripts, uploaded docs, manual notes, and website URLs all funnel through here via the `type` discriminator).
+   - `src/lib/engine-project-intake.functions.ts` → `createProjectFromSource`.
+   - `src/lib/portal.functions.ts` → `submitPortalOnboarding`.
+   - `reprocessSource` re-runs the pipeline on an existing row; it does not create or clone rows.
+3. **RLS isolation:** `engine_sources` has a single admin-only policy (`has_role(auth.uid(), 'admin')`). No `anon` grant, no portal-role policy, no unconditional authenticated access. Client portal code contains zero references to `engine_sources`.
+
+**Guard tests (prevent regression):**
+- `src/lib/__tests__/source-visibility-defense.test.ts` — scans every `engine_sources.insert(...)` under `src/`, asserts each carries explicit `visibility: 'internal_only'`; asserts `SOURCE_TYPES` enum still covers every audience-facing flavor; asserts the latest visibility migration keeps `NOT NULL DEFAULT 'internal_only'`.
+- `src/lib/__tests__/portal-cannot-read-engine-sources.test.ts` — scans all `src/routes/portal.*`, `src/lib/portal*.ts`, and `src/components/portal/` for the string `engine_sources` (ignoring prose comments); asserts the latest RLS-touching migration for `engine_sources` gates every policy on the admin role check and never grants `TO anon`.
+- `src/lib/__tests__/source-visibility-live.test.ts` — live-DB test (skipped when `PGHOST` absent): inserts a source without `visibility` and asserts the DB default fills `internal_only`; asserts NULL is rejected; asserts column metadata via `information_schema`.
+
+Portal audiences see raw source truth only when it has been deliberately promoted into `client_portal_roadmaps` / `client_portal_files` / `client_portal_messages` through the approved-roadmap publish flow (G-0 concern, separately closed).
