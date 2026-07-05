@@ -51,6 +51,31 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
+  // Realtime: refresh unread badge the instant a new operator notification
+  // lands, instead of waiting up to 30s for the poll interval.
+  useEffect(() => {
+    const channel = supabase
+      .channel("operator-notifications-bell")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "operator_notifications" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["operator-notifications"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "operator_notification_reads" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["operator-notifications"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
   const unread = notifs.data?.unread ?? 0;
   const items = notifs.data?.items ?? [];
 
