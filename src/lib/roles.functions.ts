@@ -68,7 +68,7 @@ export const grantUserRole = createServerFn({ method: "POST" })
           idempotencyKey: `admin-access-${data.email}-${id}`,
           templateData: {
             grantedByName: callerEmail,
-            adminDashboardUrl: "https://www.trust-tai.com/admin",
+            adminDashboardUrl: absoluteUrl("/admin", process.env as { PUBLIC_SITE_URL?: string }),
           },
         });
       } catch (err) {
