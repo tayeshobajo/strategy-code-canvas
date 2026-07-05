@@ -293,7 +293,12 @@ export type Database = {
           message_type: string
           metadata: Json
           project_id: string
+          related_decision_id: string | null
+          related_deliverable_id: string | null
           related_file_ids: string[]
+          related_milestone_id: string | null
+          related_phase_id: string | null
+          related_project_id: string | null
           related_roadmap_section: string | null
           sender_type: string
           subject: string | null
@@ -310,7 +315,12 @@ export type Database = {
           message_type?: string
           metadata?: Json
           project_id: string
+          related_decision_id?: string | null
+          related_deliverable_id?: string | null
           related_file_ids?: string[]
+          related_milestone_id?: string | null
+          related_phase_id?: string | null
+          related_project_id?: string | null
           related_roadmap_section?: string | null
           sender_type: string
           subject?: string | null
@@ -327,7 +337,12 @@ export type Database = {
           message_type?: string
           metadata?: Json
           project_id?: string
+          related_decision_id?: string | null
+          related_deliverable_id?: string | null
           related_file_ids?: string[]
+          related_milestone_id?: string | null
+          related_phase_id?: string | null
+          related_project_id?: string | null
           related_roadmap_section?: string | null
           sender_type?: string
           subject?: string | null
@@ -2756,30 +2771,6 @@ export type Database = {
           route?: string | null
           user_agent?: string | null
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      portal_messages: {
-        Row: {
-          body: string
-          client_email: string
-          created_at: string
-          id: string
-          sender: string
-        }
-        Insert: {
-          body: string
-          client_email: string
-          created_at?: string
-          id?: string
-          sender: string
-        }
-        Update: {
-          body?: string
-          client_email?: string
-          created_at?: string
-          id?: string
-          sender?: string
         }
         Relationships: []
       }
