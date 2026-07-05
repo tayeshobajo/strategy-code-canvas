@@ -61,6 +61,38 @@ function QueuePage() {
     staleTime: 15_000,
   });
 
+  const qc = useQueryClient();
+  const bulkFn = useServerFn(bulkSetReviewStatus);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const rows = submissions.data ?? [];
+  const allIds = rows.map((r) => r.submission_id);
+  const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
+  const someSelected = selected.size > 0 && !allSelected;
+  const bulk = useMutation({
+    mutationFn: (status: "in_review" | "approved" | "rejected" | "archived") =>
+      bulkFn({ data: { ids: Array.from(selected), status } }),
+    onSuccess: (r) => {
+      const errCount = r.errors?.length ?? 0;
+      toast.success(
+        errCount
+          ? `Updated ${r.processed}, ${errCount} failed`
+          : `Updated ${r.processed} submissions`,
+      );
+      setSelected(new Set());
+      qc.invalidateQueries({ queryKey: ["ops"] });
+    },
+    onError: (e: unknown) => toast.error(String((e as Error)?.message ?? e)),
+  });
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = () =>
+    setSelected((prev) => (allSelected ? new Set() : new Set(allIds)));
+
   const heading = useMemo(() => {
     switch (status) {
       case "in_review":
