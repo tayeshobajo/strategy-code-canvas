@@ -37,6 +37,7 @@ export type EngineProjectRow = {
   client_industry: string | null;
   status: EngineProjectStatus;
   current_step: string;
+  current_phase: string;
   roadmap_version: string | null;
   approved_version: string | null;
   agent_status: string;
@@ -46,15 +47,21 @@ export type EngineProjectRow = {
   next_action: string | null;
   last_activity_at: string;
   next_critical_date: { label: string; due_on: string } | null;
+  source_count: number;
+  latest_source_processed: string | null;
+  portal_publish_status: "not_published" | "draft" | "published" | "archived";
+  client_portal_project_id: string | null;
 };
 
 export type CommandCenterPayload = {
   metrics: {
     active_projects: number;
     new_signals: number;
+    sources_processing: number;
     roadmaps_in_progress: number;
     needs_review: number;
     approved: number;
+    portal_published: number;
     deliveries_pending: number;
     in_execution: number;
     blocked_decisions: number;
@@ -68,6 +75,14 @@ export type CommandCenterPayload = {
     client_company: string;
     status: EngineProjectStatus;
     next_action: string | null;
+    due_on: string | null;
+  }>;
+  next_best_actions: Array<{
+    project_id: string;
+    project_name: string;
+    client_company: string;
+    action: string;
+    reason: string;
     due_on: string | null;
   }>;
   active_projects: EngineProjectRow[];
@@ -90,6 +105,7 @@ export type CommandCenterPayload = {
   delivery_queue: EngineProjectRow[];
   execution_queue: EngineProjectRow[];
 };
+
 
 type ProjectDbRow = {
   id: string;
