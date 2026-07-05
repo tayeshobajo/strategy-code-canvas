@@ -2,6 +2,7 @@ import * as React from 'react'
 import { render } from 'react-email'
 import { TEMPLATES } from '@/lib/email-templates/registry'
 import { supabaseAdmin } from '@/integrations/supabase/client.server'
+import type { Json } from '@/integrations/supabase/types'
 
 const SITE_NAME = 'Trust Tai'
 const SENDER_DOMAIN = 'notify.trusttai.com'
