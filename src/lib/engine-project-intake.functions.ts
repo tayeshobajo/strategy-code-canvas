@@ -26,6 +26,9 @@ const SOURCE_TYPES = [
   "previous_roadmap",
 ] as const;
 
+const DELIVERY_MODES = ["internal_only", "client_portal_required"] as const;
+type DeliveryMode = (typeof DELIVERY_MODES)[number];
+
 const CreateInput = z.object({
   clientId: z.string().uuid().optional(),
   newClient: z
@@ -41,6 +44,8 @@ const CreateInput = z.object({
   roadmapType: z.string().max(120).optional(),
   primaryGoal: z.string().max(500).optional(),
   criticalDate: z.string().max(200).optional(),
+  // G-4: explicit delivery-mode override. When omitted, derived from contact-email presence.
+  deliveryMode: z.enum(DELIVERY_MODES).optional(),
   source: z.object({
     type: z.enum(SOURCE_TYPES),
     name: z.string().min(1).max(240),
@@ -49,6 +54,7 @@ const CreateInput = z.object({
     storage_path: z.string().max(1024).optional(),
   }),
 });
+
 
 export type CreateProjectFromSourceResult = {
   project_id: string;
