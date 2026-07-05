@@ -257,3 +257,9 @@ Routes: `engine.tsx`, `engine.index.tsx`, `engine.projects.index.tsx`, `engine.p
 Server fns: `engine.functions.ts`, `engine-intelligence.functions.ts`, `engine-agent.functions.ts`, `engine-ops.functions.ts`, `engine-execution.functions.ts`, `engine-project-intake.functions.ts`, `portal.functions.ts`.
 
 Tables: `engine_projects`, `engine_sources`, `engine_extracted_signals`, `engine_extraction_runs`, `engine_roadmap_versions`, `engine_milestones`, `engine_review_items`, `engine_review_audit`, `engine_audit_log`, `engine_activity`, `engine_tasks`, `engine_agent_tasks`, `engine_agent_costs`, `engine_agent_permissions`, `engine_delivery_items`, `engine_delivery_history`, `engine_intelligence_memory`, `engine_intelligence_decisions`, `engine_change_events`, `engine_version_change_decisions`, `client_portal_roadmaps`, `client_portal_messages`, `client_portal_activity`.
+
+
+### Invariants Stage B — Project creation completeness ✅ DONE (2026-07-05)
+- `createProjectFromSource` now provisions every required sibling row in one call: `engine_project_agents`, `engine_agent_permissions`, a `v0.0` container in `engine_roadmap_versions`, and (when a client contact email exists) an upserted `client_portal_projects` row with FK linkage on `engine_projects.client_portal_project_id` plus an owner `client_portal_permissions` row.
+- Failures on any sibling insert don't abort project creation but are surfaced as a single `engine_activity` `integrity_warning` for triage.
+- New `verifyProjectIntegrity` server fn (`engine-project-intake.functions.ts`) returns a per-project checklist for use by ops UI / smoke tests.
