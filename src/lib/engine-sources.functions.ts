@@ -20,6 +20,17 @@ const ChangeInput = z.object({
   reason: z.string().trim().min(3).max(500),
 });
 
+const ListInput = z.object({ projectId: z.string().uuid() });
+
+export type AdminSourceRow = {
+  id: string;
+  name: string;
+  visibility: SourceVisibility;
+  status: string | null;
+  type: string | null;
+  updated_at: string | null;
+};
+
 async function assertAdmin(context: {
   claims?: Record<string, unknown>;
   supabase: { rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> };
@@ -91,4 +102,22 @@ export const changeSourceVisibility = createServerFn({ method: "POST" })
       oldVisibility,
       newVisibility: data.visibility,
     };
+  });
+
+/**
+ * Admin-only listing of engine sources for a project, including the
+ * current visibility. Used by the admin visibility management panel.
+ */
+export const listProjectSourcesForAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => ListInput.parse(raw))
+  .handler(async ({ data, context }): Promise<{ rows: AdminSourceRow[] }> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    const { data: rows, error } = await context.supabase
+      .from("engine_sources")
+      .select("id,name,visibility,status,type,updated_at")
+      .eq("project_id", data.projectId)
+      .order("updated_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return { rows: (rows ?? []) as AdminSourceRow[] };
   });
