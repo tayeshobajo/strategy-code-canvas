@@ -209,6 +209,44 @@ function DeliveryRoomPage() {
                             {t.icon}{t.label}
                           </button>
                         ))}
+                        {d.project_id ? (
+                          <Link
+                            to="/engine/projects/$projectId/preview"
+                            params={{ projectId: d.project_id }}
+                            className="inline-flex items-center gap-1 text-[11px] border border-border rounded px-2 py-1 hover:border-royal/50 hover:bg-paper-soft text-ink"
+                            title="Submit / approve client preview and publish to portal"
+                          >
+                            <Rocket className="w-3 h-3" /> Publish gate
+                          </Link>
+                        ) : null}
+                        {d.client_portal_roadmap_id && d.portal_publish_status !== "archived" ? (
+                          <button
+                            disabled={setPortal.isPending}
+                            onClick={() =>
+                              setPortal.mutate({
+                                portalRoadmapId: d.client_portal_roadmap_id!,
+                                status: "archived",
+                              })
+                            }
+                            className="inline-flex items-center gap-1 text-[11px] border border-border rounded px-2 py-1 hover:border-[#f1e3b9] hover:bg-[#fbf3e0] text-ink disabled:opacity-40"
+                          >
+                            <Archive className="w-3 h-3" /> Archive portal
+                          </button>
+                        ) : null}
+                        {d.client_portal_roadmap_id && d.portal_publish_status === "archived" ? (
+                          <button
+                            disabled={setPortal.isPending}
+                            onClick={() =>
+                              setPortal.mutate({
+                                portalRoadmapId: d.client_portal_roadmap_id!,
+                                status: "delivered",
+                              })
+                            }
+                            className="inline-flex items-center gap-1 text-[11px] border border-border rounded px-2 py-1 hover:border-royal/50 hover:bg-paper-soft text-ink disabled:opacity-40"
+                          >
+                            <RotateCcw className="w-3 h-3" /> Restore portal
+                          </button>
+                        ) : null}
                         <button onClick={() => setHistoryOpen(d)}
                           className="inline-flex items-center gap-1 text-[11px] text-ink/60 hover:text-ink px-2 py-1">
                           History ({d.history.length})
