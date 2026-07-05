@@ -494,8 +494,8 @@ export const listProjects = createServerFn({ method: "GET" })
   .inputValidator((raw: unknown) => ListInput.parse(raw ?? {}))
   .handler(async ({ context, data }): Promise<{ rows: EngineProjectRow[] }> => {
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
-    const { rows, dates } = await fetchProjects(context.supabase as never);
-    let out = rows.map((r) => mapRow(r, dates));
+    const { rows, dates, agg } = await fetchProjects(context.supabase as never);
+    let out = rows.map((r) => mapRow(r, dates, agg));
     if (data.filter !== "all") out = out.filter((r) => r.status === data.filter);
     if (data.q) {
       const q = data.q.toLowerCase();
