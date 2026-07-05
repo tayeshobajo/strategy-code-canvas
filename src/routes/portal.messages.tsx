@@ -401,6 +401,57 @@ function MessagesPage() {
             ))}
           </div>
 
+          {/* Filters */}
+          {(ctxOptions?.phases?.length || ctxOptions?.milestones?.length) ? (
+            <div className="flex items-center gap-2 flex-wrap border-b border-rule-soft px-6 py-2.5 text-[12px] bg-paper-soft/40">
+              <span className="text-[11px] uppercase tracking-wider text-ink/50 mr-1">Filter:</span>
+              <select
+                value={filterProject}
+                onChange={(e) => setFilterProject(e.target.value as "any" | "mine")}
+                className="rounded-md border border-rule-soft bg-card px-2 py-1"
+                aria-label="Filter by project"
+              >
+                <option value="any">Any project link</option>
+                <option value="mine">Roadmap-linked only</option>
+              </select>
+              {ctxOptions.phases.length > 0 && (
+                <select
+                  value={filterPhase}
+                  onChange={(e) => setFilterPhase(e.target.value)}
+                  className="rounded-md border border-rule-soft bg-card px-2 py-1"
+                  aria-label="Filter by phase"
+                >
+                  <option value="">Any phase</option>
+                  {ctxOptions.phases.map((p) => (
+                    <option key={p.key} value={p.key}>{p.label}</option>
+                  ))}
+                </select>
+              )}
+              {ctxOptions.milestones.length > 0 && (
+                <select
+                  value={filterMilestone}
+                  onChange={(e) => setFilterMilestone(e.target.value)}
+                  className="rounded-md border border-rule-soft bg-card px-2 py-1 max-w-[240px]"
+                  aria-label="Filter by milestone"
+                >
+                  <option value="">Any milestone</option>
+                  {ctxOptions.milestones.map((m) => (
+                    <option key={m.slug} value={m.slug}>{m.title}</option>
+                  ))}
+                </select>
+              )}
+              {(filterPhase || filterMilestone || filterProject !== "any") && (
+                <button
+                  type="button"
+                  onClick={() => { setFilterPhase(""); setFilterMilestone(""); setFilterProject("any"); }}
+                  className="text-[11px] text-ink/50 hover:text-ink underline"
+                >
+                  clear
+                </button>
+              )}
+            </div>
+          ) : null}
+
           {/* Scroller */}
           <div
             ref={scrollerRef}
