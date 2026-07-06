@@ -340,46 +340,47 @@ function MapSection() {
 // ---------- Pace ----------
 type Walk = {
   name: string;
+  slug: "accelerated" | "balanced" | "steady";
   subtitle: string;
   Icon: typeof Footprints;
   months: number;
   price: string;
-  total: string;
   team: string;
   timing: string;
 };
 const walks: Walk[] = [
   {
     name: "Accelerated Pace",
+    slug: "accelerated",
     subtitle: "Point B in one year. The heaviest team on the build, the earliest arrival.",
     Icon: Footprints,
     months: 12,
     price: "$7,500",
-    total: "$90,000",
     team: "Full build team allocated each month",
     timing: "Systems land fastest, earliest compounding",
   },
   {
     name: "Balanced Pace",
+    slug: "balanced",
     subtitle: "Point B in eighteen months.",
     Icon: PersonStanding,
     months: 18,
     price: "$4,500",
-    total: "$81,000",
     team: "Core build team at a measured cadence",
     timing: "Systems land in a steady, predictable rhythm",
   },
   {
     name: "Steady Pace",
+    slug: "steady",
     subtitle: "Point B in two years. The walk most founders fund from operations.",
     Icon: Snail,
     months: 24,
     price: "$2,500",
-    total: "$60,000",
     team: "Focused, sustained allocation each month",
     timing: "Systems land in phases the business can absorb",
   },
 ];
+
 
 function WalkRow({ walk }: { walk: Walk }) {
   const dots = 7;
@@ -417,7 +418,13 @@ function WalkRow({ walk }: { walk: Walk }) {
             {walk.price} <span className="text-[11.5px] font-normal text-ink/55">per month</span>
           </p>
           <p className="text-[12px] text-ink/55">{walk.months} months</p>
-          <p className="mt-1 text-[15px] text-royal">{walk.total} <span className="text-[11.5px] text-ink/55">over the walk</span></p>
+          <Link
+            to="/checkout/walk/$pace"
+            params={{ pace: walk.slug }}
+            className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-ink px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-ink/90"
+          >
+            Begin this walk <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
       </div>
 
@@ -429,7 +436,7 @@ function WalkRow({ walk }: { walk: Walk }) {
         </div>
         <div>
           <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Monthly investment</dt>
-          <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.price} per month · {walk.total} total</dd>
+          <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.price} per month</dd>
         </div>
         <div>
           <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Team capacity</dt>
@@ -440,6 +447,7 @@ function WalkRow({ walk }: { walk: Walk }) {
           <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.timing}</dd>
         </div>
       </dl>
+
     </div>
   );
 }
