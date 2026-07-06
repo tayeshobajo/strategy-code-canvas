@@ -296,7 +296,8 @@ export const createTask = createServerFn({ method: "POST" })
         name: z.string().min(1),
         priority: z.string().default("P2"),
         status: z.string().default("suggested"),
-        milestoneId: z.string().uuid().optional().nullable(),
+        // Pillar 11: tasks MUST belong to a milestone.
+        milestoneId: z.string().uuid(),
         estimated_effort_hours: z.number().optional(),
       })
       .parse(raw),
@@ -304,6 +305,17 @@ export const createTask = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
+
+    // Verify the milestone belongs to the same project (defense-in-depth in
+    // addition to the FK) so callers can't attach tasks to unrelated milestones.
+    const { data: ms } = await sb
+      .from("engine_milestones")
+      .select("id")
+      .eq("id", data.milestoneId)
+      .eq("project_id", data.projectId)
+      .maybeSingle();
+    if (!ms) throw new Error("Milestone not found in this project");
+
     const { data: row, error } = await sb
       .from("engine_tasks")
       .insert({
@@ -311,7 +323,7 @@ export const createTask = createServerFn({ method: "POST" })
         name: data.name,
         priority: data.priority,
         status: data.status,
-        milestone_id: data.milestoneId ?? null,
+        milestone_id: data.milestoneId,
         estimated_effort_hours: data.estimated_effort_hours ?? null,
         created_by: "human",
       })
@@ -320,6 +332,7 @@ export const createTask = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { task: row };
   });
+
 
 export const updateTaskStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
