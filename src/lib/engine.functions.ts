@@ -729,6 +729,24 @@ export const updateProjectStep = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .single();
     const states = (cur?.step_states ?? {}) as Record<string, import("@/lib/engine-workspace").StepState>;
+
+    // Pillar 6: protect operator-approved diagnostic modules from silent
+    // re-writes. Point A / Point B once approved represent Tai's signed-off
+    // diagnosis + destination; overwriting them from the workspace should
+    // require a fresh state transition (approved → draft via setStepState).
+    const PROTECTED_APPROVED_STEPS = new Set<WorkspaceStepKey>([
+      "point-a",
+      "point-b",
+    ]);
+    if (
+      PROTECTED_APPROVED_STEPS.has(data.step as WorkspaceStepKey)
+      && states[data.step]?.state === "approved"
+    ) {
+      throw new Error(
+        `Cannot overwrite approved "${data.step}" content. Reset the step to draft before editing.`,
+      );
+    }
+
     states[data.step] = {
       state: "draft",
       updated_at: new Date().toISOString(),
