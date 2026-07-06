@@ -1299,3 +1299,38 @@ export const setPortalRoadmapStatus = createServerFn({ method: "POST" })
     }
     return { ok: true, status: data.status };
   });
+
+// ─── Investment Confirmation (Pillar 7 gate) ─────────────────────
+export const confirmProjectInvestment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      projectId: z.string().uuid(),
+      confirmed: z.boolean().default(true),
+    }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true; investment_confirmed_at: string | null }> => {
+    const actor = await assertAdminEmail(context as never);
+    const sb = context.supabase as never as {
+      from: (t: string) => {
+        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+      };
+    };
+    const nowIso = data.confirmed ? new Date().toISOString() : null;
+    const { error } = await sb.from("engine_projects").update({
+      investment_confirmed_at: nowIso,
+      investment_confirmed_by: nowIso ? actor : null,
+    }).eq("id", data.projectId);
+    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    await sb.from("engine_audit_log").insert({
+      project_id: data.projectId,
+      actor_email: actor,
+      action: nowIso ? "investment_confirmed" : "investment_confirmation_cleared",
+      summary: nowIso
+        ? `Investment confirmed by ${actor}. Version approval + portal publish are now unlocked.`
+        : `Investment confirmation cleared. Version approval + portal publish are re-locked.`,
+      affected_modules: ["investment"],
+    });
+    return { ok: true, investment_confirmed_at: nowIso };
+  });
