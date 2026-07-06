@@ -59,15 +59,15 @@ describe("pipeline transitions engine_projects.status correctly (G-1)", () => {
   });
 
   it("sets status='draft' when the AI version lands (success path)", () => {
-    // The success-path module updates object must carry status: "draft".
-    const anchor = "G-1 status transition: AI draft has landed";
+    // The success-path module updates object must carry status: "draft" —
+    // gated by canMoveStatus so terminal/hold statuses are preserved
+    // (pipeline-clobber fix reworded the original G-1 anchor comment).
+    const anchor = 'if (canMoveStatus) {\n    moduleUpdates.status = "draft";';
     const idx = pipeline.indexOf(anchor);
-    expect(idx, "expected success-path draft transition anchor comment").toBeGreaterThan(-1);
-    const window = pipeline.slice(idx, idx + 400);
-    expect(window).toMatch(/status:\s*"draft"/);
+    expect(idx, "expected canMoveStatus-gated draft transition").toBeGreaterThan(-1);
+    const window = pipeline.slice(Math.max(0, idx - 600), idx + 200);
     expect(window).not.toMatch(/status:\s*"needs_review"/);
   });
-
 
   it("sets status='intake' when extraction fails (failure path)", () => {
     // In the catch block, project status must NOT be left as source_processing
@@ -80,4 +80,3 @@ describe("pipeline transitions engine_projects.status correctly (G-1)", () => {
     );
   });
 });
-

@@ -403,9 +403,16 @@ export const getPortalContext = createServerFn({ method: "GET" })
       return { hasAccess: false as const, correlationId };
     }
 
+    // Pillar 8: explicit safe-column projection — never select "*" for
+    // client-visible project reads. Internal fields (owner_email, Stripe
+    // identifiers, intake_submission_id, approved_roadmap_id, metadata)
+    // MUST NOT reach the browser. Mirrors the portal_project_v whitelist
+    // plus purchased_package, which the portal UI reads as a fallback.
     const { data: project } = await context.supabase
       .from("client_portal_projects")
-      .select("*")
+      .select(
+        "id, primary_email, contact_name, company_name, package_name, purchased_package, portal_status, payment_status, current_phase, next_milestone, next_milestone_due_at, scheduling_url, purchase_date, last_client_activity_at, access_granted_at, access_revoked_at, created_at, updated_at",
+      )
       .ilike("primary_email", email)
       .maybeSingle();
 
@@ -444,28 +451,41 @@ export const getPortalContext = createServerFn({ method: "GET" })
     await context.supabase.rpc("sync_client_access_user").throwOnError();
 
     const [onboardingRes, roadmapRes, billingRes] = await Promise.all([
+      // Status-level columns only — the onboarding wizard loads its full
+      // saved answers through getPortalOnboarding with its own membership
+      // check; the context blob only needs progress/status.
       context.supabase
         .from("client_portal_onboarding")
-        .select("*")
+        .select(
+          "id, project_id, status, current_step, completion_percent, submitted_at, last_saved_at, created_at, updated_at",
+        )
         .eq("project_id", project.id)
         .maybeSingle(),
       context.supabase
         .from("client_portal_roadmaps")
         // Pillar 8: explicit safe-column projection — never select "*" for
         // client-visible roadmap reads. Internal fields (metadata,
-        // approved_roadmap_version_id, published_by, engine linkage) MUST NOT
-        // reach the browser. Keys mirror CLIENT_SAFE_KEYS + row metadata the
-        // portal UI needs (id, title, status, timestamps).
+        // approved_roadmap_version_id, published_by, engine linkage,
+        // supporting_notes) MUST NOT reach the browser. Keys mirror the
+        // getPortalRoadmapDocs whitelist + row metadata the portal UI
+        // needs (id, title, status, timestamps).
         .select(
-          "id, project_id, title, version_label, status, approved_at, published_at, acknowledged_at, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, supporting_notes, client_safe_canvas",
+          "id, project_id, title, version_label, status, approved_at, published_at, acknowledged_at, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, client_safe_canvas",
         )
         .eq("project_id", project.id)
-        .not("approved_at", "is", null)
+        // Status-based filter, mirroring getPortalRoadmapDocs: an archived or
+        // reverted roadmap keeps its approved_at stamp, so gating on
+        // approved_at alone lets stale rows resurface.
+        .in("status", ["approved", "delivered"])
         .order("approved_at", { ascending: false })
         .limit(1),
+      // No Stripe identifiers or metadata to the browser — receipt/invoice
+      // URLs and display fields only.
       context.supabase
         .from("client_portal_billing")
-        .select("*")
+        .select(
+          "id, project_id, amount_total, currency, payment_status, purchased_package, receipt_url, invoice_url, payment_confirmed_at, next_payment_at, created_at",
+        )
         .eq("project_id", project.id)
         .order("created_at", { ascending: false })
         .limit(3),
@@ -1956,5 +1976,7 @@ export const submitPortalOnboarding = createServerFn({ method: "POST" })
       });
     }
 
-    return { ok: true as const, engineSourceId };
+    // NOTE: engineSourceId is intentionally NOT returned — engine-internal
+    // identifiers never cross the portal boundary to the client caller.
+    return { ok: true as const };
   });
