@@ -988,7 +988,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
     // Resolve destination portal project (auto-link when possible).
     const { data: proj, error: pErr } = await sb
       .from("engine_projects")
-      .select("id,name,client_preview,client_portal_project_id,client_id,point_a,point_b")
+      .select("id,name,client_preview,client_portal_project_id,client_id,point_a,point_b,investment_confirmed_at")
       .eq("id", ver.project_id)
       .single();
     if (pErr) throw new Error(String((pErr as { message?: string }).message ?? pErr));
@@ -996,7 +996,12 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       id: string; name: string; client_preview: Record<string, unknown> | null;
       client_portal_project_id: string | null; client_id: string | null;
       point_a: string | null; point_b: string | null;
+      investment_confirmed_at: string | null;
     };
+    // Pillar 7: publishing to the client portal requires confirmed investment.
+    if (!project.investment_confirmed_at) {
+      throw new Error("Confirm the investment on this project before publishing the roadmap to the client portal.");
+    }
     let portalProjectId = project.client_portal_project_id;
     if (!portalProjectId) {
       portalProjectId = await _tryAutoLinkPortalProject(sb, project.id, project.client_id);
