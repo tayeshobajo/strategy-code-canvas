@@ -618,6 +618,11 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       setReflections((prev) => ({ ...prev, [key]: next }));
     };
 
+    // Reflection requires a live intake draft (resume_token) so the paid AI
+    // endpoint can verify a real session server-side. Autosave creates it
+    // shortly after the first keystroke; skip until then.
+    if (!resumeToken) return;
+
     reflectTimers.current[q.key] = setTimeout(async () => {
       // Remember which value we're fetching for so the effect doesn't re-fire
       // when setAnswers writes reflected_offered back into state.
@@ -632,7 +637,11 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       try {
         const mod = await import("@/lib/intake.functions");
         const res = await mod.reflectAnswer({
-          data: { question: `${q.before}${q.accent}${q.after}`, answer: trimmed },
+          data: {
+            resume_token: resumeToken ?? "",
+            question: `${q.before}${q.accent}${q.after}`,
+            answer: trimmed,
+          },
           signal: ctrl.signal,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
