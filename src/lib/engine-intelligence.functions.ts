@@ -1317,12 +1317,14 @@ export async function runIntelligencePipelineInternal(
   // Update project draft pointer + JSONB modules
   const moduleUpdates: Record<string, any> = {
     roadmap_version: nextVersion,
-    // G-1 status transition: AI draft has landed. Move project back to
-    // `draft` (from `source_processing`) so the workspace reflects a
-    // reviewable draft. The enqueued review_item below is the review signal;
-    // the project status stays product-truthful.
-    status: "draft",
   };
+  // Only surface "draft" when the project was in a transitional state.
+  // Terminal / hold statuses (on_hold, blocked, paused, execution, delivered,
+  // archived) are preserved; the review item is still the review signal.
+  if (canMoveStatus) {
+    moduleUpdates.status = "draft";
+  }
+
 
   // Pillar 5: never overwrite a step whose operator has marked it approved.
   // The pipeline still runs and produces a fresh version + review item, but
