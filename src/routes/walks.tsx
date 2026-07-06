@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import * as React from "react";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -519,20 +519,23 @@ function WalkRow({
   selected: boolean;
   onSelect: (slug: string) => void;
 }) {
+  const navigate = useNavigate();
   const handleActivate = (e: React.MouseEvent | React.KeyboardEvent) => {
-    // Don't hijack the link click - let it navigate.
+    // Don't hijack nested links/buttons.
     const target = e.target as HTMLElement;
-    if (target.closest("a")) return;
+    if (target.closest("a,button")) return;
     onSelect(walk.slug);
+    navigate({ to: "/walks/$slug", params: { slug: walk.slug } });
   };
   return (
     <Reveal
       as="article"
       variant="fade-up"
       delay={index * 60}
-      role="button"
+      role="link"
       tabIndex={0}
       aria-pressed={selected}
+      aria-label={`View walk: ${walk.headline.join(" ")}`}
       data-selected={selected}
       onClick={handleActivate}
       onKeyDown={(e) => {
@@ -541,8 +544,9 @@ function WalkRow({
           handleActivate(e);
         }
       }}
-      className="group row-interactive border-t border-rule focus:outline-none focus-visible:ring-2 focus-visible:ring-royal/40"
+      className="group row-interactive border-t border-rule focus:outline-none focus-visible:ring-2 focus-visible:ring-royal/40 cursor-pointer"
     >
+
       <div
         className={`${container} grid grid-cols-1 gap-6 py-8 md:grid-cols-2 md:gap-x-8 md:gap-y-6 lg:grid-cols-[240px_minmax(0,1.15fr)_minmax(0,1.1fr)_140px] lg:items-center lg:gap-8`}
       >
