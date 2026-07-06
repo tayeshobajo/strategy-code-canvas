@@ -372,8 +372,111 @@ function ActivationCTA({ sessionId, email }: { sessionId: string; email: string 
             </Link>
             .
           </div>
+          <div className="mt-3">
+            <ResendLinkButton sessionId={sessionId} email={email} />
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ResendLinkButton({ sessionId, email }: { sessionId: string; email: string | null }) {
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [message, setMessage] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const res = await resendPortalMagicLink({
+        data: { sessionId, environment: getStripeEnvironment() },
+      });
+      return res;
+    },
+    onSuccess: (res) => {
+      if ("error" in res) {
+        setState("error");
+        setMessage(res.error);
+        return;
+      }
+      if (res.status === "sent") {
+        setState("sent");
+        setMessage(`Sent to ${res.email}. Check your inbox — link expires in 60 minutes.`);
+        return;
+      }
+      if (res.status === "provisioning") {
+        setState("error");
+        setMessage("Your workspace is still being prepared. Try again in a few seconds.");
+        return;
+      }
+      if (res.status === "unpaid") {
+        setState("error");
+        setMessage("Payment is still settling. Please give it a moment and try again.");
+        return;
+      }
+      if (res.status === "no_email") {
+        setState("error");
+        setMessage("We couldn't find the billing email on this checkout. Email hello@trusttai.com.");
+      }
+    },
+    onError: (e: unknown) => {
+      setState("error");
+      setMessage(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    },
+  });
+
+  const handleClick = () => {
+    if (state === "sending") return;
+    setState("sending");
+    setMessage(null);
+    mutation.mutate();
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="rounded-full self-start"
+        disabled={state === "sending" || state === "sent"}
+        onClick={handleClick}
+      >
+        {state === "sending" ? (
+          <>
+            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            Sending link…
+          </>
+        ) : state === "sent" ? (
+          <>
+            <Check className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+            Link sent
+          </>
+        ) : (
+          <>
+            <Mail className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+            Resend sign-in link
+          </>
+        )}
+      </Button>
+      {message && (
+        <span
+          className={
+            state === "sent"
+              ? "text-[12px] text-ink/60"
+              : state === "error"
+              ? "text-[12px] text-ink/60"
+              : "text-[12px] text-ink/50"
+          }
+        >
+          {message}
+        </span>
+      )}
+      {state === "idle" && email && (
+        <span className="text-[12px] text-ink/50">Will be sent to {email}.</span>
+      )}
+    </div>
+  );
+}
     </div>
   );
 }
