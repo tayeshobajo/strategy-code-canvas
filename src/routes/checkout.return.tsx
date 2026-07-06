@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { getCheckoutSessionStatus } from "@/utils/payments.functions";
-import { startPortalSignIn } from "@/lib/portal-activation.functions";
+import { startPortalSignIn, resendPortalMagicLink } from "@/lib/portal-activation.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import {
   ArrowRight,
@@ -330,13 +330,14 @@ function ActivationCTA({ sessionId, email }: { sessionId: string; email: string 
           <div className="mt-1 text-ink/65">
             Don't worry — your payment is confirmed and we've emailed a secure sign-in link to{" "}
             <span className="font-medium text-ink/85">{email ?? "your inbox"}</span>. Check your
-            email, or try again below. If it still doesn't work, reach{" "}
+            email, or send yourself a fresh link below. If it still doesn't work, reach{" "}
             <a href="mailto:hello@trusttai.com" className="text-royal underline underline-offset-2">
               hello@trusttai.com
             </a>{" "}
             and we'll finish setup by hand.
           </div>
           <div className="mt-3 flex flex-wrap gap-3">
+            <ResendLinkButton sessionId={sessionId} email={email} />
             <Button
               type="button"
               size="sm"
@@ -371,11 +372,112 @@ function ActivationCTA({ sessionId, email }: { sessionId: string; email: string 
             </Link>
             .
           </div>
+          <div className="mt-3">
+            <ResendLinkButton sessionId={sessionId} email={email} />
+          </div>
         </div>
       )}
     </div>
   );
 }
+
+function ResendLinkButton({ sessionId, email }: { sessionId: string; email: string | null }) {
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [message, setMessage] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const res = await resendPortalMagicLink({
+        data: { sessionId, environment: getStripeEnvironment() },
+      });
+      return res;
+    },
+    onSuccess: (res) => {
+      if ("error" in res) {
+        setState("error");
+        setMessage(res.error);
+        return;
+      }
+      if (res.status === "sent") {
+        setState("sent");
+        setMessage(`Sent to ${res.email}. Check your inbox — link expires in 60 minutes.`);
+        return;
+      }
+      if (res.status === "provisioning") {
+        setState("error");
+        setMessage("Your workspace is still being prepared. Try again in a few seconds.");
+        return;
+      }
+      if (res.status === "unpaid") {
+        setState("error");
+        setMessage("Payment is still settling. Please give it a moment and try again.");
+        return;
+      }
+      if (res.status === "no_email") {
+        setState("error");
+        setMessage("We couldn't find the billing email on this checkout. Email hello@trusttai.com.");
+      }
+    },
+    onError: (e: unknown) => {
+      setState("error");
+      setMessage(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    },
+  });
+
+  const handleClick = () => {
+    if (state === "sending") return;
+    setState("sending");
+    setMessage(null);
+    mutation.mutate();
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="rounded-full self-start"
+        disabled={state === "sending" || state === "sent"}
+        onClick={handleClick}
+      >
+        {state === "sending" ? (
+          <>
+            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            Sending link…
+          </>
+        ) : state === "sent" ? (
+          <>
+            <Check className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+            Link sent
+          </>
+        ) : (
+          <>
+            <Mail className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+            Resend sign-in link
+          </>
+        )}
+      </Button>
+      {message && (
+        <span
+          className={
+            state === "sent"
+              ? "text-[12px] text-ink/60"
+              : state === "error"
+              ? "text-[12px] text-ink/60"
+              : "text-[12px] text-ink/50"
+          }
+        >
+          {message}
+        </span>
+      )}
+      {state === "idle" && email && (
+        <span className="text-[12px] text-ink/50">Will be sent to {email}.</span>
+      )}
+    </div>
+  );
+}
+
 
 function StepIcon({ state }: { state: "done" | "active" | "pending" }) {
   if (state === "done") {
