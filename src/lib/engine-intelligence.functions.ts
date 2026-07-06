@@ -1073,15 +1073,80 @@ export async function runIntelligencePipelineInternal(
     used_in_version_id: version.id,
     metadata: {},
   }));
-  const insertedSignals: Array<{ id: string; category: string; label: string }> = [];
+  const insertedSignals: Array<{
+    id: string; category: string; label: string;
+    detail?: string | null; confidence?: number | null; client_safe?: boolean | null;
+  }> = [];
   if (signalRows.length) {
     const { data: sigInserted } = await sb
       .from("engine_extracted_signals")
       .insert(signalRows)
-      .select("id, category, label");
-    for (const r of (sigInserted ?? []) as Array<{ id: string; category: string; label: string }>) {
+      .select("id, category, label, detail, confidence, client_safe");
+    for (const r of (sigInserted ?? []) as Array<{
+      id: string; category: string; label: string;
+      detail: string | null; confidence: number | null; client_safe: boolean | null;
+    }>) {
       insertedSignals.push(r);
     }
+  }
+
+  // Pillar 12: auto-promote high-confidence signals into Intelligence Memory.
+  // Memory is the project's durable, human-readable ledger — the next pipeline
+  // run reads from it via priorMemory so facts survive re-generation. Dedupe
+  // against existing rows for this project by normalized title so re-runs
+  // don't multiply. Best-effort: never break the pipeline on memory failure.
+  try {
+    const MEMORY_THRESHOLD = 80;
+    const CATEGORY_TO_TYPE: Record<string, string> = {
+      goal: "Goal",
+      pain: "Pain",
+      opportunity: "Opportunity",
+      deadline: "Deadline",
+      constraint: "Constraint",
+      decision_maker: "Stakeholder",
+      hidden_asset: "Hidden Asset",
+      risk: "Risk",
+      required_system: "Requirement",
+      milestone_candidate: "Milestone",
+      investment_signal: "Investment",
+      client_language: "Client Language",
+      open_question: "Open Question",
+      business_model: "Business Model",
+      current_system: "Current System",
+    };
+    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+    const eligible = insertedSignals.filter(
+      (s) => (s.confidence ?? 0) >= MEMORY_THRESHOLD && s.category !== "milestone_candidate",
+    );
+    if (eligible.length) {
+      const { data: existingMem } = await sb
+        .from("engine_intelligence_memory")
+        .select("title")
+        .eq("project_id", args.projectId)
+        .is("archived_at", null);
+      const seen = new Set(
+        ((existingMem ?? []) as Array<{ title: string }>).map((r) => norm(r.title)),
+      );
+      const memoryRows = eligible
+        .filter((s) => !seen.has(norm(s.label)))
+        .map((s) => ({
+          project_id: args.projectId,
+          signal_id: s.id,
+          source_id: primarySourceId,
+          title: s.label.slice(0, 240),
+          summary: s.detail ?? null,
+          type: CATEGORY_TO_TYPE[s.category] ?? "Insight",
+          source: srcRows[0]?.name ?? null,
+          confidence: Math.min(100, Math.max(0, Math.round(s.confidence ?? 80))),
+          tags: [s.category],
+          promoted_by: "ai:pipeline",
+        }));
+      if (memoryRows.length) {
+        await sb.from("engine_intelligence_memory").insert(memoryRows);
+      }
+    }
+  } catch (memErr) {
+    console.warn("[runIntelligencePipeline] intelligence memory auto-write failed", memErr);
   }
 
   // Persist AI-drafted milestones into engine_milestones with source_evidence
