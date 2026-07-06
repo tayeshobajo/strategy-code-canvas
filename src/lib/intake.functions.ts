@@ -2,7 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { buildRoadmapReviewArtifact, buildRoadmapReviewArtifactAnswer } from "./roadmap-review";
 
+const REFLECT_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const ReflectInput = z.object({
+  resume_token: z.string().regex(REFLECT_UUID_RE),
   question: z.string().trim().min(1).max(500),
   answer: z.string().trim().min(1).max(4000),
 });
@@ -15,6 +18,20 @@ export const reflectAnswer = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+    // Gate on an existing intake draft so this expensive Anthropic call can
+    // only be triggered by a real in-progress intake session, not arbitrary
+    // unauthenticated callers.
+    const { getIntakeClient } = await import("@/integrations/intake/client.server");
+    const intake = getIntakeClient();
+    const { data: draft, error: draftErr } = await intake
+      .from("intake_drafts")
+      .select("resume_token")
+      .eq("resume_token", data.resume_token)
+      .maybeSingle();
+    if (draftErr || !draft) {
+      throw new Error("Invalid intake session");
+    }
 
     const userMessage = `${SYSTEM_PROMPT}\n\nQuestion: ${data.question}\n\nFounder's answer: ${data.answer}`;
 
