@@ -180,6 +180,56 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
 </html>`;
 }
 
+function renderOrderSummary(summary: OrderSummary): string {
+  const rows = summary.rows ?? [];
+  const rowsHtml = rows
+    .map(
+      (r) => `
+                    <tr>
+                      <td style="padding:6px 0;font-family:${brand.sans};font-size:12.5px;color:${brand.muted};letter-spacing:0.02em;">${escapeHtml(r.label)}</td>
+                      <td align="right" style="padding:6px 0;font-family:${brand.sans};font-size:13px;color:${brand.ink};font-weight:500;">${escapeHtml(r.value)}</td>
+                    </tr>`,
+    )
+    .join("");
+
+  return `
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                  style="background:${brand.white};border:1px solid ${brand.rule};border-radius:12px;margin:4px 0 22px;">
+                  <tr>
+                    <td style="padding:18px 20px 8px;">
+                      <p style="font-family:${brand.sans};font-size:10.5px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:${brand.muted};margin:0 0 10px;">
+                        Order summary
+                      </p>
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td style="vertical-align:top;">
+                            ${summary.packageName ? `<div style="font-family:${brand.display};font-size:20px;font-weight:500;color:${brand.ink};letter-spacing:-0.005em;line-height:1.2;">${escapeHtml(summary.packageName)}</div>` : ""}
+                            ${summary.packageTagline ? `<div style="font-family:${brand.sans};font-size:12.5px;color:${brand.muted};margin-top:4px;line-height:1.5;">${escapeHtml(summary.packageTagline)}</div>` : ""}
+                          </td>
+                          <td align="right" style="vertical-align:top;white-space:nowrap;padding-left:12px;">
+                            ${summary.amount ? `<div style="font-family:${brand.display};font-size:20px;font-weight:500;color:${brand.ink};letter-spacing:-0.005em;line-height:1.2;">${escapeHtml(summary.amount)}</div>` : ""}
+                            ${summary.amountNote ? `<div style="font-family:${brand.sans};font-size:11.5px;color:${brand.muted};margin-top:4px;">${escapeHtml(summary.amountNote)}</div>` : ""}
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  ${
+                    rows.length
+                      ? `<tr>
+                    <td style="padding:0 20px 16px;">
+                      <div style="border-top:1px solid ${brand.rule};padding-top:10px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                          ${rowsHtml}
+                        </table>
+                      </div>
+                    </td>
+                  </tr>`
+                      : ""
+                  }
+                </table>`;
+}
+
 export function renderPortalMagicLinkText(actionLink: string, intro?: string): string {
   const body = intro ??
     "Use the secure link below to sign in to your Trust Tai client portal. It expires in 60 minutes.";
