@@ -188,13 +188,31 @@ export const listReviewQueue = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ items: ReviewItem[]; audit: ReviewAudit[] }> => {
     await assertOps(context as never);
+    // Pillar 7: operators (non-admin) do not see version-approval items —
+    // only Tai approves versions, so surfacing them in an operator queue
+    // just creates noise + false permission errors on click.
+    const isAdmin = await hasRoleForEmail(
+      (context as any).supabase,
+      (context as any).claims?.email as string | undefined,
+      "admin",
+    );
     const sb = context.supabase as never as {
       from: (t: string) => {
-        select: (s: string) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } };
+        select: (s: string) => {
+          order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> };
+          not: (c: string, op: string, v: unknown) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } };
+        };
       };
     };
+    const itemsBase = sb.from("engine_review_items").select("*");
+    const itemsQuery = isAdmin
+      ? itemsBase.order("created_at", { ascending: false }).limit(500)
+      : itemsBase
+          .not("item_type", "in", "(roadmap_version,Roadmap Update,version_approval,Version Change)")
+          .order("created_at", { ascending: false })
+          .limit(500);
     const [it, au] = await Promise.all([
-      sb.from("engine_review_items").select("*").order("created_at", { ascending: false }).limit(500),
+      itemsQuery,
       sb.from("engine_review_audit").select("*").order("at", { ascending: false }).limit(200),
     ]);
     if (it.error) throw new Error(String((it.error as { message?: string }).message ?? it.error));
