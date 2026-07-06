@@ -431,6 +431,11 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     currency: session.currency ?? null,
     packageName,
     sessionId: session.id,
+    mode: session.mode ?? null,
+    paceTitle: session.metadata?.pace_title ?? null,
+    paceMonthly: session.metadata?.pace_monthly ?? null,
+    paceCadence: session.metadata?.pace_cadence ?? null,
+    paceTimeline: session.metadata?.pace_timeline ?? null,
   });
 
   const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
