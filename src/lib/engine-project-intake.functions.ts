@@ -861,4 +861,38 @@ export const listProjectsWithIntegrityIssues = createServerFn({ method: "GET" })
   });
 
 
+/* ============================================================
+ * listRecentIntakeFailures — Pillar 2 durable-failure view
+ * Reads engine_project_intake_failures (survives project rollback).
+ * ============================================================ */
+
+export type IntakeFailureRow = {
+  id: string;
+  attempted_project_id: string | null;
+  attempted_project_name: string | null;
+  attempted_client_id: string | null;
+  actor_email: string | null;
+  delivery_mode: string | null;
+  failure_reason: string;
+  created_at: string;
+};
+
+export const listRecentIntakeFailures = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ rows: IntakeFailureRow[] }> => {
+    await assertOpsOrAdmin(context);
+    const sb = (context as any).supabase;
+    const { data, error } = await sb
+      .from("engine_project_intake_failures")
+      .select(
+        "id, attempted_project_id, attempted_project_name, attempted_client_id, actor_email, delivery_mode, failure_reason, created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message ?? "list failures failed");
+    return { rows: (data ?? []) as IntakeFailureRow[] };
+  });
+
+
+
 
