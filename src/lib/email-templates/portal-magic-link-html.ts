@@ -70,11 +70,17 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
     heading = "Welcome back",
     ctaLabel = "Enter your portal",
     siteUrl = getPublicSiteUrl(),
+    orderSummary,
   } = opts;
 
   const LOGO_URL = `${siteUrl}${LOGO_PATH}`;
 
   const safeLink = escapeHtml(actionLink);
+
+  const orderSummaryHtml = orderSummary
+    ? renderOrderSummary(orderSummary)
+    : "";
+
 
   return `<!doctype html>
 <html lang="en" dir="ltr">
