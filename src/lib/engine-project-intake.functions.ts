@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { runIntelligencePipelineInternal } from "@/lib/engine-intelligence.functions";
+import { writeDurableIntakeFailure } from "@/lib/engine-intake-failure-log";
 
 async function assertOpsOrAdmin(context: any) {
   const email = (context.claims?.email as string | undefined) ?? undefined;
@@ -248,25 +249,27 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       const combined = [...integrityErrors, ...failures].join(" | ");
       // Pillar 2 — durable failure log. Writes to engine_project_intake_failures
       // FIRST (no FK to engine_projects, so it survives the rollback below).
-      // The engine_activity insert is best-effort but will be wiped when
-      // rollbackHalfBornProject cascades — that's exactly why the dedicated
-      // failures table exists.
-      try {
-        await sb.from("engine_project_intake_failures").insert({
-          attempted_project_id: projectId,
-          attempted_project_name: data.projectName,
-          attempted_client_id: clientId || null,
-          actor_email: actor,
-          delivery_mode: deliveryMode,
-          failure_reason: combined,
-          payload: {
-            source_type: data.source?.type ?? null,
-            engagement_type: data.engagementType ?? null,
-            roadmap_type: data.roadmapType ?? null,
-          },
-        });
-      } catch (e) {
-        console.error("[intake] durable failure log write failed", e);
+      // The write goes through the service-role client: RLS grants
+      // `authenticated` SELECT only, so the user-scoped `sb` cannot insert
+      // here. The engine_activity insert is best-effort but will be wiped
+      // when rollbackHalfBornProject cascades — that's exactly why the
+      // dedicated failures table exists.
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const durableLogError = await writeDurableIntakeFailure(supabaseAdmin, {
+        attempted_project_id: projectId,
+        attempted_project_name: data.projectName,
+        attempted_client_id: clientId || null,
+        actor_email: actor,
+        delivery_mode: deliveryMode,
+        failure_reason: combined,
+        payload: {
+          source_type: data.source?.type ?? null,
+          engagement_type: data.engagementType ?? null,
+          roadmap_type: data.roadmapType ?? null,
+        },
+      });
+      if (durableLogError) {
+        console.error("[intake] durable failure log write failed:", durableLogError);
       }
       try {
         await sb.from("engine_activity").insert({
@@ -279,8 +282,11 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       } catch {
         /* audit log is best-effort */
       }
+      const logNote = durableLogError
+        ? ` (WARNING: durable failure log write also failed: ${durableLogError})`
+        : "";
       await rollbackHalfBornProject(sb, projectId);
-      throw new Error(`Project creation failed integrity check: ${combined}`);
+      throw new Error(`Project creation failed integrity check: ${combined}${logNote}`);
     }
 
 
