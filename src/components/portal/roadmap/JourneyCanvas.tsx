@@ -444,13 +444,18 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect, matchingSlugs }
           <div className="flex items-center justify-center h-11 w-11 rounded-full bg-white/10 border border-white/25 text-white">
             <MapPin className="w-5 h-5" />
           </div>
-          <div className="text-white">
+          <div className="text-white max-w-[280px]">
             <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-white/60">
               Point A
             </div>
             <div className="font-display text-lg leading-tight">
               {journey.pointA.label}
             </div>
+            {journey.pointA.detail ? (
+              <div className="mt-1 text-[12px] leading-snug text-white/75 line-clamp-3">
+                {journey.pointA.detail}
+              </div>
+            ) : null}
           </div>
         </div>
 
