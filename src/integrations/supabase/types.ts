@@ -1919,6 +1919,42 @@ export type Database = {
           },
         ]
       }
+      engine_project_intake_failures: {
+        Row: {
+          actor_email: string | null
+          attempted_client_id: string | null
+          attempted_project_id: string | null
+          attempted_project_name: string | null
+          created_at: string
+          delivery_mode: string | null
+          failure_reason: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          actor_email?: string | null
+          attempted_client_id?: string | null
+          attempted_project_id?: string | null
+          attempted_project_name?: string | null
+          created_at?: string
+          delivery_mode?: string | null
+          failure_reason: string
+          id?: string
+          payload?: Json
+        }
+        Update: {
+          actor_email?: string | null
+          attempted_client_id?: string | null
+          attempted_project_id?: string | null
+          attempted_project_name?: string | null
+          created_at?: string
+          delivery_mode?: string | null
+          failure_reason?: string
+          id?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
       engine_projects: {
         Row: {
           agent_allowed_modules: string[]
