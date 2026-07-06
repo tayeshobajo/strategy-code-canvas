@@ -330,13 +330,14 @@ function ActivationCTA({ sessionId, email }: { sessionId: string; email: string 
           <div className="mt-1 text-ink/65">
             Don't worry — your payment is confirmed and we've emailed a secure sign-in link to{" "}
             <span className="font-medium text-ink/85">{email ?? "your inbox"}</span>. Check your
-            email, or try again below. If it still doesn't work, reach{" "}
+            email, or send yourself a fresh link below. If it still doesn't work, reach{" "}
             <a href="mailto:hello@trusttai.com" className="text-royal underline underline-offset-2">
               hello@trusttai.com
             </a>{" "}
             and we'll finish setup by hand.
           </div>
           <div className="mt-3 flex flex-wrap gap-3">
+            <ResendLinkButton sessionId={sessionId} email={email} />
             <Button
               type="button"
               size="sm"
