@@ -15,8 +15,15 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       customerEmail?: string;
       returnUrl: string;
       environment: StripeEnv;
+      metadata?: Record<string, string>;
     }) => {
       if (!/^[a-zA-Z0-9_-]+$/.test(data.priceId)) throw new Error("Invalid priceId");
+      if (data.metadata) {
+        for (const [k, v] of Object.entries(data.metadata)) {
+          if (!/^[a-zA-Z0-9_-]{1,40}$/.test(k)) throw new Error("Invalid metadata key");
+          if (typeof v !== "string" || v.length > 500) throw new Error("Invalid metadata value");
+        }
+      }
       return data;
     },
   )
@@ -36,16 +43,21 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       const product = await stripe.products.retrieve(productId);
       const productDescription = product.name;
 
+      const metadata = data.metadata ?? {};
+
       const session = await stripe.checkout.sessions.create({
         line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
         mode: isRecurring ? "subscription" : "payment",
         ui_mode: "embedded_page",
         return_url: data.returnUrl,
-        
+        metadata,
         ...(data.customerEmail && { customer_email: data.customerEmail }),
-        ...(isRecurring && data.customerEmail && {
+        ...(isRecurring && {
           subscription_data: {
-            metadata: { customer_email: data.customerEmail },
+            metadata: {
+              ...metadata,
+              ...(data.customerEmail ? { customer_email: data.customerEmail } : {}),
+            },
           },
         }),
         ...(!isRecurring && {
