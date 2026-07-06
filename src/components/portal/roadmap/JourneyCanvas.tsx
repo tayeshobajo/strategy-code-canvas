@@ -467,13 +467,18 @@ export function JourneyCanvas({ journey, selectedSlug, onSelect, matchingSlugs }
             top: `${BASE_Y - 40}px`,
           }}
         >
-          <div className="text-white text-right">
+          <div className="text-white text-right max-w-[280px]">
             <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-white/60">
               Point B
             </div>
             <div className="font-display text-lg leading-tight">
               {journey.pointB.label}
             </div>
+            {journey.pointB.detail ? (
+              <div className="mt-1 text-[12px] leading-snug text-white/75 line-clamp-3">
+                {journey.pointB.detail}
+              </div>
+            ) : null}
           </div>
           <div className="flex items-center justify-center h-11 w-11 rounded-full bg-royal text-white shadow-[0_0_24px_color-mix(in_oklch,var(--royal)_55%,transparent)]">
             <Flag className="w-5 h-5" />
