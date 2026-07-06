@@ -581,6 +581,7 @@ function RoadmapJourneyView({
             : journey.milestones.map((m) => m.slug)
         }
         onSelect={(slug) => setSelected(slug)}
+        journey={journey}
       />
       <ClarificationModal
         open={headerClarifyOpen}
@@ -1078,11 +1079,18 @@ function RoadmapHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => onJump("pointA")}>Point A · Current State</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onJump("now")}>Phase 1 · Foundation</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onJump("next")}>Phase 2 · Core Platform Build</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onJump("later")}>Phase 3 · Scale Systems</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onJump("pointB")}>Point B · Scaled Impact</DropdownMenuItem>
+              {/* Real labels from journey data — no hardcoded demo copy. */}
+              <DropdownMenuItem onSelect={() => onJump("pointA")}>
+                Point A · {journey.pointA.label}
+              </DropdownMenuItem>
+              {journey.phases.map((p, i) => (
+                <DropdownMenuItem key={p.key} onSelect={() => onJump(p.key)}>
+                  Phase {i + 1} · {p.label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuItem onSelect={() => onJump("pointB")}>
+                Point B · {journey.pointB.label}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 

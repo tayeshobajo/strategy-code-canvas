@@ -9,18 +9,14 @@ import { Layers, ChevronRight, Maximize2, Check } from "lucide-react";
 import type { RoadmapMilestone } from "@/lib/portal-roadmap-model";
 import { useRoadmapCanvas } from "./canvas-context";
 
-const PHASE_TITLE: Record<string, string> = {
-  now: "Phase 1 · Foundation",
-  next: "Phase 2 · Core Platform Build",
-  later: "Phase 3 · Scale Systems",
-};
-
 type Props = {
   cluster: MarkerCluster;
   x: number;
   y: number;
   selectedSlug?: string | null;
   onOpenMember: (slug: string) => void;
+  /** Real "Phase N · Label" heading resolved from journey data by the parent. */
+  phaseTitle?: string;
 };
 
 /**
@@ -81,10 +77,11 @@ export function MarkerClusterChip({
   y,
   selectedSlug = null,
   onOpenMember,
+  phaseTitle,
 }: Props) {
   const [open, setOpen] = useState(false);
   const canvas = useRoadmapCanvas();
-  const title = PHASE_TITLE[cluster.phase] ?? `Phase ${cluster.phase}`;
+  const title = phaseTitle ?? `Phase ${cluster.phase}`;
   const isExploded = canvas.explodedClusterKeys.has(cluster.key);
   const containsSelection =
     !!selectedSlug &&

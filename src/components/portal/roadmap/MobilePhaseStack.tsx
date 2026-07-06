@@ -100,6 +100,21 @@ export function MobilePhaseStack({ journey, selectedSlug, onSelect, matchingSlug
 
   return (
     <div className="rounded-2xl border border-white/10 bg-[oklch(0.14_0.05_265)] p-4">
+      {/* Point A — where the journey starts. Mirrors the desktop canvas so
+          mobile clients see the same authored truth. */}
+      {journey.pointA.detail && (
+        <div
+          data-testid="mobile-point-a"
+          className="mb-3 rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white"
+        >
+          <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
+            Point A · {journey.pointA.label}
+          </div>
+          <p className="text-[13px] text-white/85 leading-snug mt-0.5 line-clamp-3">
+            {journey.pointA.detail}
+          </p>
+        </div>
+      )}
       <div className="flex items-center justify-between text-white/85 mb-3">
         <button
           type="button"
@@ -240,6 +255,20 @@ export function MobilePhaseStack({ journey, selectedSlug, onSelect, matchingSlug
       <p className="mt-2 text-center text-[11px] text-white/50">
         Swipe left or right to move between phases
       </p>
+      {/* Point B — the destination the phases lead to. */}
+      {journey.pointB.detail && (
+        <div
+          data-testid="mobile-point-b"
+          className="mt-3 rounded-xl bg-[color:var(--royal,#2f5df6)]/15 border border-[color:var(--royal,#2f5df6)]/30 px-3 py-2 text-white"
+        >
+          <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
+            Point B · {journey.pointB.label}
+          </div>
+          <p className="text-[13px] text-white/85 leading-snug mt-0.5 line-clamp-3">
+            {journey.pointB.detail}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

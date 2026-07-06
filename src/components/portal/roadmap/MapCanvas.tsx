@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { RoadmapJourney } from "@/lib/portal-roadmap-model";
+import { phaseDisplayTitle } from "@/lib/portal-roadmap-model";
 import { MilestoneNode } from "./MilestoneNode";
 import { MarkerClusterChip } from "./MarkerCluster";
 import { MapPin, Flag } from "lucide-react";
@@ -665,14 +666,8 @@ export function MapCanvas({
             const pct = Math.round(band.completionRatio * 100);
             const isCurrent = phase.key === currentPhaseKey;
             const isViewing = selectedPhaseKey === phase.key;
-            const displayLabel =
-              phase.label === "Now"
-                ? "Foundation"
-                : phase.label === "Next"
-                  ? "Core Platform Build"
-                  : phase.label === "Later"
-                    ? "Scale Systems"
-                    : phase.label;
+            // Real label from journey data — no demo-name remapping.
+            const displayLabel = phase.label;
             return (
               <button
                 type="button"
@@ -752,7 +747,7 @@ export function MapCanvas({
             </div>
             <div className="rounded-lg bg-slate-900/75 border border-white/20 backdrop-blur px-3 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
               <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/75">Point A</div>
-              <div className="font-display text-[15px] leading-tight">{journey.pointA.label || "Current State"}</div>
+              <div className="font-display text-[15px] leading-tight">{journey.pointA.label || "Current state"}</div>
               {journey.pointA.detail && (
                 <div className="text-[11px] text-white/80 max-w-[220px] line-clamp-2 break-words">
                   {journey.pointA.detail}
@@ -768,7 +763,7 @@ export function MapCanvas({
           >
             <div className="rounded-lg bg-slate-900/75 border border-white/20 backdrop-blur px-3 py-1.5 text-right shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
               <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/75">Point B</div>
-              <div className="font-display text-[15px] leading-tight">{journey.pointB.label || "Scaled Impact"}</div>
+              <div className="font-display text-[15px] leading-tight">{journey.pointB.label || "Destination"}</div>
               {journey.pointB.detail && (
                 <div className="text-[11px] text-white/80 max-w-[220px] line-clamp-2 break-words">
                   {journey.pointB.detail}
@@ -795,6 +790,7 @@ export function MapCanvas({
                     y={entry.cluster.ny * CANVAS_HEIGHT}
                     selectedSlug={selectedSlug}
                     onOpenMember={(slug) => onSelect(slug)}
+                    phaseTitle={phaseDisplayTitle(journey, entry.cluster.phase)}
                   />
                 </div>
               );

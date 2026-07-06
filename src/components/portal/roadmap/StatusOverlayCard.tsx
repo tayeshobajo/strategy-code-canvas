@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { RoadmapJourney } from "@/lib/portal-roadmap-model";
+import { phaseDisplayLabel } from "@/lib/portal-roadmap-model";
 import { MapPin, ChevronRight, CalendarClock, Flag, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { useRoadmapCanvas, STATUS_COLLAPSED_KEY } from "./canvas-context";
 
@@ -26,12 +27,6 @@ function fmtDate(d?: string | null) {
 function phaseIndex(journey: RoadmapJourney, key: string): number {
   const i = journey.phases.findIndex((p) => p.key === key);
   return i < 0 ? 1 : i + 1;
-}
-
-function phaseTitle(key: string): string {
-  if (key === "now") return "Foundation";
-  if (key === "next") return "Core Platform Build";
-  return "Scale Systems";
 }
 
 function loadCollapsed(): boolean {
@@ -68,7 +63,7 @@ export function StatusOverlayCard({
   const active = journey.activeMilestone;
   const currentPhaseKey = canvas.currentPhaseKey ?? journey.currentPhaseKey;
   const currentIdx = phaseIndex(journey, currentPhaseKey);
-  const currentLabel = `Phase ${currentIdx}: ${phaseTitle(currentPhaseKey)}`;
+  const currentLabel = `Phase ${currentIdx}: ${phaseDisplayLabel(journey, currentPhaseKey)}`;
 
   // Check for blocked milestones in the current phase
   const currentPhase = journey.phases.find((p) => p.key === currentPhaseKey);

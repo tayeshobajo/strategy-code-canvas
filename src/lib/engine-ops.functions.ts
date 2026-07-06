@@ -1028,7 +1028,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
     const project = proj as {
       id: string; name: string; client_preview: Record<string, unknown> | null;
       client_portal_project_id: string | null; client_id: string | null;
-      point_a: string | null; point_b: string | null;
+      point_a: unknown; point_b: unknown;
       investment_confirmed_at: string | null;
     };
     // Pillar 7: publishing to the client portal requires confirmed investment.
