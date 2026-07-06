@@ -90,12 +90,24 @@ function TaskBoardPage() {
           <h1 className="font-display text-3xl text-ink">Agent Task Board</h1>
           <p className="text-sm text-ink/60 mt-1">Tasks created or suggested by your AI agent. Review, approve, assign, and track execution.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="text-xs text-ink/60">Milestone for new tasks:</label>
+          <select
+            value={milestoneId}
+            onChange={(e) => setMilestoneId(e.target.value)}
+            className="text-xs border border-border rounded-md px-2 py-1.5 bg-card min-w-[220px]"
+          >
+            <option value="">— select milestone —</option>
+            {milestones.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
           <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" /> Generate New Tasks
           </button>
           <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50">Import Tasks</button>
         </div>
+
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
