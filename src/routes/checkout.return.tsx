@@ -183,77 +183,117 @@ function shortenSession(id: string) {
 function ActivationCTA({ sessionId, email }: { sessionId: string; email: string | null }) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [pollTick, setPollTick] = useState(0);
+  const [phase, setPhase] = useState<"idle" | "verifying" | "provisioning" | "ready" | "redirecting" | "timeout">("idle");
+  const [startedAt, setStartedAt] = useState<number | null>(null);
 
   const mutation = useMutation({
     mutationFn: async () => {
       const redirectTo = `${window.location.origin}/portal/home`;
       const res = await startPortalSignIn({
-        data: {
-          sessionId,
-          environment: getStripeEnvironment(),
-          redirectTo,
-        },
+        data: { sessionId, environment: getStripeEnvironment(), redirectTo },
       });
       return res;
     },
     onSuccess: (res) => {
       if ("error" in res) {
         setErrorMsg(res.error);
+        setPhase("idle");
         return;
       }
       if (res.status === "ready") {
         setErrorMsg(null);
+        setPhase("redirecting");
         window.location.replace(res.actionLink);
         return;
       }
       if (res.status === "provisioning") {
         setErrorMsg(null);
-        // Retry in a moment while the webhook finishes provisioning the portal.
+        setPhase("provisioning");
+        const elapsed = startedAt ? Date.now() - startedAt : 0;
+        if (elapsed > 20000) {
+          setPhase("timeout");
+          return;
+        }
         setTimeout(() => setPollTick((t) => t + 1), 2500);
         return;
       }
       if (res.status === "unpaid") {
         setErrorMsg("Payment is still settling. Please give it a moment and try again.");
+        setPhase("idle");
         return;
       }
       if (res.status === "no_email") {
         setErrorMsg("We couldn't find the billing email on this checkout. Email tai@trusttai.com and we'll finish setup by hand.");
+        setPhase("idle");
       }
     },
     onError: (e: unknown) => {
       setErrorMsg(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+      setPhase("idle");
     },
   });
 
-  // Auto-retry loop while we're in the "provisioning" holding pattern.
   useEffect(() => {
     if (pollTick === 0) return;
     mutation.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pollTick]);
 
-  const isProvisioning =
-    mutation.isPending ||
-    (mutation.data && "status" in mutation.data && mutation.data.status === "provisioning");
+  const handleClick = () => {
+    setErrorMsg(null);
+    setStartedAt(Date.now());
+    setPhase("verifying");
+    mutation.mutate();
+  };
+
+  const started = phase !== "idle";
+  const isBusy = phase === "verifying" || phase === "provisioning" || phase === "redirecting";
+
+  // Step definitions for the progress UI
+  const steps: Array<{ key: string; label: string; state: "done" | "active" | "pending" }> = [
+    {
+      key: "payment",
+      label: "Payment confirmed",
+      state: "done", // we only render ActivationCTA after Stripe reports paid
+    },
+    {
+      key: "workspace",
+      label: "Preparing your workspace",
+      state:
+        phase === "provisioning" || phase === "verifying"
+          ? "active"
+          : phase === "ready" || phase === "redirecting"
+          ? "done"
+          : started
+          ? "active"
+          : "pending",
+    },
+    {
+      key: "signin",
+      label: "Signing you in",
+      state:
+        phase === "redirecting" ? "done" : phase === "ready" ? "active" : "pending",
+    },
+  ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <Button
         type="button"
         size="lg"
-        onClick={() => mutation.mutate()}
-        disabled={mutation.isPending || (mutation.data && "status" in mutation.data && mutation.data.status === "ready")}
+        onClick={handleClick}
+        disabled={isBusy}
         className="rounded-full bg-ink px-6 text-white hover:bg-ink/90"
       >
-        {isProvisioning ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-            Preparing your portal…
-          </>
-        ) : mutation.data && "status" in mutation.data && mutation.data.status === "ready" ? (
+        {phase === "redirecting" ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
             Signing you in…
+          </>
+        ) : phase === "provisioning" || phase === "verifying" ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+            Preparing your portal…
           </>
         ) : (
           <>
@@ -263,12 +303,69 @@ function ActivationCTA({ sessionId, email }: { sessionId: string; email: string 
         )}
       </Button>
 
-      {errorMsg && (
+      {started && (
+        <ol className="space-y-2 rounded-xl border border-rule-soft bg-paper-soft/60 p-4">
+          {steps.map((s) => (
+            <li key={s.key} className="flex items-center gap-3 text-[13.5px]">
+              <StepIcon state={s.state} />
+              <span
+                className={
+                  s.state === "done"
+                    ? "text-ink"
+                    : s.state === "active"
+                    ? "text-ink"
+                    : "text-ink/45"
+                }
+              >
+                {s.label}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {phase === "timeout" && (
+        <div className="rounded-xl border border-rule-soft bg-paper-soft p-4 text-[13px] text-ink/75">
+          <div className="font-medium text-ink">This is taking longer than usual.</div>
+          <div className="mt-1 text-ink/65">
+            Don't worry — your payment is confirmed and we've emailed a secure sign-in link to{" "}
+            <span className="font-medium text-ink/85">{email ?? "your inbox"}</span>. Check your
+            email, or try again below. If it still doesn't work, reach{" "}
+            <a href="mailto:hello@trusttai.com" className="text-royal underline underline-offset-2">
+              hello@trusttai.com
+            </a>{" "}
+            and we'll finish setup by hand.
+          </div>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => {
+                setStartedAt(Date.now());
+                setPhase("verifying");
+                mutation.mutate();
+              }}
+            >
+              Try again
+            </Button>
+            <Link
+              to="/portal/login"
+              className="inline-flex items-center rounded-full border border-rule-soft px-4 py-1.5 text-[12.5px] text-ink hover:bg-paper-soft"
+            >
+              Sign in with email
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {errorMsg && phase !== "timeout" && (
         <div className="rounded-lg border border-rule-soft bg-paper-soft p-4 text-[13px] text-ink/75">
           <div>{errorMsg}</div>
           <div className="mt-2 text-[12.5px] text-ink/55">
-            You can also sign in with the magic link we're sending to{" "}
-            <span className="font-medium text-ink/80">{email ?? "your email"}</span>.{" "}
+            You can also sign in with the magic link we emailed to{" "}
+            <span className="font-medium text-ink/80">{email ?? "your inbox"}</span>.{" "}
             <Link to="/portal/login" className="text-royal underline underline-offset-2">
               Go to portal sign-in
             </Link>
@@ -277,6 +374,28 @@ function ActivationCTA({ sessionId, email }: { sessionId: string; email: string 
         </div>
       )}
     </div>
+  );
+}
+
+function StepIcon({ state }: { state: "done" | "active" | "pending" }) {
+  if (state === "done") {
+    return (
+      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-royal text-white">
+        <Check className="h-3 w-3" aria-hidden="true" />
+      </span>
+    );
+  }
+  if (state === "active") {
+    return (
+      <span className="flex h-5 w-5 items-center justify-center rounded-full border border-royal/40 bg-white">
+        <Loader2 className="h-3 w-3 animate-spin text-royal" aria-hidden="true" />
+      </span>
+    );
+  }
+  return (
+    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-rule-soft bg-white">
+      <span className="h-1.5 w-1.5 rounded-full bg-ink/25" />
+    </span>
   );
 }
 
