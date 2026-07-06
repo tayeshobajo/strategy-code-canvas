@@ -451,7 +451,14 @@ export const getPortalContext = createServerFn({ method: "GET" })
         .maybeSingle(),
       context.supabase
         .from("client_portal_roadmaps")
-        .select("*")
+        // Pillar 8: explicit safe-column projection — never select "*" for
+        // client-visible roadmap reads. Internal fields (metadata,
+        // approved_roadmap_version_id, published_by, engine linkage) MUST NOT
+        // reach the browser. Keys mirror CLIENT_SAFE_KEYS + row metadata the
+        // portal UI needs (id, title, status, timestamps).
+        .select(
+          "id, project_id, title, version_label, status, approved_at, published_at, acknowledged_at, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, supporting_notes, client_safe_canvas",
+        )
         .eq("project_id", project.id)
         .not("approved_at", "is", null)
         .order("approved_at", { ascending: false })

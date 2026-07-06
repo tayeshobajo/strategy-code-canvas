@@ -500,9 +500,8 @@ export function buildClientSafePayload(input: {
   };
 
   // Runtime allowlist guard — belt-and-suspenders against future refactors
-  // that accidentally spread internal fields onto the client payload. In
-  // dev/test this throws; in prod it logs so we don't take down publishing
-  // over a benign new key, but the log will surface in ops immediately.
+  // that accidentally spread internal fields onto the client payload.
+  // Pillar 8: STRIP unknown keys before returning (previously only logged).
   const extra = Object.keys(out).filter(
     (k) => !CLIENT_SAFE_KEYS.includes(k as (typeof CLIENT_SAFE_KEYS)[number]),
   );
@@ -511,8 +510,15 @@ export function buildClientSafePayload(input: {
     if (process.env.NODE_ENV !== "production") throw new Error(msg);
     // eslint-disable-next-line no-console
     console.error(msg);
+    for (const k of extra) delete (out as Record<string, unknown>)[k];
   }
-  return out;
+  // Also hard-project via the allowlist so any accidental prototype/hidden
+  // props never reach the wire.
+  const projected = {} as ClientSafeRoadmap;
+  for (const k of CLIENT_SAFE_KEYS) {
+    (projected as Record<string, unknown>)[k] = (out as Record<string, unknown>)[k];
+  }
+  return projected;
 }
 
 /**
