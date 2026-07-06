@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Kanban, List, Layers, User, Zap, Calendar as CalendarIcon, Search, PlusCircle } from "lucide-react";
 import { SectionCard, MetricCard, formatCents } from "@/components/engine/primitives";
-import { listTasks, createTask, updateTaskStatus } from "@/lib/engine-execution.functions";
+import { listTasks, createTask, updateTaskStatus, listMilestones } from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/agent/tasks")({
   component: TaskBoardPage,
@@ -42,13 +42,20 @@ function TaskBoardPage() {
   const listFn = useServerFn(listTasks);
   const createFn = useServerFn(createTask);
   const statusFn = useServerFn(updateTaskStatus);
+  const milestonesFn = useServerFn(listMilestones);
   const [view, setView] = useState("board");
   const [q, setQ] = useState("");
+  const [milestoneId, setMilestoneId] = useState<string>("");
 
   const query = useQuery({
     queryKey: ["engine", "tasks", projectId],
     queryFn: () => listFn({ data: { projectId } }),
   });
+  const milestonesQ = useQuery({
+    queryKey: ["engine", "milestones", projectId],
+    queryFn: () => milestonesFn({ data: { projectId } }),
+  });
+  const milestones: any[] = (milestonesQ.data as any)?.rows ?? [];
   const tasks: any[] = (query.data as any)?.rows ?? [];
   const filtered = tasks.filter((t) => !q || (t.name ?? "").toLowerCase().includes(q.toLowerCase()));
 
@@ -62,10 +69,14 @@ function TaskBoardPage() {
   const totalCost = filtered.reduce((s, t) => s + (t.estimated_cost_cents ?? 0), 0);
 
   const addTask = useMutation({
-    mutationFn: (status: string) =>
-      createFn({ data: { projectId, name: "New task", status, priority: "P2" } }),
+    mutationFn: (status: string) => {
+      if (!milestoneId) throw new Error("Pick a milestone above before adding a task.");
+      return createFn({ data: { projectId, name: "New task", status, priority: "P2", milestoneId } });
+    },
     onSuccess: () => { toast.success("Task added"); refresh(); },
+    onError: (e: any) => toast.error(e?.message ?? "Add task failed"),
   });
+
 
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => statusFn({ data: { id, status } }),
@@ -79,12 +90,24 @@ function TaskBoardPage() {
           <h1 className="font-display text-3xl text-ink">Agent Task Board</h1>
           <p className="text-sm text-ink/60 mt-1">Tasks created or suggested by your AI agent. Review, approve, assign, and track execution.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="text-xs text-ink/60">Milestone for new tasks:</label>
+          <select
+            value={milestoneId}
+            onChange={(e) => setMilestoneId(e.target.value)}
+            className="text-xs border border-border rounded-md px-2 py-1.5 bg-card min-w-[220px]"
+          >
+            <option value="">— select milestone —</option>
+            {milestones.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
           <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" /> Generate New Tasks
           </button>
           <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50">Import Tasks</button>
         </div>
+
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">

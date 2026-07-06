@@ -77,105 +77,18 @@ export const getMilestoneBrief = createServerFn({ method: "GET" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
-    // Try lookup; if not found, seed a Q-Bank Engine sample so the page always renders.
-    let { data: row } = await sb
+    // Strict lookup — do NOT seed demo data. Returning null lets the UI show
+    // an empty state; auto-inserting fake milestones pollutes real projects
+    // (Pillar 11: "Demo data seeds into production").
+    const { data: row } = await sb
       .from("engine_milestones")
       .select("*")
       .eq("id", data.milestoneId)
+      .eq("project_id", data.projectId)
       .maybeSingle();
-
-    if (!row) {
-      const { data: any1 } = await sb
-        .from("engine_milestones")
-        .select("*")
-        .eq("project_id", data.projectId)
-        .limit(1)
-        .maybeSingle();
-      if (any1) row = any1;
-    }
-
-    if (!row) {
-      const { data: created } = await sb
-        .from("engine_milestones")
-        .insert({
-          project_id: data.projectId,
-          name: "Q-Bank Engine",
-          phase: "Phase 1: Foundation",
-          status: "draft",
-          priority: "Critical",
-          deadline_relevance: "Blocks Oct 1 pre-test",
-          due_date: "2026-10-01",
-          related_system_node: "Q-Bank Engine",
-          related_gap: "No Q-Bank engine for practice",
-          related_hidden_asset: "Question Bank in Word Docs",
-          estimated_effort: "2-3 weeks",
-          estimated_cost_cents: 420,
-          approval_status: "draft",
-          confidence: 92,
-          brief_md: `**Purpose**: Create a question bank system that allows students to practice INBDE questions by category, review explanations, track performance, and prepare for mock exams.
-
-**Why It Matters**: The Q-Bank Engine is core to student performance and the Oct 1 pre-test. Without it, students cannot practice effectively or build confidence.
-
-**Business Outcome**: Improved student pass rates, higher engagement, and stronger program value.
-
-**Student Outcome**: Students can practice targeted questions, see explanations, and improve faster.
-
-**System Outcome**: Structured question data, performance tracking, and analytics for decision making.`,
-          acceptance_criteria: [
-            { text: "Admin can import questions from a structured CSV template", done: false },
-            { text: "Each question supports category, topic, difficulty, explanation, and correct answer", done: false },
-            { text: "Student can answer multiple choice questions", done: false },
-            { text: "Student can mark questions for review", done: false },
-            { text: "System tracks correct and incorrect answers", done: false },
-            { text: "Student can review explanations after answering", done: false },
-            { text: "Ryan can view question performance analytics", done: false },
-            { text: "Questions can be filtered by INBDE category", done: false },
-            { text: "Access is limited to active students only", done: false },
-            { text: "System supports future mock exam integration", done: false },
-          ],
-          developer_prompt: `Build the Q-Bank Engine for Mental Dental Academy.
-
-Purpose:
-Create a question bank system that allows students to practice INBDE questions by category, review explanations, track performance, and prepare for mock exams.
-
-Core Requirements:
-1. Admin can import questions via CSV template
-2. Question fields: category, topic, difficulty, explanation, correct answer, options
-3. Student interface for answering questions
-4. Answer tracking and performance analytics
-5. Review mode with explanations
-6. Filter questions by category and topic
-7. Access control for active students only`,
-          qa_checklist: [
-            { section: "Functional Checks", items: 14, note: "Features work as expected" },
-            { section: "Access & Permissions", items: 8, note: "Roles and access control" },
-            { section: "Data Integrity", items: 10, note: "Data accuracy and validation" },
-            { section: "Student Experience", items: 9, note: "Usability and flow testing" },
-            { section: "Admin Experience", items: 7, note: "Admin workflows and tools" },
-            { section: "Edge Cases", items: 8, note: "Boundary and error handling" },
-            { section: "Performance", items: 6, note: "Speed and load testing" },
-            { section: "Security", items: 7, note: "Security and privacy checks" },
-          ],
-          dependencies: [
-            { name: "Student Accounts System", status: "Completed" },
-            { name: "Content Management", status: "In Progress" },
-            { name: "Analytics Foundation", status: "Planned" },
-          ],
-          risks: [
-            { text: "Question import format not confirmed", severity: "Medium" },
-            { text: "Time constraint before Oct 1", severity: "High" },
-          ],
-          decisions: [
-            { text: "Confirm question import format", status: "Needed from Ryan" },
-          ],
-          client_safe_md: `The Q-Bank Engine is the practice center for your students. It will give them access to INBDE-style questions by category, show explanations, and track their performance so they know where to focus. This is a critical step before the Oct 1 pre-test so students can build confidence and improve faster.`,
-        })
-        .select("*")
-        .single();
-      row = created;
-    }
-    return { milestone: row };
+    return { milestone: row ?? null };
   });
+
 
 const PROTECTED_APPROVED_FIELDS = new Set([
   "brief_md",
@@ -383,7 +296,8 @@ export const createTask = createServerFn({ method: "POST" })
         name: z.string().min(1),
         priority: z.string().default("P2"),
         status: z.string().default("suggested"),
-        milestoneId: z.string().uuid().optional().nullable(),
+        // Pillar 11: tasks MUST belong to a milestone.
+        milestoneId: z.string().uuid(),
         estimated_effort_hours: z.number().optional(),
       })
       .parse(raw),
@@ -391,6 +305,17 @@ export const createTask = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
+
+    // Verify the milestone belongs to the same project (defense-in-depth in
+    // addition to the FK) so callers can't attach tasks to unrelated milestones.
+    const { data: ms } = await sb
+      .from("engine_milestones")
+      .select("id")
+      .eq("id", data.milestoneId)
+      .eq("project_id", data.projectId)
+      .maybeSingle();
+    if (!ms) throw new Error("Milestone not found in this project");
+
     const { data: row, error } = await sb
       .from("engine_tasks")
       .insert({
@@ -398,7 +323,7 @@ export const createTask = createServerFn({ method: "POST" })
         name: data.name,
         priority: data.priority,
         status: data.status,
-        milestone_id: data.milestoneId ?? null,
+        milestone_id: data.milestoneId,
         estimated_effort_hours: data.estimated_effort_hours ?? null,
         created_by: "human",
       })
@@ -407,6 +332,7 @@ export const createTask = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { task: row };
   });
+
 
 export const updateTaskStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
