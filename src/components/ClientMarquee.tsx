@@ -11,24 +11,26 @@ import creativeWorld from "@/assets/clients/Creative_World_School.webp.asset.jso
 import swell from "@/assets/clients/The_Swell_Collective.webp.asset.json";
 import teamsynerg from "@/assets/clients/TeamsynerG_Global_Consulting.webp.asset.json";
 
-type Logo = { name: string; src: string };
+type LogoWeight = "heavy" | "normal" | "light";
+type Logo = { name: string; src: string; weight?: LogoWeight };
 
 // Curated set. Every mark is a real relationship we can stand behind.
 // All logos render at the same optical weight in black and white so the
-// row reads as one confident wall of proof.
+// row reads as one confident wall of proof. `weight` tags per-logo tune
+// the opacity/contrast so naturally heavy marks don't overpower thin ones.
 const LOGOS: Logo[] = [
-  { name: "Aceyus, a Five9 company", src: aceyus.url },
+  { name: "Aceyus, a Five9 company", src: aceyus.url, weight: "light" },
   { name: "Agilysys Book4Time", src: book4time.url },
   { name: "Keep Financial", src: keep.url },
   { name: "PayStandards", src: payStandards.url },
   { name: "EMCI Wireless", src: emci.url },
-  { name: "Pitcher", src: pitcher.url },
-  { name: "Hellopaid", src: hellopaid.url },
+  { name: "Pitcher", src: pitcher.url, weight: "light" },
+  { name: "Hellopaid", src: hellopaid.url, weight: "light" },
   { name: "Real Leaders", src: realLeaders.url },
-  { name: "The Shark Group", src: sharkGroup.url },
-  { name: "Creative World School", src: creativeWorld.url },
-  { name: "The Swell Collective", src: swell.url },
-  { name: "TeamsynerG Global Consulting", src: teamsynerg.url },
+  { name: "The Shark Group", src: sharkGroup.url, weight: "heavy" },
+  { name: "Creative World School", src: creativeWorld.url, weight: "heavy" },
+  { name: "The Swell Collective", src: swell.url, weight: "heavy" },
+  { name: "TeamsynerG Global Consulting", src: teamsynerg.url, weight: "heavy" },
 ];
 
 export function ClientMarquee() {
@@ -74,6 +76,7 @@ export function ClientMarquee() {
                   loading="lazy"
                   decoding="async"
                   draggable={false}
+                  data-weight={logo.weight ?? "normal"}
                   className="tt-marquee__logo h-auto max-h-full w-auto max-w-full object-contain transition-opacity duration-300"
                 />
 
@@ -91,15 +94,36 @@ export function ClientMarquee() {
 
       <style>{`
         .tt-marquee__logo {
-          /* Force every mark to a single black ink so the row reads as one
-             weight, regardless of each logo's native palette. Backgrounds on
-             these assets are transparent, so the silhouette stays crisp. */
-          filter: grayscale(1) brightness(0);
+          /* Desaturate every mark to a single ink family so the row reads
+             as one weight, regardless of each logo's native palette. We
+             skip brightness(0) so already-heavy logos aren't further
+             painted-on, then tune per-logo weight below. */
+          filter: grayscale(1) contrast(0.95);
           opacity: 0.6;
+        }
+        .tt-marquee__logo[data-weight="heavy"] {
+          /* Naturally chunky wordmarks (Creative World, Swell, TeamsynerG,
+             Shark Group) — pull them back so they don't shout. */
+          opacity: 0.42;
+          filter: grayscale(1) contrast(0.9);
+        }
+        .tt-marquee__logo[data-weight="light"] {
+          /* Thin wordmarks (Aceyus, Pitcher, Hellopaid) — give them a
+             touch more presence so they hold their own in the row. */
+          opacity: 0.72;
+          filter: grayscale(1) contrast(1.05) brightness(0.9);
         }
         .tt-marquee:hover .tt-marquee__logo,
         .tt-marquee:focus-within .tt-marquee__logo {
-          opacity: 0.85;
+          opacity: 0.8;
+        }
+        .tt-marquee:hover .tt-marquee__logo[data-weight="heavy"],
+        .tt-marquee:focus-within .tt-marquee__logo[data-weight="heavy"] {
+          opacity: 0.6;
+        }
+        .tt-marquee:hover .tt-marquee__logo[data-weight="light"],
+        .tt-marquee:focus-within .tt-marquee__logo[data-weight="light"] {
+          opacity: 0.9;
         }
         .tt-marquee__cell {
           /* Uniform optical cell. Every logo gets the same room so the row
