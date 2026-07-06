@@ -477,9 +477,7 @@ function ResendLinkButton({ sessionId, email }: { sessionId: string; email: stri
     </div>
   );
 }
-    </div>
-  );
-}
+
 
 function StepIcon({ state }: { state: "done" | "active" | "pending" }) {
   if (state === "done") {
