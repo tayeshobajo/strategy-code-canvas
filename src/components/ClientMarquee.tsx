@@ -94,15 +94,36 @@ export function ClientMarquee() {
 
       <style>{`
         .tt-marquee__logo {
-          /* Force every mark to a single black ink so the row reads as one
-             weight, regardless of each logo's native palette. Backgrounds on
-             these assets are transparent, so the silhouette stays crisp. */
-          filter: grayscale(1) brightness(0);
+          /* Desaturate every mark to a single ink family so the row reads
+             as one weight, regardless of each logo's native palette. We
+             skip brightness(0) so already-heavy logos aren't further
+             painted-on, then tune per-logo weight below. */
+          filter: grayscale(1) contrast(0.95);
           opacity: 0.6;
+        }
+        .tt-marquee__logo[data-weight="heavy"] {
+          /* Naturally chunky wordmarks (Creative World, Swell, TeamsynerG,
+             Shark Group) — pull them back so they don't shout. */
+          opacity: 0.42;
+          filter: grayscale(1) contrast(0.9);
+        }
+        .tt-marquee__logo[data-weight="light"] {
+          /* Thin wordmarks (Aceyus, Pitcher, Hellopaid) — give them a
+             touch more presence so they hold their own in the row. */
+          opacity: 0.72;
+          filter: grayscale(1) contrast(1.05) brightness(0.9);
         }
         .tt-marquee:hover .tt-marquee__logo,
         .tt-marquee:focus-within .tt-marquee__logo {
-          opacity: 0.85;
+          opacity: 0.8;
+        }
+        .tt-marquee:hover .tt-marquee__logo[data-weight="heavy"],
+        .tt-marquee:focus-within .tt-marquee__logo[data-weight="heavy"] {
+          opacity: 0.6;
+        }
+        .tt-marquee:hover .tt-marquee__logo[data-weight="light"],
+        .tt-marquee:focus-within .tt-marquee__logo[data-weight="light"] {
+          opacity: 0.9;
         }
         .tt-marquee__cell {
           /* Uniform optical cell. Every logo gets the same room so the row
