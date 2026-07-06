@@ -58,3 +58,33 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       return { error: getStripeErrorMessage(error) };
     }
   });
+
+type SessionStatusResult =
+  | {
+      status: string | null;
+      paymentStatus: string | null;
+      customerEmail: string | null;
+    }
+  | { error: string };
+
+export const getCheckoutSessionStatus = createServerFn({ method: "POST" })
+  .inputValidator((data: { sessionId: string; environment: StripeEnv }) => {
+    if (!/^cs_(test|live)_[a-zA-Z0-9]+$/.test(data.sessionId)) {
+      throw new Error("Invalid sessionId");
+    }
+    return data;
+  })
+  .handler(async ({ data }): Promise<SessionStatusResult> => {
+    try {
+      const stripe = createStripeClient(data.environment);
+      const session = await stripe.checkout.sessions.retrieve(data.sessionId);
+      return {
+        status: session.status ?? null,
+        paymentStatus: session.payment_status ?? null,
+        customerEmail: session.customer_details?.email ?? null,
+      };
+    } catch (error) {
+      return { error: getStripeErrorMessage(error) };
+    }
+  });
+
