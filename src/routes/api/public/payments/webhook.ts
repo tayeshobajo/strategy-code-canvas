@@ -198,7 +198,17 @@ async function upsertPortalProject(opts: {
 async function sendWelcomeEmail(
   email: string,
   contactName?: string | null,
-  receipt?: { amount_total?: number | null; currency?: string | null; packageName?: string | null; sessionId?: string | null },
+  receipt?: {
+    amount_total?: number | null;
+    currency?: string | null;
+    packageName?: string | null;
+    sessionId?: string | null;
+    mode?: string | null;
+    paceTitle?: string | null;
+    paceCadence?: string | null;
+    paceMonthly?: string | null;
+    paceTimeline?: string | null;
+  },
 ) {
   const supabase = getSupabase() as any;
   const first = contactName?.split(" ")[0] ?? "there";
@@ -232,18 +242,54 @@ async function sendWelcomeEmail(
     console.warn("[webhook] generateLink threw", e);
   }
 
+  // Build a personalized order summary card so the receipt feels like a
+  // Trust Tai handoff rather than a generic confirmation.
+  const currencyUp = (receipt?.currency ?? "usd").toUpperCase();
   const amountStr =
     receipt?.amount_total != null
-      ? `$${(receipt.amount_total / 100).toFixed(2)} ${(receipt.currency ?? "usd").toUpperCase()}`
+      ? `$${(receipt.amount_total / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : null;
-  const packageLabel = receipt?.packageName ?? "Your Trust Tai engagement";
-  const receiptLine = amountStr
-    ? `Confirmed: ${packageLabel} — ${amountStr}. A Stripe receipt is on its way separately.`
-    : `Confirmed: ${packageLabel}. A Stripe receipt is on its way separately.`;
+  const isSubscription = receipt?.mode === "subscription" || !!receipt?.paceMonthly;
+  const packageLabel = receipt?.paceTitle
+    ? `The Walk — ${receipt.paceTitle}`
+    : receipt?.packageName ?? "Your Trust Tai engagement";
+  const packageTagline = receipt?.paceTitle
+    ? "Monthly build cadence · Trust Tai"
+    : receipt?.mode === "payment"
+      ? "One-time engagement · Trust Tai"
+      : "Trust Tai engagement";
 
-  const intro = `${first}, your payment is confirmed and your Trust Tai portal is opening. ${receiptLine} Use the button below to enter your portal — no passwords, this link expires in 60 minutes.`;
+  const summaryAmount = receipt?.paceMonthly
+    ? `${receipt.paceMonthly}/mo`
+    : amountStr
+      ? isSubscription ? `${amountStr} ${currencyUp}/mo` : `${amountStr} ${currencyUp}`
+      : undefined;
+  const summaryAmountNote = isSubscription
+    ? "Billed monthly · cancel anytime"
+    : "One-time payment";
 
-  const { renderPortalMagicLinkHtml, renderPortalMagicLinkText } = await import(
+  const rows: Array<{ label: string; value: string }> = [];
+  if (receipt?.paceTimeline) rows.push({ label: "Timeline", value: receipt.paceTimeline });
+  rows.push({ label: "Billing email", value: email });
+  if (receipt?.sessionId) {
+    const s = receipt.sessionId;
+    const short = s.length > 16 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s;
+    rows.push({ label: "Reference", value: short });
+  }
+
+  const orderSummary = {
+    packageName: packageLabel,
+    packageTagline,
+    amount: summaryAmount,
+    amountNote: summaryAmountNote,
+    rows,
+  };
+
+  const intro = receipt?.paceTitle
+    ? `${first}, your ${receipt.paceTitle} is confirmed and your Trust Tai portal is opening. Use the button below to sign in — no passwords, this link expires in 60 minutes. A Stripe receipt is on its way separately.`
+    : `${first}, your payment is confirmed and your Trust Tai portal is opening. Use the button below to sign in — no passwords, this link expires in 60 minutes. A Stripe receipt is on its way separately.`;
+
+  const { renderPortalMagicLinkHtml } = await import(
     "@/lib/email-templates/portal-magic-link-html"
   );
   const html = renderPortalMagicLinkHtml({
@@ -254,8 +300,25 @@ async function sendWelcomeEmail(
     preview: `${packageLabel} confirmed — sign in to your Trust Tai portal.`,
     ctaLabel: "Enter my portal",
     siteUrl,
+    orderSummary,
   });
-  const text = `${first}, you're in.\n\n${receiptLine}\n\nSign in to your portal:\n${actionLink}\n\nThe link expires in 60 minutes.\n\n— Tai\nTrust Tai · hello@trusttai.com`;
+
+  const textLines = [
+    `${first}, you're in.`,
+    "",
+    `Order: ${packageLabel}`,
+    summaryAmount ? `Amount: ${summaryAmount}${summaryAmountNote ? ` (${summaryAmountNote})` : ""}` : null,
+    receipt?.paceTimeline ? `Timeline: ${receipt.paceTimeline}` : null,
+    "",
+    "Sign in to your portal:",
+    actionLink,
+    "",
+    "The link expires in 60 minutes. A Stripe receipt is on its way separately.",
+    "",
+    "— Tai",
+    "Trust Tai · hello@trusttai.com",
+  ].filter(Boolean);
+  const text = textLines.join("\n");
 
   try {
     const { ensureUnsubscribeToken } = await import("@/lib/email/unsubscribe-token.server");
@@ -268,7 +331,9 @@ async function sendWelcomeEmail(
         to: email,
         from: "Trust Tai <hello@trusttai.com>",
         sender_domain: "notify.trusttai.com",
-        subject: "You're in — sign in to your Trust Tai portal",
+        subject: receipt?.paceTitle
+          ? `You're in — ${receipt.paceTitle} confirmed`
+          : "You're in — sign in to your Trust Tai portal",
         html,
         text,
         label: "portal-welcome",
