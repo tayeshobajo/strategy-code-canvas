@@ -450,6 +450,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   investment_signal: "Investment signals",
   client_language: "Client language",
   open_question: "Open questions",
+  business_model: "Business model",
+  current_system: "Current systems",
 };
 
 function ExtractedSignalsPanel({ projectId }: { projectId: string }) {
