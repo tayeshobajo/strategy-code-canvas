@@ -195,16 +195,68 @@ async function upsertPortalProject(opts: {
   return projectId;
 }
 
-async function sendWelcomeEmail(email: string, contactName?: string | null) {
+async function sendWelcomeEmail(
+  email: string,
+  contactName?: string | null,
+  receipt?: { amount_total?: number | null; currency?: string | null; packageName?: string | null; sessionId?: string | null },
+) {
   const supabase = getSupabase() as any;
   const first = contactName?.split(" ")[0] ?? "there";
-  const html = `<div style="font-family:Georgia,serif;color:#111827;line-height:1.6;">
-    <p>${first}, welcome.</p>
-    <p>Your Trust Tai engagement is confirmed. Your private client portal is ready.</p>
-    <p>Sign in with your email at <a href="https://trusttai.com/portal/login">trusttai.com/portal/login</a>. We'll email you a secure sign-in link — no passwords.</p>
-    <p>Within one business day, you get one reply. From a person, by name. Not a sequence.</p>
-    <p>— Tai</p>
-  </div>`;
+  const { getPublicSiteUrl } = await import("@/lib/site-url");
+  const siteUrl = getPublicSiteUrl();
+
+  // Ensure an auth user exists, then mint a magic sign-in link so the client
+  // can enter the portal directly from this email even if they closed the tab
+  // after paying.
+  let actionLink = `${siteUrl}/portal/login`;
+  try {
+    const create = await supabase.auth.admin.createUser({ email, email_confirm: true });
+    if (create?.error && !/already been registered|already registered|exists/i.test(create.error.message ?? "")) {
+      console.warn("[webhook] createUser warning", create.error.message);
+    }
+  } catch (e) {
+    console.warn("[webhook] createUser threw", e);
+  }
+  try {
+    const { data: link, error: linkErr } = await supabase.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo: `${siteUrl}/portal/home` },
+    });
+    if (linkErr) {
+      console.warn("[webhook] generateLink failed", linkErr.message);
+    } else if (link?.properties?.action_link) {
+      actionLink = link.properties.action_link as string;
+    }
+  } catch (e) {
+    console.warn("[webhook] generateLink threw", e);
+  }
+
+  const amountStr =
+    receipt?.amount_total != null
+      ? `$${(receipt.amount_total / 100).toFixed(2)} ${(receipt.currency ?? "usd").toUpperCase()}`
+      : null;
+  const packageLabel = receipt?.packageName ?? "Your Trust Tai engagement";
+  const receiptLine = amountStr
+    ? `Confirmed: ${packageLabel} — ${amountStr}. A Stripe receipt is on its way separately.`
+    : `Confirmed: ${packageLabel}. A Stripe receipt is on its way separately.`;
+
+  const intro = `${first}, your payment is confirmed and your Trust Tai portal is opening. ${receiptLine} Use the button below to enter your portal — no passwords, this link expires in 60 minutes.`;
+
+  const { renderPortalMagicLinkHtml, renderPortalMagicLinkText } = await import(
+    "@/lib/email-templates/portal-magic-link-html"
+  );
+  const html = renderPortalMagicLinkHtml({
+    actionLink,
+    eyebrow: "Your Walk begins",
+    heading: `${first}, you're in.`,
+    intro,
+    preview: `${packageLabel} confirmed — sign in to your Trust Tai portal.`,
+    ctaLabel: "Enter my portal",
+    siteUrl,
+  });
+  const text = `${first}, you're in.\n\n${receiptLine}\n\nSign in to your portal:\n${actionLink}\n\nThe link expires in 60 minutes.\n\n— Tai\nTrust Tai · hello@trusttai.com`;
+
   try {
     const { ensureUnsubscribeToken } = await import("@/lib/email/unsubscribe-token.server");
     const unsubscribeToken = await ensureUnsubscribeToken(email);
@@ -216,12 +268,12 @@ async function sendWelcomeEmail(email: string, contactName?: string | null) {
         to: email,
         from: "Trust Tai <hello@trusttai.com>",
         sender_domain: "notify.trusttai.com",
-        subject: "Welcome to your Trust Tai portal",
+        subject: "You're in — sign in to your Trust Tai portal",
         html,
-        text: `${first}, welcome.\n\nYour Trust Tai engagement is confirmed. Sign in at https://trusttai.com/portal/login.\n\n— Tai`,
+        text,
         label: "portal-welcome",
         purpose: "transactional",
-        idempotency_key: `portal-welcome-${email}`,
+        idempotency_key: `portal-welcome-${receipt?.sessionId ?? email}`,
         unsubscribe_token: unsubscribeToken,
       },
     });
@@ -309,7 +361,12 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     currency: session.currency ?? "usd",
   });
 
-  await sendWelcomeEmail(email, session.customer_details?.name ?? null);
+  await sendWelcomeEmail(email, session.customer_details?.name ?? null, {
+    amount_total: session.amount_total ?? null,
+    currency: session.currency ?? null,
+    packageName,
+    sessionId: session.id,
+  });
 
   const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
   await notifyInternal(
