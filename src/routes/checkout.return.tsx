@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { getCheckoutSessionStatus } from "@/utils/payments.functions";
-import { startPortalSignIn } from "@/lib/portal-activation.functions";
-import { resendPortalMagicLink } from "@/lib/portal-activation.functions";
+import { startPortalSignIn, resendPortalMagicLink } from "@/lib/portal-activation.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import {
   ArrowRight,
