@@ -180,7 +180,7 @@ export type PriorMemoryEntry = {
   title: string;
   type: string;
   summary?: string | null;
-  confidence?: number;
+  confidence?: number | null;
   source?: string | null;
   captured_at?: string | null;
 };
