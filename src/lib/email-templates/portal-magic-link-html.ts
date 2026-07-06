@@ -30,6 +30,19 @@ function escapeHtml(input: string): string {
 
 import { getPublicSiteUrl } from "@/lib/site-url";
 
+export interface OrderSummary {
+  /** Optional headline shown above the summary rows (e.g. "Balanced Pace"). */
+  packageName?: string;
+  /** Sub-headline (e.g. "The Walk · monthly build cadence"). */
+  packageTagline?: string;
+  /** Right-aligned amount (e.g. "$4,500 / month" or "$10,000 one-time"). */
+  amount?: string;
+  /** Sub-amount label (e.g. "Billed monthly · cancel anytime"). */
+  amountNote?: string;
+  /** Additional key/value rows (Timeline, Reference, etc.). */
+  rows?: Array<{ label: string; value: string }>;
+}
+
 export interface PortalMagicLinkOptions {
   actionLink: string;
   /** Copy shown under the H1. */
@@ -44,6 +57,8 @@ export interface PortalMagicLinkOptions {
   ctaLabel?: string;
   /** Override site URL (defaults to getPublicSiteUrl()). */
   siteUrl?: string;
+  /** Optional order summary card (renders above the CTA). */
+  orderSummary?: OrderSummary;
 }
 
 export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string {
