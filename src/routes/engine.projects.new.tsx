@@ -69,6 +69,7 @@ function NewProjectPage() {
     mutationFn: async () => {
       const payload: {
         projectName: string;
+        submissionId?: string;
         engagementType?: string;
         roadmapType?: string;
         primaryGoal?: string;
@@ -78,6 +79,9 @@ function NewProjectPage() {
         source: { type: string; name: string; raw_text?: string; url?: string };
       } = {
         projectName: projectName.trim(),
+        // Pillar 1 — intake bridge: carry the submission id into project
+        // creation so the durable submission → project linkage is written.
+        submissionId: search.submissionId,
         engagementType: engagementType.trim() || undefined,
         roadmapType: roadmapType.trim() || undefined,
         primaryGoal: primaryGoal.trim() || undefined,

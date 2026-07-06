@@ -31,6 +31,10 @@ const DELIVERY_MODES = ["internal_only", "client_portal_required"] as const;
 type DeliveryMode = (typeof DELIVERY_MODES)[number];
 
 const CreateInput = z.object({
+  // Pillar 1 — intake bridge. When the project originates from a public
+  // intake submission, its id flows through so a durable submission →
+  // project linkage is written (signal_room + intake review_audit_log).
+  submissionId: z.string().uuid().optional(),
   clientId: z.string().uuid().optional(),
   newClient: z
     .object({
@@ -137,6 +141,8 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
           roadmap_type: data.roadmapType ?? null,
           primary_goal: data.primaryGoal ?? null,
           critical_date: data.criticalDate ?? null,
+          // Durable submission → project linkage lives on the project row.
+          intake_submission_id: data.submissionId ?? null,
         },
       })
       .select("id")
@@ -300,6 +306,44 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         body: integrityErrors.join(" | "),
         severity: "warning",
       });
+    }
+
+    // Pillar 1 — durable intake bridge. Runs only after the integrity gate
+    // passes so a rolled-back project never leaves a bridge record. Writes:
+    //  1. engine_activity (engine side, visible in the project feed);
+    //  2. review_audit_log `bridged_to_engine` in the intake DB — the action
+    //     the "Previously bridged" check on /ops/submissions/$id reads, which
+    //     makes double-creation from one submission detectable.
+    // Both are non-fatal: the project exists either way, and the linkage on
+    // signal_room.intake_submission_id is already committed above.
+    if (data.submissionId) {
+      try {
+        await sb.from("engine_activity").insert({
+          project_id: projectId,
+          kind: "intake_bridge",
+          title: "Project created from intake submission",
+          body: `Intake submission ${data.submissionId}`,
+          severity: "info",
+        });
+      } catch {
+        /* activity feed is best-effort */
+      }
+      try {
+        const { getIntakeClient } = await import("@/integrations/intake/client.server");
+        const { error: bridgeErr } = await getIntakeClient()
+          .from("review_audit_log")
+          .insert({
+            submission_id: data.submissionId,
+            actor_email: actor,
+            action: "bridged_to_engine",
+            metadata: { engine_project_id: projectId, project_name: data.projectName },
+          });
+        if (bridgeErr) {
+          console.warn("[intake-bridge] review_audit_log write failed", bridgeErr);
+        }
+      } catch (e) {
+        console.warn("[intake-bridge] review_audit_log write failed", e);
+      }
     }
 
 

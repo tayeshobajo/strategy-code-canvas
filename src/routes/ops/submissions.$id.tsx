@@ -353,6 +353,24 @@ function SubmissionPage() {
             {bridgedAudit ? (
               <div className="mt-2 text-[11px] text-[#7d8095]">
                 Previously bridged {formatStamp(bridgedAudit.created_at)}
+                {(() => {
+                  const meta = bridgedAudit.metadata as {
+                    engine_project_id?: string;
+                    project_name?: string;
+                  } | null;
+                  return meta?.engine_project_id ? (
+                    <>
+                      {" · "}
+                      <Link
+                        to="/engine/projects/$projectId/overview"
+                        params={{ projectId: meta.engine_project_id }}
+                        className="text-[#3a4fcf] hover:underline"
+                      >
+                        {meta.project_name ?? "View engine project"}
+                      </Link>
+                    </>
+                  ) : null;
+                })()}
               </div>
             ) : null}
           </Card>
