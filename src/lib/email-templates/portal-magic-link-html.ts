@@ -142,7 +142,9 @@ export function renderPortalMagicLinkHtml(opts: PortalMagicLinkOptions): string 
                 <p style="font-family:${brand.sans};font-size:15px;line-height:1.65;color:${brand.inkSoft};margin:0 0 22px;">
                   ${escapeHtml(intro)}
                 </p>
+                ${orderSummaryHtml}
                 <p class="cta-wrap" style="margin:8px 0 22px;">
+
                   <a class="btn" href="${safeLink}"
                     style="display:inline-block;background:${brand.ink};color:${brand.white};font-family:${brand.sans};font-size:14px;font-weight:600;letter-spacing:0.02em;border-radius:999px;padding:14px 28px;text-decoration:none;">
                     ${escapeHtml(ctaLabel)}
