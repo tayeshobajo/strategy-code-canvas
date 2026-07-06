@@ -340,46 +340,47 @@ function MapSection() {
 // ---------- Pace ----------
 type Walk = {
   name: string;
+  slug: "accelerated" | "balanced" | "steady";
   subtitle: string;
   Icon: typeof Footprints;
   months: number;
   price: string;
-  total: string;
   team: string;
   timing: string;
 };
 const walks: Walk[] = [
   {
     name: "Accelerated Pace",
+    slug: "accelerated",
     subtitle: "Point B in one year. The heaviest team on the build, the earliest arrival.",
     Icon: Footprints,
     months: 12,
     price: "$7,500",
-    total: "$90,000",
     team: "Full build team allocated each month",
     timing: "Systems land fastest, earliest compounding",
   },
   {
     name: "Balanced Pace",
+    slug: "balanced",
     subtitle: "Point B in eighteen months.",
     Icon: PersonStanding,
     months: 18,
     price: "$4,500",
-    total: "$81,000",
     team: "Core build team at a measured cadence",
     timing: "Systems land in a steady, predictable rhythm",
   },
   {
     name: "Steady Pace",
+    slug: "steady",
     subtitle: "Point B in two years. The walk most founders fund from operations.",
     Icon: Snail,
     months: 24,
     price: "$2,500",
-    total: "$60,000",
     team: "Focused, sustained allocation each month",
     timing: "Systems land in phases the business can absorb",
   },
 ];
+
 
 function WalkRow({ walk }: { walk: Walk }) {
   const dots = 7;
