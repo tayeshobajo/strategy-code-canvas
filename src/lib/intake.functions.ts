@@ -71,7 +71,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SaveDraftInput = z.object({
   resume_token: z.string().regex(UUID_RE).optional(),
   answers: z.array(AnswerSchema).max(20).default([]),
-  contact: ContactSchema.default({ name: "", business: "", website: "", email: "" }),
+  contact: ContactSchema.default(() => ({ name: "", business: "", website: "", email: "", role: "", timeline: "", decision_makers: "", reply_preference: "" })),
 });
 
 export const saveDraft = createServerFn({ method: "POST" })

@@ -14,6 +14,7 @@ import { Route as WalksRouteImport } from './routes/walks'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PortalRouteImport } from './routes/portal'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as EngineRouteImport } from './routes/engine'
@@ -63,6 +64,8 @@ import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-ale
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
 import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as EngineProjectsIndexRouteImport } from './routes/engine.projects.index'
 import { Route as OpsSubmissionsIdRouteImport } from './routes/ops/submissions.$id'
 import { Route as OpsEditorIdRouteImport } from './routes/ops/editor.$id'
@@ -70,6 +73,8 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as EngineProjectsNewRouteImport } from './routes/engine.projects.new'
 import { Route as EngineProjectsProjectIdRouteImport } from './routes/engine.projects.$projectId'
 import { Route as CheckoutWalkPaceRouteImport } from './routes/checkout.walk.$pace'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -123,6 +128,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InvestmentRoute = InvestmentRouteImport.update({
@@ -369,6 +379,18 @@ const AuthenticatedPortalRoute = AuthenticatedPortalRouteImport.update({
   path: '/portal',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const EngineProjectsIndexRoute = EngineProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
@@ -402,6 +424,17 @@ const EngineProjectsProjectIdRoute = EngineProjectsProjectIdRouteImport.update({
 const CheckoutWalkPaceRoute = CheckoutWalkPaceRouteImport.update({
   id: '/checkout/walk/$pace',
   path: '/checkout/walk/$pace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Char91DotmcpChar93InvokeToolToolRoute =
+  Char91DotmcpChar93InvokeToolToolRouteImport.update({
+    id: '/.mcp/invoke-tool/$tool',
+    path: '/.mcp/invoke-tool/$tool',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LovableEmailTransactionalSendRoute =
@@ -587,11 +620,14 @@ export interface FileRoutesByFullPath {
   '/engine': typeof EngineRouteWithChildren
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
+  '/mcp': typeof McpRoute
   '/portal': typeof AuthenticatedPortalRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
@@ -630,6 +666,8 @@ export interface FileRoutesByFullPath {
   '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/engine/projects/new': typeof EngineProjectsNewRoute
@@ -674,10 +712,13 @@ export interface FileRoutesByTo {
   '/build-my-roadmap': typeof BuildMyRoadmapRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
+  '/mcp': typeof McpRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/portal': typeof PortalIndexRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
@@ -716,6 +757,8 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/engine': typeof EngineIndexRoute
   '/ops': typeof OpsIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/engine/projects/new': typeof EngineProjectsNewRoute
@@ -765,11 +808,14 @@ export interface FileRoutesById {
   '/engine': typeof EngineRouteWithChildren
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
+  '/mcp': typeof McpRoute
   '/portal': typeof PortalRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
@@ -809,6 +855,8 @@ export interface FileRoutesById {
   '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/engine/projects/new': typeof EngineProjectsNewRoute
@@ -858,11 +906,14 @@ export interface FileRouteTypes {
     | '/engine'
     | '/insights'
     | '/investment'
+    | '/mcp'
     | '/portal'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/admin/client-portals'
     | '/admin/config'
     | '/admin/intake-alerts'
@@ -901,6 +952,8 @@ export interface FileRouteTypes {
     | '/engine/'
     | '/ops/'
     | '/portal/'
+    | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/checkout/walk/$pace'
     | '/engine/projects/$projectId'
     | '/engine/projects/new'
@@ -945,10 +998,13 @@ export interface FileRouteTypes {
     | '/build-my-roadmap'
     | '/insights'
     | '/investment'
+    | '/mcp'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/portal'
     | '/admin/client-portals'
     | '/admin/config'
@@ -987,6 +1043,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/engine'
     | '/ops'
+    | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/checkout/walk/$pace'
     | '/engine/projects/$projectId'
     | '/engine/projects/new'
@@ -1035,11 +1093,14 @@ export interface FileRouteTypes {
     | '/engine'
     | '/insights'
     | '/investment'
+    | '/mcp'
     | '/portal'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/portal'
     | '/admin/client-portals'
     | '/admin/config'
@@ -1079,6 +1140,8 @@ export interface FileRouteTypes {
     | '/engine/'
     | '/ops/'
     | '/portal/'
+    | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/checkout/walk/$pace'
     | '/engine/projects/$projectId'
     | '/engine/projects/new'
@@ -1128,16 +1191,21 @@ export interface RootRouteChildren {
   EngineRoute: typeof EngineRouteWithChildren
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
+  McpRoute: typeof McpRoute
   PortalRoute: typeof PortalRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   WalksRoute: typeof WalksRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
+  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
   WalksSlugRoute: typeof WalksSlugRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
+  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -1184,6 +1252,13 @@ declare module '@tanstack/react-router' {
       path: '/portal'
       fullPath: '/portal'
       preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/investment': {
@@ -1529,6 +1604,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPortalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/list-tools': {
+      id: '/.mcp/list-tools'
+      path: '/.mcp/list-tools'
+      fullPath: '/.mcp/list-tools'
+      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/engine/projects/': {
       id: '/engine/projects/'
       path: '/projects'
@@ -1576,6 +1665,20 @@ declare module '@tanstack/react-router' {
       path: '/checkout/walk/$pace'
       fullPath: '/checkout/walk/$pace'
       preLoaderRoute: typeof CheckoutWalkPaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/transactional/send': {
@@ -2001,16 +2104,22 @@ const rootRouteChildren: RootRouteChildren = {
   EngineRoute: EngineRouteWithChildren,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
+  McpRoute: McpRoute,
   PortalRoute: PortalRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   WalksRoute: WalksRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
+  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutRoadmapRoute: CheckoutRoadmapRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   InsightsSlugRoute: InsightsSlugRoute,
   WalksSlugRoute: WalksSlugRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
+  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   CheckoutWalkPaceRoute: CheckoutWalkPaceRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksBuildRoadmapContactRoute:
@@ -2025,3 +2134,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
