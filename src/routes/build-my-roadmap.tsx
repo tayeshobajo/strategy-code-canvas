@@ -632,7 +632,11 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       try {
         const mod = await import("@/lib/intake.functions");
         const res = await mod.reflectAnswer({
-          data: { question: `${q.before}${q.accent}${q.after}`, answer: trimmed },
+          data: {
+            resume_token: resumeToken ?? "",
+            question: `${q.before}${q.accent}${q.after}`,
+            answer: trimmed,
+          },
           signal: ctrl.signal,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
