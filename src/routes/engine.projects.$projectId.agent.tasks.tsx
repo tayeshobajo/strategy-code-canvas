@@ -42,13 +42,20 @@ function TaskBoardPage() {
   const listFn = useServerFn(listTasks);
   const createFn = useServerFn(createTask);
   const statusFn = useServerFn(updateTaskStatus);
+  const milestonesFn = useServerFn(listMilestones);
   const [view, setView] = useState("board");
   const [q, setQ] = useState("");
+  const [milestoneId, setMilestoneId] = useState<string>("");
 
   const query = useQuery({
     queryKey: ["engine", "tasks", projectId],
     queryFn: () => listFn({ data: { projectId } }),
   });
+  const milestonesQ = useQuery({
+    queryKey: ["engine", "milestones", projectId],
+    queryFn: () => milestonesFn({ data: { projectId } }),
+  });
+  const milestones: any[] = (milestonesQ.data as any)?.rows ?? [];
   const tasks: any[] = (query.data as any)?.rows ?? [];
   const filtered = tasks.filter((t) => !q || (t.name ?? "").toLowerCase().includes(q.toLowerCase()));
 
@@ -62,10 +69,14 @@ function TaskBoardPage() {
   const totalCost = filtered.reduce((s, t) => s + (t.estimated_cost_cents ?? 0), 0);
 
   const addTask = useMutation({
-    mutationFn: (status: string) =>
-      createFn({ data: { projectId, name: "New task", status, priority: "P2" } }),
+    mutationFn: (status: string) => {
+      if (!milestoneId) throw new Error("Pick a milestone above before adding a task.");
+      return createFn({ data: { projectId, name: "New task", status, priority: "P2", milestoneId } });
+    },
     onSuccess: () => { toast.success("Task added"); refresh(); },
+    onError: (e: any) => toast.error(e?.message ?? "Add task failed"),
   });
+
 
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => statusFn({ data: { id, status } }),
