@@ -76,6 +76,7 @@ export function ClientMarquee() {
                   loading="lazy"
                   decoding="async"
                   draggable={false}
+                  data-weight={logo.weight ?? "normal"}
                   className="tt-marquee__logo h-auto max-h-full w-auto max-w-full object-contain transition-opacity duration-300"
                 />
 
