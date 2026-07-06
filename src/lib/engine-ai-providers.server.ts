@@ -176,6 +176,15 @@ async function callClaudeJson(system: string, user: string): Promise<{ text: str
   return { text, cost_cents };
 }
 
+export type PriorMemoryEntry = {
+  title: string;
+  type: string;
+  summary?: string | null;
+  confidence?: number;
+  source?: string | null;
+  captured_at?: string | null;
+};
+
 export async function runStructuredPass(args: {
   projectName: string;
   clientCompany?: string | null;
@@ -184,8 +193,9 @@ export async function runStructuredPass(args: {
   currentModules: Record<string, unknown>;
   intake: IntakeResult[];
   sources: Array<{ id: string; name: string; type: string; url?: string | null }>;
+  priorMemory?: PriorMemoryEntry[];
 }): Promise<StructuredResult> {
-  const system = `You are the Trust Tai Roadmap Intelligence Engine. Read the provided source intake data and produce a strictly-valid JSON roadmap draft with structured signals. Never invent facts — when unknown, say "unknown". Confidence is 0-100. Keep language sentence-case, no em-dashes, no exclamation points. Every signal must be traceable to something the sources actually stated.`;
+  const system = `You are the Trust Tai Roadmap Intelligence Engine. Read the provided source intake data and produce a strictly-valid JSON roadmap draft with structured signals. Never invent facts — when unknown, say "unknown". Confidence is 0-100. Keep language sentence-case, no em-dashes, no exclamation points. Every signal must be traceable to something the sources actually stated. Prior Intelligence Memory entries represent durable, previously-captured facts about this project — treat them as authoritative unless the new sources contradict them, and prefer reusing their exact wording when producing new signals.`;
 
   const intakeBlock = args.intake
     .map(
@@ -198,9 +208,22 @@ ${r.cleaned_text.slice(0, 8_000)}`,
     )
     .join("\n\n---\n\n");
 
+  const memoryBlock = (args.priorMemory ?? []).length
+    ? (args.priorMemory ?? [])
+        .slice(0, 60)
+        .map(
+          (m) =>
+            `- [${m.type}${typeof m.confidence === "number" ? ` · ${m.confidence}` : ""}] ${m.title}${m.summary ? ` — ${m.summary}` : ""}${m.source ? ` (source: ${m.source})` : ""}`,
+        )
+        .join("\n")
+    : "(no prior memory captured yet)";
+
   const user = `PROJECT: ${args.projectName} (${args.clientCompany ?? "—"})
 CURRENT APPROVED VERSION: ${args.currentApprovedVersion ?? "none"}
 CURRENT DRAFT: ${args.currentDraftVersion ?? "none"}
+
+PRIOR INTELLIGENCE MEMORY (durable facts already captured for this project):
+${memoryBlock}
 
 CURRENT MODULES (JSON, may be empty):
 ${JSON.stringify(args.currentModules, null, 2).slice(0, 8_000)}
