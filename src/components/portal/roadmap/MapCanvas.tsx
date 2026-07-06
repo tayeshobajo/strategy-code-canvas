@@ -752,8 +752,12 @@ export function MapCanvas({
             </div>
             <div className="rounded-lg bg-slate-900/75 border border-white/20 backdrop-blur px-3 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
               <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/75">Point A</div>
-              <div className="font-display text-[15px] leading-tight">Current State</div>
-              <div className="text-[11px] text-white/80">Operating today</div>
+              <div className="font-display text-[15px] leading-tight">{journey.pointA.label || "Current State"}</div>
+              {journey.pointA.detail && (
+                <div className="text-[11px] text-white/80 max-w-[220px] line-clamp-2 break-words">
+                  {journey.pointA.detail}
+                </div>
+              )}
             </div>
           </div>
 
@@ -766,8 +770,8 @@ export function MapCanvas({
               <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/75">Point B</div>
               <div className="font-display text-[15px] leading-tight">{journey.pointB.label || "Scaled Impact"}</div>
               {journey.pointB.detail && (
-                <div className="text-[11px] text-white/80 max-w-[180px]">
-                  {journey.pointB.detail.length > 60 ? journey.pointB.detail.slice(0, 60) + "…" : journey.pointB.detail}
+                <div className="text-[11px] text-white/80 max-w-[220px] line-clamp-2 break-words">
+                  {journey.pointB.detail}
                 </div>
               )}
             </div>
@@ -775,6 +779,7 @@ export function MapCanvas({
               <Flag className="w-4 h-4" />
             </div>
           </div>
+
 
           {/* Markers + clusters */}
           {rendered.map((entry, i) => {
