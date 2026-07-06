@@ -241,7 +241,18 @@ function CheckoutWalk() {
               </header>
 
               <div className="px-2 py-4 sm:px-4">
-                <StripeEmbeddedCheckout priceId={config.priceId} returnUrl={returnUrl} />
+                <StripeEmbeddedCheckout
+                  priceId={config.priceId}
+                  returnUrl={returnUrl}
+                  metadata={{
+                    package_name: `The Walk — ${config.title}`,
+                    pace,
+                    pace_title: config.title,
+                    pace_monthly: config.monthly,
+                    pace_cadence: config.cadence,
+                    pace_timeline: config.timeline,
+                  }}
+                />
               </div>
 
               <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-rule-soft bg-paper-soft px-6 py-4 text-[11.5px] text-ink/55 sm:px-8">
