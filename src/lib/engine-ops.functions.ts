@@ -125,9 +125,25 @@ export const transitionDelivery = createServerFn({ method: "POST" })
     const cur = curr as { status: string; project_id: string | null; client: string; roadmap: string } | null;
     const from = cur?.status ?? null;
 
-    // Gate: transitioning to "sent" or "execution" requires the linked project
-    // to have an approved snapshot. Prevents shipping unapproved roadmaps.
-    if ((data.to === "sent" || data.to === "execution") && cur?.project_id) {
+    // Gate: transitioning to "sent" or "execution" ships/executes a roadmap —
+    // a sacred action. Requires (1) admin role, (2) a linked project, and
+    // (3) an approved snapshot on that project. Previously assertOps was the
+    // only gate, and the approval check was skipped entirely for unlinked
+    // items — an operator could move any unlinked delivery to execution.
+    if (data.to === "sent" || data.to === "execution") {
+      const isAdmin = await hasRoleForEmail(
+        context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
+        (context.claims?.email as string | undefined) ?? undefined,
+        "admin",
+      );
+      if (!isAdmin) {
+        throw new Error(`Forbidden: only Tai (admin) can move a delivery to "${data.to}".`);
+      }
+      if (!cur?.project_id) {
+        throw new Error(
+          `Cannot move to "${data.to}": delivery item has no linked project to verify an approved roadmap against.`,
+        );
+      }
       const { data: proj } = await sb
         .from("engine_projects")
         .select("approved_snapshot")
