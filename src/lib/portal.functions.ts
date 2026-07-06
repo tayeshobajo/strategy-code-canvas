@@ -1893,11 +1893,30 @@ export const submitPortalOnboarding = createServerFn({ method: "POST" })
               actorEmail: email,
             });
           } catch (e) {
-            console.warn(
-              "[submitPortalOnboarding] intelligence pipeline failed",
-              (e as Error)?.message ?? e,
-            );
+            const msg = (e as Error)?.message ?? String(e);
+            if (msg.startsWith("pipeline_blocked:")) {
+              // Operator has explicitly blocked auto-extraction on this
+              // project — surface a distinct activity entry so ops see the
+              // client submitted intake without silently ignoring the guard.
+              try {
+                await supabaseAdmin.from("engine_activity").insert({
+                  project_id: engineProj.id,
+                  kind: "client_submitted_intake_but_pipeline_blocked",
+                  title: "Client submitted intake — auto-extraction blocked",
+                  body: "Agent permissions block run_intelligence_pipeline on this project. Review the intake source manually.",
+                  severity: "warn",
+                });
+              } catch (logErr) {
+                console.warn("[submitPortalOnboarding] activity insert failed", logErr);
+              }
+            } else {
+              console.warn(
+                "[submitPortalOnboarding] intelligence pipeline failed",
+                msg,
+              );
+            }
           }
+
         })();
       }
 

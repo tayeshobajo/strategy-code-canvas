@@ -1,75 +1,43 @@
-# Roadmap Engine Audit Remediation — Pillars 1→12
+## Audit results
 
-Goal: turn every PARTIAL / FAIL into PASS, in numerical order. Pillars 3 (Source Room) and the core of 4 & 5 are already PASS — they still get small tightening because the audit flagged caveats. No new tests; each pillar ends with a manual verify (build clean + click-through on the affected screen).
+**1. Operator can final-approve a roadmap version — FIXED.**
+`decideReviewItem` (src/lib/engine-ops.functions.ts:233) is gated `assertOps`, but before the version transition it re-checks the caller and throws `"Forbidden: only Tai (admin) can approve a roadmap version."` for item types `roadmap_version`, `Roadmap Update`, `version_approval`, `Version Change`. Operators can still `send_back` / `reject`, matching the "Tai is the final authority" doctrine. No change needed.
 
-Approach per pillar: read the exact files → make the smallest change that closes the audit finding → verify → move to the next. No batching, no parallel pillars.
+**2. `getPortalContext` leaks internal fields — FIXED.**
+`portal.functions.ts:453` now uses an explicit projection (`id, project_id, title, version_label, status, approved_at, published_at, acknowledged_at, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, supporting_notes, client_safe_canvas`). `published_by`, `approved_roadmap_version_id`, and `metadata` are no longer shipped. `supporting_notes` is listed in `CLIENT_SAFE_KEYS` in `roadmap-publish.ts:528`, so its presence is intentional. No change needed.
 
----
+**3. Roadmap Canvas — NOT FIXED.** Three separate regressions:
+- `MapCanvas.tsx:754-756` — Point A card is hardcoded (`"Current State"` / `"Operating today"`). `journey.pointA.label` and `journey.pointA.detail` are computed and passed through the pipeline but never rendered on the canvas.
+- `MapCanvas.tsx:770` — Point B detail is truncated at 60 chars with `slice(0, 60) + "…"`.
+- `portal.roadmap.tsx:929-936` — `CurrentPhasePill` maps phase index to hardcoded strings `"Phase 1: Foundation"`, `"Phase 2: Core Platform Build"`, `"Phase 3: Scale Systems"`. Every client sees demo phase names. `journey.phases[idx].label` is available and unused.
 
-## Pillar 1 — Intake (PARTIAL → PASS)
-**Finding:** portal onboarding auto-extracts, public wizard doesn't; no bridge from intake submission to project.
-- Add a "Create project from submission" server fn in `src/lib/intake.functions.ts` that calls `createProjectFromSource` with the submission's text as a `research_note` source.
-- Add a button on the ops intake review console (`scripts/intake/001_review_console.sql` surface → the admin route that lists `intake_submissions`) wired to that fn.
-- On success, stamp `intake_submissions.linked_project_id` so we don't double-create.
+**4. Pipeline clobbers live workspace state — PARTIALLY FIXED.**
+- Approved step columns are preserved (`engine-intelligence.functions.ts:1275-1308`, Pillar 5).
+- `status: "draft"` is still forced unconditionally on every run (line 1272). A project in `on_hold`, `blocked`, `paused`, or `execution` gets shoved back to `draft` by any pipeline run.
+- Agent permissions/budget are not consulted before running. Specifically, `submitPortalOnboarding` (`portal.functions.ts:1885-1901`) calls `runIntelligencePipelineInternal` on `supabaseAdmin` without ever hitting `assertActionAllowed` — so a project explicitly `blocked` for `run_intelligence_pipeline` still gets an AI run when the client submits onboarding.
 
-## Pillar 2 — Project Creation (PARTIAL → PASS)
-**Finding:** integrity checks exist but no transaction; rollback orphans records and deletes its own audit trail.
-- Wrap the multi-insert sequence in `createProjectFromSource` in a single Postgres RPC (`create_project_atomic`) so all sibling inserts (project, agent, permissions, v0.0 version, portal linkage) commit or rollback together.
-- Keep the current `integrity_failure` activity log, but write it to a separate table (`engine_project_intake_failures`) so rollback doesn't wipe the failure record.
+## Fix plan
 
-## Pillar 4 — Intelligence Layer (PASS caveat)
-**Finding:** two divergent extraction paths; UI reads a schema the pipeline doesn't write.
-- Delete/redirect the older extraction path so only `runIntelligenceExtraction` writes `engine_extracted_signals`.
-- Align the Intelligence Layer step UI to read the exact keys the pipeline emits (audit the mismatch first, then fix the reader — not the writer).
+**Roadmap Canvas (item 3)** — three surgical edits:
 
-## Pillar 5 — Draft Roadmap (PASS caveat)
-**Finding:** approved versions safe, but pipeline clobbers live workspace state.
-- In the pipeline's post-draft write, skip any workspace step whose `step_states[step].state === 'approved'`.
-- Only fields on `draft`/`review` steps get overwritten by re-runs.
+1. `src/components/portal/roadmap/MapCanvas.tsx` — Point A card:
+   - Replace the hardcoded `"Current State"` / `"Operating today"` with `journey.pointA.label || "Current State"` and, when present, `journey.pointA.detail` on a second line (mirror the Point B card so both sides read from the same shape).
+2. `src/components/portal/roadmap/MapCanvas.tsx` — Point B card:
+   - Drop the 60-char truncation. Use CSS clamping (`max-w-[220px] line-clamp-2 break-words`) so long detail wraps instead of being cut mid-sentence, and no character-based truncation is applied.
+3. `src/routes/portal.roadmap.tsx` — `CurrentPhasePill`:
+   - Delete the `"Phase 1: Foundation" | "Phase 2: Core Platform Build" | "Phase 3: Scale Systems"` ladder. Derive `phaseName` from `journey.phases[idx]?.label`, falling back to `journey.phases[0]?.label ?? "Current Phase"` when the index isn't found. No project ever sees hardcoded demo copy again.
 
-## Pillar 6 — Operator Review (PARTIAL → PASS)
-**Finding:** operators can approve sacred parts (Point A, Point B, Vision); can't edit what the vision says they should.
-- Extend `PROTECTED_APPROVED_FIELDS` (in `engine-agent.functions.ts`) to include `vision`, `point_a`, `point_b` for the `operator` role at review time.
-- Add an "Only Tai can approve" guard on those specific review-item sub-fields; operators can comment but not click Approve on them.
+**Pipeline safety (item 4)** — two additions inside `runIntelligencePipelineInternal` (`src/lib/engine-intelligence.functions.ts`), plus one at the portal caller:
 
-## Pillar 7 — Review & Approvals (PARTIAL → PASS)
-**Findings:** 5 of 6 gates real, Investment gate is a label only, Version gate leaks to operators.
-- Turn the Investment gate into a real check: block publish/version-approve until `engine_projects.investment_confirmed_at` is set (add column + Tai-only setter).
-- On the Version gate, filter `listReviewItems` by role: operators see everything except `type = 'version_approval'`; only admin/Tai sees those rows.
+1. Move the forced `status: "draft"` behind a guard: only downgrade to `draft` when the current project status is one of the transitional/reviewable states (`intake`, `source_processing`, `draft`). For terminal or hold states (`on_hold`, `blocked`, `paused`, `execution`, `delivered`, `archived`), leave `status` unchanged — the review item is still enqueued as the review signal.
+2. At the top of `runIntelligencePipelineInternal`, look up `engine_agent_permissions` for the project and call `assertActionAllowed(sb, projectId, "run_intelligence_pipeline")`. If it throws, log to `engine_activity` as `pipeline_blocked` and rethrow — so admins re-running it see the block, and the fire-and-forget portal path records a clean skip instead of silently ignoring the guard.
+3. In `submitPortalOnboarding` (`src/lib/portal.functions.ts:1885`), catch the `pipeline_blocked` error separately and log an `engine_activity` entry `client_submitted_intake_but_pipeline_blocked` instead of the generic warning, so operators see "the client submitted intake but agent permissions are blocking auto-extraction." No auto-run happens on a blocked project.
 
-## Pillar 8 — Client Portal (PARTIAL → PASS)
-**Finding:** one real leak — a `select("*")` ships internal fields to browser.
-- Grep `src/lib/portal.functions.ts` and `src/routes/portal.*` for `.select("*")` and replace each with an explicit safe-column projection matching `CLIENT_SAFE_KEYS`.
-- Runtime allowlist in `buildClientSafePayload` already exists — extend it to also strip unknown keys from any portal fetcher's result before return (belt + suspenders).
+## Files touched
 
-## Pillar 9 — Roadmap Canvas (FAIL → PASS)
-**Finding:** Point A never renders. Hardcoded demo copy for every client. Centerpiece shows placeholders.
-- In `MapCanvas` / `JourneyCanvas` / `RoadmapOverviewStrip`, remove the `portal-roadmap-demo-fixture` fallback for real portal loads (keep it only behind an explicit `?demo=1` flag).
-- Read Point A / Point B / phases / milestones from `client_safe_canvas` returned by `getPortalRoadmapDocs`. If missing, render an empty-state ("Your roadmap is being prepared") — never demo copy.
-- Fix the Point A renderer to actually mount when `canvas.pointA` is present (audit the current conditional first).
+- `src/components/portal/roadmap/MapCanvas.tsx` — Point A + Point B card
+- `src/routes/portal.roadmap.tsx` — `CurrentPhasePill` phase name
+- `src/lib/engine-intelligence.functions.ts` — status guard + `assertActionAllowed` check
+- `src/lib/portal.functions.ts` — onboarding pipeline catch
 
-## Pillar 10 — Client Feedback Loop (PARTIAL → PASS)
-**Finding:** decisions/acks close the loop; file uploads and messages don't reach engine.
-- On portal file upload (`client_portal_files` insert), add trigger or server-fn hook that writes an `engine_activity` row (`type: 'client_file_uploaded'`) and creates a review item for Tai.
-- On portal message send, mirror to `engine_activity` (`type: 'client_message'`) with `related_project_id` — extend the message composer changes already shipped in the prior turn.
-
-## Pillar 11 — Execution Tracker (PARTIAL → PASS)
-**Finding:** gating solid; task-to-milestone linkage not enforced; demo data seeds into production.
-- Replace the hardcoded `BUILDS` array in `src/routes/engine.execution.tsx` with a live query over `engine_agent_tasks` joined to `engine_milestones` (the P0 backlog item from the QA doc — do it here).
-- Add a NOT NULL FK check: `engine_agent_tasks.milestone_id REFERENCES engine_milestones(id)`; migrate existing null rows to a placeholder milestone or archive them.
-
-## Pillar 12 — Intelligence Memory (PARTIAL → PASS)
-**Finding:** table exists, taxonomy right; nothing writes automatically, nothing reads at generation time.
-- On successful extraction run, auto-insert into `engine_intelligence_memory`: stable patterns (recurring signal categories, repeated phase shapes, common risks).
-- In the draft-generation prompt (`engine-agent-prompts.ts`), inject the top-N relevant memory rows for the current client + globally, so the AI actually uses accumulated learning.
-
----
-
-## Order of execution
-
-1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12 — one at a time. After each pillar: build clean, click the affected screen, mark PASS in `.lovable/engine-qa-audit.md`, move on.
-
-## Out of scope
-- No new automated tests (per your call).
-- No visual redesigns of any surface — only the data/logic fixes above.
-- Pillar 3 already PASS — untouched.
+No schema or migration changes.

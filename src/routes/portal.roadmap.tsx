@@ -929,11 +929,10 @@ function CurrentPhasePill({ journey }: { journey: ReturnType<typeof buildRoadmap
   const key = canvas.currentPhaseKey ?? journey.currentPhaseKey;
   const idx = journey.phases.findIndex((p) => p.key === key);
   const phaseName =
-    key === "now" || idx === 0
-      ? "Phase 1: Foundation"
-      : key === "next" || idx === 1
-        ? "Phase 2: Core Platform Build"
-        : "Phase 3: Scale Systems";
+    journey.phases[idx]?.label ??
+    journey.phases[0]?.label ??
+    "Current Phase";
+
   return (
     <div
       className="inline-flex items-center gap-3 rounded-xl bg-slate-950 ring-1 ring-white/10 text-white px-4 py-2 shadow-[0_10px_28px_-16px_rgba(4,10,25,0.7)]"
