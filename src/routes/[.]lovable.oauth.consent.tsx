@@ -22,9 +22,6 @@ function oauthNs(): OAuthNs {
   return (supabase.auth as unknown as { oauth: OAuthNs }).oauth;
 }
 
-function isSafeRelative(next: string | null): next is string {
-  return !!next && next.startsWith("/") && !next.startsWith("//");
-}
 
 export const Route = createFileRoute("/.lovable/oauth/consent")({
   // Browser-only: Supabase session lives in localStorage; SSR would show no session.
