@@ -111,6 +111,56 @@ function ProjectIntegrityPage() {
       >
         {isFetching ? "Refreshing…" : "Refresh"}
       </button>
+
+      {/* Pillar 2 — durable creation-failure log (survives rollback of the
+          half-born project row). */}
+      <div className="mt-10">
+        <h2 className="text-lg font-semibold mb-1">Recent creation failures</h2>
+        <p className="text-white/60 text-xs mb-3">
+          Projects that failed integrity checks at creation and were rolled back. This log
+          lives in its own table so it is not wiped when the project row is deleted.
+        </p>
+        {failures.isLoading && <div className="text-white/70 text-sm">Loading…</div>}
+        {failures.data && failures.data.rows.length === 0 && (
+          <div className="text-emerald-400 text-sm">No creation failures recorded.</div>
+        )}
+        {failures.data && failures.data.rows.length > 0 && (
+          <div className="border border-white/10 rounded overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-white/5 text-white/60 text-left text-xs uppercase tracking-wide">
+                <tr>
+                  <th className="px-3 py-2">When</th>
+                  <th className="px-3 py-2">Attempted</th>
+                  <th className="px-3 py-2">Actor</th>
+                  <th className="px-3 py-2">Mode</th>
+                  <th className="px-3 py-2">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {failures.data.rows.map((f) => (
+                  <tr key={f.id} className="border-t border-white/5 align-top">
+                    <td className="px-3 py-2 text-white/70 text-xs whitespace-nowrap">
+                      {new Date(f.created_at).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="text-white">{f.attempted_project_name ?? "(unnamed)"}</div>
+                      <div className="text-white/40 font-mono text-[10px]">
+                        {f.attempted_project_id ?? "—"}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-white/70">{f.actor_email ?? "—"}</td>
+                    <td className="px-3 py-2 text-white/70">{f.delivery_mode ?? "—"}</td>
+                    <td className="px-3 py-2 text-amber-200 max-w-[420px]">
+                      <div className="whitespace-pre-wrap break-words">{f.failure_reason}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
