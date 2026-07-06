@@ -38,7 +38,7 @@ describe("submission → project durable linkage", () => {
   });
 
   it("bridge records are written only AFTER the integrity gate (never for rolled-back projects)", () => {
-    const gate = intake.indexOf("await rollbackHalfBornProject(sb, projectId)");
+    const gate = intake.indexOf("await rollbackHalfBornProject(sb, projectId");
     const bridge = intake.indexOf('action: "bridged_to_engine"');
     expect(gate).toBeGreaterThan(-1);
     expect(bridge, "bridge write must come after the rollback branch").toBeGreaterThan(gate);

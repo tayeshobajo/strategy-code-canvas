@@ -53,7 +53,7 @@ describe("project creation integrity + rollback (G-4)", () => {
 
   it("integrity failure rolls back the project and throws", () => {
     // The rollback branch must delete engine_projects and throw.
-    expect(intake).toMatch(/rollbackHalfBornProject\(sb,\s*projectId\)/);
+    expect(intake).toMatch(/rollbackHalfBornProject\(sb,\s*projectId,/);
     expect(intake).toMatch(/throw new Error\(`Project creation failed integrity check/);
     // rollback helper deletes the project row.
     expect(intake).toMatch(

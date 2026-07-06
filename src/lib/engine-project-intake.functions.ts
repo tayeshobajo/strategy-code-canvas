@@ -81,6 +81,14 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       throw new Error("Either clientId or newClient is required");
     }
 
+    // Rollback context — tracks rows CREATED by this call (vs pre-existing
+    // rows matched by upserts) so rollbackHalfBornProject can clean up
+    // portal/client siblings without ever destroying live client data.
+    let createdClientId: string | null = null;
+    let linkedPortalProjectId: string | null = null;
+    let portalProjectCreated = false;
+    let portalPermissionCreated = false;
+
     // Resolve client
     let clientId = data.clientId ?? "";
     let resolvedContactEmail: string | null =
@@ -99,6 +107,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         .single();
       if (error) throw new Error(error.message ?? "client insert failed");
       clientId = c.id;
+      createdClientId = c.id;
     } else if (clientId && !resolvedContactEmail) {
       // Existing client path — look up contact_email so delivery-mode inference works.
       const { data: c } = await sb
@@ -203,6 +212,14 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
     // For internal_only projects with no contact email, portal linkage is
     // intentionally absent and NOT considered an integrity failure.
     if (resolvedContactEmail) {
+      // Record whether the portal project pre-exists BEFORE the upsert —
+      // rollback may only delete a portal row this call created, never a
+      // live portal matched by primary_email.
+      const { data: preExistingPortal } = await sb
+        .from("client_portal_projects")
+        .select("id")
+        .eq("primary_email", resolvedContactEmail)
+        .maybeSingle();
       const { data: portalRow, error: upErr } = await sb
         .from("client_portal_projects")
         .upsert(
@@ -223,24 +240,31 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         integrityErrors.push(`client_portal_projects: ${upErr.message}`);
       } else if (portalRow?.id) {
         const portalId = portalRow.id as string;
+        linkedPortalProjectId = portalId;
+        portalProjectCreated = !preExistingPortal;
         const { error: linkErr } = await sb
           .from("engine_projects")
           .update({ client_portal_project_id: portalId })
           .eq("id", projectId);
         if (linkErr) integrityErrors.push(`engine_projects link: ${linkErr.message}`);
 
-        const { error: permErr } = await sb
+        const { data: preExistingPerm } = await sb
           .from("client_portal_permissions")
-          .upsert(
-            {
-              project_id: portalId,
-              email: resolvedContactEmail,
-              role: "owner",
-              granted_by: actor,
-            },
-            { onConflict: "project_id,email" },
-          );
+          .select("id")
+          .eq("project_id", portalId)
+          .eq("email", resolvedContactEmail)
+          .maybeSingle();
+        const { error: permErr } = await sb.from("client_portal_permissions").upsert(
+          {
+            project_id: portalId,
+            email: resolvedContactEmail,
+            role: "owner",
+            granted_by: actor,
+          },
+          { onConflict: "project_id,email" },
+        );
         if (permErr) integrityErrors.push(`client_portal_permissions: ${permErr.message}`);
+        else portalPermissionCreated = !preExistingPerm;
       }
     }
 
@@ -291,7 +315,13 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       const logNote = durableLogError
         ? ` (WARNING: durable failure log write also failed: ${durableLogError})`
         : "";
-      await rollbackHalfBornProject(sb, projectId);
+      await rollbackHalfBornProject(sb, projectId, {
+        createdClientId,
+        portalProjectId: linkedPortalProjectId,
+        portalProjectCreated,
+        portalPermissionCreated,
+        contactEmail: resolvedContactEmail,
+      });
       throw new Error(`Project creation failed integrity check: ${combined}${logNote}`);
     }
 
@@ -535,12 +565,37 @@ async function assertProjectIntegrity(
 }
 
 /**
- * rollbackHalfBornProject — deletes the just-created project and any sibling
- * rows that don't already CASCADE on engine_projects deletion. Best-effort
- * on individual deletes so a partial rollback still removes as much as
- * possible; the caller throws after this returns.
+ * RollbackContext — which sibling rows THIS intake call created (as opposed
+ * to pre-existing rows matched by upserts). Rollback deletes only rows the
+ * call created, so it can never destroy a live client or portal.
  */
-async function rollbackHalfBornProject(sb: any, projectId: string): Promise<void> {
+type RollbackContext = {
+  /** engine_clients row inserted by this call (newClient path). */
+  createdClientId?: string | null;
+  /** Portal project id linked during this call. */
+  portalProjectId?: string | null;
+  /** true when the client_portal_projects row was created (not matched). */
+  portalProjectCreated?: boolean;
+  /** true when the owner client_portal_permissions row was created. */
+  portalPermissionCreated?: boolean;
+  /** Contact email the permission row was written for. */
+  contactEmail?: string | null;
+};
+
+/**
+ * rollbackHalfBornProject — deletes the just-created project and any sibling
+ * rows that don't already CASCADE on engine_projects deletion, including the
+ * portal shell (client_portal_projects / client_portal_permissions) and the
+ * engine_clients row when they were created by this call — previously these
+ * were orphaned, leaving a live-looking portal for a deleted project.
+ * Best-effort on individual deletes so a partial rollback still removes as
+ * much as possible; the caller throws after this returns.
+ */
+async function rollbackHalfBornProject(
+  sb: any,
+  projectId: string,
+  ctx: RollbackContext = {},
+): Promise<void> {
   // Explicit deletes for tables whose FKs may not cascade in every install.
   const targets: Array<{ table: string; column: string }> = [
     { table: "engine_project_agents", column: "project_id" },
@@ -556,11 +611,44 @@ async function rollbackHalfBornProject(sb: any, projectId: string): Promise<void
       /* best-effort */
     }
   }
-  // Finally, remove the project row itself.
+  // Remove the project row itself (before engine_clients — client_id FK).
   try {
     await sb.from("engine_projects").delete().eq("id", projectId);
   } catch {
     /* best-effort — if this fails, verifyProjectIntegrity will still flag the orphan */
+  }
+
+  // Portal + client cleanup runs through the service role: RLS on the portal
+  // tables is scoped to client/operator flows, not this trusted rollback.
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (ctx.portalProjectId) {
+      if (ctx.portalProjectCreated) {
+        // The whole portal project was born in this call — remove it and any
+        // permissions hanging off it.
+        await supabaseAdmin
+          .from("client_portal_permissions")
+          .delete()
+          .eq("project_id", ctx.portalProjectId);
+        await supabaseAdmin
+          .from("client_portal_projects")
+          .delete()
+          .eq("id", ctx.portalProjectId);
+      } else if (ctx.portalPermissionCreated && ctx.contactEmail) {
+        // Pre-existing portal project: only remove the permission row this
+        // call added; never touch the live portal itself.
+        await supabaseAdmin
+          .from("client_portal_permissions")
+          .delete()
+          .eq("project_id", ctx.portalProjectId)
+          .eq("email", ctx.contactEmail);
+      }
+    }
+    if (ctx.createdClientId) {
+      await supabaseAdmin.from("engine_clients").delete().eq("id", ctx.createdClientId);
+    }
+  } catch (e) {
+    console.warn("[intake] rollback portal/client cleanup failed", e);
   }
 }
 

@@ -77,7 +77,7 @@ describe("createProjectFromSource wiring (static)", () => {
     // inside the integrity-failure branch, before the rollback runs.
     const failureBranch = intake.slice(
       intake.indexOf("const failures = await assertProjectIntegrity"),
-      intake.indexOf("rollbackHalfBornProject(sb, projectId)"),
+      intake.indexOf("rollbackHalfBornProject(sb, projectId"),
     );
     expect(failureBranch).toMatch(/await import\("@\/integrations\/supabase\/client\.server"\)/);
     expect(failureBranch).toMatch(/writeDurableIntakeFailure\(supabaseAdmin,/);
@@ -92,7 +92,7 @@ describe("createProjectFromSource wiring (static)", () => {
 
   it("durable log write happens BEFORE rollbackHalfBornProject", () => {
     const idxLog = intake.indexOf("writeDurableIntakeFailure(supabaseAdmin,");
-    const idxRollback = intake.indexOf("await rollbackHalfBornProject(sb, projectId)");
+    const idxRollback = intake.indexOf("await rollbackHalfBornProject(sb, projectId");
     expect(idxLog).toBeGreaterThan(-1);
     expect(idxRollback).toBeGreaterThan(-1);
     expect(idxLog, "durable log must be persisted before rollback").toBeLessThan(idxRollback);
@@ -100,7 +100,7 @@ describe("createProjectFromSource wiring (static)", () => {
 
   it("rollback never touches engine_project_intake_failures (the row must survive)", () => {
     const helperStart = intake.indexOf("async function rollbackHalfBornProject");
-    const helperEnd = intake.indexOf("verifyProjectIntegrity", helperStart);
+    const helperEnd = intake.indexOf("export type ProjectIntegrityReport", helperStart);
     expect(helperStart).toBeGreaterThan(-1);
     expect(helperEnd).toBeGreaterThan(helperStart);
     const helper = intake.slice(helperStart, helperEnd);
