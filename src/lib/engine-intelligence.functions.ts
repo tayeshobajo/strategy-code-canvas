@@ -1063,7 +1063,9 @@ export async function runIntelligencePipelineInternal(
         .eq("project_id", args.projectId)
         .in("id", srcRows.map((s: any) => s.id));
     }
-    await sb.from("engine_projects").update({ status: "intake" }).eq("id", args.projectId);
+    if (canMoveStatus) {
+      await sb.from("engine_projects").update({ status: "intake" }).eq("id", args.projectId);
+    }
     await sb.from("engine_activity").insert({
       project_id: args.projectId,
       kind: "pipeline_failed",
