@@ -106,7 +106,13 @@ function MilestoneBriefPage() {
     }
   };
 
-  if (q.isLoading || !m) return <div className="text-sm text-ink/60">Loading milestone…</div>;
+  if (q.isLoading) return <div className="text-sm text-ink/60">Loading milestone…</div>;
+  if (!m) return (
+    <div className="text-sm text-ink/70 p-6 rounded-lg border border-ink/10 bg-white/50">
+      Milestone not found in this project. It may have been deleted or the URL is stale.
+    </div>
+  );
+
 
   const criteria: any[] = Array.isArray(m.acceptance_criteria) ? m.acceptance_criteria : [];
   const done = criteria.filter((c) => c.done).length;
