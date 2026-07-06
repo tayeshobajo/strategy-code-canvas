@@ -19,8 +19,7 @@ type AuthDetails = {
 };
 
 function oauthNs(): OAuthNs {
-  // @ts-expect-error — supabase.auth.oauth is beta and not in the public typings yet.
-  return supabase.auth.oauth as OAuthNs;
+  return (supabase.auth as unknown as { oauth: OAuthNs }).oauth;
 }
 
 function isSafeRelative(next: string | null): next is string {
