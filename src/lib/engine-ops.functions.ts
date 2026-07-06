@@ -267,15 +267,6 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     }
 
     const nextStatus = data.action === "approved" ? "approved" : data.action === "rejected" ? "rejected" : "sent_back";
-    const { error: uErr } = await sb.from("engine_review_items")
-      .update({ status: nextStatus }).eq("id", data.id);
-    if (uErr) throw new Error(String((uErr as { message?: string }).message ?? uErr));
-    await sb.from("engine_review_audit").insert({
-      review_item_id: data.id, project: it.project, item_type: it.item_type,
-      title: it.title, action: data.action, reason: data.reason ?? null,
-      routed_to: data.action === "approved" ? null : (SOURCE_ROUTE[it.item_type] ?? null),
-      actor,
-    });
     // Resolve project row for downstream writes.
     let projId = it.project_id ?? null;
     if (!projId) {
@@ -289,23 +280,31 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     // and lock the approved snapshot on the project. Previously these were
     // two disconnected flows — operators thought they'd approved the roadmap
     // but the version stayed in ai_generated / tai_edited.
-    if (data.action === "approved"
-        && (it.item_type === "roadmap_version" || it.item_type === "Roadmap Update")
-        && projId) {
+    //
+    // Ordering (re-audit New Issue #2): the target version is resolved and
+    // EVERY guard below runs read-only BEFORE any write. If a guard throws,
+    // the review item is untouched and the decision stays fully retryable —
+    // previously the item was flipped to approved first, stranding an
+    // approved item pointing at an unapproved version.
+    type ReviewTargetVersion = {
+      id: string;
+      version: string;
+      payload: Record<string, unknown> | null;
+      created_by: string | null;
+      status: string;
+      label: string | null;
+    };
+    let target: ReviewTargetVersion | null = null;
+    const isVersionApproval =
+      data.action === "approved"
+      && (it.item_type === "roadmap_version" || it.item_type === "Roadmap Update")
+      && !!projId;
+
+    if (isVersionApproval) {
       // G-3: prefer the FK `version_id` on the review item — it points
       // exactly at the draft this review was created for. Fall back to
       // label matching only for legacy review items created before the
       // FK was added (version_id IS NULL).
-      type ReviewTargetVersion = {
-        id: string;
-        version: string;
-        payload: Record<string, unknown> | null;
-        created_by: string | null;
-        status: string;
-        label: string | null;
-      };
-      let target: ReviewTargetVersion | null = null;
-
       if (it.version_id) {
         const { data: v } = await sb
           .from("engine_roadmap_versions")
@@ -328,7 +327,6 @@ export const decideReviewItem = createServerFn({ method: "POST" })
         const rows = matches ?? [];
         target = rows.find((r) => (r.label ?? "").trim() === it.title.trim()) ?? rows[0] ?? null;
       }
-
 
       if (target) {
         const createdBy = (target.created_by ?? "").toString().toLowerCase();
@@ -353,6 +351,25 @@ export const decideReviewItem = createServerFn({ method: "POST" })
         if (!projGate?.investment_confirmed_at) {
           throw new Error("Confirm the investment on this project before approving the roadmap version.");
         }
+      }
+    }
+
+    // ---- All guards passed: writes start here. The review item is flipped
+    // before the version side effect so a mid-sequence infrastructure failure
+    // leaves a retryable state (re-running the decision is idempotent for the
+    // item update), never a guard-blocked inconsistency.
+    const { error: uErr } = await sb.from("engine_review_items")
+      .update({ status: nextStatus }).eq("id", data.id);
+    if (uErr) throw new Error(String((uErr as { message?: string }).message ?? uErr));
+    await sb.from("engine_review_audit").insert({
+      review_item_id: data.id, project: it.project, item_type: it.item_type,
+      title: it.title, action: data.action, reason: data.reason ?? null,
+      routed_to: data.action === "approved" ? null : (SOURCE_ROUTE[it.item_type] ?? null),
+      actor,
+    });
+
+    if (isVersionApproval) {
+      if (target) {
         const nowIso = new Date().toISOString();
         const { error: vErr } = await sb.from("engine_roadmap_versions")
           .update({ status: "approved", approved_by: actor, approved_at: nowIso })
