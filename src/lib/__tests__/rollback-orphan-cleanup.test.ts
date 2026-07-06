@@ -72,13 +72,16 @@ describe("createProjectFromSource tracks created-vs-matched rows", () => {
     expect(intake).toMatch(/clientId = c\.id;\s*createdClientId = c\.id;/);
   });
 
-  it("checks portal pre-existence BEFORE the upsert", () => {
+  it("checks portal pre-existence BEFORE the insert (no clobber upsert)", () => {
     const preCheck = intake.indexOf("preExistingPortal");
-    const upsert = intake.indexOf('from("client_portal_projects")\n        .upsert(');
+    const insert = intake.indexOf('from("client_portal_projects")\n          .insert(');
     expect(preCheck).toBeGreaterThan(-1);
-    expect(upsert).toBeGreaterThan(-1);
-    expect(preCheck).toBeLessThan(upsert);
+    expect(insert).toBeGreaterThan(-1);
+    expect(preCheck).toBeLessThan(insert);
     expect(intake).toMatch(/portalProjectCreated = !preExistingPortal/);
+    // CRITICAL FIX: when a portal already exists, we must NOT upsert/reset it.
+    expect(intake).toMatch(/if \(preExistingPortal\?\.id\)/);
+    expect(intake).not.toMatch(/\.upsert\([\s\S]{0,80}client_portal_projects/);
   });
 
   it("checks permission pre-existence and passes the full rollback context", () => {

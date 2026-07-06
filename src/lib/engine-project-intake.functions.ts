@@ -220,10 +220,19 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         .select("id")
         .eq("primary_email", resolvedContactEmail)
         .maybeSingle();
-      const { data: portalRow, error: upErr } = await sb
-        .from("client_portal_projects")
-        .upsert(
-          {
+
+      // CRITICAL FIX (Audit V3 #1): Never clobber a live client portal.
+      // When a portal already exists for this contact email, only wire the
+      // linkage — do NOT reset portal_status, payment_status, current_phase,
+      // owner_email, or null out contact_name/company_name.
+      let portalRow: { id: string } | null = null;
+      let upErr: { message?: string } | null = null;
+      if (preExistingPortal?.id) {
+        portalRow = { id: preExistingPortal.id };
+      } else {
+        const result = await sb
+          .from("client_portal_projects")
+          .insert({
             primary_email: resolvedContactEmail,
             contact_name: data.newClient?.primary_contact ?? null,
             company_name: data.newClient?.company ?? null,
@@ -231,11 +240,12 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
             payment_status: "paid",
             current_phase: "Onboarding",
             owner_email: actor,
-          },
-          { onConflict: "primary_email" },
-        )
-        .select("id")
-        .single();
+          })
+          .select("id")
+          .single();
+        portalRow = result.data;
+        upErr = result.error;
+      }
       if (upErr) {
         integrityErrors.push(`client_portal_projects: ${upErr.message}`);
       } else if (portalRow?.id) {
@@ -248,11 +258,14 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
           .eq("id", projectId);
         if (linkErr) integrityErrors.push(`engine_projects link: ${linkErr.message}`);
 
+        // CRITICAL FIX (Audit V3 #1): Filter out revoked permissions so we
+        // don't accidentally mutate a revoked row's role/granted_by.
         const { data: preExistingPerm } = await sb
           .from("client_portal_permissions")
           .select("id")
           .eq("project_id", portalId)
           .eq("email", resolvedContactEmail)
+          .is("revoked_at", null)
           .maybeSingle();
         const { error: permErr } = await sb.from("client_portal_permissions").upsert(
           {
