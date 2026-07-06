@@ -246,8 +246,28 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
     const failures = await assertProjectIntegrity(sb, projectId, deliveryMode);
     if (failures.length > 0) {
       const combined = [...integrityErrors, ...failures].join(" | ");
-      // Best-effort audit trail BEFORE we delete the row. The activity row
-      // references project_id via FK; log to a project-agnostic path too.
+      // Pillar 2 — durable failure log. Writes to engine_project_intake_failures
+      // FIRST (no FK to engine_projects, so it survives the rollback below).
+      // The engine_activity insert is best-effort but will be wiped when
+      // rollbackHalfBornProject cascades — that's exactly why the dedicated
+      // failures table exists.
+      try {
+        await sb.from("engine_project_intake_failures").insert({
+          attempted_project_id: projectId,
+          attempted_project_name: data.projectName,
+          attempted_client_id: clientId || null,
+          actor_email: actor,
+          delivery_mode: deliveryMode,
+          failure_reason: combined,
+          payload: {
+            source_type: data.source?.type ?? null,
+            engagement_type: data.engagementType ?? null,
+            roadmap_type: data.roadmapType ?? null,
+          },
+        });
+      } catch (e) {
+        console.error("[intake] durable failure log write failed", e);
+      }
       try {
         await sb.from("engine_activity").insert({
           project_id: projectId,
@@ -262,6 +282,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       await rollbackHalfBornProject(sb, projectId);
       throw new Error(`Project creation failed integrity check: ${combined}`);
     }
+
 
     // Non-fatal soft warnings from the sibling insert block (e.g. duplicate
     // v0.0 on a retry) — surface but do not block.
