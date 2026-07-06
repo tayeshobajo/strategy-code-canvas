@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   listProjectsWithIntegrityIssues,
+  listRecentIntakeFailures,
   repairProjectIntegrity,
 } from "@/lib/engine-project-intake.functions";
 import { useState } from "react";
@@ -14,12 +15,19 @@ export const Route = createFileRoute("/admin/project-integrity")({
 function ProjectIntegrityPage() {
   const router = useRouter();
   const list = useServerFn(listProjectsWithIntegrityIssues);
+  const failuresFn = useServerFn(listRecentIntakeFailures);
   const repair = useServerFn(repairProjectIntegrity);
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["admin-project-integrity"],
     queryFn: () => list(),
   });
+
+  const failures = useQuery({
+    queryKey: ["admin-project-intake-failures"],
+    queryFn: () => failuresFn(),
+  });
+
 
   const [flash, setFlash] = useState<string | null>(null);
   const repairMut = useMutation({
