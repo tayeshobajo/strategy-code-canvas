@@ -2464,7 +2464,7 @@ export type Database = {
           estimated_cost_cents: number | null
           estimated_effort_hours: number | null
           id: string
-          milestone_id: string | null
+          milestone_id: string
           name: string
           owner_email: string | null
           priority: string
@@ -2485,7 +2485,7 @@ export type Database = {
           estimated_cost_cents?: number | null
           estimated_effort_hours?: number | null
           id?: string
-          milestone_id?: string | null
+          milestone_id: string
           name: string
           owner_email?: string | null
           priority?: string
@@ -2506,7 +2506,7 @@ export type Database = {
           estimated_cost_cents?: number | null
           estimated_effort_hours?: number | null
           id?: string
-          milestone_id?: string | null
+          milestone_id?: string
           name?: string
           owner_email?: string | null
           priority?: string
