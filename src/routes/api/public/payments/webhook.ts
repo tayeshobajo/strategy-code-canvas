@@ -361,7 +361,12 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     currency: session.currency ?? "usd",
   });
 
-  await sendWelcomeEmail(email, session.customer_details?.name ?? null);
+  await sendWelcomeEmail(email, session.customer_details?.name ?? null, {
+    amount_total: session.amount_total ?? null,
+    currency: session.currency ?? null,
+    packageName,
+    sessionId: session.id,
+  });
 
   const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
   await notifyInternal(
