@@ -385,27 +385,48 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     });
 
     if (isVersionApproval) {
+      if (!target) {
+        // HIGH FIX (Audit V3 #5): A version-approval review item whose
+        // linked version can't be resolved must NOT be silently marked
+        // approved. Throw so the item stays pending and the operator can
+        // investigate.
+        throw new Error(
+          `Cannot approve: unable to resolve the target roadmap version for review item "${it.title}". The version may have been removed or already approved.`,
+        );
+      }
       if (target) {
         const nowIso = new Date().toISOString();
         const { error: vErr } = await sb.from("engine_roadmap_versions")
           .update({ status: "approved", approved_by: actor, approved_at: nowIso })
           .eq("id", target.id);
         if (vErr) throw new Error(String((vErr as { message?: string }).message ?? vErr));
-        await sb.from("engine_projects").update({
+        // HIGH FIX (Audit V3 #3): Check errors on all post-approval writes.
+        // An unchecked snapshot/activity/approvals failure could leave a
+        // version marked "approved" with no locked snapshot, unretryable
+        // due to the already-approved guard.
+        const { error: snapErr } = await sb.from("engine_projects").update({
           approved_version: target.version,
           roadmap_version: target.version,
           approved_snapshot: target.payload ?? {},
           approved_at: nowIso,
           approved_by_email: actor,
         }).eq("id", projId);
-        await sb.from("engine_activity").insert({
+        if (snapErr) {
+          // Attempt to revert the version status so the decision stays retryable.
+          await sb.from("engine_roadmap_versions")
+            .update({ status: target.status, approved_by: null, approved_at: null })
+            .eq("id", target.id);
+          throw new Error(`Version approved but failed to lock snapshot: ${String((snapErr as { message?: string }).message ?? snapErr)}. Version reverted — please retry.`);
+        }
+        const { error: actErr } = await sb.from("engine_activity").insert({
           project_id: projId,
           kind: "version_approved",
           title: `Version ${target.version} approved`,
           body: `Approved by ${actor} via review queue`,
           severity: "success",
         });
-        await sb.from("roadmap_approvals").insert({
+        if (actErr) console.warn("[decideReviewItem] activity insert failed:", actErr.message);
+        const { error: apprErr } = await sb.from("roadmap_approvals").insert({
           version_id: target.id,
           project_id: projId,
           snapshot_version: target.version,
@@ -413,6 +434,7 @@ export const decideReviewItem = createServerFn({ method: "POST" })
           review_item_id: data.id,
           notes: data.reason ?? null,
         });
+        if (apprErr) console.warn("[decideReviewItem] roadmap_approvals insert failed:", apprErr.message);
 
         // Apply suggested milestone changes (added / modified / removed) from
         // the version payload. Past approved versions are NOT mutated — we
