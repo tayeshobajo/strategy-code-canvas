@@ -854,7 +854,7 @@ export async function runIntelligencePipelineInternal(
   const { data: project } = await sb
     .from("engine_projects")
     .select(
-      "id,name,roadmap_version,approved_version,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview, engine_clients(company,industry)",
+      "id,name,roadmap_version,approved_version,step_states,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview, engine_clients(company,industry)",
     )
     .eq("id", args.projectId)
     .single();
