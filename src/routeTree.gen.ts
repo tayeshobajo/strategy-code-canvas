@@ -69,6 +69,7 @@ import { Route as OpsEditorIdRouteImport } from './routes/ops/editor.$id'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as EngineProjectsNewRouteImport } from './routes/engine.projects.new'
 import { Route as EngineProjectsProjectIdRouteImport } from './routes/engine.projects.$projectId'
+import { Route as CheckoutWalkPaceRouteImport } from './routes/checkout.walk.$pace'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -398,6 +399,11 @@ const EngineProjectsProjectIdRoute = EngineProjectsProjectIdRouteImport.update({
   path: '/projects/$projectId',
   getParentRoute: () => EngineRoute,
 } as any)
+const CheckoutWalkPaceRoute = CheckoutWalkPaceRouteImport.update({
+  id: '/checkout/walk/$pace',
+  path: '/checkout/walk/$pace',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -624,6 +630,7 @@ export interface FileRoutesByFullPath {
   '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/engine/projects/new': typeof EngineProjectsNewRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -709,6 +716,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/engine': typeof EngineIndexRoute
   '/ops': typeof OpsIndexRoute
+  '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/engine/projects/new': typeof EngineProjectsNewRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -801,6 +809,7 @@ export interface FileRoutesById {
   '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/engine/projects/new': typeof EngineProjectsNewRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -892,6 +901,7 @@ export interface FileRouteTypes {
     | '/engine/'
     | '/ops/'
     | '/portal/'
+    | '/checkout/walk/$pace'
     | '/engine/projects/$projectId'
     | '/engine/projects/new'
     | '/lovable/email/suppression'
@@ -977,6 +987,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/engine'
     | '/ops'
+    | '/checkout/walk/$pace'
     | '/engine/projects/$projectId'
     | '/engine/projects/new'
     | '/lovable/email/suppression'
@@ -1068,6 +1079,7 @@ export interface FileRouteTypes {
     | '/engine/'
     | '/ops/'
     | '/portal/'
+    | '/checkout/walk/$pace'
     | '/engine/projects/$projectId'
     | '/engine/projects/new'
     | '/lovable/email/suppression'
@@ -1126,6 +1138,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
   WalksSlugRoute: typeof WalksSlugRoute
+  CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -1557,6 +1570,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/engine/projects/$projectId'
       preLoaderRoute: typeof EngineProjectsProjectIdRouteImport
       parentRoute: typeof EngineRoute
+    }
+    '/checkout/walk/$pace': {
+      id: '/checkout/walk/$pace'
+      path: '/checkout/walk/$pace'
+      fullPath: '/checkout/walk/$pace'
+      preLoaderRoute: typeof CheckoutWalkPaceRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
@@ -1991,6 +2011,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   InsightsSlugRoute: InsightsSlugRoute,
   WalksSlugRoute: WalksSlugRoute,
+  CheckoutWalkPaceRoute: CheckoutWalkPaceRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksBuildRoadmapContactRoute:
     ApiPublicHooksBuildRoadmapContactRoute,
@@ -2004,13 +2025,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
