@@ -29,8 +29,8 @@ const LOGOS: Logo[] = [
   { name: "Real Leaders", src: realLeaders.url },
   { name: "The Shark Group", src: sharkGroup.url, weight: "heavy" },
   { name: "Creative World School", src: creativeWorld.url, weight: "heavy" },
-  { name: "The Swell Collective", src: swell.url },
-  { name: "TeamsynerG Global Consulting", src: teamsynerg.url },
+  { name: "The Swell Collective", src: swell.url, weight: "heavy" },
+  { name: "TeamsynerG Global Consulting", src: teamsynerg.url, weight: "heavy" },
 ];
 
 export function ClientMarquee() {
