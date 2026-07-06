@@ -228,6 +228,26 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     if (rErr) throw new Error(String((rErr as { message?: string }).message ?? rErr));
     const it = item as { project: string; project_id: string | null; item_type: string; title: string; version_id: string | null };
 
+    // Pillar 6: only admin (Tai) may APPROVE roadmap/version-approval items.
+    // Operators can still send_back / reject, or approve non-roadmap items
+    // like milestone briefs, client preview, investment changes.
+    const ADMIN_APPROVAL_TYPES = new Set([
+      "roadmap_version",
+      "Roadmap Update",
+      "version_approval",
+      "Version Change",
+    ]);
+    if (data.action === "approved" && ADMIN_APPROVAL_TYPES.has(it.item_type)) {
+      const isAdmin = await hasRoleForEmail(
+        (context as any).supabase,
+        (context as any).claims?.email as string | undefined,
+        "admin",
+      );
+      if (!isAdmin) {
+        throw new Error("Forbidden: only Tai (admin) can approve a roadmap version.");
+      }
+    }
+
     const nextStatus = data.action === "approved" ? "approved" : data.action === "rejected" ? "rejected" : "sent_back";
     const { error: uErr } = await sb.from("engine_review_items")
       .update({ status: nextStatus }).eq("id", data.id);
