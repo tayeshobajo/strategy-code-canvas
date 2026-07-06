@@ -11,22 +11,24 @@ import creativeWorld from "@/assets/clients/Creative_World_School.webp.asset.jso
 import swell from "@/assets/clients/The_Swell_Collective.webp.asset.json";
 import teamsynerg from "@/assets/clients/TeamsynerG_Global_Consulting.webp.asset.json";
 
-type Logo = { name: string; src: string };
+type LogoWeight = "heavy" | "normal" | "light";
+type Logo = { name: string; src: string; weight?: LogoWeight };
 
 // Curated set. Every mark is a real relationship we can stand behind.
 // All logos render at the same optical weight in black and white so the
-// row reads as one confident wall of proof.
+// row reads as one confident wall of proof. `weight` tags per-logo tune
+// the opacity/contrast so naturally heavy marks don't overpower thin ones.
 const LOGOS: Logo[] = [
-  { name: "Aceyus, a Five9 company", src: aceyus.url },
+  { name: "Aceyus, a Five9 company", src: aceyus.url, weight: "light" },
   { name: "Agilysys Book4Time", src: book4time.url },
   { name: "Keep Financial", src: keep.url },
   { name: "PayStandards", src: payStandards.url },
   { name: "EMCI Wireless", src: emci.url },
-  { name: "Pitcher", src: pitcher.url },
-  { name: "Hellopaid", src: hellopaid.url },
+  { name: "Pitcher", src: pitcher.url, weight: "light" },
+  { name: "Hellopaid", src: hellopaid.url, weight: "light" },
   { name: "Real Leaders", src: realLeaders.url },
-  { name: "The Shark Group", src: sharkGroup.url },
-  { name: "Creative World School", src: creativeWorld.url },
+  { name: "The Shark Group", src: sharkGroup.url, weight: "heavy" },
+  { name: "Creative World School", src: creativeWorld.url, weight: "heavy" },
   { name: "The Swell Collective", src: swell.url },
   { name: "TeamsynerG Global Consulting", src: teamsynerg.url },
 ];
