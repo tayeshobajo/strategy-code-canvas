@@ -1983,6 +1983,8 @@ export type Database = {
           hidden_assets: Json
           id: string
           investment: Json
+          investment_confirmed_at: string | null
+          investment_confirmed_by: string | null
           last_activity_at: string
           name: string
           next_action: string | null
@@ -2025,6 +2027,8 @@ export type Database = {
           hidden_assets?: Json
           id?: string
           investment?: Json
+          investment_confirmed_at?: string | null
+          investment_confirmed_by?: string | null
           last_activity_at?: string
           name: string
           next_action?: string | null
@@ -2067,6 +2071,8 @@ export type Database = {
           hidden_assets?: Json
           id?: string
           investment?: Json
+          investment_confirmed_at?: string | null
+          investment_confirmed_by?: string | null
           last_activity_at?: string
           name?: string
           next_action?: string | null

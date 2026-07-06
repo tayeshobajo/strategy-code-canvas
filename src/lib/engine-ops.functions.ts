@@ -188,13 +188,31 @@ export const listReviewQueue = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ items: ReviewItem[]; audit: ReviewAudit[] }> => {
     await assertOps(context as never);
+    // Pillar 7: operators (non-admin) do not see version-approval items —
+    // only Tai approves versions, so surfacing them in an operator queue
+    // just creates noise + false permission errors on click.
+    const isAdmin = await hasRoleForEmail(
+      (context as any).supabase,
+      (context as any).claims?.email as string | undefined,
+      "admin",
+    );
     const sb = context.supabase as never as {
       from: (t: string) => {
-        select: (s: string) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } };
+        select: (s: string) => {
+          order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> };
+          not: (c: string, op: string, v: unknown) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } };
+        };
       };
     };
+    const itemsBase = sb.from("engine_review_items").select("*");
+    const itemsQuery = isAdmin
+      ? itemsBase.order("created_at", { ascending: false }).limit(500)
+      : itemsBase
+          .not("item_type", "in", "(roadmap_version,Roadmap Update,version_approval,Version Change)")
+          .order("created_at", { ascending: false })
+          .limit(500);
     const [it, au] = await Promise.all([
-      sb.from("engine_review_items").select("*").order("created_at", { ascending: false }).limit(500),
+      itemsQuery,
       sb.from("engine_review_audit").select("*").order("at", { ascending: false }).limit(200),
     ]);
     if (it.error) throw new Error(String((it.error as { message?: string }).message ?? it.error));
@@ -325,6 +343,15 @@ export const decideReviewItem = createServerFn({ method: "POST" })
           .eq("severity", "critical").is("resolved_at", null);
         if ((openCritical ?? []).length) {
           throw new Error("Resolve open critical change events before approving this version.");
+        }
+        // Pillar 7: investment must be confirmed before version approval.
+        const { data: projGate } = await sb
+          .from("engine_projects")
+          .select("investment_confirmed_at")
+          .eq("id", projId)
+          .single() as unknown as { data: { investment_confirmed_at: string | null } | null };
+        if (!projGate?.investment_confirmed_at) {
+          throw new Error("Confirm the investment on this project before approving the roadmap version.");
         }
         const nowIso = new Date().toISOString();
         const { error: vErr } = await sb.from("engine_roadmap_versions")
@@ -961,7 +988,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
     // Resolve destination portal project (auto-link when possible).
     const { data: proj, error: pErr } = await sb
       .from("engine_projects")
-      .select("id,name,client_preview,client_portal_project_id,client_id,point_a,point_b")
+      .select("id,name,client_preview,client_portal_project_id,client_id,point_a,point_b,investment_confirmed_at")
       .eq("id", ver.project_id)
       .single();
     if (pErr) throw new Error(String((pErr as { message?: string }).message ?? pErr));
@@ -969,7 +996,12 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       id: string; name: string; client_preview: Record<string, unknown> | null;
       client_portal_project_id: string | null; client_id: string | null;
       point_a: string | null; point_b: string | null;
+      investment_confirmed_at: string | null;
     };
+    // Pillar 7: publishing to the client portal requires confirmed investment.
+    if (!project.investment_confirmed_at) {
+      throw new Error("Confirm the investment on this project before publishing the roadmap to the client portal.");
+    }
     let portalProjectId = project.client_portal_project_id;
     if (!portalProjectId) {
       portalProjectId = await _tryAutoLinkPortalProject(sb, project.id, project.client_id);
@@ -1266,4 +1298,39 @@ export const setPortalRoadmapStatus = createServerFn({ method: "POST" })
       });
     }
     return { ok: true, status: data.status };
+  });
+
+// ─── Investment Confirmation (Pillar 7 gate) ─────────────────────
+export const confirmProjectInvestment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      projectId: z.string().uuid(),
+      confirmed: z.boolean().default(true),
+    }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true; investment_confirmed_at: string | null }> => {
+    const actor = await assertAdminEmail(context as never);
+    const sb = context.supabase as never as {
+      from: (t: string) => {
+        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+      };
+    };
+    const nowIso = data.confirmed ? new Date().toISOString() : null;
+    const { error } = await sb.from("engine_projects").update({
+      investment_confirmed_at: nowIso,
+      investment_confirmed_by: nowIso ? actor : null,
+    }).eq("id", data.projectId);
+    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    await sb.from("engine_audit_log").insert({
+      project_id: data.projectId,
+      actor_email: actor,
+      action: nowIso ? "investment_confirmed" : "investment_confirmation_cleared",
+      summary: nowIso
+        ? `Investment confirmed by ${actor}. Version approval + portal publish are now unlocked.`
+        : `Investment confirmation cleared. Version approval + portal publish are re-locked.`,
+      affected_modules: ["investment"],
+    });
+    return { ok: true, investment_confirmed_at: nowIso };
   });
