@@ -246,8 +246,28 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
     const failures = await assertProjectIntegrity(sb, projectId, deliveryMode);
     if (failures.length > 0) {
       const combined = [...integrityErrors, ...failures].join(" | ");
-      // Best-effort audit trail BEFORE we delete the row. The activity row
-      // references project_id via FK; log to a project-agnostic path too.
+      // Pillar 2 — durable failure log. Writes to engine_project_intake_failures
+      // FIRST (no FK to engine_projects, so it survives the rollback below).
+      // The engine_activity insert is best-effort but will be wiped when
+      // rollbackHalfBornProject cascades — that's exactly why the dedicated
+      // failures table exists.
+      try {
+        await sb.from("engine_project_intake_failures").insert({
+          attempted_project_id: projectId,
+          attempted_project_name: data.projectName,
+          attempted_client_id: clientId || null,
+          actor_email: actor,
+          delivery_mode: deliveryMode,
+          failure_reason: combined,
+          payload: {
+            source_type: data.source?.type ?? null,
+            engagement_type: data.engagementType ?? null,
+            roadmap_type: data.roadmapType ?? null,
+          },
+        });
+      } catch (e) {
+        console.error("[intake] durable failure log write failed", e);
+      }
       try {
         await sb.from("engine_activity").insert({
           project_id: projectId,
@@ -262,6 +282,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       await rollbackHalfBornProject(sb, projectId);
       throw new Error(`Project creation failed integrity check: ${combined}`);
     }
+
 
     // Non-fatal soft warnings from the sibling insert block (e.g. duplicate
     // v0.0 on a retry) — surface but do not block.
@@ -838,6 +859,40 @@ export const listProjectsWithIntegrityIssues = createServerFn({ method: "GET" })
 
     return { rows };
   });
+
+
+/* ============================================================
+ * listRecentIntakeFailures — Pillar 2 durable-failure view
+ * Reads engine_project_intake_failures (survives project rollback).
+ * ============================================================ */
+
+export type IntakeFailureRow = {
+  id: string;
+  attempted_project_id: string | null;
+  attempted_project_name: string | null;
+  attempted_client_id: string | null;
+  actor_email: string | null;
+  delivery_mode: string | null;
+  failure_reason: string;
+  created_at: string;
+};
+
+export const listRecentIntakeFailures = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ rows: IntakeFailureRow[] }> => {
+    await assertOpsOrAdmin(context);
+    const sb = (context as any).supabase;
+    const { data, error } = await sb
+      .from("engine_project_intake_failures")
+      .select(
+        "id, attempted_project_id, attempted_project_name, attempted_client_id, actor_email, delivery_mode, failure_reason, created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message ?? "list failures failed");
+    return { rows: (data ?? []) as IntakeFailureRow[] };
+  });
+
 
 
 
