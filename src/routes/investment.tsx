@@ -418,7 +418,13 @@ function WalkRow({ walk }: { walk: Walk }) {
             {walk.price} <span className="text-[11.5px] font-normal text-ink/55">per month</span>
           </p>
           <p className="text-[12px] text-ink/55">{walk.months} months</p>
-          <p className="mt-1 text-[15px] text-royal">{walk.total} <span className="text-[11.5px] text-ink/55">over the walk</span></p>
+          <Link
+            to="/checkout/walk/$pace"
+            params={{ pace: walk.slug }}
+            className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-ink px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-ink/90"
+          >
+            Begin this walk <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
       </div>
 
@@ -430,7 +436,7 @@ function WalkRow({ walk }: { walk: Walk }) {
         </div>
         <div>
           <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Monthly investment</dt>
-          <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.price} per month · {walk.total} total</dd>
+          <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.price} per month</dd>
         </div>
         <div>
           <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Team capacity</dt>
@@ -441,6 +447,7 @@ function WalkRow({ walk }: { walk: Walk }) {
           <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.timing}</dd>
         </div>
       </dl>
+
     </div>
   );
 }
