@@ -1181,23 +1181,39 @@ export async function runIntelligencePipelineInternal(
     status: "draft",
   };
 
-  const modKeyMap: Record<string, string> = {
-    extraction: "extraction",
-    point_a: "point_a",
-    point_b: "point_b",
-    hidden_assets: "hidden_assets",
-    gap_map: "gap_map",
-    blueprint: "blueprint",
-    roadmap: "roadmap",
-    sequencing: "sequencing",
-    deadlines: "deadlines",
-    investment: "investment",
-    client_preview: "client_preview",
+  // Pillar 5: never overwrite a step whose operator has marked it approved.
+  // The pipeline still runs and produces a fresh version + review item, but
+  // approved module columns are preserved as-is. Draft/review steps flow
+  // through as before.
+  const modKeyMap: Record<string, { col: string; stepKey: string }> = {
+    extraction: { col: "extraction", stepKey: "extraction" },
+    point_a: { col: "point_a", stepKey: "point-a" },
+    point_b: { col: "point_b", stepKey: "point-b" },
+    hidden_assets: { col: "hidden_assets", stepKey: "hidden-assets" },
+    gap_map: { col: "gap_map", stepKey: "gap-map" },
+    blueprint: { col: "blueprint", stepKey: "blueprint" },
+    roadmap: { col: "roadmap", stepKey: "builder" },
+    sequencing: { col: "sequencing", stepKey: "sequencing" },
+    deadlines: { col: "deadlines", stepKey: "deadlines" },
+    investment: { col: "investment", stepKey: "investment" },
+    client_preview: { col: "client_preview", stepKey: "preview" },
   };
-  for (const [k, col] of Object.entries(modKeyMap)) {
+  const stepStates = (project.step_states ?? {}) as Record<string, { state?: string } | undefined>;
+  const skippedApprovedSteps: string[] = [];
+  for (const [k, { col, stepKey }] of Object.entries(modKeyMap)) {
     if (parsed.modules?.[k as keyof typeof parsed.modules]) {
+      if (stepStates[stepKey]?.state === "approved") {
+        skippedApprovedSteps.push(stepKey);
+        continue;
+      }
       moduleUpdates[col] = parsed.modules[k as keyof typeof parsed.modules];
     }
+  }
+  if (skippedApprovedSteps.length) {
+    console.info(
+      "[runIntelligencePipeline] preserved approved step(s):",
+      skippedApprovedSteps.join(", "),
+    );
   }
   await sb.from("engine_projects").update(moduleUpdates).eq("id", args.projectId);
 
