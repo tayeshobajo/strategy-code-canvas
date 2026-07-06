@@ -961,6 +961,21 @@ export async function runIntelligencePipelineInternal(
     );
     intakeTotalCost = intakeResults.reduce((a, r) => a + r.cost_cents, 0);
 
+    // Pillar 12: hydrate durable Intelligence Memory so the model treats
+    // previously-captured facts as authoritative and doesn't re-derive them
+    // from scratch on every run.
+    const { data: memRows } = await sb
+      .from("engine_intelligence_memory")
+      .select("title,type,summary,confidence,source,captured_at")
+      .or(`project_id.eq.${args.projectId},project_id.is.null`)
+      .is("archived_at", null)
+      .order("captured_at", { ascending: false })
+      .limit(60);
+    const priorMemory = (memRows ?? []) as Array<{
+      title: string; type: string; summary: string | null;
+      confidence: number | null; source: string | null; captured_at: string | null;
+    }>;
+
     // Stage 2: structured pass (Claude) that produces signals + modules
     parsed = await runStructuredPass({
       projectName: project.name,
@@ -982,6 +997,7 @@ export async function runIntelligencePipelineInternal(
       },
       intake: intakeResults,
       sources: srcRows.map((s) => ({ id: s.id, name: s.name, type: s.type, url: s.url })),
+      priorMemory,
     });
     structuredCost = parsed.cost_cents;
   } catch (e: any) {
