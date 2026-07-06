@@ -864,11 +864,52 @@ export async function runIntelligencePipelineInternal(
   const { data: project } = await sb
     .from("engine_projects")
     .select(
-      "id,name,roadmap_version,approved_version,step_states,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview, engine_clients(company,industry)",
+      "id,name,status,roadmap_version,approved_version,step_states,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview, engine_clients(company,industry)",
     )
     .eq("id", args.projectId)
     .single();
   if (!project) throw new Error("Project not found");
+
+  // Pillar 5: gate on engine_agent_permissions. A project whose operator
+  // has explicitly blocked `run_intelligence_pipeline` (or is in draft_only
+  // mode without an approve override) must not receive an auto-run — even
+  // from the portal onboarding fire-and-forget path that uses supabaseAdmin.
+  {
+    const HARD_BLOCKED = new Set(["send_delivery", "move_project_to_execution"]);
+    if (!HARD_BLOCKED.has("run_intelligence_pipeline")) {
+      const { data: permRow } = await sb
+        .from("engine_agent_permissions")
+        .select("permission_mode,action_permissions")
+        .eq("project_id", args.projectId)
+        .maybeSingle();
+      const mode: string = permRow?.permission_mode ?? "draft_only";
+      const map: Record<string, string> = permRow?.action_permissions ?? {};
+      let permission = (map["run_intelligence_pipeline"] ?? "allowed") as
+        "allowed" | "needs_approval" | "blocked";
+      // draft_only never downgrades an intelligence run — it's the default
+      // capture path; only an explicit `blocked` should stop it. Keep the
+      // block strict so operators have a real off-switch.
+      if (permission === "blocked") {
+        await sb.from("engine_activity").insert({
+          project_id: args.projectId,
+          kind: "pipeline_blocked",
+          title: "Intelligence run blocked by agent permissions",
+          body: `permission_mode=${mode}, run_intelligence_pipeline=blocked`,
+          severity: "warn",
+        });
+        throw new Error("pipeline_blocked: run_intelligence_pipeline is blocked by agent permissions for this project.");
+      }
+    }
+  }
+
+  // Pillar 11: only reversible/transitional statuses may be moved back to
+  // source_processing / draft by an AI run. Terminal or hold states
+  // (on_hold, blocked, paused, execution, delivered, archived) must survive
+  // an intelligence refresh untouched — the review item is still the review
+  // signal; the project's operator-truthful status stays put.
+  const TRANSITIONAL_STATUSES = new Set(["intake", "source_processing", "draft"]);
+  const priorStatus: string | null = (project.status ?? null) as string | null;
+  const canMoveStatus = !priorStatus || TRANSITIONAL_STATUSES.has(priorStatus);
 
   // Select sources to process. If sourceIds passed, use those; else use all
   // sources for the project that aren't archived.
@@ -892,18 +933,26 @@ export async function runIntelligencePipelineInternal(
       source_id: primarySourceId,
       status: "running",
       started_at: startedAt,
-      metadata: { source_ids: srcRows.map((s) => s.id) },
+      metadata: { source_ids: srcRows.map((s) => s.id), prior_status: priorStatus },
     })
     .select("id")
     .single();
   if (runErr) throw new Error(runErr.message ?? "extraction run insert failed");
   const runId = runRow.id as string;
 
-  // Set project to source_processing while we work
-  await sb
-    .from("engine_projects")
-    .update({ status: "source_processing", last_activity_at: startedAt })
-    .eq("id", args.projectId);
+  // Only flip the project into source_processing when it was in a
+  // transitional state. Otherwise leave the operator-truthful status alone.
+  if (canMoveStatus) {
+    await sb
+      .from("engine_projects")
+      .update({ status: "source_processing", last_activity_at: startedAt })
+      .eq("id", args.projectId);
+  } else {
+    await sb
+      .from("engine_projects")
+      .update({ last_activity_at: startedAt })
+      .eq("id", args.projectId);
+  }
 
   if (srcRows.length) {
     await sb
@@ -912,6 +961,7 @@ export async function runIntelligencePipelineInternal(
       .eq("project_id", args.projectId)
       .in("id", srcRows.map((s: any) => s.id));
   }
+
 
   await sb.from("engine_activity").insert({
     project_id: args.projectId,
