@@ -457,7 +457,7 @@ export const getPortalContext = createServerFn({ method: "GET" })
         // reach the browser. Keys mirror CLIENT_SAFE_KEYS + row metadata the
         // portal UI needs (id, title, status, timestamps).
         .select(
-          "id, project_id, title, version_label, status, approved_at, published_at, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, supporting_notes, client_safe_canvas",
+          "id, project_id, title, version_label, status, approved_at, published_at, acknowledged_at, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, supporting_notes, client_safe_canvas",
         )
         .eq("project_id", project.id)
         .not("approved_at", "is", null)
