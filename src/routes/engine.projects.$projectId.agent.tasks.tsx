@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Kanban, List, Layers, User, Zap, Calendar as CalendarIcon, Search, PlusCircle } from "lucide-react";
 import { SectionCard, MetricCard, formatCents } from "@/components/engine/primitives";
-import { listTasks, createTask, updateTaskStatus } from "@/lib/engine-execution.functions";
+import { listTasks, createTask, updateTaskStatus, listMilestones } from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/agent/tasks")({
   component: TaskBoardPage,
