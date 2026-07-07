@@ -37,13 +37,20 @@ describe("intake session state has a single source of truth", () => {
     describe(file, () => {
       const src = read(file);
 
-      it("does not use getIntakeClient() for intake_drafts lookups", () => {
-        // Find every getIntakeClient() call site and confirm none of them
-        // reach into intake_drafts within a 400-char window (covers
-        // await ... .from("intake_drafts") ... patterns).
-        const regex = /getIntakeClient\(\)[\s\S]{0,400}intake_drafts/g;
-        const matches = src.match(regex) ?? [];
-        expect(matches, `getIntakeClient() reads intake_drafts in ${file}`).toEqual([]);
+      it("only reads intake_drafts through supabaseAdmin", () => {
+        // Every `.from("intake_drafts")` call in the file must be a method
+        // call on `supabaseAdmin` — never on a variable derived from
+        // `getIntakeClient()`.
+        const draftCalls = [
+          ...src.matchAll(/([A-Za-z_$][\w$]*)\s*\.from\(["']intake_drafts["']\)/g),
+        ];
+        expect(draftCalls.length, `no intake_drafts reads found in ${file}`).toBeGreaterThan(0);
+        for (const m of draftCalls) {
+          expect(
+            m[1],
+            `intake_drafts accessed via ${m[1]} (must be supabaseAdmin) in ${file}`,
+          ).toBe("supabaseAdmin");
+        }
       });
 
       it("gates draft lookups through supabaseAdmin (main DB)", () => {
