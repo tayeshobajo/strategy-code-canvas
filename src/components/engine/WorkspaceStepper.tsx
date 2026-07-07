@@ -12,9 +12,10 @@ export function WorkspaceStepper({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-x-auto">
-      <div className="px-5 py-4 flex items-center gap-2 min-w-max">
-        <div className="pr-4 border-r border-border mr-2">
+    <div className="rounded-xl border border-border bg-card shadow-sm scroll-strip">
+      <div className="px-4 sm:px-5 py-5 sm:py-6 flex items-center gap-2 min-w-max">
+        <div className="pr-4 border-r border-border mr-2 snap-start">
+
           <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/50">
             Roadmap Workflow
           </div>
@@ -26,12 +27,12 @@ export function WorkspaceStepper({
           const isDone = s.num < currentStepNum;
           const isCurrent = s.num === currentStepNum;
           return (
-            <div key={s.key} className="flex items-center">
+            <div key={s.key} className="flex items-center snap-start">
               <Link
                 to={to}
                 params={{ projectId }}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 px-1.5 group",
+                  "flex flex-col items-center gap-2 px-2 py-1 group",
                 )}
               >
                 <div

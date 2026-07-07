@@ -213,7 +213,7 @@ function PortalLayout() {
             {sidebarInner}
           </aside>
 
-          <main className="flex-1 min-w-0 bg-paper-soft px-4 sm:px-6 lg:px-10 py-10 lg:py-16 overflow-x-clip">
+          <main className="app-shell-main flex-1 bg-paper-soft overflow-x-clip">
             <Outlet />
           </main>
         </div>

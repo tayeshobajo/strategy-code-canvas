@@ -121,7 +121,7 @@ function AdminLayout() {
         <NavList pathname={pathname} />
       </aside>
 
-      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 text-white">
+      <main className="app-shell-main flex-1 text-white">
         <div className="min-w-0">
           <Outlet />
         </div>

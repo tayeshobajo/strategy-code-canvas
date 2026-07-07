@@ -195,17 +195,18 @@ function MilestoneBriefPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-border flex items-center gap-6 text-sm overflow-x-auto">
+      <div className="border-b border-border flex items-center gap-4 sm:gap-6 text-sm scroll-strip pb-0.5">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`pb-2.5 -mb-px border-b-2 whitespace-nowrap ${
+            className={`snap-start pb-2.5 -mb-px border-b-2 whitespace-nowrap ${
               tab === t ? "border-royal text-ink font-medium" : "border-transparent text-ink/60 hover:text-ink"
             }`}
           >{t}</button>
         ))}
       </div>
+
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5">
         <div className="space-y-5 min-w-0">
