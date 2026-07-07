@@ -19,7 +19,15 @@ import {
   Globe2,
   BrainCircuit,
   LogOut,
+  Menu,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 
 export const Route = createFileRoute("/engine")({
