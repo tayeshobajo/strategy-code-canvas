@@ -24,7 +24,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Check, Loader2, Pencil } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, FileText, Link2, Loader2, Paperclip, Pencil, ShieldCheck, Upload, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { StoredIntakeSource } from "@/lib/intake-sources.functions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
