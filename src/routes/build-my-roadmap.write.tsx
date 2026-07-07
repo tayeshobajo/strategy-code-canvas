@@ -188,6 +188,8 @@ function WriteIntake() {
         }
         setAnswers(map);
         setContact({ ...EMPTY_CONTACT, ...(res.contact as Partial<ContactFields>) });
+        if (Array.isArray(res.attachments)) setAttachments(res.attachments);
+
 
         // Restore frame if the draft carried it
         const frameRow = map[FRAME_KEY];
