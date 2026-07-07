@@ -61,7 +61,7 @@ function PortalLoginPage() {
   return (
     <div className="bg-paper min-h-screen flex flex-col">
       <SiteHeader />
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
+      <main className="flex-1 flex items-center justify-center px-6 pt-28 pb-16 sm:pt-32 sm:pb-20">
       <div className="w-full max-w-md rounded-2xl bg-card border border-border p-10">
         <div className="mb-8">
           <h1 className="font-display text-3xl text-ink">
