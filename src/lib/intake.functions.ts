@@ -813,6 +813,16 @@ async function autoBridgeIntakeToEngine(input: {
   };
   answers: Array<{ key: string; question: string; response: string; reflected_offered?: string | null }>;
   attachments: Array<{ storage_path: string; filename: string; size: number; mime: string | null }>;
+  sources?: Array<{
+    id: string;
+    kind: "transcript" | "notes" | "url";
+    label: string;
+    content: string;
+    url: string | null;
+    visibility: "internal_only";
+    origin: "user";
+    added_at: string;
+  }>;
 }): Promise<{ project_id: string | null; source_id: string | null }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const sb = supabaseAdmin as unknown as {
