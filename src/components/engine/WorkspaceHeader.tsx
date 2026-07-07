@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck } from "lucide-react";
+import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList } from "lucide-react";
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import { EngineStatusBadge } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
@@ -123,6 +123,9 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
       </Link>
       <Link to="/engine/projects/$projectId/agent/permissions" params={{ projectId }} className={linkCls}>
         <ShieldCheck className="w-3.5 h-3.5" /> Permissions
+      </Link>
+      <Link to="/engine/projects/$projectId/intake" params={{ projectId }} className={linkCls}>
+        <ClipboardList className="w-3.5 h-3.5" /> Intake Review
       </Link>
       <Link
         to="/engine/projects/$projectId/signal-room"
