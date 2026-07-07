@@ -206,7 +206,7 @@ function EngineLayout() {
             </div>
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 min-w-0">
+        <main className="app-shell-main flex-1">
           <div className="min-w-0">
             <Outlet />
           </div>
