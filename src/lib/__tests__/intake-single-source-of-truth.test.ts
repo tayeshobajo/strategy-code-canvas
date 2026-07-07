@@ -47,9 +47,9 @@ describe("intake session state has a single source of truth", () => {
       });
 
       it("gates draft lookups through supabaseAdmin (main DB)", () => {
-        // Every draft-gated handler must import supabaseAdmin and read
-        // intake_drafts through it.
-        expect(src).toMatch(/from\s+["']@\/integrations\/supabase\/client\.server["']/);
+        // Every draft-gated handler must load supabaseAdmin (top-level or
+        // dynamic import) and read intake_drafts through it.
+        expect(src).toMatch(/["']@\/integrations\/supabase\/client\.server["']/);
         expect(src).toMatch(/supabaseAdmin\.from\(["']intake_drafts["']\)/);
       });
     });
