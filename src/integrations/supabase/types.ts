@@ -2603,21 +2603,51 @@ export type Database = {
           answers: Json
           attachments: Json
           contact: Json
+          contact_email: string | null
+          created_at: string
+          current_objective: string | null
+          current_question: string | null
+          frame: string | null
+          id: string
+          objective_scores: Json
+          open_objectives: Json
           resume_token: string
+          status: string
+          subtype: string | null
           updated_at: string
         }
         Insert: {
           answers?: Json
           attachments?: Json
           contact?: Json
+          contact_email?: string | null
+          created_at?: string
+          current_objective?: string | null
+          current_question?: string | null
+          frame?: string | null
+          id?: string
+          objective_scores?: Json
+          open_objectives?: Json
           resume_token?: string
+          status?: string
+          subtype?: string | null
           updated_at?: string
         }
         Update: {
           answers?: Json
           attachments?: Json
           contact?: Json
+          contact_email?: string | null
+          created_at?: string
+          current_objective?: string | null
+          current_question?: string | null
+          frame?: string | null
+          id?: string
+          objective_scores?: Json
+          open_objectives?: Json
           resume_token?: string
+          status?: string
+          subtype?: string | null
           updated_at?: string
         }
         Relationships: []
