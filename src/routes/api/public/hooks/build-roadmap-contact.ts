@@ -3,6 +3,38 @@ import { z } from "zod";
 
 const RECIPIENT = "tai@trusttai.com";
 
+// Same-origin / trusted origin allowlist. Public browser form is only served
+// from these hosts; anything else calling this route is not the marketing
+// site and should be rejected. Preview subdomains match a wildcard.
+const ALLOWED_ORIGIN_HOSTS = new Set([
+  "trusttai.com",
+  "www.trusttai.com",
+  "new.trusttai.com",
+  "trust-tai.com",
+  "www.trust-tai.com",
+  "strategy-code-canvas.lovable.app",
+  "localhost",
+  "127.0.0.1",
+]);
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const host = new URL(origin).hostname.toLowerCase();
+    if (ALLOWED_ORIGIN_HOSTS.has(host)) return true;
+    // Allow Lovable preview subdomains for this project.
+    if (host.endsWith(".lovable.app")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// Coarse global rate-limit: cap enqueues per rolling 60s window using
+// `email_send_log`. Not per-IP (Workers don't expose reliable IP for form
+// posts through Lovable's edge), but bounds worst-case abuse volume.
+const MAX_PER_MINUTE = 20;
+
 const BodySchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
