@@ -96,6 +96,32 @@
   .font-mono { font-family: var(--font-mono); }
 }
 
+/* Shared responsive shell padding for authenticated app main regions
+   (portal, admin, engine, operator). Keeps top spacing consistent so
+   headings never sit under the fixed mobile header, and unifies horizontal
+   gutters at every breakpoint. Use on the <main> element of each shell. */
+@utility app-shell-main {
+  min-width: 0;
+  padding: 1.75rem 1rem;
+  @media (min-width: 640px) {
+    padding: 2rem 1.5rem;
+  }
+  @media (min-width: 1024px) {
+    padding: 2.5rem 2rem;
+  }
+}
+
+/* Smooth, snap-based horizontal scroller for tab strips and steppers that
+   overflow on narrow viewports. Pair with `snap-start` on each child. */
+@utility scroll-strip {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Shared interactive row - hover + selected states, used by Walks and any
    other site lists that want the same royal-tinted interaction model. */
 @utility row-interactive {
