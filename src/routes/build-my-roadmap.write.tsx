@@ -713,6 +713,70 @@ function WriteIntake() {
     }
   }, [answers, contact, navigate, persist, resumeToken]);
 
+  // ---------- Generative anchor wording ----------
+  // Whenever the completeness model picks a new objective, ask the server to
+  // rewrite that objective's anchor in the person's own language. Voice check
+  // + regeneration + anchor fallback all happen server-side; here we only
+  // hold the returned string. On any failure we render the anchor verbatim.
+  React.useEffect(() => {
+    if (phase !== "objectives" || !currentObjective || !resumeToken) {
+      setGeneratedQuestion(null);
+      return;
+    }
+    let cancelled = false;
+    const objectiveKey = currentObjective.key;
+    // Reset so the anchor shows immediately while we fetch.
+    setGeneratedQuestion(null);
+    setGeneratingQuestion(true);
+    (async () => {
+      try {
+        const priors = activeFrameDef
+          ? activeFrameDef.objectives
+              .filter(
+                (o) =>
+                  o.key !== objectiveKey &&
+                  (answers[o.key]?.response ?? "").trim().length > 0,
+              )
+              .map((o) => ({
+                label: o.label,
+                response: answers[o.key]!.response.trim().slice(0, 800),
+              }))
+          : [];
+        const opening = answers[OPEN_KEY]?.response ?? "";
+        const mod = await import("@/lib/intake-question.functions");
+        const res = await mod.generateAnchorWording({
+          data: {
+            resume_token: resumeToken,
+            objective_key: objectiveKey,
+            objective_label: currentObjective.label,
+            objective_anchor: currentObjective.anchor,
+            opening,
+            prior_answers: priors,
+          },
+        });
+        if (cancelled) return;
+        // Only override the anchor when the model returned a fresh sentence.
+        if (res.source === "generated" && res.question) {
+          setGeneratedQuestion(res.question);
+        } else {
+          setGeneratedQuestion(null);
+        }
+      } catch (err) {
+        console.warn("[intake/write] anchor rewording failed, using anchor", err);
+        if (!cancelled) setGeneratedQuestion(null);
+      } finally {
+        if (!cancelled) setGeneratingQuestion(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Answers change every keystroke; we only want to regenerate when the
+    // objective itself changes, not while the user is typing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentObjective?.key, phase, resumeToken]);
+
+
 
   /* ---------- Render ---------- */
 
