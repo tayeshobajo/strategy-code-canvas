@@ -126,6 +126,41 @@ export const Route = createFileRoute("/api/public/hooks/build-roadmap-contact")(
           const { ensureUnsubscribeToken } = await import(
             "@/lib/email/unsubscribe-token.server"
           );
+
+          // Rolling 60-second global rate limit for this template.
+          const sinceIso = new Date(Date.now() - 60_000).toISOString();
+          const { count: recentCount, error: rateErr } = await supabaseAdmin
+            .from("email_send_log")
+            .select("id", { count: "exact", head: true })
+            .eq("template_name", "build-roadmap-contact")
+            .gte("created_at", sinceIso);
+          if (rateErr) {
+            console.warn("[build-roadmap-contact] rate_lookup_failed", {
+              cid,
+              err: rateErr.message,
+            });
+          } else if ((recentCount ?? 0) >= MAX_PER_MINUTE) {
+            console.warn("[build-roadmap-contact] rate_limited", {
+              cid,
+              recentCount,
+            });
+            return new Response(
+              JSON.stringify({
+                ok: false,
+                error: "rate_limited",
+                correlationId: cid,
+              }),
+              {
+                status: 429,
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-correlation-id": cid,
+                  "Retry-After": "60",
+                },
+              },
+            );
+          }
+
           const idempotencyKey = `roadmap-${cid}`;
           const unsubscribeToken = await ensureUnsubscribeToken(RECIPIENT);
           const { error } = await (supabaseAdmin.rpc as unknown as (
