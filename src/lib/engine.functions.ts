@@ -619,7 +619,7 @@ export const getProject = createServerFn({ method: "GET" })
   });
 
 const WORKSPACE_SELECT =
-  "id,name,status,current_step_num,progress_pct,health_score,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at,step_states,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview,delivery, engine_clients(company,owner_email)";
+  "id,name,status,current_step_num,progress_pct,health_score,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at,updated_at,step_states,signal_room,extraction,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview,delivery, engine_clients(company,owner_email)";
 
 export const getProjectWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -660,6 +660,7 @@ export const getProjectWorkspace = createServerFn({ method: "GET" })
       open_decisions: (row.open_decisions as number) ?? 0,
       next_action: (row.next_action as string | null) ?? null,
       last_activity_at: row.last_activity_at as string,
+      updated_at: row.updated_at as string,
       client_company: row.engine_clients?.company ?? "—",
       client_owner_email: row.engine_clients?.owner_email ?? null,
       step_states: (row.step_states as Record<string, import("@/lib/engine-workspace").StepState>) ?? {},
