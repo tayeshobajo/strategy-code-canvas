@@ -333,17 +333,22 @@ export const submitIntake = createServerFn({ method: "POST" })
       mime: string | null;
     };
     let attachments: AttachmentMeta[] = [];
+    const { normalizeIntakeSources } = await import("@/lib/intake-sources.functions");
+    type SourceMeta = ReturnType<typeof normalizeIntakeSources>[number];
+    let sources: SourceMeta[] = [];
     if (data.resume_token) {
       const { data: draft } = await (
         supabaseAdmin.from("intake_drafts") as unknown as {
           select: (s: string) => {
             eq: (c: string, v: string) => {
-              maybeSingle: () => Promise<{ data: { attachments: unknown } | null }>;
+              maybeSingle: () => Promise<{
+                data: { attachments: unknown; sources: unknown } | null;
+              }>;
             };
           };
         }
       )
-        .select("attachments")
+        .select("attachments, sources")
         .eq("resume_token", data.resume_token)
         .maybeSingle();
       const rawAtt = Array.isArray(draft?.attachments)
@@ -355,6 +360,7 @@ export const submitIntake = createServerFn({ method: "POST" })
         size: Number(a.size ?? 0),
         mime: a.mime == null ? null : String(a.mime),
       }));
+      sources = normalizeIntakeSources(draft?.sources);
     }
 
     const contactExtras = {
