@@ -1903,10 +1903,12 @@ function SourcesPanel({
         <input
           ref={fileRef}
           type="file"
+          multiple
           className="hidden"
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void uploadFile(f);
+            const list = e.target.files;
+            if (!list || list.length === 0) return;
+            void uploadFiles(Array.from(list));
           }}
         />
         <Button
