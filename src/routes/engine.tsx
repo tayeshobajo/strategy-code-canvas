@@ -223,7 +223,7 @@ function buildCrumbs(pathname: string): Array<{ label: string; to?: string }> {
         return out;
       }
       // Link the project crumb to its overview page.
-      out.push({ label: "Project", to: `/engine/projects/${projectId}/overview` as never });
+      out.push({ label: "Project" });
       const sub = match[2];
       const subsub = match[3];
       if (sub) out.push({ label: titleFromSlug(sub) });
