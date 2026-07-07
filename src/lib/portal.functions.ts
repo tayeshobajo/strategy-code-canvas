@@ -15,9 +15,10 @@ import { hasRoleForEmail, isAdminEmail, isOperatorEmail } from "@/lib/ops/access
 
 // Sync allowlist fallback used for rendering (returned in `hasClientAccess`).
 // The authoritative check is `assertOperator` which also consults the
-// `user_roles` table via the `has_role_email` RPC.
+// `user_roles` table via the `has_role_email` RPC. Mirror the same union
+// used by `checkPortalAccess` so DB-only operators aren't ignored.
 function isOperator(email: string | null | undefined) {
-  return isAdminEmail(email);
+  return isAdminEmail(email) || isOperatorEmail(email);
 }
 
 // Read the inbound correlation ID from the request or mint a fresh one.
@@ -1303,16 +1304,54 @@ export const resolvePortalFollowUp = createServerFn({ method: "POST" })
     z.object({ messageId: z.string().uuid() }).parse(raw),
   )
   .handler(async ({ data, context }) => {
+    // Defense-in-depth: verify the caller is either an operator/admin or a
+    // permitted member of the message's project before delegating to the
+    // SECURITY DEFINER RPC (which also enforces the same rule).
+    const email = ((context.claims?.email as string | undefined) ?? "").toLowerCase();
+    if (!email) throw new Error("Not signed in");
+
     const sb = context.supabase as unknown as {
+      from: (t: string) => {
+        select: (c: string) => {
+          eq: (c: string, v: string) => {
+            maybeSingle: () => Promise<{
+              data: { project_id: string } | null;
+              error: { message?: string } | null;
+            }>;
+          };
+        };
+      };
       rpc: (
         fn: string,
         args: Record<string, unknown>,
       ) => Promise<{ data: unknown; error: { message?: string } | null }>;
     };
+
+    const { data: msg, error: lookupErr } = await sb
+      .from("client_portal_messages")
+      .select("project_id")
+      .eq("id", data.messageId)
+      .maybeSingle();
+    if (lookupErr) {
+      console.error("[resolvePortalFollowUp] lookup failed", lookupErr);
+      throw new Error("Message lookup failed");
+    }
+    if (!msg) throw new Error("Message not found");
+
+    if (!isOperator(email)) {
+      const isAdmin = await hasRoleForEmail(sb as unknown as never, email, "admin");
+      if (!isAdmin) {
+        await _resolvePortalMembership(context, msg.project_id);
+      }
+    }
+
     const { error } = await sb.rpc("resolve_portal_follow_up", {
       _message_id: data.messageId,
     });
-    if (error) throw new Error(error.message ?? "resolve failed");
+    if (error) {
+      console.error("[resolvePortalFollowUp] rpc failed", error);
+      throw new Error("Resolve failed");
+    }
     return { ok: true as const };
   });
 

@@ -3,6 +3,38 @@ import { z } from "zod";
 
 const RECIPIENT = "tai@trusttai.com";
 
+// Same-origin / trusted origin allowlist. Public browser form is only served
+// from these hosts; anything else calling this route is not the marketing
+// site and should be rejected. Preview subdomains match a wildcard.
+const ALLOWED_ORIGIN_HOSTS = new Set([
+  "trusttai.com",
+  "www.trusttai.com",
+  "new.trusttai.com",
+  "trust-tai.com",
+  "www.trust-tai.com",
+  "strategy-code-canvas.lovable.app",
+  "localhost",
+  "127.0.0.1",
+]);
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const host = new URL(origin).hostname.toLowerCase();
+    if (ALLOWED_ORIGIN_HOSTS.has(host)) return true;
+    // Allow Lovable preview subdomains for this project.
+    if (host.endsWith(".lovable.app")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// Coarse global rate-limit: cap enqueues per rolling 60s window using
+// `email_send_log`. Not per-IP (Workers don't expose reliable IP for form
+// posts through Lovable's edge), but bounds worst-case abuse volume.
+const MAX_PER_MINUTE = 20;
+
 const BodySchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
@@ -23,6 +55,27 @@ export const Route = createFileRoute("/api/public/hooks/build-roadmap-contact")(
       POST: async ({ request }) => {
         const headerCid = request.headers.get("x-correlation-id") || undefined;
         let cid = headerCid || newCorrelationId();
+
+        // Reject requests that don't come from a known browser origin.
+        const origin =
+          request.headers.get("origin") || request.headers.get("referer");
+        if (!isAllowedOrigin(origin)) {
+          console.warn("[build-roadmap-contact] forbidden_origin", {
+            cid,
+            origin,
+          });
+          return new Response(
+            JSON.stringify({ ok: false, error: "forbidden", correlationId: cid }),
+            {
+              status: 403,
+              headers: {
+                "Content-Type": "application/json",
+                "x-correlation-id": cid,
+              },
+            },
+          );
+        }
+
 
         let payload: unknown;
         try {
@@ -73,6 +126,41 @@ export const Route = createFileRoute("/api/public/hooks/build-roadmap-contact")(
           const { ensureUnsubscribeToken } = await import(
             "@/lib/email/unsubscribe-token.server"
           );
+
+          // Rolling 60-second global rate limit for this template.
+          const sinceIso = new Date(Date.now() - 60_000).toISOString();
+          const { count: recentCount, error: rateErr } = await supabaseAdmin
+            .from("email_send_log")
+            .select("id", { count: "exact", head: true })
+            .eq("template_name", "build-roadmap-contact")
+            .gte("created_at", sinceIso);
+          if (rateErr) {
+            console.warn("[build-roadmap-contact] rate_lookup_failed", {
+              cid,
+              err: rateErr.message,
+            });
+          } else if ((recentCount ?? 0) >= MAX_PER_MINUTE) {
+            console.warn("[build-roadmap-contact] rate_limited", {
+              cid,
+              recentCount,
+            });
+            return new Response(
+              JSON.stringify({
+                ok: false,
+                error: "rate_limited",
+                correlationId: cid,
+              }),
+              {
+                status: 429,
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-correlation-id": cid,
+                  "Retry-After": "60",
+                },
+              },
+            );
+          }
+
           const idempotencyKey = `roadmap-${cid}`;
           const unsubscribeToken = await ensureUnsubscribeToken(RECIPIENT);
           const { error } = await (supabaseAdmin.rpc as unknown as (
