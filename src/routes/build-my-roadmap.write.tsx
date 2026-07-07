@@ -148,6 +148,9 @@ function WriteIntake() {
   const [attachments, setAttachments] = React.useState<
     Array<{ storage_path: string; filename: string; size: number; mime: string | null }>
   >([]);
+  // External sources (transcripts, notes, URLs). Treated as data-only
+  // evidence. Written through server fns; the browser never persists them.
+  const [sources, setSources] = React.useState<StoredIntakeSource[]>([]);
   const [contact, setContact] = React.useState<ContactFields>(EMPTY_CONTACT);
   const [authorizesScan, setAuthorizesScan] = React.useState(false);
 
