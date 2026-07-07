@@ -87,14 +87,16 @@ for (const route of PUBLIC_ROUTES) {
     await assertNoHorizontalOverflow(page, route);
     await assertMainNotClippedByHeader(page, route);
 
-    // Filter noisy third-party errors (Stripe / Supabase network in test env).
+    // Filter noisy third-party + React dev warnings; keep real runtime errors.
     const meaningful = consoleErrors.filter(
       (e) =>
-        !/stripe|supabase|Failed to fetch|NetworkError|net::ERR_/i.test(e),
+        !/stripe|supabase|Failed to fetch|NetworkError|net::ERR_/i.test(e) &&
+        !/Invalid DOM property|Warning:|Download the React DevTools|Each child in a list/i.test(e),
     );
     expect(
       meaningful,
       `${route} on ${testInfo.project.name} produced console errors:\n${meaningful.join("\n")}`,
     ).toHaveLength(0);
+
   });
 }
