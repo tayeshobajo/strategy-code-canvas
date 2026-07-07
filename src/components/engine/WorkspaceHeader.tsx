@@ -124,6 +124,9 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
       <Link to="/engine/projects/$projectId/agent/permissions" params={{ projectId }} className={linkCls}>
         <ShieldCheck className="w-3.5 h-3.5" /> Permissions
       </Link>
+      <Link to="/engine/projects/$projectId/intake" params={{ projectId }} className={linkCls}>
+        <ClipboardList className="w-3.5 h-3.5" /> Intake Review
+      </Link>
       <Link
         to="/engine/projects/$projectId/signal-room"
         params={{ projectId }}
