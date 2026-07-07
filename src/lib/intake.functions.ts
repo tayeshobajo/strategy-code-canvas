@@ -749,3 +749,180 @@ export const removeIntakeAttachment = createServerFn({ method: "POST" })
     if (error) throw new Error("Could not remove attachment");
     return { attachments: next };
   });
+
+// ─── Engine bridge (Phase 5) ────────────────────────────────────────────
+// Auto-creates an engine_project + engine_sources row from a fresh intake
+// submission and fires the intelligence pipeline. Everything stays
+// internal_only: no portal is created, nothing is exposed to the client,
+// and every insert uses the service-role admin client. Failures are
+// contained — the caller wraps this in try/catch so the client-facing
+// submission never fails on an engine hiccup.
+async function autoBridgeIntakeToEngine(input: {
+  submissionId: string;
+  contact: {
+    name: string;
+    business?: string | null;
+    website?: string | null;
+    email: string;
+    role?: string | null;
+  };
+  answers: Array<{ key: string; question: string; response: string; reflected_offered: string | null }>;
+  attachments: Array<{ storage_path: string; filename: string; size: number; mime: string | null }>;
+}): Promise<{ project_id: string | null; source_id: string | null }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const sb = supabaseAdmin as unknown as {
+    from: (t: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  };
+  const contactEmail = input.contact.email.trim().toLowerCase();
+  const actorEmail = contactEmail || null;
+
+  // 1. Find or create engine_client keyed by contact email.
+  let clientId: string | null = null;
+  if (contactEmail) {
+    const { data: existing } = await sb
+      .from("engine_clients")
+      .select("id")
+      .ilike("contact_email", contactEmail)
+      .limit(1)
+      .maybeSingle();
+    if (existing?.id) clientId = existing.id as string;
+  }
+  if (!clientId) {
+    const { data: created, error: clientErr } = await sb
+      .from("engine_clients")
+      .insert({
+        company: input.contact.business?.trim() || input.contact.name || "New intake",
+        contact_email: contactEmail || null,
+        primary_contact: input.contact.name || null,
+        owner_email: null,
+      })
+      .select("id")
+      .single();
+    if (clientErr || !created) {
+      console.warn("[intake-bridge] engine_clients insert failed", clientErr);
+      return { project_id: null, source_id: null };
+    }
+    clientId = created.id as string;
+  }
+
+  // 2. Create engine_project — internal_only until an operator approves it
+  //    for portal delivery. status=intake so it lands in the review queue.
+  const projectName =
+    (input.contact.business?.trim() || input.contact.name || "New intake") + " — intake";
+  const { data: proj, error: projErr } = await sb
+    .from("engine_projects")
+    .insert({
+      client_id: clientId,
+      name: projectName,
+      status: "intake",
+      current_step: "signal",
+      agent_status: "inactive",
+      delivery_mode: "internal_only",
+      next_action: "Awaiting intake extraction",
+      signal_room: {
+        intake_submission_id: input.submissionId,
+        source: "adaptive_intake",
+      },
+    })
+    .select("id")
+    .single();
+  if (projErr || !proj) {
+    console.warn("[intake-bridge] engine_projects insert failed", projErr);
+    return { project_id: null, source_id: null };
+  }
+  const projectId = proj.id as string;
+
+  // Activity log so operators see the bridge in the project timeline.
+  await sb
+    .from("engine_activity")
+    .insert({
+      project_id: projectId,
+      kind: "intake_bridge",
+      title: "Project created from adaptive intake",
+      body: `Submission ${input.submissionId} — ${contactEmail || "no email"}`,
+      severity: "info",
+    })
+    .then(() => undefined, () => undefined);
+
+  // 3. Compile the raw intake into a single brief text for the pipeline.
+  const briefLines: string[] = [];
+  briefLines.push(`# Adaptive intake submission`);
+  briefLines.push(`Submitted by: ${input.contact.name}${contactEmail ? ` <${contactEmail}>` : ""}`);
+  if (input.contact.business) briefLines.push(`Business: ${input.contact.business}`);
+  if (input.contact.website) briefLines.push(`Website: ${input.contact.website}`);
+  if (input.contact.role) briefLines.push(`Role: ${input.contact.role}`);
+  briefLines.push("");
+  for (const a of input.answers) {
+    if (!a.response || !a.response.trim()) continue;
+    if (a.key.startsWith("_")) continue; // skip artifact/meta/scores wrappers
+    briefLines.push(`## ${a.question || a.key}`);
+    briefLines.push(a.response.trim());
+    briefLines.push("");
+  }
+  if (input.attachments.length) {
+    briefLines.push(`## Attachments`);
+    for (const att of input.attachments) {
+      briefLines.push(
+        `- ${att.filename} (${att.size} bytes${att.mime ? `, ${att.mime}` : ""}) — bucket:intake-uploads path:${att.storage_path}`,
+      );
+    }
+  }
+  const briefText = briefLines.join("\n").slice(0, 190_000);
+
+  // 4. engine_sources row — internal_only, queued. The intelligence
+  //    pipeline will flip it to processing → complete and populate signals.
+  const { data: src, error: srcErr } = await sb
+    .from("engine_sources")
+    .insert({
+      project_id: projectId,
+      name: "Adaptive intake brief",
+      type: "brief",
+      raw_text: briefText,
+      status: "queued",
+      visibility: "internal_only",
+      created_by_email: actorEmail,
+    })
+    .select("id")
+    .single();
+  if (srcErr || !src) {
+    console.warn("[intake-bridge] engine_sources insert failed", srcErr);
+    return { project_id: projectId, source_id: null };
+  }
+  const sourceId = src.id as string;
+
+  // 5. Fire the intelligence pipeline. Fire-and-forget so submit returns
+  //    immediately; the pipeline logs its own progress into
+  //    engine_extraction_runs / engine_extracted_signals /
+  //    engine_roadmap_versions and creates the review item ops sees.
+  void (async () => {
+    try {
+      const { runIntelligencePipelineInternal } = await import(
+        "@/lib/engine-intelligence.functions"
+      );
+      await runIntelligencePipelineInternal(sb, {
+        projectId,
+        sourceIds: [sourceId],
+        actorEmail,
+      });
+    } catch (e) {
+      const msg = (e as Error)?.message ?? String(e);
+      if (msg.startsWith("pipeline_blocked:")) {
+        await sb
+          .from("engine_activity")
+          .insert({
+            project_id: projectId,
+            kind: "intake_bridge_pipeline_blocked",
+            title: "Intake bridged — auto-extraction blocked",
+            body: "Agent permissions block run_intelligence_pipeline for this project. Review the intake source manually.",
+            severity: "warn",
+          })
+          .then(() => undefined, () => undefined);
+      } else {
+        console.warn("[intake-bridge] pipeline run failed", msg);
+      }
+    }
+  })();
+
+  return { project_id: projectId, source_id: sourceId };
+}
+
