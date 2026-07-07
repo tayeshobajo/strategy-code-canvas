@@ -27,7 +27,7 @@ export function WorkspaceStepper({
           const isDone = s.num < currentStepNum;
           const isCurrent = s.num === currentStepNum;
           return (
-            <div key={s.key} className="flex items-center">
+            <div key={s.key} className="flex items-center snap-start">
               <Link
                 to={to}
                 params={{ projectId }}
