@@ -111,7 +111,7 @@ function CheckoutWalk() {
     <div className="min-h-screen bg-background">
       <PaymentTestModeBanner />
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-6 py-12 sm:py-16">
+      <main className="mx-auto max-w-6xl px-6 pt-28 pb-12 sm:pt-32 sm:pb-16">
         <div className="mb-8">
           <Link
             to="/investment"
