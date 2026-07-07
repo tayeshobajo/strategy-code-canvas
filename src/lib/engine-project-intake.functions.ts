@@ -334,6 +334,8 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         portalProjectCreated,
         portalPermissionCreated,
         contactEmail: resolvedContactEmail,
+        deliveryMode,
+        actorEmail: actor,
       });
       throw new Error(`Project creation failed integrity check: ${combined}${logNote}`);
     }
@@ -593,6 +595,10 @@ type RollbackContext = {
   portalPermissionCreated?: boolean;
   /** Contact email the permission row was written for. */
   contactEmail?: string | null;
+  /** Delivery mode of the project being rolled back. */
+  deliveryMode?: string | null;
+  /** Actor email that triggered the intake. */
+  actorEmail?: string | null;
 };
 
 /**
@@ -601,14 +607,19 @@ type RollbackContext = {
  * portal shell (client_portal_projects / client_portal_permissions) and the
  * engine_clients row when they were created by this call — previously these
  * were orphaned, leaving a live-looking portal for a deleted project.
- * Best-effort on individual deletes so a partial rollback still removes as
- * much as possible; the caller throws after this returns.
+ *
+ * HIGH FIX (Audit V3 #7): All delete operations now check the returned
+ * PostgREST error object (deletes don't throw on failure — they return
+ * `{ error }`). Failures are accumulated and written to the durable
+ * intake-failures table so ops has visibility.
  */
 async function rollbackHalfBornProject(
   sb: any,
   projectId: string,
   ctx: RollbackContext = {},
 ): Promise<void> {
+  const _rollbackErrors: string[] = [];
+
   // Explicit deletes for tables whose FKs may not cascade in every install.
   const targets: Array<{ table: string; column: string }> = [
     { table: "engine_project_agents", column: "project_id" },
@@ -618,18 +629,12 @@ async function rollbackHalfBornProject(
     { table: "engine_sources", column: "project_id" },
   ];
   for (const { table, column } of targets) {
-    try {
-      await sb.from(table).delete().eq(column, projectId);
-    } catch {
-      /* best-effort */
-    }
+    const { error } = await sb.from(table).delete().eq(column, projectId);
+    if (error) _rollbackErrors.push(`${table}: ${error.message}`);
   }
   // Remove the project row itself (before engine_clients — client_id FK).
-  try {
-    await sb.from("engine_projects").delete().eq("id", projectId);
-  } catch {
-    /* best-effort — if this fails, verifyProjectIntegrity will still flag the orphan */
-  }
+  const { error: projDelErr } = await sb.from("engine_projects").delete().eq("id", projectId);
+  if (projDelErr) _rollbackErrors.push(`engine_projects: ${projDelErr.message}`);
 
   // Portal + client cleanup runs through the service role: RLS on the portal
   // tables is scoped to client/operator flows, not this trusted rollback.
@@ -637,31 +642,52 @@ async function rollbackHalfBornProject(
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (ctx.portalProjectId) {
       if (ctx.portalProjectCreated) {
-        // The whole portal project was born in this call — remove it and any
-        // permissions hanging off it.
-        await supabaseAdmin
+        const { error: permDelErr } = await supabaseAdmin
           .from("client_portal_permissions")
           .delete()
           .eq("project_id", ctx.portalProjectId);
-        await supabaseAdmin
+        if (permDelErr) _rollbackErrors.push(`client_portal_permissions: ${permDelErr.message}`);
+        const { error: portalDelErr } = await supabaseAdmin
           .from("client_portal_projects")
           .delete()
           .eq("id", ctx.portalProjectId);
+        if (portalDelErr) _rollbackErrors.push(`client_portal_projects: ${portalDelErr.message}`);
       } else if (ctx.portalPermissionCreated && ctx.contactEmail) {
-        // Pre-existing portal project: only remove the permission row this
-        // call added; never touch the live portal itself.
-        await supabaseAdmin
+        const { error: permDelErr } = await supabaseAdmin
           .from("client_portal_permissions")
           .delete()
           .eq("project_id", ctx.portalProjectId)
           .eq("email", ctx.contactEmail);
+        if (permDelErr) _rollbackErrors.push(`client_portal_permissions (single): ${permDelErr.message}`);
       }
     }
     if (ctx.createdClientId) {
-      await supabaseAdmin.from("engine_clients").delete().eq("id", ctx.createdClientId);
+      const { error: clientDelErr } = await supabaseAdmin.from("engine_clients").delete().eq("id", ctx.createdClientId);
+      if (clientDelErr) _rollbackErrors.push(`engine_clients: ${clientDelErr.message}`);
     }
   } catch (e) {
-    console.warn("[intake] rollback portal/client cleanup failed", e);
+    _rollbackErrors.push(`portal/client cleanup exception: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // Persist any rollback errors to the durable intake-failures table
+  // so ops has visibility into incomplete rollbacks.
+  if (_rollbackErrors.length) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { writeDurableIntakeFailure } = await import("@/lib/engine-intake-failure-log");
+      await writeDurableIntakeFailure(supabaseAdmin, {
+        attempted_project_id: projectId,
+        attempted_project_name: null,
+        attempted_client_id: ctx.createdClientId ?? null,
+        actor_email: ctx.actorEmail ?? null,
+        delivery_mode: ctx.deliveryMode ?? null,
+        failure_reason: `Rollback completed with ${_rollbackErrors.length} delete error(s): ${_rollbackErrors.join("; ").slice(0, 800)}`,
+        payload: { errors: _rollbackErrors, portalProjectId: ctx.portalProjectId },
+      });
+    } catch {
+      // Last resort — the durable log itself is broken.
+      console.error("[intake] failed to persist rollback errors to durable log", _rollbackErrors);
+    }
   }
 }
 

@@ -87,7 +87,7 @@ describe("createProjectFromSource tracks created-vs-matched rows", () => {
   it("checks permission pre-existence and passes the full rollback context", () => {
     expect(intake).toMatch(/portalPermissionCreated = !preExistingPerm/);
     expect(intake).toMatch(
-      /rollbackHalfBornProject\(sb, projectId, \{\s*createdClientId,\s*portalProjectId: linkedPortalProjectId,\s*portalProjectCreated,\s*portalPermissionCreated,\s*contactEmail: resolvedContactEmail,\s*\}\)/,
+      /rollbackHalfBornProject\(sb, projectId, \{\s*createdClientId,\s*portalProjectId: linkedPortalProjectId,\s*portalProjectCreated,\s*portalPermissionCreated,\s*contactEmail: resolvedContactEmail,\s*deliveryMode,\s*actorEmail: actor,\s*\}\)/,
     );
   });
 });
