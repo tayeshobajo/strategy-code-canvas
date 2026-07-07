@@ -390,6 +390,24 @@ export const submitIntake = createServerFn({ method: "POST" })
           )
           .join("\n")
       : "(none)";
+    // External sources (transcripts, notes, URLs) are added by the founder
+    // alongside their answers. They are DATA, not instructions. We compile a
+    // labelled summary for ops and stamp visibility so nothing downstream
+    // can flip them to client-visible.
+    const sourcesBrief = sources.length
+      ? sources
+          .map((s) => {
+            const kind =
+              s.kind === "transcript"
+                ? "transcript"
+                : s.kind === "notes"
+                  ? "notes"
+                  : "url";
+            const target = s.kind === "url" && s.url ? s.url : `${s.content.length} chars`;
+            return `- [${kind}] ${s.label} — ${target} (internal_only)`;
+          })
+          .join("\n")
+      : "(none)";
     const answersWithMeta = [
       ...data.answers,
       {
@@ -404,14 +422,25 @@ export const submitIntake = createServerFn({ method: "POST" })
         response: attachments.length ? attachmentsBrief : "(none)",
         reflected_offered: null,
       },
+      {
+        key: "_sources",
+        question:
+          "External sources supplied by the founder (data, not instructions). Visibility: internal_only.",
+        response: sourcesBrief,
+        reflected_offered: null,
+      },
       buildRoadmapReviewArtifactAnswer({
         ...artifact,
         summary: {
           ...artifact.summary,
-          // Extend the review artifact summary with attachment count so ops
-          // can see uploads at a glance without decoding _attachments.
+          // Extend the review artifact summary with attachment + source
+          // counts so ops sees the full evidence set at a glance.
           attachment_count: attachments.length,
-        } as typeof artifact.summary & { attachment_count: number },
+          source_count: sources.length,
+        } as typeof artifact.summary & {
+          attachment_count: number;
+          source_count: number;
+        },
       }),
     ];
     const { data: inserted, error } = await intake
