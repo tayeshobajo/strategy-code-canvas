@@ -1,65 +1,68 @@
-## Phase 12: Operator Review + Approval Gate QA
+## Problem
 
-**Goal:** Prove the operator authority layer — review, approve, and preserve draft history — without breaking versioning or leaking to the client portal.
+- Public pages (portal login, and any page using `SiteHeader`) have a fixed floating header but `<main>` uses a static `py-16`, so on mobile the H1 sits directly under the browser chrome and reads as "cramped" (visible in the uploaded screenshot).
+- `/admin/*` and `/engine/*` layouts render a fixed `w-60` sidebar with no mobile drawer — completely unusable below ~768px.
+- Portal layout (`/portal/*`) already has a mobile sheet, but individual portal pages need a spacing/overflow pass.
+- Several dense internal pages (roadmap builder, engine project sub-tabs, ops queue, review) were built desktop-first and likely need `min-w-0` / `overflow-x-auto` on tables and grids.
 
-**No app code changes** unless a blocker is found. Only the QA script's confirmation-screen regex gets updated.
+## Goals
 
-### Scope
+1. Fix the immediate mobile top-spacing bug on every page that uses `SiteHeader`.
+2. Ship a real mobile + tablet experience for Admin and Engine (top bar + drawer nav, stacked content).
+3. Sweep the Client Portal pages for spacing, truncation, and horizontal-scroll issues.
+4. Verify at 375 / 768 / 1440 with Playwright screenshots.
 
-Use the 4 successful Phase 11 submissions (Event Site, Founder Bottleneck, Automation, Injection Booking). Skip the not-a-fit (no review item exists).
+## Scope of Changes
 
-### Steps
+### 1. Public site header spacing (root cause of the reported bug)
 
-1. **QA script fix (non-blocker)**
-   - Update the Playwright submitted-confirmation assertion in the Phase 11 script to match the real final copy (inspect the DOM once, then lock the selector — prefer role/text over the stale "Thank you" regex).
+- Add a shared `pt-safe-header` utility (or apply `pt-24 sm:pt-28` on `<main>`) so content sits below the fixed floating header on every public page.
+- Audit and update `main` wrappers in: `portal.login.tsx`, `portal.access-denied.tsx`, `index.tsx`, `about.tsx`, `investment.tsx`, `what-we-build.tsx`, `insights.tsx`, `insights_.$slug.tsx`, `walks.tsx`, `walks_.$slug.tsx`, `build-my-roadmap.index.tsx`, `checkout.roadmap.tsx`, `checkout.walk.$pace.tsx`, `checkout.return.tsx`, `unsubscribe.tsx`.
+- Also tighten `SiteHeader` mobile paddings so the header itself doesn't feel jammed against the top edge on small screens.
 
-2. **Auth + inventory**
-   - Sign in as the seeded QA operator (`/api/public/seed-qa-account` account).
-   - Query backend to relist the 4 pending review items with their `submission_id`, `project_id`, `engine_source_id`, `extraction_run_id`, `roadmap_version_id`, `frame`, `subtype`.
+### 2. Admin shell responsive (`src/routes/admin.tsx`)
 
-3. **Screenshot sweep (read-only, all 4 items)**
-   - `/ops/queue`
-   - `/ops/submissions/{submission_id}` for each
-   - Review detail panel per item
-   - Extracted signals panel
-   - Linked engine project, engine source, extraction run, AI draft version
+- Collapse the `w-60` sidebar into a `Sheet` drawer behind a hamburger below `lg`.
+- Add a mobile top bar with logo + hamburger + current section label.
+- Ensure content uses `min-w-0` and admin sub-pages get horizontal scroll on their data tables (`admin.client-portals.tsx`, `admin.roles.tsx`, `admin.intake-alerts.tsx`, `admin.milestone-changes.tsx`, `admin.project-integrity.tsx`, `admin.config.tsx`).
 
-4. **Field completeness audit per review item**
-   Verify each panel exposes: submission_id, project_id, engine_source_id, extraction_run_id, roadmap_version_id, frame, subtype, original first answer, full Q&A transcript, extracted signals, open objectives, AI draft status, review status, and the action buttons (Approve / Request changes / Decline / Add internal note). Log any missing field.
+### 3. Engine shell responsive (`src/routes/engine.tsx`)
 
-5. **Permission probes**
-   - QA operator can view review items ✓
-   - QA operator publish-to-portal button state (allowed vs gated) — record which
-   - AI self-approval blocked: attempt `decideReviewItem` against a version whose `created_by` matches the caller → expect 403 / guard error (already covered by `decide-review-item-ordering.test.ts`; verify at runtime)
-   - Unauthenticated / client-role fetch of `/ops/*` → expect redirect or 403
+- Same pattern: fixed sidebar becomes a `Sheet` drawer under `lg`, with a mobile top bar.
+- Engine project sub-tabs (`engine.projects.$projectId.tsx`) currently render as a horizontal row — add `overflow-x-auto` + snap so all tabs remain reachable on mobile.
+- Wrap wide tables/grids in the dense engine pages (`engine.review.tsx`, `engine.projects.index.tsx`, `engine.delivery.tsx`, `engine.execution.tsx`, `engine.operations.tsx`, `engine.intelligence.tsx`, and the busiest project sub-pages: `overview`, `blueprint`, `builder`, `signal-room`, `intelligence`, `agent.tasks`) in `overflow-x-auto` containers and apply the `min-w-0` + `shrink-0` header pattern.
 
-6. **Single approval flow — Event Site only**
-   - Open review item → click Approve.
-   - Assert DB post-conditions:
-     - `engine_roadmap_versions.status = 'approved'`, `approved_at` set, `approved_by` set to operator
-     - Original `ai_generated` version row preserved (not mutated, not deleted)
-     - `engine_review_items.status = 'approved'`
-     - `engine_review_audit` row written with correct `version_id` linkage
-     - `engine_change_events` / `engine_activity` entry created
-     - `client_portal_projects` untouched; no `client_portal_roadmaps` row; `client_preview_status` unchanged
-   - Confirm the approved version_id matches the AI-drafted one (no silent re-versioning).
+### 4. Client Portal pages
 
-7. **Report**
-   - Screenshots captured (list + paths)
-   - Review item IDs + linked row IDs
-   - Approval result + audit event row
-   - Missing fields / permission gaps
-   - Whether approval can be bypassed (attempted vectors + outcome)
-   - Confirmation that `version_id` approved == AI-drafted version
-   - Explicit statement: no portal publish occurred
+- Portal shell (`portal.tsx`) already has mobile nav. Sweep the individual pages for:
+  - Overflowing tables/cards: `portal.billing.tsx`, `portal.files.tsx`, `portal.messages.tsx`, `portal.activity.tsx`, `portal.roadmap.tsx`, `portal.home.tsx`, `portal.onboarding.tsx`, `portal.account.tsx`.
+  - Header rows that mix text and buttons → apply the responsive grid+flex pattern.
+  - Page-level top padding on mobile.
 
-### Out of scope (deferred to Phase 13)
+### 5. Ops queue (`src/routes/ops/*`)
 
-Client-safe payload generation, portal publish action, client portal rendering, client feedback loop.
+- Confirm the queue table scrolls horizontally on mobile and detail panels stack instead of side-by-side below `md`.
 
-### Technical notes
+## Verification
 
-- Use Playwright with `LOVABLE_BROWSER_SUPABASE_*` session restore for operator auth against `http://localhost:8080`.
-- DB reads via `psql` (public schema tables listed above).
-- Screenshots to `/tmp/browser/phase12/` and copied to `/mnt/documents/phase12/` for the report.
-- Do not run `pg_dump`; per-query CSV only if needed.
+Playwright script that visits, at viewports 375 / 768 / 1440, each of:
+
+- Public: `/`, `/portal/login`, `/build-my-roadmap`, `/investment`, `/about`, `/what-we-build`
+- Portal (with restored session): `/portal/home`, `/portal/roadmap`, `/portal/files`, `/portal/messages`, `/portal/billing`, `/portal/activity`, `/portal/account`
+- Admin: `/admin/client-portals`, `/admin/roles`, `/admin/intake-alerts`
+- Engine: `/engine`, `/engine/projects`, `/engine/review`, one project's `/overview`
+- Ops: `/ops/queue`
+
+For each: screenshot to `/mnt/documents/responsive-audit/{route}-{viewport}.png`, then check console for horizontal-scroll warnings and confirm no element exceeds `document.documentElement.clientWidth`.
+
+## Out of Scope
+
+- No new visual redesign — colors, typography, and component chrome stay as-is.
+- No functional or data changes; strictly layout, spacing, and container behavior.
+- Marketing-page content edits.
+
+## Technical Notes
+
+- Use the codebase's existing responsive pattern: `grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:flex-wrap` for text+widget rows; `min-w-0` on text containers; `shrink-0` on icons; `truncate` on single-line headings.
+- Reuse the existing `Sheet` component (already used in `portal.tsx`) for admin/engine drawers to keep interaction consistent.
+- Add a small shared `<AppSafeMain>` (or a Tailwind class shortcut) so the header-offset padding is set once, not per-page.

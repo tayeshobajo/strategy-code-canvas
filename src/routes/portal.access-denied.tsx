@@ -25,7 +25,7 @@ function AccessDeniedPage() {
   return (
     <div className="bg-paper min-h-screen flex flex-col">
       <SiteHeader />
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
+      <main className="flex-1 flex items-center justify-center px-6 pt-28 pb-16 sm:pt-32 sm:pb-20">
         <div className="w-full max-w-md rounded-2xl bg-card shadow-xl p-10 border border-border text-center">
           <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal mb-3">
             Trust Tai · Client Portal
