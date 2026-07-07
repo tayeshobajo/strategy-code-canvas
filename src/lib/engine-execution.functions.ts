@@ -288,6 +288,21 @@ export const listTasks = createServerFn({ method: "GET" })
     return { rows: rows ?? [] };
   });
 
+// Canonical task lifecycle — mirrors the STATUSES board columns in
+// engine.projects.$projectId.agent.tasks.tsx. Free-string statuses would
+// create tasks invisible to every board column.
+const TASK_STATUSES = [
+  "suggested",
+  "drafted",
+  "needs_review",
+  "approved",
+  "in_progress",
+  "blocked",
+  "completed",
+  "rejected",
+  "archived",
+] as const;
+
 export const createTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
@@ -296,7 +311,7 @@ export const createTask = createServerFn({ method: "POST" })
         projectId: z.string().uuid(),
         name: z.string().min(1),
         priority: z.string().default("P2"),
-        status: z.string().default("suggested"),
+        status: z.enum(TASK_STATUSES).default("suggested"),
         // Pillar 11: tasks MUST belong to a milestone.
         milestoneId: z.string().uuid(),
         estimated_effort_hours: z.number().optional(),
@@ -338,7 +353,7 @@ export const createTask = createServerFn({ method: "POST" })
 export const updateTaskStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
-    z.object({ id: z.string().uuid(), status: z.string() }).parse(raw),
+    z.object({ id: z.string().uuid(), status: z.enum(TASK_STATUSES) }).parse(raw),
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context);

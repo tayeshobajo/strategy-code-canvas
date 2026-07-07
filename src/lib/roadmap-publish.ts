@@ -88,7 +88,6 @@ export type ClientSafeRoadmap = {
   sequence_30_60_90: { "30"?: string[]; "60"?: string[]; "90"?: string[] };
   risks_dependencies: Array<{ risk: string; mitigation?: string }>;
   recommended_next_move: string | null;
-  supporting_notes: string | null;
   client_safe_canvas: ClientSafeCanvas;
 };
 
@@ -521,8 +520,8 @@ export function buildClientSafePayload(input: {
     pickString(src.recommended_next_move) ??
     pickString(src.next_move) ??
     null;
-  const supporting_notes =
-    pickString(src.supporting_notes) ?? pickString(src.client_notes) ?? null;
+  // Doctrine (Gap 10): supporting_notes is an internal-engine field. It is
+  // deliberately NOT projected here and never written to the client portal.
 
   const client_safe_canvas = buildClientSafeCanvas(src, {
     // The engine-authored Point A / Point B are the map, not decorative —
@@ -549,7 +548,6 @@ export function buildClientSafePayload(input: {
     sequence_30_60_90,
     risks_dependencies,
     recommended_next_move,
-    supporting_notes,
     client_safe_canvas,
   };
 
@@ -588,6 +586,5 @@ export const CLIENT_SAFE_KEYS = [
   "sequence_30_60_90",
   "risks_dependencies",
   "recommended_next_move",
-  "supporting_notes",
   "client_safe_canvas",
 ] as const;

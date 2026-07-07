@@ -215,7 +215,9 @@ async function writeStage(
     .eq("id", sourceId);
 }
 
-async function processSingleSource(
+// Exported for behavioral tests — production callers are createSource /
+// reprocessSource above, which gate on admin auth first.
+export async function processSingleSource(
   sb: any,
   sourceId: string,
 ): Promise<{ signals: number; confidence: number }> {
@@ -292,9 +294,13 @@ async function processSingleSource(
 
   // Stage 2: extract with AI
   await writeStage(sb, sourceId, stages, "extract", { status: "running", started_at: now() });
-  let parsed: { signals?: Array<{ text: string; module: string; importance?: string }>; confidence?: number };
+  let parsed: {
+    signals?: Array<{ text: string; category?: string; module: string; importance?: string; confidence?: number }>;
+    confidence?: number;
+  };
   try {
     const { callLovableAi, parseJsonOutput } = await import("@/lib/engine-ai.server");
+    const { SIGNAL_CATEGORIES } = await import("@/lib/engine-ai-providers.server");
     const ai = await callLovableAi(
       [
         {
@@ -304,7 +310,7 @@ async function processSingleSource(
         },
         {
           role: "user",
-          content: `SOURCE: ${src.name} (${src.type})\n\n${content.slice(0, 30_000)}\n\nReturn JSON:\n{\n  "signals": [ { "text": "", "module": "point_a|point_b|hidden_assets|gap_map|blueprint|roadmap|deadlines|investment|client_preview", "importance": "low|medium|high" } ],\n  "confidence": 0\n}`,
+          content: `SOURCE: ${src.name} (${src.type})\n\n${content.slice(0, 30_000)}\n\nReturn JSON:\n{\n  "signals": [ { "text": "", "category": "${SIGNAL_CATEGORIES.join("|")}", "module": "point_a|point_b|hidden_assets|gap_map|blueprint|roadmap|deadlines|investment|client_preview", "importance": "low|medium|high", "confidence": 0 } ],\n  "confidence": 0\n}`,
         },
       ],
       { json: true, temperature: 0.2 },
@@ -332,7 +338,8 @@ async function processSingleSource(
   const count = parsed.signals?.length ?? 0;
   const confidence = Math.min(100, Math.max(0, parsed.confidence ?? 40));
   try {
-    for (const s of (parsed.signals ?? []).slice(0, 25)) {
+    const kept = (parsed.signals ?? []).slice(0, 25);
+    for (const s of kept) {
       await sb.from("engine_change_events").insert({
         project_id: src.project_id,
         kind: "new_info",
@@ -343,10 +350,31 @@ async function processSingleSource(
         source_id: src.id,
       });
     }
+    // Gap 8: the single-source path must feed the same categorized signal
+    // store the full pipeline writes — otherwise extraction output only
+    // reaches the change feed and never surfaces as step evidence.
+    const { SIGNAL_CATEGORIES } = await import("@/lib/engine-ai-providers.server");
+    const validCategories = new Set<string>(SIGNAL_CATEGORIES);
+    const signalRows = kept
+      .filter((s) => s.category && validCategories.has(s.category))
+      .map((s) => ({
+        project_id: src.project_id,
+        source_id: src.id,
+        category: s.category,
+        label: s.text.slice(0, 500),
+        detail: null,
+        confidence: Math.min(100, Math.max(0, Math.round(s.confidence ?? confidence))),
+        client_safe: false,
+        metadata: { importance: s.importance ?? null, module: s.module ?? null },
+      }));
+    if (signalRows.length) {
+      const { error: sigErr } = await sb.from("engine_extracted_signals").insert(signalRows);
+      if (sigErr) throw new Error(sigErr.message ?? "extracted signals insert failed");
+    }
     await writeStage(sb, sourceId, stages, "persist", {
       status: "completed",
       finished_at: now(),
-      note: `${count} change events written`,
+      note: `${count} change events · ${signalRows.length} categorized signals written`,
     });
   } catch (e: any) {
     const msg = e?.message ?? "persist failed";

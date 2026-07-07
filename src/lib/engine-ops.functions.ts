@@ -561,7 +561,7 @@ export const decideReviewItem = createServerFn({ method: "POST" })
             kind: "milestone_diff_errors",
             title: `Milestone changes failed for ${target.version}`,
             body: `${_diffErrors.length} error(s): ${_diffErrors.join("; ").slice(0, 800)}`,
-            severity: "warning",
+            severity: "warn",
           });
           if (warnErr) console.warn("[decideReviewItem] failed to persist milestone-diff warning:", warnErr.message);
         }
@@ -1033,10 +1033,12 @@ async function _tryAutoLinkPortalProject(sb: any, engineProjectId: string, clien
     .maybeSingle();
   const email = ((client as { contact_email?: string | null } | null)?.contact_email ?? "").trim().toLowerCase();
   if (!email) return null;
+  // MEDIUM FIX (New Issue #6): Use eq instead of ilike to avoid wildcard
+  // interpretation of _ and % in email addresses.
   const { data: portal } = await sb
     .from("client_portal_projects")
     .select("id")
-    .ilike("primary_email", email)
+    .eq("primary_email", email)
     .maybeSingle();
   const portalId = (portal as { id?: string } | null)?.id ?? null;
   if (!portalId) return null;
@@ -1139,7 +1141,6 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       sequence_30_60_90: safe.sequence_30_60_90,
       risks_dependencies: safe.risks_dependencies,
       recommended_next_move: safe.recommended_next_move,
-      supporting_notes: safe.supporting_notes,
       client_safe_canvas: safe.client_safe_canvas,
       metadata: { published_by: actor, engine_project_id: project.id },
     }).select("id").single();

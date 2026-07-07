@@ -74,14 +74,18 @@ describe("createProjectFromSource tracks created-vs-matched rows", () => {
 
   it("checks portal pre-existence BEFORE the insert (no clobber upsert)", () => {
     const preCheck = intake.indexOf("preExistingPortal");
-    const insert = intake.indexOf('from("client_portal_projects")\n          .insert(');
+    // MEDIUM FIX (New #3): the create path is now a race-safe
+    // INSERT ... ON CONFLICT DO NOTHING (ignoreDuplicates), never a merge
+    // upsert that could reset a live portal's status/fields.
+    const insert = intake.indexOf('from("client_portal_projects")\n          .upsert(');
     expect(preCheck).toBeGreaterThan(-1);
     expect(insert).toBeGreaterThan(-1);
     expect(preCheck).toBeLessThan(insert);
-    expect(intake).toMatch(/portalProjectCreated = !preExistingPortal/);
+    // Rollback gate must come from the verified insert, not the stale pre-check.
+    expect(intake).toMatch(/portalProjectCreated = portalCreatedByThisCall/);
     // CRITICAL FIX: when a portal already exists, we must NOT upsert/reset it.
     expect(intake).toMatch(/if \(preExistingPortal\?\.id\)/);
-    expect(intake).not.toMatch(/\.upsert\([\s\S]{0,80}client_portal_projects/);
+    expect(intake).toMatch(/onConflict: "primary_email", ignoreDuplicates: true/);
   });
 
   it("checks permission pre-existence and passes the full rollback context", () => {
