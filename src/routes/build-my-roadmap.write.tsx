@@ -758,6 +758,7 @@ function WriteIntake() {
         <ReviewScreen
           frameDef={activeFrameDef}
           answers={answers}
+          attachments={attachments}
           contact={contact}
           openAnswer={answers[OPEN_KEY]?.response ?? ""}
           onEditObjective={(key) => {
@@ -765,7 +766,9 @@ function WriteIntake() {
             if (obj) editObjectiveFromReview(obj);
           }}
           onEditContact={() => setPhase("contact")}
+          onEditOpen={() => setPhase("open")}
           onSubmit={handleSubmit}
+          onSaveForLater={handleSaveForLater}
           submitting={submitting}
         />
       )}
