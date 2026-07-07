@@ -456,6 +456,32 @@ export const submitIntake = createServerFn({ method: "POST" })
       // that were never submitted (drafts abandoned mid-wizard).
     }
 
+    // Auto-bridge into the Roadmap Engine (Phase 5). Runs server-side with
+    // service-role. Best-effort: an engine bridge failure never blocks the
+    // client submission or the operator notification — the intake row and
+    // review item still exist for manual handling. The pipeline itself runs
+    // fire-and-forget inside the bridge so submit does not wait on the LLM.
+    let engineBridge: { project_id: string | null; source_id: string | null } = {
+      project_id: null,
+      source_id: null,
+    };
+    try {
+      engineBridge = await autoBridgeIntakeToEngine({
+        submissionId: inserted.id,
+        contact: {
+          name: data.name,
+          business: data.business,
+          website: data.website,
+          email: data.email,
+          role: data.role,
+        },
+        answers: answersWithMeta,
+        attachments,
+      });
+    } catch (bridgeErr) {
+      console.warn("[submit-intake] engine bridge failed (non-blocking)", bridgeErr);
+    }
+
     // Notify every operator/admin that a new intake needs review.
     // Non-blocking: submission success does not depend on email delivery.
     try {
@@ -474,8 +500,15 @@ export const submitIntake = createServerFn({ method: "POST" })
       console.warn("[submit-intake] operator notification failed (non-blocking)", notifyErr);
     }
 
-    return { ok: true as const, submission_id: inserted.id, review_id: review?.id ?? null };
+    return {
+      ok: true as const,
+      submission_id: inserted.id,
+      review_id: review?.id ?? null,
+      // engine linkage is internal metadata — the client-facing UI ignores it.
+      _engine: engineBridge,
+    };
   });
+
 
 // ─── Operator notification ─────────────────────────────────────────────
 // Fans out an "intake submitted" alert to every operator/admin so no
