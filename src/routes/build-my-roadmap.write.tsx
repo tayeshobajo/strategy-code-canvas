@@ -1080,6 +1080,8 @@ function ObjectiveScreen({
   value,
   answeredCount,
   scoring,
+  generatedQuestion,
+  generatingQuestion,
   onChange,
   onNext,
   onPrev,
@@ -1091,6 +1093,8 @@ function ObjectiveScreen({
   value: string;
   answeredCount: number;
   scoring?: boolean;
+  generatedQuestion?: string | null;
+  generatingQuestion?: boolean;
   onChange: (v: string) => void;
   onNext: () => void;
   onPrev: () => void;
@@ -1107,6 +1111,11 @@ function ObjectiveScreen({
   const canReview =
     required.filter((o) => o.key !== objective.key).every((o) => o) && answeredCount >= required.length;
 
+  // The completeness model picks the objective; AI may only rewrite its
+  // anchor. If generation is pending or failed the voice check server-side,
+  // we render the anchor verbatim — never a spinner in place of a question.
+  const questionText = generatedQuestion?.trim() || objective.anchor;
+
   return (
     <section className="space-y-6">
       <div>
@@ -1115,7 +1124,12 @@ function ObjectiveScreen({
           {objective.label}{objective.required ? "" : ", if it helps"}
         </p>
       </div>
-      <p className="font-serif text-xl leading-snug text-foreground sm:text-2xl">{objective.anchor}</p>
+      <p
+        className="font-serif text-xl leading-snug text-foreground sm:text-2xl"
+        aria-busy={generatingQuestion ? true : undefined}
+      >
+        {questionText}
+      </p>
       <Textarea
         ref={ref}
         value={value}
