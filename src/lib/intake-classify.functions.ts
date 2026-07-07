@@ -142,11 +142,19 @@ export const classifyIntakeFrame = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ClassifyInput.parse(input))
   .handler(async ({ data }): Promise<ClassifyResult> => {
     // Gate on an existing intake draft so this call cannot be triggered by
-    // arbitrary unauthenticated callers. Same gate pattern as reflectAnswer.
-    const { getIntakeClient } = await import("@/integrations/intake/client.server");
-    const intake = getIntakeClient();
-    const { data: draft, error: draftErr } = await intake
-      .from("intake_drafts")
+    // arbitrary unauthenticated callers. MUST read from the same DB where
+    // saveDraft writes (main via supabaseAdmin) — otherwise the classifier
+    // silently rejects every real session ("split-brain").
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: draft, error: draftErr } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        select: (s: string) => {
+          eq: (c: string, v: string) => {
+            maybeSingle: () => Promise<{ data: { resume_token: string } | null; error: unknown }>;
+          };
+        };
+      }
+    )
       .select("resume_token")
       .eq("resume_token", data.resume_token)
       .maybeSingle();

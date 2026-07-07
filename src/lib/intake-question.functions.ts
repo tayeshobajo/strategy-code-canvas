@@ -141,13 +141,19 @@ async function callModel(
 export const generateAnchorWording = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data }): Promise<GeneratedQuestion> => {
-    // Gate: live intake draft must exist.
-    const { getIntakeClient } = await import(
-      "@/integrations/intake/client.server"
-    );
-    const intake = getIntakeClient();
-    const { data: draft, error: draftErr } = await intake
-      .from("intake_drafts")
+    // Gate: live intake draft must exist. Reads must match saveDraft's write
+    // path (main DB via supabaseAdmin) — single source of truth for intake
+    // session state.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: draft, error: draftErr } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        select: (s: string) => {
+          eq: (c: string, v: string) => {
+            maybeSingle: () => Promise<{ data: { resume_token: string } | null; error: unknown }>;
+          };
+        };
+      }
+    )
       .select("resume_token")
       .eq("resume_token", data.resume_token)
       .maybeSingle();

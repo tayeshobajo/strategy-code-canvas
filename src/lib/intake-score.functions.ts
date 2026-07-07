@@ -49,11 +49,19 @@ const SYSTEM = [
 export const scoreObjective = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ScoreInput.parse(input))
   .handler(async ({ data }): Promise<ScoreResult> => {
-    // Gate: live intake draft must exist.
-    const { getIntakeClient } = await import("@/integrations/intake/client.server");
-    const intake = getIntakeClient();
-    const { data: draft, error: draftErr } = await intake
-      .from("intake_drafts")
+    // Gate: live intake draft must exist. Same-DB read as saveDraft's write
+    // (main via supabaseAdmin) so scoring cannot silently fail across a
+    // database boundary.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: draft, error: draftErr } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        select: (s: string) => {
+          eq: (c: string, v: string) => {
+            maybeSingle: () => Promise<{ data: { resume_token: string } | null; error: unknown }>;
+          };
+        };
+      }
+    )
       .select("resume_token")
       .eq("resume_token", data.resume_token)
       .maybeSingle();

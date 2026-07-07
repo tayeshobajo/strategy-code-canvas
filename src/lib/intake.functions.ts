@@ -21,11 +21,19 @@ export const reflectAnswer = createServerFn({ method: "POST" })
 
     // Gate on an existing intake draft so this expensive Anthropic call can
     // only be triggered by a real in-progress intake session, not arbitrary
-    // unauthenticated callers.
-    const { getIntakeClient } = await import("@/integrations/intake/client.server");
-    const intake = getIntakeClient();
-    const { data: draft, error: draftErr } = await intake
-      .from("intake_drafts")
+    // unauthenticated callers. Reads must go to the same DB where saveDraft
+    // writes (main via supabaseAdmin) — see "Single source of truth for
+    // intake session state" note at bottom of this file.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: draft, error: draftErr } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        select: (s: string) => {
+          eq: (c: string, v: string) => {
+            maybeSingle: () => Promise<{ data: { resume_token: string } | null; error: unknown }>;
+          };
+        };
+      }
+    )
       .select("resume_token")
       .eq("resume_token", data.resume_token)
       .maybeSingle();
