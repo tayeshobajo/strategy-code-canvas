@@ -1,16 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
 import { type StripeEnv, verifyWebhook } from "@/lib/stripe.server";
 
-let _supabase: ReturnType<typeof createClient> | null = null;
+// S18 (audit): use the shared lazy service-role client instead of a
+// module-scope singleton created with a raw createClient call. Loaded
+// inside functions so the service-role key stays in the .server module.
 function getSupabase() {
-  if (!_supabase) {
-    _supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
-  }
-  return _supabase;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  const { supabaseAdmin } = require("@/integrations/supabase/client.server") as typeof import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
 }
 
 // -------------------- Idempotency --------------------
