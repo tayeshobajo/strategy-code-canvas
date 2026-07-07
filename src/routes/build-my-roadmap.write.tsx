@@ -518,65 +518,121 @@ function WriteIntake() {
 
   // After an answer is committed, score the current objective, update the
   // hidden model, and pick the next question. Runs on Next and Skip.
+  //
+  // Scoring policy (P1 fix — objective-loop stall):
+  //   - Advance immediately using the local heuristic score.
+  //   - Fire the model-scoring server call in the background with a hard
+  //     timeout so a slow/hung Anthropic call can never pin the Continue
+  //     button in a disabled state. When it returns, we quietly upgrade
+  //     the stored score (used for review, not routing).
+  //   - `scoringNext` is released in a `finally` block synchronous with
+  //     the transition so the button briefly shows a spinner and then
+  //     reliably recovers, even if the background call hangs or fails.
   const advanceObjective = React.useCallback(
     async (opts: { skipScoring?: boolean } = {}) => {
       if (!frame || !activeFrameDef || !currentObjective) return;
       const key = currentObjective.key;
       const responseText = answers[key]?.response ?? "";
+      const askedIndex = askedKeys.length;
 
-      let objectiveScore = scores[key] ?? 0;
-      if (!opts.skipScoring && responseText.trim()) {
-        // Heuristic first so we never block on the network.
-        objectiveScore = scoreAnswer(key, responseText);
-        try {
-          setScoringNext(true);
-          const token = resumeToken;
-          if (token) {
+      console.debug("[intake/objective-loop] advance:start", {
+        askedIndex,
+        key,
+        skipScoring: !!opts.skipScoring,
+        hasText: !!responseText.trim(),
+      });
+
+      // Heuristic first — always fast, deterministic, no network.
+      const objectiveScore = opts.skipScoring
+        ? scores[key] ?? scoreAnswer(key, responseText)
+        : responseText.trim()
+          ? scoreAnswer(key, responseText)
+          : scores[key] ?? 0;
+
+      // Brief visual scoring cue; cleared in `finally` below and by the
+      // defensive effect that watches `currentObjective.key`.
+      setScoringNext(true);
+
+      // Fire model scoring in the background with a hard timeout. Never
+      // await it in the transition path — a slow model must not block the
+      // user from continuing.
+      if (!opts.skipScoring && responseText.trim() && resumeToken) {
+        const token = resumeToken;
+        const label = currentObjective.label;
+        const anchor = currentObjective.anchor;
+        console.debug("[intake/objective-loop] score:request", { key });
+        void (async () => {
+          try {
             const mod = await import("@/lib/intake-score.functions");
-            const res = await mod.scoreObjective({
-              data: {
-                resume_token: token,
-                objective_key: key,
-                objective_label: currentObjective.label,
-                objective_anchor: currentObjective.anchor,
-                response: responseText,
-              },
-            });
-            objectiveScore = res.score;
+            const timeoutMs = 6000;
+            const scored = await Promise.race([
+              mod.scoreObjective({
+                data: {
+                  resume_token: token,
+                  objective_key: key,
+                  objective_label: label,
+                  objective_anchor: anchor,
+                  response: responseText,
+                },
+              }),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+            ]);
+            if (scored && typeof scored.score === "number") {
+              console.debug("[intake/objective-loop] score:resolved", {
+                key,
+                score: scored.score,
+              });
+              setScores((s) => ({ ...s, [key]: scored.score }));
+            } else {
+              console.debug("[intake/objective-loop] score:timeout-or-null", { key });
+            }
+          } catch (err) {
+            console.warn("[intake/objective-loop] score:failed", err);
           }
-        } catch (err) {
-          console.warn("[intake/write] score failed, using heuristic", err);
-        } finally {
-          setScoringNext(false);
+        })();
+      }
+
+      try {
+        const nextScores = { ...scores, [key]: objectiveScore };
+        const nextAsked = askedKeys.includes(key) ? askedKeys : [...askedKeys, key];
+        setScores(nextScores);
+        setAskedKeys(nextAsked);
+        persistInternal(nextScores, nextAsked);
+
+        // Hard cap → stop asking, go to contact.
+        if (nextAsked.length >= HARD_CAP_QUESTIONS) {
+          setCurrentObjective(null);
+          setPhase("contact");
+          console.debug("[intake/objective-loop] advance:hard-cap");
+          return;
         }
-      } else if (opts.skipScoring) {
-        // Skip: mark as asked but score stays as-is (usually 0).
-        objectiveScore = scores[key] ?? scoreAnswer(key, responseText);
-      }
 
-      const nextScores = { ...scores, [key]: objectiveScore };
-      const nextAsked = askedKeys.includes(key) ? askedKeys : [...askedKeys, key];
-      setScores(nextScores);
-      setAskedKeys(nextAsked);
-      persistInternal(nextScores, nextAsked);
-
-      // Hard cap → stop asking, go to contact.
-      if (nextAsked.length >= HARD_CAP_QUESTIONS) {
-        setCurrentObjective(null);
-        setPhase("contact");
-        return;
+        const next = selectNextObjective(frame, nextScores, new Set(nextAsked));
+        if (!next) {
+          setCurrentObjective(null);
+          setPhase("contact");
+          console.debug("[intake/objective-loop] advance:enough");
+          return;
+        }
+        console.debug("[intake/objective-loop] advance:next", { from: key, to: next.key });
+        setCurrentObjective(next);
+      } finally {
+        // Always release the scoring lock synchronously with the transition
+        // so Continue never stays disabled because of it.
+        setScoringNext(false);
       }
-
-      const next = selectNextObjective(frame, nextScores, new Set(nextAsked));
-      if (!next) {
-        setCurrentObjective(null);
-        setPhase("contact");
-        return;
-      }
-      setCurrentObjective(next);
     },
     [activeFrameDef, answers, askedKeys, currentObjective, frame, persistInternal, resumeToken, scores],
   );
+
+  // Defense in depth: whenever the current objective changes, guarantee the
+  // scoring lock is clear. Prevents a stale closure or an in-flight background
+  // request from ever pinning the Continue button in a disabled state on the
+  // next objective.
+  React.useEffect(() => {
+    setScoringNext(false);
+  }, [currentObjective?.key]);
+
 
   const goNextObjective = React.useCallback(() => {
     void advanceObjective();
