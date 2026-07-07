@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
+import { throwGeneric } from "@/lib/engine-error";
 
 // Exported for behavioral role-rejection tests (Audit V3 #8).
 export async function assertAdmin(context: any) {
@@ -66,7 +67,7 @@ export const listMilestones = createServerFn({ method: "GET" })
       .eq("project_id", data.projectId)
       .order("sort_index", { ascending: true })
       .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) throwGeneric(error, "Operation failed");
     return { rows: rows ?? [] };
   });
 
@@ -136,7 +137,7 @@ export const updateMilestone = createServerFn({ method: "POST" })
     }
 
     const { error } = await sb.from("engine_milestones").update(patch).eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) throwGeneric(error, "Operation failed");
     if (current?.project_id) {
       await sb.from("engine_audit_log").insert({
         project_id: current.project_id,
@@ -179,7 +180,7 @@ export const approveMilestone = createServerFn({ method: "POST" })
         status: "approved",
       })
       .eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) throwGeneric(error, "Operation failed");
     if (m?.project_id) {
       await sb.from("engine_audit_log").insert({
         project_id: m.project_id,
@@ -252,7 +253,7 @@ export const sendMilestoneToTasks = createServerFn({ method: "POST" })
 
     if (rows.length) {
       const { error } = await sb.from("engine_tasks").insert(rows);
-      if (error) throw new Error(error.message);
+      if (error) throwGeneric(error, "Operation failed");
     }
 
     // Log for the audit trail so the tasks page reflects provenance.
@@ -284,7 +285,7 @@ export const listTasks = createServerFn({ method: "GET" })
       .select("*, engine_milestones(name)")
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throwGeneric(error, "Operation failed");
     return { rows: rows ?? [] };
   });
 
@@ -345,7 +346,7 @@ export const createTask = createServerFn({ method: "POST" })
       })
       .select("*")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throwGeneric(error, "Operation failed");
     return { task: row };
   });
 
@@ -362,7 +363,7 @@ export const updateTaskStatus = createServerFn({ method: "POST" })
       .from("engine_tasks")
       .update({ status: data.status })
       .eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) throwGeneric(error, "Operation failed");
     return { ok: true as const };
   });
 
@@ -1229,7 +1230,7 @@ export const listVersionChangeDecisions = createServerFn({ method: "GET" })
       .select("*")
       .eq("version_id", data.version_id)
       .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message ?? "list decisions failed");
+    if (error) throwGeneric(error, "list decisions failed");
     return (rows ?? []) as VersionChangeDecisionRow[];
   });
 
@@ -1262,7 +1263,7 @@ export const recordVersionChangeDecision = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (error) throw new Error(error.message ?? "record decision failed");
+    if (error) throwGeneric(error, "record decision failed");
     return { ok: true, id: r.id };
   });
 
@@ -1334,7 +1335,7 @@ export const regenerateMilestoneSection = createServerFn({ method: "POST" })
       .from("engine_milestones")
       .update({ [data.section]: newValue, created_by_kind: "ai" })
       .eq("id", data.id);
-    if (updErr) throw new Error(updErr.message);
+    if (updErr) throwGeneric(updErr, "Operation failed");
 
     await sb.from("engine_audit_log").insert({
       project_id: current.project_id,

@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
+import { throwGeneric } from "@/lib/engine-error";
 
 async function assertAdmin(context: any) {
   const email = (context.claims?.email as string | undefined) ?? undefined;
@@ -97,7 +98,7 @@ export const listSources = createServerFn({ method: "GET" })
       .select("*")
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message ?? "list sources failed");
+    if (error) throwGeneric(error, "list sources failed");
     return { rows: (rows ?? []) as EngineSource[] };
   });
 
@@ -139,7 +140,7 @@ export const createSource = createServerFn({ method: "POST" })
 
       .select("id")
       .single();
-    if (error) throw new Error(error.message ?? "create source failed");
+    if (error) throwGeneric(error, "create source failed");
     // Fire-and-forget: extract signals so the new source populates.
     processSingleSource(sb, row.id).catch(() => null);
     return { id: row.id };
@@ -152,7 +153,7 @@ export const removeSource = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const sb = context.supabase as any;
     const { error } = await sb.from("engine_sources").delete().eq("id", data.id);
-    if (error) throw new Error(error.message ?? "remove failed");
+    if (error) throwGeneric(error, "remove failed");
     return { ok: true };
   });
 
@@ -369,7 +370,7 @@ export async function processSingleSource(
       }));
     if (signalRows.length) {
       const { error: sigErr } = await sb.from("engine_extracted_signals").insert(signalRows);
-      if (sigErr) throw new Error(sigErr.message ?? "extracted signals insert failed");
+      if (sigErr) throwGeneric(sigErr, "extracted signals insert failed");
     }
     await writeStage(sb, sourceId, stages, "persist", {
       status: "completed",
@@ -433,7 +434,7 @@ export const listVersions = createServerFn({ method: "GET" })
       .select("*")
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message ?? "list versions failed");
+    if (error) throwGeneric(error, "list versions failed");
     return { rows: (rows ?? []) as EngineRoadmapVersion[] };
   });
 
@@ -498,7 +499,7 @@ export const approveVersion = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select("id, project_id, version, payload")
       .single();
-    if (error) throw new Error(error.message ?? "approve failed");
+    if (error) throwGeneric(error, "approve failed");
 
     // Snapshot the approved payload immutably on the project so any further
     // draft edits do not touch the last approved state.
@@ -559,7 +560,7 @@ export const archiveVersion = createServerFn({ method: "POST" })
       .from("engine_roadmap_versions")
       .update({ status: "archived" })
       .eq("id", data.id);
-    if (error) throw new Error(error.message ?? "archive failed");
+    if (error) throwGeneric(error, "archive failed");
     if (v) {
       await logAudit(sb, {
         project_id: v.project_id,
@@ -669,7 +670,7 @@ export const restoreVersion = createServerFn({ method: "POST" })
       })
       .select("id,version")
       .single();
-    if (error) throw new Error(error.message ?? "restore failed");
+    if (error) throwGeneric(error, "restore failed");
 
     // Repoint draft module state without touching approved_snapshot.
     const moduleUpdates: Record<string, any> = { roadmap_version: nextVersion };
@@ -741,7 +742,7 @@ export const restoreVersionSection = createServerFn({ method: "POST" })
     const patch: Record<string, any> = {};
     patch[data.module] = value;
     const { error } = await sb.from("engine_projects").update(patch).eq("id", src.project_id);
-    if (error) throw new Error(error.message ?? "restore section failed");
+    if (error) throwGeneric(error, "restore section failed");
 
     await sb.from("engine_activity").insert({
       project_id: src.project_id,
@@ -793,7 +794,7 @@ export const listAuditLog = createServerFn({ method: "GET" })
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false })
       .limit(data.limit);
-    if (error) throw new Error(error.message ?? "list audit failed");
+    if (error) throwGeneric(error, "list audit failed");
     return { rows: (rows ?? []) as EngineAuditLog[] };
   });
 
@@ -828,7 +829,7 @@ export const listChangeEvents = createServerFn({ method: "GET" })
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false })
       .limit(50);
-    if (error) throw new Error(error.message ?? "list changes failed");
+    if (error) throwGeneric(error, "list changes failed");
     return { rows: (rows ?? []) as EngineChangeEvent[] };
   });
 
@@ -842,7 +843,7 @@ export const resolveChangeEvent = createServerFn({ method: "POST" })
       .from("engine_change_events")
       .update({ resolved_at: new Date().toISOString() })
       .eq("id", data.id);
-    if (error) throw new Error(error.message ?? "resolve failed");
+    if (error) throwGeneric(error, "resolve failed");
     return { ok: true };
   });
 
@@ -992,7 +993,7 @@ export async function runIntelligencePipelineInternal(
     })
     .select("id")
     .single();
-  if (runErr) throw new Error(runErr.message ?? "extraction run insert failed");
+  if (runErr) throwGeneric(runErr, "extraction run insert failed");
   const runId = runRow.id as string;
 
   // Only flip the project into source_processing when it was in a
@@ -1165,7 +1166,7 @@ export async function runIntelligencePipelineInternal(
     })
     .select("id, version")
     .single();
-  if (vErr) throw new Error(vErr.message ?? "version insert failed");
+  if (vErr) throwGeneric(vErr, "version insert failed");
 
   // Insert extracted signals
   const signalRows = (parsed.signals ?? []).map((sig) => ({
@@ -1575,7 +1576,7 @@ export const createSourceUploadUrl = createServerFn({ method: "POST" })
       const { data: signed, error } = await sb.storage
         .from("engine-signals")
         .createSignedUploadUrl(path);
-      if (error) throw new Error(error.message ?? "signed upload failed");
+      if (error) throwGeneric(error, "signed upload failed");
       return { path, token: signed.token, upload_url: signed.signedUrl };
     },
   );
@@ -1589,7 +1590,7 @@ export const getSourceDownloadUrl = createServerFn({ method: "POST" })
     const { data: signed, error } = await sb.storage
       .from("engine-signals")
       .createSignedUrl(data.path, 60 * 60);
-    if (error) throw new Error(error.message ?? "signed url failed");
+    if (error) throwGeneric(error, "signed url failed");
     return { url: signed.signedUrl };
   });
 
@@ -1632,7 +1633,7 @@ export const listIntelligenceMemory = createServerFn({ method: "GET" })
       .is("archived_at", null)
       .order("captured_at", { ascending: false })
       .limit(500);
-    if (error) throw new Error(error.message ?? "list memory failed");
+    if (error) throwGeneric(error, "list memory failed");
     return (data ?? []) as MemoryRow[];
   });
 
@@ -1675,7 +1676,7 @@ export const upsertIntelligenceMemory = createServerFn({ method: "POST" })
         .eq("id", data.id)
         .select("id")
         .single();
-      if (error) throw new Error(error.message ?? "update memory failed");
+      if (error) throwGeneric(error, "update memory failed");
       return { ok: true, id: r.id };
     }
     const { data: r, error } = await sb
@@ -1683,7 +1684,7 @@ export const upsertIntelligenceMemory = createServerFn({ method: "POST" })
       .insert(payload)
       .select("id")
       .single();
-    if (error) throw new Error(error.message ?? "insert memory failed");
+    if (error) throwGeneric(error, "insert memory failed");
     return { ok: true, id: r.id };
   });
 
@@ -1721,7 +1722,7 @@ export const bulkReplaceIntelligenceMemory = createServerFn({ method: "POST" })
         .from("engine_intelligence_memory")
         .update({ archived_at: new Date().toISOString() })
         .in("id", data.removeIds);
-      if (error) throw new Error(error.message ?? "archive memory failed");
+      if (error) throwGeneric(error, "archive memory failed");
       removed = data.removeIds.length;
     }
 
@@ -1743,7 +1744,7 @@ export const bulkReplaceIntelligenceMemory = createServerFn({ method: "POST" })
         .from("engine_intelligence_memory")
         .insert(rows)
         .select("id");
-      if (error) throw new Error(error.message ?? "insert memory failed");
+      if (error) throwGeneric(error, "insert memory failed");
       inserted = (ins ?? []).length;
     }
 
@@ -1760,7 +1761,7 @@ export const deleteIntelligenceMemory = createServerFn({ method: "POST" })
       .from("engine_intelligence_memory")
       .update({ archived_at: new Date().toISOString() })
       .eq("id", data.id);
-    if (error) throw new Error(error.message ?? "archive failed");
+    if (error) throwGeneric(error, "archive failed");
     return { ok: true };
   });
 
@@ -1800,7 +1801,7 @@ export const listIntelligenceDecisions = createServerFn({ method: "GET" })
     if (data.memory_id) q = q.eq("memory_id", data.memory_id);
     if (data.project_id) q = q.eq("project_id", data.project_id);
     const { data: rows, error } = await q;
-    if (error) throw new Error(error.message ?? "list decisions failed");
+    if (error) throwGeneric(error, "list decisions failed");
     return (rows ?? []) as IntelligenceDecisionRow[];
   });
 
@@ -1833,6 +1834,6 @@ export const recordIntelligenceDecision = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (error) throw new Error(error.message ?? "record decision failed");
+    if (error) throwGeneric(error, "record decision failed");
     return { ok: true, id: r.id };
   });

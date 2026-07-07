@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { buildClientSafePayload } from "@/lib/roadmap-publish";
+import { throwGeneric } from "@/lib/engine-error";
 
 // Exported for behavioral role-rejection tests (Audit V3 #8).
 export async function assertAdminEmail(context: {
@@ -82,7 +83,7 @@ export const listDeliveries = createServerFn({ method: "GET" })
       .from("engine_delivery_items")
       .select("id,project_id,client,roadmap,version,status,channel,recipient,recipient_role,prepared_by,approved_by,last_action,updated_at,client_portal_roadmap_id,engine_delivery_history(id,from_status,to_status,note,at,actor),client_portal_roadmaps:client_portal_roadmap_id(status,share_url)")
       .order("updated_at", { ascending: false });
-    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     const rows = (data ?? []) as Array<DeliveryItem & {
       engine_delivery_history: DeliveryItem["history"];
       client_portal_roadmaps: { status: string | null; share_url: string | null } | null;
@@ -123,7 +124,7 @@ export const transitionDelivery = createServerFn({ method: "POST" })
       };
     };
     const { data: curr, error: readErr } = await sb.from("engine_delivery_items").select("status,project_id,client,roadmap").eq("id", data.id).single();
-    if (readErr) throw new Error(String((readErr as { message?: string }).message ?? readErr));
+    if (readErr) throwGeneric(readErr, "Operation failed");
     const cur = curr as { status: string; project_id: string | null; client: string; roadmap: string } | null;
     const from = cur?.status ?? null;
 
@@ -166,7 +167,7 @@ export const transitionDelivery = createServerFn({ method: "POST" })
     const { error: upErr } = await sb.from("engine_delivery_items").update({
       status: data.to, last_action: `${labels[data.to]} · ${stamp}`,
     }).eq("id", data.id);
-    if (upErr) throw new Error(String((upErr as { message?: string }).message ?? upErr));
+    if (upErr) throwGeneric(upErr, "Operation failed");
     await sb.from("engine_delivery_history").insert({
       delivery_id: data.id, from_status: from, to_status: data.to, note: data.note ?? null, actor,
     });
@@ -261,7 +262,7 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     const sb = context.supabase as any;
     const { data: item, error: rErr } = await sb.from("engine_review_items")
       .select("project,project_id,item_type,title,version_id").eq("id", data.id).single();
-    if (rErr) throw new Error(String((rErr as { message?: string }).message ?? rErr));
+    if (rErr) throwGeneric(rErr, "Operation failed");
     const it = item as { project: string; project_id: string | null; item_type: string; title: string; version_id: string | null };
 
     // Pillar 6: only admin (Tai) may APPROVE roadmap/version-approval items.
@@ -378,7 +379,7 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     // item update), never a guard-blocked inconsistency.
     const { error: uErr } = await sb.from("engine_review_items")
       .update({ status: nextStatus }).eq("id", data.id);
-    if (uErr) throw new Error(String((uErr as { message?: string }).message ?? uErr));
+    if (uErr) throwGeneric(uErr, "Operation failed");
     await sb.from("engine_review_audit").insert({
       review_item_id: data.id, project: it.project, item_type: it.item_type,
       title: it.title, action: data.action, reason: data.reason ?? null,
@@ -401,7 +402,7 @@ export const decideReviewItem = createServerFn({ method: "POST" })
         const { error: vErr } = await sb.from("engine_roadmap_versions")
           .update({ status: "approved", approved_by: actor, approved_at: nowIso })
           .eq("id", target.id);
-        if (vErr) throw new Error(String((vErr as { message?: string }).message ?? vErr));
+        if (vErr) throwGeneric(vErr, "Operation failed");
         // HIGH FIX (Audit V3 #3): Check errors on all post-approval writes.
         // An unchecked snapshot/activity/approvals failure could leave a
         // version marked "approved" with no locked snapshot, unretryable
@@ -688,7 +689,7 @@ export const listActiveBuilds = createServerFn({ method: "GET" })
       .neq("status", "archived")
       .order("updated_at", { ascending: false })
       .limit(50);
-    if (error) throw new Error(String(error.message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
 
     const rows = (projects ?? []) as Array<{
       id: string; name: string; current_step: string | null; progress_pct: number | null;
@@ -774,7 +775,7 @@ export const listProjectAgents = createServerFn({ method: "GET" })
     };
     const { data, error } = await sb.from("engine_project_agents")
       .select("*").order("spend_month_cents", { ascending: false });
-    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     return (data ?? []) as ProjectAgent[];
   });
 
@@ -799,7 +800,7 @@ export const createProjectAgent = createServerFn({ method: "POST" })
       monthly_budget_cents: data.monthly_budget_cents, status: "Draft", health: "Healthy",
       last_active_at: new Date().toISOString(),
     }).select("*").single();
-    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     return row as ProjectAgent;
   });
 
@@ -837,7 +838,7 @@ export const listDraftVersions = createServerFn({ method: "GET" })
       .in("status", ["ai_generated", "draft", "tai_edited"])
       .order("created_at", { ascending: false })
       .limit(50);
-    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     const rows = (data ?? []) as Array<{
       id: string; project_id: string; version: string; label: string | null; status: string;
       client_preview_status: string; generation_provenance: Record<string, string> | null;
@@ -913,7 +914,7 @@ export const submitVersionForApproval = createServerFn({ method: "POST" })
       .select("id,status,version,project_id,engine_projects(name)")
       .eq("id", data.versionId)
       .single();
-    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     const ver = v as { id: string; status: string; version: string; project_id: string; engine_projects: { name: string } | null };
     if (!["ai_generated", "draft", "tai_edited"].includes(ver.status)) {
       throw new Error(`Version is ${ver.status}; only drafts can be submitted for approval.`);
@@ -956,7 +957,7 @@ export const submitPreviewForApproval = createServerFn({ method: "POST" })
       .select("id,status,version,project_id,engine_projects(name)")
       .eq("id", data.versionId)
       .single();
-    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     const ver = v as { id: string; status: string; version: string; project_id: string; engine_projects: { name: string } | null };
     if (ver.status !== "approved") {
       throw new Error("Version must be approved before submitting the client preview for review.");
@@ -998,7 +999,7 @@ export const approvePreview = createServerFn({ method: "POST" })
       .select("id,status,client_preview_status,version,project_id")
       .eq("id", data.versionId)
       .single();
-    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     const ver = v as { id: string; status: string; client_preview_status: string; version: string; project_id: string };
     if (ver.status !== "approved") throw new Error("Version must be approved first.");
     if (ver.client_preview_status !== "draft") throw new Error("Client preview must be submitted before it can be approved.");
@@ -1067,7 +1068,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       .select("id,status,client_preview_status,version,label,payload,project_id")
       .eq("id", data.versionId)
       .single();
-    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     const ver = v as {
       id: string; status: string; client_preview_status: string; version: string;
       label: string | null; payload: Record<string, unknown> | null; project_id: string;
@@ -1081,7 +1082,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       .select("id,name,client_preview,client_portal_project_id,client_id,point_a,point_b,investment_confirmed_at")
       .eq("id", ver.project_id)
       .single();
-    if (pErr) throw new Error(String((pErr as { message?: string }).message ?? pErr));
+    if (pErr) throwGeneric(pErr, "Operation failed");
     const project = proj as {
       id: string; name: string; client_preview: Record<string, unknown> | null;
       client_portal_project_id: string | null; client_id: string | null;
@@ -1144,7 +1145,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       client_safe_canvas: safe.client_safe_canvas,
       metadata: { published_by: actor, engine_project_id: project.id },
     }).select("id").single();
-    if (insErr) throw new Error(String((insErr as { message?: string }).message ?? insErr));
+    if (insErr) throwGeneric(insErr, "Operation failed");
     const pub = published as { id: string };
 
     await sb.from("engine_roadmap_versions").update({
@@ -1182,7 +1183,7 @@ export const getProjectPortalLink = createServerFn({ method: "GET" })
       .select("id,name,client_portal_project_id,client_id")
       .eq("id", data.projectId)
       .single();
-    if (error) throw new Error(String(error.message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     const project = proj as { id: string; name: string; client_portal_project_id: string | null; client_id: string | null };
 
     let linked: { id: string; project_name: string | null; primary_email: string | null } | null = null;
@@ -1256,7 +1257,7 @@ export const setProjectPortalLink = createServerFn({ method: "POST" })
         .select("id,project_name")
         .eq("id", data.portalProjectId)
         .maybeSingle();
-      if (error) throw new Error(String(error.message ?? error));
+      if (error) throwGeneric(error, "Operation failed");
       if (!portal) throw new Error("Portal project not found.");
     }
 
@@ -1264,7 +1265,7 @@ export const setProjectPortalLink = createServerFn({ method: "POST" })
       .from("engine_projects")
       .update({ client_portal_project_id: data.portalProjectId })
       .eq("id", data.projectId);
-    if (uErr) throw new Error(String(uErr.message ?? uErr));
+    if (uErr) throwGeneric(uErr, "Operation failed");
 
     // Keep existing review items in sync so filter/join works.
     await sb
@@ -1323,7 +1324,7 @@ export const listProjectAuditLog = createServerFn({ method: "GET" })
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false })
       .limit(data.limit);
-    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     return (rows ?? []) as AuditLogEntry[];
   });
 
@@ -1346,7 +1347,7 @@ export const setPortalRoadmapStatus = createServerFn({ method: "POST" })
       .select("id,status,project_id,approved_roadmap_version_id,approved_at,title,version_label")
       .eq("id", data.portalRoadmapId)
       .single();
-    if (rErr) throw new Error(String((rErr as { message?: string }).message ?? rErr));
+    if (rErr) throwGeneric(rErr, "Operation failed");
     const r = row as {
       id: string; status: string; project_id: string;
       approved_roadmap_version_id: string | null; approved_at: string | null;
@@ -1362,7 +1363,7 @@ export const setPortalRoadmapStatus = createServerFn({ method: "POST" })
       .from("client_portal_roadmaps")
       .update(patch)
       .eq("id", data.portalRoadmapId);
-    if (uErr) throw new Error(String((uErr as { message?: string }).message ?? uErr));
+    if (uErr) throwGeneric(uErr, "Operation failed");
 
     // Find matching engine project id for audit log linkage.
     const { data: eng } = await sb
@@ -1411,7 +1412,7 @@ export const confirmProjectInvestment = createServerFn({ method: "POST" })
       investment_confirmed_at: nowIso,
       investment_confirmed_by: nowIso ? actor : null,
     }).eq("id", data.projectId);
-    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    if (error) throwGeneric(error, "Operation failed");
     await sb.from("engine_audit_log").insert({
       project_id: data.projectId,
       actor_email: actor,
