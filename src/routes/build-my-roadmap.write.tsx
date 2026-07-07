@@ -1359,18 +1359,35 @@ function ObjectiveScreen({
           )}
           <Button
             onClick={() => {
-              // On Continue, request the reflection one more time so a
-              // person who typed quickly still sees the offer. onNext will
-              // only fire after the current tick.
-              if (!reflection && !reflecting) void requestReflection(value);
+              // Reflection is fire-and-forget (debounced typing + onBlur).
+              // It must never block Continue — do not re-request it here.
+              console.debug("[intake/objective-loop] continue:click", {
+                key: objective.key,
+                scoring: !!scoring,
+              });
               onNext();
             }}
-            disabled={(objective.required && !requiredMet) || scoring}
+            disabled={(() => {
+              const disabled = (objective.required && !requiredMet) || !!scoring;
+              if (disabled) {
+                console.debug("[intake/objective-loop] continue:disabled", {
+                  key: objective.key,
+                  reason:
+                    objective.required && !requiredMet
+                      ? "required-empty"
+                      : scoring
+                        ? "scoring"
+                        : "unknown",
+                });
+              }
+              return disabled;
+            })()}
             className="gap-2"
           >
             {scoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
             Continue
           </Button>
+
 
         </div>
       </div>
