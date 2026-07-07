@@ -171,3 +171,21 @@ Skip or batch:
 - **No deploy blocker.** All items improve consistency, safety, or clarity.
 - **Parallel work possible:** Gap 8 (extraction) is isolated; could pair-program with Gap 10 (doctrine).
 - **Fable 5 budget:** Use this task to refine and catch edge cases. The audit is thorough; your job is to implement cleanly and test confidently.
+
+---
+
+## ✅ Completion Status (2026-07-06, branch `fixes/audit-medium-10-19`)
+
+| Item | Status | Notes |
+|---|---|---|
+| Gap 10 — supporting_notes doctrine | **Done** | Removed from CLIENT_SAFE_KEYS + ClientSafeRoadmap + publish write; migration nulls historical values and drops it from visible_modules; e2e test now treats it as a leak marker. |
+| Gap 8 — extraction divergence | **Done** | processSingleSource now writes categorized `engine_extracted_signals` (shared SIGNAL_CATEGORIES taxonomy, per-signal confidence, source linkage) alongside change events; extraction UI renders the real `{confidence, items}` module + live signals grouped by category. Behavioral test invokes the real extractor. |
+| New #3 — TOCTOU on preExistingPortal | **Done** | INSERT … ON CONFLICT (primary_email) DO NOTHING + re-read; `portalProjectCreated` set only by the verified creator. Guard tests added. |
+| New #6 — email wildcard in ilike | **Done** | `_tryAutoLinkPortalProject` uses `eq` (both sides lowercase-normalized; intake writes lowercase). |
+| New #5 — authored/fallback source tag | **Decision: data-only** | MapCanvas/MobilePhaseStack are client-facing (portal.roadmap.tsx only). Showing "fallback" provenance to clients is a UX negative; tag retained in `client_safe_canvas` for future ops tooling. |
+| New #4 — approve-then-fail milestone apply | **Verified done (Phase B)** | `_diffErrors` per-op tracking + persisted `milestone_diff_errors` warning activity confirmed at engine-ops.functions.ts. |
+| Gap 9 residual — upsert nulling contact fields | **Verified done (Phase A)** | Pre-existing portals get linkage only; contact_name/company_name are written solely on the create path. |
+| Gap 15 — engine_tasks CASCADE | **Done (keep + document)** | SET NULL impossible (Pillar 11 made milestone_id NOT NULL). New migration adds COMMENT ON COLUMN recording the soft-drop-only rule. |
+| LOW 20–24 | **Done (batched)** | severity "warning"→"warn"; createTask/updateTaskStatus status → TASK_STATUSES enum; dead portal-state.ts/test deleted; email escape covered by New #6. Mobile Point A/B cosmetics skipped (cosmetic). |
+
+Tests: 204 passed / 4 skipped. tsc: 20 pre-existing errors on main (stale-route-type debt, none in Phase C files); zero new errors introduced.
