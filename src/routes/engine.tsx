@@ -77,10 +77,15 @@ function EngineLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [email, setEmail] = useState("");
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
   }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -88,60 +93,99 @@ function EngineLayout() {
   }
 
   const crumbs = buildCrumbs(pathname);
+  const currentNav = NAV.find((n) =>
+    n.exact ? pathname === n.to : pathname === n.to || pathname.startsWith(n.to + "/"),
+  );
+
+  const sidebarBody = (
+    <>
+      <div className="px-6 py-6 border-b border-white/10">
+        <Link to="/" aria-label="Trust Tai home" className="block">
+          <img src={logoWhite.url} alt="Trust Tai" className="h-9 w-auto" />
+        </Link>
+        <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-royal mt-3">
+          Roadmap Engine
+        </div>
+      </div>
+      <nav aria-label="Engine navigation" className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {NAV.map((item) => {
+          const active = item.exact
+            ? pathname === item.to
+            : pathname === item.to || pathname.startsWith(item.to + "/");
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              aria-current={active ? "page" : undefined}
+              onClick={() => setMobileOpen(false)}
+              className={`group relative flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                active
+                  ? "bg-white/10 text-white"
+                  : "text-white/70 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
+                  active ? "bg-royal opacity-100" : "opacity-0 group-hover:opacity-40 bg-white"
+                }`}
+              />
+              <Icon className="w-4 h-4 shrink-0" />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="px-4 py-4 border-t border-white/10 text-xs text-white/60">
+        <div className="truncate mb-2">{email}</div>
+        <button
+          onClick={signOut}
+          className="flex items-center gap-2 text-white/70 hover:text-white"
+        >
+          <LogOut className="w-3.5 h-3.5" /> Sign out
+        </button>
+      </div>
+    </>
+  );
 
   return (
-    <div className="min-h-screen flex bg-paper-soft">
-      <aside className="w-64 shrink-0 bg-ink text-white flex flex-col sticky top-0 h-screen">
-        <div className="px-6 py-6 border-b border-white/10">
-          <Link to="/" aria-label="Trust Tai home" className="block">
-            <img src={logoWhite.url} alt="Trust Tai" className="h-9 w-auto" />
-          </Link>
-          <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-royal mt-3">
-            Roadmap Engine
-          </div>
-        </div>
-        <nav aria-label="Engine navigation" className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {NAV.map((item) => {
-            const active = item.exact
-              ? pathname === item.to
-              : pathname === item.to || pathname.startsWith(item.to + "/");
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                aria-current={active ? "page" : undefined}
-                className={`group relative flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                  active
-                    ? "bg-white/10 text-white"
-                    : "text-white/70 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <span
-                  aria-hidden
-                  className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
-                    active ? "bg-royal opacity-100" : "opacity-0 group-hover:opacity-40 bg-white"
-                  }`}
-                />
-                <Icon className="w-4 h-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="px-4 py-4 border-t border-white/10 text-xs text-white/60">
-          <div className="truncate mb-2">{email}</div>
-          <button
-            onClick={signOut}
-            className="flex items-center gap-2 text-white/70 hover:text-white"
-          >
-            <LogOut className="w-3.5 h-3.5" /> Sign out
-          </button>
-        </div>
+    <div className="min-h-screen flex flex-col lg:flex-row bg-paper-soft">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-64 shrink-0 bg-ink text-white flex-col sticky top-0 h-screen">
+        {sidebarBody}
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="border-b border-border bg-card">
+        {/* Mobile top bar */}
+        <div className="lg:hidden sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-ink px-4 py-3 text-white">
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                aria-label="Open engine menu"
+                className="inline-flex h-9 w-9 items-center justify-center rounded border border-white/10 text-white/80 hover:bg-white/5"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 border-white/10 bg-ink p-0 text-white flex flex-col">
+              <VisuallyHidden>
+                <SheetTitle>Engine navigation</SheetTitle>
+              </VisuallyHidden>
+              {sidebarBody}
+            </SheetContent>
+          </Sheet>
+          <div className="min-w-0 flex-1">
+            <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
+              Roadmap Engine
+            </div>
+            <div className="truncate text-sm">{currentNav?.label ?? "Engine"}</div>
+          </div>
+        </div>
+
+        {/* Desktop breadcrumb bar */}
+        <header className="hidden lg:block border-b border-border bg-card">
           <div className="px-8 py-3 flex items-center justify-between gap-4">
             <nav aria-label="Breadcrumb" className="text-sm text-ink/60 flex items-center gap-2 min-w-0">
               {crumbs.map((c, i) => (
@@ -162,8 +206,10 @@ function EngineLayout() {
             </div>
           </div>
         </header>
-        <main className="flex-1 px-8 py-8 min-w-0">
-          <Outlet />
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 min-w-0">
+          <div className="min-w-0">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
