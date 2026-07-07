@@ -95,9 +95,61 @@ export const saveDraft = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => SaveDraftInput.parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Derive the backstage fields server-side from the payload. The browser
+    // never writes these columns directly — it only sends answers + contact,
+    // and this handler unpacks the hidden underscore-prefixed keys into
+    // dedicated columns for ops visibility.
+    const answersByKey: Record<string, { question: string; response: string }> = {};
+    for (const a of data.answers) {
+      answersByKey[a.key] = { question: a.question, response: a.response };
+    }
+    const frameAnswer = answersByKey["_frame"];
+    const frame = frameAnswer?.response ? String(frameAnswer.response) : null;
+    let subtype: string | null = null;
+    if (frame && frame.startsWith("project:")) subtype = frame.split(":")[1] ?? null;
+
+    let objective_scores: Record<string, number> = {};
+    try {
+      const raw = answersByKey["_scores"]?.response;
+      if (raw) objective_scores = JSON.parse(raw) as Record<string, number>;
+    } catch { /* keep {} */ }
+
+    let asked: string[] = [];
+    try {
+      const raw = answersByKey["_asked"]?.response;
+      if (raw) asked = JSON.parse(raw) as string[];
+    } catch { /* keep [] */ }
+
+    // Open objectives = anything asked or scored that hasn't cleared the bar (60).
+    const BAR = 60;
+    const open_objectives = Array.from(
+      new Set([
+        ...asked.filter((k) => (objective_scores[k] ?? 0) < BAR),
+        ...Object.keys(objective_scores).filter((k) => (objective_scores[k] ?? 0) < BAR),
+      ]),
+    );
+
+    // "Current" = the last non-internal answer received (the question the
+    // user just responded to). Internal underscore-prefixed keys are skipped.
+    const visible = data.answers.filter((a) => !a.key.startsWith("_"));
+    const last = visible[visible.length - 1];
+    const current_objective = last?.key ?? null;
+    const current_question = last?.question ?? null;
+
+    const contact_email = (data.contact.email ?? "").trim().toLowerCase() || null;
+
     const row = {
       answers: data.answers,
       contact: data.contact,
+      contact_email,
+      frame,
+      subtype,
+      objective_scores,
+      open_objectives,
+      current_question,
+      current_objective,
+      status: "draft" as const,
       updated_at: new Date().toISOString(),
     };
     if (data.resume_token) {
@@ -130,6 +182,7 @@ export const saveDraft = createServerFn({ method: "POST" })
     }
     return { resume_token: inserted.resume_token };
   });
+
 
 const LoadDraftInput = z.object({ resume_token: z.string().regex(UUID_RE) });
 
