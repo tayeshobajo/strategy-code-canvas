@@ -918,20 +918,27 @@ function OpenScreen({
 function ConfirmFrameScreen({
   label,
   confirmSuffix,
+  overrideCopy,
   onYes,
   onNotQuite,
   onNotSure,
 }: {
   label: string;
   confirmSuffix: string;
+  overrideCopy?: string;
   onYes: () => void;
   onNotQuite: () => void;
   onNotSure: () => void;
 }) {
+  const line = overrideCopy
+    ? overrideCopy.endsWith("?")
+      ? overrideCopy
+      : `${overrideCopy}?`
+    : `This sounds like ${label}. ${confirmSuffix ? `${confirmSuffix.charAt(0).toUpperCase()}${confirmSuffix.slice(1)}.` : ""} Is that right?`;
   return (
     <section className="space-y-8">
       <p className="font-serif text-xl leading-snug text-foreground sm:text-2xl">
-        This sounds like {label}. {confirmSuffix ? `${confirmSuffix.charAt(0).toUpperCase()}${confirmSuffix.slice(1)}.` : ""} Is that right?
+        {line}
       </p>
       <div className="flex flex-wrap gap-3">
         <Button size="lg" onClick={onYes} className="gap-2">
