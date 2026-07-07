@@ -356,14 +356,28 @@ function WriteIntake() {
         const res = await mod.classifyIntakeFrame({
           data: { resume_token: token, open_answer: text },
         });
-        setFrame(res.frame);
+        setFrame(res._legacy_frame);
         setFrameLabel(res.label);
-        setPhase("confirm-frame");
+        setFrameConfirmationCopy(res.confirmation_copy);
+        setClarifyingQuestion(res.clarifying_question);
+        // Route by frame + confidence. Rule (Phase 6):
+        //  - not_fit → respectful redirect, do not interrogate.
+        //  - high confidence → show confirmation.
+        //  - low confidence  → ask one clarifying question.
+        if (res.frame === "not_fit") {
+          setPhase("not-a-fit");
+        } else if (res.confidence >= HIGH_CONFIDENCE_BAR) {
+          setPhase("confirm-frame");
+        } else {
+          setPhase("clarify");
+        }
       } catch (err) {
         console.warn("[intake/write] classify failed", err);
         // Silent fallback to generic project so the person never sees a dead end.
         setFrame("project.generic");
         setFrameLabel(FRAME_DEFINITIONS["project.generic"].label);
+        setFrameConfirmationCopy("");
+        setClarifyingQuestion("");
         setPhase("confirm-frame");
       } finally {
         setClassifying(false);
@@ -371,6 +385,7 @@ function WriteIntake() {
     },
     [answers, contact, persist, resumeToken],
   );
+
 
   const commitFrame = React.useCallback(
     (f: IntakeFrame, label: string) => {
