@@ -45,6 +45,9 @@ import {
   selectNextObjective,
   scoreAnswer,
 } from "@/lib/intake-scoring";
+/** Same threshold the server classifier uses. Duplicated here to keep
+ * the classifier module out of the client bundle for a single constant. */
+const HIGH_CONFIDENCE_BAR = 70;
 
 const STORAGE_KEY = "tt:intake:write:token:v1";
 const OPEN_KEY = "_open"; // stable answers[] key for the first open answer
@@ -111,6 +114,7 @@ const EMPTY_CONTACT: ContactFields = {
 type Phase =
   | "open"
   | "confirm-frame"
+  | "clarify"
   | "reclassify"
   | "objectives"
   | "not-a-fit"
@@ -148,6 +152,8 @@ function WriteIntake() {
   // Frame state
   const [frame, setFrame] = React.useState<IntakeFrame | null>(null);
   const [frameLabel, setFrameLabel] = React.useState<string>("");
+  const [frameConfirmationCopy, setFrameConfirmationCopy] = React.useState<string>("");
+  const [clarifyingQuestion, setClarifyingQuestion] = React.useState<string>("");
   const [classifying, setClassifying] = React.useState(false);
 
   // Hidden objective model. Scores are 0-100. askedKeys tracks what has
@@ -353,14 +359,28 @@ function WriteIntake() {
         const res = await mod.classifyIntakeFrame({
           data: { resume_token: token, open_answer: text },
         });
-        setFrame(res.frame);
+        setFrame(res._legacy_frame);
         setFrameLabel(res.label);
-        setPhase("confirm-frame");
+        setFrameConfirmationCopy(res.confirmation_copy);
+        setClarifyingQuestion(res.clarifying_question);
+        // Route by frame + confidence. Rule (Phase 6):
+        //  - not_fit → respectful redirect, do not interrogate.
+        //  - high confidence → show confirmation.
+        //  - low confidence  → ask one clarifying question.
+        if (res.frame === "not_fit") {
+          setPhase("not-a-fit");
+        } else if (res.confidence >= HIGH_CONFIDENCE_BAR) {
+          setPhase("confirm-frame");
+        } else {
+          setPhase("clarify");
+        }
       } catch (err) {
         console.warn("[intake/write] classify failed", err);
         // Silent fallback to generic project so the person never sees a dead end.
         setFrame("project.generic");
         setFrameLabel(FRAME_DEFINITIONS["project.generic"].label);
+        setFrameConfirmationCopy("");
+        setClarifyingQuestion("");
         setPhase("confirm-frame");
       } finally {
         setClassifying(false);
@@ -368,6 +388,7 @@ function WriteIntake() {
     },
     [answers, contact, persist, resumeToken],
   );
+
 
   const commitFrame = React.useCallback(
     (f: IntakeFrame, label: string) => {
@@ -430,9 +451,17 @@ function WriteIntake() {
             open_answer: `${openText}\n\nWhat I would call this: ${text}`,
           },
         });
-        setFrame(res.frame);
+        setFrame(res._legacy_frame);
         setFrameLabel(res.label);
-        setPhase("confirm-frame");
+        setFrameConfirmationCopy(res.confirmation_copy);
+        setClarifyingQuestion(res.clarifying_question);
+        if (res.frame === "not_fit") {
+          setPhase("not-a-fit");
+        } else if (res.confidence >= HIGH_CONFIDENCE_BAR) {
+          setPhase("confirm-frame");
+        } else {
+          setPhase("clarify");
+        }
       } catch (err) {
         console.warn("[intake/write] reclassify failed", err);
         setFrame("project.generic");
@@ -694,9 +723,24 @@ function WriteIntake() {
         <ConfirmFrameScreen
           label={frameLabel || FRAME_DEFINITIONS[frame].label}
           confirmSuffix={FRAME_DEFINITIONS[frame].confirmSuffix}
+          overrideCopy={frameConfirmationCopy || undefined}
           onYes={handleFrameConfirmed}
           onNotQuite={() => setPhase("reclassify")}
           onNotSure={() => setPhase("reclassify")}
+        />
+      )}
+
+      {phase === "clarify" && (
+        <ReclassifyScreen
+          classifying={classifying}
+          initial={answers["_frame_correction"]?.response ?? ""}
+          prompt={
+            clarifyingQuestion ||
+            "Can you say a little more so we can tell which frame fits?"
+          }
+          submitLabel="Read again"
+          onSubmit={handleFrameCorrected}
+          onBack={() => setPhase("open")}
         />
       )}
 
@@ -874,20 +918,27 @@ function OpenScreen({
 function ConfirmFrameScreen({
   label,
   confirmSuffix,
+  overrideCopy,
   onYes,
   onNotQuite,
   onNotSure,
 }: {
   label: string;
   confirmSuffix: string;
+  overrideCopy?: string;
   onYes: () => void;
   onNotQuite: () => void;
   onNotSure: () => void;
 }) {
+  const line = overrideCopy
+    ? overrideCopy.endsWith("?")
+      ? overrideCopy
+      : `${overrideCopy}?`
+    : `This sounds like ${label}. ${confirmSuffix ? `${confirmSuffix.charAt(0).toUpperCase()}${confirmSuffix.slice(1)}.` : ""} Is that right?`;
   return (
     <section className="space-y-8">
       <p className="font-serif text-xl leading-snug text-foreground sm:text-2xl">
-        This sounds like {label}. {confirmSuffix ? `${confirmSuffix.charAt(0).toUpperCase()}${confirmSuffix.slice(1)}.` : ""} Is that right?
+        {line}
       </p>
       <div className="flex flex-wrap gap-3">
         <Button size="lg" onClick={onYes} className="gap-2">
@@ -909,11 +960,15 @@ function ConfirmFrameScreen({
 function ReclassifyScreen({
   initial,
   classifying,
+  prompt,
+  submitLabel,
   onSubmit,
   onBack,
 }: {
   initial: string;
   classifying: boolean;
+  prompt?: string;
+  submitLabel?: string;
   onSubmit: (text: string) => void | Promise<void>;
   onBack: () => void;
 }) {
@@ -923,7 +978,7 @@ function ReclassifyScreen({
   return (
     <section className="space-y-6">
       <p className="font-serif text-xl leading-snug text-foreground sm:text-2xl">
-        What would you call this in your own words?
+        {prompt ?? "What would you call this in your own words?"}
       </p>
       <Textarea
         ref={ref}
@@ -938,12 +993,13 @@ function ReclassifyScreen({
         </Button>
         <Button onClick={() => onSubmit(text)} disabled={!text.trim() || classifying} className="gap-2">
           {classifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-          Read again
+          {submitLabel ?? "Read again"}
         </Button>
       </div>
     </section>
   );
 }
+
 
 /* ---------- Objective (anchor question) screen ---------- */
 
