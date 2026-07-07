@@ -17,23 +17,33 @@ export type IntakeResult = {
   cost_cents: number;
 };
 
+/**
+ * Canonical signal categories — mirrors the `engine_signal_category` Postgres
+ * enum. Runtime source of truth shared by the full pipeline and the
+ * single-source extractor so every path writes the same taxonomy into
+ * `engine_extracted_signals`.
+ */
+export const SIGNAL_CATEGORIES = [
+  "goal",
+  "pain",
+  "opportunity",
+  "deadline",
+  "constraint",
+  "decision_maker",
+  "hidden_asset",
+  "risk",
+  "required_system",
+  "milestone_candidate",
+  "investment_signal",
+  "client_language",
+  "open_question",
+  "business_model",
+  "current_system",
+] as const;
+export type SignalCategory = (typeof SIGNAL_CATEGORIES)[number];
+
 export type ExtractedSignalInput = {
-  category:
-    | "goal"
-    | "pain"
-    | "opportunity"
-    | "deadline"
-    | "constraint"
-    | "decision_maker"
-    | "hidden_asset"
-    | "risk"
-    | "required_system"
-    | "milestone_candidate"
-    | "investment_signal"
-    | "client_language"
-    | "open_question"
-    | "business_model"
-    | "current_system";
+  category: SignalCategory;
   label: string;
   detail?: string;
   confidence?: number;
