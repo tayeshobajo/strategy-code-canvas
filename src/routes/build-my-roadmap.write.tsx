@@ -205,6 +205,7 @@ function WriteIntake() {
         setAnswers(map);
         setContact({ ...EMPTY_CONTACT, ...(res.contact as Partial<ContactFields>) });
         if (Array.isArray(res.attachments)) setAttachments(res.attachments);
+        if (Array.isArray(res.sources)) setSources(res.sources as StoredIntakeSource[]);
 
 
         // Restore frame if the draft carried it
