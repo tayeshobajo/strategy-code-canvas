@@ -75,10 +75,7 @@ describe("objective-loop Continue recovery", () => {
     expect(btn![0]).toMatch(/requiredMet/);
     expect(btn![0]).toMatch(/scoring/);
     expect(btn![0]).not.toMatch(/\breflecting\b/);
-    // `reflection` (the state var) must not appear in the disabled path.
-    // It's OK if it appears elsewhere in the component for the offer card.
-    const disabledExpr = btn![0].match(/disabled=\{[\s\S]*?\}\}/);
-    expect(disabledExpr, "disabled expression not found").toBeTruthy();
-    expect(disabledExpr![0]).not.toMatch(/\breflection\b/);
+    expect(btn![0]).not.toMatch(/\breflection\b/);
   });
+
 });
