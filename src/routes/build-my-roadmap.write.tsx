@@ -960,11 +960,15 @@ function ConfirmFrameScreen({
 function ReclassifyScreen({
   initial,
   classifying,
+  prompt,
+  submitLabel,
   onSubmit,
   onBack,
 }: {
   initial: string;
   classifying: boolean;
+  prompt?: string;
+  submitLabel?: string;
   onSubmit: (text: string) => void | Promise<void>;
   onBack: () => void;
 }) {
@@ -974,7 +978,7 @@ function ReclassifyScreen({
   return (
     <section className="space-y-6">
       <p className="font-serif text-xl leading-snug text-foreground sm:text-2xl">
-        What would you call this in your own words?
+        {prompt ?? "What would you call this in your own words?"}
       </p>
       <Textarea
         ref={ref}
@@ -989,12 +993,13 @@ function ReclassifyScreen({
         </Button>
         <Button onClick={() => onSubmit(text)} disabled={!text.trim() || classifying} className="gap-2">
           {classifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-          Read again
+          {submitLabel ?? "Read again"}
         </Button>
       </div>
     </section>
   );
 }
+
 
 /* ---------- Objective (anchor question) screen ---------- */
 
