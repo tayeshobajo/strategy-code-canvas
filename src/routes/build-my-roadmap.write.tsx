@@ -903,6 +903,7 @@ function WriteIntake() {
           frameDef={activeFrameDef}
           answers={answers}
           attachments={attachments}
+          sources={sources}
           contact={contact}
           openAnswer={answers[OPEN_KEY]?.response ?? ""}
           onEditObjective={(key) => {
@@ -914,6 +915,21 @@ function WriteIntake() {
           onSubmit={handleSubmit}
           onSaveForLater={handleSaveForLater}
           submitting={submitting}
+          ensureResumeToken={async () => {
+            if (resumeToken) return resumeToken;
+            await persist({ answers, contact });
+            // persist() sets resumeToken via setState; read from localStorage
+            // as a synchronous fallback so upload can start immediately.
+            const t =
+              typeof window !== "undefined"
+                ? window.localStorage.getItem(STORAGE_KEY)
+                : null;
+            if (!t) throw new Error("Could not create draft to attach sources to.");
+            setResumeToken(t);
+            return t;
+          }}
+          onAttachmentsChange={setAttachments}
+          onSourcesChange={setSources}
         />
       )}
 
