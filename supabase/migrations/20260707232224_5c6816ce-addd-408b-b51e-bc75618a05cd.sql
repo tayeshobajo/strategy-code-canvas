@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.tg_user_roles_backfill_user_id() FROM PUBLIC, anon, authenticated;
