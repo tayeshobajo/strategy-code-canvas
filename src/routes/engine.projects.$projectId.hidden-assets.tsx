@@ -37,7 +37,7 @@ function HiddenAssets() {
         </div>
       )}
       <SectionCard title="Edit hidden assets">
-        <StepEditor projectId={projectId} step="hidden-assets" data={project.hidden_assets} />
+        <StepEditor projectId={projectId} step="hidden-assets" data={project.hidden_assets} expectedUpdatedAt={project.updated_at} />
       </SectionCard>
     </div>
   );

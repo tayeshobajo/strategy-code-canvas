@@ -37,7 +37,7 @@ function GapMap() {
         </div>
       )}
       <SectionCard title="Edit gap map">
-        <StepEditor projectId={projectId} step="gap-map" data={project.gap_map} />
+        <StepEditor projectId={projectId} step="gap-map" data={project.gap_map} expectedUpdatedAt={project.updated_at} />
       </SectionCard>
     </div>
   );

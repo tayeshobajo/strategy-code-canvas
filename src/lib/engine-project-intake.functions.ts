@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { runIntelligencePipelineInternal } from "@/lib/engine-intelligence.functions";
 import { writeDurableIntakeFailure } from "@/lib/engine-intake-failure-log";
+import { throwGeneric } from "@/lib/engine-error";
 
 async function assertOpsOrAdmin(context: any) {
   const email = (context.claims?.email as string | undefined) ?? undefined;
@@ -105,7 +106,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         })
         .select("id")
         .single();
-      if (error) throw new Error(error.message ?? "client insert failed");
+      if (error) throwGeneric(error, "client insert failed");
       clientId = c.id;
       createdClientId = c.id;
     } else if (clientId && !resolvedContactEmail) {
@@ -156,7 +157,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (projErr) throw new Error(projErr.message ?? "project insert failed");
+    if (projErr) throwGeneric(projErr, "project insert failed");
     const projectId = proj.id as string;
 
 
@@ -454,7 +455,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (srcErr) throw new Error(srcErr.message ?? "source insert failed");
+    if (srcErr) throwGeneric(srcErr, "source insert failed");
 
     // Fire-and-forget: run pipeline. Return immediately with processing status
     // so the UI can navigate and poll the extraction run.
@@ -508,7 +509,7 @@ export const listExtractedSignals = createServerFn({ method: "GET" })
       .select("*")
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message ?? "list signals failed");
+    if (error) throwGeneric(error, "list signals failed");
     return { rows: (rows ?? []) as ExtractedSignalRow[] };
   });
 
@@ -542,7 +543,7 @@ export const listExtractionRuns = createServerFn({ method: "GET" })
       .select("*")
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message ?? "list runs failed");
+    if (error) throwGeneric(error, "list runs failed");
     return { rows: (rows ?? []) as ExtractionRunRow[] };
   });
 
@@ -555,7 +556,7 @@ export const listClientsForPicker = createServerFn({ method: "GET" })
       .from("engine_clients")
       .select("id, company, industry")
       .order("company", { ascending: true });
-    if (error) throw new Error(error.message ?? "list clients failed");
+    if (error) throwGeneric(error, "list clients failed");
     return { rows: data ?? [] };
   });
 
@@ -1019,7 +1020,7 @@ export const listProjectsWithIntegrityIssues = createServerFn({ method: "GET" })
       .select("id, name, delivery_mode, client_portal_project_id")
       .order("created_at", { ascending: false })
       .limit(500);
-    if (error) throw new Error(error.message ?? "list projects failed");
+    if (error) throwGeneric(error, "list projects failed");
 
     const rows: IntegrityIssueRow[] = [];
     for (const p of (projects ?? []) as Array<{
@@ -1094,7 +1095,7 @@ export const listRecentIntakeFailures = createServerFn({ method: "GET" })
       )
       .order("created_at", { ascending: false })
       .limit(100);
-    if (error) throw new Error(error.message ?? "list failures failed");
+    if (error) throwGeneric(error, "list failures failed");
     return { rows: (data ?? []) as IntakeFailureRow[] };
   });
 

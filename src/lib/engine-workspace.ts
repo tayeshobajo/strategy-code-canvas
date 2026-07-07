@@ -63,6 +63,7 @@ export type WorkspaceProject = {
   open_decisions: number;
   next_action: string | null;
   last_activity_at: string;
+  updated_at: string;
   client_company: string;
   client_owner_email: string | null;
   step_states: Record<string, StepState>;

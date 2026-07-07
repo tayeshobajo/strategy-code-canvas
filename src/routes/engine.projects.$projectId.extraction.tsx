@@ -115,7 +115,7 @@ function Extraction() {
 
       <SourceEvidence projectId={projectId} step="extraction" />
       <SectionCard title="Edit extraction">
-        <StepEditor projectId={projectId} step="extraction" data={project.extraction} />
+        <StepEditor projectId={projectId} step="extraction" data={project.extraction} expectedUpdatedAt={project.updated_at} />
       </SectionCard>
     </div>
   );

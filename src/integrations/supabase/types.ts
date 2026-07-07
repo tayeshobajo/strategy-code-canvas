@@ -3516,10 +3516,8 @@ export type Database = {
       engine_version_status:
         | "ai_generated"
         | "draft"
-        | "needs_review"
         | "tai_edited"
         | "approved"
-        | "client_facing"
         | "delivered"
         | "archived"
     }
@@ -3739,10 +3737,8 @@ export const Constants = {
       engine_version_status: [
         "ai_generated",
         "draft",
-        "needs_review",
         "tai_edited",
         "approved",
-        "client_facing",
         "delivered",
         "archived",
       ],

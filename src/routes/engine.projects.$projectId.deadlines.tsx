@@ -59,7 +59,7 @@ function Deadlines() {
         </div>
       )}
       <SectionCard title="Edit deadlines">
-        <StepEditor projectId={projectId} step="deadlines" data={project.deadlines} />
+        <StepEditor projectId={projectId} step="deadlines" data={project.deadlines} expectedUpdatedAt={project.updated_at} />
       </SectionCard>
     </div>
   );
