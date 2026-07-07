@@ -24,7 +24,9 @@ export default defineTool({
       .eq("id", projectId)
       .maybeSingle();
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      // S10 (audit): log real Supabase error server-side, return generic text to caller.
+      console.error("[mcp/get_project] supabase error", error);
+      return { content: [{ type: "text", text: "Could not load project" }], isError: true };
     }
     if (!data) {
       return { content: [{ type: "text", text: "Not found or not accessible" }], isError: true };

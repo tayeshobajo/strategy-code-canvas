@@ -162,17 +162,90 @@ function EngineLayout() {
   );
 }
 
+// U2 (audit): breadcrumbs derived from the NAV map plus a per-subpage
+// label table, so every route surface gets a real, readable trail — not a
+// single capitalized slug.
+const PROJECT_SUBPAGE_LABELS: Record<string, string> = {
+  overview: "Overview",
+  intelligence: "Intelligence",
+  "intelligence-layer": "Intelligence Layer",
+  "signal-room": "Signal Room",
+  extraction: "Extraction",
+  "point-a": "Point A",
+  "point-b": "Point B",
+  "gap-map": "Gap Map",
+  "hidden-assets": "Hidden Assets",
+  sequencing: "Sequencing",
+  blueprint: "Blueprint",
+  investment: "Investment",
+  deadlines: "Deadlines",
+  builder: "Roadmap Builder",
+  preview: "Client Preview",
+  delivery: "Delivery Prep",
+  agent: "Agent",
+  costs: "Costs",
+  permissions: "Permissions",
+  tasks: "Tasks",
+  versions: "Versions",
+  compare: "Compare",
+  milestones: "Milestones",
+  brief: "Brief",
+};
+
+function titleFromSlug(slug: string): string {
+  return (
+    PROJECT_SUBPAGE_LABELS[slug] ??
+    slug
+      .split("-")
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(" ")
+  );
+}
+
 function buildCrumbs(pathname: string): Array<{ label: string; to?: string }> {
-  const out: Array<{ label: string; to?: string }> = [{ label: "Roadmap Engine", to: "/engine" }];
+  const out: Array<{ label: string; to?: string }> = [
+    { label: "Roadmap Engine", to: "/engine" },
+  ];
   if (pathname === "/engine") return out;
-  if (pathname.startsWith("/engine/projects")) {
+
+  // Handle top-level NAV entries (Projects, Templates, Review, etc.)
+  const topNav = NAV.find(
+    (n) => !n.exact && (pathname === n.to || pathname.startsWith(n.to + "/")),
+  );
+
+  if (topNav && topNav.to === "/engine/projects") {
     out.push({ label: "Projects", to: "/engine/projects" });
-    if (pathname.match(/^\/engine\/projects\/[^/]+/)) {
-      out.push({ label: "Overview" });
+    const match = pathname.match(/^\/engine\/projects\/([^/]+)(?:\/([^/]+))?(?:\/([^/]+))?/);
+    if (match) {
+      const projectId = match[1];
+      if (projectId === "new") {
+        out.push({ label: "New project" });
+        return out;
+      }
+      // Link the project crumb to its overview page.
+      out.push({ label: "Project" });
+      const sub = match[2];
+      const subsub = match[3];
+      if (sub) out.push({ label: titleFromSlug(sub) });
+      if (subsub) out.push({ label: titleFromSlug(subsub) });
     }
     return out;
   }
+
+  if (topNav) {
+    out.push({ label: topNav.label });
+    // Any additional slug segments after the top nav path.
+    const rest = pathname.slice(topNav.to.length).replace(/^\/+/, "");
+    if (rest) {
+      for (const seg of rest.split("/")) {
+        out.push({ label: titleFromSlug(seg) });
+      }
+    }
+    return out;
+  }
+
+  // Unknown /engine/* path — fall back to slug titling.
   const rest = pathname.replace("/engine/", "");
-  out.push({ label: rest.charAt(0).toUpperCase() + rest.slice(1) });
+  for (const seg of rest.split("/")) out.push({ label: titleFromSlug(seg) });
   return out;
 }
