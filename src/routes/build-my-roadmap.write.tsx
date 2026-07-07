@@ -1745,15 +1745,24 @@ function SourcesPanel({
   };
 
   const uploadFile = React.useCallback(
-    async (file: File) => {
-      if (file.size === 0) return toast.error("File is empty");
-      if (file.size > SOURCE_MAX_BYTES) return toast.error("File exceeds 25 MB");
+    async (file: File, remainingSlots: number): Promise<boolean> => {
+      if (file.size === 0) {
+        toast.error(`${file.name}: file is empty`);
+        return false;
+      }
+      if (file.size > SOURCE_MAX_BYTES) {
+        toast.error(`${file.name}: exceeds 25 MB`);
+        return false;
+      }
       const ext = (file.name.split(".").pop() ?? "").toLowerCase();
       if (!SOURCE_ALLOWED_EXT.has(ext)) {
-        return toast.error(`".${ext || "unknown"}" files are not allowed`);
+        toast.error(`${file.name}: ".${ext || "unknown"}" files are not allowed`);
+        return false;
       }
-      if (attachments.length >= 10) return toast.error("Attach up to 10 files per intake");
-      setUploading(true);
+      if (remainingSlots <= 0) {
+        toast.error("Attach up to 10 files per intake");
+        return false;
+      }
       try {
         const token = await ensureResumeToken();
         const cleaned = file.name.replace(/[^\w.\- ]+/g, "_").slice(0, 180);
@@ -1776,17 +1785,43 @@ function SourcesPanel({
           },
         });
         onAttachmentsChange(res.attachments ?? []);
-        toast.success(`Attached ${file.name}`);
+        return true;
       } catch (err) {
         console.warn("[intake-sources] upload failed", err);
-        toast.error("Could not upload that file. Try again.");
+        toast.error(`${file.name}: ${(err as Error)?.message || "upload failed"}`);
+        return false;
+      }
+    },
+    [ensureResumeToken, onAttachmentsChange],
+  );
+
+  const uploadFiles = React.useCallback(
+    async (files: File[]) => {
+      if (files.length === 0) return;
+      setUploading(true);
+      try {
+        let slotsLeft = Math.max(0, 10 - attachments.length);
+        let ok = 0;
+        // Sequential to keep server-side dedupe + slot count consistent and
+        // to avoid Supabase Storage rate limits on parallel PUTs.
+        for (const f of files) {
+          const success = await uploadFile(f, slotsLeft);
+          if (success) {
+            ok += 1;
+            slotsLeft -= 1;
+          }
+          if (slotsLeft <= 0) break;
+        }
+        if (ok > 0) toast.success(`Attached ${ok} file${ok === 1 ? "" : "s"}`);
       } finally {
         setUploading(false);
         if (fileRef.current) fileRef.current.value = "";
       }
     },
-    [attachments.length, ensureResumeToken, onAttachmentsChange],
+    [attachments.length, uploadFile],
   );
+
+
 
   const removeAttachment = React.useCallback(
     async (storage_path: string) => {
@@ -1868,10 +1903,12 @@ function SourcesPanel({
         <input
           ref={fileRef}
           type="file"
+          multiple
           className="hidden"
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void uploadFile(f);
+            const list = e.target.files;
+            if (!list || list.length === 0) return;
+            void uploadFiles(Array.from(list));
           }}
         />
         <Button
@@ -1883,7 +1920,7 @@ function SourcesPanel({
           onClick={() => fileRef.current?.click()}
         >
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          Upload a file
+          Upload files
         </Button>
         <Button
           type="button"
