@@ -21,7 +21,7 @@
  * floor. Generative next-question and completeness scoring are Stage 2.
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Check, Loader2, Pencil } from "lucide-react";
