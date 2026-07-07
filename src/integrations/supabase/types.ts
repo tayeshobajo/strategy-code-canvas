@@ -2612,6 +2612,7 @@ export type Database = {
           objective_scores: Json
           open_objectives: Json
           resume_token: string
+          sources: Json
           status: string
           subtype: string | null
           updated_at: string
@@ -2629,6 +2630,7 @@ export type Database = {
           objective_scores?: Json
           open_objectives?: Json
           resume_token?: string
+          sources?: Json
           status?: string
           subtype?: string | null
           updated_at?: string
@@ -2646,6 +2648,7 @@ export type Database = {
           objective_scores?: Json
           open_objectives?: Json
           resume_token?: string
+          sources?: Json
           status?: string
           subtype?: string | null
           updated_at?: string
