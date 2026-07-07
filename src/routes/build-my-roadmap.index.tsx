@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 
 
-export const Route = createFileRoute("/build-my-roadmap")({
+export const Route = createFileRoute("/build-my-roadmap/")({
   head: () => {
     const title = "Build My Roadmap | Trust Tai";
     const description =

@@ -18,7 +18,6 @@ import { Route as McpRouteImport } from './routes/mcp'
 import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as EngineRouteImport } from './routes/engine'
-import { Route as BuildMyRoadmapRouteImport } from './routes/build-my-roadmap'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
@@ -28,6 +27,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as EngineIndexRouteImport } from './routes/engine.index'
+import { Route as BuildMyRoadmapIndexRouteImport } from './routes/build-my-roadmap.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as PortalRoadmapMockupRouteImport } from './routes/portal.roadmap-mockup'
@@ -151,11 +151,6 @@ const EngineRoute = EngineRouteImport.update({
   path: '/engine',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BuildMyRoadmapRoute = BuildMyRoadmapRouteImport.update({
-  id: '/build-my-roadmap',
-  path: '/build-my-roadmap',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -199,6 +194,11 @@ const EngineIndexRoute = EngineIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => EngineRoute,
+} as any)
+const BuildMyRoadmapIndexRoute = BuildMyRoadmapIndexRouteImport.update({
+  id: '/build-my-roadmap/',
+  path: '/build-my-roadmap/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
@@ -346,9 +346,9 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const BuildMyRoadmapWriteRoute = BuildMyRoadmapWriteRouteImport.update({
-  id: '/write',
-  path: '/write',
-  getParentRoute: () => BuildMyRoadmapRoute,
+  id: '/build-my-roadmap/write',
+  path: '/build-my-roadmap/write',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRolesRoute = AdminRolesRouteImport.update({
   id: '/roles',
@@ -622,7 +622,6 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
-  '/build-my-roadmap': typeof BuildMyRoadmapRouteWithChildren
   '/engine': typeof EngineRouteWithChildren
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
@@ -670,6 +669,7 @@ export interface FileRoutesByFullPath {
   '/portal/roadmap-mockup': typeof PortalRoadmapMockupRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
   '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
@@ -716,7 +716,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
-  '/build-my-roadmap': typeof BuildMyRoadmapRouteWithChildren
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/mcp': typeof McpRoute
@@ -763,6 +762,7 @@ export interface FileRoutesByTo {
   '/portal/roadmap-mockup': typeof PortalRoadmapMockupRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/admin': typeof AdminIndexRoute
+  '/build-my-roadmap': typeof BuildMyRoadmapIndexRoute
   '/engine': typeof EngineIndexRoute
   '/ops': typeof OpsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -812,7 +812,6 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
-  '/build-my-roadmap': typeof BuildMyRoadmapRouteWithChildren
   '/engine': typeof EngineRouteWithChildren
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
@@ -861,6 +860,7 @@ export interface FileRoutesById {
   '/portal/roadmap-mockup': typeof PortalRoadmapMockupRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
   '/engine/': typeof EngineIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/portal/': typeof PortalIndexRoute
@@ -911,7 +911,6 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/auth'
-    | '/build-my-roadmap'
     | '/engine'
     | '/insights'
     | '/investment'
@@ -959,6 +958,7 @@ export interface FileRouteTypes {
     | '/portal/roadmap-mockup'
     | '/walks/$slug'
     | '/admin/'
+    | '/build-my-roadmap/'
     | '/engine/'
     | '/ops/'
     | '/portal/'
@@ -1005,7 +1005,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
-    | '/build-my-roadmap'
     | '/insights'
     | '/investment'
     | '/mcp'
@@ -1052,6 +1051,7 @@ export interface FileRouteTypes {
     | '/portal/roadmap-mockup'
     | '/walks/$slug'
     | '/admin'
+    | '/build-my-roadmap'
     | '/engine'
     | '/ops'
     | '/.lovable/oauth/consent'
@@ -1100,7 +1100,6 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/auth'
-    | '/build-my-roadmap'
     | '/engine'
     | '/insights'
     | '/investment'
@@ -1149,6 +1148,7 @@ export interface FileRouteTypes {
     | '/portal/roadmap-mockup'
     | '/walks_/$slug'
     | '/admin/'
+    | '/build-my-roadmap/'
     | '/engine/'
     | '/ops/'
     | '/portal/'
@@ -1199,7 +1199,6 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
-  BuildMyRoadmapRoute: typeof BuildMyRoadmapRouteWithChildren
   EngineRoute: typeof EngineRouteWithChildren
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
@@ -1211,11 +1210,13 @@ export interface RootRouteChildren {
   WhatWeBuildRoute: typeof WhatWeBuildRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  BuildMyRoadmapWriteRoute: typeof BuildMyRoadmapWriteRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
   WalksSlugRoute: typeof WalksSlugRoute
+  BuildMyRoadmapIndexRoute: typeof BuildMyRoadmapIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
@@ -1294,13 +1295,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/build-my-roadmap': {
-      id: '/build-my-roadmap'
-      path: '/build-my-roadmap'
-      fullPath: '/build-my-roadmap'
-      preLoaderRoute: typeof BuildMyRoadmapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -1363,6 +1357,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/engine/'
       preLoaderRoute: typeof EngineIndexRouteImport
       parentRoute: typeof EngineRoute
+    }
+    '/build-my-roadmap/': {
+      id: '/build-my-roadmap/'
+      path: '/build-my-roadmap'
+      fullPath: '/build-my-roadmap/'
+      preLoaderRoute: typeof BuildMyRoadmapIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/': {
       id: '/admin/'
@@ -1569,10 +1570,10 @@ declare module '@tanstack/react-router' {
     }
     '/build-my-roadmap/write': {
       id: '/build-my-roadmap/write'
-      path: '/write'
+      path: '/build-my-roadmap/write'
       fullPath: '/build-my-roadmap/write'
       preLoaderRoute: typeof BuildMyRoadmapWriteRouteImport
-      parentRoute: typeof BuildMyRoadmapRoute
+      parentRoute: typeof rootRouteImport
     }
     '/admin/roles': {
       id: '/admin/roles'
@@ -1967,18 +1968,6 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface BuildMyRoadmapRouteChildren {
-  BuildMyRoadmapWriteRoute: typeof BuildMyRoadmapWriteRoute
-}
-
-const BuildMyRoadmapRouteChildren: BuildMyRoadmapRouteChildren = {
-  BuildMyRoadmapWriteRoute: BuildMyRoadmapWriteRoute,
-}
-
-const BuildMyRoadmapRouteWithChildren = BuildMyRoadmapRoute._addFileChildren(
-  BuildMyRoadmapRouteChildren,
-)
-
 interface EngineProjectsProjectIdAgentRouteChildren {
   EngineProjectsProjectIdAgentCostsRoute: typeof EngineProjectsProjectIdAgentCostsRoute
   EngineProjectsProjectIdAgentPermissionsRoute: typeof EngineProjectsProjectIdAgentPermissionsRoute
@@ -2131,7 +2120,6 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
-  BuildMyRoadmapRoute: BuildMyRoadmapRouteWithChildren,
   EngineRoute: EngineRouteWithChildren,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
@@ -2144,11 +2132,13 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  BuildMyRoadmapWriteRoute: BuildMyRoadmapWriteRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutRoadmapRoute: CheckoutRoadmapRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   InsightsSlugRoute: InsightsSlugRoute,
   WalksSlugRoute: WalksSlugRoute,
+  BuildMyRoadmapIndexRoute: BuildMyRoadmapIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   CheckoutWalkPaceRoute: CheckoutWalkPaceRoute,
