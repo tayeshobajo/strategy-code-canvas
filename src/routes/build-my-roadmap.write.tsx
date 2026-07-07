@@ -451,9 +451,17 @@ function WriteIntake() {
             open_answer: `${openText}\n\nWhat I would call this: ${text}`,
           },
         });
-        setFrame(res.frame);
+        setFrame(res._legacy_frame);
         setFrameLabel(res.label);
-        setPhase("confirm-frame");
+        setFrameConfirmationCopy(res.confirmation_copy);
+        setClarifyingQuestion(res.clarifying_question);
+        if (res.frame === "not_fit") {
+          setPhase("not-a-fit");
+        } else if (res.confidence >= HIGH_CONFIDENCE_BAR) {
+          setPhase("confirm-frame");
+        } else {
+          setPhase("clarify");
+        }
       } catch (err) {
         console.warn("[intake/write] reclassify failed", err);
         setFrame("project.generic");
