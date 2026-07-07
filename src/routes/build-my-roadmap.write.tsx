@@ -1162,20 +1162,26 @@ function ContactScreen({
 function ReviewScreen({
   frameDef,
   answers,
+  attachments,
   contact,
   openAnswer,
   onEditObjective,
   onEditContact,
+  onEditOpen,
   onSubmit,
+  onSaveForLater,
   submitting,
 }: {
   frameDef: FrameDefinition;
   answers: Record<string, AnswerRow>;
+  attachments: Array<{ storage_path: string; filename: string; size: number; mime: string | null }>;
   contact: ContactFields;
   openAnswer: string;
   onEditObjective: (key: string) => void;
   onEditContact: () => void;
+  onEditOpen: () => void;
   onSubmit: () => void;
+  onSaveForLater: () => void;
   submitting: boolean;
 }) {
   const understood = frameDef.objectives
@@ -1187,20 +1193,19 @@ function ReviewScreen({
 
   return (
     <section className="space-y-10">
-      <p className="text-base text-muted-foreground">
-        Here is what we understood. Here is what we will explore together. Here is what we will use to prepare
-        your roadmap. Correct anything that reads wrong.
-      </p>
+      <div className="space-y-2 text-base leading-relaxed text-muted-foreground">
+        <p>Here is what we understood.</p>
+        <p>Here is what we will explore together.</p>
+        <p>Here is what we will use to prepare your roadmap.</p>
+        <p className="pt-2 text-sm">Edit anything that reads wrong before sending.</p>
+      </div>
 
-      <Panel title="Your opening" onEdit={undefined}>
+      <Panel title="Your opening" onEdit={onEditOpen}>
         <blockquote className="whitespace-pre-wrap border-l-2 border-foreground/30 pl-4 font-serif text-lg leading-snug text-foreground">
           {openAnswer || "(no opening on file)"}
         </blockquote>
-      </Panel>
-
-      <Panel title={`We understood this as ${frameDef.label}`} onEdit={undefined}>
-        <p className="text-sm text-muted-foreground">
-          If that read is off, use Back to change it before sending.
+        <p className="mt-3 text-xs text-muted-foreground">
+          We read this as {frameDef.label.toLowerCase()}.
         </p>
       </Panel>
 
@@ -1209,7 +1214,7 @@ function ReviewScreen({
           <p className="text-sm text-muted-foreground">Nothing captured yet.</p>
         ) : (
           <ul className="space-y-4">
-            {understood.map(({ o, idx, response }) => (
+            {understood.map(({ o, response }) => (
               <li key={o.key} className="space-y-1">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{o.label}</p>
@@ -1218,7 +1223,7 @@ function ReviewScreen({
                     onClick={() => onEditObjective(o.key)}
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                   >
-                    <Pencil className="h-3 w-3" /> edit
+                    <Pencil className="h-3 w-3" /> edit this
                   </button>
                 </div>
                 <p className="whitespace-pre-wrap text-base text-foreground">{response}</p>
@@ -1229,23 +1234,60 @@ function ReviewScreen({
       </Panel>
 
       {open.length > 0 && (
-        <Panel title="What we will explore together" onEdit={undefined}>
+        <Panel title="Here is what we will explore together" onEdit={undefined}>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Open ground, not a gap. Add a line now, or leave it for the first conversation.
+          </p>
           <ul className="space-y-2">
-            {open.map(({ o, idx }) => (
+            {open.map(({ o }) => (
               <li key={o.key} className="flex items-center justify-between gap-3">
-                <span className="text-sm text-muted-foreground">{o.label}</span>
+                <span className="text-sm text-foreground">{o.label}</span>
                 <button
                   type="button"
                   onClick={() => onEditObjective(o.key)}
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                 >
-                  <Pencil className="h-3 w-3" /> add
+                  <Pencil className="h-3 w-3" /> add a line
                 </button>
               </li>
             ))}
           </ul>
         </Panel>
       )}
+
+      <Panel title="Here is what we will use to prepare your roadmap" onEdit={undefined}>
+        <p className="mb-4 text-sm text-muted-foreground">
+          These are the sources a person at Trust Tai will read alongside your answers.
+        </p>
+        <dl className="grid gap-3 text-sm">
+          <ReviewRow
+            label="Your opening"
+            value={openAnswer ? "In your own words, preserved as written" : ""}
+          />
+          <ReviewRow
+            label="Captured answers"
+            value={
+              understood.length
+                ? `${understood.length} ${understood.length === 1 ? "answer" : "answers"} across ${frameDef.label.toLowerCase()}`
+                : ""
+            }
+          />
+          <ReviewRow
+            label="Uploaded files"
+            value={
+              attachments.length
+                ? attachments.map((a) => a.filename).join(", ")
+                : ""
+            }
+          />
+          {contact.website && <ReviewRow label="Website you shared" value={contact.website} />}
+        </dl>
+        {understood.length === 0 && attachments.length === 0 && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your opening alone is enough to begin the read.
+          </p>
+        )}
+      </Panel>
 
       <Panel title="How we will reach you" onEdit={onEditContact}>
         <dl className="grid gap-2 text-sm">
@@ -1259,16 +1301,29 @@ function ReviewScreen({
         </dl>
       </Panel>
 
-      <div className="flex items-center justify-between gap-3 pt-2">
-        <p className="text-sm text-muted-foreground">A person reads every word before anything is drafted.</p>
-        <Button onClick={onSubmit} disabled={submitting} size="lg" className="gap-2">
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-          Send this to Trust Tai
-        </Button>
+      <div className="space-y-4 pt-2">
+        <p className="text-sm text-muted-foreground">
+          A person reads every word before anything is drafted.
+        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            onClick={onSaveForLater}
+            disabled={submitting}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Save and come back later
+          </Button>
+          <Button onClick={onSubmit} disabled={submitting} size="lg" className="gap-2">
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+            Send this to Trust Tai
+          </Button>
+        </div>
       </div>
     </section>
   );
 }
+
 
 function Panel({
   title,
