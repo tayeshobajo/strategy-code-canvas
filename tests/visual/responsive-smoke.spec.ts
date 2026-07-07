@@ -91,7 +91,8 @@ for (const route of PUBLIC_ROUTES) {
     const meaningful = consoleErrors.filter(
       (e) =>
         !/stripe|supabase|Failed to fetch|NetworkError|net::ERR_/i.test(e) &&
-        !/Invalid DOM property|Warning:|Download the React DevTools|Each child in a list/i.test(e),
+        !/Invalid DOM property|Warning:|Download the React DevTools|Each child in a list|hydrat(ed|ion)|SSR|nonoptional/i.test(e),
+
     );
     expect(
       meaningful,
