@@ -32,7 +32,7 @@ export function WorkspaceStepper({
                 to={to}
                 params={{ projectId }}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 px-1.5 group",
+                  "flex flex-col items-center gap-2 px-2 py-1 group",
                 )}
               >
                 <div
