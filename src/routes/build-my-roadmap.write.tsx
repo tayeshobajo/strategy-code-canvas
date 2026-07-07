@@ -832,12 +832,35 @@ function WriteIntake() {
           generatingQuestion={generatingQuestion}
           onChange={(v) => {
             const q = currentObjective;
+            const existing = answers[q.key];
             upsertAnswer({
               key: q.key,
               question: q.anchor,
               response: v,
-              reflected_offered: null,
+              reflected_offered: existing?.reflected_offered ?? null,
             });
+          }}
+          onAdoptReflection={(text) => {
+            const q = currentObjective;
+            upsertAnswer({
+              key: q.key,
+              question: q.anchor,
+              response: text,
+              reflected_offered: text,
+            });
+          }}
+          onRequestReflection={async (question, answer) => {
+            if (!resumeToken) return null;
+            try {
+              const mod = await import("@/lib/intake.functions");
+              const res = await mod.reflectAnswer({
+                data: { resume_token: resumeToken, question, answer },
+              });
+              return res?.text ?? null;
+            } catch (err) {
+              console.warn("[intake/write] reflect failed (silent)", err);
+              return null;
+            }
           }}
           onNext={goNextObjective}
           onPrev={goPrevObjective}
