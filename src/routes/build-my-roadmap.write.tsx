@@ -148,6 +148,8 @@ function WriteIntake() {
   // Frame state
   const [frame, setFrame] = React.useState<IntakeFrame | null>(null);
   const [frameLabel, setFrameLabel] = React.useState<string>("");
+  const [frameConfirmationCopy, setFrameConfirmationCopy] = React.useState<string>("");
+  const [clarifyingQuestion, setClarifyingQuestion] = React.useState<string>("");
   const [classifying, setClassifying] = React.useState(false);
 
   // Hidden objective model. Scores are 0-100. askedKeys tracks what has
