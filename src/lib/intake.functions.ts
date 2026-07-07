@@ -470,6 +470,7 @@ export const submitIntake = createServerFn({ method: "POST" })
         artifact: {
           ...artifact,
           attachments,
+          sources,
         },
         approval_required: true,
         outbound_blocked: true,
