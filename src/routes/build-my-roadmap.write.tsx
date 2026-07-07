@@ -21,7 +21,7 @@
  * floor. Generative next-question and completeness scoring are Stage 2.
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Check, Loader2, Pencil } from "lucide-react";
@@ -135,9 +135,13 @@ function WriteIntakeRoute() {
 /* ---------- Main experience ---------- */
 
 function WriteIntake() {
+  const navigate = useNavigate();
   const [phase, setPhase] = React.useState<Phase>("open");
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
   const [answers, setAnswers] = React.useState<Record<string, AnswerRow>>({});
+  const [attachments, setAttachments] = React.useState<
+    Array<{ storage_path: string; filename: string; size: number; mime: string | null }>
+  >([]);
   const [contact, setContact] = React.useState<ContactFields>(EMPTY_CONTACT);
   const [authorizesScan, setAuthorizesScan] = React.useState(false);
 
@@ -184,6 +188,8 @@ function WriteIntake() {
         }
         setAnswers(map);
         setContact({ ...EMPTY_CONTACT, ...(res.contact as Partial<ContactFields>) });
+        if (Array.isArray(res.attachments)) setAttachments(res.attachments);
+
 
         // Restore frame if the draft carried it
         const frameRow = map[FRAME_KEY];
@@ -640,6 +646,40 @@ function WriteIntake() {
     }
   }, [activeFrameDef, answers, authorizesScan, contact, resumeToken, submitting]);
 
+  // ---------- Save and come back later ----------
+  const handleSaveForLater = React.useCallback(async () => {
+    try {
+      // Flush pending autosave so the current answers/contact are persisted.
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+      await persist({ answers, contact });
+      // Offer to email the resume link if we have an email on file.
+      if (contact.email.trim() && resumeToken && typeof window !== "undefined") {
+        try {
+          const mod = await import("@/lib/intake.functions");
+          await mod.sendResumeLink({
+            data: {
+              resume_token: resumeToken,
+              email: contact.email.trim(),
+              resume_url: window.location.origin + "/build-my-roadmap/write",
+              name: contact.name || "",
+            },
+          });
+          toast.success("Saved. We emailed you a link to pick this up.");
+        } catch (err) {
+          console.warn("[intake/write] resume-link email failed", err);
+          toast.success("Saved. This page will remember you when you return.");
+        }
+      } else {
+        toast.success("Saved. This page will remember you when you return.");
+      }
+      navigate({ to: "/" });
+    } catch (err) {
+      console.error("[intake/write] save-for-later failed", err);
+      toast.error("We could not save just now. Try again in a moment.");
+    }
+  }, [answers, contact, navigate, persist, resumeToken]);
+
+
   /* ---------- Render ---------- */
 
   return (
@@ -718,6 +758,7 @@ function WriteIntake() {
         <ReviewScreen
           frameDef={activeFrameDef}
           answers={answers}
+          attachments={attachments}
           contact={contact}
           openAnswer={answers[OPEN_KEY]?.response ?? ""}
           onEditObjective={(key) => {
@@ -725,7 +766,9 @@ function WriteIntake() {
             if (obj) editObjectiveFromReview(obj);
           }}
           onEditContact={() => setPhase("contact")}
+          onEditOpen={() => setPhase("open")}
           onSubmit={handleSubmit}
+          onSaveForLater={handleSaveForLater}
           submitting={submitting}
         />
       )}
@@ -1119,20 +1162,26 @@ function ContactScreen({
 function ReviewScreen({
   frameDef,
   answers,
+  attachments,
   contact,
   openAnswer,
   onEditObjective,
   onEditContact,
+  onEditOpen,
   onSubmit,
+  onSaveForLater,
   submitting,
 }: {
   frameDef: FrameDefinition;
   answers: Record<string, AnswerRow>;
+  attachments: Array<{ storage_path: string; filename: string; size: number; mime: string | null }>;
   contact: ContactFields;
   openAnswer: string;
   onEditObjective: (key: string) => void;
   onEditContact: () => void;
+  onEditOpen: () => void;
   onSubmit: () => void;
+  onSaveForLater: () => void;
   submitting: boolean;
 }) {
   const understood = frameDef.objectives
@@ -1144,20 +1193,19 @@ function ReviewScreen({
 
   return (
     <section className="space-y-10">
-      <p className="text-base text-muted-foreground">
-        Here is what we understood. Here is what we will explore together. Here is what we will use to prepare
-        your roadmap. Correct anything that reads wrong.
-      </p>
+      <div className="space-y-2 text-base leading-relaxed text-muted-foreground">
+        <p>Here is what we understood.</p>
+        <p>Here is what we will explore together.</p>
+        <p>Here is what we will use to prepare your roadmap.</p>
+        <p className="pt-2 text-sm">Edit anything that reads wrong before sending.</p>
+      </div>
 
-      <Panel title="Your opening" onEdit={undefined}>
+      <Panel title="Your opening" onEdit={onEditOpen}>
         <blockquote className="whitespace-pre-wrap border-l-2 border-foreground/30 pl-4 font-serif text-lg leading-snug text-foreground">
           {openAnswer || "(no opening on file)"}
         </blockquote>
-      </Panel>
-
-      <Panel title={`We understood this as ${frameDef.label}`} onEdit={undefined}>
-        <p className="text-sm text-muted-foreground">
-          If that read is off, use Back to change it before sending.
+        <p className="mt-3 text-xs text-muted-foreground">
+          We read this as {frameDef.label.toLowerCase()}.
         </p>
       </Panel>
 
@@ -1166,7 +1214,7 @@ function ReviewScreen({
           <p className="text-sm text-muted-foreground">Nothing captured yet.</p>
         ) : (
           <ul className="space-y-4">
-            {understood.map(({ o, idx, response }) => (
+            {understood.map(({ o, response }) => (
               <li key={o.key} className="space-y-1">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{o.label}</p>
@@ -1175,7 +1223,7 @@ function ReviewScreen({
                     onClick={() => onEditObjective(o.key)}
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                   >
-                    <Pencil className="h-3 w-3" /> edit
+                    <Pencil className="h-3 w-3" /> edit this
                   </button>
                 </div>
                 <p className="whitespace-pre-wrap text-base text-foreground">{response}</p>
@@ -1186,23 +1234,60 @@ function ReviewScreen({
       </Panel>
 
       {open.length > 0 && (
-        <Panel title="What we will explore together" onEdit={undefined}>
+        <Panel title="Here is what we will explore together" onEdit={undefined}>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Open ground, not a gap. Add a line now, or leave it for the first conversation.
+          </p>
           <ul className="space-y-2">
-            {open.map(({ o, idx }) => (
+            {open.map(({ o }) => (
               <li key={o.key} className="flex items-center justify-between gap-3">
-                <span className="text-sm text-muted-foreground">{o.label}</span>
+                <span className="text-sm text-foreground">{o.label}</span>
                 <button
                   type="button"
                   onClick={() => onEditObjective(o.key)}
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                 >
-                  <Pencil className="h-3 w-3" /> add
+                  <Pencil className="h-3 w-3" /> add a line
                 </button>
               </li>
             ))}
           </ul>
         </Panel>
       )}
+
+      <Panel title="Here is what we will use to prepare your roadmap" onEdit={undefined}>
+        <p className="mb-4 text-sm text-muted-foreground">
+          These are the sources a person at Trust Tai will read alongside your answers.
+        </p>
+        <dl className="grid gap-3 text-sm">
+          <ReviewRow
+            label="Your opening"
+            value={openAnswer ? "In your own words, preserved as written" : ""}
+          />
+          <ReviewRow
+            label="Captured answers"
+            value={
+              understood.length
+                ? `${understood.length} ${understood.length === 1 ? "answer" : "answers"} across ${frameDef.label.toLowerCase()}`
+                : ""
+            }
+          />
+          <ReviewRow
+            label="Uploaded files"
+            value={
+              attachments.length
+                ? attachments.map((a) => a.filename).join(", ")
+                : ""
+            }
+          />
+          {contact.website && <ReviewRow label="Website you shared" value={contact.website} />}
+        </dl>
+        {understood.length === 0 && attachments.length === 0 && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your opening alone is enough to begin the read.
+          </p>
+        )}
+      </Panel>
 
       <Panel title="How we will reach you" onEdit={onEditContact}>
         <dl className="grid gap-2 text-sm">
@@ -1216,16 +1301,29 @@ function ReviewScreen({
         </dl>
       </Panel>
 
-      <div className="flex items-center justify-between gap-3 pt-2">
-        <p className="text-sm text-muted-foreground">A person reads every word before anything is drafted.</p>
-        <Button onClick={onSubmit} disabled={submitting} size="lg" className="gap-2">
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-          Send this to Trust Tai
-        </Button>
+      <div className="space-y-4 pt-2">
+        <p className="text-sm text-muted-foreground">
+          A person reads every word before anything is drafted.
+        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            onClick={onSaveForLater}
+            disabled={submitting}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Save and come back later
+          </Button>
+          <Button onClick={onSubmit} disabled={submitting} size="lg" className="gap-2">
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+            Send this to Trust Tai
+          </Button>
+        </div>
       </div>
     </section>
   );
 }
+
 
 function Panel({
   title,
