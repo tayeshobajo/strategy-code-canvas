@@ -50,6 +50,8 @@ const INTERNAL_MARKERS = [
   "SOURCE_ID_SECRET",
   "INTERNAL_NOTE_SECRET",
   "AI_CONFIDENCE_SECRET",
+  // Gap 10: supporting_notes is internal-engine doctrine — never published.
+  "SUPPORTING_NOTES_SECRET",
 ];
 
 const cleanup: string[] = [];
@@ -105,7 +107,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
       sequence_30_60_90: { "30": ["Kickoff"], "60": ["Iterate"], "90": ["Ship"] },
       risks_dependencies: [{ risk: "Timing", mitigation: "Parallelize" }],
       recommended_next_move: "Book kickoff call.",
-      supporting_notes: "Notes shared with client.",
+      supporting_notes: "SUPPORTING_NOTES_SECRET operator-only notes",
       // ↓ Internal-only — must NOT appear in portal-read JSON.
       agent_costs: { total_cents: 999999, marker: "AGENT_COST_SECRET" },
       generation_provenance: { model: "internal", marker: "PROVENANCE_SECRET" },
@@ -188,7 +190,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
          status, approved_at, published_at,
          executive_summary, current_diagnosis,
          strategic_priorities, sequence_30_60_90, risks_dependencies,
-         recommended_next_move, supporting_notes, client_safe_canvas, metadata
+         recommended_next_move, client_safe_canvas, metadata
        ) VALUES (
          '${portalProjectId}', '${versionId}',
          $$${safe.title}$$, $$${safe.version_label}$$,
@@ -197,7 +199,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
          $json$${JSON.stringify(safe.strategic_priorities).replace(/'/g, "''")}$json$::jsonb,
          $json$${JSON.stringify(safe.sequence_30_60_90).replace(/'/g, "''")}$json$::jsonb,
          $json$${JSON.stringify(safe.risks_dependencies).replace(/'/g, "''")}$json$::jsonb,
-         $$${safe.recommended_next_move ?? ""}$$, $$${safe.supporting_notes ?? ""}$$,
+         $$${safe.recommended_next_move ?? ""}$$,
          $json$${JSON.stringify(safe.client_safe_canvas).replace(/'/g, "''")}$json$::jsonb,
          '{"e2e":true}'::jsonb
        ) RETURNING id`,
@@ -323,7 +325,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
         sequence_30_60_90: { "30": [`${label} kickoff`], "60": [], "90": [] },
         risks_dependencies: [],
         recommended_next_move: `Next move for ${label}.`,
-        supporting_notes: `Notes for ${label}.`,
+        supporting_notes: `SUPPORTING_NOTES_SECRET notes for ${label}.`,
         agent_costs: { total_cents: 1, marker: "AGENT_COST_SECRET" },
         generation_provenance: { model: "internal", marker: "PROVENANCE_SECRET" },
         source_ids: ["SOURCE_ID_SECRET"],
@@ -384,7 +386,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
            status, approved_at, published_at,
            executive_summary, current_diagnosis,
            strategic_priorities, sequence_30_60_90, risks_dependencies,
-           recommended_next_move, supporting_notes, client_safe_canvas, metadata
+           recommended_next_move, client_safe_canvas, metadata
          ) VALUES (
            '${portalProjectId}', '${versionId}',
            $$${safe.title}$$, $$${safe.version_label}$$,
@@ -393,7 +395,7 @@ describe.skipIf(!HAS_PG)("portal publish → read E2E (approved roadmap, client-
            $json$${JSON.stringify(safe.strategic_priorities).replace(/'/g, "''")}$json$::jsonb,
            $json$${JSON.stringify(safe.sequence_30_60_90).replace(/'/g, "''")}$json$::jsonb,
            $json$${JSON.stringify(safe.risks_dependencies).replace(/'/g, "''")}$json$::jsonb,
-           $$${safe.recommended_next_move ?? ""}$$, $$${safe.supporting_notes ?? ""}$$,
+           $$${safe.recommended_next_move ?? ""}$$,
            $json$${JSON.stringify(safe.client_safe_canvas).replace(/'/g, "''")}$json$::jsonb,
            '{"e2e":true}'::jsonb
          ) RETURNING id`,
