@@ -709,6 +709,10 @@ const UpdateStepInput = z.object({
     "signal-room","extraction","point-a","point-b","hidden-assets","gap-map","blueprint","builder","sequencing","deadlines","investment","preview","delivery",
   ]),
   data: z.record(z.string(), z.unknown()),
+  // Optimistic-lock guard. When present, the update fails if another writer
+  // has changed the project since the caller loaded it. Client passes the
+  // `updated_at` seen at edit time.
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
 });
 
 export const updateProjectStep = createServerFn({ method: "POST" })
@@ -722,13 +726,27 @@ export const updateProjectStep = createServerFn({ method: "POST" })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
 
-    // Read current step_states so we can merge (edits reset to draft unless already draft).
+    // Read current step_states + updated_at so we can merge state and detect
+    // concurrent writes.
     const { data: cur } = await sb
       .from("engine_projects")
-      .select("step_states")
+      .select("step_states, updated_at")
       .eq("id", data.id)
       .single();
     const states = (cur?.step_states ?? {}) as Record<string, import("@/lib/engine-workspace").StepState>;
+    const currentUpdatedAt = (cur?.updated_at as string | null) ?? null;
+
+    // Optimistic lock: bail out early with a clear error if the row moved
+    // under the caller. Client can re-open the editor with fresh data.
+    if (
+      data.expectedUpdatedAt
+      && currentUpdatedAt
+      && new Date(data.expectedUpdatedAt).getTime() !== new Date(currentUpdatedAt).getTime()
+    ) {
+      throw new Error(
+        "This project changed while you were editing. Reload to see the latest and try again.",
+      );
+    }
 
     // Pillar 6: protect operator-approved diagnostic modules from silent
     // re-writes. Point A / Point B once approved represent Tai's signed-off
@@ -754,11 +772,22 @@ export const updateProjectStep = createServerFn({ method: "POST" })
       note: states[data.step]?.note ?? null,
     };
 
-    const { error } = await sb
+    // Second-layer guard: include updated_at in the WHERE so an inter-handler
+    // race still fails atomically at the DB (returns 0 rows updated).
+    let updateQuery = sb
       .from("engine_projects")
       .update({ [col]: data.data, step_states: states })
       .eq("id", data.id);
+    if (data.expectedUpdatedAt && currentUpdatedAt) {
+      updateQuery = updateQuery.eq("updated_at", currentUpdatedAt);
+    }
+    const { error, count } = await updateQuery.select("id", { count: "exact" });
     if (error) throw new Error((error as { message?: string }).message ?? "update failed");
+    if (data.expectedUpdatedAt && (count ?? 0) === 0) {
+      throw new Error(
+        "This project changed while you were editing. Reload to see the latest and try again.",
+      );
+    }
 
     // High-impact steps get an audit row: investment shifts and client-preview
     // publish must both be traceable back to the human who signed off.
