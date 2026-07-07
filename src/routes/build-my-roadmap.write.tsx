@@ -832,12 +832,35 @@ function WriteIntake() {
           generatingQuestion={generatingQuestion}
           onChange={(v) => {
             const q = currentObjective;
+            const existing = answers[q.key];
             upsertAnswer({
               key: q.key,
               question: q.anchor,
               response: v,
-              reflected_offered: null,
+              reflected_offered: existing?.reflected_offered ?? null,
             });
+          }}
+          onAdoptReflection={(text) => {
+            const q = currentObjective;
+            upsertAnswer({
+              key: q.key,
+              question: q.anchor,
+              response: text,
+              reflected_offered: text,
+            });
+          }}
+          onRequestReflection={async (question, answer) => {
+            if (!resumeToken) return null;
+            try {
+              const mod = await import("@/lib/intake.functions");
+              const res = await mod.reflectAnswer({
+                data: { resume_token: resumeToken, question, answer },
+              });
+              return res?.text ?? null;
+            } catch (err) {
+              console.warn("[intake/write] reflect failed (silent)", err);
+              return null;
+            }
           }}
           onNext={goNextObjective}
           onPrev={goPrevObjective}
@@ -1083,6 +1106,8 @@ function ObjectiveScreen({
   generatedQuestion,
   generatingQuestion,
   onChange,
+  onAdoptReflection,
+  onRequestReflection,
   onNext,
   onPrev,
   onSkip,
@@ -1096,6 +1121,8 @@ function ObjectiveScreen({
   generatedQuestion?: string | null;
   generatingQuestion?: boolean;
   onChange: (v: string) => void;
+  onAdoptReflection?: (text: string) => void;
+  onRequestReflection?: (question: string, answer: string) => Promise<string | null>;
   onNext: () => void;
   onPrev: () => void;
   onSkip: () => void;
@@ -1116,6 +1143,77 @@ function ObjectiveScreen({
   // we render the anchor verbatim — never a spinner in place of a question.
   const questionText = generatedQuestion?.trim() || objective.anchor;
 
+  // ---------- Quiet reflection ----------
+  // After each meaningful answer, offer a cleaner version under a soft label.
+  // Never say "AI". If the reflection call fails, we show nothing — no
+  // apology, no error. Dismissed reflections stay dismissed for this answer.
+  const [reflection, setReflection] = React.useState<string | null>(null);
+  const [reflecting, setReflecting] = React.useState(false);
+  const [dismissedFor, setDismissedFor] = React.useState<string>("");
+  const reflectTimer = React.useRef<number | null>(null);
+
+  // Reset when the objective changes.
+  React.useEffect(() => {
+    setReflection(null);
+    setReflecting(false);
+    setDismissedFor("");
+    if (reflectTimer.current) window.clearTimeout(reflectTimer.current);
+  }, [objective.key]);
+
+  const requestReflection = React.useCallback(
+    async (answerText: string) => {
+      if (!onRequestReflection) return;
+      const trimmed = answerText.trim();
+      if (trimmed.length < 20) return;
+      // Do not re-ask for a value the person already dismissed or adopted.
+      if (dismissedFor && dismissedFor === trimmed) return;
+      if (reflection && reflection.trim() === trimmed) return;
+      try {
+        setReflecting(true);
+        const result = await onRequestReflection(questionText, trimmed);
+        const clean = (result ?? "").trim();
+        // Silence on failure or a no-op reflection.
+        if (!clean || clean.toLowerCase() === trimmed.toLowerCase()) {
+          setReflection(null);
+        } else {
+          setReflection(clean);
+        }
+      } catch {
+        setReflection(null);
+      } finally {
+        setReflecting(false);
+      }
+    },
+    [dismissedFor, onRequestReflection, questionText, reflection],
+  );
+
+  const scheduleReflect = React.useCallback(
+    (answerText: string) => {
+      if (!onRequestReflection) return;
+      if (reflectTimer.current) window.clearTimeout(reflectTimer.current);
+      reflectTimer.current = window.setTimeout(() => {
+        void requestReflection(answerText);
+      }, 900);
+    },
+    [onRequestReflection, requestReflection],
+  );
+
+  const handleAdopt = React.useCallback(() => {
+    if (!reflection) return;
+    if (onAdoptReflection) {
+      onAdoptReflection(reflection);
+    } else {
+      onChange(reflection);
+    }
+    setDismissedFor(reflection.trim());
+    setReflection(null);
+  }, [onAdoptReflection, onChange, reflection]);
+
+  const handleKeepMine = React.useCallback(() => {
+    setDismissedFor(value.trim());
+    setReflection(null);
+  }, [value]);
+
   return (
     <section className="space-y-6">
       <div>
@@ -1133,11 +1231,37 @@ function ObjectiveScreen({
       <Textarea
         ref={ref}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value);
+          // Clear a stale reflection whenever the answer changes.
+          if (reflection) setReflection(null);
+          scheduleReflect(e.target.value);
+        }}
+        onBlur={(e) => {
+          void requestReflection(e.target.value);
+        }}
         rows={6}
         placeholder="In your own words."
         className="min-h-[140px] text-base"
       />
+      {reflection && (
+        <div className="rounded-lg border border-border/70 bg-muted/30 p-4 text-sm">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            a clearer version, if it helps
+          </p>
+          <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-foreground">
+            {reflection}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="secondary" onClick={handleAdopt}>
+              Use these words
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleKeepMine}>
+              Keep mine
+            </Button>
+          </div>
+        </div>
+      )}
       <ObjectiveDots frameDef={frameDef} currentKey={objective.key} answeredKeys={Object.keys({ [objective.key]: value.trim() })} filledAnswers={value.trim()} />
       <div className="flex items-center justify-between gap-3">
         <Button variant="ghost" onClick={onPrev} className="gap-2">
@@ -1154,10 +1278,21 @@ function ObjectiveScreen({
               Go to review
             </Button>
           )}
-          <Button onClick={onNext} disabled={(objective.required && !requiredMet) || scoring} className="gap-2">
+          <Button
+            onClick={() => {
+              // On Continue, request the reflection one more time so a
+              // person who typed quickly still sees the offer. onNext will
+              // only fire after the current tick.
+              if (!reflection && !reflecting) void requestReflection(value);
+              onNext();
+            }}
+            disabled={(objective.required && !requiredMet) || scoring}
+            className="gap-2"
+          >
             {scoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
             Continue
           </Button>
+
         </div>
       </div>
     </section>
