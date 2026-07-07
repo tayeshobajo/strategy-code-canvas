@@ -84,13 +84,15 @@
 
 @layer base {
   * { border-color: var(--color-border); }
-  html { font-family: var(--font-sans); }
+  html { font-family: var(--font-sans); overflow-x: clip; }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
   }
+
   h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.02em; }
   .font-display { font-family: var(--font-display); }
   .font-mono { font-family: var(--font-mono); }
