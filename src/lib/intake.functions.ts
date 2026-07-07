@@ -690,11 +690,59 @@ function normalizeAttachments(raw: unknown): StoredAttachment[] {
   }));
 }
 
+// Server-side allowlists. These MUST stay in sync with the client-side
+// SOURCE_ALLOWED_EXT set in build-my-roadmap.write.tsx, but the server is
+// authoritative — the browser can be bypassed. Anything not on both lists
+// is rejected before we record the row in intake_drafts.
+const ATTACHMENT_MAX_BYTES = 25 * 1024 * 1024;
+const ATTACHMENT_ALLOWED_EXT = new Set<string>([
+  "pdf", "doc", "docx", "txt", "md", "rtf",
+  "xls", "xlsx", "csv", "ppt", "pptx", "key",
+  "png", "jpg", "jpeg", "gif", "webp", "heic", "svg",
+  "zip", "json", "yaml", "yml",
+]);
+// Mime prefixes accepted regardless of extension (browsers vary on which
+// mime string they emit). Uploads without a declared mime are accepted as
+// long as the extension is on the allowlist.
+const ATTACHMENT_ALLOWED_MIME_PREFIXES: ReadonlyArray<string> = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.",
+  "application/vnd.ms-",
+  "application/vnd.apple.keynote",
+  "application/vnd.oasis.opendocument.",
+  "application/rtf",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/json",
+  "application/x-yaml",
+  "application/octet-stream", // some browsers use this for unknown; extension guard still applies
+  "text/",
+  "image/",
+];
+
+function extensionOf(filename: string): string {
+  const dot = filename.lastIndexOf(".");
+  if (dot < 0 || dot === filename.length - 1) return "";
+  return filename.slice(dot + 1).toLowerCase();
+}
+
+function isMimeAllowed(mime: string | null | undefined): boolean {
+  if (!mime) return true; // extension guard is authoritative when mime is absent
+  const normalized = mime.toLowerCase().split(";")[0].trim();
+  if (!normalized) return true;
+  return ATTACHMENT_ALLOWED_MIME_PREFIXES.some((p) => normalized.startsWith(p));
+}
+
 const AttachmentInput = z.object({
   resume_token: z.string().regex(UUID_RE),
   storage_path: z.string().min(1).max(1024),
   filename: z.string().min(1).max(240),
-  size: z.number().int().nonnegative().max(25 * 1024 * 1024),
+  size: z
+    .number()
+    .int()
+    .positive({ message: "File is empty" })
+    .max(ATTACHMENT_MAX_BYTES, { message: "File exceeds 25 MB" }),
   mime: z.string().max(200).nullable().optional(),
 });
 
@@ -704,6 +752,24 @@ export const recordIntakeAttachment = createServerFn({ method: "POST" })
     if (!data.storage_path.startsWith(`${data.resume_token}/`)) {
       throw new Error("Attachment path must live under this draft's folder");
     }
+    // Second-line validation: extension + mime allowlist. If either check
+    // fails, remove the just-uploaded object from storage so we don't leave
+    // orphaned bytes and no draft row references it.
+    const ext = extensionOf(data.filename);
+    const extOk = ATTACHMENT_ALLOWED_EXT.has(ext);
+    const mimeOk = isMimeAllowed(data.mime ?? null);
+    if (!extOk || !mimeOk) {
+      const { supabaseAdmin: adminForCleanup } = await import(
+        "@/integrations/supabase/client.server"
+      );
+      await adminForCleanup.storage.from("intake-uploads").remove([data.storage_path]);
+      throw new Error(
+        !extOk
+          ? `".${ext || "unknown"}" files are not allowed`
+          : `File type "${data.mime}" is not allowed`,
+      );
+    }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: existing } = await (
