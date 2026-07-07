@@ -1959,18 +1959,35 @@ function SourcesPanel({
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <input
-          ref={fileRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            const list = e.target.files;
-            if (!list || list.length === 0) return;
-            void uploadFiles(Array.from(list));
-          }}
-        />
+      <div
+        onDragEnter={onDragEnter}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        className={cn(
+          "rounded-md border border-dashed p-3 transition-colors",
+          dragActive
+            ? "border-primary bg-primary/5"
+            : "border-border/60 bg-transparent",
+        )}
+      >
+        <p className="mb-2 text-xs text-muted-foreground">
+          {dragActive
+            ? "Drop to attach — files over 25 MB or of disallowed types will be skipped."
+            : "Drag files here, or use the buttons below. Max 25 MB each, up to 10 files."}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const list = e.target.files;
+              if (!list || list.length === 0) return;
+              void uploadFiles(Array.from(list));
+            }}
+          />
         <Button
           type="button"
           variant="secondary"
