@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import type {
   MilestoneKind,
+  RoadmapJourney,
   RoadmapMilestone,
 } from "@/lib/portal-roadmap-model";
 import { recordPortalMilestoneReview } from "@/lib/portal.functions";
@@ -69,6 +70,8 @@ type Props = {
   sequence?: string[];
   /** Select another milestone (keeps drawer open, updates URL/map). */
   onSelect?: (slug: string) => void;
+  /** Journey model — supplies real phase labels for the sheet header. */
+  journey?: RoadmapJourney;
 };
 
 const STATUS_LABEL: Record<RoadmapMilestone["status"], string> = {
@@ -152,6 +155,7 @@ export function MilestoneSheet({
   onClose,
   sequence,
   onSelect,
+  journey,
 }: Props) {
   const open = !!milestone;
   const recordReview = useServerFn(recordPortalMilestoneReview);
@@ -319,22 +323,13 @@ export function MilestoneSheet({
             const displayKindLabel = isDeadline ? "Deadline" : KIND_LABEL[kind];
             void KIND_ACCENT; // retained for future kind chips; header uses accentHex directly.
 
+            // Real phase label from journey data — no demo-name remapping.
+            const phaseIdx = journey
+              ? journey.phases.findIndex((p) => p.key === milestone.phase)
+              : -1;
             const phaseName =
-              milestone.phase === "now"
-                ? "Foundation"
-                : milestone.phase === "next"
-                  ? "Core Platform Build"
-                  : milestone.phase === "later"
-                    ? "Scale Systems"
-                    : String(milestone.phase);
-            const phaseNumber =
-              milestone.phase === "now"
-                ? 1
-                : milestone.phase === "next"
-                  ? 2
-                  : milestone.phase === "later"
-                    ? 3
-                    : null;
+              phaseIdx >= 0 ? journey!.phases[phaseIdx].label : String(milestone.phase);
+            const phaseNumber = phaseIdx >= 0 ? phaseIdx + 1 : null;
             const primaryCta =
               kind === "decision"
                 ? { label: "Respond", onClick: () => setDecisionOpen(true), disabled: !projectId }

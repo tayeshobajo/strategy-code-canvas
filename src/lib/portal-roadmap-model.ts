@@ -54,6 +54,36 @@ export type RoadmapPhase = {
   milestones: RoadmapMilestone[];
 };
 
+export type RoadmapPointSource = "authored" | "fallback";
+
+export type RoadmapPoint = {
+  label: string;
+  detail?: string;
+  /**
+   * "authored" — the detail is real engine/canvas truth authored for this
+   * client. "fallback" — derived filler (diagnosis / executive summary),
+   * shown as best-effort until the real point is authored.
+   */
+  source: RoadmapPointSource;
+};
+
+/**
+ * Resolve the client-facing label for a phase key from real journey data.
+ * Never invents demo copy — unknown keys fall back to a neutral "Phase N".
+ */
+export function phaseDisplayLabel(journey: RoadmapJourney, key: string): string {
+  const i = journey.phases.findIndex((p) => p.key === key);
+  if (i < 0) return `Phase ${key}`;
+  return journey.phases[i].label || `Phase ${i + 1}`;
+}
+
+/** "Phase N · Label" heading used by cluster popovers and overlay cards. */
+export function phaseDisplayTitle(journey: RoadmapJourney, key: string): string {
+  const i = journey.phases.findIndex((p) => p.key === key);
+  if (i < 0) return `Phase ${key}`;
+  return `Phase ${i + 1} · ${journey.phases[i].label || i + 1}`;
+}
+
 export type RoadmapJourney = {
   title: string;
   versionLabel: string | null;
@@ -62,8 +92,8 @@ export type RoadmapJourney = {
   ownerName: string | null;
   nextMeetingAt: string | null;
   acknowledgedAt: string | null;
-  pointA: { label: string; detail?: string };
-  pointB: { label: string; detail?: string };
+  pointA: RoadmapPoint;
+  pointB: RoadmapPoint;
   phases: RoadmapPhase[];
   milestones: RoadmapMilestone[];
   activeMilestone: RoadmapMilestone | null;
@@ -504,21 +534,37 @@ export function buildRoadmapJourney(
     ownerName: row?.owner_name ?? "Trust Tai",
     nextMeetingAt: row?.next_meeting_at ?? null,
     acknowledgedAt,
+    // Real authored labels when the published canvas carries them; neutral
+    // defaults otherwise — never demo copy. The source tag distinguishes
+    // authored truth (canvas / engine project field) from derived filler
+    // (diagnosis / executive summary).
     pointA: {
-      label: "Current state",
+      label: (canvas?.pointA?.label as string | undefined)?.trim() || "Current state",
       detail:
         (canvas?.pointA?.detail as string | undefined) ??
         project?.point_a ??
         row?.current_diagnosis ??
         undefined,
+      source:
+        canvas?.pointA?.source === "authored" || canvas?.pointA?.source === "fallback"
+          ? (canvas.pointA.source as RoadmapPointSource)
+          : canvas?.pointA?.detail || project?.point_a
+            ? "authored"
+            : "fallback",
     },
     pointB: {
-      label: "Destination",
+      label: (canvas?.pointB?.label as string | undefined)?.trim() || "Destination",
       detail:
         (canvas?.pointB?.detail as string | undefined) ??
         project?.point_b ??
         row?.executive_summary ??
         undefined,
+      source:
+        canvas?.pointB?.source === "authored" || canvas?.pointB?.source === "fallback"
+          ? (canvas.pointB.source as RoadmapPointSource)
+          : canvas?.pointB?.detail || project?.point_b
+            ? "authored"
+            : "fallback",
     },
     phases,
     milestones: flat,

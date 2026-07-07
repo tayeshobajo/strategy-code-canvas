@@ -216,7 +216,7 @@ export function RoadmapOverviewStrip({
             <div className="relative flex items-stretch gap-0.5">
               <StripStop
                 label="Point A"
-                sub="Current State"
+                sub={journey.pointA.label}
                 tone="anchor"
                 active={active === "pointA"}
                 onClick={() => handleJump("pointA")}
@@ -226,23 +226,11 @@ export function RoadmapOverviewStrip({
                 showRoute={false}
               />
 
-              {phases.map((p) => (
+              {phases.map((p, i) => (
                 <StripStop
                   key={p.key}
-                  label={
-                    p.key === "now"
-                      ? "Phase 1"
-                      : p.key === "next"
-                        ? "Phase 2"
-                        : "Phase 3"
-                  }
-                  sub={
-                    p.key === "now"
-                      ? "Foundation"
-                      : p.key === "next"
-                        ? "Core Platform Build"
-                        : "Scale Systems"
-                  }
+                  label={`Phase ${i + 1}`}
+                  sub={p.label}
                   tone={p.key === "now" ? "phase1" : p.key === "next" ? "phase2" : "phase3"}
                   active={active === p.key}
                   onClick={() => handleJump(p.key as "now" | "next" | "later")}
@@ -255,7 +243,7 @@ export function RoadmapOverviewStrip({
               ))}
               <StripStop
                 label="Point B"
-                sub="Scaled Impact"
+                sub={journey.pointB.label}
                 tone="anchor"
                 active={active === "pointB"}
                 onClick={() => handleJump("pointB")}

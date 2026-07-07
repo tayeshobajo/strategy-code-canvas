@@ -4,7 +4,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 
-async function assertAdmin(context: any) {
+// Exported for behavioral role-rejection tests (Audit V3 #8).
+export async function assertAdmin(context: any) {
   const email = (context.claims?.email as string | undefined) ?? undefined;
   const ok = await hasRoleForEmail(context.supabase, email, "admin");
   if (!ok) throw new Error("Forbidden: admin role required");

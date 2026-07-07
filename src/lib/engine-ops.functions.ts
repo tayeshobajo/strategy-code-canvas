@@ -4,7 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { buildClientSafePayload } from "@/lib/roadmap-publish";
 
-async function assertAdminEmail(context: {
+// Exported for behavioral role-rejection tests (Audit V3 #8).
+export async function assertAdminEmail(context: {
   claims?: Record<string, unknown>;
   supabase: {
     rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
@@ -20,7 +21,8 @@ async function assertAdminEmail(context: {
   return email ?? "unknown";
 }
 
-async function assertOps(context: {
+// Exported for behavioral role-rejection tests (Audit V3 #8).
+export async function assertOps(context: {
   claims?: Record<string, unknown>;
   supabase: {
     rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
@@ -125,9 +127,25 @@ export const transitionDelivery = createServerFn({ method: "POST" })
     const cur = curr as { status: string; project_id: string | null; client: string; roadmap: string } | null;
     const from = cur?.status ?? null;
 
-    // Gate: transitioning to "sent" or "execution" requires the linked project
-    // to have an approved snapshot. Prevents shipping unapproved roadmaps.
-    if ((data.to === "sent" || data.to === "execution") && cur?.project_id) {
+    // Gate: transitioning to "sent" or "execution" ships/executes a roadmap —
+    // a sacred action. Requires (1) admin role, (2) a linked project, and
+    // (3) an approved snapshot on that project. Previously assertOps was the
+    // only gate, and the approval check was skipped entirely for unlinked
+    // items — an operator could move any unlinked delivery to execution.
+    if (data.to === "sent" || data.to === "execution") {
+      const isAdmin = await hasRoleForEmail(
+        context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
+        (context.claims?.email as string | undefined) ?? undefined,
+        "admin",
+      );
+      if (!isAdmin) {
+        throw new Error(`Forbidden: only Tai (admin) can move a delivery to "${data.to}".`);
+      }
+      if (!cur?.project_id) {
+        throw new Error(
+          `Cannot move to "${data.to}": delivery item has no linked project to verify an approved roadmap against.`,
+        );
+      }
       const { data: proj } = await sb
         .from("engine_projects")
         .select("approved_snapshot")
@@ -267,15 +285,6 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     }
 
     const nextStatus = data.action === "approved" ? "approved" : data.action === "rejected" ? "rejected" : "sent_back";
-    const { error: uErr } = await sb.from("engine_review_items")
-      .update({ status: nextStatus }).eq("id", data.id);
-    if (uErr) throw new Error(String((uErr as { message?: string }).message ?? uErr));
-    await sb.from("engine_review_audit").insert({
-      review_item_id: data.id, project: it.project, item_type: it.item_type,
-      title: it.title, action: data.action, reason: data.reason ?? null,
-      routed_to: data.action === "approved" ? null : (SOURCE_ROUTE[it.item_type] ?? null),
-      actor,
-    });
     // Resolve project row for downstream writes.
     let projId = it.project_id ?? null;
     if (!projId) {
@@ -289,23 +298,31 @@ export const decideReviewItem = createServerFn({ method: "POST" })
     // and lock the approved snapshot on the project. Previously these were
     // two disconnected flows — operators thought they'd approved the roadmap
     // but the version stayed in ai_generated / tai_edited.
-    if (data.action === "approved"
-        && (it.item_type === "roadmap_version" || it.item_type === "Roadmap Update")
-        && projId) {
+    //
+    // Ordering (re-audit New Issue #2): the target version is resolved and
+    // EVERY guard below runs read-only BEFORE any write. If a guard throws,
+    // the review item is untouched and the decision stays fully retryable —
+    // previously the item was flipped to approved first, stranding an
+    // approved item pointing at an unapproved version.
+    type ReviewTargetVersion = {
+      id: string;
+      version: string;
+      payload: Record<string, unknown> | null;
+      created_by: string | null;
+      status: string;
+      label: string | null;
+    };
+    let target: ReviewTargetVersion | null = null;
+    const isVersionApproval =
+      data.action === "approved"
+      && (it.item_type === "roadmap_version" || it.item_type === "Roadmap Update")
+      && !!projId;
+
+    if (isVersionApproval) {
       // G-3: prefer the FK `version_id` on the review item — it points
       // exactly at the draft this review was created for. Fall back to
       // label matching only for legacy review items created before the
       // FK was added (version_id IS NULL).
-      type ReviewTargetVersion = {
-        id: string;
-        version: string;
-        payload: Record<string, unknown> | null;
-        created_by: string | null;
-        status: string;
-        label: string | null;
-      };
-      let target: ReviewTargetVersion | null = null;
-
       if (it.version_id) {
         const { data: v } = await sb
           .from("engine_roadmap_versions")
@@ -328,7 +345,6 @@ export const decideReviewItem = createServerFn({ method: "POST" })
         const rows = matches ?? [];
         target = rows.find((r) => (r.label ?? "").trim() === it.title.trim()) ?? rows[0] ?? null;
       }
-
 
       if (target) {
         const createdBy = (target.created_by ?? "").toString().toLowerCase();
@@ -353,26 +369,66 @@ export const decideReviewItem = createServerFn({ method: "POST" })
         if (!projGate?.investment_confirmed_at) {
           throw new Error("Confirm the investment on this project before approving the roadmap version.");
         }
+      }
+    }
+
+    // ---- All guards passed: writes start here. The review item is flipped
+    // before the version side effect so a mid-sequence infrastructure failure
+    // leaves a retryable state (re-running the decision is idempotent for the
+    // item update), never a guard-blocked inconsistency.
+    const { error: uErr } = await sb.from("engine_review_items")
+      .update({ status: nextStatus }).eq("id", data.id);
+    if (uErr) throw new Error(String((uErr as { message?: string }).message ?? uErr));
+    await sb.from("engine_review_audit").insert({
+      review_item_id: data.id, project: it.project, item_type: it.item_type,
+      title: it.title, action: data.action, reason: data.reason ?? null,
+      routed_to: data.action === "approved" ? null : (SOURCE_ROUTE[it.item_type] ?? null),
+      actor,
+    });
+
+    if (isVersionApproval) {
+      if (!target) {
+        // HIGH FIX (Audit V3 #5): A version-approval review item whose
+        // linked version can't be resolved must NOT be silently marked
+        // approved. Throw so the item stays pending and the operator can
+        // investigate.
+        throw new Error(
+          `Cannot approve: unable to resolve the target roadmap version for review item "${it.title}". The version may have been removed or already approved.`,
+        );
+      }
+      if (target) {
         const nowIso = new Date().toISOString();
         const { error: vErr } = await sb.from("engine_roadmap_versions")
           .update({ status: "approved", approved_by: actor, approved_at: nowIso })
           .eq("id", target.id);
         if (vErr) throw new Error(String((vErr as { message?: string }).message ?? vErr));
-        await sb.from("engine_projects").update({
+        // HIGH FIX (Audit V3 #3): Check errors on all post-approval writes.
+        // An unchecked snapshot/activity/approvals failure could leave a
+        // version marked "approved" with no locked snapshot, unretryable
+        // due to the already-approved guard.
+        const { error: snapErr } = await sb.from("engine_projects").update({
           approved_version: target.version,
           roadmap_version: target.version,
           approved_snapshot: target.payload ?? {},
           approved_at: nowIso,
           approved_by_email: actor,
         }).eq("id", projId);
-        await sb.from("engine_activity").insert({
+        if (snapErr) {
+          // Attempt to revert the version status so the decision stays retryable.
+          await sb.from("engine_roadmap_versions")
+            .update({ status: target.status, approved_by: null, approved_at: null })
+            .eq("id", target.id);
+          throw new Error(`Version approved but failed to lock snapshot: ${String((snapErr as { message?: string }).message ?? snapErr)}. Version reverted — please retry.`);
+        }
+        const { error: actErr } = await sb.from("engine_activity").insert({
           project_id: projId,
           kind: "version_approved",
           title: `Version ${target.version} approved`,
           body: `Approved by ${actor} via review queue`,
           severity: "success",
         });
-        await sb.from("roadmap_approvals").insert({
+        if (actErr) console.warn("[decideReviewItem] activity insert failed:", actErr.message);
+        const { error: apprErr } = await sb.from("roadmap_approvals").insert({
           version_id: target.id,
           project_id: projId,
           snapshot_version: target.version,
@@ -380,11 +436,18 @@ export const decideReviewItem = createServerFn({ method: "POST" })
           review_item_id: data.id,
           notes: data.reason ?? null,
         });
+        if (apprErr) console.warn("[decideReviewItem] roadmap_approvals insert failed:", apprErr.message);
 
         // Apply suggested milestone changes (added / modified / removed) from
         // the version payload. Past approved versions are NOT mutated — we
         // only touch engine_milestones for this project. This is where the
         // "engine learned, but roadmap didn't evolve" gap gets closed.
+        // HIGH FIX (Audit V3 #4): Milestone-diff apply failures must be
+        // durable and visible to ops — not silently swallowed. We track
+        // errors per-operation and persist a warning activity entry if
+        // anything fails. The version is already approved at this point;
+        // milestone changes are secondary and must not block the decision.
+        const _diffErrors: string[] = [];
         try {
           const payload = (target.payload ?? {}) as Record<string, unknown>;
           const diff = payload.suggested_milestone_changes as
@@ -400,32 +463,37 @@ export const decideReviewItem = createServerFn({ method: "POST" })
             const removed = diff.removed ?? [];
 
             if (added.length) {
-              const { data: maxRow } = await sb
+              const { data: maxRow, error: maxErr } = await sb
                 .from("engine_milestones")
                 .select("sort_index")
                 .eq("project_id", projId)
                 .order("sort_index", { ascending: false })
                 .limit(1)
                 .maybeSingle();
-              let sortIndex = ((maxRow?.sort_index as number | null) ?? -1) + 1;
-              const rows = added.map((a) => ({
-                project_id: projId,
-                name: a.name.slice(0, 240),
-                phase: a.phase?.slice(0, 120) ?? null,
-                status: "draft",
-                approval_status: "approved",
-                approved_at: nowIso,
-                approved_by_email: actor,
-                sort_index: sortIndex++,
-                roadmap_version_id: target.id,
-                created_by_kind: "ai",
-                source_evidence: a.evidence ?? [],
-              }));
-              await sb.from("engine_milestones").insert(rows);
+              if (maxErr) {
+                _diffErrors.push(`Failed to read max sort_index: ${maxErr.message}`);
+              } else {
+                let sortIndex = ((maxRow?.sort_index as number | null) ?? -1) + 1;
+                const rows = added.map((a) => ({
+                  project_id: projId,
+                  name: a.name.slice(0, 240),
+                  phase: a.phase?.slice(0, 120) ?? null,
+                  status: "draft",
+                  approval_status: "approved",
+                  approved_at: nowIso,
+                  approved_by_email: actor,
+                  sort_index: sortIndex++,
+                  roadmap_version_id: target.id,
+                  created_by_kind: "ai",
+                  source_evidence: a.evidence ?? [],
+                }));
+                const { error: insErr } = await sb.from("engine_milestones").insert(rows);
+                if (insErr) _diffErrors.push(`Failed to insert ${added.length} milestones: ${insErr.message}`);
+              }
             }
 
             for (const m of modified) {
-              await sb
+              const { error: modErr } = await sb
                 .from("engine_milestones")
                 .update({
                   phase: m.to_phase?.slice(0, 120) ?? null,
@@ -436,10 +504,11 @@ export const decideReviewItem = createServerFn({ method: "POST" })
                 })
                 .eq("id", m.existing_id)
                 .eq("project_id", projId);
+              if (modErr) _diffErrors.push(`Failed to modify milestone ${m.existing_id}: ${modErr.message}`);
             }
 
             for (const r of removed) {
-              await sb
+              const { error: remErr } = await sb
                 .from("engine_milestones")
                 .update({
                   approval_status: "removed",
@@ -448,21 +517,26 @@ export const decideReviewItem = createServerFn({ method: "POST" })
                 })
                 .eq("id", r.existing_id)
                 .eq("project_id", projId);
+              if (remErr) _diffErrors.push(`Failed to remove milestone ${r.existing_id}: ${remErr.message}`);
             }
 
             if (added.length || modified.length || removed.length) {
-              await sb.from("engine_activity").insert({
+              const appliedCount = added.length + modified.length + removed.length - _diffErrors.length;
+              const { error: actErr2 } = await sb.from("engine_activity").insert({
                 project_id: projId,
-                kind: "milestones_applied",
-                title: `Milestone changes applied for ${target.version}`,
-                body: `${added.length} added, ${modified.length} modified, ${removed.length} removed.`,
-                severity: "info",
+                kind: _diffErrors.length ? "milestones_applied_partial" : "milestones_applied",
+                title: `Milestone changes ${_diffErrors.length ? "partially" : ""} applied for ${target.version}`,
+                body: _diffErrors.length
+                  ? `${appliedCount} of ${added.length + modified.length + removed.length} changes applied. ${_diffErrors.length} failed: ${_diffErrors.join("; ").slice(0, 500)}`
+                  : `${added.length} added, ${modified.length} modified, ${removed.length} removed.`,
+                severity: _diffErrors.length ? "warning" : "info",
               });
-              await sb.from("engine_audit_log").insert({
+              if (actErr2) console.warn("[decideReviewItem] milestones_applied activity insert failed:", actErr2.message);
+              const { error: audErr2 } = await sb.from("engine_audit_log").insert({
                 project_id: projId,
                 actor_email: actor,
                 action: "milestones_applied",
-                summary: `Applied suggested milestone changes for ${target.version}: +${added.length} / ~${modified.length} / -${removed.length}.`,
+                summary: `Applied suggested milestone changes for ${target.version}: +${added.length} / ~${modified.length} / -${removed.length}${_diffErrors.length ? ` (${_diffErrors.length} errors)` : ""}.`,
                 affected_modules: ["roadmap"],
                 target_id: target.id,
                 metadata: {
@@ -470,12 +544,26 @@ export const decideReviewItem = createServerFn({ method: "POST" })
                   added: added.length,
                   modified: modified.length,
                   removed: removed.length,
+                  errors: _diffErrors.length ? _diffErrors.slice(0, 10) : undefined,
                 },
               });
+              if (audErr2) console.warn("[decideReviewItem] milestones_applied audit log insert failed:", audErr2.message);
             }
           }
         } catch (diffErr) {
-          console.warn("[decideReviewItem] milestone diff apply failed", diffErr);
+          _diffErrors.push(`Unexpected error during milestone diff apply: ${diffErr instanceof Error ? diffErr.message : String(diffErr)}`);
+        }
+        // If any milestone-diff errors occurred, persist a durable warning
+        // so ops can see that an approved version has incomplete milestone changes.
+        if (_diffErrors.length) {
+          const { error: warnErr } = await sb.from("engine_activity").insert({
+            project_id: projId,
+            kind: "milestone_diff_errors",
+            title: `Milestone changes failed for ${target.version}`,
+            body: `${_diffErrors.length} error(s): ${_diffErrors.join("; ").slice(0, 800)}`,
+            severity: "warning",
+          });
+          if (warnErr) console.warn("[decideReviewItem] failed to persist milestone-diff warning:", warnErr.message);
         }
       }
     }
@@ -995,7 +1083,7 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
     const project = proj as {
       id: string; name: string; client_preview: Record<string, unknown> | null;
       client_portal_project_id: string | null; client_id: string | null;
-      point_a: string | null; point_b: string | null;
+      point_a: unknown; point_b: unknown;
       investment_confirmed_at: string | null;
     };
     // Pillar 7: publishing to the client portal requires confirmed investment.

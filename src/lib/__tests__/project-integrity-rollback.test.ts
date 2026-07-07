@@ -53,7 +53,7 @@ describe("project creation integrity + rollback (G-4)", () => {
 
   it("integrity failure rolls back the project and throws", () => {
     // The rollback branch must delete engine_projects and throw.
-    expect(intake).toMatch(/rollbackHalfBornProject\(sb,\s*projectId\)/);
+    expect(intake).toMatch(/rollbackHalfBornProject\(sb,\s*projectId,/);
     expect(intake).toMatch(/throw new Error\(`Project creation failed integrity check/);
     // rollback helper deletes the project row.
     expect(intake).toMatch(
@@ -100,7 +100,10 @@ describe("project creation integrity + rollback (G-4)", () => {
     const files = readdirSync(dir).sort();
     const hits = files.filter((f) => {
       const c = read(`${dir}/${f}`);
-      return /delivery_mode/i.test(c) && /engine_projects/i.test(c);
+      // Match the migration that actually DEFINES the delivery-mode enum —
+      // incidental mentions of delivery_mode in later migrations (e.g. the
+      // intake-failures log column) must not shadow it.
+      return /CREATE TYPE public\.engine_delivery_mode/i.test(c);
     });
     expect(hits.length, "expected a migration that adds engine_projects.delivery_mode").toBeGreaterThan(0);
     const latest = read(`${dir}/${hits[hits.length - 1]}`);

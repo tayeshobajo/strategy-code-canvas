@@ -56,9 +56,21 @@ export type ClientSafeCanvasPhase = {
   sequence: number;
 };
 
+export type CanvasPointSource = "authored" | "fallback";
+export type ClientSafeCanvasPoint = {
+  label: string;
+  detail: string | null;
+  /**
+   * "authored" — detail came from the engine-authored project field or an
+   * explicit canvas point in the version payload. "fallback" — derived
+   * filler (current_diagnosis / executive_summary). Lets downstream UI
+   * distinguish real truth from best-effort derivation.
+   */
+  source: CanvasPointSource;
+};
 export type ClientSafeCanvas = {
-  pointA: { label: string; detail: string | null };
-  pointB: { label: string; detail: string | null };
+  pointA: ClientSafeCanvasPoint;
+  pointB: ClientSafeCanvasPoint;
   phases: ClientSafeCanvasPhase[];
   milestones: ClientSafeCanvasItem[];
   decisions: ClientSafeCanvasItem[];
@@ -82,6 +94,30 @@ export type ClientSafeRoadmap = {
 
 const pickString = (v: Any): string | null => {
   if (typeof v === "string" && v.trim()) return v.trim();
+  return null;
+};
+
+/**
+ * engine_projects.point_a / point_b are jsonb modules, not plain strings —
+ * the workspace stores { key_diagnosis, diagnosis, lenses } for Point A and
+ * { "24_month_destination", ... } for Point B, while the AI pipeline writes
+ * { confidence, diagnosis } / { confidence, destination }. Pull the authored
+ * headline text so engine-authored points actually reach the portal.
+ */
+export const extractEnginePointText = (v: Any): string | null => {
+  if (v == null) return null;
+  if (typeof v === "string") return pickString(v);
+  if (typeof v === "object") {
+    return (
+      pickString(v.key_diagnosis) ??
+      pickString(v.diagnosis) ??
+      pickString(v["24_month_destination"]) ??
+      pickString(v.destination) ??
+      pickString(v.summary) ??
+      pickString(v.detail) ??
+      null
+    );
+  }
   return null;
 };
 
@@ -349,8 +385,8 @@ const canvasFromSequence = (
 const buildClientSafeCanvas = (
   src: Any,
   fallback: {
-    pointA: string | null;
-    pointB: string | null;
+    pointA: { authored: string | null; derived: string | null };
+    pointB: { authored: string | null; derived: string | null };
     sequence: ClientSafeRoadmap["sequence_30_60_90"];
     priorities: ClientSafeRoadmap["strategic_priorities"];
   },
@@ -362,21 +398,31 @@ const buildClientSafeCanvas = (
         ? src.canvas
         : null;
 
-  const pointA = {
-    label: "Current state",
-    detail:
-      pickString(canvas?.pointA?.detail) ??
-      pickString(canvas?.point_a?.detail) ??
-      pickString(canvas?.pointA) ??
-      fallback.pointA,
+  // Precedence: the live engine-authored field beats a canvas value embedded
+  // in the version payload (which can be stale), which beats derived filler.
+  // Labels are real when authored on the canvas; otherwise a neutral default.
+  const canvasPointADetail =
+    pickString(canvas?.pointA?.detail) ??
+    pickString(canvas?.point_a?.detail) ??
+    pickString(canvas?.pointA);
+  const pointADetail = fallback.pointA.authored ?? canvasPointADetail ?? fallback.pointA.derived;
+  const pointA: ClientSafeCanvasPoint = {
+    label:
+      pickString(canvas?.pointA?.label) ?? pickString(canvas?.point_a?.label) ?? "Current state",
+    detail: pointADetail,
+    source:
+      fallback.pointA.authored != null || canvasPointADetail != null ? "authored" : "fallback",
   };
-  const pointB = {
-    label: "Destination",
-    detail:
-      pickString(canvas?.pointB?.detail) ??
-      pickString(canvas?.point_b?.detail) ??
-      pickString(canvas?.pointB) ??
-      fallback.pointB,
+  const canvasPointBDetail =
+    pickString(canvas?.pointB?.detail) ??
+    pickString(canvas?.point_b?.detail) ??
+    pickString(canvas?.pointB);
+  const pointBDetail = fallback.pointB.authored ?? canvasPointBDetail ?? fallback.pointB.derived;
+  const pointB: ClientSafeCanvasPoint = {
+    label: pickString(canvas?.pointB?.label) ?? pickString(canvas?.point_b?.label) ?? "Destination",
+    detail: pointBDetail,
+    source:
+      fallback.pointB.authored != null || canvasPointBDetail != null ? "authored" : "fallback",
   };
 
   let phases = normalizePhases(canvas?.phases);
@@ -430,12 +476,14 @@ export function buildClientSafePayload(input: {
   payload: Any;
   client_preview_override?: Any;
   /**
-   * Authoritative Point A / Point B from engine_projects. When present these
-   * override any derived fallback so the portal canvas always renders the
+   * Authoritative Point A / Point B from engine_projects. Accepts the raw
+   * jsonb module (or a plain string) — the headline text is extracted via
+   * extractEnginePointText. When present these override BOTH payload-canvas
+   * values and derived fallbacks so the portal canvas always renders the
    * engine-authored fields — the biggest brand fidelity gap in the portal.
    */
-  project_point_a?: string | null;
-  project_point_b?: string | null;
+  project_point_a?: Any;
+  project_point_b?: Any;
 }): ClientSafeRoadmap {
   // Prefer the operator-curated `client_preview` block if the payload carries
   // one (engine workspace stores this as project.client_preview and mirrors it
@@ -477,11 +525,17 @@ export function buildClientSafePayload(input: {
     pickString(src.supporting_notes) ?? pickString(src.client_notes) ?? null;
 
   const client_safe_canvas = buildClientSafeCanvas(src, {
-    // Prefer the engine-authored Point A / Point B — these are the map, not
-    // decorative. Fall back to derived diagnosis / summary only when the
-    // engine project has no explicit values.
-    pointA: pickString(input.project_point_a) ?? current_diagnosis,
-    pointB: pickString(input.project_point_b) ?? executive_summary,
+    // The engine-authored Point A / Point B are the map, not decorative —
+    // they win over payload-canvas values and derived diagnosis / summary.
+    // `authored` vs `derived` also drives the source tag on each point.
+    pointA: {
+      authored: extractEnginePointText(input.project_point_a),
+      derived: current_diagnosis,
+    },
+    pointB: {
+      authored: extractEnginePointText(input.project_point_b),
+      derived: executive_summary,
+    },
     sequence: sequence_30_60_90,
     priorities: strategic_priorities,
   });

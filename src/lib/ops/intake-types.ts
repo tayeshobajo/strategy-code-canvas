@@ -142,7 +142,8 @@ export type AuditAction =
   | "rejected"
   | "archived"
   | "reopened"
-  | "notified_operator";
+  | "notified_operator"
+  | "bridged_to_engine";
 
 export type JsonValue =
   | string

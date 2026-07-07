@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { runIntelligencePipelineInternal } from "@/lib/engine-intelligence.functions";
+import { writeDurableIntakeFailure } from "@/lib/engine-intake-failure-log";
 
 async function assertOpsOrAdmin(context: any) {
   const email = (context.claims?.email as string | undefined) ?? undefined;
@@ -30,6 +31,10 @@ const DELIVERY_MODES = ["internal_only", "client_portal_required"] as const;
 type DeliveryMode = (typeof DELIVERY_MODES)[number];
 
 const CreateInput = z.object({
+  // Pillar 1 — intake bridge. When the project originates from a public
+  // intake submission, its id flows through so a durable submission →
+  // project linkage is written (signal_room + intake review_audit_log).
+  submissionId: z.string().uuid().optional(),
   clientId: z.string().uuid().optional(),
   newClient: z
     .object({
@@ -76,6 +81,14 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       throw new Error("Either clientId or newClient is required");
     }
 
+    // Rollback context — tracks rows CREATED by this call (vs pre-existing
+    // rows matched by upserts) so rollbackHalfBornProject can clean up
+    // portal/client siblings without ever destroying live client data.
+    let createdClientId: string | null = null;
+    let linkedPortalProjectId: string | null = null;
+    let portalProjectCreated = false;
+    let portalPermissionCreated = false;
+
     // Resolve client
     let clientId = data.clientId ?? "";
     let resolvedContactEmail: string | null =
@@ -94,6 +107,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         .single();
       if (error) throw new Error(error.message ?? "client insert failed");
       clientId = c.id;
+      createdClientId = c.id;
     } else if (clientId && !resolvedContactEmail) {
       // Existing client path — look up contact_email so delivery-mode inference works.
       const { data: c } = await sb
@@ -136,6 +150,8 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
           roadmap_type: data.roadmapType ?? null,
           primary_goal: data.primaryGoal ?? null,
           critical_date: data.criticalDate ?? null,
+          // Durable submission → project linkage lives on the project row.
+          intake_submission_id: data.submissionId ?? null,
         },
       })
       .select("id")
@@ -196,10 +212,27 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
     // For internal_only projects with no contact email, portal linkage is
     // intentionally absent and NOT considered an integrity failure.
     if (resolvedContactEmail) {
-      const { data: portalRow, error: upErr } = await sb
+      // Record whether the portal project pre-exists BEFORE the upsert —
+      // rollback may only delete a portal row this call created, never a
+      // live portal matched by primary_email.
+      const { data: preExistingPortal } = await sb
         .from("client_portal_projects")
-        .upsert(
-          {
+        .select("id")
+        .eq("primary_email", resolvedContactEmail)
+        .maybeSingle();
+
+      // CRITICAL FIX (Audit V3 #1): Never clobber a live client portal.
+      // When a portal already exists for this contact email, only wire the
+      // linkage — do NOT reset portal_status, payment_status, current_phase,
+      // owner_email, or null out contact_name/company_name.
+      let portalRow: { id: string } | null = null;
+      let upErr: { message?: string } | null = null;
+      if (preExistingPortal?.id) {
+        portalRow = { id: preExistingPortal.id };
+      } else {
+        const result = await sb
+          .from("client_portal_projects")
+          .insert({
             primary_email: resolvedContactEmail,
             contact_name: data.newClient?.primary_contact ?? null,
             company_name: data.newClient?.company ?? null,
@@ -207,33 +240,44 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
             payment_status: "paid",
             current_phase: "Onboarding",
             owner_email: actor,
-          },
-          { onConflict: "primary_email" },
-        )
-        .select("id")
-        .single();
+          })
+          .select("id")
+          .single();
+        portalRow = result.data;
+        upErr = result.error;
+      }
       if (upErr) {
         integrityErrors.push(`client_portal_projects: ${upErr.message}`);
       } else if (portalRow?.id) {
         const portalId = portalRow.id as string;
+        linkedPortalProjectId = portalId;
+        portalProjectCreated = !preExistingPortal;
         const { error: linkErr } = await sb
           .from("engine_projects")
           .update({ client_portal_project_id: portalId })
           .eq("id", projectId);
         if (linkErr) integrityErrors.push(`engine_projects link: ${linkErr.message}`);
 
-        const { error: permErr } = await sb
+        // CRITICAL FIX (Audit V3 #1): Filter out revoked permissions so we
+        // don't accidentally mutate a revoked row's role/granted_by.
+        const { data: preExistingPerm } = await sb
           .from("client_portal_permissions")
-          .upsert(
-            {
-              project_id: portalId,
-              email: resolvedContactEmail,
-              role: "owner",
-              granted_by: actor,
-            },
-            { onConflict: "project_id,email" },
-          );
+          .select("id")
+          .eq("project_id", portalId)
+          .eq("email", resolvedContactEmail)
+          .is("revoked_at", null)
+          .maybeSingle();
+        const { error: permErr } = await sb.from("client_portal_permissions").upsert(
+          {
+            project_id: portalId,
+            email: resolvedContactEmail,
+            role: "owner",
+            granted_by: actor,
+          },
+          { onConflict: "project_id,email" },
+        );
         if (permErr) integrityErrors.push(`client_portal_permissions: ${permErr.message}`);
+        else portalPermissionCreated = !preExistingPerm;
       }
     }
 
@@ -248,25 +292,27 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       const combined = [...integrityErrors, ...failures].join(" | ");
       // Pillar 2 — durable failure log. Writes to engine_project_intake_failures
       // FIRST (no FK to engine_projects, so it survives the rollback below).
-      // The engine_activity insert is best-effort but will be wiped when
-      // rollbackHalfBornProject cascades — that's exactly why the dedicated
-      // failures table exists.
-      try {
-        await sb.from("engine_project_intake_failures").insert({
-          attempted_project_id: projectId,
-          attempted_project_name: data.projectName,
-          attempted_client_id: clientId || null,
-          actor_email: actor,
-          delivery_mode: deliveryMode,
-          failure_reason: combined,
-          payload: {
-            source_type: data.source?.type ?? null,
-            engagement_type: data.engagementType ?? null,
-            roadmap_type: data.roadmapType ?? null,
-          },
-        });
-      } catch (e) {
-        console.error("[intake] durable failure log write failed", e);
+      // The write goes through the service-role client: RLS grants
+      // `authenticated` SELECT only, so the user-scoped `sb` cannot insert
+      // here. The engine_activity insert is best-effort but will be wiped
+      // when rollbackHalfBornProject cascades — that's exactly why the
+      // dedicated failures table exists.
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const durableLogError = await writeDurableIntakeFailure(supabaseAdmin, {
+        attempted_project_id: projectId,
+        attempted_project_name: data.projectName,
+        attempted_client_id: clientId || null,
+        actor_email: actor,
+        delivery_mode: deliveryMode,
+        failure_reason: combined,
+        payload: {
+          source_type: data.source?.type ?? null,
+          engagement_type: data.engagementType ?? null,
+          roadmap_type: data.roadmapType ?? null,
+        },
+      });
+      if (durableLogError) {
+        console.error("[intake] durable failure log write failed:", durableLogError);
       }
       try {
         await sb.from("engine_activity").insert({
@@ -279,8 +325,19 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       } catch {
         /* audit log is best-effort */
       }
-      await rollbackHalfBornProject(sb, projectId);
-      throw new Error(`Project creation failed integrity check: ${combined}`);
+      const logNote = durableLogError
+        ? ` (WARNING: durable failure log write also failed: ${durableLogError})`
+        : "";
+      await rollbackHalfBornProject(sb, projectId, {
+        createdClientId,
+        portalProjectId: linkedPortalProjectId,
+        portalProjectCreated,
+        portalPermissionCreated,
+        contactEmail: resolvedContactEmail,
+        deliveryMode,
+        actorEmail: actor,
+      });
+      throw new Error(`Project creation failed integrity check: ${combined}${logNote}`);
     }
 
 
@@ -294,6 +351,44 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         body: integrityErrors.join(" | "),
         severity: "warning",
       });
+    }
+
+    // Pillar 1 — durable intake bridge. Runs only after the integrity gate
+    // passes so a rolled-back project never leaves a bridge record. Writes:
+    //  1. engine_activity (engine side, visible in the project feed);
+    //  2. review_audit_log `bridged_to_engine` in the intake DB — the action
+    //     the "Previously bridged" check on /ops/submissions/$id reads, which
+    //     makes double-creation from one submission detectable.
+    // Both are non-fatal: the project exists either way, and the linkage on
+    // signal_room.intake_submission_id is already committed above.
+    if (data.submissionId) {
+      try {
+        await sb.from("engine_activity").insert({
+          project_id: projectId,
+          kind: "intake_bridge",
+          title: "Project created from intake submission",
+          body: `Intake submission ${data.submissionId}`,
+          severity: "info",
+        });
+      } catch {
+        /* activity feed is best-effort */
+      }
+      try {
+        const { getIntakeClient } = await import("@/integrations/intake/client.server");
+        const { error: bridgeErr } = await getIntakeClient()
+          .from("review_audit_log")
+          .insert({
+            submission_id: data.submissionId,
+            actor_email: actor,
+            action: "bridged_to_engine",
+            metadata: { engine_project_id: projectId, project_name: data.projectName },
+          });
+        if (bridgeErr) {
+          console.warn("[intake-bridge] review_audit_log write failed", bridgeErr);
+        }
+      } catch (e) {
+        console.warn("[intake-bridge] review_audit_log write failed", e);
+      }
     }
 
 
@@ -485,12 +580,46 @@ async function assertProjectIntegrity(
 }
 
 /**
- * rollbackHalfBornProject — deletes the just-created project and any sibling
- * rows that don't already CASCADE on engine_projects deletion. Best-effort
- * on individual deletes so a partial rollback still removes as much as
- * possible; the caller throws after this returns.
+ * RollbackContext — which sibling rows THIS intake call created (as opposed
+ * to pre-existing rows matched by upserts). Rollback deletes only rows the
+ * call created, so it can never destroy a live client or portal.
  */
-async function rollbackHalfBornProject(sb: any, projectId: string): Promise<void> {
+type RollbackContext = {
+  /** engine_clients row inserted by this call (newClient path). */
+  createdClientId?: string | null;
+  /** Portal project id linked during this call. */
+  portalProjectId?: string | null;
+  /** true when the client_portal_projects row was created (not matched). */
+  portalProjectCreated?: boolean;
+  /** true when the owner client_portal_permissions row was created. */
+  portalPermissionCreated?: boolean;
+  /** Contact email the permission row was written for. */
+  contactEmail?: string | null;
+  /** Delivery mode of the project being rolled back. */
+  deliveryMode?: string | null;
+  /** Actor email that triggered the intake. */
+  actorEmail?: string | null;
+};
+
+/**
+ * rollbackHalfBornProject — deletes the just-created project and any sibling
+ * rows that don't already CASCADE on engine_projects deletion, including the
+ * portal shell (client_portal_projects / client_portal_permissions) and the
+ * engine_clients row when they were created by this call — previously these
+ * were orphaned, leaving a live-looking portal for a deleted project.
+ *
+ * HIGH FIX (Audit V3 #7): All delete operations now check the returned
+ * PostgREST error object (deletes don't throw on failure — they return
+ * `{ error }`). Failures are accumulated and written to the durable
+ * intake-failures table so ops has visibility.
+ */
+async function rollbackHalfBornProject(
+  sb: any,
+  projectId: string,
+  ctx: RollbackContext = {},
+): Promise<void> {
+  const _rollbackErrors: string[] = [];
+
   // Explicit deletes for tables whose FKs may not cascade in every install.
   const targets: Array<{ table: string; column: string }> = [
     { table: "engine_project_agents", column: "project_id" },
@@ -500,17 +629,65 @@ async function rollbackHalfBornProject(sb: any, projectId: string): Promise<void
     { table: "engine_sources", column: "project_id" },
   ];
   for (const { table, column } of targets) {
-    try {
-      await sb.from(table).delete().eq(column, projectId);
-    } catch {
-      /* best-effort */
-    }
+    const { error } = await sb.from(table).delete().eq(column, projectId);
+    if (error) _rollbackErrors.push(`${table}: ${error.message}`);
   }
-  // Finally, remove the project row itself.
+  // Remove the project row itself (before engine_clients — client_id FK).
+  const { error: projDelErr } = await sb.from("engine_projects").delete().eq("id", projectId);
+  if (projDelErr) _rollbackErrors.push(`engine_projects: ${projDelErr.message}`);
+
+  // Portal + client cleanup runs through the service role: RLS on the portal
+  // tables is scoped to client/operator flows, not this trusted rollback.
   try {
-    await sb.from("engine_projects").delete().eq("id", projectId);
-  } catch {
-    /* best-effort — if this fails, verifyProjectIntegrity will still flag the orphan */
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (ctx.portalProjectId) {
+      if (ctx.portalProjectCreated) {
+        const { error: permDelErr } = await supabaseAdmin
+          .from("client_portal_permissions")
+          .delete()
+          .eq("project_id", ctx.portalProjectId);
+        if (permDelErr) _rollbackErrors.push(`client_portal_permissions: ${permDelErr.message}`);
+        const { error: portalDelErr } = await supabaseAdmin
+          .from("client_portal_projects")
+          .delete()
+          .eq("id", ctx.portalProjectId);
+        if (portalDelErr) _rollbackErrors.push(`client_portal_projects: ${portalDelErr.message}`);
+      } else if (ctx.portalPermissionCreated && ctx.contactEmail) {
+        const { error: permDelErr } = await supabaseAdmin
+          .from("client_portal_permissions")
+          .delete()
+          .eq("project_id", ctx.portalProjectId)
+          .eq("email", ctx.contactEmail);
+        if (permDelErr) _rollbackErrors.push(`client_portal_permissions (single): ${permDelErr.message}`);
+      }
+    }
+    if (ctx.createdClientId) {
+      const { error: clientDelErr } = await supabaseAdmin.from("engine_clients").delete().eq("id", ctx.createdClientId);
+      if (clientDelErr) _rollbackErrors.push(`engine_clients: ${clientDelErr.message}`);
+    }
+  } catch (e) {
+    _rollbackErrors.push(`portal/client cleanup exception: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // Persist any rollback errors to the durable intake-failures table
+  // so ops has visibility into incomplete rollbacks.
+  if (_rollbackErrors.length) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { writeDurableIntakeFailure } = await import("@/lib/engine-intake-failure-log");
+      await writeDurableIntakeFailure(supabaseAdmin, {
+        attempted_project_id: projectId,
+        attempted_project_name: null,
+        attempted_client_id: ctx.createdClientId ?? null,
+        actor_email: ctx.actorEmail ?? null,
+        delivery_mode: ctx.deliveryMode ?? null,
+        failure_reason: `Rollback completed with ${_rollbackErrors.length} delete error(s): ${_rollbackErrors.join("; ").slice(0, 800)}`,
+        payload: { errors: _rollbackErrors, portalProjectId: ctx.portalProjectId },
+      });
+    } catch {
+      // Last resort — the durable log itself is broken.
+      console.error("[intake] failed to persist rollback errors to durable log", _rollbackErrors);
+    }
   }
 }
 

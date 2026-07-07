@@ -902,6 +902,33 @@ export async function runIntelligencePipelineInternal(
     }
   }
 
+  // HIGH FIX (Audit V3 #6): Budget-cap pre-check — replicate the agent-console
+  // guard so the portal-onboarding service-role path can't spend unbounded
+  // on a capped project. Same logic as engine-agent.functions.ts:112-121.
+  {
+    const { data: budgetRow, error: budgetErr } = await sb
+      .from("engine_projects")
+      .select("agent_budget_monthly_cents,agent_spend_month_cents")
+      .eq("id", args.projectId)
+      .single();
+    if (budgetErr) {
+      throw new Error(`Budget pre-check failed: ${budgetErr.message}`);
+    }
+    if (
+      budgetRow?.agent_budget_monthly_cents &&
+      (budgetRow.agent_spend_month_cents ?? 0) >= budgetRow.agent_budget_monthly_cents
+    ) {
+      await sb.from("engine_activity").insert({
+        project_id: args.projectId,
+        kind: "pipeline_blocked",
+        title: "Intelligence run blocked — monthly budget cap reached",
+        body: `spend=${budgetRow.agent_spend_month_cents ?? 0}¢, cap=${budgetRow.agent_budget_monthly_cents}¢`,
+        severity: "warn",
+      });
+      throw new Error("Agent budget cap reached for this month. Raise the cap to continue.");
+    }
+  }
+
   // Pillar 11: only reversible/transitional statuses may be moved back to
   // source_processing / draft by an AI run. Terminal or hold states
   // (on_hold, blocked, paused, execution, delivered, archived) must survive
