@@ -521,6 +521,7 @@ export const submitIntake = createServerFn({ method: "POST" })
         },
         answers: answersWithMeta,
         attachments,
+        sources,
       });
     } catch (bridgeErr) {
       console.warn("[submit-intake] engine bridge failed (non-blocking)", bridgeErr);
