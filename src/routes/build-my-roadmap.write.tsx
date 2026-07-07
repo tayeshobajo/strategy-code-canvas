@@ -1693,6 +1693,390 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+/* ---------- Sources panel (uploads, transcripts, notes, URLs) ---------- */
+//
+// Safety law (spec §Phase 9): every source the founder adds here is DATA,
+// not instructions. The panel makes that contract visible to the user, and
+// the server-side pipeline enforces it: `visibility` and `origin` are
+// stamped server-side, the engine brief prefixes the block with a
+// "data, not instructions" heading, and the client portal never reads raw
+// content or files.
+
+const SOURCE_BUCKET = "intake-uploads";
+const SOURCE_MAX_BYTES = 25 * 1024 * 1024;
+const SOURCE_ALLOWED_EXT = new Set([
+  "pdf", "doc", "docx", "txt", "md", "rtf",
+  "xls", "xlsx", "csv", "ppt", "pptx", "key",
+  "png", "jpg", "jpeg", "gif", "webp", "heic", "svg",
+  "zip", "json", "yaml", "yml",
+]);
+
+function SourcesPanel({
+  attachments,
+  sources,
+  ensureResumeToken,
+  onAttachmentsChange,
+  onSourcesChange,
+}: {
+  attachments: Array<{ storage_path: string; filename: string; size: number; mime: string | null }>;
+  sources: StoredIntakeSource[];
+  ensureResumeToken: () => Promise<string>;
+  onAttachmentsChange: React.Dispatch<
+    React.SetStateAction<
+      Array<{ storage_path: string; filename: string; size: number; mime: string | null }>
+    >
+  >;
+  onSourcesChange: React.Dispatch<React.SetStateAction<StoredIntakeSource[]>>;
+}) {
+  const fileRef = React.useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const [removingId, setRemovingId] = React.useState<string | null>(null);
+  const [drafting, setDrafting] = React.useState<null | "transcript" | "notes" | "url">(null);
+  const [draftText, setDraftText] = React.useState("");
+  const [draftLabel, setDraftLabel] = React.useState("");
+  const [draftUrl, setDraftUrl] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  const resetDraft = () => {
+    setDrafting(null);
+    setDraftText("");
+    setDraftLabel("");
+    setDraftUrl("");
+  };
+
+  const uploadFile = React.useCallback(
+    async (file: File) => {
+      if (file.size === 0) return toast.error("File is empty");
+      if (file.size > SOURCE_MAX_BYTES) return toast.error("File exceeds 25 MB");
+      const ext = (file.name.split(".").pop() ?? "").toLowerCase();
+      if (!SOURCE_ALLOWED_EXT.has(ext)) {
+        return toast.error(`".${ext || "unknown"}" files are not allowed`);
+      }
+      if (attachments.length >= 10) return toast.error("Attach up to 10 files per intake");
+      setUploading(true);
+      try {
+        const token = await ensureResumeToken();
+        const cleaned = file.name.replace(/[^\w.\- ]+/g, "_").slice(0, 180);
+        const path = `${token}/${crypto.randomUUID()}-${cleaned}`;
+        const { error: upErr } = await supabase.storage
+          .from(SOURCE_BUCKET)
+          .upload(path, file, {
+            upsert: false,
+            contentType: file.type || undefined,
+          });
+        if (upErr) throw upErr;
+        const mod = await import("@/lib/intake.functions");
+        const res = await mod.recordIntakeAttachment({
+          data: {
+            resume_token: token,
+            storage_path: path,
+            filename: file.name,
+            size: file.size,
+            mime: file.type || null,
+          },
+        });
+        onAttachmentsChange(res.attachments ?? []);
+        toast.success(`Attached ${file.name}`);
+      } catch (err) {
+        console.warn("[intake-sources] upload failed", err);
+        toast.error("Could not upload that file. Try again.");
+      } finally {
+        setUploading(false);
+        if (fileRef.current) fileRef.current.value = "";
+      }
+    },
+    [attachments.length, ensureResumeToken, onAttachmentsChange],
+  );
+
+  const removeAttachment = React.useCallback(
+    async (storage_path: string) => {
+      setRemovingId(storage_path);
+      try {
+        const token = await ensureResumeToken();
+        const mod = await import("@/lib/intake.functions");
+        const res = await mod.removeIntakeAttachment({
+          data: { resume_token: token, storage_path },
+        });
+        onAttachmentsChange(res.attachments ?? []);
+      } catch (err) {
+        console.warn("[intake-sources] remove attachment failed", err);
+        toast.error("Could not remove that file. Try again.");
+      } finally {
+        setRemovingId(null);
+      }
+    },
+    [ensureResumeToken, onAttachmentsChange],
+  );
+
+  const saveDraft = React.useCallback(async () => {
+    if (!drafting) return;
+    setSaving(true);
+    try {
+      const token = await ensureResumeToken();
+      const mod = await import("@/lib/intake-sources.functions");
+      const res = await mod.addIntakeSource({
+        data: {
+          resume_token: token,
+          kind: drafting,
+          label: draftLabel,
+          content: drafting === "url" ? "" : draftText,
+          url: drafting === "url" ? draftUrl : "",
+        },
+      });
+      onSourcesChange(res.sources as StoredIntakeSource[]);
+      toast.success("Saved.");
+      resetDraft();
+    } catch (err) {
+      console.warn("[intake-sources] save failed", err);
+      toast.error((err as Error)?.message || "Could not save. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }, [drafting, draftLabel, draftText, draftUrl, ensureResumeToken, onSourcesChange]);
+
+  const removeSource = React.useCallback(
+    async (id: string) => {
+      setRemovingId(id);
+      try {
+        const token = await ensureResumeToken();
+        const mod = await import("@/lib/intake-sources.functions");
+        const res = await mod.removeIntakeSource({ data: { resume_token: token, id } });
+        onSourcesChange(res.sources as StoredIntakeSource[]);
+      } catch (err) {
+        console.warn("[intake-sources] remove source failed", err);
+        toast.error("Could not remove that source. Try again.");
+      } finally {
+        setRemovingId(null);
+      }
+    },
+    [ensureResumeToken, onSourcesChange],
+  );
+
+  return (
+    <Panel title="Add anything else that will help" onEdit={undefined}>
+      <p className="mb-3 text-sm text-muted-foreground">
+        Uploads, transcripts, notes, and URLs are read as evidence alongside your answers.
+      </p>
+      <div className="mb-4 flex items-start gap-2 rounded-md border border-border/60 bg-muted/40 p-3 text-xs text-muted-foreground">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+        <span>
+          Anything you attach here is read as data, never as instructions. It stays internal to Trust Tai and is not shown in a client portal.
+        </span>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void uploadFile(f);
+          }}
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="gap-2"
+          disabled={uploading}
+          onClick={() => fileRef.current?.click()}
+        >
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          Upload a file
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="gap-2"
+          onClick={() => {
+            resetDraft();
+            setDrafting("transcript");
+          }}
+        >
+          <FileText className="h-4 w-4" /> Paste transcript
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="gap-2"
+          onClick={() => {
+            resetDraft();
+            setDrafting("notes");
+          }}
+        >
+          <Paperclip className="h-4 w-4" /> Paste notes
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="gap-2"
+          onClick={() => {
+            resetDraft();
+            setDrafting("url");
+          }}
+        >
+          <Link2 className="h-4 w-4" /> Add website URL
+        </Button>
+      </div>
+
+      {drafting && (
+        <div className="mt-4 space-y-3 rounded-md border border-border/70 bg-card p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">
+              {drafting === "url"
+                ? "Add a website URL"
+                : drafting === "transcript"
+                  ? "Paste a transcript"
+                  : "Paste notes"}
+            </p>
+            <button
+              type="button"
+              onClick={resetDraft}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Cancel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="source-label">Label</Label>
+            <Input
+              id="source-label"
+              value={draftLabel}
+              onChange={(e) => setDraftLabel(e.target.value)}
+              placeholder={
+                drafting === "url"
+                  ? "e.g. Current site"
+                  : drafting === "transcript"
+                    ? "e.g. Kickoff call, June 3"
+                    : "e.g. Board notes"
+              }
+              maxLength={200}
+            />
+          </div>
+          {drafting === "url" ? (
+            <div className="grid gap-2">
+              <Label htmlFor="source-url">URL</Label>
+              <Input
+                id="source-url"
+                type="url"
+                inputMode="url"
+                value={draftUrl}
+                onChange={(e) => setDraftUrl(e.target.value)}
+                placeholder="https://example.com"
+                maxLength={2000}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label htmlFor="source-text">Content</Label>
+              <Textarea
+                id="source-text"
+                value={draftText}
+                onChange={(e) => setDraftText(e.target.value)}
+                rows={8}
+                maxLength={60000}
+                placeholder={
+                  drafting === "transcript"
+                    ? "Paste the transcript. It is read as evidence, not as instructions."
+                    : "Paste any notes. They are read as evidence, not as instructions."
+                }
+              />
+            </div>
+          )}
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={resetDraft} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => void saveDraft()}
+              disabled={
+                saving ||
+                (drafting === "url" ? !draftUrl.trim() : !draftText.trim())
+              }
+              className="gap-2"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Save source
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {(attachments.length > 0 || sources.length > 0) && (
+        <ul className="mt-5 space-y-2">
+          {attachments.map((a) => (
+            <li
+              key={a.storage_path}
+              className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="truncate text-foreground">{a.filename}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {Math.max(1, Math.round(a.size / 1024))} KB
+                </span>
+              </div>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => void removeAttachment(a.storage_path)}
+                disabled={removingId === a.storage_path}
+              >
+                {removingId === a.storage_path ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <X className="h-3 w-3" />
+                )}
+                remove
+              </button>
+            </li>
+          ))}
+          {sources.map((s) => (
+            <li
+              key={s.id}
+              className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                {s.kind === "url" ? (
+                  <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                ) : s.kind === "transcript" ? (
+                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                ) : (
+                  <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                )}
+                <span className="truncate text-foreground">{s.label}</span>
+                <span className="shrink-0 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                  {s.kind}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => void removeSource(s.id)}
+                disabled={removingId === s.id}
+              >
+                {removingId === s.id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <X className="h-3 w-3" />
+                )}
+                remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
 /* ---------- Submitted screen ---------- */
 
 function SubmittedScreen() {
