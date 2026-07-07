@@ -2035,6 +2035,7 @@ function SourcesPanel({
         >
           <Link2 className="h-4 w-4" /> Add website URL
         </Button>
+        </div>
       </div>
 
       {drafting && (
