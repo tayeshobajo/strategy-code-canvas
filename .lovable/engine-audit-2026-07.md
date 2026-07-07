@@ -134,3 +134,31 @@ Marketing site, portal client UI beyond the engine boundary, Stripe/payments int
 - `supabase--linter` — 18 SECURITY DEFINER WARNs (S17)
 - Two read-only sub-agents (`sub_9z76cchh` — server-fn audit; `sub_m4fas0yp` — RLS audit) with full source access
 - Prior context: sub-agent `sub_xw76scw5` — roadmap approval workflow trace
+
+---
+
+## Phase 0 spine verification — 2026-07-07
+
+User-requested pre-intake-redesign hardening pass. All four gaps verified closed
+by prior waves; no new patches required. Evidence:
+
+- **engine_sources.visibility default `internal_only`** — migration
+  `20260704152247`; enforced live by `source-visibility-live.test.ts`.
+- **Every insert sets `visibility` explicitly** — `createSource`,
+  `submitPortalOnboarding`, `submitProjectIntake` all pass it; enforced by
+  `source-visibility-defense.test.ts` (scans every `.from("engine_sources").insert`).
+- **Portal onboarding → intelligence pipeline** — `submitPortalOnboarding`
+  awaits `runIntelligencePipelineInternal(supabaseAdmin, …)`; regression-guarded
+  by `onboarding-triggers-extraction.test.ts`.
+- **Publish integrity** — `client_portal_roadmaps.approved_roadmap_version_id`
+  (renamed from `source_version_id` in migration `20260704222007`) required by
+  trigger `tg_client_portal_roadmaps_require_source_version`; `ai_generated`
+  versions rejected; live-DB coverage in `portal-publish-e2e.test.ts` (two-client
+  isolation), static coverage in `publish-column-integrity.test.ts`.
+- **Partial project-record rollback** — `submitProjectIntake` rollback + failure
+  logging guarded by `project-integrity-rollback.test.ts`.
+
+Ran suite: 8 files / 52 tests / all pass (48.9s incl. 45s live-DB portal-publish).
+
+Phase 0 signed off. Adaptive intake work is unblocked; Wave 4 (D5/S18/S8/U4)
+remains queued.
