@@ -40,10 +40,18 @@ import {
   type IntakeFrame,
   type IntakeObjective,
 } from "@/lib/intake-frames";
+import {
+  computeObjectiveScores,
+  selectNextObjective,
+  scoreAnswer,
+} from "@/lib/intake-scoring";
 
 const STORAGE_KEY = "tt:intake:write:token:v1";
 const OPEN_KEY = "_open"; // stable answers[] key for the first open answer
 const FRAME_KEY = "_frame"; // stable answers[] key for the confirmed frame
+const SCORES_KEY = "_scores"; // hidden: per-objective 0-100 confidence
+const ASKED_KEY = "_asked"; // hidden: which objective keys have been asked
+const INTERNAL_KEYS = new Set([OPEN_KEY, FRAME_KEY, SCORES_KEY, ASKED_KEY, "_frame_correction"]);
 
 export const Route = createFileRoute("/build-my-roadmap/write")({
   head: () => {
@@ -138,8 +146,13 @@ function WriteIntake() {
   const [frameLabel, setFrameLabel] = React.useState<string>("");
   const [classifying, setClassifying] = React.useState(false);
 
-  // Objective walk
-  const [objectiveIdx, setObjectiveIdx] = React.useState(0);
+  // Hidden objective model. Scores are 0-100. askedKeys tracks what has
+  // been asked at least once so we do not loop the same question. Neither is
+  // ever rendered to the client.
+  const [scores, setScores] = React.useState<Record<string, number>>({});
+  const [askedKeys, setAskedKeys] = React.useState<string[]>([]);
+  const [currentObjective, setCurrentObjective] = React.useState<IntakeObjective | null>(null);
+  const [scoringNext, setScoringNext] = React.useState(false);
 
   // Submit state
   const [submitting, setSubmitting] = React.useState(false);
@@ -183,11 +196,40 @@ function WriteIntake() {
               if (parsed.frame === "not_a_fit") {
                 setPhase("not-a-fit");
               } else {
-                // Determine next objective index by first unmet.
                 const def = getFrame(parsed.frame);
-                const firstUnmet = def.objectives.findIndex((o) => !map[o.key]?.response);
-                setObjectiveIdx(firstUnmet === -1 ? def.objectives.length : firstUnmet);
-                setPhase(firstUnmet === -1 ? "contact" : "objectives");
+                // Restore hidden scores + asked list if present, else recompute.
+                let restoredScores: Record<string, number> = {};
+                try {
+                  const stored = map[SCORES_KEY]?.response;
+                  if (stored) restoredScores = JSON.parse(stored) as Record<string, number>;
+                } catch {
+                  /* recompute below */
+                }
+                if (Object.keys(restoredScores).length === 0) {
+                  restoredScores = computeObjectiveScores(parsed.frame, map);
+                }
+                let restoredAsked: string[] = [];
+                try {
+                  const stored = map[ASKED_KEY]?.response;
+                  if (stored) restoredAsked = JSON.parse(stored) as string[];
+                } catch {
+                  /* fall through */
+                }
+                if (restoredAsked.length === 0) {
+                  restoredAsked = def.objectives
+                    .filter((o) => (map[o.key]?.response ?? "").trim())
+                    .map((o) => o.key);
+                }
+                setScores(restoredScores);
+                setAskedKeys(restoredAsked);
+                const next = selectNextObjective(parsed.frame, restoredScores, new Set(restoredAsked));
+                if (!next || restoredAsked.length >= HARD_CAP_QUESTIONS) {
+                  setCurrentObjective(null);
+                  setPhase("contact");
+                } else {
+                  setCurrentObjective(next);
+                  setPhase("objectives");
+                }
               }
               return;
             }
@@ -335,11 +377,17 @@ function WriteIntake() {
       if (f === "not_a_fit") {
         setPhase("not-a-fit");
       } else {
-        setObjectiveIdx(0);
-        setPhase("objectives");
+        // Score whatever we already have (usually nothing) and pick the first
+        // unmet required objective.
+        const initialScores = computeObjectiveScores(f, answers);
+        setScores(initialScores);
+        setAskedKeys([]);
+        const next = selectNextObjective(f, initialScores, new Set());
+        setCurrentObjective(next);
+        setPhase(next ? "objectives" : "contact");
       }
     },
-    [upsertAnswer],
+    [answers, upsertAnswer],
   );
 
   const handleFrameConfirmed = React.useCallback(() => {
@@ -393,29 +441,140 @@ function WriteIntake() {
 
   const activeFrameDef: FrameDefinition | null = frame ? getFrame(frame) : null;
 
-  // Advance through the objective list. We do not skip past answered ones on
-  // Next, but the walker naturally moves forward. The review screen lets the
-  // person come back and edit anything.
+  // Persist internal-only rows (scores, asked). These live in the answers map
+  // as underscore-prefixed keys so they round-trip through saveDraft/loadDraft
+  // without a migration. They are filtered out on submit and never rendered.
+  const persistInternal = React.useCallback(
+    (nextScores: Record<string, number>, nextAsked: string[]) => {
+      setAnswers((prev) => {
+        const next: Record<string, AnswerRow> = {
+          ...prev,
+          [SCORES_KEY]: {
+            key: SCORES_KEY,
+            question: "internal: objective scores",
+            response: JSON.stringify(nextScores),
+            reflected_offered: null,
+          },
+          [ASKED_KEY]: {
+            key: ASKED_KEY,
+            question: "internal: asked objective keys",
+            response: JSON.stringify(nextAsked),
+            reflected_offered: null,
+          },
+        };
+        scheduleSave({ answers: next, contact });
+        return next;
+      });
+    },
+    [contact, scheduleSave],
+  );
+
+  // After an answer is committed, score the current objective, update the
+  // hidden model, and pick the next question. Runs on Next and Skip.
+  const advanceObjective = React.useCallback(
+    async (opts: { skipScoring?: boolean } = {}) => {
+      if (!frame || !activeFrameDef || !currentObjective) return;
+      const key = currentObjective.key;
+      const responseText = answers[key]?.response ?? "";
+
+      let objectiveScore = scores[key] ?? 0;
+      if (!opts.skipScoring && responseText.trim()) {
+        // Heuristic first so we never block on the network.
+        objectiveScore = scoreAnswer(key, responseText);
+        try {
+          setScoringNext(true);
+          const token = resumeToken;
+          if (token) {
+            const mod = await import("@/lib/intake-score.functions");
+            const res = await mod.scoreObjective({
+              data: {
+                resume_token: token,
+                objective_key: key,
+                objective_label: currentObjective.label,
+                objective_anchor: currentObjective.anchor,
+                response: responseText,
+              },
+            });
+            objectiveScore = res.score;
+          }
+        } catch (err) {
+          console.warn("[intake/write] score failed, using heuristic", err);
+        } finally {
+          setScoringNext(false);
+        }
+      } else if (opts.skipScoring) {
+        // Skip: mark as asked but score stays as-is (usually 0).
+        objectiveScore = scores[key] ?? scoreAnswer(key, responseText);
+      }
+
+      const nextScores = { ...scores, [key]: objectiveScore };
+      const nextAsked = askedKeys.includes(key) ? askedKeys : [...askedKeys, key];
+      setScores(nextScores);
+      setAskedKeys(nextAsked);
+      persistInternal(nextScores, nextAsked);
+
+      // Hard cap → stop asking, go to contact.
+      if (nextAsked.length >= HARD_CAP_QUESTIONS) {
+        setCurrentObjective(null);
+        setPhase("contact");
+        return;
+      }
+
+      const next = selectNextObjective(frame, nextScores, new Set(nextAsked));
+      if (!next) {
+        setCurrentObjective(null);
+        setPhase("contact");
+        return;
+      }
+      setCurrentObjective(next);
+    },
+    [activeFrameDef, answers, askedKeys, currentObjective, frame, persistInternal, resumeToken, scores],
+  );
+
   const goNextObjective = React.useCallback(() => {
-    if (!activeFrameDef) return;
-    const next = objectiveIdx + 1;
-    const answeredCount = Object.keys(answers).filter(
-      (k) => activeFrameDef.objectives.some((o) => o.key === k) && answers[k]?.response.trim(),
-    ).length;
-    if (next >= activeFrameDef.objectives.length || answeredCount + 1 >= HARD_CAP_QUESTIONS) {
-      setPhase("contact");
-      return;
-    }
-    setObjectiveIdx(next);
-  }, [activeFrameDef, answers, objectiveIdx]);
+    void advanceObjective();
+  }, [advanceObjective]);
+
+  const goSkipObjective = React.useCallback(() => {
+    void advanceObjective({ skipScoring: true });
+  }, [advanceObjective]);
 
   const goPrevObjective = React.useCallback(() => {
-    if (objectiveIdx > 0) {
-      setObjectiveIdx(objectiveIdx - 1);
-    } else {
+    // Back pops the most recently asked objective off the asked list and
+    // returns to it. If nothing has been asked yet, back returns to the
+    // frame confirmation.
+    if (askedKeys.length === 0) {
+      setCurrentObjective(null);
       setPhase("confirm-frame");
+      return;
     }
-  }, [objectiveIdx]);
+    // If the current objective was never asked, just pop the last asked one.
+    const lastAskedKey = askedKeys[askedKeys.length - 1];
+    const prevObjective =
+      activeFrameDef?.objectives.find((o) => o.key === lastAskedKey) ?? null;
+    if (!prevObjective) {
+      setPhase("confirm-frame");
+      return;
+    }
+    const nextAsked = askedKeys.slice(0, -1);
+    setAskedKeys(nextAsked);
+    persistInternal(scores, nextAsked);
+    setCurrentObjective(prevObjective);
+  }, [activeFrameDef, askedKeys, persistInternal, scores]);
+
+  const editObjectiveFromReview = React.useCallback(
+    (o: IntakeObjective) => {
+      setCurrentObjective(o);
+      // Ensure it appears in askedKeys so back-nav works from there.
+      if (!askedKeys.includes(o.key)) {
+        const nextAsked = [...askedKeys, o.key];
+        setAskedKeys(nextAsked);
+        persistInternal(scores, nextAsked);
+      }
+      setPhase("objectives");
+    },
+    [askedKeys, persistInternal, scores],
+  );
 
   // ---------- Submit ----------
   const handleSubmit = React.useCallback(async () => {
@@ -440,6 +599,8 @@ function WriteIntake() {
       }
       const seen = new Set(orderedKeys);
       for (const k of Object.keys(answers)) {
+        // Never send hidden internal rows (scores, asked list) to the engine.
+        if (k === SCORES_KEY || k === ASKED_KEY) continue;
         if (!seen.has(k) && answers[k]?.response.trim()) orderedKeys.push(k);
       }
       const list = orderedKeys
@@ -508,13 +669,14 @@ function WriteIntake() {
         />
       )}
 
-      {phase === "objectives" && activeFrameDef && (
+      {phase === "objectives" && activeFrameDef && currentObjective && (
         <ObjectiveScreen
           frameDef={activeFrameDef}
-          objective={activeFrameDef.objectives[objectiveIdx]}
-          value={answers[activeFrameDef.objectives[objectiveIdx].key]?.response ?? ""}
+          objective={currentObjective}
+          value={answers[currentObjective.key]?.response ?? ""}
+          scoring={scoringNext}
           onChange={(v) => {
-            const q = activeFrameDef.objectives[objectiveIdx];
+            const q = currentObjective;
             upsertAnswer({
               key: q.key,
               question: q.anchor,
@@ -524,7 +686,7 @@ function WriteIntake() {
           }}
           onNext={goNextObjective}
           onPrev={goPrevObjective}
-          onSkip={goNextObjective}
+          onSkip={goSkipObjective}
           onReview={() => setPhase("review")}
           answeredCount={
             activeFrameDef.objectives.filter((o) => answers[o.key]?.response.trim()).length
@@ -558,9 +720,9 @@ function WriteIntake() {
           answers={answers}
           contact={contact}
           openAnswer={answers[OPEN_KEY]?.response ?? ""}
-          onEditObjective={(idx) => {
-            setObjectiveIdx(idx);
-            setPhase("objectives");
+          onEditObjective={(key) => {
+            const obj = activeFrameDef.objectives.find((o) => o.key === key);
+            if (obj) editObjectiveFromReview(obj);
           }}
           onEditContact={() => setPhase("contact")}
           onSubmit={handleSubmit}
@@ -747,6 +909,7 @@ function ObjectiveScreen({
   objective,
   value,
   answeredCount,
+  scoring,
   onChange,
   onNext,
   onPrev,
@@ -757,6 +920,7 @@ function ObjectiveScreen({
   objective: IntakeObjective;
   value: string;
   answeredCount: number;
+  scoring?: boolean;
   onChange: (v: string) => void;
   onNext: () => void;
   onPrev: () => void;
@@ -806,8 +970,9 @@ function ObjectiveScreen({
               Go to review
             </Button>
           )}
-          <Button onClick={onNext} disabled={objective.required && !requiredMet} className="gap-2">
-            Continue <ArrowRight className="h-4 w-4" />
+          <Button onClick={onNext} disabled={(objective.required && !requiredMet) || scoring} className="gap-2">
+            {scoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+            Continue
           </Button>
         </div>
       </div>
@@ -965,7 +1130,7 @@ function ReviewScreen({
   answers: Record<string, AnswerRow>;
   contact: ContactFields;
   openAnswer: string;
-  onEditObjective: (idx: number) => void;
+  onEditObjective: (key: string) => void;
   onEditContact: () => void;
   onSubmit: () => void;
   submitting: boolean;
@@ -1007,7 +1172,7 @@ function ReviewScreen({
                   <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{o.label}</p>
                   <button
                     type="button"
-                    onClick={() => onEditObjective(idx)}
+                    onClick={() => onEditObjective(o.key)}
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                   >
                     <Pencil className="h-3 w-3" /> edit
@@ -1028,7 +1193,7 @@ function ReviewScreen({
                 <span className="text-sm text-muted-foreground">{o.label}</span>
                 <button
                   type="button"
-                  onClick={() => onEditObjective(idx)}
+                  onClick={() => onEditObjective(o.key)}
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                 >
                   <Pencil className="h-3 w-3" /> add
