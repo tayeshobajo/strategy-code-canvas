@@ -111,6 +111,7 @@ const EMPTY_CONTACT: ContactFields = {
 type Phase =
   | "open"
   | "confirm-frame"
+  | "clarify"
   | "reclassify"
   | "objectives"
   | "not-a-fit"
