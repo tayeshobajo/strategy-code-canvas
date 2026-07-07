@@ -57,6 +57,7 @@ import { Route as EngineDeliveryRouteImport } from './routes/engine.delivery'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
+import { Route as BuildMyRoadmapWriteRouteImport } from './routes/build-my-roadmap.write'
 import { Route as AdminRolesRouteImport } from './routes/admin.roles'
 import { Route as AdminProjectIntegrityRouteImport } from './routes/admin.project-integrity'
 import { Route as AdminMilestoneChangesRouteImport } from './routes/admin.milestone-changes'
@@ -344,6 +345,11 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuildMyRoadmapWriteRoute = BuildMyRoadmapWriteRouteImport.update({
+  id: '/write',
+  path: '/write',
+  getParentRoute: () => BuildMyRoadmapRoute,
+} as any)
 const AdminRolesRoute = AdminRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
@@ -616,7 +622,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
-  '/build-my-roadmap': typeof BuildMyRoadmapRoute
+  '/build-my-roadmap': typeof BuildMyRoadmapRouteWithChildren
   '/engine': typeof EngineRouteWithChildren
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
@@ -634,6 +640,7 @@ export interface FileRoutesByFullPath {
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/project-integrity': typeof AdminProjectIntegrityRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -709,7 +716,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
-  '/build-my-roadmap': typeof BuildMyRoadmapRoute
+  '/build-my-roadmap': typeof BuildMyRoadmapRouteWithChildren
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/mcp': typeof McpRoute
@@ -726,6 +733,7 @@ export interface FileRoutesByTo {
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/project-integrity': typeof AdminProjectIntegrityRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -804,7 +812,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
-  '/build-my-roadmap': typeof BuildMyRoadmapRoute
+  '/build-my-roadmap': typeof BuildMyRoadmapRouteWithChildren
   '/engine': typeof EngineRouteWithChildren
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
@@ -823,6 +831,7 @@ export interface FileRoutesById {
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/project-integrity': typeof AdminProjectIntegrityRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -920,6 +929,7 @@ export interface FileRouteTypes {
     | '/admin/milestone-changes'
     | '/admin/project-integrity'
     | '/admin/roles'
+    | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/email/unsubscribe'
@@ -1012,6 +1022,7 @@ export interface FileRouteTypes {
     | '/admin/milestone-changes'
     | '/admin/project-integrity'
     | '/admin/roles'
+    | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/email/unsubscribe'
@@ -1108,6 +1119,7 @@ export interface FileRouteTypes {
     | '/admin/milestone-changes'
     | '/admin/project-integrity'
     | '/admin/roles'
+    | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/email/unsubscribe'
@@ -1187,7 +1199,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
-  BuildMyRoadmapRoute: typeof BuildMyRoadmapRoute
+  BuildMyRoadmapRoute: typeof BuildMyRoadmapRouteWithChildren
   EngineRoute: typeof EngineRouteWithChildren
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
@@ -1554,6 +1566,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/checkout/return'
       preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/build-my-roadmap/write': {
+      id: '/build-my-roadmap/write'
+      path: '/write'
+      fullPath: '/build-my-roadmap/write'
+      preLoaderRoute: typeof BuildMyRoadmapWriteRouteImport
+      parentRoute: typeof BuildMyRoadmapRoute
     }
     '/admin/roles': {
       id: '/admin/roles'
@@ -1948,6 +1967,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface BuildMyRoadmapRouteChildren {
+  BuildMyRoadmapWriteRoute: typeof BuildMyRoadmapWriteRoute
+}
+
+const BuildMyRoadmapRouteChildren: BuildMyRoadmapRouteChildren = {
+  BuildMyRoadmapWriteRoute: BuildMyRoadmapWriteRoute,
+}
+
+const BuildMyRoadmapRouteWithChildren = BuildMyRoadmapRoute._addFileChildren(
+  BuildMyRoadmapRouteChildren,
+)
+
 interface EngineProjectsProjectIdAgentRouteChildren {
   EngineProjectsProjectIdAgentCostsRoute: typeof EngineProjectsProjectIdAgentCostsRoute
   EngineProjectsProjectIdAgentPermissionsRoute: typeof EngineProjectsProjectIdAgentPermissionsRoute
@@ -2100,7 +2131,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
-  BuildMyRoadmapRoute: BuildMyRoadmapRoute,
+  BuildMyRoadmapRoute: BuildMyRoadmapRouteWithChildren,
   EngineRoute: EngineRouteWithChildren,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
