@@ -56,6 +56,27 @@ export const Route = createFileRoute("/api/public/hooks/build-roadmap-contact")(
         const headerCid = request.headers.get("x-correlation-id") || undefined;
         let cid = headerCid || newCorrelationId();
 
+        // Reject requests that don't come from a known browser origin.
+        const origin =
+          request.headers.get("origin") || request.headers.get("referer");
+        if (!isAllowedOrigin(origin)) {
+          console.warn("[build-roadmap-contact] forbidden_origin", {
+            cid,
+            origin,
+          });
+          return new Response(
+            JSON.stringify({ ok: false, error: "forbidden", correlationId: cid }),
+            {
+              status: 403,
+              headers: {
+                "Content-Type": "application/json",
+                "x-correlation-id": cid,
+              },
+            },
+          );
+        }
+
+
         let payload: unknown;
         try {
           payload = await request.json();
