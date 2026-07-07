@@ -74,6 +74,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as EngineProjectsNewRouteImport } from './routes/engine.projects.new'
 import { Route as EngineProjectsProjectIdRouteImport } from './routes/engine.projects.$projectId'
 import { Route as CheckoutWalkPaceRouteImport } from './routes/checkout.walk.$pace'
+import { Route as ApiPublicSeedQaAccountRouteImport } from './routes/api/public/seed-qa-account'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -433,6 +434,11 @@ const CheckoutWalkPaceRoute = CheckoutWalkPaceRouteImport.update({
   path: '/checkout/walk/$pace',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSeedQaAccountRoute = ApiPublicSeedQaAccountRouteImport.update({
+  id: '/api/public/seed-qa-account',
+  path: '/api/public/seed-qa-account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
     id: '/.mcp/invoke-tool/$tool',
@@ -682,6 +688,7 @@ export interface FileRoutesByFullPath {
   '/portal/': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/seed-qa-account': typeof ApiPublicSeedQaAccountRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/engine/projects/new': typeof EngineProjectsNewRoute
@@ -775,6 +782,7 @@ export interface FileRoutesByTo {
   '/ops': typeof OpsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/seed-qa-account': typeof ApiPublicSeedQaAccountRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/engine/projects/new': typeof EngineProjectsNewRoute
@@ -875,6 +883,7 @@ export interface FileRoutesById {
   '/portal/': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/seed-qa-account': typeof ApiPublicSeedQaAccountRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/engine/projects/new': typeof EngineProjectsNewRoute
@@ -974,6 +983,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/seed-qa-account'
     | '/checkout/walk/$pace'
     | '/engine/projects/$projectId'
     | '/engine/projects/new'
@@ -1067,6 +1077,7 @@ export interface FileRouteTypes {
     | '/ops'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/seed-qa-account'
     | '/checkout/walk/$pace'
     | '/engine/projects/$projectId'
     | '/engine/projects/new'
@@ -1166,6 +1177,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/seed-qa-account'
     | '/checkout/walk/$pace'
     | '/engine/projects/$projectId'
     | '/engine/projects/new'
@@ -1232,6 +1244,7 @@ export interface RootRouteChildren {
   BuildMyRoadmapIndexRoute: typeof BuildMyRoadmapIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  ApiPublicSeedQaAccountRoute: typeof ApiPublicSeedQaAccountRoute
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
@@ -1700,6 +1713,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutWalkPaceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/seed-qa-account': {
+      id: '/api/public/seed-qa-account'
+      path: '/api/public/seed-qa-account'
+      fullPath: '/api/public/seed-qa-account'
+      preLoaderRoute: typeof ApiPublicSeedQaAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
       path: '/.mcp/invoke-tool/$tool'
@@ -2163,6 +2183,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuildMyRoadmapIndexRoute: BuildMyRoadmapIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  ApiPublicSeedQaAccountRoute: ApiPublicSeedQaAccountRoute,
   CheckoutWalkPaceRoute: CheckoutWalkPaceRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksBuildRoadmapContactRoute:
