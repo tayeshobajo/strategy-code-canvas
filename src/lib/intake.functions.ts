@@ -766,7 +766,7 @@ async function autoBridgeIntakeToEngine(input: {
     email: string;
     role?: string | null;
   };
-  answers: Array<{ key: string; question: string; response: string; reflected_offered: string | null }>;
+  answers: Array<{ key: string; question: string; response: string; reflected_offered?: string | null }>;
   attachments: Array<{ storage_path: string; filename: string; size: number; mime: string | null }>;
 }): Promise<{ project_id: string | null; source_id: string | null }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
