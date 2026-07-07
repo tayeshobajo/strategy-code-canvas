@@ -105,9 +105,12 @@ Ordered by risk × effort. Each item lists dependencies where relevant.
 17. **U4** — empty states on 4 index screens.
 18. **U6**, **U7**, **U9**, **S9**, **S14–S17**, **D4**, **D5** — batched low-priority cleanups.
 
-### Wave 4 — nice-to-have
+### Wave 4 — nice-to-have + deferred from Wave 3
 
-19. **D5** — new engine health-check dashboard row with orphan/stuck-version detection.
+19. **D5** — new engine health-check dashboard row on `/engine` with `runEngineHealthCheck` server fn covering: stuck `ai_generated` versions older than N days, orphan `client_portal_roadmaps` rows pointing at deleted versions, and preview-ready-but-unapproved projects.
+20. **S18** — webhook singleton refactor in `src/routes/api/public/payments/webhook.ts`. Replace the module-scope `createClient` with the shared lazy `supabaseAdmin`. Requires converting `getSupabase()` to async and updating ~15 call sites (`await getSupabase()`); batch under a single edit + full test run. Stylistic / defense-in-depth only — no behavior change.
+21. **S8** — type all `context: any` parameters (starts at `src/lib/engine-agent.functions.ts`, plus the file-wide `eslint-disable no-explicit-any` in `engine-intelligence.functions.ts:1`) as `AuthenticatedContext` from `@/integrations/supabase/auth-middleware`. Large mechanical surface, no behavior impact; do in one sweep and verify with `tsgo --noEmit` before shipping.
+22. **U4** — verify + polish empty states on `engine.projects.index.tsx`, `engine.templates.tsx`, `engine.intelligence.tsx`, `engine.review.tsx`. Existing screens render helpful empty UI in the filtered case; the gap is a fresh-workspace / zero-rows CTA card ("Create your first project", etc.) on each of the four index screens.
 
 ---
 
