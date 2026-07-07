@@ -26,6 +26,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Check, FileText, Link2, Loader2, Paperclip, Pencil, ShieldCheck, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import type { StoredIntakeSource } from "@/lib/intake-sources.functions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -1736,6 +1737,8 @@ function SourcesPanel({
   const [draftLabel, setDraftLabel] = React.useState("");
   const [draftUrl, setDraftUrl] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [dragActive, setDragActive] = React.useState(false);
+  const dragDepthRef = React.useRef(0);
 
   const resetDraft = () => {
     setDrafting(null);
@@ -1744,25 +1747,44 @@ function SourcesPanel({
     setDraftUrl("");
   };
 
-  const uploadFile = React.useCallback(
-    async (file: File, remainingSlots: number): Promise<boolean> => {
-      if (file.size === 0) {
-        toast.error(`${file.name}: file is empty`);
-        return false;
+  // Client-side preflight — runs BEFORE any bytes are uploaded so the founder
+  // sees a single grouped warning about disallowed types or oversized files.
+  // The server still re-validates (source of truth); this is just to avoid
+  // shipping bytes we already know will be rejected.
+  const preflight = React.useCallback(
+    (files: File[], slotsAvailable: number) => {
+      const accepted: File[] = [];
+      const rejections: string[] = [];
+      let slots = Math.max(0, slotsAvailable);
+      for (const f of files) {
+        const ext = (f.name.split(".").pop() ?? "").toLowerCase();
+        if (f.size === 0) {
+          rejections.push(`${f.name}: empty file`);
+          continue;
+        }
+        if (f.size > SOURCE_MAX_BYTES) {
+          const mb = (f.size / (1024 * 1024)).toFixed(1);
+          rejections.push(`${f.name}: ${mb} MB exceeds the 25 MB limit`);
+          continue;
+        }
+        if (!SOURCE_ALLOWED_EXT.has(ext)) {
+          rejections.push(`${f.name}: ".${ext || "unknown"}" not allowed`);
+          continue;
+        }
+        if (slots <= 0) {
+          rejections.push(`${f.name}: attach up to 10 files per intake`);
+          continue;
+        }
+        accepted.push(f);
+        slots -= 1;
       }
-      if (file.size > SOURCE_MAX_BYTES) {
-        toast.error(`${file.name}: exceeds 25 MB`);
-        return false;
-      }
-      const ext = (file.name.split(".").pop() ?? "").toLowerCase();
-      if (!SOURCE_ALLOWED_EXT.has(ext)) {
-        toast.error(`${file.name}: ".${ext || "unknown"}" files are not allowed`);
-        return false;
-      }
-      if (remainingSlots <= 0) {
-        toast.error("Attach up to 10 files per intake");
-        return false;
-      }
+      return { accepted, rejections };
+    },
+    [],
+  );
+
+  const uploadOne = React.useCallback(
+    async (file: File): Promise<boolean> => {
       try {
         const token = await ensureResumeToken();
         const cleaned = file.name.replace(/[^\w.\- ]+/g, "_").slice(0, 180);
@@ -1798,19 +1820,26 @@ function SourcesPanel({
   const uploadFiles = React.useCallback(
     async (files: File[]) => {
       if (files.length === 0) return;
+      const { accepted, rejections } = preflight(
+        files,
+        10 - attachments.length,
+      );
+      if (rejections.length > 0) {
+        // Group rejections into one toast so a founder dropping a folder does
+        // not get a wall of stacked errors.
+        toast.error(
+          `${rejections.length} file${rejections.length === 1 ? "" : "s"} skipped`,
+          { description: rejections.slice(0, 5).join("\n") },
+        );
+      }
+      if (accepted.length === 0) return;
       setUploading(true);
       try {
-        let slotsLeft = Math.max(0, 10 - attachments.length);
         let ok = 0;
         // Sequential to keep server-side dedupe + slot count consistent and
         // to avoid Supabase Storage rate limits on parallel PUTs.
-        for (const f of files) {
-          const success = await uploadFile(f, slotsLeft);
-          if (success) {
-            ok += 1;
-            slotsLeft -= 1;
-          }
-          if (slotsLeft <= 0) break;
+        for (const f of accepted) {
+          if (await uploadOne(f)) ok += 1;
         }
         if (ok > 0) toast.success(`Attached ${ok} file${ok === 1 ? "" : "s"}`);
       } finally {
@@ -1818,8 +1847,40 @@ function SourcesPanel({
         if (fileRef.current) fileRef.current.value = "";
       }
     },
-    [attachments.length, uploadFile],
+    [attachments.length, preflight, uploadOne],
   );
+
+  // ── Drag-and-drop handlers ────────────────────────────────────────────
+  // dragenter/leave fire on every child element, so we count depth and only
+  // clear the highlight when the outermost dragleave brings the counter to 0.
+  const onDragEnter = React.useCallback((e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setDragActive(true);
+  }, []);
+  const onDragOver = React.useCallback((e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }, []);
+  const onDragLeave = React.useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setDragActive(false);
+  }, []);
+  const onDrop = React.useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      dragDepthRef.current = 0;
+      setDragActive(false);
+      const files = Array.from(e.dataTransfer.files ?? []);
+      if (files.length > 0) void uploadFiles(files);
+    },
+    [uploadFiles],
+  );
+
+
 
 
 
@@ -1899,18 +1960,35 @@ function SourcesPanel({
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <input
-          ref={fileRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            const list = e.target.files;
-            if (!list || list.length === 0) return;
-            void uploadFiles(Array.from(list));
-          }}
-        />
+      <div
+        onDragEnter={onDragEnter}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        className={cn(
+          "rounded-md border border-dashed p-3 transition-colors",
+          dragActive
+            ? "border-primary bg-primary/5"
+            : "border-border/60 bg-transparent",
+        )}
+      >
+        <p className="mb-2 text-xs text-muted-foreground">
+          {dragActive
+            ? "Drop to attach — files over 25 MB or of disallowed types will be skipped."
+            : "Drag files here, or use the buttons below. Max 25 MB each, up to 10 files."}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const list = e.target.files;
+              if (!list || list.length === 0) return;
+              void uploadFiles(Array.from(list));
+            }}
+          />
         <Button
           type="button"
           variant="secondary"
@@ -1958,6 +2036,7 @@ function SourcesPanel({
         >
           <Link2 className="h-4 w-4" /> Add website URL
         </Button>
+        </div>
       </div>
 
       {drafting && (
