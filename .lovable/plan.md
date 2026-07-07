@@ -1,52 +1,68 @@
-# Production Readiness — What's Still Pending
+# Phase 0 — Harden the intake → engine spine
 
-Waves 1–3 of the engine audit are shipped. What remains before the app is production-ready falls into three buckets.
+Before any adaptive intake UI work, verify and close the four gaps you listed. Prior audit waves already landed most of this; this phase is a verification pass with targeted patches only where a gap remains. **No UI changes.**
 
-## 1. Wave 4 (already scoped, not yet executed)
+## What's already in place (verified this pass)
 
-From `.lovable/engine-audit-2026-07.md`:
+- `engine_sources.visibility` column is `NOT NULL DEFAULT 'internal_only'` (migration `20260704152247`).
+- `createSource` (engine-intelligence.functions.ts:138) explicitly sets `visibility: "internal_only"`.
+- `submitPortalOnboarding` (portal.functions.ts:1937) explicitly sets `internal_only` and, on success, calls `runIntelligencePipelineInternal` via `supabaseAdmin` (line 1954).
+- Publish gate: trigger `tg_client_portal_roadmaps_require_source_version` blocks publishing when `approved_roadmap_version_id` is null or the version is `ai_generated`.
+- Portal read paths never expose `approved_roadmap_version_id` / internal columns (portal.functions.ts:665 guardrails + `publish-column-integrity` test).
 
-- **D5 — Engine health-check dashboard.** New admin row on `/engine` backed by `runEngineHealthCheck` server fn covering: stuck `ai_generated` versions older than N days, orphan `client_portal_roadmaps` rows pointing at deleted versions, and preview-ready-but-unapproved projects.
-- **S18 — Payments webhook singleton refactor.** Replace module-scope `createClient` in `src/routes/api/public/payments/webhook.ts` with shared lazy `supabaseAdmin`; convert `getSupabase()` to async and update ~15 call sites. Defense-in-depth, no behavior change.
-- **S8 — Type `context: any` as `AuthenticatedContext`.** Sweep `engine-agent.functions.ts` and remove the file-wide `eslint-disable no-explicit-any` in `engine-intelligence.functions.ts:1`.
-- **U4 — Zero-state CTAs.** Add fresh-workspace CTA cards on `engine.projects.index.tsx`, `engine.templates.tsx`, `engine.intelligence.tsx`, `engine.review.tsx`.
+## Work in this phase
 
-## 2. Low-priority audit items still open
+### 1. Audit every source-creation path for explicit visibility
 
-Batched cleanup deferred through Waves 1–3:
+Sweep all writers to `engine_sources` and confirm each one **explicitly** passes `visibility: "internal_only"` (belt-and-braces even though the column defaults):
 
-- **S9** — warn/throw when `PUBLIC_SITE_URL` env is missing (silent prod-URL fallback in staging/local).
-- **S14** — column-level UPDATE grant on `client_portal_messages` so clients can't reassign `project_id`.
-- **S15** — drop dead `service_role manages intake failures` policy on `engine_project_intake_failures`.
-- **S16** — wrap repeated `client_portal_permissions` subquery in a `get_permitted_project_ids()` SECURITY DEFINER helper (perf, not correctness).
-- **D4** — durable DLQ table for `tg_client_portal_files_fanout_engine` / `tg_client_portal_messages_notify_operators` fan-out failures.
-- **U6** — call `queryClient.clear()` on sign-out in `src/routes/engine.tsx`.
-- **U7** — stabilize/strip `data-tsd-source` on `ClientMarquee` to kill the SSR hydration warning.
-- **U8** — unit test that `roadmap-pdf` export honors the `buildClientSafePayload` allowlist (no `generation_provenance` / operator notes / `source_ids` leak).
-- **U9** — cache the 3-RPC role check per session (micro-perf).
+- `createSource` — ✅ already explicit
+- `submitPortalOnboarding` — ✅ already explicit
+- `submitProjectIntake` (engine-project-intake.functions.ts:454) — ✅ already explicit
+- Signal Room uploads — locate writer in `engine-intelligence.functions.ts` / signal-room route and confirm
+- Manual notes, URL adds, transcript imports — same
 
-## 3. Out of audit scope but required for "production-ready"
+Patch any path missing the explicit field. Add a code comment on the column-level default explaining why every caller still sets it.
 
-These were explicitly excluded from the engine audit and haven't been separately validated:
+### 2. Confirm portal onboarding → pipeline wiring end-to-end
 
-- **Payments go-live.** Stripe is wired but the live-mode readiness (`payments--get_go_live_status`) hasn't been confirmed. Verification, provider approval, and live webhook secret needed before real checkout works.
-- **Email domain verification.** Confirm `notify.trusttai.com` DNS is `active` (not `awaiting_dns` / `provisioning_failed`) so auth + transactional emails actually send in prod.
-- **Publish visibility + badge.** Confirm published visibility is `public` (not `private`) and decide on the "Edit with Lovable" badge.
-- **Portal client UI + marketing site smoke pass.** Audit covered engine only — the client-facing portal roadmap flow and public marketing pages haven't had an equivalent security/data/UX pass this cycle.
-- **Analytics / error reporting.** Confirm `lovable-error-reporting` is capturing prod errors and there's a review cadence.
-- **Backup / restore drill.** No documented restore-from-backup runbook.
+Trace:
+```
+submitPortalOnboarding
+  → insert engine_sources (internal_only)
+  → runIntelligencePipelineInternal(supabaseAdmin, …)
+      → engine_extraction_runs
+      → engine_extracted_signals
+      → engine_roadmap_versions (status = 'ai_generated')
+      → engine_review_items
+      → engine_audit_log
+```
+Add one integration-style server-side check (script or existing test file) that asserts each of those rows exists after a synthetic onboarding submission, so regressions surface fast.
 
-## Recommended sequencing
+### 3. Publish integrity re-verification
 
-1. Wave 4 items D5 → S18 → S8 → U4 (unblocks admin ops visibility + finishes engine surface).
-2. Batch the Wave 3 low-priority cleanups (S9, S14–S16, U6–U9, D4) in one turn.
-3. Non-engine gates: payments go-live check, email domain status, publish visibility. These are tool calls / dashboard checks, not code — I can run them and report back.
-4. Portal + marketing audit as a separate scoped pass.
+Re-run / extend `portal-publish-e2e.test.ts` and `publish-column-integrity.test.ts` to lock in:
 
-## Ask before I proceed
+- Publishing an `ai_generated` version → rejected by the trigger.
+- Publishing an `approved` version with `approved_roadmap_version_id` set → succeeds and `client_portal_roadmaps.status` moves to `approved`/`delivered`.
+- `source_version_id` vs `approved_roadmap_version_id`: confirm the schema uses `approved_roadmap_version_id` exclusively on `client_portal_roadmaps` (the audit's `source_version_id` mention appears to be legacy naming — verify no code still references it).
 
-Do you want me to:
-- **(a)** execute Wave 4 now (D5 + S18 + S8 + U4),
-- **(b)** run the non-code production checks first (payments go-live, email domain, publish visibility) and report,
-- **(c)** kick off a portal-side audit equivalent to the engine one, or
-- **(d)** all three in sequence?
+### 4. Partial-record guard on project creation
+
+Review `submitProjectIntake` rollback path (engine-project-intake.functions.ts:643/702 already log failures). Confirm: if any of `engine_projects` / `engine_project_dates` / `engine_sources` insert fails, the transaction rolls back cleanly and a row lands in `engine_project_intake_failures` for ops visibility. Add a targeted test if none exists.
+
+## Deliverables
+
+- Small patches to any source-writer missing explicit `visibility`.
+- Extended tests: `portal-onboarding-pipeline.test.ts` (new), extensions to publish tests.
+- One-paragraph note in `.lovable/engine-audit-2026-07.md` marking Phase 0 verified, with dated evidence.
+
+## Explicitly out of scope (deferred)
+
+- Adaptive intake UI, classifier (Roadmap / Scoped / Not a Fit), next-best-question logic.
+- Wave 4 items (D5 dashboard, S18 webhook singleton, S8 typing, U4 empty states) — resume after Phase 0 signs off.
+
+## Success criteria
+
+- All four gaps you named are either already-closed (documented) or patched in this phase.
+- Test suite proves: no source can be created without `internal_only`; no portal-visible roadmap can point at an `ai_generated` version; portal onboarding always kicks the intelligence pipeline.
