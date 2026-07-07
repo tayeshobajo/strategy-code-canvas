@@ -4,7 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { buildClientSafePayload } from "@/lib/roadmap-publish";
 
-async function assertAdminEmail(context: {
+// Exported for behavioral role-rejection tests (Audit V3 #8).
+export async function assertAdminEmail(context: {
   claims?: Record<string, unknown>;
   supabase: {
     rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
@@ -20,7 +21,8 @@ async function assertAdminEmail(context: {
   return email ?? "unknown";
 }
 
-async function assertOps(context: {
+// Exported for behavioral role-rejection tests (Audit V3 #8).
+export async function assertOps(context: {
   claims?: Record<string, unknown>;
   supabase: {
     rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
