@@ -135,9 +135,13 @@ function WriteIntakeRoute() {
 /* ---------- Main experience ---------- */
 
 function WriteIntake() {
+  const navigate = useNavigate();
   const [phase, setPhase] = React.useState<Phase>("open");
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
   const [answers, setAnswers] = React.useState<Record<string, AnswerRow>>({});
+  const [attachments, setAttachments] = React.useState<
+    Array<{ storage_path: string; filename: string; size: number; mime: string | null }>
+  >([]);
   const [contact, setContact] = React.useState<ContactFields>(EMPTY_CONTACT);
   const [authorizesScan, setAuthorizesScan] = React.useState(false);
 
