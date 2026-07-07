@@ -227,31 +227,59 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       // owner_email, or null out contact_name/company_name.
       let portalRow: { id: string } | null = null;
       let upErr: { message?: string } | null = null;
+      // MEDIUM FIX (Audit New #3): TOCTOU — two concurrent intakes for the
+      // same contact email can BOTH observe "no portal" above. The insert
+      // runs as ON CONFLICT (primary_email) DO NOTHING (ignoreDuplicates),
+      // so exactly one request creates the row; the loser re-reads and
+      // adopts the winner's portal as pre-existing. portalProjectCreated
+      // must only be true for the actual creator — it gates rollback
+      // deletion, and deleting a portal another intake just wired up would
+      // orphan that (successful) project.
+      let portalCreatedByThisCall = false;
       if (preExistingPortal?.id) {
         portalRow = { id: preExistingPortal.id };
       } else {
         const result = await sb
           .from("client_portal_projects")
-          .insert({
-            primary_email: resolvedContactEmail,
-            contact_name: data.newClient?.primary_contact ?? null,
-            company_name: data.newClient?.company ?? null,
-            portal_status: "onboarding_pending",
-            payment_status: "paid",
-            current_phase: "Onboarding",
-            owner_email: actor,
-          })
+          .upsert(
+            {
+              primary_email: resolvedContactEmail,
+              contact_name: data.newClient?.primary_contact ?? null,
+              company_name: data.newClient?.company ?? null,
+              portal_status: "onboarding_pending",
+              payment_status: "paid",
+              current_phase: "Onboarding",
+              owner_email: actor,
+            },
+            { onConflict: "primary_email", ignoreDuplicates: true },
+          )
           .select("id")
-          .single();
-        portalRow = result.data;
-        upErr = result.error;
+          .maybeSingle();
+        if (result.error) {
+          upErr = result.error;
+        } else if (result.data?.id) {
+          portalRow = result.data as { id: string };
+          portalCreatedByThisCall = true;
+        } else {
+          // Conflict path: a concurrent intake created the portal between
+          // our existence check and this insert. Re-read and treat it as
+          // pre-existing (never delete it on rollback).
+          const { data: raced, error: reReadErr } = await sb
+            .from("client_portal_projects")
+            .select("id")
+            .eq("primary_email", resolvedContactEmail)
+            .maybeSingle();
+          if (reReadErr) upErr = reReadErr;
+          else if (raced?.id) portalRow = raced as { id: string };
+          else upErr = { message: "portal insert conflicted but re-read found no row" };
+        }
       }
       if (upErr) {
         integrityErrors.push(`client_portal_projects: ${upErr.message}`);
       } else if (portalRow?.id) {
         const portalId = portalRow.id as string;
         linkedPortalProjectId = portalId;
-        portalProjectCreated = !preExistingPortal;
+        portalProjectCreated = portalCreatedByThisCall;
         const { error: linkErr } = await sb
           .from("engine_projects")
           .update({ client_portal_project_id: portalId })
