@@ -45,6 +45,7 @@ import {
   selectNextObjective,
   scoreAnswer,
 } from "@/lib/intake-scoring";
+import { HIGH_CONFIDENCE_BAR } from "@/lib/intake-classify.functions";
 
 const STORAGE_KEY = "tt:intake:write:token:v1";
 const OPEN_KEY = "_open"; // stable answers[] key for the first open answer
