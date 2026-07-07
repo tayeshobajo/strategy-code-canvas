@@ -234,8 +234,8 @@ export const listReviewQueue = createServerFn({ method: "GET" })
       itemsQuery,
       sb.from("engine_review_audit").select("*").order("at", { ascending: false }).limit(200),
     ]);
-    if (it.error) throw new Error(String((it.error as { message?: string }).message ?? it.error));
-    if (au.error) throw new Error(String((au.error as { message?: string }).message ?? au.error));
+    if (it.error) throwGeneric(it.error, "Operation failed");
+    if (au.error) throwGeneric(au.error, "Operation failed");
     return { items: (it.data ?? []) as ReviewItem[], audit: (au.data ?? []) as ReviewAudit[] };
   });
 
