@@ -723,9 +723,24 @@ function WriteIntake() {
         <ConfirmFrameScreen
           label={frameLabel || FRAME_DEFINITIONS[frame].label}
           confirmSuffix={FRAME_DEFINITIONS[frame].confirmSuffix}
+          overrideCopy={frameConfirmationCopy || undefined}
           onYes={handleFrameConfirmed}
           onNotQuite={() => setPhase("reclassify")}
           onNotSure={() => setPhase("reclassify")}
+        />
+      )}
+
+      {phase === "clarify" && (
+        <ReclassifyScreen
+          classifying={classifying}
+          initial={answers["_frame_correction"]?.response ?? ""}
+          prompt={
+            clarifyingQuestion ||
+            "Can you say a little more so we can tell which frame fits?"
+          }
+          submitLabel="Read again"
+          onSubmit={handleFrameCorrected}
+          onBack={() => setPhase("open")}
         />
       )}
 
