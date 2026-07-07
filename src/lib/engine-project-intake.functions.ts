@@ -377,7 +377,7 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
         kind: "integrity_warning",
         title: "Project created with non-fatal sibling warnings",
         body: integrityErrors.join(" | "),
-        severity: "warning",
+        severity: "warn",
       });
     }
 

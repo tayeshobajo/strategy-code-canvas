@@ -561,7 +561,7 @@ export const decideReviewItem = createServerFn({ method: "POST" })
             kind: "milestone_diff_errors",
             title: `Milestone changes failed for ${target.version}`,
             body: `${_diffErrors.length} error(s): ${_diffErrors.join("; ").slice(0, 800)}`,
-            severity: "warning",
+            severity: "warn",
           });
           if (warnErr) console.warn("[decideReviewItem] failed to persist milestone-diff warning:", warnErr.message);
         }
