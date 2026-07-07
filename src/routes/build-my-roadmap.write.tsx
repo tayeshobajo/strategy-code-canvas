@@ -646,6 +646,40 @@ function WriteIntake() {
     }
   }, [activeFrameDef, answers, authorizesScan, contact, resumeToken, submitting]);
 
+  // ---------- Save and come back later ----------
+  const handleSaveForLater = React.useCallback(async () => {
+    try {
+      // Flush pending autosave so the current answers/contact are persisted.
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+      await persist({ answers, contact });
+      // Offer to email the resume link if we have an email on file.
+      if (contact.email.trim() && resumeToken && typeof window !== "undefined") {
+        try {
+          const mod = await import("@/lib/intake.functions");
+          await mod.sendResumeLink({
+            data: {
+              resume_token: resumeToken,
+              email: contact.email.trim(),
+              resume_url: window.location.origin + "/build-my-roadmap/write",
+              name: contact.name || "",
+            },
+          });
+          toast.success("Saved. We emailed you a link to pick this up.");
+        } catch (err) {
+          console.warn("[intake/write] resume-link email failed", err);
+          toast.success("Saved. This page will remember you when you return.");
+        }
+      } else {
+        toast.success("Saved. This page will remember you when you return.");
+      }
+      navigate({ to: "/" });
+    } catch (err) {
+      console.error("[intake/write] save-for-later failed", err);
+      toast.error("We could not save just now. Try again in a moment.");
+    }
+  }, [answers, contact, navigate, persist, resumeToken]);
+
+
   /* ---------- Render ---------- */
 
   return (
