@@ -26,6 +26,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Check, FileText, Link2, Loader2, Paperclip, Pencil, ShieldCheck, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import type { StoredIntakeSource } from "@/lib/intake-sources.functions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
