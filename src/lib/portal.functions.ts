@@ -36,25 +36,30 @@ async function currentCorrelationId(): Promise<string> {
 
 
 // Get-or-create an unsubscribe token for a recipient. Required by the
-// transactional email sender.
+// transactional email sender. Uses an atomic upsert (S19 audit fix) so
+// two concurrent sends don't race and insert duplicate rows.
 async function ensureUnsubscribeToken(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabaseAdmin: any,
   email: string,
 ): Promise<string> {
+  const normalized = email.toLowerCase();
+  const candidate = (globalThis.crypto?.randomUUID?.() ??
+    `${Date.now()}-${Math.random()}`) as string;
+  const { data, error } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .upsert({ email: normalized, token: candidate }, { onConflict: "email", ignoreDuplicates: true })
+    .select("token")
+    .maybeSingle();
+  if (!error && data?.token) return data.token as string;
+  // Row already existed (ignoreDuplicates returned nothing) — read it back.
   const { data: existing } = await supabaseAdmin
     .from("email_unsubscribe_tokens")
     .select("token")
-    .ilike("email", email)
+    .ilike("email", normalized)
     .limit(1)
     .maybeSingle();
-  if (existing?.token) return existing.token as string;
-  const token = (globalThis.crypto?.randomUUID?.() ??
-    `${Date.now()}-${Math.random()}`) as string;
-  await supabaseAdmin
-    .from("email_unsubscribe_tokens")
-    .insert({ token, email });
-  return token;
+  return (existing?.token as string) ?? candidate;
 }
 
 // -------------------- Nav access check (client-facing) --------------------
