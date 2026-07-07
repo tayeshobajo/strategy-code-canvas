@@ -1461,6 +1461,7 @@ function ReviewScreen({
   frameDef,
   answers,
   attachments,
+  sources,
   contact,
   openAnswer,
   onEditObjective,
@@ -1469,10 +1470,14 @@ function ReviewScreen({
   onSubmit,
   onSaveForLater,
   submitting,
+  ensureResumeToken,
+  onAttachmentsChange,
+  onSourcesChange,
 }: {
   frameDef: FrameDefinition;
   answers: Record<string, AnswerRow>;
   attachments: Array<{ storage_path: string; filename: string; size: number; mime: string | null }>;
+  sources: StoredIntakeSource[];
   contact: ContactFields;
   openAnswer: string;
   onEditObjective: (key: string) => void;
@@ -1481,6 +1486,13 @@ function ReviewScreen({
   onSubmit: () => void;
   onSaveForLater: () => void;
   submitting: boolean;
+  ensureResumeToken: () => Promise<string>;
+  onAttachmentsChange: React.Dispatch<
+    React.SetStateAction<
+      Array<{ storage_path: string; filename: string; size: number; mime: string | null }>
+    >
+  >;
+  onSourcesChange: React.Dispatch<React.SetStateAction<StoredIntakeSource[]>>;
 }) {
   const understood = frameDef.objectives
     .map((o, idx) => ({ o, idx, response: answers[o.key]?.response.trim() ?? "" }))
