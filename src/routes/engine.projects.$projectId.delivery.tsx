@@ -117,7 +117,7 @@ function DeliveryPrep() {
           </SectionCard>
 
           <SectionCard title="Edit delivery details">
-            <StepEditor projectId={projectId} step="delivery" data={project.delivery} />
+            <StepEditor projectId={projectId} step="delivery" data={project.delivery} expectedUpdatedAt={project.updated_at} />
           </SectionCard>
         </div>
 

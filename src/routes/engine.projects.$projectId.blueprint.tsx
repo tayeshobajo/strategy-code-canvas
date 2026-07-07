@@ -44,7 +44,7 @@ function Blueprint() {
         </div>
       )}
       <SectionCard title="Edit blueprint">
-        <StepEditor projectId={projectId} step="blueprint" data={project.blueprint} />
+        <StepEditor projectId={projectId} step="blueprint" data={project.blueprint} expectedUpdatedAt={project.updated_at} />
       </SectionCard>
     </div>
   );

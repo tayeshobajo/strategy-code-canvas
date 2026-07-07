@@ -136,7 +136,7 @@ function SignalRoom() {
       </div>
 
       <SectionCard title="Advanced (JSON)">
-        <StepEditor projectId={projectId} step="signal-room" data={project.signal_room} />
+        <StepEditor projectId={projectId} step="signal-room" data={project.signal_room} expectedUpdatedAt={project.updated_at} />
       </SectionCard>
     </div>
   );

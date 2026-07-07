@@ -98,7 +98,7 @@ function Builder() {
       <SourceEvidence projectId={projectId} step="builder" />
 
       <SectionCard title="Edit roadmap (JSON)">
-        <StepEditor projectId={projectId} step="builder" data={project.roadmap} />
+        <StepEditor projectId={projectId} step="builder" data={project.roadmap} expectedUpdatedAt={project.updated_at} />
       </SectionCard>
     </div>
   );

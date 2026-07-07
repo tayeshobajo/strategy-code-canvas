@@ -41,7 +41,7 @@ function PointB() {
         ))}
       </div>
       <SectionCard title="Edit Point B">
-        <StepEditor projectId={projectId} step="point-b" data={project.point_b} />
+        <StepEditor projectId={projectId} step="point-b" data={project.point_b} expectedUpdatedAt={project.updated_at} />
       </SectionCard>
     </div>
   );

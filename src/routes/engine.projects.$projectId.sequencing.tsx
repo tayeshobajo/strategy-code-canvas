@@ -46,7 +46,7 @@ function Sequencing() {
         ))}
       </div>
       <SectionCard title="Edit sequencing">
-        <StepEditor projectId={projectId} step="sequencing" data={project.sequencing} />
+        <StepEditor projectId={projectId} step="sequencing" data={project.sequencing} expectedUpdatedAt={project.updated_at} />
       </SectionCard>
     </div>
   );

@@ -114,7 +114,7 @@ function ClientPreview() {
 
       <SectionCard title="Edit preview overrides" right={!canEditClientPreview ? <OperatorLockNotice message={adminOnlyReason} /> : undefined}>
         {canEditClientPreview ? (
-          <StepEditor projectId={projectId} step="preview" data={project.client_preview} />
+          <StepEditor projectId={projectId} step="preview" data={project.client_preview} expectedUpdatedAt={project.updated_at} />
         ) : (
           <p className="text-sm text-ink/60">Client-facing preview content is admin-only. Operators can view the preview and export the PDF, but cannot edit what the client sees.</p>
         )}
