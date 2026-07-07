@@ -440,6 +440,12 @@ export const decideReviewItem = createServerFn({ method: "POST" })
         // the version payload. Past approved versions are NOT mutated — we
         // only touch engine_milestones for this project. This is where the
         // "engine learned, but roadmap didn't evolve" gap gets closed.
+        // HIGH FIX (Audit V3 #4): Milestone-diff apply failures must be
+        // durable and visible to ops — not silently swallowed. We track
+        // errors per-operation and persist a warning activity entry if
+        // anything fails. The version is already approved at this point;
+        // milestone changes are secondary and must not block the decision.
+        const _diffErrors: string[] = [];
         try {
           const payload = (target.payload ?? {}) as Record<string, unknown>;
           const diff = payload.suggested_milestone_changes as
@@ -455,32 +461,37 @@ export const decideReviewItem = createServerFn({ method: "POST" })
             const removed = diff.removed ?? [];
 
             if (added.length) {
-              const { data: maxRow } = await sb
+              const { data: maxRow, error: maxErr } = await sb
                 .from("engine_milestones")
                 .select("sort_index")
                 .eq("project_id", projId)
                 .order("sort_index", { ascending: false })
                 .limit(1)
                 .maybeSingle();
-              let sortIndex = ((maxRow?.sort_index as number | null) ?? -1) + 1;
-              const rows = added.map((a) => ({
-                project_id: projId,
-                name: a.name.slice(0, 240),
-                phase: a.phase?.slice(0, 120) ?? null,
-                status: "draft",
-                approval_status: "approved",
-                approved_at: nowIso,
-                approved_by_email: actor,
-                sort_index: sortIndex++,
-                roadmap_version_id: target.id,
-                created_by_kind: "ai",
-                source_evidence: a.evidence ?? [],
-              }));
-              await sb.from("engine_milestones").insert(rows);
+              if (maxErr) {
+                _diffErrors.push(`Failed to read max sort_index: ${maxErr.message}`);
+              } else {
+                let sortIndex = ((maxRow?.sort_index as number | null) ?? -1) + 1;
+                const rows = added.map((a) => ({
+                  project_id: projId,
+                  name: a.name.slice(0, 240),
+                  phase: a.phase?.slice(0, 120) ?? null,
+                  status: "draft",
+                  approval_status: "approved",
+                  approved_at: nowIso,
+                  approved_by_email: actor,
+                  sort_index: sortIndex++,
+                  roadmap_version_id: target.id,
+                  created_by_kind: "ai",
+                  source_evidence: a.evidence ?? [],
+                }));
+                const { error: insErr } = await sb.from("engine_milestones").insert(rows);
+                if (insErr) _diffErrors.push(`Failed to insert ${added.length} milestones: ${insErr.message}`);
+              }
             }
 
             for (const m of modified) {
-              await sb
+              const { error: modErr } = await sb
                 .from("engine_milestones")
                 .update({
                   phase: m.to_phase?.slice(0, 120) ?? null,
@@ -491,10 +502,11 @@ export const decideReviewItem = createServerFn({ method: "POST" })
                 })
                 .eq("id", m.existing_id)
                 .eq("project_id", projId);
+              if (modErr) _diffErrors.push(`Failed to modify milestone ${m.existing_id}: ${modErr.message}`);
             }
 
             for (const r of removed) {
-              await sb
+              const { error: remErr } = await sb
                 .from("engine_milestones")
                 .update({
                   approval_status: "removed",
@@ -503,21 +515,26 @@ export const decideReviewItem = createServerFn({ method: "POST" })
                 })
                 .eq("id", r.existing_id)
                 .eq("project_id", projId);
+              if (remErr) _diffErrors.push(`Failed to remove milestone ${r.existing_id}: ${remErr.message}`);
             }
 
             if (added.length || modified.length || removed.length) {
-              await sb.from("engine_activity").insert({
+              const appliedCount = added.length + modified.length + removed.length - _diffErrors.length;
+              const { error: actErr2 } = await sb.from("engine_activity").insert({
                 project_id: projId,
-                kind: "milestones_applied",
-                title: `Milestone changes applied for ${target.version}`,
-                body: `${added.length} added, ${modified.length} modified, ${removed.length} removed.`,
-                severity: "info",
+                kind: _diffErrors.length ? "milestones_applied_partial" : "milestones_applied",
+                title: `Milestone changes ${_diffErrors.length ? "partially" : ""} applied for ${target.version}`,
+                body: _diffErrors.length
+                  ? `${appliedCount} of ${added.length + modified.length + removed.length} changes applied. ${_diffErrors.length} failed: ${_diffErrors.join("; ").slice(0, 500)}`
+                  : `${added.length} added, ${modified.length} modified, ${removed.length} removed.`,
+                severity: _diffErrors.length ? "warning" : "info",
               });
-              await sb.from("engine_audit_log").insert({
+              if (actErr2) console.warn("[decideReviewItem] milestones_applied activity insert failed:", actErr2.message);
+              const { error: audErr2 } = await sb.from("engine_audit_log").insert({
                 project_id: projId,
                 actor_email: actor,
                 action: "milestones_applied",
-                summary: `Applied suggested milestone changes for ${target.version}: +${added.length} / ~${modified.length} / -${removed.length}.`,
+                summary: `Applied suggested milestone changes for ${target.version}: +${added.length} / ~${modified.length} / -${removed.length}${_diffErrors.length ? ` (${_diffErrors.length} errors)` : ""}.`,
                 affected_modules: ["roadmap"],
                 target_id: target.id,
                 metadata: {
@@ -525,12 +542,26 @@ export const decideReviewItem = createServerFn({ method: "POST" })
                   added: added.length,
                   modified: modified.length,
                   removed: removed.length,
+                  errors: _diffErrors.length ? _diffErrors.slice(0, 10) : undefined,
                 },
               });
+              if (audErr2) console.warn("[decideReviewItem] milestones_applied audit log insert failed:", audErr2.message);
             }
           }
         } catch (diffErr) {
-          console.warn("[decideReviewItem] milestone diff apply failed", diffErr);
+          _diffErrors.push(`Unexpected error during milestone diff apply: ${diffErr instanceof Error ? diffErr.message : String(diffErr)}`);
+        }
+        // If any milestone-diff errors occurred, persist a durable warning
+        // so ops can see that an approved version has incomplete milestone changes.
+        if (_diffErrors.length) {
+          const { error: warnErr } = await sb.from("engine_activity").insert({
+            project_id: projId,
+            kind: "milestone_diff_errors",
+            title: `Milestone changes failed for ${target.version}`,
+            body: `${_diffErrors.length} error(s): ${_diffErrors.join("; ").slice(0, 800)}`,
+            severity: "warning",
+          });
+          if (warnErr) console.warn("[decideReviewItem] failed to persist milestone-diff warning:", warnErr.message);
         }
       }
     }
