@@ -163,6 +163,11 @@ function WriteIntake() {
   const [askedKeys, setAskedKeys] = React.useState<string[]>([]);
   const [currentObjective, setCurrentObjective] = React.useState<IntakeObjective | null>(null);
   const [scoringNext, setScoringNext] = React.useState(false);
+  // Generated wording for the current anchor question. The completeness
+  // model still picks the objective; AI only rewrites its anchor. On any
+  // failure we render the anchor verbatim — never surface an error.
+  const [generatedQuestion, setGeneratedQuestion] = React.useState<string | null>(null);
+  const [generatingQuestion, setGeneratingQuestion] = React.useState(false);
 
   // Submit state
   const [submitting, setSubmitting] = React.useState(false);
@@ -708,6 +713,70 @@ function WriteIntake() {
     }
   }, [answers, contact, navigate, persist, resumeToken]);
 
+  // ---------- Generative anchor wording ----------
+  // Whenever the completeness model picks a new objective, ask the server to
+  // rewrite that objective's anchor in the person's own language. Voice check
+  // + regeneration + anchor fallback all happen server-side; here we only
+  // hold the returned string. On any failure we render the anchor verbatim.
+  React.useEffect(() => {
+    if (phase !== "objectives" || !currentObjective || !resumeToken) {
+      setGeneratedQuestion(null);
+      return;
+    }
+    let cancelled = false;
+    const objectiveKey = currentObjective.key;
+    // Reset so the anchor shows immediately while we fetch.
+    setGeneratedQuestion(null);
+    setGeneratingQuestion(true);
+    (async () => {
+      try {
+        const priors = activeFrameDef
+          ? activeFrameDef.objectives
+              .filter(
+                (o) =>
+                  o.key !== objectiveKey &&
+                  (answers[o.key]?.response ?? "").trim().length > 0,
+              )
+              .map((o) => ({
+                label: o.label,
+                response: answers[o.key]!.response.trim().slice(0, 800),
+              }))
+          : [];
+        const opening = answers[OPEN_KEY]?.response ?? "";
+        const mod = await import("@/lib/intake-question.functions");
+        const res = await mod.generateAnchorWording({
+          data: {
+            resume_token: resumeToken,
+            objective_key: objectiveKey,
+            objective_label: currentObjective.label,
+            objective_anchor: currentObjective.anchor,
+            opening,
+            prior_answers: priors,
+          },
+        });
+        if (cancelled) return;
+        // Only override the anchor when the model returned a fresh sentence.
+        if (res.source === "generated" && res.question) {
+          setGeneratedQuestion(res.question);
+        } else {
+          setGeneratedQuestion(null);
+        }
+      } catch (err) {
+        console.warn("[intake/write] anchor rewording failed, using anchor", err);
+        if (!cancelled) setGeneratedQuestion(null);
+      } finally {
+        if (!cancelled) setGeneratingQuestion(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Answers change every keystroke; we only want to regenerate when the
+    // objective itself changes, not while the user is typing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentObjective?.key, phase, resumeToken]);
+
+
 
   /* ---------- Render ---------- */
 
@@ -759,6 +828,8 @@ function WriteIntake() {
           objective={currentObjective}
           value={answers[currentObjective.key]?.response ?? ""}
           scoring={scoringNext}
+          generatedQuestion={generatedQuestion}
+          generatingQuestion={generatingQuestion}
           onChange={(v) => {
             const q = currentObjective;
             upsertAnswer({
@@ -1009,6 +1080,8 @@ function ObjectiveScreen({
   value,
   answeredCount,
   scoring,
+  generatedQuestion,
+  generatingQuestion,
   onChange,
   onNext,
   onPrev,
@@ -1020,6 +1093,8 @@ function ObjectiveScreen({
   value: string;
   answeredCount: number;
   scoring?: boolean;
+  generatedQuestion?: string | null;
+  generatingQuestion?: boolean;
   onChange: (v: string) => void;
   onNext: () => void;
   onPrev: () => void;
@@ -1036,6 +1111,11 @@ function ObjectiveScreen({
   const canReview =
     required.filter((o) => o.key !== objective.key).every((o) => o) && answeredCount >= required.length;
 
+  // The completeness model picks the objective; AI may only rewrite its
+  // anchor. If generation is pending or failed the voice check server-side,
+  // we render the anchor verbatim — never a spinner in place of a question.
+  const questionText = generatedQuestion?.trim() || objective.anchor;
+
   return (
     <section className="space-y-6">
       <div>
@@ -1044,7 +1124,12 @@ function ObjectiveScreen({
           {objective.label}{objective.required ? "" : ", if it helps"}
         </p>
       </div>
-      <p className="font-serif text-xl leading-snug text-foreground sm:text-2xl">{objective.anchor}</p>
+      <p
+        className="font-serif text-xl leading-snug text-foreground sm:text-2xl"
+        aria-busy={generatingQuestion ? true : undefined}
+      >
+        {questionText}
+      </p>
       <Textarea
         ref={ref}
         value={value}
