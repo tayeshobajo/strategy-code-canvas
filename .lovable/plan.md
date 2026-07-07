@@ -1,81 +1,52 @@
-# Roadmap Engine — Exhaustive Audit
+# Production Readiness — What's Still Pending
 
-## Scope
+Waves 1–3 of the engine audit are shipped. What remains before the app is production-ready falls into three buckets.
 
-Everything under the `/engine` surface: routes, server functions, RLS policies, migrations, and the engine ↔ portal boundary.
+## 1. Wave 4 (already scoped, not yet executed)
 
-- Security & RLS
-- Data integrity & workflow (Steps 1–13, publish/approval, portal fan‑out, orphan cleanup)
-- UX / product completeness (admin vs operator locks, empty states, error boundaries)
+From `.lovable/engine-audit-2026-07.md`:
 
-## Method
+- **D5 — Engine health-check dashboard.** New admin row on `/engine` backed by `runEngineHealthCheck` server fn covering: stuck `ai_generated` versions older than N days, orphan `client_portal_roadmaps` rows pointing at deleted versions, and preview-ready-but-unapproved projects.
+- **S18 — Payments webhook singleton refactor.** Replace module-scope `createClient` in `src/routes/api/public/payments/webhook.ts` with shared lazy `supabaseAdmin`; convert `getSupabase()` to async and update ~15 call sites. Defense-in-depth, no behavior change.
+- **S8 — Type `context: any` as `AuthenticatedContext`.** Sweep `engine-agent.functions.ts` and remove the file-wide `eslint-disable no-explicit-any` in `engine-intelligence.functions.ts:1`.
+- **U4 — Zero-state CTAs.** Add fresh-workspace CTA cards on `engine.projects.index.tsx`, `engine.templates.tsx`, `engine.intelligence.tsx`, `engine.review.tsx`.
 
-Read-only investigation, no code changes in this pass. Findings go into a single markdown report; fixes are proposed as a prioritized plan you approve separately.
+## 2. Low-priority audit items still open
 
-### 1. Automated signals
+Batched cleanup deferred through Waves 1–3:
 
-- `supabase--linter` — RLS off, permissive policies, exposed columns
-- `security--get_scan_results` (+ `run_security_scan` for a fresh pass) — cross-check with linter
-- `code--dependency_scan` — vulnerable npm packages
-- `bunx vitest run` — existing engine/portal test suite (many `__tests__` files already exist)
-- `tsgo` typecheck across engine routes and server fns
+- **S9** — warn/throw when `PUBLIC_SITE_URL` env is missing (silent prod-URL fallback in staging/local).
+- **S14** — column-level UPDATE grant on `client_portal_messages` so clients can't reassign `project_id`.
+- **S15** — drop dead `service_role manages intake failures` policy on `engine_project_intake_failures`.
+- **S16** — wrap repeated `client_portal_permissions` subquery in a `get_permitted_project_ids()` SECURITY DEFINER helper (perf, not correctness).
+- **D4** — durable DLQ table for `tg_client_portal_files_fanout_engine` / `tg_client_portal_messages_notify_operators` fan-out failures.
+- **U6** — call `queryClient.clear()` on sign-out in `src/routes/engine.tsx`.
+- **U7** — stabilize/strip `data-tsd-source` on `ClientMarquee` to kill the SSR hydration warning.
+- **U8** — unit test that `roadmap-pdf` export honors the `buildClientSafePayload` allowlist (no `generation_provenance` / operator notes / `source_ids` leak).
+- **U9** — cache the 3-RPC role check per session (micro-perf).
 
-### 2. Security & RLS (manual)
+## 3. Out of audit scope but required for "production-ready"
 
-For every `engine_*`, `client_portal_*`, `roadmap_*`, `intake_*`, `operator_notifications`, `user_roles`, `orders`, `subscriptions` table:
+These were explicitly excluded from the engine audit and haven't been separately validated:
 
-- RLS enabled? Policies per role (`anon`, `authenticated`, `service_role`)?
-- Matching GRANTs in migrations?
-- Are SELECT/INSERT/UPDATE/DELETE audiences correct (owner-only vs operator vs admin vs public)?
-- Owner-side read policies for any status-gated rows (draft/pending/hidden)
-- Security definer functions: `search_path` set, caller checks present, no privilege escalation
-- `has_role` / `has_role_email` / `client_portal_is_operator` usage consistent
-- Every `createServerFn` under `src/lib/*.functions.ts` and `src/utils/*.functions.ts`:
-  - `requireSupabaseAuth` where needed
-  - Role check (not just "signed in") for privileged ops
-  - `supabaseAdmin` only inside handlers, only after authorization
-  - Input validated with Zod / narrow validator
-- Route gates: everything under `/engine` requires admin/operator/team_member (currently in `src/routes/engine.tsx` `beforeLoad`)
-- Sub-agent report on the roadmap approval workflow (agent `sub_xw76scw5`) fed into the boundary review
+- **Payments go-live.** Stripe is wired but the live-mode readiness (`payments--get_go_live_status`) hasn't been confirmed. Verification, provider approval, and live webhook secret needed before real checkout works.
+- **Email domain verification.** Confirm `notify.trusttai.com` DNS is `active` (not `awaiting_dns` / `provisioning_failed`) so auth + transactional emails actually send in prod.
+- **Publish visibility + badge.** Confirm published visibility is `public` (not `private`) and decide on the "Edit with Lovable" badge.
+- **Portal client UI + marketing site smoke pass.** Audit covered engine only — the client-facing portal roadmap flow and public marketing pages haven't had an equivalent security/data/UX pass this cycle.
+- **Analytics / error reporting.** Confirm `lovable-error-reporting` is capturing prod errors and there's a review cadence.
+- **Backup / restore drill.** No documented restore-from-backup runbook.
 
-### 3. Data integrity & workflow
+## Recommended sequencing
 
-- Step state machine (`engine_projects.step_states`) — legal transitions, gate enforcement server-side (not just UI)
-- `engine_roadmap_versions` lifecycle: `ai_generated` → approved → published; the `tg_client_portal_roadmaps_require_source_version` trigger blocks bad publishes — confirm every publish path goes through it
-- Portal fan-out triggers (`tg_client_portal_files_fanout_engine`, `tg_client_portal_messages_notify_operators`) — failure modes, idempotency, missing engine project links
-- Orphan cleanup: `engine_projects` deletion vs `client_portal_projects`, `engine_roadmap_versions`, `engine_review_items`, `engine_delivery_items`
-- Intake pipeline: `intake_submissions` → `engine_project_intake_failures` durable log, alert idempotency (covered by existing tests — confirm still green)
-- Source visibility: engine sources must never leak to portal (existing `portal-cannot-read-engine-sources.test.ts`)
-- Client preview overrides (`project.client_preview`) — admin-only write enforced server-side, not just via `useEngineRole`
-- Concurrent edit safety on `engine_projects` JSON columns (point_a/point_b/investment/blueprint) — last-write-wins vs optimistic version
-- Operator notifications: read-state per user, no cross-user leakage
+1. Wave 4 items D5 → S18 → S8 → U4 (unblocks admin ops visibility + finishes engine surface).
+2. Batch the Wave 3 low-priority cleanups (S9, S14–S16, U6–U9, D4) in one turn.
+3. Non-engine gates: payments go-live check, email domain status, publish visibility. These are tool calls / dashboard checks, not code — I can run them and report back.
+4. Portal + marketing audit as a separate scoped pass.
 
-### 4. UX / product completeness
+## Ask before I proceed
 
-Walk every step page under `src/routes/engine.projects.$projectId.*`:
-
-- Empty states (no data, first-time project)
-- Loading + error boundaries on each route (per TanStack rules)
-- Admin-only vs operator-visible sections use `OperatorLockNotice` consistently
-- Step 13 (client preview) — presentation mode, PDF export, hidden-internal-notes verification
-- Command Center, Projects list, Templates, Review & Approvals, Delivery Room, Execution Tracker, Global Operations, Intelligence Memory — each screen exists and renders with realistic data
-- Breadcrumbs (`buildCrumbs`) cover all engine subroutes, not just `/projects`
-- Sign-out + role revocation UX
-- Hydration mismatch already visible in console (`ClientMarquee` `data-tsd-source` line drift) — flagged as a separate low-priority note
-
-## Deliverable
-
-`.lovable/engine-audit-2026-07.md` with:
-
-1. Executive summary
-2. Findings table — id, area, severity (Critical / High / Medium / Low), file:line, description, recommended fix
-3. Prioritized fix plan — grouped by severity, with rough effort estimate and dependencies between fixes
-4. Anything intentionally accepted (added to `security-memory` if security-related)
-
-No code changes in this pass. After you review the report, I'll implement fixes in a follow-up per your priority.
-
-## Out of scope
-
-- Marketing site, portal client UI beyond the engine boundary, Stripe/payments internals, email queue internals (unless a finding touches the engine)
-- Performance profiling beyond obvious N+1s
-- Design polish
+Do you want me to:
+- **(a)** execute Wave 4 now (D5 + S18 + S8 + U4),
+- **(b)** run the non-code production checks first (payments go-live, email domain, publish visibility) and report,
+- **(c)** kick off a portal-side audit equivalent to the engine one, or
+- **(d)** all three in sequence?
