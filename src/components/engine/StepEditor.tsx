@@ -14,12 +14,19 @@ export function StepEditor({
   step,
   data,
   schema,
+  expectedUpdatedAt,
 }: {
   projectId: string;
   step: Exclude<WorkspaceStepKey, "intelligence">;
   data: Json;
   /** Optional zod schema used for inline validation before save. */
   schema?: z.ZodType<unknown>;
+  /**
+   * Optimistic-lock token. Pass `project.updated_at` from the workspace query
+   * — the server rejects the save if another writer has updated the project
+   * since this value was captured, preventing silent last-write-wins overwrite.
+   */
+  expectedUpdatedAt?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const initial = useMemo(() => data ?? {}, [data]);
@@ -32,7 +39,14 @@ export function StepEditor({
   const fn = useServerFn(updateProjectStep);
   const m = useMutation({
     mutationFn: async (payload: Json) =>
-      fn({ data: { id: projectId, step, data: payload as Record<string, unknown> } }),
+      fn({
+        data: {
+          id: projectId,
+          step,
+          data: payload as Record<string, unknown>,
+          ...(expectedUpdatedAt ? { expectedUpdatedAt } : {}),
+        },
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["engine", "workspace", projectId] });
       setOpen(false);
