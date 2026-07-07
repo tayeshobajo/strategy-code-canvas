@@ -1920,7 +1920,7 @@ function SourcesPanel({
           onClick={() => fileRef.current?.click()}
         >
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          Upload a file
+          Upload files
         </Button>
         <Button
           type="button"
