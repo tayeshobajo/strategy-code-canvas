@@ -45,7 +45,9 @@ import {
   selectNextObjective,
   scoreAnswer,
 } from "@/lib/intake-scoring";
-import { HIGH_CONFIDENCE_BAR } from "@/lib/intake-classify.functions";
+/** Same threshold the server classifier uses. Duplicated here to keep
+ * the classifier module out of the client bundle for a single constant. */
+const HIGH_CONFIDENCE_BAR = 70;
 
 const STORAGE_KEY = "tt:intake:write:token:v1";
 const OPEN_KEY = "_open"; // stable answers[] key for the first open answer
