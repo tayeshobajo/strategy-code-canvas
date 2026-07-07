@@ -198,14 +198,19 @@ export const loadDraft = createServerFn({ method: "POST" })
             v: string,
           ) => {
             maybeSingle: () => Promise<{
-              data: { answers: unknown; contact: unknown; attachments: unknown } | null;
+              data: {
+                answers: unknown;
+                contact: unknown;
+                attachments: unknown;
+                sources: unknown;
+              } | null;
               error: unknown;
             }>;
           };
         };
       }
     )
-      .select("answers, contact, attachments")
+      .select("answers, contact, attachments, sources")
       .eq("resume_token", data.resume_token)
       .maybeSingle();
     if (error) {
@@ -224,12 +229,14 @@ export const loadDraft = createServerFn({ method: "POST" })
       size: number;
       mime: string | null;
     };
+    const { normalizeIntakeSources } = await import("@/lib/intake-sources.functions");
     if (!row)
       return {
         found: false as const,
         answers: [] as AnswerOut[],
         contact: {} as Record<string, string>,
         attachments: [] as AttachmentOut[],
+        sources: [] as ReturnType<typeof normalizeIntakeSources>,
       };
     const rawAnswers = Array.isArray(row.answers)
       ? (row.answers as Array<Record<string, unknown>>)
@@ -252,7 +259,8 @@ export const loadDraft = createServerFn({ method: "POST" })
       size: Number(a.size ?? 0),
       mime: a.mime == null ? null : String(a.mime),
     }));
-    return { found: true as const, answers, contact, attachments };
+    const sources = normalizeIntakeSources(row.sources);
+    return { found: true as const, answers, contact, attachments, sources };
   });
 
 const SendResumeInput = z.object({
