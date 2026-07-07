@@ -1033,10 +1033,12 @@ async function _tryAutoLinkPortalProject(sb: any, engineProjectId: string, clien
     .maybeSingle();
   const email = ((client as { contact_email?: string | null } | null)?.contact_email ?? "").trim().toLowerCase();
   if (!email) return null;
+  // MEDIUM FIX (New Issue #6): Use eq instead of ilike to avoid wildcard
+  // interpretation of _ and % in email addresses.
   const { data: portal } = await sb
     .from("client_portal_projects")
     .select("id")
-    .ilike("primary_email", email)
+    .eq("primary_email", email)
     .maybeSingle();
   const portalId = (portal as { id?: string } | null)?.id ?? null;
   if (!portalId) return null;
