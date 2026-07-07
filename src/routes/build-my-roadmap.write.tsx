@@ -1590,14 +1590,34 @@ function ReviewScreen({
                 : ""
             }
           />
+          <ReviewRow
+            label="Extra sources"
+            value={
+              sources.length
+                ? sources
+                    .map((s) =>
+                      s.kind === "url" ? s.url || s.label : `${s.label} (${s.kind})`,
+                    )
+                    .join(", ")
+                : ""
+            }
+          />
           {contact.website && <ReviewRow label="Website you shared" value={contact.website} />}
         </dl>
-        {understood.length === 0 && attachments.length === 0 && (
+        {understood.length === 0 && attachments.length === 0 && sources.length === 0 && (
           <p className="mt-2 text-sm text-muted-foreground">
             Your opening alone is enough to begin the read.
           </p>
         )}
       </Panel>
+
+      <SourcesPanel
+        attachments={attachments}
+        sources={sources}
+        ensureResumeToken={ensureResumeToken}
+        onAttachmentsChange={onAttachmentsChange}
+        onSourcesChange={onSourcesChange}
+      />
 
       <Panel title="How we will reach you" onEdit={onEditContact}>
         <dl className="grid gap-2 text-sm">
