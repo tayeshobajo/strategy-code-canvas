@@ -38,6 +38,10 @@ export type FrameProfile = {
   optionalFields: FieldProfile[];
   /** Confidence 0..1 at which planner may stop. Higher = more thorough intake. */
   confidenceThreshold: number;
+  /** Fields that MUST be captured before enough_signal can fire (Phase 14). */
+  blockers: string[];
+  /** At least one of these must have confidence ≥ 0.6 (success outcome). */
+  successOutcomeKeys: string[];
 };
 
 /* ---------- Small heuristic building blocks ---------- */
