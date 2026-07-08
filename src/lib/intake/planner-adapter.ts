@@ -145,7 +145,22 @@ export function planNextObjective(
 
   const missing = profile ? missingFields(memory, profile) : [];
   const conf = profile ? confidenceScore(memory, profile) : 0;
+  const threshold = profile?.confidenceThreshold ?? opts.confidenceThreshold ?? 0.75;
   const enough = decision.kind === "done";
+  const candidates: PlannerCandidateDebug[] =
+    decision.kind === "ask"
+      ? decision.candidates.map((c) => ({
+          field_key: c.field.key,
+          label: c.field.label,
+          importance: c.field.importance,
+          confidence: c.confidence,
+          information_gain: c.information_gain,
+          confidence_impact: c.confidence_impact,
+          flow_bonus: c.flow_bonus,
+          score: c.score,
+          asked_before: c.askedBefore,
+        }))
+      : [];
 
   return {
     frame,
@@ -157,6 +172,9 @@ export function planNextObjective(
     question_history: memory.questionHistory,
     answer_history: memory.answerHistory,
     confidence_score: conf,
+    confidence_threshold: threshold,
     enough_signal: enough,
+    candidates,
   };
 }
+
