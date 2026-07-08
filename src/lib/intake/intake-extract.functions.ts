@@ -14,6 +14,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { FRAME_DEFINITIONS, type IntakeFrame } from "../intake-frames";
 import { getFrameProfile } from "./frame-profiles";
+import { heuristicExtract, type ExtractedFacts } from "./heuristic-extract";
+
+export type { ExtractedFacts } from "./heuristic-extract";
+export { heuristicExtract } from "./heuristic-extract";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -22,20 +26,6 @@ const ExtractInput = z.object({
   frame: z.string().trim().min(1).max(64),
   text: z.string().trim().min(1).max(8000),
 });
-
-export type ExtractedFacts = Record<string, { confidence: number; evidence: string; source: "heuristic" | "model" }>;
-
-/** Pure heuristic pass — every field's own extractor scanned over the text. */
-export function heuristicExtract(frame: IntakeFrame, text: string): ExtractedFacts {
-  const profile = getFrameProfile(frame);
-  if (!profile) return {};
-  const out: ExtractedFacts = {};
-  for (const f of [...profile.requiredFields, ...profile.optionalFields]) {
-    const r = f.heuristicExtract(text);
-    if (r.confidence > 0) out[f.key] = { confidence: r.confidence, evidence: r.evidence, source: "heuristic" };
-  }
-  return out;
-}
 
 function isFrame(v: string): v is IntakeFrame {
   return v in FRAME_DEFINITIONS;

@@ -49,7 +49,7 @@ import {
   scoreAnswer,
   OBJECTIVE_BAR,
 } from "@/lib/intake-scoring";
-import { heuristicExtract } from "@/lib/intake/intake-extract.functions";
+import { heuristicExtract } from "@/lib/intake/heuristic-extract";
 /** Same threshold the server classifier uses. Duplicated here to keep
  * the classifier module out of the client bundle for a single constant. */
 const HIGH_CONFIDENCE_BAR = 70;
