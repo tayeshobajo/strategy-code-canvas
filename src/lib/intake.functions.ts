@@ -912,6 +912,49 @@ export const removeIntakeAttachment = createServerFn({ method: "POST" })
     return { attachments: next };
   });
 
+// Store an AI-generated evidence summary on an existing attachment row.
+// Called by describeIntakeMedia after a media file is transcribed/described.
+const SetSummaryInput = z.object({
+  resume_token: z.string().regex(UUID_RE),
+  storage_path: z.string().min(1).max(1024),
+  summary: z.string().max(4000),
+});
+export const setIntakeAttachmentSummary = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => SetSummaryInput.parse(input))
+  .handler(async ({ data }): Promise<{ attachments: StoredAttachment[] }> => {
+    if (!data.storage_path.startsWith(`${data.resume_token}/`)) {
+      throw new Error("Attachment path must live under this draft's folder");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existing } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        select: (s: string) => {
+          eq: (c: string, v: string) => {
+            maybeSingle: () => Promise<{ data: { attachments: unknown } | null }>;
+          };
+        };
+      }
+    )
+      .select("attachments")
+      .eq("resume_token", data.resume_token)
+      .maybeSingle();
+    const current = normalizeAttachments(existing?.attachments);
+    const next = current.map((a) =>
+      a.storage_path === data.storage_path ? { ...a, summary: data.summary.trim() || null } : a,
+    );
+    const { error } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        update: (r: Record<string, unknown>) => {
+          eq: (c: string, v: string) => Promise<{ error: unknown }>;
+        };
+      }
+    )
+      .update({ attachments: next, updated_at: new Date().toISOString() })
+      .eq("resume_token", data.resume_token);
+    if (error) throw new Error("Could not save media summary");
+    return { attachments: next };
+  });
+
 // ─── Engine bridge (Phase 5) ────────────────────────────────────────────
 // Auto-creates an engine_project + engine_sources row from a fresh intake
 // submission and fires the intelligence pipeline. Everything stays
