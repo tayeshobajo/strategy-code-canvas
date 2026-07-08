@@ -166,6 +166,13 @@ function WriteIntake() {
   // been asked at least once so we do not loop the same question. Neither is
   // ever rendered to the client.
   const [scores, setScores] = React.useState<Record<string, number>>({});
+  // Ref mirror of `scores` so async model-score updates and the objective
+  // advance path can both merge against the LATEST scores, not a stale
+  // closure. Preserves the higher-wins ratchet across React batches.
+  const scoresRef = React.useRef<Record<string, number>>({});
+  React.useEffect(() => {
+    scoresRef.current = scores;
+  }, [scores]);
   const [askedKeys, setAskedKeys] = React.useState<string[]>([]);
   const [currentObjective, setCurrentObjective] = React.useState<IntakeObjective | null>(null);
   const [scoringNext, setScoringNext] = React.useState(false);
