@@ -434,7 +434,7 @@ function WriteIntake() {
         }
         setScores(initialScores);
         setAskedKeys([]);
-        const next = selectNextObjective(f, initialScores, new Set());
+        const next = planNextObjective(f, answers, [], initialScores).next_objective;
         setCurrentObjective(next);
         setPhase(next ? "objectives" : "contact");
       }
