@@ -193,7 +193,7 @@ export function QuestionAttachments({
       </Button>
       <VoiceRecorder
         disabled={busy || mine.length >= PER_QUESTION_CAP}
-        onRecorded={upload}
+        onRecorded={async (f) => { await upload(f); }}
       />
       {describing && (
         <span className="inline-flex items-center gap-1 text-[11px]">
