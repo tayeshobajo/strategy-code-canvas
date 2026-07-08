@@ -148,9 +148,7 @@ function WriteIntake() {
   const [phase, setPhase] = React.useState<Phase>("open");
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
   const [answers, setAnswers] = React.useState<Record<string, AnswerRow>>({});
-  const [attachments, setAttachments] = React.useState<
-    Array<{ storage_path: string; filename: string; size: number; mime: string | null }>
-  >([]);
+  const [attachments, setAttachments] = React.useState<QuestionAttachmentRecord[]>([]);
   // External sources (transcripts, notes, URLs). Treated as data-only
   // evidence. Written through server fns; the browser never persists them.
   const [sources, setSources] = React.useState<StoredIntakeSource[]>([]);
