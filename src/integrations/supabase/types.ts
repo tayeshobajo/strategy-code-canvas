@@ -3265,7 +3265,6 @@ export type Database = {
           share_url: string | null
           status: string | null
           strategic_priorities: Json | null
-          supporting_notes: string | null
           title: string | null
           updated_at: string | null
           version_label: string | null
@@ -3291,7 +3290,6 @@ export type Database = {
           share_url?: string | null
           status?: string | null
           strategic_priorities?: Json | null
-          supporting_notes?: string | null
           title?: string | null
           updated_at?: string | null
           version_label?: string | null
@@ -3317,7 +3315,6 @@ export type Database = {
           share_url?: string | null
           status?: string | null
           strategic_priorities?: Json | null
-          supporting_notes?: string | null
           title?: string | null
           updated_at?: string | null
           version_label?: string | null
@@ -3402,6 +3399,15 @@ export type Database = {
         Returns: number
       }
       client_portal_is_operator: { Args: { _email: string }; Returns: boolean }
+      compute_engine_next_best_action: {
+        Args: { _project_id: string }
+        Returns: {
+          action: string
+          href: string
+          reason: string
+          severity: string
+        }[]
+      }
       current_client_portal_project_id: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
