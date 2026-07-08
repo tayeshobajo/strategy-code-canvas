@@ -67,7 +67,7 @@ export type CreateProjectFromSourceResult = {
   source_id: string | null;
   version_id: string | null;
   version: string | null;
-  status: "processing" | "blank";
+  status: "processing" | "blank" | "failed";
 };
 
 export const createProjectFromSource = createServerFn({ method: "POST" })
