@@ -47,3 +47,35 @@ describe("heuristicExtract — multi-fact", () => {
     expect(facts.follow_up_gap?.confidence ?? 0).toBeGreaterThan(0);
   });
 });
+
+describe("extractContextFacts", () => {
+  it("captures honoree, event type and location from a birthday opening", async () => {
+    const { extractContextFacts } = await import("../heuristic-extract");
+    const ctx = extractContextFacts(
+      "project.event_site",
+      "I'm planning my mother Augustina's 60th birthday on August 30 in Nashville with 120 guests.",
+    );
+    expect(ctx.honoree_or_host?.value).toMatch(/Augustina/);
+    expect(ctx.event_type?.value).toMatch(/birthday/i);
+    expect(ctx.location?.value).toMatch(/Nashville/);
+  });
+
+  it("captures founder_dependency for roadmap opens", async () => {
+    const { extractContextFacts } = await import("../heuristic-extract");
+    const ctx = extractContextFacts(
+      "roadmap",
+      "My business is growing but everything runs through me.",
+    );
+    expect(ctx.founder_dependency?.value).toBe("yes");
+  });
+
+  it("captures lead_source_hint + manual_process_hint for CRM opens", async () => {
+    const { extractContextFacts } = await import("../heuristic-extract");
+    const ctx = extractContextFacts(
+      "project.crm",
+      "I manually copy website leads into a spreadsheet, then email them later.",
+    );
+    expect(ctx.lead_source_hint?.value).toMatch(/website/);
+    expect(ctx.manual_process_hint?.value).toMatch(/copy|spreadsheet|manually/);
+  });
+});
