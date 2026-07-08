@@ -652,27 +652,24 @@ function WriteIntake() {
         })();
       }
 
-      // Compute the next scores using the FUNCTIONAL updater form so any
+      // Merge against the LATEST scores via `scoresRef.current` so any
       // model-scoring update that landed between renders (see the async
-      // block above) merges via higher-wins instead of being stomped by a
-      // stale `scores` closure. Every field is Math.max(prior, candidate)
+      // block above) is preserved. Every field is Math.max(prior, candidate)
       // — the planner treats confidence as monotonically ratcheting up.
-      let nextScores: Record<string, number> = {};
-      setScores((prev) => {
-        const merged: Record<string, number> = { ...prev };
-        merged[key] = Math.max(prev[key] ?? 0, objectiveScore);
-        if (responseText.trim()) {
-          const facts = heuristicExtract(frame, responseText);
-          for (const [k, fact] of Object.entries(facts)) {
-            const evidenceScore = Math.round(fact.confidence * 100);
-            if (evidenceScore > (merged[k] ?? 0)) merged[k] = evidenceScore;
-          }
+      const base = scoresRef.current;
+      const nextScores: Record<string, number> = { ...base };
+      nextScores[key] = Math.max(base[key] ?? 0, objectiveScore);
+      if (responseText.trim()) {
+        const facts = heuristicExtract(frame, responseText);
+        for (const [k, fact] of Object.entries(facts)) {
+          const evidenceScore = Math.round(fact.confidence * 100);
+          if (evidenceScore > (nextScores[k] ?? 0)) nextScores[k] = evidenceScore;
         }
-        nextScores = merged;
-        return merged;
-      });
+      }
       const nextAsked = askedKeys.includes(key) ? askedKeys : [...askedKeys, key];
       try {
+        scoresRef.current = nextScores;
+        setScores(nextScores);
         setAskedKeys(nextAsked);
         persistInternal(nextScores, nextAsked);
 
