@@ -14,6 +14,7 @@ import {
   LogOut,
   Mail,
   Send,
+  Users,
   Eye,
   ShieldAlert,
 } from "lucide-react";
@@ -45,6 +46,7 @@ export const Route = createFileRoute("/ops")({
 
 const NAV: Array<{ to: string; label: string; icon: typeof ClipboardList }> = [
   { to: "/ops/queue", label: "Queue", icon: ClipboardList },
+  { to: "/ops/portals", label: "Client submissions", icon: Users },
   { to: "/ops/queue?status=in_review", label: "In Review", icon: Eye },
   { to: "/ops/queue?status=approved", label: "Approved", icon: CheckCircle2 },
   { to: "/ops/queue?status=archived", label: "Archived", icon: Archive },
