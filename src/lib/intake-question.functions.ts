@@ -120,11 +120,22 @@ function buildPrompt(input: z.infer<typeof GenerateInput>): string {
     input.context_facts.length > 0
       ? input.context_facts.map((c) => `- ${c.key}: ${c.value}`).join("\n")
       : "(none)";
+  const reaskBlock = input.is_reask
+    ? [
+        "",
+        "This is a RE-ASK of the same objective. The founder already gave a first attempt (below) but it was thin or vague.",
+        "Their previous attempt:",
+        `"${input.previous_attempt || "(brief)"}"`,
+        "",
+        "Rewrite so you (a) name back one specific detail from their previous attempt in the acknowledgement, and (b) ask a sharper, more concrete angle on the same objective. Do NOT repeat the anchor verbatim. Ask for a concrete example, a name, a number, or a story.",
+      ].join("\n")
+    : "";
   return [
     SYSTEM,
     "",
     `Anchor question (the floor, never soften past it): ${input.objective_anchor}`,
     `Objective (internal, do not name): ${input.objective_label}`,
+    reaskBlock,
     "",
     "How the founder opened:",
     input.opening || "(no opening statement)",
