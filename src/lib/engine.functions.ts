@@ -1017,4 +1017,59 @@ export const reorderMilestone = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------------------------------------------------------------------------
+// Next Best Action — recomputed live from project state.
+// Backed by SQL function public.compute_engine_next_best_action(uuid).
+// Accessible to operators and admins.
+// ---------------------------------------------------------------------------
+
+export type NextBestAction = {
+  action: string;
+  reason: string;
+  href: string | null;
+  severity: "info" | "warning" | "critical";
+};
+
+export const getNextBestAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ projectId: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }): Promise<NextBestAction> => {
+    const email = (context.claims as { email?: string } | undefined)?.email;
+    const isOperator = await hasRoleForEmail(
+      context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
+      email,
+      "operator",
+    );
+    const isAdmin = await hasRoleForEmail(
+      context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
+      email,
+      "admin",
+    );
+    if (!isOperator && !isAdmin) throw new Error("Forbidden: operator role required");
+
+    const sb = context.supabase as unknown as {
+      rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+    };
+    const { data: rows, error } = await sb.rpc("compute_engine_next_best_action", {
+      _project_id: data.projectId,
+    });
+    if (error) throw new Error((error as { message?: string }).message ?? "Failed to compute next best action");
+    const row = Array.isArray(rows) ? (rows[0] as Record<string, unknown> | undefined) : undefined;
+    if (!row) {
+      return {
+        action: "Nothing waiting",
+        reason: "All gates clear.",
+        href: null,
+        severity: "info",
+      };
+    }
+    return {
+      action: (row.action as string) ?? "Nothing waiting",
+      reason: (row.reason as string) ?? "",
+      href: (row.href as string | null) ?? null,
+      severity: ((row.severity as string) ?? "info") as NextBestAction["severity"],
+    };
+  });
+
+
 
