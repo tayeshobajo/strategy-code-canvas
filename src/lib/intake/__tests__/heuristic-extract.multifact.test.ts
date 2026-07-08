@@ -31,7 +31,7 @@ describe("heuristicExtract — multi-fact", () => {
   it("automation: trigger + volume + systems from one line", () => {
     const facts = heuristicExtract(
       "project.automation",
-      "A new order in Stripe fires a webhook 200 times a week and posts to Slack via Zapier.",
+      "A new order in Stripe fires a webhook 200 a week and posts to Slack via Zapier.",
     );
     expect(facts.trigger?.confidence ?? 0).toBeGreaterThan(0);
     expect(facts.volume?.confidence ?? 0).toBeGreaterThanOrEqual(0.6);
