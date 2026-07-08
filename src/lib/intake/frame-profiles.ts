@@ -36,6 +36,8 @@ export type FrameProfile = {
   frame: IntakeFrame;
   requiredFields: FieldProfile[];
   optionalFields: FieldProfile[];
+  /** Confidence 0..1 at which planner may stop. Higher = more thorough intake. */
+  confidenceThreshold: number;
 };
 
 /* ---------- Small heuristic building blocks ---------- */
@@ -244,6 +246,16 @@ function toFieldProfile(o: IntakeObjective): FieldProfile {
   };
 }
 
+const CONFIDENCE_THRESHOLD_BY_FRAME: Partial<Record<IntakeFrame, number>> = {
+  "project.event_site": 0.7,
+  "project.crm": 0.78,
+  "project.automation": 0.78,
+  "project.internal_tool": 0.78,
+  roadmap: 0.82,
+};
+
+const DEFAULT_FRAME_CONFIDENCE_THRESHOLD = 0.75;
+
 function build(frame: IntakeFrame): FrameProfile | null {
   const def = FRAME_DEFINITIONS[frame];
   if (!def || def.objectives.length === 0) return null;
@@ -252,6 +264,8 @@ function build(frame: IntakeFrame): FrameProfile | null {
     frame,
     requiredFields: fields.filter((f) => f.required),
     optionalFields: fields.filter((f) => !f.required),
+    confidenceThreshold:
+      CONFIDENCE_THRESHOLD_BY_FRAME[frame] ?? DEFAULT_FRAME_CONFIDENCE_THRESHOLD,
   };
 }
 

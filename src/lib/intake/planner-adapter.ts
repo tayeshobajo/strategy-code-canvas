@@ -39,6 +39,18 @@ export type RouteAnswer = {
   response: string;
 };
 
+export type PlannerCandidateDebug = {
+  field_key: string;
+  label: string;
+  importance: number;
+  confidence: number;
+  information_gain: number;
+  confidence_impact: number;
+  flow_bonus: number;
+  score: number;
+  asked_before: boolean;
+};
+
 export type PlannerSnapshot = {
   frame: IntakeFrame | null;
   memory: IntakeMemory;
@@ -51,8 +63,12 @@ export type PlannerSnapshot = {
   question_history: QuestionHistoryEntry[];
   answer_history: AnswerHistoryEntry[];
   confidence_score: number; // 0..1
+  confidence_threshold: number; // 0..1 (per-frame)
   enough_signal: boolean;
+  /** Full ranked candidate list for debug + tuning. Empty when done/redirect. */
+  candidates: PlannerCandidateDebug[];
 };
+
 
 /** Build IntakeMemory from the route's raw state. */
 export function buildIntakeMemory(
@@ -129,7 +145,22 @@ export function planNextObjective(
 
   const missing = profile ? missingFields(memory, profile) : [];
   const conf = profile ? confidenceScore(memory, profile) : 0;
+  const threshold = profile?.confidenceThreshold ?? opts.confidenceThreshold ?? 0.75;
   const enough = decision.kind === "done";
+  const candidates: PlannerCandidateDebug[] =
+    decision.kind === "ask"
+      ? decision.candidates.map((c) => ({
+          field_key: c.field.key,
+          label: c.field.label,
+          importance: c.field.importance,
+          confidence: c.confidence,
+          information_gain: c.information_gain,
+          confidence_impact: c.confidence_impact,
+          flow_bonus: c.flow_bonus,
+          score: c.score,
+          asked_before: c.askedBefore,
+        }))
+      : [];
 
   return {
     frame,
@@ -141,6 +172,9 @@ export function planNextObjective(
     question_history: memory.questionHistory,
     answer_history: memory.answerHistory,
     confidence_score: conf,
+    confidence_threshold: threshold,
     enough_signal: enough,
+    candidates,
   };
 }
+

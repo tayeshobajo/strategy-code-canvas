@@ -35,6 +35,7 @@ const GenerateInput = z.object({
 
 export type GeneratedQuestion = {
   question: string;
+  acknowledgement?: string;
   source: "generated" | "anchor";
 };
 
@@ -55,14 +56,27 @@ function passesVoiceCheck(s: string, anchor: string): boolean {
   return true;
 }
 
+function passesAckCheck(s: string): boolean {
+  const clean = s.trim();
+  if (!clean) return false;
+  if (clean.length < 6 || clean.length > 160) return false;
+  if (BANNED.test(clean)) return false;
+  if (/^(sure|here|okay|got it|of course)\b/i.test(clean)) return false;
+  // Ack should be a statement, not a question.
+  if (clean.endsWith("?")) return false;
+  // Ack should be brief: at most one sentence, ideally under 18 words.
+  if (clean.split(/\s+/).length > 22) return false;
+  return true;
+}
+
 const SYSTEM = [
   "You are the voice of Trust Tai on an adaptive intake.",
   "A completeness model has already chosen the next objective and its anchor question.",
-  "Your job is only to rewrite the anchor question in the founder's own language, using what they have already told you.",
+  "Your job is to (a) optionally acknowledge what the founder just told you in one calm clause, then (b) rewrite the anchor question in the founder's own language, using what they have already told you.",
   "",
   "Rules of the voice:",
   "- sentence case",
-  "- one sentence, ideally under 22 words",
+  "- one sentence for each field, ideally under 22 words",
   "- no em-dashes, no exclamation points",
   "- do not use: just, very, really, simply, solutions, smart, intelligent, seamless, cutting-edge, leverage, unlock, empower",
   "- do not use vendor verbs: help, deliver, provide, offer",
@@ -70,7 +84,10 @@ const SYSTEM = [
   "- do not name the objective label out loud",
   "- do not preface (no 'sure', 'okay', 'here is')",
   "",
-  "Return JSON only: { \"question\": \"<one line>\" }",
+  "The acknowledgement is optional. Only include it when there is a specific prior fact worth naming back. Otherwise omit the field or return an empty string. Never invent it.",
+  "The acknowledgement must not be a question and must not end with a question mark.",
+  "",
+  'Return JSON only: { "acknowledgement": "<optional one clause>", "question": "<one line>" }',
 ].join("\n");
 
 function buildPrompt(input: z.infer<typeof GenerateInput>): string {
@@ -96,11 +113,13 @@ function buildPrompt(input: z.infer<typeof GenerateInput>): string {
   ].join("\n");
 }
 
+type ModelResult = { question: string; acknowledgement: string | null };
+
 async function callModel(
   prompt: string,
   apiKey: string,
   temperature: number,
-): Promise<string | null> {
+): Promise<ModelResult | null> {
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -111,7 +130,7 @@ async function callModel(
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
-        max_tokens: 200,
+        max_tokens: 260,
         temperature,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -129,9 +148,14 @@ async function callModel(
       .join("\n")
       .trim();
     const jsonText = raw.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
-    const parsed = JSON.parse(jsonText) as { question?: string };
+    const parsed = JSON.parse(jsonText) as {
+      question?: string;
+      acknowledgement?: string;
+    };
     const q = (parsed.question ?? "").toString().trim();
-    return q || null;
+    if (!q) return null;
+    const ack = (parsed.acknowledgement ?? "").toString().trim();
+    return { question: q, acknowledgement: ack || null };
   } catch (err) {
     console.warn("[intake-question] generation failed", err);
     return null;
@@ -141,9 +165,7 @@ async function callModel(
 export const generateAnchorWording = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data }): Promise<GeneratedQuestion> => {
-    // Gate: live intake draft must exist. Reads must match saveDraft's write
-    // path (main DB via supabaseAdmin) — single source of truth for intake
-    // session state.
+    // Gate: live intake draft must exist.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: draft, error: draftErr } = await (
       supabaseAdmin.from("intake_drafts") as unknown as {
@@ -171,10 +193,15 @@ export const generateAnchorWording = createServerFn({ method: "POST" })
 
     const prompt = buildPrompt(data);
 
+    const finalize = (r: ModelResult): GeneratedQuestion => {
+      const ack = r.acknowledgement && passesAckCheck(r.acknowledgement) ? r.acknowledgement : undefined;
+      return { question: r.question, acknowledgement: ack, source: "generated" };
+    };
+
     // First attempt.
     const first = await callModel(prompt, apiKey, 0.4);
-    if (first && passesVoiceCheck(first, data.objective_anchor)) {
-      return { question: first, source: "generated" };
+    if (first && passesVoiceCheck(first.question, data.objective_anchor)) {
+      return finalize(first);
     }
 
     // Regenerate once with a tighter reminder and lower temperature.
@@ -182,10 +209,11 @@ export const generateAnchorWording = createServerFn({ method: "POST" })
       prompt +
       "\n\nThe previous draft failed the voice check. Return one calm sentence that stays close to the anchor, obeys every rule above, and reads like a strategist speaking, not a form.";
     const second = await callModel(retryPrompt, apiKey, 0.2);
-    if (second && passesVoiceCheck(second, data.objective_anchor)) {
-      return { question: second, source: "generated" };
+    if (second && passesVoiceCheck(second.question, data.objective_anchor)) {
+      return finalize(second);
     }
 
     // Fallback: anchor. Never surface an error to the client.
     return anchorFallback;
   });
+

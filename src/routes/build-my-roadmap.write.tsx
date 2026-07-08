@@ -170,9 +170,11 @@ function WriteIntake() {
   const [currentObjective, setCurrentObjective] = React.useState<IntakeObjective | null>(null);
   const [scoringNext, setScoringNext] = React.useState(false);
   // Generated wording for the current anchor question. The completeness
-  // model still picks the objective; AI only rewrites its anchor. On any
-  // failure we render the anchor verbatim — never surface an error.
+  // model still picks the objective; AI only rewrites its anchor and may
+  // add a short acknowledgement. On any failure we render the anchor
+  // verbatim — never surface an error.
   const [generatedQuestion, setGeneratedQuestion] = React.useState<string | null>(null);
+  const [generatedAck, setGeneratedAck] = React.useState<string | null>(null);
   const [generatingQuestion, setGeneratingQuestion] = React.useState(false);
 
   // Submit state
@@ -723,7 +725,9 @@ function WriteIntake() {
       question_history: snapshot.question_history,
       answer_history: snapshot.answer_history,
       confidence_score: snapshot.confidence_score,
+      confidence_threshold: snapshot.confidence_threshold,
       enough_signal: snapshot.enough_signal,
+      candidates: snapshot.candidates,
       next_gap:
         snapshot.decision.kind === "ask"
           ? {
@@ -731,6 +735,9 @@ function WriteIntake() {
               label: snapshot.decision.gap.field.label,
               importance: snapshot.decision.gap.field.importance,
               confidence: snapshot.decision.gap.confidence,
+              information_gain: snapshot.decision.gap.information_gain,
+              confidence_impact: snapshot.decision.gap.confidence_impact,
+              flow_bonus: snapshot.decision.gap.flow_bonus,
               score: snapshot.decision.gap.score,
             }
           : null,
@@ -889,12 +896,14 @@ function WriteIntake() {
   React.useEffect(() => {
     if (phase !== "objectives" || !currentObjective || !resumeToken) {
       setGeneratedQuestion(null);
+      setGeneratedAck(null);
       return;
     }
     let cancelled = false;
     const objectiveKey = currentObjective.key;
     // Reset so the anchor shows immediately while we fetch.
     setGeneratedQuestion(null);
+    setGeneratedAck(null);
     setGeneratingQuestion(true);
     (async () => {
       try {
@@ -923,15 +932,19 @@ function WriteIntake() {
           },
         });
         if (cancelled) return;
-        // Only override the anchor when the model returned a fresh sentence.
         if (res.source === "generated" && res.question) {
           setGeneratedQuestion(res.question);
+          setGeneratedAck(res.acknowledgement ?? null);
         } else {
           setGeneratedQuestion(null);
+          setGeneratedAck(null);
         }
       } catch (err) {
         console.warn("[intake/write] anchor rewording failed, using anchor", err);
-        if (!cancelled) setGeneratedQuestion(null);
+        if (!cancelled) {
+          setGeneratedQuestion(null);
+          setGeneratedAck(null);
+        }
       } finally {
         if (!cancelled) setGeneratingQuestion(false);
       }
@@ -997,6 +1010,7 @@ function WriteIntake() {
           value={answers[currentObjective.key]?.response ?? ""}
           scoring={scoringNext}
           generatedQuestion={generatedQuestion}
+          generatedAck={generatedAck}
           generatingQuestion={generatingQuestion}
           onChange={(v) => {
             const q = currentObjective;
@@ -1293,6 +1307,7 @@ function ObjectiveScreen({
   answeredCount,
   scoring,
   generatedQuestion,
+  generatedAck,
   generatingQuestion,
   onChange,
   onAdoptReflection,
@@ -1313,6 +1328,7 @@ function ObjectiveScreen({
   answeredCount: number;
   scoring?: boolean;
   generatedQuestion?: string | null;
+  generatedAck?: string | null;
   generatingQuestion?: boolean;
   onChange: (v: string) => void;
   onAdoptReflection?: (text: string) => void;
@@ -1421,6 +1437,14 @@ function ObjectiveScreen({
           {objective.label}{objective.required ? "" : ", if it helps"}
         </p>
       </div>
+      {generatedAck && generatedAck.trim() && (
+        <p
+          className="text-sm leading-relaxed text-muted-foreground"
+          data-testid="intake-ack"
+        >
+          {generatedAck.trim()}
+        </p>
+      )}
       <p
         className="font-serif text-xl leading-snug text-foreground sm:text-2xl"
         aria-busy={generatingQuestion ? true : undefined}
