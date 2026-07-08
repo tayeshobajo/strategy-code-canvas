@@ -1071,5 +1071,306 @@ export const getNextBestAction = createServerFn({ method: "POST" })
     };
   });
 
+// ---------------------------------------------------------------------------
+// Project Spine v1 — single payload assembling the living project blueprint.
+// Operator/admin only. No client-portal-facing fields.
+// ---------------------------------------------------------------------------
+
+export type SpineTask = {
+  id: string;
+  milestone_id: string;
+  phase: string | null;
+  name: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  owner_email: string | null;
+  ai_generated: boolean;
+  purpose: string | null;
+  expected_artifact: string | null;
+  acceptance_criteria: unknown;
+  qa_checklist: unknown;
+  risks: unknown;
+  dependency_notes: string | null;
+  blocked_decision: string | null;
+  due_date: string | null;
+};
+
+export type SpineMilestone = {
+  id: string;
+  name: string;
+  phase: string | null;
+  status: string;
+  approval_status: string;
+  sort_index: number;
+  due_date: string | null;
+  brief_md: string | null;
+};
+
+export type ProjectSpinePayload = {
+  project: {
+    id: string;
+    name: string;
+    status: string;
+    current_step: string;
+    current_step_num: number;
+    frame: string | null;
+    goal: string | null;
+    point_a: unknown;
+    point_b: unknown;
+    roadmap: unknown;
+    client_company: string;
+    updated_at: string;
+    client_portal_project_id: string | null;
+  };
+  nba: NextBestAction;
+  sources: {
+    total: number;
+    processing: number;
+    failed: number;
+    processed: number;
+    last_run: {
+      id: string;
+      status: string;
+      error: string | null;
+      started_at: string | null;
+      finished_at: string | null;
+    } | null;
+  };
+  version: {
+    id: string;
+    label: string | null;
+    status: string;
+    created_at: string;
+    approved_at: string | null;
+    payload: unknown;
+  } | null;
+  portal_publish: { id: string; status: string; published_at: string | null } | null;
+  milestones: SpineMilestone[];
+  tasks: SpineTask[];
+  reviews: Array<{
+    id: string;
+    title: string;
+    item_type: string;
+    impact: string;
+    status: string;
+    created_at: string;
+  }>;
+  activity: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    body: string | null;
+    severity: string;
+    created_at: string;
+  }>;
+  notifications: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    body: string | null;
+    href: string | null;
+    created_at: string;
+  }>;
+  audit: Array<{
+    id: string;
+    action: string;
+    summary: string | null;
+    actor_email: string | null;
+    created_at: string;
+  }>;
+};
+
+export const getProjectSpine = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .handler(async ({ context, data }): Promise<ProjectSpinePayload> => {
+    const email = (context.claims as { email?: string } | undefined)?.email;
+    const isOperator = await hasRoleForEmail(
+      context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
+      email,
+      "operator",
+    );
+    const isAdmin = await hasRoleForEmail(
+      context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
+      email,
+      "admin",
+    );
+    if (!isOperator && !isAdmin) throw new Error("Forbidden: operator role required");
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+
+    const { data: projRow, error: projErr } = await sb
+      .from("engine_projects")
+      .select(
+        "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,point_a,point_b,roadmap,blueprint, engine_clients(company)",
+      )
+      .eq("id", data.id)
+      .single();
+    if (projErr) throw new Error((projErr as { message?: string }).message ?? "project not found");
+
+    // Frame / goal live inside the roadmap or blueprint JSON blobs today.
+    const roadmap = (projRow.roadmap ?? {}) as Record<string, unknown>;
+    const blueprint = (projRow.blueprint ?? {}) as Record<string, unknown>;
+    const frame =
+      (roadmap.frame as string | undefined) ??
+      (blueprint.frame as string | undefined) ??
+      ((projRow.point_b as Record<string, unknown> | null)?.frame as string | undefined) ??
+      null;
+    const goal =
+      (roadmap.goal as string | undefined) ??
+      ((projRow.point_b as Record<string, unknown> | null)?.goal as string | undefined) ??
+      ((projRow.point_b as Record<string, unknown> | null)?.destination as string | undefined) ??
+      null;
+
+    // Next best action via existing RPC
+    let nba: NextBestAction = { action: "Nothing waiting", reason: "", href: null, severity: "info" };
+    try {
+      const { data: rows } = await sb.rpc("compute_engine_next_best_action", { _project_id: data.id });
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (row) {
+        nba = {
+          action: (row.action as string) ?? "Nothing waiting",
+          reason: (row.reason as string) ?? "",
+          href: (row.href as string | null) ?? null,
+          severity: ((row.severity as string) ?? "info") as NextBestAction["severity"],
+        };
+      }
+    } catch {
+      // fall through with default
+    }
+
+    // Sources summary
+    const { data: srcRows } = await sb
+      .from("engine_sources")
+      .select("id,status")
+      .eq("project_id", data.id);
+    const src = (srcRows ?? []) as Array<{ id: string; status: string }>;
+    const sources = {
+      total: src.length,
+      processing: src.filter((s) => s.status === "queued" || s.status === "processing").length,
+      failed: src.filter((s) => s.status === "failed").length,
+      processed: src.filter((s) => s.status === "processed").length,
+      last_run: null as ProjectSpinePayload["sources"]["last_run"],
+    };
+    const { data: runRows } = await sb
+      .from("engine_extraction_runs")
+      .select("id,status,error,started_at,finished_at")
+      .eq("project_id", data.id)
+      .order("started_at", { ascending: false, nullsFirst: false })
+      .limit(1);
+    if (runRows && runRows[0]) sources.last_run = runRows[0];
+
+    // Latest roadmap version
+    const { data: verRows } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,label,status,created_at,approved_at,payload")
+      .eq("project_id", data.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const version = verRows && verRows[0] ? verRows[0] : null;
+
+    // Portal publish status
+    let portal_publish: ProjectSpinePayload["portal_publish"] = null;
+    if (projRow.client_portal_project_id) {
+      const { data: pubRows } = await sb
+        .from("client_portal_roadmaps")
+        .select("id,status,published_at")
+        .eq("project_id", projRow.client_portal_project_id)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      if (pubRows && pubRows[0]) portal_publish = pubRows[0];
+    }
+
+    // Milestones + tasks
+    const { data: msRows } = await sb
+      .from("engine_milestones")
+      .select("id,name,phase,status,approval_status,sort_index,due_date,brief_md")
+      .eq("project_id", data.id)
+      .order("sort_index", { ascending: true });
+    const milestones = (msRows ?? []) as SpineMilestone[];
+
+    const { data: taskRows } = await sb
+      .from("engine_tasks")
+      .select(
+        "id,milestone_id,phase,name,description,status,priority,owner_email,ai_generated,purpose,expected_artifact,acceptance_criteria,qa_checklist,risks,dependency_notes,blocked_decision,due_date",
+      )
+      .eq("project_id", data.id)
+      .order("created_at", { ascending: true });
+    const tasks = (taskRows ?? []) as SpineTask[];
+
+    // Review items (pending only)
+    const { data: revRows } = await sb
+      .from("engine_review_items")
+      .select("id,title,item_type,impact,status,created_at")
+      .eq("project_id", data.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    const reviews = (revRows ?? []) as ProjectSpinePayload["reviews"];
+
+    // Activity
+    const { data: actRows } = await sb
+      .from("engine_activity")
+      .select("id,kind,title,body,severity,created_at")
+      .eq("project_id", data.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    const activity = (actRows ?? []) as ProjectSpinePayload["activity"];
+
+    // Operator notifications (filter by engine_project_id in metadata)
+    const { data: notifRows } = await sb
+      .from("operator_notifications")
+      .select("id,kind,title,body,href,created_at,metadata")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    const notifications = ((notifRows ?? []) as Array<{
+      id: string; kind: string; title: string; body: string | null; href: string | null; created_at: string;
+      metadata: Record<string, unknown> | null;
+    }>)
+      .filter((n) => (n.metadata as { engine_project_id?: string } | null)?.engine_project_id === data.id)
+      .slice(0, 15)
+      .map(({ metadata: _m, ...rest }) => rest);
+
+    // Audit log
+    const { data: auditRows } = await sb
+      .from("engine_audit_log")
+      .select("id,action,summary,actor_email,created_at")
+      .eq("project_id", data.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    const audit = (auditRows ?? []) as ProjectSpinePayload["audit"];
+
+    return {
+      project: {
+        id: projRow.id,
+        name: projRow.name,
+        status: projRow.status,
+        current_step: projRow.current_step,
+        current_step_num: projRow.current_step_num ?? 1,
+        frame,
+        goal,
+        point_a: projRow.point_a ?? null,
+        point_b: projRow.point_b ?? null,
+        roadmap: projRow.roadmap ?? null,
+        client_company: projRow.engine_clients?.company ?? "—",
+        updated_at: projRow.updated_at,
+        client_portal_project_id: projRow.client_portal_project_id ?? null,
+      },
+      nba,
+      sources,
+      version,
+      portal_publish,
+      milestones,
+      tasks,
+      reviews,
+      activity,
+      notifications,
+      audit,
+    };
+  });
+
+
 
 
