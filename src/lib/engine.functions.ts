@@ -1088,9 +1088,9 @@ export type SpineTask = {
   ai_generated: boolean;
   purpose: string | null;
   expected_artifact: string | null;
-  acceptance_criteria: unknown;
-  qa_checklist: unknown;
-  risks: unknown;
+  acceptance_criteria: import("@/lib/engine-workspace").Json;
+  qa_checklist: import("@/lib/engine-workspace").Json;
+  risks: import("@/lib/engine-workspace").Json;
   dependency_notes: string | null;
   blocked_decision: string | null;
   due_date: string | null;
@@ -1116,9 +1116,9 @@ export type ProjectSpinePayload = {
     current_step_num: number;
     frame: string | null;
     goal: string | null;
-    point_a: unknown;
-    point_b: unknown;
-    roadmap: unknown;
+    point_a: import("@/lib/engine-workspace").Json;
+    point_b: import("@/lib/engine-workspace").Json;
+    roadmap: import("@/lib/engine-workspace").Json;
     client_company: string;
     updated_at: string;
     client_portal_project_id: string | null;
@@ -1143,7 +1143,7 @@ export type ProjectSpinePayload = {
     status: string;
     created_at: string;
     approved_at: string | null;
-    payload: unknown;
+    payload: import("@/lib/engine-workspace").Json;
   } | null;
   portal_publish: { id: string; status: string; published_at: string | null } | null;
   milestones: SpineMilestone[];
