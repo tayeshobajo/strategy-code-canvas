@@ -920,6 +920,15 @@ function WriteIntake() {
               }))
           : [];
         const opening = answers[OPEN_KEY]?.response ?? "";
+        const plannerSnap = frame
+          ? planNextObjective(frame, answers, askedKeys, scores)
+          : null;
+        const context_facts = plannerSnap
+          ? Object.entries(plannerSnap.context_facts).map(([k, v]) => ({
+              key: k,
+              value: v.value,
+            }))
+          : [];
         const mod = await import("@/lib/intake-question.functions");
         const res = await mod.generateAnchorWording({
           data: {
@@ -929,6 +938,7 @@ function WriteIntake() {
             objective_anchor: currentObjective.anchor,
             opening,
             prior_answers: priors,
+            context_facts,
           },
         });
         if (cancelled) return;
