@@ -633,7 +633,9 @@ function WriteIntake() {
                 key,
                 score: scored.score,
               });
-              setScores((s) => ({ ...s, [key]: scored.score }));
+              // Higher-wins: never let a fresh model score drag a previously
+              // stronger heuristic/model score down. Matches mergeFacts.
+              setScores((s) => ({ ...s, [key]: Math.max(s[key] ?? 0, scored.score) }));
             } else {
               console.debug("[intake/objective-loop] score:timeout-or-null", { key });
             }
