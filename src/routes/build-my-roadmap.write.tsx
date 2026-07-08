@@ -896,12 +896,14 @@ function WriteIntake() {
   React.useEffect(() => {
     if (phase !== "objectives" || !currentObjective || !resumeToken) {
       setGeneratedQuestion(null);
+      setGeneratedAck(null);
       return;
     }
     let cancelled = false;
     const objectiveKey = currentObjective.key;
     // Reset so the anchor shows immediately while we fetch.
     setGeneratedQuestion(null);
+    setGeneratedAck(null);
     setGeneratingQuestion(true);
     (async () => {
       try {
@@ -930,15 +932,19 @@ function WriteIntake() {
           },
         });
         if (cancelled) return;
-        // Only override the anchor when the model returned a fresh sentence.
         if (res.source === "generated" && res.question) {
           setGeneratedQuestion(res.question);
+          setGeneratedAck(res.acknowledgement ?? null);
         } else {
           setGeneratedQuestion(null);
+          setGeneratedAck(null);
         }
       } catch (err) {
         console.warn("[intake/write] anchor rewording failed, using anchor", err);
-        if (!cancelled) setGeneratedQuestion(null);
+        if (!cancelled) {
+          setGeneratedQuestion(null);
+          setGeneratedAck(null);
+        }
       } finally {
         if (!cancelled) setGeneratingQuestion(false);
       }
