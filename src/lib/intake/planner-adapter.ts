@@ -115,6 +115,19 @@ export function buildIntakeMemory(
     }
   }
 
+  // Phase 14: harvest context facts from every prior answer so acks and
+  // downstream logs can name them. Uses the client-safe heuristic scanner.
+  if (frame) {
+    for (const key of askedKeys) {
+      const resp = answers[key]?.response ?? "";
+      if (!resp.trim()) continue;
+      const ctx = extractContextFacts(frame, resp);
+      for (const [k, v] of Object.entries(ctx)) {
+        if (!memory.contextFacts[k]) memory.contextFacts[k] = v;
+      }
+    }
+  }
+
   return memory;
 }
 
