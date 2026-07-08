@@ -418,9 +418,22 @@ function WriteIntake() {
       if (f === "not_a_fit") {
         setPhase("not-a-fit");
       } else {
-        // Score whatever we already have (usually nothing) and pick the first
-        // unmet required objective.
+        // Seed scores from BOTH per-objective heuristic AND cross-objective
+        // evidence extraction over the opening answer. The extractor credits
+        // objectives the founder answered incidentally (e.g. saying "my
+        // mother's 60th birthday" satisfies `audience` and `goal` in one
+        // line), so the planner does not re-ask them.
         const initialScores = computeObjectiveScores(f, answers);
+        const openText = answers[OPEN_KEY]?.response ?? "";
+        if (openText.trim()) {
+          const facts = heuristicExtract(f, openText);
+          for (const [key, fact] of Object.entries(facts)) {
+            const evidenceScore = Math.round(fact.confidence * 100);
+            if (evidenceScore > (initialScores[key] ?? 0)) {
+              initialScores[key] = evidenceScore;
+            }
+          }
+        }
         setScores(initialScores);
         setAskedKeys([]);
         const next = selectNextObjective(f, initialScores, new Set());
