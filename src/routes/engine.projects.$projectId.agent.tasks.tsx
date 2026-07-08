@@ -44,6 +44,7 @@ function TaskBoardPage() {
   const createFn = useServerFn(createTask);
   const statusFn = useServerFn(updateTaskStatus);
   const milestonesFn = useServerFn(listMilestones);
+  const generateFn = useServerFn(generateTasksForApprovedMilestones);
   const [view, setView] = useState("board");
   const [q, setQ] = useState("");
   const [milestoneId, setMilestoneId] = useState<string>("");
