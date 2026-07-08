@@ -1,126 +1,56 @@
-# Project Spine v1 — Build Plan
+# Project Spine v1 — QA Plan
 
-Central living blueprint per project at `/engine/projects/$projectId/spine`. Internal-only; reuses existing operator gate on the parent workspace route.
+Verification only. No feature code. Approve to run in build mode.
 
-## Route & Navigation
+## Test Projects
+Query `engine_projects` to pick IDs for: Jotaye, INBDE, August 1, one fresh intake (status='intake', no version), one approved (has approved `engine_roadmap_versions`). Record IDs in the final report.
 
-- New file: `src/routes/engine.projects.$projectId.spine.tsx` (child of existing workspace layout so `ProjectHeaderStrip`, `WorkspaceStepper`, and operator gate apply automatically).
-- Add "Project Spine" entry to `WORKSPACE_STEPS` metadata or directly into `WorkspaceStepper` as a pinned non-numbered link (avoids renumbering the 14 steps). Preferred: add a small "Pinned" row above the numbered stepper in `WorkspaceStepper.tsx` with a single link to Spine.
-- Access is inherited: parent `engine` layout already gates operators/admins. No new auth logic.
+## Execution
 
-## Data Layer
+### A. Data accuracy (SQL, read-only via `supabase--read_query`)
+For each project ID, run and cross-check against Spine UI:
+- `SELECT name, status, current_step, current_step_num, point_a, point_b, settings, roadmap FROM engine_projects WHERE id=...`
+- `SELECT * FROM compute_engine_next_best_action('<id>')`
+- `SELECT count(*), status FROM engine_sources WHERE project_id=... GROUP BY status`
+- Latest `engine_extraction_runs` row
+- Latest `engine_roadmap_versions` (status, label, payload keys)
+- `engine_milestones` grouped by phase (count, status)
+- `engine_tasks` counts by phase, milestone_id, status, ai_generated
+- `engine_review_items` pending count
+- Latest 20 `engine_activity`, 10 `operator_notifications`, audit rows
+- `client_portal_roadmaps` status for portal-safety gate
 
-One new server function: `getProjectSpine({ id })` in `src/lib/engine.functions.ts` (protected via `requireSupabaseAuth` + operator/admin role check, same pattern as `getProjectWorkspace`).
+Produce mismatch table: field | DB value | Spine UI value | pass/fail.
 
-Returns a single payload assembled from existing tables (no schema changes):
+### B. Route + access (Playwright, headless Chromium)
+Using `LOVABLE_BROWSER_SUPABASE_*` session injection:
+1. Admin session → `/engine/projects/<id>/spine` loads, pinned nav link visible/active.
+2. Operator session (if a distinct role account exists — otherwise note as skipped) → loads.
+3. Client-only session (portal user) → blocked/redirected. Confirm no data render.
+4. Signed-out → redirect to `/auth`.
 
-```text
-project        engine_projects (name, status, current_step, current_step_num,
-               frame/type from settings jsonb, point_a, point_b, roadmap jsonb)
-nba            compute_engine_next_best_action(project_id)
-sources        engine_sources summary + last engine_extraction_runs
-version        latest engine_roadmap_versions (status, label, payload)
-milestones     engine_milestones grouped by phase (id, name, status, phase,
-               review state)
-tasks          engine_tasks (all cols incl. phase, milestone_id, ai_generated,
-               purpose, expected_artifact, acceptance_criteria, qa_checklist,
-               risks, dependencies, status, priority, owner)
-reviews        engine_review_items where status='pending'
-activity       engine_activity latest 20
-notifications  operator_notifications for this project (latest 20)
-audit          engine_audit_log latest 20
-portal         client_portal_roadmaps (id, status) — for QA gate readout only
-```
+If only one session is injectable, verify client/anon paths by driving the browser without restoring the session and by manually clearing role via a temporary test account only if the user already has one; otherwise flag as "session-limited — verified via RLS + route gate code inspection."
 
-Loader uses `context.queryClient.ensureQueryData` + `useSuspenseQuery` (canonical pattern).
+### C. Section-by-section visual QA
+Screenshot at 1440 desktop and 390 mobile for one representative project (August 1). For each of the 7 sections, capture element screenshot + note:
+- Project Direction (NBA live vs SQL)
+- Approved Scope (missing keys show "Not yet captured", not fabricated)
+- Roadmap Spine (phase grouping, blocked indicator)
+- Task Spine (phase+milestone nesting, ai_generated dashed border, acceptance criteria/QA checklist/expected artifact/risks/deps render)
+- AI PM Panel (buckets differ across projects — compare Jotaye vs INBDE payloads)
+- QA Gates (each row has status pill + reason + next action link)
+- Activity & Decisions (deep links resolve)
 
-## Page Layout
+### D. AI PM panel non-static check
+Load Spine for 3 projects, snapshot the panel HTML for each, diff. Fail if identical.
 
-Two-column at ≥lg, stacked on mobile:
+### E. Safety regression
+- Grep for Spine payload usage in `src/routes/portal.*` and `src/components/portal/*` — must be zero.
+- Confirm `getProjectSpine` requires operator/admin (read function source).
+- Confirm no `supporting_notes` / internal task fields flow to any portal server fn (grep `client_portal_*` server fns for the same field names surfaced on Spine).
 
-```text
-┌─────────────────────────────────────────┬──────────────────┐
-│ 1. Project Direction                    │ 5. AI PM Panel   │
-│ 2. Approved Scope                       │    (sticky)      │
-│ 3. Roadmap Spine (phases → milestones)  │                  │
-│ 4. Task Spine (grouped phase/milestone) │                  │
-│ 6. QA Gates                             │                  │
-│ 7. Activity & Decisions                 │                  │
-└─────────────────────────────────────────┴──────────────────┘
-```
+## Deliverables
+Report with: executive summary, pass/fail table per checklist item, mismatch table, screenshots (`/tmp/browser/spine-qa/*.png`, viewed inline), permission findings, stale/static areas, top fixes ranked, remaining gaps. No code changes.
 
-### 1. Project Direction
-Card with: name, frame/type, goal, Point A, Point B, current status badge, current step, live NBA (action + reason + severity + href button), intake source summary (count + last run status).
-
-### 2. Approved Scope
-Read from latest approved `engine_roadmap_versions.payload` (jsonb). Render: included, excluded, assumptions, constraints, open_questions, decisions[]. For any missing key, show a muted "Not yet captured — [link to relevant step]" line. No fabrication.
-
-### 3. Roadmap Spine
-Group `engine_milestones` by `phase`. Per phase: collapsible section with milestones showing name, status pill, review state, linked task count, blocked indicator when any child task is blocked.
-
-### 4. Task Spine
-Same phase grouping, nested milestone groups. Each task card shows all decomposition fields. Visual treatment:
-- `status='suggested'` + `ai_generated=true` → dashed border, amber "AI suggested — needs approval" chip.
-- `status in ('approved','in_progress','done')` → solid border, status color.
-- `status='blocked'` → red left border + reason.
-Empty state per milestone: "No tasks yet — [Decompose with AI]" button (calls existing `generateTasksForApprovedMilestones`).
-
-### 5. AI Product Manager Panel (right rail)
-New component `ProjectSpineAiPanel.tsx`. Computes each bucket from the payload (pure client-side derivation, no new AI calls):
-- **What I know**: has approved version, milestone count, task count, phases present.
-- **What is missing**: explicit list — no Point A, no approved version, no phases, no tasks in phase X, no acceptance criteria on task Y, etc.
-- **What changed**: last 5 `engine_activity` entries (title + relative time).
-- **What is blocked**: blocked tasks + failed runs + pending reviews > threshold.
-- **What I recommend next**: mirrors NBA output.
-- **What I can draft now**: enumerates available drafters (task decomposition for approved milestones without tasks, roadmap version generation, etc.) with action buttons that hit existing functions.
-- **What needs approval**: count of `status='suggested'` tasks + pending review items + AI-draft roadmap versions.
-
-### 6. QA Gates
-Static gate definitions, each computed against real state:
-
-| Gate | Pass condition |
-|---|---|
-| Role access | operator/admin gate present on route (always pass — informational) |
-| Data integrity | no failed runs, no orphan tasks (task.milestone_id resolves) |
-| Approval gates | no `ai_generated` roadmap version in `delivered` portal row |
-| Client portal safety | `client_portal_roadmaps.status` != approved when engine version = ai_generated |
-| Backend readiness | latest extraction run succeeded |
-| Mobile responsive | informational only |
-| Delivery readiness | approved version + portal linked + no blocked tasks |
-
-Each row: status pill (pass/warn/fail), one-line reason, "Next action" link.
-
-### 7. Activity & Decisions
-Three stacked lists: recent activity (20), operator notifications (10), pending review items (link to /reviews). Compact rows, timestamps.
-
-## Files
-
-Create:
-- `src/routes/engine.projects.$projectId.spine.tsx`
-- `src/components/engine/spine/ProjectDirectionCard.tsx`
-- `src/components/engine/spine/ApprovedScopeCard.tsx`
-- `src/components/engine/spine/RoadmapSpine.tsx`
-- `src/components/engine/spine/TaskSpine.tsx`
-- `src/components/engine/spine/ProjectSpineAiPanel.tsx`
-- `src/components/engine/spine/QaGates.tsx`
-- `src/components/engine/spine/ActivityDecisions.tsx`
-
-Edit:
-- `src/lib/engine.functions.ts` — add `getProjectSpine`.
-- `src/components/engine/WorkspaceStepper.tsx` — add pinned Spine link.
-
-No migrations. No schema changes. No new secrets. No portal-facing changes.
-
-## Acceptance Verification
-
-After build, verify via `supabase--read_query` against August 1, Jotaye, INBDE:
-- Spine loads and shows real NBA (matches `compute_engine_next_best_action`).
-- Tasks group by phase; AI-generated visually distinct.
-- QA gates reflect actual state (e.g., INBDE ai_generated version → approval gate warns).
-- Missing data messages appear where fields absent.
-- Route inaccessible to non-operator (confirmed via existing parent gate).
-
-## Out of Scope (defer)
-- New AI drafters for scope/decision fields.
-- Editing tasks inline on Spine (link out to existing task page).
-- Schema additions for scope fields (included/excluded/assumptions) — v2 once we confirm operators want them as first-class columns vs. staying in version payload.
+## Out of scope
+Building fixes for anything discovered. Findings feed the next slice.
