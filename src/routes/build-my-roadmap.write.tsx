@@ -47,7 +47,6 @@ import {
   computeObjectiveScores,
   selectNextObjective,
   scoreAnswer,
-  OBJECTIVE_BAR,
 } from "@/lib/intake-scoring";
 import { heuristicExtract } from "@/lib/intake/heuristic-extract";
 /** Same threshold the server classifier uses. Duplicated here to keep
