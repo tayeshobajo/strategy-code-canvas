@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { adminListPortals } from "@/lib/portal.functions";
 import { Card, EmptyState, PageHeader } from "@/components/ops/Primitives";
 import { Input } from "@/components/ui/input";
-import { Search, Users } from "lucide-react";
+import { Search } from "lucide-react";
 
 export const Route = createFileRoute("/ops/portals")({
   component: () => (
