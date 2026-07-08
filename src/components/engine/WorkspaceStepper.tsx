@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Check } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { WORKSPACE_STEPS } from "@/lib/engine-workspace";
 import { cn } from "@/lib/utils";
 
@@ -11,16 +11,29 @@ export function WorkspaceStepper({
   currentStepNum: number;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const spineActive = pathname.endsWith("/spine");
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm scroll-strip">
       <div className="px-4 sm:px-5 py-5 sm:py-6 flex items-center gap-2 min-w-max">
         <div className="pr-4 border-r border-border mr-2 snap-start">
-
           <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/50">
             Roadmap Workflow
           </div>
           <div className="text-[11px] text-ink/60 mt-1">14 steps for this project</div>
+          <Link
+            to="/engine/projects/$projectId/spine"
+            params={{ projectId }}
+            className={cn(
+              "mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest transition",
+              spineActive
+                ? "border-royal bg-royal text-white"
+                : "border-royal/30 text-royal hover:bg-royal/5",
+            )}
+          >
+            <Sparkles className="w-3 h-3" /> Project Spine
+          </Link>
         </div>
+
         {WORKSPACE_STEPS.map((s, i) => {
           const to = s.to;
           const isActive = pathname.endsWith(`/${s.key}`);
