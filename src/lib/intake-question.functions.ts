@@ -237,7 +237,7 @@ export const generateAnchorWording = createServerFn({ method: "POST" })
 
     // First attempt.
     const first = await callModel(prompt, apiKey, 0.4);
-    if (first && passesVoiceCheck(first.question, data.objective_anchor)) {
+    if (first && passesVoiceCheck(first.question, data.objective_anchor, { isReask: data.is_reask })) {
       return finalize(first);
     }
 
@@ -246,7 +246,7 @@ export const generateAnchorWording = createServerFn({ method: "POST" })
       prompt +
       "\n\nThe previous draft failed the voice check. Return one calm sentence that stays close to the anchor, obeys every rule above, and reads like a strategist speaking, not a form.";
     const second = await callModel(retryPrompt, apiKey, 0.2);
-    if (second && passesVoiceCheck(second.question, data.objective_anchor)) {
+    if (second && passesVoiceCheck(second.question, data.objective_anchor, { isReask: data.is_reask })) {
       return finalize(second);
     }
 
