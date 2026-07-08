@@ -6,7 +6,7 @@ import {
   type AdaptiveIntakeReview,
 } from "@/lib/engine-intake-review.functions";
 import { SectionCard, EmptyState, formatDate } from "@/components/engine/primitives";
-import { ShieldAlert, Lock } from "lucide-react";
+import { ShieldAlert, Lock, Activity, AlertTriangle, Clock } from "lucide-react";
 
 const reviewQueryOptions = (
   projectId: string,
@@ -62,6 +62,11 @@ function AdaptiveIntakeReviewPage() {
           </div>
         </div>
       </div>
+
+      <IntakeVisibilityPanel
+        runs={data.extraction_runs}
+        sources={data.sources}
+      />
 
       {!data.linked ? (
         <SectionCard title="No adaptive intake linked">
@@ -358,5 +363,120 @@ function Pill({ label, value }: { label: string; value: string }) {
       </div>
       <div className="text-ink text-sm font-medium mt-0.5">{value}</div>
     </div>
+  );
+}
+
+type RunLite = AdaptiveIntakeReview["extraction_runs"][number];
+type SourceLite = AdaptiveIntakeReview["sources"][number];
+
+function IntakeVisibilityPanel({
+  runs,
+  sources,
+}: {
+  runs: RunLite[];
+  sources: SourceLite[];
+}) {
+  const latest = runs[0] ?? null;
+  const lastError =
+    latest?.error
+      ? { error: latest.error, at: latest.created_at, runId: latest.id }
+      : (() => {
+          const failed = runs.find((r) => r.error);
+          return failed
+            ? { error: failed.error as string, at: failed.created_at, runId: failed.id }
+            : null;
+        })();
+  const pendingStatuses = new Set(["queued", "processing", "pending", "running"]);
+  const pendingSources = sources.filter((s) => pendingStatuses.has(s.status));
+  const failedSources = sources.filter((s) => s.status === "failed");
+
+  const statusTone =
+    latest?.status === "running"
+      ? "bg-blue-50 text-blue-800 border-blue-200"
+      : latest?.status === "failed"
+      ? "bg-red-50 text-red-800 border-red-200"
+      : latest?.status === "completed" || latest?.status === "success"
+      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+      : "bg-paper-soft text-ink/70 border-border";
+
+  return (
+    <SectionCard title="Intake visibility">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-lg border border-border bg-card p-3">
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-ink/50">
+            <Activity className="w-3.5 h-3.5" />
+            Latest extraction run
+          </div>
+          {latest ? (
+            <div className="mt-2 space-y-1">
+              <span
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${statusTone}`}
+              >
+                {latest.status}
+              </span>
+              <div className="text-[11px] font-mono text-ink/50">
+                {formatDate(latest.created_at)}
+              </div>
+              <div className="text-[11px] font-mono uppercase tracking-wider text-ink/50">
+                {latest.signals_count} signals
+                {latest.model_intake ? ` · ${latest.model_intake}` : ""}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 text-sm text-ink/60">No runs yet.</div>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-3">
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-ink/50">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Last error
+          </div>
+          {lastError ? (
+            <div className="mt-2 space-y-1">
+              <div className="text-xs text-red-700 whitespace-pre-wrap line-clamp-4">
+                {lastError.error}
+              </div>
+              <div className="text-[11px] font-mono text-ink/50">
+                {formatDate(lastError.at)}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 text-sm text-ink/60">No errors recorded.</div>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-3">
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-ink/50">
+            <Clock className="w-3.5 h-3.5" />
+            Sources pending
+          </div>
+          <div className="mt-2">
+            <div className="text-2xl font-semibold text-ink leading-none">
+              {pendingSources.length}
+            </div>
+            <div className="text-[11px] font-mono text-ink/50 mt-1">
+              of {sources.length} total
+              {failedSources.length > 0
+                ? ` · ${failedSources.length} failed`
+                : ""}
+            </div>
+            {pendingSources.length > 0 ? (
+              <ul className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                {pendingSources.map((s) => (
+                  <li key={s.id} className="text-xs text-ink/80 truncate">
+                    <span className="text-ink/50 font-mono text-[10px] mr-1 uppercase">
+                      {s.status}
+                      {s.current_stage ? `·${s.current_stage}` : ""}
+                    </span>
+                    {s.name}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </SectionCard>
   );
 }
