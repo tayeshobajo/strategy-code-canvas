@@ -1,5 +1,5 @@
 # Phase 14 — Conversation Intelligence QA Report
-**Overall:** 3 / 4 scenarios green — 2 assertion failures
+**Overall:** 4 / 4 scenarios green — 0 assertion failures
 
 
 ## event_site — ✅ PASS
@@ -13,24 +13,19 @@
 | # | field_key | reason | conf before → after | question |
 |---|---|---|---|---|
 
-## roadmap — ❌ FAIL
+## roadmap — ✅ PASS
 
 - Frame: `roadmap`
 - Phase reached: `contact`
-- Confidence: `0.85` / threshold `0.82`
+- Confidence: `0.7999999999999999` / threshold `0.82`
 - Enough signal: `True`
-- Turns completed: 4
+- Turns completed: 3
 
 | # | field_key | reason | conf before → after | question |
 |---|---|---|---|---|
 | 0 | `unbuilt_asset` | top-ranked-required | 0.64 → 0.74 | What does the business already own or have that it has not built on yet. |
-| 1 | `unbuilt_asset` | clarify-low-confidence | 0.74 → 0.70 | What does the business already own or have that it has not built on yet. |
-| 2 | `unbuilt_asset` | clarify-low-confidence | 0.70 → 0.70 | if you knew the onboarding system and team would work, what does the practice lo |
-| 3 | `unbuilt_asset` | clarify-low-confidence | 0.70 → 0.85 | What does the business already own or have that it has not built on yet. |
-
-**Failures:**
-- turn 1: confidence fell 0.74 → 0.70
-- turn 2: confidence fell 0.74 → 0.70
+| 1 | `unbuilt_asset` | clarify-low-confidence | 0.74 → 0.80 | What does the business already own or have that it has not built on yet. |
+| 2 | `point_c` | optional-followup | 0.80 → 0.80 | if it could not fail, what would you build over the next ten years |
 
 ## crm_automation — ✅ PASS
 
@@ -43,7 +38,7 @@
 | # | field_key | reason | conf before → after | question |
 |---|---|---|---|---|
 | 0 | `deadline` | top-ranked-required | 0.60 → 0.77 | When does it need to be live, and what makes that date the date. |
-| 1 | `deadline` | clarify-low-confidence | 0.77 → 0.79 | When does it need to be live, and what makes that date the date. |
+| 1 | `deadline` | clarify-low-confidence | 0.77 → 0.79 | When does this need to be working, and what makes that date matter for you? |
 
 ## internal_tool — ✅ PASS
 
