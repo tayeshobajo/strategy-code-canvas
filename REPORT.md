@@ -107,7 +107,9 @@ Applied by `scripts/qa/phase14-conversation-qa.py`, reading
   explicitly `clarify-low-confidence` (a legitimate re-ask of an
   under-signalled field).
 
-## Automated invariant test
+## Automated invariant tests
+
+### 1. 3+ turn no-repeat (baseline)
 
 `src/lib/intake/__tests__/planner.no-repeat-when-known.test.ts` walks a
 4-turn synthetic conversation for every frame and asserts:
@@ -116,13 +118,76 @@ Applied by `scripts/qa/phase14-conversation-qa.py`, reading
 > the next question if that field already sits at or above the frame's
 > confidence threshold in `knownFacts`.
 
-All 4 frames pass. Run with:
+All 4 frames pass.
+
+### 2. 5+ turn no-repeat (parametrized across lengths and seeds)
+
+`src/lib/intake/__tests__/planner.no-repeat-5turn.test.ts` sweeps every
+combination of `frame × length × seed`:
+
+| Axis | Values |
+|---|---|
+| Frame | `project.event_site`, `roadmap`, `project.crm`, `project.internal_tool` |
+| Turn length | 5, 6, 7 |
+| Answer-order seed | 1, 2, 3 (deterministic LCG shuffle of the 7-answer bank) |
+
+That's **36 walks per run** (4 × 3 × 3). Each walk asserts both invariants
+per turn: the picked field must have prior confidence < threshold, and the
+same key must never be re-picked once satisfied. All 36 pass. Seeds
+permute answer order but not information content, so a regression in
+ordering-sensitive gap ranking would surface as a failing seed.
+
+### 3. 7+ turn roadmap regression — `unbuilt_asset` not re-selected
+
+`src/lib/intake/__tests__/planner.roadmap-reask-unbuilt-asset-7turn.test.ts`
+extends the roadmap-specific guard to long conversations:
+
+- **Organic 7-turn walk.** With a strong `unbuilt_asset` answer seeded up
+  front (12k newsletter list + referral network + content library), the
+  planner never re-selects it across 7 follow-up turns covering
+  bottleneck, 12-month vision, first-90-days, revenue, long-term
+  position, and hiring deadline.
+- **Forced confidence drop.** We defensively mutate `knownFacts.unbuilt_asset`
+  below threshold (bypassing higher-wins `mergeFacts`) to simulate a bad
+  model re-score. The planner is then allowed to re-ask **at most once**,
+  and only under `selected_reason === "clarify-low-confidence"`; the
+  prior strong answer must still be reachable through `answerHistory` so
+  the route can wire `is_reask` + `previous_attempt` into the generator.
+
+Both cases pass. Also covered by
+`src/lib/intake/__tests__/planner.roadmap-reask-unbuilt-asset.test.ts`
+for the short (single re-ask) path.
+
+### Run all planner regressions
 
 ```
-bunx vitest run src/lib/intake/__tests__/planner.no-repeat-when-known.test.ts
+bunx vitest run src/lib/intake/__tests__/planner
 ```
 
-## Reproducing the Playwright QA
+## UI smoke — roadmap panel
+
+`scripts/qa/roadmap-panel-smoke.py` drives `/portal/roadmap-mockup`
+headless and asserts:
+
+- Route is publicly viewable (`auth-open:mockup`) — mockup was added to
+  `PUBLIC_PATHS` in `src/routes/portal.tsx` alongside `/portal/login` and
+  `/portal/access-denied`.
+- All three phase tabs render: **Foundation**, **Core Platform**,
+  **Scale Systems**.
+- Status legend renders all three labels: **Completed**, **In progress**,
+  **Upcoming**.
+- Tabs are interactive: clicking **Scale Systems** does not remove it
+  from the DOM.
+- Zero runtime `console.error` events fire during render.
+
+Latest run: **9/9 assertions pass, 0 console errors.** Artifacts at
+`/tmp/browser/roadmap-panel/` (`results.json` + `screenshots/`).
+
+```
+python3 scripts/qa/roadmap-panel-smoke.py
+```
+
+## Reproducing the intake Playwright QA
 
 ```
 python3 scripts/qa/phase14-conversation-qa.py
@@ -132,3 +197,4 @@ python3 scripts/qa/phase14-conversation-qa.py
 The runner expects the dev server on `http://localhost:8080` and drives
 Chromium headlessly. It opens a fresh browser context per scenario so
 `localStorage` drafts do not leak between runs.
+
