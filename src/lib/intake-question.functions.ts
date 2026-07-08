@@ -113,11 +113,13 @@ function buildPrompt(input: z.infer<typeof GenerateInput>): string {
   ].join("\n");
 }
 
+type ModelResult = { question: string; acknowledgement: string | null };
+
 async function callModel(
   prompt: string,
   apiKey: string,
   temperature: number,
-): Promise<string | null> {
+): Promise<ModelResult | null> {
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -128,7 +130,7 @@ async function callModel(
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
-        max_tokens: 200,
+        max_tokens: 260,
         temperature,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -146,9 +148,14 @@ async function callModel(
       .join("\n")
       .trim();
     const jsonText = raw.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
-    const parsed = JSON.parse(jsonText) as { question?: string };
+    const parsed = JSON.parse(jsonText) as {
+      question?: string;
+      acknowledgement?: string;
+    };
     const q = (parsed.question ?? "").toString().trim();
-    return q || null;
+    if (!q) return null;
+    const ack = (parsed.acknowledgement ?? "").toString().trim();
+    return { question: q, acknowledgement: ack || null };
   } catch (err) {
     console.warn("[intake-question] generation failed", err);
     return null;
@@ -158,9 +165,7 @@ async function callModel(
 export const generateAnchorWording = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data }): Promise<GeneratedQuestion> => {
-    // Gate: live intake draft must exist. Reads must match saveDraft's write
-    // path (main DB via supabaseAdmin) — single source of truth for intake
-    // session state.
+    // Gate: live intake draft must exist.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: draft, error: draftErr } = await (
       supabaseAdmin.from("intake_drafts") as unknown as {
@@ -188,10 +193,15 @@ export const generateAnchorWording = createServerFn({ method: "POST" })
 
     const prompt = buildPrompt(data);
 
+    const finalize = (r: ModelResult): GeneratedQuestion => {
+      const ack = r.acknowledgement && passesAckCheck(r.acknowledgement) ? r.acknowledgement : undefined;
+      return { question: r.question, acknowledgement: ack, source: "generated" };
+    };
+
     // First attempt.
     const first = await callModel(prompt, apiKey, 0.4);
-    if (first && passesVoiceCheck(first, data.objective_anchor)) {
-      return { question: first, source: "generated" };
+    if (first && passesVoiceCheck(first.question, data.objective_anchor)) {
+      return finalize(first);
     }
 
     // Regenerate once with a tighter reminder and lower temperature.
@@ -199,10 +209,11 @@ export const generateAnchorWording = createServerFn({ method: "POST" })
       prompt +
       "\n\nThe previous draft failed the voice check. Return one calm sentence that stays close to the anchor, obeys every rule above, and reads like a strategist speaking, not a form.";
     const second = await callModel(retryPrompt, apiKey, 0.2);
-    if (second && passesVoiceCheck(second, data.objective_anchor)) {
-      return { question: second, source: "generated" };
+    if (second && passesVoiceCheck(second.question, data.objective_anchor)) {
+      return finalize(second);
     }
 
     // Fallback: anchor. Never surface an error to the client.
     return anchorFallback;
   });
+
