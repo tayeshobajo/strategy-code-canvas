@@ -646,7 +646,14 @@ function WriteIntake() {
       }
 
       try {
-        const nextScores: Record<string, number> = { ...scores, [key]: objectiveScore };
+        // Higher-wins for the current objective too. A re-answer that
+        // scores lower than the prior pass (shorter, more hedged, etc.)
+        // must not drag the objective's confidence backwards — the planner
+        // treats confidence as monotonically ratcheting up per field.
+        const nextScores: Record<string, number> = {
+          ...scores,
+          [key]: Math.max(scores[key] ?? 0, objectiveScore),
+        };
         // Cross-objective evidence pass: scan the just-committed answer text
         // against the whole frame profile so answers that incidentally cover
         // other fields (dates, guest counts, systems) credit those fields
