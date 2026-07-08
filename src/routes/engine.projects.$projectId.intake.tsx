@@ -6,7 +6,7 @@ import {
   type AdaptiveIntakeReview,
 } from "@/lib/engine-intake-review.functions";
 import { SectionCard, EmptyState, formatDate } from "@/components/engine/primitives";
-import { ShieldAlert, Lock } from "lucide-react";
+import { ShieldAlert, Lock, Activity, AlertTriangle, Clock } from "lucide-react";
 
 const reviewQueryOptions = (
   projectId: string,
