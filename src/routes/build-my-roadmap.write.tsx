@@ -45,10 +45,10 @@ import {
 } from "@/lib/intake-frames";
 import {
   computeObjectiveScores,
-  selectNextObjective,
   scoreAnswer,
 } from "@/lib/intake-scoring";
 import { heuristicExtract } from "@/lib/intake/heuristic-extract";
+import { planNextObjective, type PlannerSnapshot } from "@/lib/intake/planner-adapter";
 import { QuestionAttachments, type QuestionAttachmentRecord } from "@/components/intake/QuestionAttachments";
 /** Same threshold the server classifier uses. Duplicated here to keep
  * the classifier module out of the client bundle for a single constant. */
@@ -246,7 +246,7 @@ function WriteIntake() {
                 }
                 setScores(restoredScores);
                 setAskedKeys(restoredAsked);
-                const next = selectNextObjective(parsed.frame, restoredScores, new Set(restoredAsked));
+                const next = planNextObjective(parsed.frame, map, restoredAsked, restoredScores).next_objective;
                 if (!next || restoredAsked.length >= HARD_CAP_QUESTIONS) {
                   setCurrentObjective(null);
                   setPhase("contact");
@@ -434,7 +434,7 @@ function WriteIntake() {
         }
         setScores(initialScores);
         setAskedKeys([]);
-        const next = selectNextObjective(f, initialScores, new Set());
+        const next = planNextObjective(f, answers, [], initialScores).next_objective;
         setCurrentObjective(next);
         setPhase(next ? "objectives" : "contact");
       }
@@ -667,14 +667,21 @@ function WriteIntake() {
           return;
         }
 
-        const next = selectNextObjective(frame, nextScores, new Set(nextAsked));
+        const snapshot = planNextObjective(frame, answers, nextAsked, nextScores);
+        const next = snapshot.next_objective;
+        console.debug("[intake/planner] advance", {
+          from: key,
+          to: next?.key ?? null,
+          decision: snapshot.decision.kind,
+          confidence: snapshot.confidence_score,
+          missing: snapshot.missing_fields,
+        });
         if (!next) {
           setCurrentObjective(null);
           setPhase("contact");
-          console.debug("[intake/objective-loop] advance:enough");
+          console.debug("[intake/planner] advance:enough");
           return;
         }
-        console.debug("[intake/objective-loop] advance:next", { from: key, to: next.key });
         setCurrentObjective(next);
       } finally {
         // Always release the scoring lock synchronously with the transition
@@ -692,6 +699,44 @@ function WriteIntake() {
   React.useEffect(() => {
     setScoringNext(false);
   }, [currentObjective?.key]);
+
+  // Live debug snapshot for QA. Exposes planner state to window so Playwright
+  // (and other headless checks) can read known_facts / missing_fields /
+  // question & answer history / confidence / enough_signal without having to
+  // reach into React or query the DB. Client-only; noop during SSR.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!frame) {
+      (window as unknown as { __intakeDebug?: unknown }).__intakeDebug = {
+        frame: null,
+        phase,
+      };
+      return;
+    }
+    const snapshot: PlannerSnapshot = planNextObjective(frame, answers, askedKeys, scores);
+    (window as unknown as { __intakeDebug?: unknown }).__intakeDebug = {
+      frame,
+      phase,
+      current_objective_key: currentObjective?.key ?? null,
+      known_facts: snapshot.known_facts,
+      missing_fields: snapshot.missing_fields,
+      question_history: snapshot.question_history,
+      answer_history: snapshot.answer_history,
+      confidence_score: snapshot.confidence_score,
+      enough_signal: snapshot.enough_signal,
+      next_gap:
+        snapshot.decision.kind === "ask"
+          ? {
+              field_key: snapshot.decision.gap.field.key,
+              label: snapshot.decision.gap.field.label,
+              importance: snapshot.decision.gap.field.importance,
+              confidence: snapshot.decision.gap.confidence,
+              score: snapshot.decision.gap.score,
+            }
+          : null,
+      decision_kind: snapshot.decision.kind,
+    };
+  }, [answers, askedKeys, currentObjective?.key, frame, phase, scores]);
 
 
   const goNextObjective = React.useCallback(() => {
