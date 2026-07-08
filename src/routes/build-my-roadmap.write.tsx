@@ -567,7 +567,10 @@ function WriteIntake() {
             changed = true;
           }
         }
-        if (changed) persistInternal(next, askedKeys);
+        if (changed) {
+          scoresRef.current = next;
+          persistInternal(next, askedKeys);
+        }
         return next;
       });
     },
