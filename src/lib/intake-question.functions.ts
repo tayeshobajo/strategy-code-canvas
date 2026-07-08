@@ -41,6 +41,10 @@ const GenerateInput = z.object({
     .max(20)
     .optional()
     .default([]),
+  /** Prior answer to the SAME objective, when the planner is re-asking. */
+  previous_attempt: z.string().trim().max(2000).optional().default(""),
+  /** True when the planner is re-asking this objective (clarify loop). */
+  is_reask: z.boolean().optional().default(false),
 });
 
 export type GeneratedQuestion = {
