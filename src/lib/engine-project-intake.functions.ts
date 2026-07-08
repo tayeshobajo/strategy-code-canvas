@@ -457,26 +457,38 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       .single();
     if (srcErr) throwGeneric(srcErr, "source insert failed");
 
-    // Fire-and-forget: run pipeline. Return immediately with processing status
-    // so the UI can navigate and poll the extraction run.
-    void (async () => {
-      try {
-        await runIntelligencePipelineInternal(sb, {
-          projectId,
-          sourceIds: [srcRow.id],
-          actorEmail: actor,
-        });
-      } catch {
-        /* errors are logged inside the pipeline */
-      }
-    })();
+    // Run the pipeline synchronously inside this handler. Cloudflare Workers
+    // tear down the isolate the moment the response is sent, so a
+    // fire-and-forget `void (async () => …)()` orphans the extraction run
+    // (row stays `status='running'` forever, source stuck on `processing`).
+    // Awaiting keeps the worker alive until completion and lets the existing
+    // try/catch in runIntelligencePipelineInternal record failures durably.
+    let pipelineStatus: "completed" | "failed" = "completed";
+    let versionId: string | null = null;
+    let versionLabel: string | null = null;
+    try {
+      const result = await runIntelligencePipelineInternal(sb, {
+        projectId,
+        sourceIds: [srcRow.id],
+        actorEmail: actor,
+      });
+      versionId = (result as { version_id?: string | null })?.version_id ?? null;
+      versionLabel = (result as { version?: string | null })?.version ?? null;
+    } catch (e) {
+      // Pipeline internals already updated engine_extraction_runs.status='failed',
+      // reset sources, and wrote a pipeline_failed activity. We swallow so the
+      // intake bridge still returns cleanly and the UI can navigate to the
+      // project overview to see the failure state.
+      console.error("[intake-bridge] extraction pipeline failed", e);
+      pipelineStatus = "failed";
+    }
 
     return {
       project_id: projectId,
       source_id: srcRow.id,
-      version_id: null,
-      version: null,
-      status: "processing",
+      version_id: versionId,
+      version: versionLabel,
+      status: pipelineStatus === "failed" ? "failed" : "processing",
     };
   });
 
