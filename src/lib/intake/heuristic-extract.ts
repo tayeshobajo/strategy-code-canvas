@@ -44,8 +44,6 @@ const LEAD_SOURCE_RE =
 const MANUAL_PROCESS_RE =
   /\b(copy\s*[-]?\s*paste|by\s+hand|manually|spreadsheet|excel|google\s+sheets?)\b/i;
 
-const LOCATION_STOPWORDS = new Set<string>();
-void LOCATION_STOPWORDS;
 
 function firstMatch(re: RegExp, text: string, group = 1): string | null {
   const m = text.match(re);
