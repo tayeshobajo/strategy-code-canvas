@@ -236,6 +236,9 @@ export const loadDraft = createServerFn({ method: "POST" })
       filename: string;
       size: number;
       mime: string | null;
+      question_id?: string | null;
+      kind?: "image" | "audio" | "video" | "doc";
+      summary?: string | null;
     };
     const { normalizeIntakeSources } = await import("@/lib/intake-sources.functions");
     if (!row)
