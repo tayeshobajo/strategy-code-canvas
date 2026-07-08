@@ -1010,6 +1010,7 @@ function WriteIntake() {
           value={answers[currentObjective.key]?.response ?? ""}
           scoring={scoringNext}
           generatedQuestion={generatedQuestion}
+          generatedAck={generatedAck}
           generatingQuestion={generatingQuestion}
           onChange={(v) => {
             const q = currentObjective;
