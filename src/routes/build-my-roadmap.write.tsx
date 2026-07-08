@@ -529,6 +529,42 @@ function WriteIntake() {
     [contact, scheduleSave],
   );
 
+  // Ensure we have a resume_token to attach files against. Persists the
+  // draft if one hasn't been minted yet.
+  const ensureResumeToken = React.useCallback(async (): Promise<string> => {
+    if (resumeToken) return resumeToken;
+    await persist({ answers, contact });
+    const t = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
+    if (!t) throw new Error("Could not create draft to attach files to.");
+    setResumeToken(t);
+    return t;
+  }, [answers, contact, persist, resumeToken]);
+
+  // Feed a media-derived evidence summary into the planner's coverage model.
+  // Runs the same heuristic extractor used on typed answers so an image or
+  // voice note can credit objectives the user hasn't explicitly answered.
+  const bumpScoresFromMedia = React.useCallback(
+    (summary: string) => {
+      if (!frame || !summary.trim()) return;
+      const facts = heuristicExtract(frame, summary);
+      if (Object.keys(facts).length === 0) return;
+      setScores((prev) => {
+        const next = { ...prev };
+        let changed = false;
+        for (const [k, fact] of Object.entries(facts)) {
+          const bump = Math.round(fact.confidence * 100);
+          if (bump > (next[k] ?? 0)) {
+            next[k] = bump;
+            changed = true;
+          }
+        }
+        if (changed) persistInternal(next, askedKeys);
+        return next;
+      });
+    },
+    [askedKeys, frame, persistInternal],
+  );
+
   // After an answer is committed, score the current objective, update the
   // hidden model, and pick the next question. Runs on Next and Skip.
   //
