@@ -102,11 +102,15 @@ const generic: Record<string, FieldProfile["heuristicExtract"]> = {
 
 // Event site specifics
 const eventSpec: Record<string, FieldProfile["heuristicExtract"]> = {
-  event_date: (t) => has(t, DATE_RE),
+  event_date: (t) =>
+    combine(
+      has(t, DATE_RE),
+      anyOf(t, /\bon\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b/i),
+    ),
   privacy: (t) => anyOf(t, /\b(public|private|password|invite[- ]?only|unlisted)\b/i),
   rsvp_fields: (t) => anyOf(t, /\b(rsvp|dietary|plus[- ]one|allergies|meal choice)\b/i),
   guest_count: (t) => {
-    const num = t.match(/\b(\d{2,5})\s*(guests?|people|invitees?|attendees?)\b/i);
+    const num = t.match(/\b(?:about|around|roughly|approximately|~)?\s*(\d{2,5})\s*(guests?|people|invitees?|attendees?)\b/i);
     if (num) return { confidence: 0.9, evidence: num[0] };
     return anyOf(t, /\b(guest count|invite list|guest list)\b/i);
   },
