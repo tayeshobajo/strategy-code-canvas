@@ -33,7 +33,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 export const Route = createFileRoute("/portal")({
   ssr: false,
   beforeLoad: async ({ location }) => {
-    const PUBLIC_PATHS = ["/portal/login", "/portal/access-denied"];
+    const PUBLIC_PATHS = ["/portal/login", "/portal/access-denied", "/portal/roadmap-mockup"];
     if (PUBLIC_PATHS.includes(location.pathname)) {
       return { user: null };
     }

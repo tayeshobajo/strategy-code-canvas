@@ -1,14 +1,14 @@
 /**
- * Phase 14 automated invariant (extended):
- *   Across a 5+ turn synthetic conversation, the planner MUST NOT pick a
- *   field as the next question if that field already sits at or above the
- *   frame's confidence threshold in knownFacts.
+ * Phase 14 automated invariant (parametrized):
+ *   Across N-turn synthetic conversations (N ∈ {5, 6, 7}), and across
+ *   multiple deterministic answer-order seeds, the planner MUST NOT pick
+ *   a field as the next question if that field already sits at or above
+ *   the frame's confidence threshold in knownFacts.
  *
- * This extends planner.no-repeat-when-known.test.ts with longer scripts
- * (6 answered turns per scenario) to catch regressions that only appear
- * once the memory is dense and the planner is forced to pick from a
- * narrower pool of still-open gaps. It also asserts that no field key
- * is ever picked twice while it remains ≥ threshold.
+ * The seed permutes the order in which we feed the user's answers so we
+ * exercise different memory-density trajectories without changing the
+ * information they carry. If any (frame × length × seed) combination
+ * violates the invariant, the test fails with the specific triple.
  */
 
 import { describe, expect, it } from "vitest";
@@ -23,11 +23,7 @@ import {
   type IntakeMemory,
 } from "../intake-memory";
 
-type Scenario = {
-  frame: IntakeFrame;
-  opener: string;
-  turns: string[];
-};
+type Scenario = { frame: IntakeFrame; opener: string; turns: string[] };
 
 const SCENARIOS: Scenario[] = [
   {
@@ -41,6 +37,7 @@ const SCENARIOS: Scenario[] = [
       "I have a Google Sheets guest list and a family photo for the landing page.",
       "Budget is around $500 total. I'll manage it myself, no dev team.",
       "Success looks like 100+ confirmed RSVPs with meal counts before August 15.",
+      "Registry link and directions/parking notes should also be on the page.",
     ],
   },
   {
@@ -48,12 +45,13 @@ const SCENARIOS: Scenario[] = [
     opener:
       "Everything runs through me. Sales, onboarding, delivery. I want to step back to strategy and coaching.",
     turns: [
-      "Biggest bottleneck is client onboarding. After they say yes, I run the kickoff and set up the account.",
-      "In 12 months I want a $2M practice where I only run strategy calls. Everything else is a team member or a system.",
+      "Biggest bottleneck is client onboarding — I run every kickoff by hand.",
+      "In 12 months I want a $2M practice where I only run strategy calls.",
       "Practically I need a client success lead and an onboarding SOP with a portal.",
-      "The one asset today is my delivery playbook in Notion.",
+      "One asset I already have is a 12k newsletter list and a strong referral network.",
       "Current revenue is $900K ARR with 60% margin. Team of two contractors.",
-      "First 90 days I would hire the CS lead and document the onboarding SOP.",
+      "First 90 days I would hire the CS lead and document the onboarding SOP by Sep 2026.",
+      "Long term I want to be positioned as the operator's coach in my niche over ten years.",
     ],
   },
   {
@@ -67,6 +65,7 @@ const SCENARIOS: Scenario[] = [
       "We already pay for HubSpot Starter, Zapier, and Google Workspace.",
       "Two people will use it — me and my assistant. Assistant handles first-touch.",
       "Success: zero dropped follow-ups over 30 days and a weekly pipeline snapshot.",
+      "Stages: discovery, proposal, close. Referrals are our best inbound source.",
     ],
   },
   {
@@ -80,9 +79,32 @@ const SCENARIOS: Scenario[] = [
       "About 40 active clients. Report needs to be generated automatically by 9am Monday.",
       "Output should be a shared Google Doc per client plus a summary dashboard.",
       "Success: ops team spends under 1 hour per week reviewing instead of 8.",
+      "Users are the ops team plus the account managers on the sales side.",
     ],
   },
 ];
+
+const LENGTHS = [5, 6, 7] as const;
+const SEEDS = [1, 2, 3] as const;
+
+/** Tiny deterministic LCG so we don't need a dep. */
+function makeRng(seed: number): () => number {
+  let s = seed >>> 0 || 1;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 0xffffffff;
+  };
+}
+
+/** Fisher–Yates with a deterministic RNG. */
+function shuffled<T>(arr: readonly T[], rng: () => number): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 function applyText(memory: IntakeMemory, frame: IntakeFrame, text: string): IntakeMemory {
   const profile = getFrameProfile(frame)!;
@@ -94,64 +116,66 @@ function applyText(memory: IntakeMemory, frame: IntakeFrame, text: string): Inta
   return mergeFacts(memory, patch);
 }
 
-describe("planner — never re-asks a known field across 5+ turn conversations", () => {
+describe("planner — no repeat across variable-length, multi-seed conversations", () => {
   for (const sc of SCENARIOS) {
-    it(`${sc.frame} — ${sc.turns.length}-turn walk never repeats a satisfied field`, () => {
-      const profile = getFrameProfile(sc.frame)!;
-      const threshold = profile.confidenceThreshold;
-      let memory = emptyMemory(sc.frame);
-      memory = applyText(memory, sc.frame, sc.opener);
+    for (const length of LENGTHS) {
+      for (const seed of SEEDS) {
+        it(`${sc.frame} · length=${length} · seed=${seed}`, () => {
+          const profile = getFrameProfile(sc.frame)!;
+          const threshold = profile.confidenceThreshold;
+          const rng = makeRng(seed * 100 + length);
+          const script = shuffled(sc.turns, rng).slice(0, length);
 
-      const violations: string[] = [];
-      const repeats: string[] = [];
-      const askedWhileSatisfied = new Set<string>();
-      const askedKeys: string[] = [];
+          let memory = emptyMemory(sc.frame);
+          memory = applyText(memory, sc.frame, sc.opener);
 
-      for (let turn = 0; turn < sc.turns.length; turn += 1) {
-        const decision = planNextTurn(sc.frame, memory);
-        if (decision.kind !== "ask") break;
+          const violations: string[] = [];
+          const repeats: string[] = [];
+          const askedWhileSatisfied = new Set<string>();
+          const askedKeys: string[] = [];
 
-        const fk = decision.gap.field.key;
-        const prior = memory.knownFacts[fk]?.confidence ?? 0;
+          for (let turn = 0; turn < script.length; turn += 1) {
+            const decision = planNextTurn(sc.frame, memory);
+            if (decision.kind !== "ask") break;
 
-        if (prior >= threshold) {
-          violations.push(
-            `turn ${turn}: picked '${fk}' with prior confidence ${prior.toFixed(
-              2,
-            )} ≥ threshold ${threshold}`,
-          );
-        }
+            const fk = decision.gap.field.key;
+            const prior = memory.knownFacts[fk]?.confidence ?? 0;
+            if (prior >= threshold) {
+              violations.push(
+                `[${sc.frame} L${length} S${seed}] turn ${turn}: picked '${fk}' with prior ${prior.toFixed(2)} ≥ ${threshold}`,
+              );
+            }
+            if (askedWhileSatisfied.has(fk)) {
+              repeats.push(
+                `[${sc.frame} L${length} S${seed}] turn ${turn}: re-picked '${fk}' after satisfaction`,
+              );
+            }
 
-        // Repeat guard: a key must not appear twice while it is at/above threshold.
-        if (askedWhileSatisfied.has(fk)) {
-          repeats.push(`turn ${turn}: re-picked '${fk}' after it was already satisfied`);
-        }
+            memory = recordQuestion(memory, {
+              fieldKey: fk,
+              question: decision.gap.field.label,
+              askedAt: new Date().toISOString(),
+            });
+            const answer = script[turn];
+            memory = recordAnswer(memory, {
+              fieldKey: fk,
+              response: answer,
+              answeredAt: new Date().toISOString(),
+            });
+            memory = applyText(memory, sc.frame, answer);
+            askedKeys.push(fk);
 
-        memory = recordQuestion(memory, {
-          fieldKey: fk,
-          question: decision.gap.field.label,
-          askedAt: new Date().toISOString(),
+            if ((memory.knownFacts[fk]?.confidence ?? 0) >= threshold) {
+              askedWhileSatisfied.add(fk);
+            }
+          }
+
+          expect(violations, violations.join("\n")).toEqual([]);
+          expect(repeats, repeats.join("\n")).toEqual([]);
+          const final = planNextTurn(sc.frame, memory);
+          expect(askedKeys.length >= Math.min(length, 3) || final.kind === "done").toBe(true);
         });
-        const answer = sc.turns[turn];
-        memory = recordAnswer(memory, {
-          fieldKey: fk,
-          response: answer,
-          answeredAt: new Date().toISOString(),
-        });
-        memory = applyText(memory, sc.frame, answer);
-        askedKeys.push(fk);
-
-        const post = memory.knownFacts[fk]?.confidence ?? 0;
-        if (post >= threshold) askedWhileSatisfied.add(fk);
       }
-
-      expect(violations, violations.join("\n")).toEqual([]);
-      expect(repeats, repeats.join("\n")).toEqual([]);
-
-      // Either the planner ran ≥5 productive turns, or it legitimately
-      // reached "done" (enough_signal) — both are acceptable outcomes.
-      const finalDecision = planNextTurn(sc.frame, memory);
-      expect(askedKeys.length >= 5 || finalDecision.kind === "done").toBe(true);
-    });
+    }
   }
 });
