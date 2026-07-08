@@ -940,6 +940,8 @@ function WriteIntake() {
               value: v.value,
             }))
           : [];
+        const previousAttempt = (answers[objectiveKey]?.response ?? "").trim();
+        const isReask = askedKeys.includes(objectiveKey) && previousAttempt.length > 0;
         const mod = await import("@/lib/intake-question.functions");
         const res = await mod.generateAnchorWording({
           data: {
@@ -950,6 +952,8 @@ function WriteIntake() {
             opening,
             prior_answers: priors,
             context_facts,
+            previous_attempt: previousAttempt.slice(0, 1200),
+            is_reask: isReask,
           },
         });
         if (cancelled) return;
