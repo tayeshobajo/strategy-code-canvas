@@ -2470,6 +2470,7 @@ export type Database = {
           milestone_id: string
           name: string
           owner_email: string | null
+          phase: string | null
           priority: string
           project_id: string
           purpose: string | null
@@ -2497,6 +2498,7 @@ export type Database = {
           milestone_id: string
           name: string
           owner_email?: string | null
+          phase?: string | null
           priority?: string
           project_id: string
           purpose?: string | null
@@ -2524,6 +2526,7 @@ export type Database = {
           milestone_id?: string
           name?: string
           owner_email?: string | null
+          phase?: string | null
           priority?: string
           project_id?: string
           purpose?: string | null
