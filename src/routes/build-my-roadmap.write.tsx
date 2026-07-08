@@ -992,6 +992,11 @@ function WriteIntake() {
           answeredCount={
             activeFrameDef.objectives.filter((o) => answers[o.key]?.response.trim()).length
           }
+          resumeToken={resumeToken}
+          ensureResumeToken={ensureResumeToken}
+          attachments={attachments}
+          onAttachmentsChange={setAttachments}
+          onMediaEvidence={bumpScoresFromMedia}
         />
       )}
 
