@@ -30,15 +30,43 @@ export type AnswerHistoryEntry = {
   answeredAt: string;
 };
 
+/**
+ * Side-fact captured from free text (honoree name, event type, city, …).
+ * Not an objective on the frame — used to colour acknowledgements and
+ * enrich generator prompts without expanding the required-field set.
+ */
+export type ContextFact = { value: string; evidence: string };
+
 export type IntakeMemory = {
   frame: IntakeFrame | null;
   knownFacts: Record<string, KnownFact>;
+  /** Non-objective side facts (Phase 14). */
+  contextFacts: Record<string, ContextFact>;
   questionHistory: QuestionHistoryEntry[];
   answerHistory: AnswerHistoryEntry[];
 };
 
 export function emptyMemory(frame: IntakeFrame | null = null): IntakeMemory {
-  return { frame, knownFacts: {}, questionHistory: [], answerHistory: [] };
+  return {
+    frame,
+    knownFacts: {},
+    contextFacts: {},
+    questionHistory: [],
+    answerHistory: [],
+  };
+}
+
+/** Merge context facts. First non-empty value wins (they are static hints). */
+export function mergeContextFacts(
+  memory: IntakeMemory,
+  facts: Record<string, ContextFact>,
+): IntakeMemory {
+  const next = { ...(memory.contextFacts ?? {}) };
+  for (const [k, v] of Object.entries(facts)) {
+    if (!v || !v.value.trim()) continue;
+    if (!next[k]) next[k] = { value: v.value.trim(), evidence: v.evidence };
+  }
+  return { ...memory, contextFacts: next };
 }
 
 /** Merge new per-field extractions into memory. Higher confidence wins. */

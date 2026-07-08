@@ -23,11 +23,13 @@ import {
 } from "../intake-frames";
 import { planNextTurn, type PlanDecision } from "./conversation-planner";
 import { getFrameProfile } from "./frame-profiles";
+import { extractContextFacts } from "./heuristic-extract";
 import {
   confidenceScore,
   emptyMemory,
   missingFields,
   type AnswerHistoryEntry,
+  type ContextFact,
   type IntakeMemory,
   type QuestionHistoryEntry,
 } from "./intake-memory";
@@ -59,12 +61,14 @@ export type PlannerSnapshot = {
   next_objective: IntakeObjective | null;
   /** Convenience mirrors so callers/logs don't re-derive. */
   known_facts: IntakeMemory["knownFacts"];
+  context_facts: IntakeMemory["contextFacts"];
   missing_fields: string[];
   question_history: QuestionHistoryEntry[];
   answer_history: AnswerHistoryEntry[];
   confidence_score: number; // 0..1
   confidence_threshold: number; // 0..1 (per-frame)
   enough_signal: boolean;
+  selected_reason: string;
   /** Full ranked candidate list for debug + tuning. Empty when done/redirect. */
   candidates: PlannerCandidateDebug[];
 };
@@ -110,6 +114,19 @@ export function buildIntakeMemory(
         response: resp,
         answeredAt: new Date(0).toISOString(),
       });
+    }
+  }
+
+  // Phase 14: harvest context facts from every prior answer so acks and
+  // downstream logs can name them. Uses the client-safe heuristic scanner.
+  if (frame) {
+    for (const key of askedKeys) {
+      const resp = answers[key]?.response ?? "";
+      if (!resp.trim()) continue;
+      const ctx = extractContextFacts(frame, resp);
+      for (const [k, v] of Object.entries(ctx) as Array<[string, ContextFact]>) {
+        if (!memory.contextFacts[k]) memory.contextFacts[k] = v;
+      }
     }
   }
 
@@ -168,12 +185,14 @@ export function planNextObjective(
     decision,
     next_objective,
     known_facts: memory.knownFacts,
+    context_facts: memory.contextFacts,
     missing_fields: missing,
     question_history: memory.questionHistory,
     answer_history: memory.answerHistory,
     confidence_score: conf,
     confidence_threshold: threshold,
     enough_signal: enough,
+    selected_reason: decision.selected_reason,
     candidates,
   };
 }

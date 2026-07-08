@@ -38,6 +38,10 @@ export type FrameProfile = {
   optionalFields: FieldProfile[];
   /** Confidence 0..1 at which planner may stop. Higher = more thorough intake. */
   confidenceThreshold: number;
+  /** Fields that MUST be captured before enough_signal can fire (Phase 14). */
+  blockers: string[];
+  /** At least one of these must have confidence ≥ 0.6 (success outcome). */
+  successOutcomeKeys: string[];
 };
 
 /* ---------- Small heuristic building blocks ---------- */
@@ -102,11 +106,15 @@ const generic: Record<string, FieldProfile["heuristicExtract"]> = {
 
 // Event site specifics
 const eventSpec: Record<string, FieldProfile["heuristicExtract"]> = {
-  event_date: (t) => has(t, DATE_RE),
+  event_date: (t) =>
+    combine(
+      has(t, DATE_RE),
+      anyOf(t, /\bon\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b/i),
+    ),
   privacy: (t) => anyOf(t, /\b(public|private|password|invite[- ]?only|unlisted)\b/i),
   rsvp_fields: (t) => anyOf(t, /\b(rsvp|dietary|plus[- ]one|allergies|meal choice)\b/i),
   guest_count: (t) => {
-    const num = t.match(/\b(\d{2,5})\s*(guests?|people|invitees?|attendees?)\b/i);
+    const num = t.match(/\b(?:about|around|roughly|approximately|~)?\s*(\d{2,5})\s*(guests?|people|invitees?|attendees?)\b/i);
     if (num) return { confidence: 0.9, evidence: num[0] };
     return anyOf(t, /\b(guest count|invite list|guest list)\b/i);
   },
@@ -122,7 +130,7 @@ const roadmapSpec: Record<string, FieldProfile["heuristicExtract"]> = {
       wordDense(t, 12, "answer describes current state"),
     ),
   weight: (t) =>
-    anyOf(t, /\b(runs? through me|bottleneck|stuck|overwhelm|too much|carry|drag|dependent on me|only I|everything I|manual)\b/i),
+    anyOf(t, /\b(runs?\s+through\s+me|everything\s+runs?\s+through\s+me|I['’]?m\s+the\s+bottleneck|bottleneck|stuck|overwhelm|too much|carry|drag|dependent on me|only I|everything I|manual)\b/i),
   point_b: (t) =>
     combine(
       anyOf(t, /\b(24 months?|two years?|by then|goal|vision|want|hope|scale|grow|systems? in place|running without me)\b/i),
@@ -180,38 +188,38 @@ const genericProse: FieldProfile["heuristicExtract"] = (t) =>
 const IMPORTANCE_BY_KEY: Record<string, 1 | 2 | 3 | 4 | 5> = {
   // Event
   event_date: 5,
-  privacy: 3,
-  rsvp_fields: 4,
+  rsvp_fields: 5,
   guest_count: 4,
+  privacy: 3,
   extras: 2,
   // Common
   goal: 5,
   deadline: 4,
   audience: 4,
   features: 4,
-  assets: 2,
+  assets: 3,
   constraints: 2,
   // Roadmap
   point_a: 5,
   weight: 5,
   point_b: 5,
+  practical: 4,
   unbuilt_asset: 3,
   point_c: 2,
-  practical: 2,
   // Internal tool
   users: 5,
   task: 5,
-  today: 3,
-  data: 3,
+  today: 4,
+  data: 4,
   // CRM
   pipeline_today: 5,
-  sources: 4,
-  follow_up_gap: 3,
+  sources: 5,
+  follow_up_gap: 4,
   // Automation
   manual_today: 5,
   trigger: 5,
+  systems: 4,
   volume: 3,
-  systems: 3,
 };
 
 const DEPENDS_BY_KEY: Record<string, string[]> = {
@@ -256,16 +264,38 @@ const CONFIDENCE_THRESHOLD_BY_FRAME: Partial<Record<IntakeFrame, number>> = {
 
 const DEFAULT_FRAME_CONFIDENCE_THRESHOLD = 0.75;
 
+const BLOCKERS_BY_FRAME: Partial<Record<IntakeFrame, string[]>> = {
+  "project.event_site": ["event_date"],
+  roadmap: ["point_a", "weight"],
+  "project.internal_tool": ["users", "task"],
+  "project.crm": ["sources", "pipeline_today"],
+  "project.automation": ["manual_today", "trigger"],
+};
+
+const SUCCESS_OUTCOME_BY_FRAME: Partial<Record<IntakeFrame, string[]>> = {
+  "project.event_site": ["goal", "rsvp_fields"],
+  roadmap: ["point_b"],
+  "project.internal_tool": ["task"],
+  "project.crm": ["pipeline_today"],
+  "project.automation": ["manual_today"],
+};
+
 function build(frame: IntakeFrame): FrameProfile | null {
   const def = FRAME_DEFINITIONS[frame];
   if (!def || def.objectives.length === 0) return null;
   const fields = def.objectives.map(toFieldProfile);
+  const required = fields.filter((f) => f.required);
+  const requiredKeys = new Set(required.map((f) => f.key));
+  const blockers = (BLOCKERS_BY_FRAME[frame] ?? []).filter((k) => requiredKeys.has(k));
+  const success = SUCCESS_OUTCOME_BY_FRAME[frame] ?? [];
   return {
     frame,
-    requiredFields: fields.filter((f) => f.required),
+    requiredFields: required,
     optionalFields: fields.filter((f) => !f.required),
     confidenceThreshold:
       CONFIDENCE_THRESHOLD_BY_FRAME[frame] ?? DEFAULT_FRAME_CONFIDENCE_THRESHOLD,
+    blockers,
+    successOutcomeKeys: success,
   };
 }
 

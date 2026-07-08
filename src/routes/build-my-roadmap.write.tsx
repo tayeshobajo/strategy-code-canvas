@@ -721,12 +721,14 @@ function WriteIntake() {
       phase,
       current_objective_key: currentObjective?.key ?? null,
       known_facts: snapshot.known_facts,
+      context_facts: snapshot.context_facts,
       missing_fields: snapshot.missing_fields,
       question_history: snapshot.question_history,
       answer_history: snapshot.answer_history,
       confidence_score: snapshot.confidence_score,
       confidence_threshold: snapshot.confidence_threshold,
       enough_signal: snapshot.enough_signal,
+      selected_reason: snapshot.selected_reason,
       candidates: snapshot.candidates,
       next_gap:
         snapshot.decision.kind === "ask"
@@ -920,6 +922,15 @@ function WriteIntake() {
               }))
           : [];
         const opening = answers[OPEN_KEY]?.response ?? "";
+        const plannerSnap = frame
+          ? planNextObjective(frame, answers, askedKeys, scores)
+          : null;
+        const context_facts = plannerSnap
+          ? Object.entries(plannerSnap.context_facts).map(([k, v]) => ({
+              key: k,
+              value: v.value,
+            }))
+          : [];
         const mod = await import("@/lib/intake-question.functions");
         const res = await mod.generateAnchorWording({
           data: {
@@ -929,6 +940,7 @@ function WriteIntake() {
             objective_anchor: currentObjective.anchor,
             opening,
             prior_answers: priors,
+            context_facts,
           },
         });
         if (cancelled) return;
