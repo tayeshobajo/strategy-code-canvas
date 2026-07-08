@@ -264,16 +264,38 @@ const CONFIDENCE_THRESHOLD_BY_FRAME: Partial<Record<IntakeFrame, number>> = {
 
 const DEFAULT_FRAME_CONFIDENCE_THRESHOLD = 0.75;
 
+const BLOCKERS_BY_FRAME: Partial<Record<IntakeFrame, string[]>> = {
+  "project.event_site": ["event_date"],
+  roadmap: ["point_a", "weight"],
+  "project.internal_tool": ["users", "task"],
+  "project.crm": ["sources", "pipeline_today"],
+  "project.automation": ["manual_today", "trigger"],
+};
+
+const SUCCESS_OUTCOME_BY_FRAME: Partial<Record<IntakeFrame, string[]>> = {
+  "project.event_site": ["goal", "rsvp_fields"],
+  roadmap: ["point_b"],
+  "project.internal_tool": ["task"],
+  "project.crm": ["pipeline_today"],
+  "project.automation": ["manual_today"],
+};
+
 function build(frame: IntakeFrame): FrameProfile | null {
   const def = FRAME_DEFINITIONS[frame];
   if (!def || def.objectives.length === 0) return null;
   const fields = def.objectives.map(toFieldProfile);
+  const required = fields.filter((f) => f.required);
+  const requiredKeys = new Set(required.map((f) => f.key));
+  const blockers = (BLOCKERS_BY_FRAME[frame] ?? []).filter((k) => requiredKeys.has(k));
+  const success = SUCCESS_OUTCOME_BY_FRAME[frame] ?? [];
   return {
     frame,
-    requiredFields: fields.filter((f) => f.required),
+    requiredFields: required,
     optionalFields: fields.filter((f) => !f.required),
     confidenceThreshold:
       CONFIDENCE_THRESHOLD_BY_FRAME[frame] ?? DEFAULT_FRAME_CONFIDENCE_THRESHOLD,
+    blockers,
+    successOutcomeKeys: success,
   };
 }
 
