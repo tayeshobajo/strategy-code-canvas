@@ -126,7 +126,7 @@ const roadmapSpec: Record<string, FieldProfile["heuristicExtract"]> = {
       wordDense(t, 12, "answer describes current state"),
     ),
   weight: (t) =>
-    anyOf(t, /\b(runs? through me|bottleneck|stuck|overwhelm|too much|carry|drag|dependent on me|only I|everything I|manual)\b/i),
+    anyOf(t, /\b(runs?\s+through\s+me|everything\s+runs?\s+through\s+me|I['’]?m\s+the\s+bottleneck|bottleneck|stuck|overwhelm|too much|carry|drag|dependent on me|only I|everything I|manual)\b/i),
   point_b: (t) =>
     combine(
       anyOf(t, /\b(24 months?|two years?|by then|goal|vision|want|hope|scale|grow|systems? in place|running without me)\b/i),
