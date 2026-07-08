@@ -1307,6 +1307,7 @@ function ObjectiveScreen({
   answeredCount,
   scoring,
   generatedQuestion,
+  generatedAck,
   generatingQuestion,
   onChange,
   onAdoptReflection,
@@ -1327,6 +1328,7 @@ function ObjectiveScreen({
   answeredCount: number;
   scoring?: boolean;
   generatedQuestion?: string | null;
+  generatedAck?: string | null;
   generatingQuestion?: boolean;
   onChange: (v: string) => void;
   onAdoptReflection?: (text: string) => void;
