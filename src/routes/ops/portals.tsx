@@ -44,9 +44,8 @@ function PortalsPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader
-        eyebrow="Operator"
         title="Client submissions"
-        description="Every client portal after payment — same source the client sees."
+        subtitle="Every client portal after payment — same source the client sees."
       />
 
       <Card className="p-4 sm:p-5">
