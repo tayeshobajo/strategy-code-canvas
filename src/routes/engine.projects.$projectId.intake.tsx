@@ -63,6 +63,11 @@ function AdaptiveIntakeReviewPage() {
         </div>
       </div>
 
+      <IntakeVisibilityPanel
+        runs={data.extraction_runs}
+        sources={data.sources}
+      />
+
       {!data.linked ? (
         <SectionCard title="No adaptive intake linked">
           <EmptyState
