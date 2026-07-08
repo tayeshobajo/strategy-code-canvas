@@ -725,7 +725,9 @@ function WriteIntake() {
       question_history: snapshot.question_history,
       answer_history: snapshot.answer_history,
       confidence_score: snapshot.confidence_score,
+      confidence_threshold: snapshot.confidence_threshold,
       enough_signal: snapshot.enough_signal,
+      candidates: snapshot.candidates,
       next_gap:
         snapshot.decision.kind === "ask"
           ? {
@@ -733,6 +735,9 @@ function WriteIntake() {
               label: snapshot.decision.gap.field.label,
               importance: snapshot.decision.gap.field.importance,
               confidence: snapshot.decision.gap.confidence,
+              information_gain: snapshot.decision.gap.information_gain,
+              confidence_impact: snapshot.decision.gap.confidence_impact,
+              flow_bonus: snapshot.decision.gap.flow_bonus,
               score: snapshot.decision.gap.score,
             }
           : null,
