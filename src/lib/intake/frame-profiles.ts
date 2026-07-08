@@ -184,38 +184,38 @@ const genericProse: FieldProfile["heuristicExtract"] = (t) =>
 const IMPORTANCE_BY_KEY: Record<string, 1 | 2 | 3 | 4 | 5> = {
   // Event
   event_date: 5,
-  privacy: 3,
-  rsvp_fields: 4,
+  rsvp_fields: 5,
   guest_count: 4,
+  privacy: 3,
   extras: 2,
   // Common
   goal: 5,
   deadline: 4,
   audience: 4,
   features: 4,
-  assets: 2,
+  assets: 3,
   constraints: 2,
   // Roadmap
   point_a: 5,
   weight: 5,
   point_b: 5,
+  practical: 4,
   unbuilt_asset: 3,
   point_c: 2,
-  practical: 2,
   // Internal tool
   users: 5,
   task: 5,
-  today: 3,
-  data: 3,
+  today: 4,
+  data: 4,
   // CRM
   pipeline_today: 5,
-  sources: 4,
-  follow_up_gap: 3,
+  sources: 5,
+  follow_up_gap: 4,
   // Automation
   manual_today: 5,
   trigger: 5,
+  systems: 4,
   volume: 3,
-  systems: 3,
 };
 
 const DEPENDS_BY_KEY: Record<string, string[]> = {
