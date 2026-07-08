@@ -236,6 +236,9 @@ export const loadDraft = createServerFn({ method: "POST" })
       filename: string;
       size: number;
       mime: string | null;
+      question_id?: string | null;
+      kind?: "image" | "audio" | "video" | "doc";
+      summary?: string | null;
     };
     const { normalizeIntakeSources } = await import("@/lib/intake-sources.functions");
     if (!row)
@@ -266,6 +269,11 @@ export const loadDraft = createServerFn({ method: "POST" })
       filename: String(a.filename ?? ""),
       size: Number(a.size ?? 0),
       mime: a.mime == null ? null : String(a.mime),
+      question_id: a.question_id == null ? null : String(a.question_id),
+      kind: (["image","audio","video","doc"] as const).includes(a.kind as "image")
+        ? (a.kind as "image" | "audio" | "video" | "doc")
+        : undefined,
+      summary: a.summary == null ? null : String(a.summary),
     }));
     const sources = normalizeIntakeSources(row.sources);
     return { found: true as const, answers, contact, attachments, sources };
@@ -679,13 +687,28 @@ async function notifyOperatorsOfIntake(input: {
 // "<resume_token>/<filename>" paths. Metadata is recorded here (service role)
 // so submitIntake can compile it into the artifact without trusting the client.
 
+type AttachmentKind = "image" | "audio" | "video" | "doc";
+
 type StoredAttachment = {
   storage_path: string;
   filename: string;
   size: number;
   mime: string | null;
   uploaded_at: string;
+  question_id?: string | null;
+  kind?: AttachmentKind;
+  summary?: string | null;
 };
+
+function kindFromMime(mime: string | null | undefined, ext: string): AttachmentKind {
+  const m = (mime ?? "").toLowerCase();
+  if (m.startsWith("image/") || ["png","jpg","jpeg","gif","webp","heic","svg"].includes(ext)) return "image";
+  if (m.startsWith("audio/") || ["mp3","wav","m4a","ogg","webm"].includes(ext) && m.startsWith("audio")) return "audio";
+  if (m.startsWith("audio/")) return "audio";
+  if (m.startsWith("video/") || ["mp4","mov","webm"].includes(ext) && m.startsWith("video")) return "video";
+  if (m.startsWith("video/")) return "video";
+  return "doc";
+}
 
 function normalizeAttachments(raw: unknown): StoredAttachment[] {
   const arr = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
@@ -695,6 +718,11 @@ function normalizeAttachments(raw: unknown): StoredAttachment[] {
     size: Number(a.size ?? 0),
     mime: a.mime == null ? null : String(a.mime),
     uploaded_at: String(a.uploaded_at ?? new Date(0).toISOString()),
+    question_id: a.question_id == null ? null : String(a.question_id),
+    kind: (["image","audio","video","doc"] as const).includes(a.kind as AttachmentKind)
+      ? (a.kind as AttachmentKind)
+      : undefined,
+    summary: a.summary == null ? null : String(a.summary),
   }));
 }
 
@@ -708,6 +736,9 @@ const ATTACHMENT_ALLOWED_EXT = new Set<string>([
   "xls", "xlsx", "csv", "ppt", "pptx", "key",
   "png", "jpg", "jpeg", "gif", "webp", "heic", "svg",
   "zip", "json", "yaml", "yml",
+  // Media (in-conversation uploads)
+  "mp3", "wav", "m4a", "ogg", "webm",
+  "mp4", "mov",
 ]);
 // Mime prefixes accepted regardless of extension (browsers vary on which
 // mime string they emit). Uploads without a declared mime are accepted as
@@ -727,7 +758,11 @@ const ATTACHMENT_ALLOWED_MIME_PREFIXES: ReadonlyArray<string> = [
   "application/octet-stream", // some browsers use this for unknown; extension guard still applies
   "text/",
   "image/",
+  "audio/",
+  "video/",
 ];
+
+const ATTACHMENT_MAX_INTAKE = 20;
 
 function extensionOf(filename: string): string {
   const dot = filename.lastIndexOf(".");
@@ -742,6 +777,8 @@ function isMimeAllowed(mime: string | null | undefined): boolean {
   return ATTACHMENT_ALLOWED_MIME_PREFIXES.some((p) => normalized.startsWith(p));
 }
 
+const QUESTION_ID_RE = /^[A-Za-z0-9_.:-]{1,64}$/;
+
 const AttachmentInput = z.object({
   resume_token: z.string().regex(UUID_RE),
   storage_path: z.string().min(1).max(1024),
@@ -752,6 +789,7 @@ const AttachmentInput = z.object({
     .positive({ message: "File is empty" })
     .max(ATTACHMENT_MAX_BYTES, { message: "File exceeds 25 MB" }),
   mime: z.string().max(200).nullable().optional(),
+  question_id: z.string().regex(QUESTION_ID_RE).nullable().optional(),
 });
 
 export const recordIntakeAttachment = createServerFn({ method: "POST" })
@@ -796,9 +834,11 @@ export const recordIntakeAttachment = createServerFn({ method: "POST" })
     const current = normalizeAttachments(existing?.attachments);
     // Dedupe by storage_path — repeated uploads should replace, not stack.
     const filtered = current.filter((a) => a.storage_path !== data.storage_path);
-    if (filtered.length >= 10) {
-      throw new Error("Attachment limit reached (10 files per intake).");
+    if (filtered.length >= ATTACHMENT_MAX_INTAKE) {
+      throw new Error(`Attachment limit reached (${ATTACHMENT_MAX_INTAKE} files per intake).`);
     }
+    // Server-authoritative kind derivation — never trusted from client.
+    const kind = kindFromMime(data.mime ?? null, ext);
     const next: StoredAttachment[] = [
       ...filtered,
       {
@@ -807,6 +847,9 @@ export const recordIntakeAttachment = createServerFn({ method: "POST" })
         size: data.size,
         mime: data.mime ?? null,
         uploaded_at: new Date().toISOString(),
+        question_id: data.question_id ?? null,
+        kind,
+        summary: null,
       },
     ];
 
@@ -866,6 +909,49 @@ export const removeIntakeAttachment = createServerFn({ method: "POST" })
       .update({ attachments: next, updated_at: new Date().toISOString() })
       .eq("resume_token", data.resume_token);
     if (error) throw new Error("Could not remove attachment");
+    return { attachments: next };
+  });
+
+// Store an AI-generated evidence summary on an existing attachment row.
+// Called by describeIntakeMedia after a media file is transcribed/described.
+const SetSummaryInput = z.object({
+  resume_token: z.string().regex(UUID_RE),
+  storage_path: z.string().min(1).max(1024),
+  summary: z.string().max(4000),
+});
+export const setIntakeAttachmentSummary = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => SetSummaryInput.parse(input))
+  .handler(async ({ data }): Promise<{ attachments: StoredAttachment[] }> => {
+    if (!data.storage_path.startsWith(`${data.resume_token}/`)) {
+      throw new Error("Attachment path must live under this draft's folder");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existing } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        select: (s: string) => {
+          eq: (c: string, v: string) => {
+            maybeSingle: () => Promise<{ data: { attachments: unknown } | null }>;
+          };
+        };
+      }
+    )
+      .select("attachments")
+      .eq("resume_token", data.resume_token)
+      .maybeSingle();
+    const current = normalizeAttachments(existing?.attachments);
+    const next = current.map((a) =>
+      a.storage_path === data.storage_path ? { ...a, summary: data.summary.trim() || null } : a,
+    );
+    const { error } = await (
+      supabaseAdmin.from("intake_drafts") as unknown as {
+        update: (r: Record<string, unknown>) => {
+          eq: (c: string, v: string) => Promise<{ error: unknown }>;
+        };
+      }
+    )
+      .update({ attachments: next, updated_at: new Date().toISOString() })
+      .eq("resume_token", data.resume_token);
+    if (error) throw new Error("Could not save media summary");
     return { attachments: next };
   });
 

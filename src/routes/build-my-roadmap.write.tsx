@@ -49,6 +49,7 @@ import {
   scoreAnswer,
 } from "@/lib/intake-scoring";
 import { heuristicExtract } from "@/lib/intake/heuristic-extract";
+import { QuestionAttachments, type QuestionAttachmentRecord } from "@/components/intake/QuestionAttachments";
 /** Same threshold the server classifier uses. Duplicated here to keep
  * the classifier module out of the client bundle for a single constant. */
 const HIGH_CONFIDENCE_BAR = 70;
@@ -147,9 +148,7 @@ function WriteIntake() {
   const [phase, setPhase] = React.useState<Phase>("open");
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
   const [answers, setAnswers] = React.useState<Record<string, AnswerRow>>({});
-  const [attachments, setAttachments] = React.useState<
-    Array<{ storage_path: string; filename: string; size: number; mime: string | null }>
-  >([]);
+  const [attachments, setAttachments] = React.useState<QuestionAttachmentRecord[]>([]);
   // External sources (transcripts, notes, URLs). Treated as data-only
   // evidence. Written through server fns; the browser never persists them.
   const [sources, setSources] = React.useState<StoredIntakeSource[]>([]);
@@ -528,6 +527,42 @@ function WriteIntake() {
       });
     },
     [contact, scheduleSave],
+  );
+
+  // Ensure we have a resume_token to attach files against. Persists the
+  // draft if one hasn't been minted yet.
+  const ensureResumeToken = React.useCallback(async (): Promise<string> => {
+    if (resumeToken) return resumeToken;
+    await persist({ answers, contact });
+    const t = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
+    if (!t) throw new Error("Could not create draft to attach files to.");
+    setResumeToken(t);
+    return t;
+  }, [answers, contact, persist, resumeToken]);
+
+  // Feed a media-derived evidence summary into the planner's coverage model.
+  // Runs the same heuristic extractor used on typed answers so an image or
+  // voice note can credit objectives the user hasn't explicitly answered.
+  const bumpScoresFromMedia = React.useCallback(
+    (summary: string) => {
+      if (!frame || !summary.trim()) return;
+      const facts = heuristicExtract(frame, summary);
+      if (Object.keys(facts).length === 0) return;
+      setScores((prev) => {
+        const next = { ...prev };
+        let changed = false;
+        for (const [k, fact] of Object.entries(facts)) {
+          const bump = Math.round(fact.confidence * 100);
+          if (bump > (next[k] ?? 0)) {
+            next[k] = bump;
+            changed = true;
+          }
+        }
+        if (changed) persistInternal(next, askedKeys);
+        return next;
+      });
+    },
+    [askedKeys, frame, persistInternal],
   );
 
   // After an answer is committed, score the current objective, update the
@@ -957,6 +992,11 @@ function WriteIntake() {
           answeredCount={
             activeFrameDef.objectives.filter((o) => answers[o.key]?.response.trim()).length
           }
+          resumeToken={resumeToken}
+          ensureResumeToken={ensureResumeToken}
+          attachments={attachments}
+          onAttachmentsChange={setAttachments}
+          onMediaEvidence={bumpScoresFromMedia}
         />
       )}
 
@@ -1216,6 +1256,11 @@ function ObjectiveScreen({
   onPrev,
   onSkip,
   onReview,
+  resumeToken,
+  ensureResumeToken,
+  attachments,
+  onAttachmentsChange,
+  onMediaEvidence,
 }: {
   frameDef: FrameDefinition;
   objective: IntakeObjective;
@@ -1231,6 +1276,11 @@ function ObjectiveScreen({
   onPrev: () => void;
   onSkip: () => void;
   onReview: () => void;
+  resumeToken: string | null;
+  ensureResumeToken: () => Promise<string>;
+  attachments: QuestionAttachmentRecord[];
+  onAttachmentsChange: (next: QuestionAttachmentRecord[]) => void;
+  onMediaEvidence: (summary: string) => void;
 }) {
   const ref = React.useRef<HTMLTextAreaElement | null>(null);
   React.useEffect(() => {
@@ -1366,6 +1416,14 @@ function ObjectiveScreen({
           </div>
         </div>
       )}
+      <QuestionAttachments
+        questionId={objective.key}
+        resumeToken={resumeToken}
+        ensureResumeToken={ensureResumeToken}
+        attachments={attachments}
+        onChange={onAttachmentsChange}
+        onEvidence={onMediaEvidence}
+      />
       <ObjectiveDots frameDef={frameDef} currentKey={objective.key} answeredKeys={Object.keys({ [objective.key]: value.trim() })} filledAnswers={value.trim()} />
       <div className="flex items-center justify-between gap-3">
         <Button variant="ghost" onClick={onPrev} className="gap-2">
