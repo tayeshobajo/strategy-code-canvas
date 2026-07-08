@@ -608,7 +608,18 @@ function WriteIntake() {
       }
 
       try {
-        const nextScores = { ...scores, [key]: objectiveScore };
+        const nextScores: Record<string, number> = { ...scores, [key]: objectiveScore };
+        // Cross-objective evidence pass: scan the just-committed answer text
+        // against the whole frame profile so answers that incidentally cover
+        // other fields (dates, guest counts, systems) credit those fields
+        // and the planner skips them.
+        if (responseText.trim()) {
+          const facts = heuristicExtract(frame, responseText);
+          for (const [k, fact] of Object.entries(facts)) {
+            const evidenceScore = Math.round(fact.confidence * 100);
+            if (evidenceScore > (nextScores[k] ?? 0)) nextScores[k] = evidenceScore;
+          }
+        }
         const nextAsked = askedKeys.includes(key) ? askedKeys : [...askedKeys, key];
         setScores(nextScores);
         setAskedKeys(nextAsked);
