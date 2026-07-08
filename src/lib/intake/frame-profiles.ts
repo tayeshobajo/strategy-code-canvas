@@ -36,6 +36,8 @@ export type FrameProfile = {
   frame: IntakeFrame;
   requiredFields: FieldProfile[];
   optionalFields: FieldProfile[];
+  /** Confidence 0..1 at which planner may stop. Higher = more thorough intake. */
+  confidenceThreshold: number;
 };
 
 /* ---------- Small heuristic building blocks ---------- */
