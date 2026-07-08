@@ -67,9 +67,9 @@ function ProjectOverview() {
                   />
                   <div className="min-w-0 flex-1">
                     {nbaQ.data.href ? (
-                      <Link to={nbaQ.data.href} className="text-ink text-lg hover:underline">
+                      <a href={nbaQ.data.href} className="text-ink text-lg hover:underline">
                         {nbaQ.data.action}
-                      </Link>
+                      </a>
                     ) : (
                       <div className="text-ink text-lg">{nbaQ.data.action}</div>
                     )}
