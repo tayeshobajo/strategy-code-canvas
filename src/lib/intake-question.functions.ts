@@ -31,6 +31,16 @@ const GenerateInput = z.object({
     .max(12)
     .optional()
     .default([]),
+  context_facts: z
+    .array(
+      z.object({
+        key: z.string().trim().max(64),
+        value: z.string().trim().max(200),
+      }),
+    )
+    .max(20)
+    .optional()
+    .default([]),
 });
 
 export type GeneratedQuestion = {
