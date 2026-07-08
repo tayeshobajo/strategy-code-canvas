@@ -59,12 +59,14 @@ export type PlannerSnapshot = {
   next_objective: IntakeObjective | null;
   /** Convenience mirrors so callers/logs don't re-derive. */
   known_facts: IntakeMemory["knownFacts"];
+  context_facts: IntakeMemory["contextFacts"];
   missing_fields: string[];
   question_history: QuestionHistoryEntry[];
   answer_history: AnswerHistoryEntry[];
   confidence_score: number; // 0..1
   confidence_threshold: number; // 0..1 (per-frame)
   enough_signal: boolean;
+  selected_reason: string;
   /** Full ranked candidate list for debug + tuning. Empty when done/redirect. */
   candidates: PlannerCandidateDebug[];
 };
