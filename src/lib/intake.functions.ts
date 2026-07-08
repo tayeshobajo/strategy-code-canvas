@@ -679,13 +679,28 @@ async function notifyOperatorsOfIntake(input: {
 // "<resume_token>/<filename>" paths. Metadata is recorded here (service role)
 // so submitIntake can compile it into the artifact without trusting the client.
 
+type AttachmentKind = "image" | "audio" | "video" | "doc";
+
 type StoredAttachment = {
   storage_path: string;
   filename: string;
   size: number;
   mime: string | null;
   uploaded_at: string;
+  question_id?: string | null;
+  kind?: AttachmentKind;
+  summary?: string | null;
 };
+
+function kindFromMime(mime: string | null | undefined, ext: string): AttachmentKind {
+  const m = (mime ?? "").toLowerCase();
+  if (m.startsWith("image/") || ["png","jpg","jpeg","gif","webp","heic","svg"].includes(ext)) return "image";
+  if (m.startsWith("audio/") || ["mp3","wav","m4a","ogg","webm"].includes(ext) && m.startsWith("audio")) return "audio";
+  if (m.startsWith("audio/")) return "audio";
+  if (m.startsWith("video/") || ["mp4","mov","webm"].includes(ext) && m.startsWith("video")) return "video";
+  if (m.startsWith("video/")) return "video";
+  return "doc";
+}
 
 function normalizeAttachments(raw: unknown): StoredAttachment[] {
   const arr = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
@@ -695,6 +710,11 @@ function normalizeAttachments(raw: unknown): StoredAttachment[] {
     size: Number(a.size ?? 0),
     mime: a.mime == null ? null : String(a.mime),
     uploaded_at: String(a.uploaded_at ?? new Date(0).toISOString()),
+    question_id: a.question_id == null ? null : String(a.question_id),
+    kind: (["image","audio","video","doc"] as const).includes(a.kind as AttachmentKind)
+      ? (a.kind as AttachmentKind)
+      : undefined,
+    summary: a.summary == null ? null : String(a.summary),
   }));
 }
 
