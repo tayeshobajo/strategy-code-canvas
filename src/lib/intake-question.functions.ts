@@ -41,6 +41,10 @@ const GenerateInput = z.object({
     .max(20)
     .optional()
     .default([]),
+  /** Prior answer to the SAME objective, when the planner is re-asking. */
+  previous_attempt: z.string().trim().max(2000).optional().default(""),
+  /** True when the planner is re-asking this objective (clarify loop). */
+  is_reask: z.boolean().optional().default(false),
 });
 
 export type GeneratedQuestion = {
@@ -54,15 +58,20 @@ export type GeneratedQuestion = {
 const BANNED =
   /[—!]|(\bjust\b|\bvery\b|\breally\b|\bsimply\b|\bsolutions\b|\bsmart\b|\bintelligent\b|\bseamless\b|\bcutting-edge\b|\bhelp\b|\bdeliver\b|\bprovide\b|\boffer\b|\bleverage\b|\bunlock\b|\bempower\b)/i;
 
-function passesVoiceCheck(s: string, anchor: string): boolean {
+function passesVoiceCheck(
+  s: string,
+  anchor: string,
+  opts: { isReask?: boolean } = {},
+): boolean {
   const clean = s.trim();
   if (!clean) return false;
   if (clean.length < 8 || clean.length > 240) return false;
   if (BANNED.test(clean)) return false;
   // Reject if the model returned an assistant preface instead of a question.
   if (/^(sure|here|okay|got it|of course)\b/i.test(clean)) return false;
-  // Guardrail: if it's identical to the anchor, that's fine — treat as pass.
-  if (clean === anchor.trim()) return true;
+  // On a re-ask, the anchor was already tried; verbatim anchor is a defect
+  // because it produces the exact "planner asked the same thing again" UX.
+  if (opts.isReask && clean.toLowerCase() === anchor.trim().toLowerCase()) return false;
   return true;
 }
 
@@ -111,11 +120,22 @@ function buildPrompt(input: z.infer<typeof GenerateInput>): string {
     input.context_facts.length > 0
       ? input.context_facts.map((c) => `- ${c.key}: ${c.value}`).join("\n")
       : "(none)";
+  const reaskBlock = input.is_reask
+    ? [
+        "",
+        "This is a RE-ASK of the same objective. The founder already gave a first attempt (below) but it was thin or vague.",
+        "Their previous attempt:",
+        `"${input.previous_attempt || "(brief)"}"`,
+        "",
+        "Rewrite so you (a) name back one specific detail from their previous attempt in the acknowledgement, and (b) ask a sharper, more concrete angle on the same objective. Do NOT repeat the anchor verbatim. Ask for a concrete example, a name, a number, or a story.",
+      ].join("\n")
+    : "";
   return [
     SYSTEM,
     "",
     `Anchor question (the floor, never soften past it): ${input.objective_anchor}`,
     `Objective (internal, do not name): ${input.objective_label}`,
+    reaskBlock,
     "",
     "How the founder opened:",
     input.opening || "(no opening statement)",
@@ -217,7 +237,7 @@ export const generateAnchorWording = createServerFn({ method: "POST" })
 
     // First attempt.
     const first = await callModel(prompt, apiKey, 0.4);
-    if (first && passesVoiceCheck(first.question, data.objective_anchor)) {
+    if (first && passesVoiceCheck(first.question, data.objective_anchor, { isReask: data.is_reask })) {
       return finalize(first);
     }
 
@@ -226,7 +246,7 @@ export const generateAnchorWording = createServerFn({ method: "POST" })
       prompt +
       "\n\nThe previous draft failed the voice check. Return one calm sentence that stays close to the anchor, obeys every rule above, and reads like a strategist speaking, not a form.";
     const second = await callModel(retryPrompt, apiKey, 0.2);
-    if (second && passesVoiceCheck(second.question, data.objective_anchor)) {
+    if (second && passesVoiceCheck(second.question, data.objective_anchor, { isReask: data.is_reask })) {
       return finalize(second);
     }
 

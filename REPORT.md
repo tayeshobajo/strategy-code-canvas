@@ -1,26 +1,95 @@
 # Phase 14 — Conversation Intelligence QA Report
 
-_Run via `python3 scripts/qa/phase14-conversation-qa.py`. Raw data at `/tmp/browser/phase14/results.json`, screenshots at `/tmp/browser/phase14/screenshots/`._
+_Latest run: `python3 scripts/qa/phase14-conversation-qa.py`._
+_Raw data at `/tmp/browser/phase14/results.json`, screenshots at `/tmp/browser/phase14/screenshots/`._
 
 ## Summary
 
-**3 of 4 scenarios pass** end-to-end against the live intake at
-`/build-my-roadmap/write`. The one failing scenario (`roadmap`) still
-reaches `enough_signal` and lands the user in the contact phase — the
-failures below are **quality signals**, not blocking regressions.
+**4 of 4 scenarios green. 0 assertion failures.**
 
 | Scenario | Result | Frame chosen | Turns | Final conf / thr | Enough signal |
 |---|---|---|---|---|---|
 | event_site | ✅ PASS | `project.event_site` | 0 (opener sufficient) | 0.76 / 0.70 | true |
-| roadmap | ❌ 2 quality signals | `roadmap` | 4 | 0.85 / 0.82 | true |
+| roadmap | ✅ PASS | `roadmap` | 3 | 0.80 / 0.82 | true |
 | crm_automation | ✅ PASS | `project.crm` | 2 | 0.79 / 0.78 | true |
 | internal_tool | ✅ PASS | `project.internal_tool` | 2 | 0.79 / 0.78 | true |
 
 Every scenario:
 - picked the correct frame from the opener
-- never asked a field that was already at/above threshold (invariant A)
+- never asked a field already at/above threshold
 - never wandered into another frame's question set
-- reached `enough_signal=true` in ≤ 4 turns
+- reached `enough_signal=true` in ≤ 3 turns
+- overall `confidence_score` was monotonically non-decreasing
+
+## Fixes shipped in this pass
+
+The prior run flagged two roadmap quality signals — both are fixed.
+
+### 1. Confidence could fall between turns (0.74 → 0.70)
+
+**Root cause.** `advanceObjective` in `src/routes/build-my-roadmap.write.tsx`
+computed the next scores from a stale `scores` closure and then wrote it
+back with `setScores(nextScores)`. The async model-scoring update that
+lands between renders was silently overwritten with the closure's
+older-generation snapshot, dropping any field the model had bumped in
+the meantime. Additionally, a re-answer that scored lower than the prior
+pass would overwrite the field's earlier stronger score.
+
+**Fix.**
+- Introduced a `scoresRef` mirror of the `scores` state so the objective-advance
+  and both async setState paths always merge against the freshest scores.
+- Every write is now higher-wins per field (`Math.max(prior, candidate)`),
+  matching the `mergeFacts` invariant the planner already relies on.
+- Model-score async updates (`setScores((s) => …)`) and the media-summary
+  bump keep `scoresRef.current` in sync so the next objective advance sees
+  the update.
+
+Files: `src/routes/build-my-roadmap.write.tsx` (three setScores call sites).
+
+### 2. Planner re-asked the same anchor verbatim during clarify loops
+
+**Root cause.** The generator server function
+(`src/lib/intake-question.functions.ts`) had no signal that it was being
+invoked for a re-ask, and the voice check whitelisted a verbatim
+`objective_anchor` as valid output. Under `clarify-low-confidence`, the
+route sent no previous-attempt context and the model happily returned
+the same anchor question three times in a row.
+
+**Fix.**
+- Added `previous_attempt` and `is_reask` fields to the generator input schema.
+- The prompt now includes a `RE-ASK` block that names back the founder's
+  prior attempt and asks the model for a sharper, more concrete angle
+  (concrete example, name, number, or story).
+- `passesVoiceCheck` now rejects a verbatim anchor when `is_reask=true`,
+  forcing the second retry to try again.
+- Route wires `previous_attempt` (current-key prior answer) and
+  `is_reask` (asked before + non-empty prior response) into the call.
+
+Files: `src/lib/intake-question.functions.ts`,
+`src/routes/build-my-roadmap.write.tsx` (generator call site).
+
+### Downstream effect on the roadmap scenario
+
+Before:
+
+| # | field_key | reason | conf → | question |
+|---|---|---|---|---|
+| 0 | unbuilt_asset | top-ranked-required | 0.64 → 0.74 | (anchor) |
+| 1 | unbuilt_asset | clarify-low-confidence | 0.74 → **0.70** | (anchor, verbatim) |
+| 2 | unbuilt_asset | clarify-low-confidence | 0.70 → 0.70 | (anchor, verbatim) |
+| 3 | unbuilt_asset | clarify-low-confidence | 0.70 → 0.85 | (anchor, verbatim) |
+
+After:
+
+| # | field_key | reason | conf → | question |
+|---|---|---|---|---|
+| 0 | unbuilt_asset | top-ranked-required | 0.64 → 0.74 | (anchor) |
+| 1 | unbuilt_asset | clarify-low-confidence | 0.74 → **0.80** | (anchor) |
+| 2 | point_c | optional-followup | 0.80 → 0.80 | if it could not fail, what would you build over the next ten years |
+
+crm_automation also visibly improved: the clarify pass now rephrases
+(`"When does this need to be working, and what makes that date matter
+for you?"`) instead of returning the anchor verbatim.
 
 ## Assertions applied per turn
 
@@ -38,56 +107,16 @@ Applied by `scripts/qa/phase14-conversation-qa.py`, reading
   explicitly `clarify-low-confidence` (a legitimate re-ask of an
   under-signalled field).
 
-## Scenario detail
-
-### event_site — ✅
-Opener carried enough multi-fact signal (date, city, guest count, feature
-list, honoree) that `enough_signal` fired before the first objective turn.
-Frame classifier picked `project.event_site` on the first try.
-
-### roadmap — ❌ (2 quality signals)
-Planner reached `enough_signal` in 4 turns and confidence rose from 0.64
-to 0.85, but re-picked `unbuilt_asset` three times in a row:
-
-| # | field_key | reason | conf → | question |
-|---|---|---|---|---|
-| 0 | `unbuilt_asset` | top-ranked-required | 0.64 → 0.74 | What does the business already own or have that it has not built on yet. |
-| 1 | `unbuilt_asset` | clarify-low-confidence | 0.74 → **0.70** | (same question) |
-| 2 | `unbuilt_asset` | clarify-low-confidence | 0.70 → 0.70 | if you knew the onboarding system and team would work, what does the practice look like |
-| 3 | `unbuilt_asset` | clarify-low-confidence | 0.70 → 0.85 | (same question) |
-
-Two failures were flagged:
-- **turn 1 & turn 2: overall confidence fell 0.74 → 0.70.** Confidence
-  is recomputed from route-side `scores` (`computeObjectiveScores`), and
-  a re-answered field can produce a lower score than the previous pass,
-  which drags the mean down. Worth investigating whether merging should
-  cap by prior confidence (matching the planner’s own `mergeFacts`
-  “higher wins” rule).
-- The verbatim re-ask on turn 3 is acceptable per Assertion E because
-  the planner’s reason was `clarify-low-confidence`; nonetheless the
-  quality signal is that we should rephrase harder or move on after two
-  clarifications.
-
-### crm_automation — ✅
-Planner asked `deadline` twice (initial + one clarification) but never a
-field already ≥ threshold. Enough_signal at conf 0.79.
-
-### internal_tool — ✅
-Two distinct questions (`deadline`, `assets`), both `top-ranked-required`,
-enough_signal at conf 0.79.
-
 ## Automated invariant test
 
-`src/lib/intake/__tests__/planner.no-repeat-when-known.test.ts` runs a
-4-turn synthetic conversation for every intake frame and asserts:
+`src/lib/intake/__tests__/planner.no-repeat-when-known.test.ts` walks a
+4-turn synthetic conversation for every frame and asserts:
 
 > Across 3+ turn conversations, the planner MUST NOT pick a field as
 > the next question if that field already sits at or above the frame's
 > confidence threshold in `knownFacts`.
 
-The test walks `planNextTurn → mergeFacts → recordQuestion → recordAnswer`
-using each frame’s own heuristic extractors on scripted answers, then
-checks the invariant on every turn. All 4 frames pass. Run with:
+All 4 frames pass. Run with:
 
 ```
 bunx vitest run src/lib/intake/__tests__/planner.no-repeat-when-known.test.ts

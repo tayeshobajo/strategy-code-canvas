@@ -166,6 +166,13 @@ function WriteIntake() {
   // been asked at least once so we do not loop the same question. Neither is
   // ever rendered to the client.
   const [scores, setScores] = React.useState<Record<string, number>>({});
+  // Ref mirror of `scores` so async model-score updates and the objective
+  // advance path can both merge against the LATEST scores, not a stale
+  // closure. Preserves the higher-wins ratchet across React batches.
+  const scoresRef = React.useRef<Record<string, number>>({});
+  React.useEffect(() => {
+    scoresRef.current = scores;
+  }, [scores]);
   const [askedKeys, setAskedKeys] = React.useState<string[]>([]);
   const [currentObjective, setCurrentObjective] = React.useState<IntakeObjective | null>(null);
   const [scoringNext, setScoringNext] = React.useState(false);
@@ -560,7 +567,10 @@ function WriteIntake() {
             changed = true;
           }
         }
-        if (changed) persistInternal(next, askedKeys);
+        if (changed) {
+          scoresRef.current = next;
+          persistInternal(next, askedKeys);
+        }
         return next;
       });
     },
@@ -633,7 +643,13 @@ function WriteIntake() {
                 key,
                 score: scored.score,
               });
-              setScores((s) => ({ ...s, [key]: scored.score }));
+              // Higher-wins: never let a fresh model score drag a previously
+              // stronger heuristic/model score down. Matches mergeFacts.
+              setScores((s) => {
+                const merged = { ...s, [key]: Math.max(s[key] ?? 0, scored.score) };
+                scoresRef.current = merged;
+                return merged;
+              });
             } else {
               console.debug("[intake/objective-loop] score:timeout-or-null", { key });
             }
@@ -643,20 +659,23 @@ function WriteIntake() {
         })();
       }
 
-      try {
-        const nextScores: Record<string, number> = { ...scores, [key]: objectiveScore };
-        // Cross-objective evidence pass: scan the just-committed answer text
-        // against the whole frame profile so answers that incidentally cover
-        // other fields (dates, guest counts, systems) credit those fields
-        // and the planner skips them.
-        if (responseText.trim()) {
-          const facts = heuristicExtract(frame, responseText);
-          for (const [k, fact] of Object.entries(facts)) {
-            const evidenceScore = Math.round(fact.confidence * 100);
-            if (evidenceScore > (nextScores[k] ?? 0)) nextScores[k] = evidenceScore;
-          }
+      // Merge against the LATEST scores via `scoresRef.current` so any
+      // model-scoring update that landed between renders (see the async
+      // block above) is preserved. Every field is Math.max(prior, candidate)
+      // — the planner treats confidence as monotonically ratcheting up.
+      const base = scoresRef.current;
+      const nextScores: Record<string, number> = { ...base };
+      nextScores[key] = Math.max(base[key] ?? 0, objectiveScore);
+      if (responseText.trim()) {
+        const facts = heuristicExtract(frame, responseText);
+        for (const [k, fact] of Object.entries(facts)) {
+          const evidenceScore = Math.round(fact.confidence * 100);
+          if (evidenceScore > (nextScores[k] ?? 0)) nextScores[k] = evidenceScore;
         }
-        const nextAsked = askedKeys.includes(key) ? askedKeys : [...askedKeys, key];
+      }
+      const nextAsked = askedKeys.includes(key) ? askedKeys : [...askedKeys, key];
+      try {
+        scoresRef.current = nextScores;
         setScores(nextScores);
         setAskedKeys(nextAsked);
         persistInternal(nextScores, nextAsked);
@@ -931,6 +950,8 @@ function WriteIntake() {
               value: v.value,
             }))
           : [];
+        const previousAttempt = (answers[objectiveKey]?.response ?? "").trim();
+        const isReask = askedKeys.includes(objectiveKey) && previousAttempt.length > 0;
         const mod = await import("@/lib/intake-question.functions");
         const res = await mod.generateAnchorWording({
           data: {
@@ -941,6 +962,8 @@ function WriteIntake() {
             opening,
             prior_answers: priors,
             context_facts,
+            previous_attempt: previousAttempt.slice(0, 1200),
+            is_reask: isReask,
           },
         });
         if (cancelled) return;
