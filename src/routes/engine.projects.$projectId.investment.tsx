@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
@@ -34,6 +35,7 @@ function Investment() {
         <p className="text-sm text-ink/60 mt-1">Roadmap turned into a phased, transparent investment plan.</p>
       </header>
       <StepStateBar projectId={projectId} step="investment" current={project.step_states?.["investment"]} />
+      <StepAiPanelFor step="investment" data={project.investment} />
       <SourceEvidence projectId={projectId} step="investment" />
 
       {phases.length === 0 ? (
