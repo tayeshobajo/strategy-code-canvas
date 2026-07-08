@@ -721,12 +721,14 @@ function WriteIntake() {
       phase,
       current_objective_key: currentObjective?.key ?? null,
       known_facts: snapshot.known_facts,
+      context_facts: snapshot.context_facts,
       missing_fields: snapshot.missing_fields,
       question_history: snapshot.question_history,
       answer_history: snapshot.answer_history,
       confidence_score: snapshot.confidence_score,
       confidence_threshold: snapshot.confidence_threshold,
       enough_signal: snapshot.enough_signal,
+      selected_reason: snapshot.selected_reason,
       candidates: snapshot.candidates,
       next_gap:
         snapshot.decision.kind === "ask"
