@@ -1,103 +1,117 @@
-# Phase 13 QA — Adaptive Conversation Planner
+# Phase 14 — Conversation Intelligence
 
-Read-only QA pass. No product code changes. Deliverables: a Playwright driver, per-scenario screenshots, captured DB rows, debug log dumps, and a pass/fail report.
+Phase 13 proved the planner *runs*. Phase 14 proves it *thinks*. Two tracks:
+a QA harness that measures conversation quality, and the minimal planner
+upgrades needed to pass it.
 
-## Scope
+## Track A — Conversation Intelligence QA (read-only)
 
-- Drive `/build-my-roadmap` via headless Chromium against `http://localhost:8080`.
-- For each of the 5 scenarios: submit opening + follow-up, screenshot each turn, dump the planner's internal state, then query the DB for the resulting rows.
-- Re-run existing Phase 11/12 vitest suites to confirm no regressions.
-- Produce a single markdown report at `/mnt/documents/phase-13-qa/REPORT.md`.
+New Playwright + vitest harness under `/tmp/browser/phase14/` producing
+`/mnt/documents/phase-14-qa/REPORT.md`. Six checks, each scenario:
 
-## Deliverables
+1. **No obvious questions.** After every answer, assert the next
+   `question` text does not re-ask any field whose `known_facts[key].confidence ≥ 0.6`.
+   Uses per-field keyword probes (event_date → /when|date|day/, etc.).
+2. **Highest-value gap first.** Snapshot the ranked candidate list at each
+   turn; assert the selected gap has the top `score` and that no lower-
+   importance optional beat a higher-importance required.
+3. **Consultant quality (human review).** For each of the 5 scenarios,
+   dump the full transcript into REPORT.md with a manual pass/fail column
+   ("would a senior consultant ask this next?").
+4. **Multi-fact extraction.** Seed answer *"150 guests on Aug 30 in
+   Nashville"*; assert `guest_count`, `event_date`, `location` all move
+   above 0.6 from a single turn.
+5. **Cross-turn memory.** Run each scenario twice with answers shuffled;
+   assert the produced question sequence differs (Jaccard < 0.6 on the
+   ordered question-key list).
+6. **Early stopping.** Assert turn count varies by frame: event_site ≤ 8,
+   crm 8–14, roadmap 10–18, and `enough_signal` fires on `confidence ≥
+   threshold`, not on a fixed count.
 
-```
-/mnt/documents/phase-13-qa/
-  REPORT.md                     # pass/fail per scenario + assertion matrix
-  scenario-1-event/
-    01-classification.png
-    02-first-question.png
-    03-second-question.png
-    04-enough-signal.png
-    05-review-panel.png
-    debug.json                  # frame, known_facts, missing_fields, next_gap, question, confidence, enough_signal (per turn)
-    db.json                     # intake_drafts / intake_submissions / engine_sources / engine_extraction_runs / roadmap draft / reviews
-  scenario-2-roadmap/  ...
-  scenario-3-crm/      ...
-  scenario-4-internal/ ...
-  scenario-5-not-fit/  ...      # no submission expected; capture redirect screen only
-```
+Deliverables: `REPORT.md`, per-scenario `debug.json`, screenshots, and a
+scoring table (6 checks × 5 scenarios = 30 cells).
 
-## Approach
+## Track B — Planner upgrades (minimal, targeted)
 
-### 1. Instrumentation harness (test-only)
+Only the changes needed to pass Track A. All client-safe, pure, unit-tested.
 
-Playwright will hook into planner state via `window.__intakeDebug` which the intake route already logs to. If that hook is not exposed, the driver will fall back to:
-- reading `intake_drafts.answers._memory` from the DB after each turn (contains `knownFacts`, `questionHistory`, `answerHistory`);
-- computing `missing_fields` and `confidence_score` client-side by importing the pure planner modules (`frame-profiles`, `intake-memory`, `gap-analyzer`) into a small Node script.
+### B1. Multi-fact heuristic extraction
+`src/lib/intake/heuristic-extract.ts` today extracts per-field in isolation.
+Extend the event_site / crm / internal_tool extractors so a single free-text
+answer can populate multiple fields in one pass (dates, counts, locations,
+tool names). Add vitest cases for the 150-guests example and 3 more.
 
-No source files change. If the debug hook is missing, the report notes it and uses the fallback.
+### B2. Ranked candidate log
+`gap-analyzer.ts` → return `{ selected, candidates: RankedGap[] }` from a
+new `rankGaps()` helper, keep `analyzeGaps()` as a thin wrapper. Planner
+attaches the full ranked list to its decision so `window.__intakeDebug`
+exposes it for Track A check #2 and future tuning.
 
-### 2. Playwright driver
-
-`/tmp/browser/phase13/run.py` — one script, one browser, sequential scenarios:
+### B3. Score composition
+Replace `score = importance * (1 - confidence)` with three named terms so
+the debug panel matches the user's spec:
 
 ```text
-for each scenario:
-  new context (fresh session, no auth needed for public intake)
-  goto /build-my-roadmap
-  type opening -> submit -> screenshot 01, 02
-  dump planner state (window.__intakeDebug or DB fallback) -> debug.json turn 1
-  type follow-up -> submit -> screenshot 03
-  dump planner state -> debug.json turn 2
-  if enough_signal reached: screenshot 04, submit, screenshot 05
-  capture draft_id from URL / localStorage
+information_gain  = 1 - confidence
+confidence_impact = importance
+flow_bonus        = dependency-satisfied ? 0.1 : 0 + recently-mentioned ? 0.1 : 0
+score             = information_gain * confidence_impact + flow_bonus
 ```
 
-Uses `viewport=1280x1800`, `headless=True`, stable selectors (`getByRole`, `aria-label`, `data-testid` where present).
+Behavior stays close to today's ranking; the new fields are what the debug
+panel and REPORT surface.
 
-### 3. DB capture (per scenario)
+### B4. Confidence-based early stopping
+Already partially wired (`DEFAULT_CONFIDENCE_THRESHOLD = 0.75`). Make the
+threshold per-frame in `frame-profiles.ts` (event_site 0.7, crm 0.78,
+internal_tool 0.78, roadmap 0.82) and drop the "must ask every required
+field" implicit floor by letting `planNextTurn` return `done` as soon as
+the threshold is crossed even with open low-importance requireds.
 
-After each scenario completes, run parameterized `psql` queries scoped by the captured `draft_id` / created_at window to fetch:
-- `intake_drafts` row (frame, answers, attachments)
-- `intake_submissions` row (if created)
-- `engine_sources` rows linked to the submission
-- `engine_extraction_runs` rows
-- `engine_roadmap_versions` where `status = 'ai_generated'` (roadmap AI draft)
-- `roadmap_intake_reviews` if the table/view exists (verify name first via `\dt`)
+### B5. Acknowledgement preface
+Extend `buildGeneratorPrompt` to emit an optional short acknowledgement
+sentence before the question when `memory.answerHistory.length ≥ 1` and
+the last answer added ≥1 high-confidence fact. Contract:
 
-Writes results as JSON per scenario.
+```json
+{ "acknowledgement": "<optional one clause, ≤ 14 words>", "question": "<one line>" }
+```
 
-### 4. Assertion matrix
+Renderer (`build-my-roadmap.write.tsx`) shows the acknowledgement as a
+muted line above the question when present. `passesVoiceCheck` applies to
+both fields; acknowledgement is dropped silently if it fails.
 
-The report evaluates all 10 required assertions per scenario:
+### B6. Route wiring
+`planner-adapter.ts` returns the new `candidates` and `score_breakdown`
+in `PlannerSnapshot`; the route dumps them into `window.__intakeDebug`.
+No other route changes.
 
-| # | Assertion | How verified |
-|---|-----------|--------------|
-| 1 | No `project.generic` fallback unless appropriate | `debug.json.frame` per turn |
-| 2 | No static question leakage across frames | manual review + banned-key list per frame from `frame-profiles.ts` |
-| 3 | `known_facts` updates after every answer | diff turn N vs N-1 |
-| 4 | `missing_fields` shrinks | diff turn N vs N-1 |
-| 5 | Question history prevents repeats | `questionHistory` distinct by `fieldKey` |
-| 6 | Next question references prior answer | substring check for names/dates from user input |
-| 7 | Confidence increases | `confidence_score` monotonic |
-| 8 | Reaches enough-signal | `enough_signal === true` before hard cap |
-| 9 | Phase 11/12 suites green | `bunx vitest run` filtered to those files |
-| 10 | Screenshots captured at the 5 required moments | file presence check |
+## Test coverage (added, all vitest)
+- `heuristic-extract.multifact.test.ts` — the 4 multi-fact fixtures.
+- `gap-analyzer.ranking.test.ts` — candidates array, score fields, tie-break.
+- `planner.early-stop.test.ts` — per-frame thresholds, done-with-open-low-importance.
+- `question-generator.ack.test.ts` — ack + question contract, voice-check on ack.
 
-### 5. Regression suite
-
-Runs `bunx vitest run` covering the existing intake, planner, portal, and engine suites (all 234 tests). Fails the report if any suite fails.
-
-## Pass criteria
-
-- Scenarios 1–4 each satisfy assertions 1–8 and produce all 5 screenshots plus a non-empty DB capture.
-- Scenario 5 shows the not-fit redirect, no `intake_submissions` row created, `debug.json.frame === "not_a_fit"`.
-- Vitest run is fully green.
-- Report clearly marks any assertion that fails with the offending turn's `debug.json` excerpt.
+## Files touched
+- edit `src/lib/intake/heuristic-extract.ts`
+- edit `src/lib/intake/gap-analyzer.ts`
+- edit `src/lib/intake/conversation-planner.ts`
+- edit `src/lib/intake/frame-profiles.ts`
+- edit `src/lib/intake/question-generator.ts`
+- edit `src/lib/intake/planner-adapter.ts`
+- edit `src/lib/intake-question.functions.ts` (parse new ack field)
+- edit `src/routes/build-my-roadmap.write.tsx` (render ack, expose candidates)
+- add 4 vitest files above
+- add `/tmp/browser/phase14/run.py` + REPORT generator (QA only, not shipped)
 
 ## Out of scope
+- Persisting acknowledgement text in `intake_drafts`.
+- Rewriting frame profiles beyond adding `confidenceThreshold`.
+- Any UI redesign of the intake shell.
+- Changes to submission, roadmap generation, or downstream engine code.
 
-- No product code edits. If a scenario fails, the report enumerates the fix but does not apply it — that becomes a follow-up plan.
-- No changes to `frame-profiles.ts`, planner, or route code.
-- No new automated tests committed to the repo; the Playwright driver lives under `/tmp/browser/phase13/` and screenshots under `/mnt/documents/phase-13-qa/`.
+## Done when
+- Track A REPORT shows 30/30 green (or documented human-review pass on #3).
+- All existing 234 tests + 4 new files pass.
+- Manual walkthrough of the birthday scenario shows an acknowledgement line
+  before ≥1 question and never re-asks event_date after it's been given.
