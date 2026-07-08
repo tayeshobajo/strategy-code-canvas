@@ -728,6 +728,9 @@ const ATTACHMENT_ALLOWED_EXT = new Set<string>([
   "xls", "xlsx", "csv", "ppt", "pptx", "key",
   "png", "jpg", "jpeg", "gif", "webp", "heic", "svg",
   "zip", "json", "yaml", "yml",
+  // Media (in-conversation uploads)
+  "mp3", "wav", "m4a", "ogg", "webm",
+  "mp4", "mov",
 ]);
 // Mime prefixes accepted regardless of extension (browsers vary on which
 // mime string they emit). Uploads without a declared mime are accepted as
@@ -747,7 +750,11 @@ const ATTACHMENT_ALLOWED_MIME_PREFIXES: ReadonlyArray<string> = [
   "application/octet-stream", // some browsers use this for unknown; extension guard still applies
   "text/",
   "image/",
+  "audio/",
+  "video/",
 ];
+
+const ATTACHMENT_MAX_INTAKE = 20;
 
 function extensionOf(filename: string): string {
   const dot = filename.lastIndexOf(".");
@@ -762,6 +769,8 @@ function isMimeAllowed(mime: string | null | undefined): boolean {
   return ATTACHMENT_ALLOWED_MIME_PREFIXES.some((p) => normalized.startsWith(p));
 }
 
+const QUESTION_ID_RE = /^[A-Za-z0-9_.:-]{1,64}$/;
+
 const AttachmentInput = z.object({
   resume_token: z.string().regex(UUID_RE),
   storage_path: z.string().min(1).max(1024),
@@ -772,6 +781,7 @@ const AttachmentInput = z.object({
     .positive({ message: "File is empty" })
     .max(ATTACHMENT_MAX_BYTES, { message: "File exceeds 25 MB" }),
   mime: z.string().max(200).nullable().optional(),
+  question_id: z.string().regex(QUESTION_ID_RE).nullable().optional(),
 });
 
 export const recordIntakeAttachment = createServerFn({ method: "POST" })
