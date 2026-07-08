@@ -23,11 +23,13 @@ import {
 } from "../intake-frames";
 import { planNextTurn, type PlanDecision } from "./conversation-planner";
 import { getFrameProfile } from "./frame-profiles";
+import { extractContextFacts } from "./heuristic-extract";
 import {
   confidenceScore,
   emptyMemory,
   missingFields,
   type AnswerHistoryEntry,
+  type ContextFact,
   type IntakeMemory,
   type QuestionHistoryEntry,
 } from "./intake-memory";
