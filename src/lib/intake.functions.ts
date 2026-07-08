@@ -826,9 +826,11 @@ export const recordIntakeAttachment = createServerFn({ method: "POST" })
     const current = normalizeAttachments(existing?.attachments);
     // Dedupe by storage_path — repeated uploads should replace, not stack.
     const filtered = current.filter((a) => a.storage_path !== data.storage_path);
-    if (filtered.length >= 10) {
-      throw new Error("Attachment limit reached (10 files per intake).");
+    if (filtered.length >= ATTACHMENT_MAX_INTAKE) {
+      throw new Error(`Attachment limit reached (${ATTACHMENT_MAX_INTAKE} files per intake).`);
     }
+    // Server-authoritative kind derivation — never trusted from client.
+    const kind = kindFromMime(data.mime ?? null, ext);
     const next: StoredAttachment[] = [
       ...filtered,
       {
@@ -837,6 +839,9 @@ export const recordIntakeAttachment = createServerFn({ method: "POST" })
         size: data.size,
         mime: data.mime ?? null,
         uploaded_at: new Date().toISOString(),
+        question_id: data.question_id ?? null,
+        kind,
+        summary: null,
       },
     ];
 
