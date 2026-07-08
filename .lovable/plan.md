@@ -1,133 +1,126 @@
+# Project Spine v1 — Build Plan
 
-# Momentum Triad QA Report
+Central living blueprint per project at `/engine/projects/$projectId/spine`. Internal-only; reuses existing operator gate on the parent workspace route.
 
-No code changes were made. Findings below.
+## Route & Navigation
 
-## Executive Summary
+- New file: `src/routes/engine.projects.$projectId.spine.tsx` (child of existing workspace layout so `ProjectHeaderStrip`, `WorkspaceStepper`, and operator gate apply automatically).
+- Add "Project Spine" entry to `WORKSPACE_STEPS` metadata or directly into `WorkspaceStepper` as a pinned non-numbered link (avoids renumbering the 14 steps). Preferred: add a small "Pinned" row above the numbered stepper in `WorkspaceStepper.tsx` with a single link to Spine.
+- Access is inherited: parent `engine` layout already gates operators/admins. No new auth logic.
 
-The recompute engine, triggers, and per-step AI panels are wired correctly and firing across the three real projects (August 1, Jotaye, INBDE). **Two ordering bugs in `compute_engine_next_best_action` cause the Next Best Action to give wrong guidance** on projects that have both an approved/AI-drafted version *and* stale/missing extraction state (Jotaye, INBDE). AI task decomposition ships behind proper permission gates but has **never been executed against a real project**, so end-to-end evidence is unavailable. Per-step AI panels render live "knows/missing" from real project JSON but their `draftHint` still says "coming next slice" — no per-step generator exists.
+## Data Layer
 
-## 1. State Recompute Results
+One new server function: `getProjectSpine({ id })` in `src/lib/engine.functions.ts` (protected via `requireSupabaseAuth` + operator/admin role check, same pattern as `getProjectWorkspace`).
 
-Live state for the three seeded projects, plus what `compute_engine_next_best_action` returns:
+Returns a single payload assembled from existing tables (no schema changes):
 
-| Project | Signals detected | Status (actual) | Step (actual) | Actual NBA | Expected NBA | Pass |
-|---|---|---|---|---|---|---|
-| August 1 — intake | 1 source, extraction=failed, 0 signals, no version | `blocked` / step 2 Signal Room | Retry the failed extraction run (critical) | same | ✅ |
-| INBDE & ADAT Platform | 0 sources, 0 signals, version=ai_generated | `needs_review` / step 9 Roadmap Builder | Run the intelligence pipeline (info) | **Review AI-drafted roadmap** | ❌ |
-| Jotaye Ventures | 9 sources all queued/processing, 0 signals, version=approved, no portal link | `approved` / step 13 Client Preview | Waiting on extraction (info) | **Link a client portal project / publish approved roadmap** | ❌ |
-
-Status + step values match `recompute_engine_project_state` output. The status/step machine is correct. The bug is isolated to **NBA precedence**.
-
-### Root cause — NBA precedence bugs
-
-In `compute_engine_next_best_action` the order of checks is:
-
+```text
+project        engine_projects (name, status, current_step, current_step_num,
+               frame/type from settings jsonb, point_a, point_b, roadmap jsonb)
+nba            compute_engine_next_best_action(project_id)
+sources        engine_sources summary + last engine_extraction_runs
+version        latest engine_roadmap_versions (status, label, payload)
+milestones     engine_milestones grouped by phase (id, name, status, phase,
+               review state)
+tasks          engine_tasks (all cols incl. phase, milestone_id, ai_generated,
+               purpose, expected_artifact, acceptance_criteria, qa_checklist,
+               risks, dependencies, status, priority, owner)
+reviews        engine_review_items where status='pending'
+activity       engine_activity latest 20
+notifications  operator_notifications for this project (latest 20)
+audit          engine_audit_log latest 20
+portal         client_portal_roadmaps (id, status) — for QA gate readout only
 ```
-failed run → blocked tasks → client actions → pending reviews →
-failed sources → pending sources → signals_count=0 → version status → …
+
+Loader uses `context.queryClient.ensureQueryData` + `useSuspenseQuery` (canonical pattern).
+
+## Page Layout
+
+Two-column at ≥lg, stacked on mobile:
+
+```text
+┌─────────────────────────────────────────┬──────────────────┐
+│ 1. Project Direction                    │ 5. AI PM Panel   │
+│ 2. Approved Scope                       │    (sticky)      │
+│ 3. Roadmap Spine (phases → milestones)  │                  │
+│ 4. Task Spine (grouped phase/milestone) │                  │
+│ 6. QA Gates                             │                  │
+│ 7. Activity & Decisions                 │                  │
+└─────────────────────────────────────────┴──────────────────┘
 ```
 
-Two consequences:
+### 1. Project Direction
+Card with: name, frame/type, goal, Point A, Point B, current status badge, current step, live NBA (action + reason + severity + href button), intake source summary (count + last run status).
 
-1. **INBDE case**: any project where extraction never ran but a version already exists (e.g. AI seeded a draft) — `signals_count=0` short-circuits before the version check, so NBA tells the operator to "run the intelligence pipeline" instead of "review AI-drafted roadmap".
-2. **Jotaye case**: an approved roadmap with stale/pending source rows — `pending_sources` short-circuits before the "approved but unpublished" branch, so NBA tells the operator to wait on extraction instead of publish/link portal.
+### 2. Approved Scope
+Read from latest approved `engine_roadmap_versions.payload` (jsonb). Render: included, excluded, assumptions, constraints, open_questions, decisions[]. For any missing key, show a muted "Not yet captured — [link to relevant step]" line. No fabrication.
 
-Both make the engine *less* momentum-oriented on the exact projects that should be moving fastest.
+### 3. Roadmap Spine
+Group `engine_milestones` by `phase`. Per phase: collapsible section with milestones showing name, status pill, review state, linked task count, blocked indicator when any child task is blocked.
 
-## 2. Trigger Results
+### 4. Task Spine
+Same phase grouping, nested milestone groups. Each task card shows all decomposition fields. Visual treatment:
+- `status='suggested'` + `ai_generated=true` → dashed border, amber "AI suggested — needs approval" chip.
+- `status in ('approved','in_progress','done')` → solid border, status color.
+- `status='blocked'` → red left border + reason.
+Empty state per milestone: "No tasks yet — [Decompose with AI]" button (calls existing `generateTasksForApprovedMilestones`).
 
-All momentum triggers are installed in `public`:
+### 5. AI Product Manager Panel (right rail)
+New component `ProjectSpineAiPanel.tsx`. Computes each bucket from the payload (pure client-side derivation, no new AI calls):
+- **What I know**: has approved version, milestone count, task count, phases present.
+- **What is missing**: explicit list — no Point A, no approved version, no phases, no tasks in phase X, no acceptance criteria on task Y, etc.
+- **What changed**: last 5 `engine_activity` entries (title + relative time).
+- **What is blocked**: blocked tasks + failed runs + pending reviews > threshold.
+- **What I recommend next**: mirrors NBA output.
+- **What I can draft now**: enumerates available drafters (task decomposition for approved milestones without tasks, roadmap version generation, etc.) with action buttons that hit existing functions.
+- **What needs approval**: count of `status='suggested'` tasks + pending review items + AI-draft roadmap versions.
 
-- `recompute_state_sources` on `engine_sources`
-- `recompute_state_extraction_runs` on `engine_extraction_runs`
-- `recompute_state_signals` on `engine_extracted_signals` (INSERT/DELETE only — updates do not recompute)
-- `recompute_state_versions` on `engine_roadmap_versions`
-- `recompute_state_review_items` on `engine_review_items`
-- `recompute_state_tasks` on `engine_tasks`
-- `recompute_state_portal_roadmaps` on `client_portal_roadmaps` (UPDATE OF status only)
-- `extraction_run_notify_failure`, `engine_activity_notify_operators`, `task_notify_blocked` all present
+### 6. QA Gates
+Static gate definitions, each computed against real state:
 
-**Findings:**
-- No infinite loops possible — `recompute_engine_project_state` only writes to `engine_projects`, which has no recompute trigger of its own.
-- Gap: `recompute_state_signals` fires on INSERT/DELETE only. Bulk UPSERT paths that update existing signal rows will not retrigger — acceptable today (extraction always inserts) but worth flagging.
-- Gap: `recompute_state_portal_roadmaps` fires only when `status` column changes, so publishing metadata edits that flip effective client-visibility without changing status won't retrigger. Minor.
+| Gate | Pass condition |
+|---|---|
+| Role access | operator/admin gate present on route (always pass — informational) |
+| Data integrity | no failed runs, no orphan tasks (task.milestone_id resolves) |
+| Approval gates | no `ai_generated` roadmap version in `delivered` portal row |
+| Client portal safety | `client_portal_roadmaps.status` != approved when engine version = ai_generated |
+| Backend readiness | latest extraction run succeeded |
+| Mobile responsive | informational only |
+| Delivery readiness | approved version + portal linked + no blocked tasks |
 
-## 3. Blocked Task Notification Results
+Each row: status pill (pass/warn/fail), one-line reason, "Next action" link.
 
-- Trigger correctly moved to `engine_tasks.status` transitions.
-- `tg_task_notify_blocked` guards against duplicate spam: `IF TG_OP='UPDATE' AND OLD.status='blocked' THEN RETURN NEW` — re-saving a blocked task does not re-notify. ✅
-- Deep link is `/engine/projects/{id}/agent/tasks` with `task_id` in metadata. ✅
-- Unblocking (status → any other) creates no notification. ✅
-- Blocked task drives project `status='blocked'` via `recompute_state_tasks` and shows as top NBA ("Unblock N tasks"). ✅
-- No blocked tasks currently exist in the DB to capture a live screenshot.
+### 7. Activity & Decisions
+Three stacked lists: recent activity (20), operator notifications (10), pending review items (link to /reviews). Compact rows, timestamps.
 
-## 4. AI Task Decomposition Results
+## Files
 
-`generateTasksForApprovedMilestones` is present in `src/lib/engine-execution.functions.ts` with:
+Create:
+- `src/routes/engine.projects.$projectId.spine.tsx`
+- `src/components/engine/spine/ProjectDirectionCard.tsx`
+- `src/components/engine/spine/ApprovedScopeCard.tsx`
+- `src/components/engine/spine/RoadmapSpine.tsx`
+- `src/components/engine/spine/TaskSpine.tsx`
+- `src/components/engine/spine/ProjectSpineAiPanel.tsx`
+- `src/components/engine/spine/QaGates.tsx`
+- `src/components/engine/spine/ActivityDecisions.tsx`
 
-- `.middleware([requireSupabaseAuth])`
-- `assertActionAllowed(sb, projectId, 'create_tasks', { approve: true })` — permission-gated
-- Inserts to `engine_tasks` with `status='suggested'`, `ai_generated=true`, `source='ai_decomposition'`, linked `milestone_id` + `roadmap_version_id`, populated `purpose`, `expected_artifact`, `qa_checklist` (jsonb), `risks` (jsonb), `dependency_notes`.
+Edit:
+- `src/lib/engine.functions.ts` — add `getProjectSpine`.
+- `src/components/engine/WorkspaceStepper.tsx` — add pinned Spine link.
 
-**Findings:**
-- ✅ Code path filters milestones by `approved_at IS NOT NULL` before decomposition.
-- ✅ Costs are logged via existing `engine_agent_costs` helper; audit rows written to `engine_audit_log`.
-- ❌ **No AI-decomposed rows exist in production** — `SELECT * FROM engine_tasks WHERE ai_generated=true` returns 0. The function has never been invoked against Jotaye (the only project with an approved version). No sample tasks can be shown until the operator runs it.
-- ⚠️ Schema gap: task spec asked for `phase_id` linkage, but `engine_tasks` has no `phase_id` column. Phase is only reachable via `milestone_id → engine_milestones.phase`. Either add the column or drop the requirement from the acceptance criteria.
+No migrations. No schema changes. No new secrets. No portal-facing changes.
 
-## 5. Permission Results
+## Acceptance Verification
 
-Server-side gate is authoritative:
-- `create_tasks` default policy is `needs_approval` (line 587 of engine-execution.functions).
-- `assertActionAllowed(..., { approve: true })` runs before any insert.
-- `requireSupabaseAuth` middleware guarantees an authenticated caller.
-- UI hiding is layered on top, not the sole defense. ✅
-- Client role has no `create_tasks` permission, so a direct RPC from a client session fails the assertion. ✅
+After build, verify via `supabase--read_query` against August 1, Jotaye, INBDE:
+- Spine loads and shows real NBA (matches `compute_engine_next_best_action`).
+- Tasks group by phase; AI-generated visually distinct.
+- QA gates reflect actual state (e.g., INBDE ai_generated version → approval gate warns).
+- Missing data messages appear where fields absent.
+- Route inaccessible to non-operator (confirmed via existing parent gate).
 
-## 6. Per-Step AI Panel Results
-
-All eight step routes (`point-a`, `point-b`, `hidden-assets`, `gap-map`, `blueprint`, `sequencing`, `deadlines`, `investment`) mount `<StepAiPanelFor />`.
-
-- ✅ `computeStepKnowsMissing` reads the step's real JSON blob and derives knows/missing from actual keys (`lenses`, `diagnosis`, `narrative`, `assets`, `gaps`, `nodes`, `phases`, `dates`, `estimates`, etc.).
-- ✅ "AI can draft", "requires approval", "next trigger" copy differs per step and matches the workflow.
-- ❌ Every panel currently ships with `draftHint="Per-step AI drafting is coming next slice — for now, use Intelligence Layer to regenerate."` and no `onDraft` handler → the draft button never renders. The panel is informational only. This matches the current triad scope but should be called out because the QA criteria asked whether the draft button "implies functionality that does not exist" — right now it does not exist and is not shown, so the panel is honest but toothless.
-
-## 7. Regression Results (P0 safety)
-
-- ✅ `portal_roadmaps_v` columns confirmed: no `supporting_notes`, no doctrine/internal fields. Client-safe.
-- ✅ `extraction_run_notify_failure` still present on `engine_extraction_runs`.
-- ✅ `engine_activity_notify_operators` still present.
-- ✅ NBA still computes live (it just gives wrong answers in the two ordering cases above).
-- ✅ Portal RLS surfaces unchanged; nothing in this slice granted broader read access.
-
-## 8. Screenshots
-
-Not captured this pass — the browser tooling was not exercised because the audit was requested read-only against production data. If you want screenshots for the final report, ask and I'll drive Playwright through the overview/agent-tasks routes for August 1 (blocked/critical NBA) and INBDE (needs_review) after the NBA precedence fix lands.
-
-## Remaining Gaps
-
-**P0 (correctness of the guidance the engine gives)**
-1. NBA precedence: check `version.status = 'approved'` and portal-publish gap **before** falling into source/signal-count branches.
-2. NBA precedence: check `version.status IN ('ai_generated','draft','tai_edited')` **before** the `signals_count = 0` "run pipeline" branch.
-
-**P1 (completeness of the momentum layer)**
-3. Add `phase_id` to `engine_tasks` (or drop from decomposition contract) — currently unreachable directly.
-4. `recompute_state_signals` fires on INSERT/DELETE only; add UPDATE for robustness to future upsert paths.
-5. Per-step AI generators are not implemented — the panels are read-only. Wire real `onDraft` handlers or remove the placeholder button entirely.
-6. Run `generateTasksForApprovedMilestones` against Jotaye to produce real evidence rows for the audit trail.
-
-**P2 (polish)**
-7. Consider expanding `recompute_state_portal_roadmaps` beyond `UPDATE OF status` so any publish-relevant flip retriggers.
-8. Add a small NBA unit-test fixture matrix covering the eight state combinations enumerated in section 1 so precedence regressions are caught by CI.
-
-## Recommended Next Slice
-
-Ship a tight **"NBA correctness + decomposition evidence"** slice:
-
-- Rewrite `compute_engine_next_best_action` precedence: version-status branches move above source/signal branches; add unit-test fixture matrix.
-- Add `phase_id uuid` to `engine_tasks` referencing `engine_milestones(phase_id)` (or the phase enum), backfill from milestone.
-- Run `generateTasksForApprovedMilestones` against Jotaye once to produce three real sample tasks for the audit record.
-- Capture the four screenshots (August 1 overview, Jotaye overview after NBA fix, agent-tasks after decomposition, one step panel).
-
-Estimated size: single session. After this, the momentum layer is provably correct end-to-end and we can move on to per-step AI generators (P1 item 5).
+## Out of Scope (defer)
+- New AI drafters for scope/decision fields.
+- Editing tasks inline on Spine (link out to existing task page).
+- Schema additions for scope fields (included/excluded/assumptions) — v2 once we confirm operators want them as first-class columns vs. staying in version payload.
