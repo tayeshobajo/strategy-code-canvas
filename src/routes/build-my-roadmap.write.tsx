@@ -246,7 +246,7 @@ function WriteIntake() {
                 }
                 setScores(restoredScores);
                 setAskedKeys(restoredAsked);
-                const next = selectNextObjective(parsed.frame, restoredScores, new Set(restoredAsked));
+                const next = planNextObjective(parsed.frame, map, restoredAsked, restoredScores).next_objective;
                 if (!next || restoredAsked.length >= HARD_CAP_QUESTIONS) {
                   setCurrentObjective(null);
                   setPhase("contact");
