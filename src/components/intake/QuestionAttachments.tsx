@@ -2,18 +2,25 @@
  * QuestionAttachments — compact upload strip rendered under each intake
  * question. Lets the user attach an image/file or record a voice note that
  * gets scoped to the current question via `question_id` on the attachment
- * row. Uploads flow through the same intake-uploads bucket + server fns as
- * the review-step attachments.
+ * row. Uploads flow through the intake-uploads bucket + server fns.
  *
  * Renders inline previews for images (thumbnail), audio (mini player),
  * video (small player) and docs (icon + filename). All previews use short-
  * lived signed URLs since the intake-uploads bucket is private.
  *
+ * Upload UX:
+ *   - Per-file progress bar (XHR upload events).
+ *   - Cancel button aborts an in-flight upload.
+ *   - Retry button re-runs a failed upload with the same file.
+ *   - Replace button on a completed attachment (removes the old row and
+ *     starts a fresh upload with a newly picked file).
+ *   - Remove button deletes an attachment.
+ *
  * Validation surfaced in the UI:
- *   - remaining slots (X / 3)
+ *   - remaining slots (X of 3), respects in-flight uploads
  *   - max file size (25 MB)
  *   - allowed types (image, audio, video, docs)
- *   - inline per-file errors (empty, too large, wrong type, cap reached)
+ *   - inline per-file errors
  */
 import * as React from "react";
 import {
@@ -23,6 +30,8 @@ import {
   Loader2,
   Music,
   Paperclip,
+  RefreshCw,
+  RotateCcw,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,8 +54,6 @@ export type QuestionAttachmentRecord = {
   summary?: string | null;
 };
 
-// Extensions accepted for in-conversation attachments. Kept looser than the
-// review-step doc list to allow media; the server re-validates.
 const ALLOWED_EXT = new Set([
   "png","jpg","jpeg","gif","webp","heic","svg",
   "pdf","doc","docx","txt","md","rtf",
@@ -74,22 +81,13 @@ function kindOf(mime: string | null, ext: string): "image" | "audio" | "video" |
   return "doc";
 }
 
-/**
- * Client-side validation. Returns an error message when rejected, or null
- * when the file can be attempted (server still re-validates authoritatively).
- */
-function validateFile(
-  file: File,
-  currentCount: number,
-): string | null {
+function validateFile(file: File, currentCount: number): string | null {
   if (file.size === 0) return "File is empty.";
   if (file.size > MAX_BYTES) {
     return `“${file.name}” is ${fmtBytes(file.size)} — over the 25 MB limit.`;
   }
   const ext = extOf(file.name);
-  if (ext && !ALLOWED_EXT.has(ext)) {
-    return `".${ext}" files aren't allowed here.`;
-  }
+  if (ext && !ALLOWED_EXT.has(ext)) return `".${ext}" files aren't allowed here.`;
   if (currentCount >= PER_QUESTION_CAP) {
     return `You can attach up to ${PER_QUESTION_CAP} files per question.`;
   }
@@ -104,11 +102,70 @@ function kindIcon(k: "image" | "audio" | "video" | "doc") {
   return <FileText className={cls} />;
 }
 
-/**
- * Hook: resolve a short-lived signed URL for a private-bucket object.
- * Refreshes on storage_path change; silently ignores errors (the tile still
- * renders with filename + kind).
- */
+/** Upload a file to Supabase Storage with progress + abort via XHR. */
+function uploadToStorage(opts: {
+  path: string;
+  file: File;
+  onProgress: (pct: number) => void;
+  signal: AbortSignal;
+}): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+    const SUPABASE_PUBLISHABLE_KEY = import.meta.env
+      .VITE_SUPABASE_PUBLISHABLE_KEY as string;
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+      reject(new Error("Storage endpoint not configured"));
+      return;
+    }
+    // Prefer the current session token so RLS runs as the signed-in user;
+    // fall back to publishable/anon key for guest intake flows.
+    let bearer = SUPABASE_PUBLISHABLE_KEY;
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token) bearer = data.session.access_token;
+    } catch {
+      /* keep anon */
+    }
+
+    const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${opts.path}`;
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
+    xhr.setRequestHeader("Authorization", `Bearer ${bearer}`);
+    xhr.setRequestHeader("x-upsert", "false");
+    if (opts.file.type) xhr.setRequestHeader("Content-Type", opts.file.type);
+    xhr.setRequestHeader("Cache-Control", "3600");
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        opts.onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        opts.onProgress(100);
+        resolve();
+      } else {
+        let msg = `Upload failed (${xhr.status})`;
+        try {
+          const parsed = JSON.parse(xhr.responseText) as { message?: string };
+          if (parsed?.message) msg = parsed.message;
+        } catch { /* ignore */ }
+        reject(new Error(msg));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.onabort = () => reject(new DOMException("Upload cancelled", "AbortError"));
+
+    if (opts.signal.aborted) {
+      reject(new DOMException("Upload cancelled", "AbortError"));
+      return;
+    }
+    opts.signal.addEventListener("abort", () => xhr.abort(), { once: true });
+    xhr.send(opts.file);
+  });
+}
+
 function useSignedUrl(storagePath: string | null): string | null {
   const [url, setUrl] = React.useState<string | null>(null);
   React.useEffect(() => {
@@ -128,24 +185,131 @@ function useSignedUrl(storagePath: string | null): string | null {
   return url;
 }
 
+type InFlight = {
+  id: string;
+  file: File;
+  progress: number;
+  status: "uploading" | "error";
+  error: string | null;
+  abort: AbortController;
+};
+
+function ProgressBar({ pct }: { pct: number }) {
+  return (
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+      <div
+        className="h-full bg-primary transition-[width] duration-150"
+        style={{ width: `${Math.max(4, Math.min(100, pct))}%` }}
+      />
+    </div>
+  );
+}
+
+function InFlightTile({
+  item,
+  onCancel,
+  onRetry,
+  onDismiss,
+}: {
+  item: InFlight;
+  onCancel: () => void;
+  onRetry: () => void;
+  onDismiss: () => void;
+}) {
+  const ext = extOf(item.file.name);
+  const k = kindOf(item.file.type || null, ext);
+  return (
+    <li className="flex w-[168px] flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/30">
+      <div className="flex h-24 w-full flex-col items-center justify-center gap-2 bg-muted/50 px-3">
+        {item.status === "uploading" ? (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <ProgressBar pct={item.progress} />
+            <span className="text-[10px] text-muted-foreground">
+              {item.progress}%
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="text-[10px] font-medium text-destructive">
+              Upload failed
+            </span>
+            <span
+              className="line-clamp-2 text-center text-[10px] text-muted-foreground"
+              title={item.error ?? undefined}
+            >
+              {item.error ?? "Something went wrong"}
+            </span>
+          </>
+        )}
+      </div>
+      <div className="flex items-center gap-1 px-2 py-1.5 text-[11px]">
+        <span className="text-muted-foreground">{kindIcon(k)}</span>
+        <span
+          className="flex-1 truncate text-foreground/80"
+          title={item.file.name}
+        >
+          {item.file.name}
+        </span>
+        {item.status === "uploading" ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+            aria-label={`Cancel upload of ${item.file.name}`}
+            title="Cancel upload"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+              aria-label={`Retry ${item.file.name}`}
+              title="Retry upload"
+            >
+              <RotateCcw className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+              aria-label={`Dismiss ${item.file.name}`}
+              title="Dismiss"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+
 function AttachmentPreview({
   att,
   onRemove,
+  onReplace,
   removing,
+  replacing,
 }: {
   att: QuestionAttachmentRecord;
   onRemove: () => void;
+  onReplace: () => void;
   removing: boolean;
+  replacing: boolean;
 }) {
   const ext = extOf(att.filename);
   const k = att.kind ?? kindOf(att.mime, ext);
   const url = useSignedUrl(att.storage_path);
+  const busy = removing || replacing;
 
   return (
     <li className="group relative flex w-[168px] flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/30">
       <div className="relative flex h-24 w-full items-center justify-center overflow-hidden bg-muted/50">
         {k === "image" && url ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={url}
             alt={att.filename}
@@ -176,26 +340,40 @@ function AttachmentPreview({
             </span>
           </div>
         )}
-        <button
-          type="button"
-          className="absolute right-1 top-1 rounded-full bg-background/80 p-0.5 text-muted-foreground opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100 focus:opacity-100 disabled:opacity-40"
-          onClick={onRemove}
-          disabled={removing}
-          aria-label={`Remove ${att.filename}`}
-        >
-          {removing ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <X className="h-3 w-3" />
-          )}
-        </button>
+        <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <button
+            type="button"
+            className="rounded-full bg-background/80 p-1 text-muted-foreground shadow-sm hover:text-foreground disabled:opacity-40"
+            onClick={onReplace}
+            disabled={busy}
+            aria-label={`Replace ${att.filename}`}
+            title="Replace"
+          >
+            {replacing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3" />
+            )}
+          </button>
+          <button
+            type="button"
+            className="rounded-full bg-background/80 p-1 text-muted-foreground shadow-sm hover:text-foreground disabled:opacity-40"
+            onClick={onRemove}
+            disabled={busy}
+            aria-label={`Remove ${att.filename}`}
+            title="Remove"
+          >
+            {removing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <X className="h-3 w-3" />
+            )}
+          </button>
+        </div>
       </div>
       <div className="flex items-center gap-1 px-2 py-1.5 text-[11px]">
         <span className="text-muted-foreground">{kindIcon(k)}</span>
-        <span
-          className="flex-1 truncate text-foreground/80"
-          title={att.filename}
-        >
+        <span className="flex-1 truncate text-foreground/80" title={att.filename}>
           {att.filename}
         </span>
         <span className="shrink-0 text-[10px] text-muted-foreground">
@@ -222,9 +400,13 @@ export function QuestionAttachments({
   onEvidence?: (summary: string) => void;
 }) {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = React.useState(false);
+  const replaceInputRef = React.useRef<HTMLInputElement | null>(null);
+  const replaceTargetRef = React.useRef<string | null>(null);
+
   const [describing, setDescribing] = React.useState<string | null>(null);
   const [removing, setRemoving] = React.useState<string | null>(null);
+  const [replacing, setReplacing] = React.useState<string | null>(null);
+  const [inFlight, setInFlight] = React.useState<InFlight[]>([]);
   const [validationError, setValidationError] = React.useState<string | null>(null);
 
   const mine = React.useMemo(
@@ -232,27 +414,37 @@ export function QuestionAttachments({
     [attachments, questionId],
   );
 
-  const atCap = mine.length >= PER_QUESTION_CAP;
+  const activeInFlight = inFlight.filter((i) => i.status === "uploading").length;
+  const totalUsed = mine.length + activeInFlight;
+  const atCap = totalUsed >= PER_QUESTION_CAP;
+  const remaining = Math.max(0, PER_QUESTION_CAP - totalUsed);
 
-  const upload = React.useCallback(
-    async (file: File) => {
-      const err = validateFile(file, mine.length);
-      if (err) {
-        setValidationError(err);
-        toast.error(err);
-        return;
-      }
-      setValidationError(null);
-      setUploading(true);
+  const updateInFlight = React.useCallback(
+    (id: string, patch: Partial<InFlight>) => {
+      setInFlight((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    },
+    [],
+  );
+
+  const runUpload = React.useCallback(
+    async (id: string, file: File) => {
       try {
         const token = await ensureResumeToken();
         const cleaned = file.name.replace(/[^\w.\- ]+/g, "_").slice(0, 180);
         const qslug = questionId.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 64) || "q";
         const path = `${token}/q/${qslug}/${crypto.randomUUID()}-${cleaned}`;
-        const { error: upErr } = await supabase.storage
-          .from(BUCKET)
-          .upload(path, file, { upsert: false, contentType: file.type || undefined });
-        if (upErr) throw upErr;
+
+        // Fresh abort controller per attempt so retry works after cancel/error.
+        const abort = new AbortController();
+        updateInFlight(id, { abort, status: "uploading", error: null, progress: 0 });
+
+        await uploadToStorage({
+          path,
+          file,
+          signal: abort.signal,
+          onProgress: (pct) => updateInFlight(id, { progress: pct }),
+        });
+
         const mod = await import("@/lib/intake.functions");
         const res = await mod.recordIntakeAttachment({
           data: {
@@ -264,7 +456,9 @@ export function QuestionAttachments({
             question_id: qslug,
           },
         });
-        onChange((res?.attachments ?? []) as QuestionAttachmentRecord[]);
+        const next = (res?.attachments ?? []) as QuestionAttachmentRecord[];
+        onChange(next);
+        setInFlight((prev) => prev.filter((i) => i.id !== id));
 
         // Fire-and-forget evidence extraction for images + voice notes.
         const ext = extOf(file.name);
@@ -278,7 +472,7 @@ export function QuestionAttachments({
             });
             if (out?.summary && onEvidence) onEvidence(out.summary);
             onChange(
-              ((res?.attachments ?? []) as QuestionAttachmentRecord[]).map((a) =>
+              next.map((a) =>
                 a.storage_path === path ? { ...a, summary: out?.summary ?? null } : a,
               ),
             );
@@ -289,15 +483,62 @@ export function QuestionAttachments({
           }
         }
       } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") {
+          setInFlight((prev) => prev.filter((i) => i.id !== id));
+          return;
+        }
         const msg = e instanceof Error ? e.message : "Upload failed";
-        setValidationError(msg);
+        updateInFlight(id, { status: "error", error: msg });
         toast.error(msg);
-      } finally {
-        setUploading(false);
       }
     },
-    [ensureResumeToken, mine.length, onChange, onEvidence, questionId],
+    [ensureResumeToken, onChange, onEvidence, questionId, updateInFlight],
   );
+
+  const startUpload = React.useCallback(
+    (file: File) => {
+      const err = validateFile(file, totalUsed);
+      if (err) {
+        setValidationError(err);
+        toast.error(err);
+        return;
+      }
+      setValidationError(null);
+      const id = crypto.randomUUID();
+      const item: InFlight = {
+        id,
+        file,
+        progress: 0,
+        status: "uploading",
+        error: null,
+        abort: new AbortController(),
+      };
+      setInFlight((prev) => [...prev, item]);
+      void runUpload(id, file);
+    },
+    [runUpload, totalUsed],
+  );
+
+  const cancelInFlight = React.useCallback((id: string) => {
+    setInFlight((prev) => {
+      const target = prev.find((i) => i.id === id);
+      target?.abort.abort();
+      return prev;
+    });
+  }, []);
+
+  const retryInFlight = React.useCallback(
+    (id: string) => {
+      const target = inFlight.find((i) => i.id === id);
+      if (!target) return;
+      void runUpload(id, target.file);
+    },
+    [inFlight, runUpload],
+  );
+
+  const dismissInFlight = React.useCallback((id: string) => {
+    setInFlight((prev) => prev.filter((i) => i.id !== id));
+  }, []);
 
   const remove = React.useCallback(
     async (path: string) => {
@@ -319,8 +560,39 @@ export function QuestionAttachments({
     [onChange, resumeToken],
   );
 
-  const busy = uploading || describing !== null;
-  const remaining = Math.max(0, PER_QUESTION_CAP - mine.length);
+  const requestReplace = React.useCallback((path: string) => {
+    replaceTargetRef.current = path;
+    replaceInputRef.current?.click();
+  }, []);
+
+  const handleReplacePicked = React.useCallback(
+    async (file: File) => {
+      const targetPath = replaceTargetRef.current;
+      replaceTargetRef.current = null;
+      if (!targetPath || !resumeToken) return;
+      // Replace does not count against the cap: we free the slot first.
+      const err = validateFile(file, totalUsed - 1);
+      if (err) {
+        setValidationError(err);
+        toast.error(err);
+        return;
+      }
+      setReplacing(targetPath);
+      try {
+        const mod = await import("@/lib/intake.functions");
+        const res = await mod.removeIntakeAttachment({
+          data: { resume_token: resumeToken, storage_path: targetPath },
+        });
+        onChange((res?.attachments ?? []) as QuestionAttachmentRecord[]);
+        startUpload(file);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Replace failed");
+      } finally {
+        setReplacing(null);
+      }
+    },
+    [onChange, resumeToken, startUpload, totalUsed],
+  );
 
   return (
     <div className="mt-3 space-y-2">
@@ -332,29 +604,36 @@ export function QuestionAttachments({
           accept={ACCEPT_ATTR}
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) void upload(f);
+            if (f) startUpload(f);
             if (inputRef.current) inputRef.current.value = "";
+          }}
+        />
+        <input
+          ref={replaceInputRef}
+          type="file"
+          className="hidden"
+          accept={ACCEPT_ATTR}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handleReplacePicked(f);
+            if (replaceInputRef.current) replaceInputRef.current.value = "";
           }}
         />
         <Button
           type="button"
           size="sm"
           variant="ghost"
-          disabled={busy || atCap}
+          disabled={atCap}
           onClick={() => inputRef.current?.click()}
           className="gap-2"
           title="Attach an image, document, or clip to this answer"
         >
-          {uploading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Paperclip className="h-3.5 w-3.5" />
-          )}
+          <Paperclip className="h-3.5 w-3.5" />
           Attach
         </Button>
         <VoiceRecorder
-          disabled={busy || atCap}
-          onRecorded={async (f) => { await upload(f); }}
+          disabled={atCap}
+          onRecorded={async (f) => { startUpload(f); }}
         />
         <span className="text-[11px]">
           {atCap ? (
@@ -376,22 +655,30 @@ export function QuestionAttachments({
       </div>
 
       {validationError && (
-        <p
-          role="alert"
-          className="text-[11px] text-destructive"
-        >
+        <p role="alert" className="text-[11px] text-destructive">
           {validationError}
         </p>
       )}
 
-      {mine.length > 0 && (
+      {(mine.length > 0 || inFlight.length > 0) && (
         <ul className="flex flex-wrap gap-2">
           {mine.map((a) => (
             <AttachmentPreview
               key={a.storage_path}
               att={a}
               removing={removing === a.storage_path}
+              replacing={replacing === a.storage_path}
               onRemove={() => void remove(a.storage_path)}
+              onReplace={() => requestReplace(a.storage_path)}
+            />
+          ))}
+          {inFlight.map((i) => (
+            <InFlightTile
+              key={i.id}
+              item={i}
+              onCancel={() => cancelInFlight(i.id)}
+              onRetry={() => retryInFlight(i.id)}
+              onDismiss={() => dismissInFlight(i.id)}
             />
           ))}
         </ul>
