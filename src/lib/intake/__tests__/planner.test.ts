@@ -71,9 +71,15 @@ describe("adaptive planner — automation / crm", () => {
     );
     const decision = planNextTurn("project.crm", memory);
     if (decision.kind !== "ask") return;
-    expect(["sources", "pipeline_today", "follow_up_gap", "audience", "features"]).toContain(
-      decision.gap.field.key,
-    );
+    expect([
+      "sources",
+      "pipeline_today",
+      "follow_up_gap",
+      "audience",
+      "features",
+      "goal",
+      "deadline",
+    ]).toContain(decision.gap.field.key);
   });
 });
 
