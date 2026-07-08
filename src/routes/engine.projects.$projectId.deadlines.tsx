@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard, EmptyState, formatDate } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
@@ -30,6 +31,7 @@ function Deadlines() {
         <p className="text-sm text-ink/60 mt-1">Protect the real dates the business is counting on.</p>
       </header>
       <StepStateBar projectId={projectId} step="deadlines" current={project.step_states?.["deadlines"]} />
+      <StepAiPanelFor step="deadlines" data={project.deadlines} />
       <SourceEvidence projectId={projectId} step="deadlines" />
 
       {ms.length === 0 ? (

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Kanban, List, Layers, User, Zap, Calendar as CalendarIcon, Search, PlusCircle } from "lucide-react";
 import { SectionCard, MetricCard, formatCents } from "@/components/engine/primitives";
 import { listTasks, createTask, updateTaskStatus, listMilestones } from "@/lib/engine-execution.functions";
+import { generateTasksForApprovedMilestones } from "@/lib/engine-execution.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/agent/tasks")({
   component: TaskBoardPage,
@@ -43,6 +44,7 @@ function TaskBoardPage() {
   const createFn = useServerFn(createTask);
   const statusFn = useServerFn(updateTaskStatus);
   const milestonesFn = useServerFn(listMilestones);
+  const generateFn = useServerFn(generateTasksForApprovedMilestones);
   const [view, setView] = useState("board");
   const [q, setQ] = useState("");
   const [milestoneId, setMilestoneId] = useState<string>("");
@@ -83,6 +85,16 @@ function TaskBoardPage() {
     onSuccess: refresh,
   });
 
+  const decompose = useMutation({
+    mutationFn: () =>
+      generateFn({ data: { projectId, ...(milestoneId ? { milestoneId } : {}), maxPerMilestone: 5 } }),
+    onSuccess: (r: any) => {
+      toast.success(`AI drafted ${r.tasks_created} task${r.tasks_created === 1 ? "" : "s"} from ${r.milestones} milestone${r.milestones === 1 ? "" : "s"}.`);
+      refresh();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "AI decomposition failed"),
+  });
+
   return (
     <div className="space-y-5 max-w-[1500px]">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -102,8 +114,14 @@ function TaskBoardPage() {
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
-          <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50 flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5" /> Generate New Tasks
+          <button
+            type="button"
+            onClick={() => decompose.mutate()}
+            disabled={decompose.isPending}
+            className="text-xs border border-royal/40 bg-royal/5 rounded-md px-3 py-1.5 hover:border-royal flex items-center gap-1.5 disabled:opacity-50"
+            title={milestoneId ? "Decompose selected milestone into suggested tasks" : "Decompose all approved milestones into suggested tasks"}
+          >
+            <Zap className="w-3.5 h-3.5" /> {decompose.isPending ? "Drafting…" : milestoneId ? "AI: decompose milestone" : "AI: decompose approved milestones"}
           </button>
           <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50">Import Tasks</button>
         </div>

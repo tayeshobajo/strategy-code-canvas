@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
@@ -20,6 +21,7 @@ function HiddenAssets() {
         <p className="text-sm text-ink/60 mt-1">What they already own that can become leverage.</p>
       </header>
       <StepStateBar projectId={projectId} step="hidden-assets" current={project.step_states?.["hidden-assets"]} />
+      <StepAiPanelFor step="hidden-assets" data={project.hidden_assets} />
       <SourceEvidence projectId={projectId} step="hidden-assets" />
 
       {cats.length === 0 ? (

@@ -1363,3 +1363,169 @@ export const regenerateMilestoneSection = createServerFn({ method: "POST" })
 
     return { ok: true, value: newValue };
   });
+
+// ============================================================
+// AI Task Decomposition (Momentum triad #2)
+// Generates suggested tasks from approved milestones. AI cannot
+// mark them official — status stays "suggested" until an operator
+// approves via updateTaskStatus.
+// ============================================================
+
+type AiTaskDraft = {
+  title?: string;
+  purpose?: string;
+  priority?: string;
+  dependency_notes?: string;
+  acceptance_criteria?: Array<string | { text?: string }>;
+  qa_checklist?: Array<string | { text?: string }>;
+  risks?: Array<string | { text?: string; severity?: string }>;
+  expected_artifact?: string;
+};
+
+export const generateTasksForApprovedMilestones = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        projectId: z.string().uuid(),
+        // Optional: restrict to a single milestone
+        milestoneId: z.string().uuid().optional(),
+        // Cap tasks per milestone so runaway drafts don't flood the board
+        maxPerMilestone: z.number().int().min(1).max(10).default(5),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    await assertActionAllowed(sb, data.projectId, "create_tasks", { approve: true });
+
+    // Fetch approved milestones (or one specific one).
+    let q = sb
+      .from("engine_milestones")
+      .select("id,name,phase,owner_email,priority,due_date,acceptance_criteria,brief_md,approval_status")
+      .eq("project_id", data.projectId)
+      .eq("approval_status", "approved");
+    if (data.milestoneId) q = q.eq("id", data.milestoneId);
+    const { data: milestones, error: mErr } = await q;
+    if (mErr) throwGeneric(mErr, "Could not load milestones");
+    const approved = (milestones ?? []) as Array<Record<string, any>>;
+    if (approved.length === 0) {
+      return { ok: true as const, milestones: 0, tasks_created: 0, note: "No approved milestones to decompose." };
+    }
+
+    const { callLovableAi, parseJsonOutput } = await import("./engine-ai.server");
+
+    let tasksCreated = 0;
+    const email = (context as any).claims?.email ?? "agent";
+
+    for (const m of approved) {
+      // Skip milestones that already have AI-generated task drafts.
+      const { data: existing } = await sb
+        .from("engine_tasks")
+        .select("id,name,ai_generated")
+        .eq("milestone_id", m.id);
+      const existingAi = ((existing ?? []) as Array<any>).filter((r) => r.ai_generated);
+      if (existingAi.length >= data.maxPerMilestone) continue;
+
+      const criteria = Array.isArray(m.acceptance_criteria)
+        ? m.acceptance_criteria.map((c: any) => (typeof c === "string" ? c : c?.text ?? "")).filter(Boolean).join("\n- ")
+        : "";
+      const prompt = [
+        `You are a senior AI product manager decomposing an approved milestone into ${data.maxPerMilestone} concrete tasks.`,
+        `Return ONLY valid JSON of the shape:`,
+        `{ "tasks": [ { "title": string, "purpose": string, "priority": "P1"|"P2"|"P3", "dependency_notes": string, "acceptance_criteria": [string], "qa_checklist": [string], "risks": [ { "text": string, "severity": "low"|"med"|"high" } ], "expected_artifact": string } ] }`,
+        ``,
+        `Milestone: ${m.name}`,
+        `Phase: ${m.phase ?? "n/a"}`,
+        `Owner: ${m.owner_email ?? "unassigned"}`,
+        `Priority: ${m.priority ?? "n/a"}`,
+        `Due: ${m.due_date ?? "n/a"}`,
+        ``,
+        `Milestone brief:`,
+        m.brief_md ?? "(no brief)",
+        ``,
+        `Acceptance criteria for the milestone:`,
+        criteria ? `- ${criteria}` : "(none)",
+        ``,
+        `Guidance: each task must be executable in <= 5 days by one owner. Purpose in one sentence. Acceptance criteria are testable. QA checklist is separate. Risks are concrete.`,
+      ].join("\n");
+
+      let ai;
+      try {
+        ai = await callLovableAi(
+          [
+            { role: "system", content: "You output strict JSON only. No markdown, no commentary." },
+            { role: "user", content: prompt },
+          ],
+          { json: true, temperature: 0.2 },
+        );
+      } catch (err) {
+        // Skip this milestone but keep going.
+        await sb.from("engine_activity").insert({
+          project_id: data.projectId,
+          kind: "ai_task_gen_failed",
+          title: `AI task generation failed for milestone "${m.name}"`,
+          body: err instanceof Error ? err.message : String(err),
+          severity: "warning",
+        });
+        continue;
+      }
+
+      const parsed = parseJsonOutput<{ tasks: AiTaskDraft[] }>(ai.text);
+      const tasks = Array.isArray(parsed?.tasks) ? parsed!.tasks : [];
+      if (!tasks.length) continue;
+
+      const asStrings = (arr: Array<string | { text?: string }> | undefined): Array<{ text: string; done: boolean }> =>
+        (arr ?? [])
+          .map((c) => (typeof c === "string" ? c : c?.text ?? ""))
+          .filter(Boolean)
+          .map((text) => ({ text, done: false }));
+
+      const rows = tasks.slice(0, data.maxPerMilestone).map((t) => ({
+        project_id: data.projectId,
+        milestone_id: m.id,
+        name: (t.title ?? "Untitled task").slice(0, 240),
+        description: t.dependency_notes ?? null,
+        priority: ["P1", "P2", "P3"].includes(t.priority ?? "") ? t.priority : m.priority === "Critical" ? "P1" : "P2",
+        status: "suggested",
+        source: `AI decomposition: ${m.name}`,
+        owner_email: m.owner_email ?? null,
+        acceptance_criteria: asStrings(t.acceptance_criteria),
+        qa_checklist: asStrings(t.qa_checklist),
+        purpose: t.purpose ?? null,
+        expected_artifact: t.expected_artifact ?? null,
+        dependency_notes: t.dependency_notes ?? null,
+        risks: (t.risks ?? []).map((r) => (typeof r === "string" ? { text: r, severity: "med" } : r)),
+        ai_generated: true,
+        created_by: "agent",
+      }));
+
+      const { error } = await sb.from("engine_tasks").insert(rows);
+      if (error) throwGeneric(error, "Failed to insert generated tasks");
+      tasksCreated += rows.length;
+
+      await sb.from("engine_agent_costs").insert({
+        project_id: data.projectId,
+        actor_email: email,
+        action: "generate_tasks_for_milestone",
+        model: "google/gemini-3-flash-preview",
+        tokens_in: ai.tokens_in,
+        tokens_out: ai.tokens_out,
+        cost_cents: ai.cost_cents,
+        metadata: { milestone_id: m.id, count: rows.length },
+      });
+    }
+
+    await sb.from("engine_audit_log").insert({
+      project_id: data.projectId,
+      actor_email: email,
+      action: "ai_task_decomposition",
+      summary: `AI decomposed ${approved.length} milestone(s) into ${tasksCreated} suggested task(s).`,
+      affected_modules: ["tasks"],
+      metadata: { milestones: approved.length, tasks_created: tasksCreated },
+    });
+
+    return { ok: true as const, milestones: approved.length, tasks_created: tasksCreated };
+  });
+

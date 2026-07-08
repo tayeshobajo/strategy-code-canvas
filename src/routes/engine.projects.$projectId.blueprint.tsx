@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
@@ -29,6 +30,7 @@ function Blueprint() {
         <p className="text-sm text-ink/60 mt-1">The future operating system, node by node.</p>
       </header>
       <StepStateBar projectId={projectId} step="blueprint" current={project.step_states?.["blueprint"]} />
+      <StepAiPanelFor step="blueprint" data={project.blueprint} />
       <SourceEvidence projectId={projectId} step="blueprint" />
 
       {nodes.length === 0 ? (

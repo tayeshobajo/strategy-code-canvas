@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
@@ -20,6 +21,7 @@ function GapMap() {
         <p className="text-sm text-ink/60 mt-1">What's missing between Point A and Point B.</p>
       </header>
       <StepStateBar projectId={projectId} step="gap-map" current={project.step_states?.["gap-map"]} />
+      <StepAiPanelFor step="gap-map" data={project.gap_map} />
       <SourceEvidence projectId={projectId} step="gap-map" />
 
       {cats.length === 0 ? (

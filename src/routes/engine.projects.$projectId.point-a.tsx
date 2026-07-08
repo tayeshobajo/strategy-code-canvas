@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
@@ -54,6 +55,7 @@ function PointA() {
         </div>
       </header>
       <StepStateBar projectId={projectId} step="point-a" current={project.step_states?.["point-a"]} />
+      <StepAiPanelFor step="point-a" data={project.point_a} />
       <SourceEvidence projectId={projectId} step="point-a" />
 
 

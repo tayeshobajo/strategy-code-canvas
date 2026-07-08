@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
@@ -30,6 +31,7 @@ function Sequencing() {
         <p className="text-sm text-ink/60 mt-1">Why the milestones are in the right order.</p>
       </header>
       <StepStateBar projectId={projectId} step="sequencing" current={project.step_states?.["sequencing"]} />
+      <StepAiPanelFor step="sequencing" data={project.sequencing} />
       <SourceEvidence projectId={projectId} step="sequencing" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
