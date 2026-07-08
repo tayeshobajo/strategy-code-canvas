@@ -66,9 +66,8 @@ function PortalsPage() {
 
         {rows.length === 0 ? (
           <EmptyState
-            icon={Users}
             title="No submissions"
-            description="Portals appear here after Stripe confirms payment."
+            body="Portals appear here after Stripe confirms payment."
           />
         ) : (
           <div className="overflow-x-auto -mx-4 sm:mx-0">
