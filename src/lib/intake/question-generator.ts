@@ -40,6 +40,10 @@ export function buildGeneratorPrompt(input: {
     .filter(([, f]: [string, KnownFact]) => f.confidence > 0.3 && f.evidence)
     .map(([key, f]) => `- ${key}: ${f.evidence}`)
     .join("\n");
+  const ctxEntries = Object.entries(input.memory.contextFacts ?? {});
+  const context = ctxEntries.length
+    ? ctxEntries.map(([k, v]) => `- ${k}: ${v.value}`).join("\n")
+    : "(none)";
   const asked = input.memory.questionHistory
     .map((h, i) => `${i + 1}. ${h.question}`)
     .join("\n");
@@ -55,11 +59,14 @@ export function buildGeneratorPrompt(input: {
     "- do NOT repeat any prior question below",
     "- do NOT ask about anything outside the target field",
     "- if you have specific facts to reference, use them; otherwise stay close to the anchor",
-    "- the acknowledgement is optional; include it only when you can name back a specific prior fact, never invent one, never end it with a question mark",
+    "- the acknowledgement is optional; include it only when you can name back a specific prior fact (from Context or Known below), never invent one, never end it with a question mark",
     "",
     `Frame: ${input.frameLabel}`,
     `Target field (internal, do not name): ${input.target.label}`,
     `Anchor question (fallback wording): ${input.anchor}`,
+    "",
+    "Context (side facts you may name back — honoree, event type, city, etc.):",
+    context,
     "",
     "What we already know:",
     facts || "(nothing yet)",
