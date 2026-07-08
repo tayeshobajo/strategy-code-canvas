@@ -700,6 +700,44 @@ function WriteIntake() {
     setScoringNext(false);
   }, [currentObjective?.key]);
 
+  // Live debug snapshot for QA. Exposes planner state to window so Playwright
+  // (and other headless checks) can read known_facts / missing_fields /
+  // question & answer history / confidence / enough_signal without having to
+  // reach into React or query the DB. Client-only; noop during SSR.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!frame) {
+      (window as unknown as { __intakeDebug?: unknown }).__intakeDebug = {
+        frame: null,
+        phase,
+      };
+      return;
+    }
+    const snapshot: PlannerSnapshot = planNextObjective(frame, answers, askedKeys, scores);
+    (window as unknown as { __intakeDebug?: unknown }).__intakeDebug = {
+      frame,
+      phase,
+      current_objective_key: currentObjective?.key ?? null,
+      known_facts: snapshot.known_facts,
+      missing_fields: snapshot.missing_fields,
+      question_history: snapshot.question_history,
+      answer_history: snapshot.answer_history,
+      confidence_score: snapshot.confidence_score,
+      enough_signal: snapshot.enough_signal,
+      next_gap:
+        snapshot.decision.kind === "ask"
+          ? {
+              field_key: snapshot.decision.gap.field.key,
+              label: snapshot.decision.gap.field.label,
+              importance: snapshot.decision.gap.field.importance,
+              confidence: snapshot.decision.gap.confidence,
+              score: snapshot.decision.gap.score,
+            }
+          : null,
+      decision_kind: snapshot.decision.kind,
+    };
+  }, [answers, askedKeys, currentObjective?.key, frame, phase, scores]);
+
 
   const goNextObjective = React.useCallback(() => {
     void advanceObjective();
