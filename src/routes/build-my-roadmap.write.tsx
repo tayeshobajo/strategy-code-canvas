@@ -1437,6 +1437,14 @@ function ObjectiveScreen({
           {objective.label}{objective.required ? "" : ", if it helps"}
         </p>
       </div>
+      {generatedAck && generatedAck.trim() && (
+        <p
+          className="text-sm leading-relaxed text-muted-foreground"
+          data-testid="intake-ack"
+        >
+          {generatedAck.trim()}
+        </p>
+      )}
       <p
         className="font-serif text-xl leading-snug text-foreground sm:text-2xl"
         aria-busy={generatingQuestion ? true : undefined}
