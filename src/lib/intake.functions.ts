@@ -269,6 +269,11 @@ export const loadDraft = createServerFn({ method: "POST" })
       filename: String(a.filename ?? ""),
       size: Number(a.size ?? 0),
       mime: a.mime == null ? null : String(a.mime),
+      question_id: a.question_id == null ? null : String(a.question_id),
+      kind: (["image","audio","video","doc"] as const).includes(a.kind as "image")
+        ? (a.kind as "image" | "audio" | "video" | "doc")
+        : undefined,
+      summary: a.summary == null ? null : String(a.summary),
     }));
     const sources = normalizeIntakeSources(row.sources);
     return { found: true as const, answers, contact, attachments, sources };
