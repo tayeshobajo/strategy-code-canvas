@@ -49,6 +49,7 @@ import {
   scoreAnswer,
 } from "@/lib/intake-scoring";
 import { heuristicExtract } from "@/lib/intake/heuristic-extract";
+import { QuestionAttachments, type QuestionAttachmentRecord } from "@/components/intake/QuestionAttachments";
 /** Same threshold the server classifier uses. Duplicated here to keep
  * the classifier module out of the client bundle for a single constant. */
 const HIGH_CONFIDENCE_BAR = 70;
