@@ -107,6 +107,10 @@ function buildPrompt(input: z.infer<typeof GenerateInput>): string {
           .map((a) => `- ${a.label}: ${a.response}`)
           .join("\n")
       : "(nothing yet)";
+  const context =
+    input.context_facts.length > 0
+      ? input.context_facts.map((c) => `- ${c.key}: ${c.value}`).join("\n")
+      : "(none)";
   return [
     SYSTEM,
     "",
@@ -115,6 +119,9 @@ function buildPrompt(input: z.infer<typeof GenerateInput>): string {
     "",
     "How the founder opened:",
     input.opening || "(no opening statement)",
+    "",
+    "Context (side facts you may name back — honoree, event type, city, etc.):",
+    context,
     "",
     "What they have told us so far:",
     priors,
