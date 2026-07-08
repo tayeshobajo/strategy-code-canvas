@@ -667,14 +667,21 @@ function WriteIntake() {
           return;
         }
 
-        const next = selectNextObjective(frame, nextScores, new Set(nextAsked));
+        const snapshot = planNextObjective(frame, answers, nextAsked, nextScores);
+        const next = snapshot.next_objective;
+        console.debug("[intake/planner] advance", {
+          from: key,
+          to: next?.key ?? null,
+          decision: snapshot.decision.kind,
+          confidence: snapshot.confidence_score,
+          missing: snapshot.missing_fields,
+        });
         if (!next) {
           setCurrentObjective(null);
           setPhase("contact");
-          console.debug("[intake/objective-loop] advance:enough");
+          console.debug("[intake/planner] advance:enough");
           return;
         }
-        console.debug("[intake/objective-loop] advance:next", { from: key, to: next.key });
         setCurrentObjective(next);
       } finally {
         // Always release the scoring lock synchronously with the transition
