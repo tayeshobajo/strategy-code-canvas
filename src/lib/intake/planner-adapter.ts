@@ -185,12 +185,14 @@ export function planNextObjective(
     decision,
     next_objective,
     known_facts: memory.knownFacts,
+    context_facts: memory.contextFacts,
     missing_fields: missing,
     question_history: memory.questionHistory,
     answer_history: memory.answerHistory,
     confidence_score: conf,
     confidence_threshold: threshold,
     enough_signal: enough,
+    selected_reason: decision.selected_reason,
     candidates,
   };
 }
