@@ -645,28 +645,27 @@ function WriteIntake() {
         })();
       }
 
-      try {
-        // Higher-wins for the current objective too. A re-answer that
-        // scores lower than the prior pass (shorter, more hedged, etc.)
-        // must not drag the objective's confidence backwards — the planner
-        // treats confidence as monotonically ratcheting up per field.
-        const nextScores: Record<string, number> = {
-          ...scores,
-          [key]: Math.max(scores[key] ?? 0, objectiveScore),
-        };
-        // Cross-objective evidence pass: scan the just-committed answer text
-        // against the whole frame profile so answers that incidentally cover
-        // other fields (dates, guest counts, systems) credit those fields
-        // and the planner skips them.
+      // Compute the next scores using the FUNCTIONAL updater form so any
+      // model-scoring update that landed between renders (see the async
+      // block above) merges via higher-wins instead of being stomped by a
+      // stale `scores` closure. Every field is Math.max(prior, candidate)
+      // — the planner treats confidence as monotonically ratcheting up.
+      let nextScores: Record<string, number> = {};
+      setScores((prev) => {
+        const merged: Record<string, number> = { ...prev };
+        merged[key] = Math.max(prev[key] ?? 0, objectiveScore);
         if (responseText.trim()) {
           const facts = heuristicExtract(frame, responseText);
           for (const [k, fact] of Object.entries(facts)) {
             const evidenceScore = Math.round(fact.confidence * 100);
-            if (evidenceScore > (nextScores[k] ?? 0)) nextScores[k] = evidenceScore;
+            if (evidenceScore > (merged[k] ?? 0)) merged[k] = evidenceScore;
           }
         }
-        const nextAsked = askedKeys.includes(key) ? askedKeys : [...askedKeys, key];
-        setScores(nextScores);
+        nextScores = merged;
+        return merged;
+      });
+      const nextAsked = askedKeys.includes(key) ? askedKeys : [...askedKeys, key];
+      try {
         setAskedKeys(nextAsked);
         persistInternal(nextScores, nextAsked);
 
