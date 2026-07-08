@@ -83,11 +83,9 @@ export function extractContextFacts(
   const loc = t.match(LOCATION_RE);
   if (loc) {
     const candidate = loc[1].trim();
-    // Skip obvious false positives ("in the morning", "at home").
-    if (
-      LOCATION_STOPWORDS.has(candidate.split(/\s+/)[0]) ||
-      /^[A-Z]/.test(candidate)
-    ) {
+    const head = candidate.split(/\s+/)[0];
+    const isMonth = /^(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)$/.test(head);
+    if (!isMonth) {
       out.location = { value: candidate, evidence: loc[0] };
     }
   }
