@@ -42,6 +42,7 @@ import { Route as PortalActivityRouteImport } from './routes/portal.activity'
 import { Route as PortalAccountRouteImport } from './routes/portal.account'
 import { Route as PortalAccessDeniedRouteImport } from './routes/portal.access-denied'
 import { Route as OpsQueueRouteImport } from './routes/ops/queue'
+import { Route as OpsPortalsRouteImport } from './routes/ops/portals'
 import { Route as OpsNotificationsRouteImport } from './routes/ops/notifications'
 import { Route as OpsInsightsRouteImport } from './routes/ops/insights'
 import { Route as OpsHistoryRouteImport } from './routes/ops/history'
@@ -270,6 +271,11 @@ const PortalAccessDeniedRoute = PortalAccessDeniedRouteImport.update({
 const OpsQueueRoute = OpsQueueRouteImport.update({
   id: '/queue',
   path: '/queue',
+  getParentRoute: () => OpsRouteRoute,
+} as any)
+const OpsPortalsRoute = OpsPortalsRouteImport.update({
+  id: '/portals',
+  path: '/portals',
   getParentRoute: () => OpsRouteRoute,
 } as any)
 const OpsNotificationsRoute = OpsNotificationsRouteImport.update({
@@ -668,6 +674,7 @@ export interface FileRoutesByFullPath {
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/notifications': typeof OpsNotificationsRoute
+  '/ops/portals': typeof OpsPortalsRoute
   '/ops/queue': typeof OpsQueueRoute
   '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/account': typeof PortalAccountRoute
@@ -763,6 +770,7 @@ export interface FileRoutesByTo {
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/notifications': typeof OpsNotificationsRoute
+  '/ops/portals': typeof OpsPortalsRoute
   '/ops/queue': typeof OpsQueueRoute
   '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/account': typeof PortalAccountRoute
@@ -863,6 +871,7 @@ export interface FileRoutesById {
   '/ops/history': typeof OpsHistoryRoute
   '/ops/insights': typeof OpsInsightsRoute
   '/ops/notifications': typeof OpsNotificationsRoute
+  '/ops/portals': typeof OpsPortalsRoute
   '/ops/queue': typeof OpsQueueRoute
   '/portal/access-denied': typeof PortalAccessDeniedRoute
   '/portal/account': typeof PortalAccountRoute
@@ -963,6 +972,7 @@ export interface FileRouteTypes {
     | '/ops/history'
     | '/ops/insights'
     | '/ops/notifications'
+    | '/ops/portals'
     | '/ops/queue'
     | '/portal/access-denied'
     | '/portal/account'
@@ -1058,6 +1068,7 @@ export interface FileRouteTypes {
     | '/ops/history'
     | '/ops/insights'
     | '/ops/notifications'
+    | '/ops/portals'
     | '/ops/queue'
     | '/portal/access-denied'
     | '/portal/account'
@@ -1157,6 +1168,7 @@ export interface FileRouteTypes {
     | '/ops/history'
     | '/ops/insights'
     | '/ops/notifications'
+    | '/ops/portals'
     | '/ops/queue'
     | '/portal/access-denied'
     | '/portal/account'
@@ -1487,6 +1499,13 @@ declare module '@tanstack/react-router' {
       path: '/queue'
       fullPath: '/ops/queue'
       preLoaderRoute: typeof OpsQueueRouteImport
+      parentRoute: typeof OpsRouteRoute
+    }
+    '/ops/portals': {
+      id: '/ops/portals'
+      path: '/portals'
+      fullPath: '/ops/portals'
+      preLoaderRoute: typeof OpsPortalsRouteImport
       parentRoute: typeof OpsRouteRoute
     }
     '/ops/notifications': {
@@ -1964,6 +1983,7 @@ interface OpsRouteRouteChildren {
   OpsHistoryRoute: typeof OpsHistoryRoute
   OpsInsightsRoute: typeof OpsInsightsRoute
   OpsNotificationsRoute: typeof OpsNotificationsRoute
+  OpsPortalsRoute: typeof OpsPortalsRoute
   OpsQueueRoute: typeof OpsQueueRoute
   OpsIndexRoute: typeof OpsIndexRoute
   OpsEditorIdRoute: typeof OpsEditorIdRoute
@@ -1976,6 +1996,7 @@ const OpsRouteRouteChildren: OpsRouteRouteChildren = {
   OpsHistoryRoute: OpsHistoryRoute,
   OpsInsightsRoute: OpsInsightsRoute,
   OpsNotificationsRoute: OpsNotificationsRoute,
+  OpsPortalsRoute: OpsPortalsRoute,
   OpsQueueRoute: OpsQueueRoute,
   OpsIndexRoute: OpsIndexRoute,
   OpsEditorIdRoute: OpsEditorIdRoute,
