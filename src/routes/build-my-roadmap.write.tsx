@@ -1416,6 +1416,14 @@ function ObjectiveScreen({
           </div>
         </div>
       )}
+      <QuestionAttachments
+        questionId={objective.key}
+        resumeToken={resumeToken}
+        ensureResumeToken={ensureResumeToken}
+        attachments={attachments}
+        onChange={onAttachmentsChange}
+        onEvidence={onMediaEvidence}
+      />
       <ObjectiveDots frameDef={frameDef} currentKey={objective.key} answeredKeys={Object.keys({ [objective.key]: value.trim() })} filledAnswers={value.trim()} />
       <div className="flex items-center justify-between gap-3">
         <Button variant="ghost" onClick={onPrev} className="gap-2">
