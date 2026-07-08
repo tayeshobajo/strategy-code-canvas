@@ -85,6 +85,16 @@ function TaskBoardPage() {
     onSuccess: refresh,
   });
 
+  const decompose = useMutation({
+    mutationFn: () =>
+      generateFn({ data: { projectId, ...(milestoneId ? { milestoneId } : {}), maxPerMilestone: 5 } }),
+    onSuccess: (r: any) => {
+      toast.success(`AI drafted ${r.tasks_created} task${r.tasks_created === 1 ? "" : "s"} from ${r.milestones} milestone${r.milestones === 1 ? "" : "s"}.`);
+      refresh();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "AI decomposition failed"),
+  });
+
   return (
     <div className="space-y-5 max-w-[1500px]">
       <div className="flex items-start justify-between gap-4 flex-wrap">
