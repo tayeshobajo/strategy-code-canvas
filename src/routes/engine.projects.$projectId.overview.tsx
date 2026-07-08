@@ -6,6 +6,7 @@ import { SectionCard, EmptyState, formatDate, formatCents } from "@/components/e
 import { AuditTrailCard } from "@/components/engine/AuditTrail";
 import { BrainCircuit, Layers, Eye, PackageCheck, AlertCircle } from "lucide-react";
 import { getVersionCompareData } from "@/lib/engine-execution.functions";
+import { getNextBestAction } from "@/lib/engine.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/overview")({
   component: ProjectOverview,
@@ -26,6 +27,14 @@ function ProjectOverview() {
       .filter((m) => m.changes.length > 0)
       .map((m) => ({ key: m.key, label: m.label, count: m.changes.length }));
 
+  const nbaFn = useServerFn(getNextBestAction);
+  const nbaQ = useQuery({
+    queryKey: ["engine", "next-best-action", projectId],
+    queryFn: () => nbaFn({ data: { projectId } }),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  });
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -41,12 +50,43 @@ function ProjectOverview() {
           </div>
 
           <SectionCard title="Next best action">
-            <div className="text-ink text-lg">
-              {p.next_action ?? "Nothing waiting — advance to the next step when ready."}
-            </div>
-            <div className="text-xs text-ink/60 mt-2">
-              {p.open_decisions} open {p.open_decisions === 1 ? "decision" : "decisions"} · Current step {p.current_step_num} of 14
-            </div>
+            {nbaQ.isLoading ? (
+              <div className="text-sm text-ink/50">Computing…</div>
+            ) : nbaQ.data ? (
+              <div>
+                <div className="flex items-start gap-2">
+                  <span
+                    className={`mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ${
+                      nbaQ.data.severity === "critical"
+                        ? "bg-red-500"
+                        : nbaQ.data.severity === "warning"
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                    }`}
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
+                    {nbaQ.data.href ? (
+                      <Link to={nbaQ.data.href} className="text-ink text-lg hover:underline">
+                        {nbaQ.data.action}
+                      </Link>
+                    ) : (
+                      <div className="text-ink text-lg">{nbaQ.data.action}</div>
+                    )}
+                    {nbaQ.data.reason ? (
+                      <div className="text-sm text-ink/70 mt-1">{nbaQ.data.reason}</div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="text-xs text-ink/60 mt-2">
+                  {p.open_decisions} open {p.open_decisions === 1 ? "decision" : "decisions"} · Current step {p.current_step_num} of 14 · Live
+                </div>
+              </div>
+            ) : (
+              <div className="text-ink text-lg">
+                {p.next_action ?? "Nothing waiting — advance to the next step when ready."}
+              </div>
+            )}
           </SectionCard>
 
           <SectionCard
