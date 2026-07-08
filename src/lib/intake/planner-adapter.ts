@@ -124,7 +124,7 @@ export function buildIntakeMemory(
       const resp = answers[key]?.response ?? "";
       if (!resp.trim()) continue;
       const ctx = extractContextFacts(frame, resp);
-      for (const [k, v] of Object.entries(ctx)) {
+      for (const [k, v] of Object.entries(ctx) as Array<[string, ContextFact]>) {
         if (!memory.contextFacts[k]) memory.contextFacts[k] = v;
       }
     }
