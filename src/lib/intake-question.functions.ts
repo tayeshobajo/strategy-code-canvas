@@ -58,15 +58,20 @@ export type GeneratedQuestion = {
 const BANNED =
   /[—!]|(\bjust\b|\bvery\b|\breally\b|\bsimply\b|\bsolutions\b|\bsmart\b|\bintelligent\b|\bseamless\b|\bcutting-edge\b|\bhelp\b|\bdeliver\b|\bprovide\b|\boffer\b|\bleverage\b|\bunlock\b|\bempower\b)/i;
 
-function passesVoiceCheck(s: string, anchor: string): boolean {
+function passesVoiceCheck(
+  s: string,
+  anchor: string,
+  opts: { isReask?: boolean } = {},
+): boolean {
   const clean = s.trim();
   if (!clean) return false;
   if (clean.length < 8 || clean.length > 240) return false;
   if (BANNED.test(clean)) return false;
   // Reject if the model returned an assistant preface instead of a question.
   if (/^(sure|here|okay|got it|of course)\b/i.test(clean)) return false;
-  // Guardrail: if it's identical to the anchor, that's fine — treat as pass.
-  if (clean === anchor.trim()) return true;
+  // On a re-ask, the anchor was already tried; verbatim anchor is a defect
+  // because it produces the exact "planner asked the same thing again" UX.
+  if (opts.isReask && clean.toLowerCase() === anchor.trim().toLowerCase()) return false;
   return true;
 }
 
