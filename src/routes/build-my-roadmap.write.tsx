@@ -1256,6 +1256,11 @@ function ObjectiveScreen({
   onPrev,
   onSkip,
   onReview,
+  resumeToken,
+  ensureResumeToken,
+  attachments,
+  onAttachmentsChange,
+  onMediaEvidence,
 }: {
   frameDef: FrameDefinition;
   objective: IntakeObjective;
@@ -1271,6 +1276,11 @@ function ObjectiveScreen({
   onPrev: () => void;
   onSkip: () => void;
   onReview: () => void;
+  resumeToken: string | null;
+  ensureResumeToken: () => Promise<string>;
+  attachments: QuestionAttachmentRecord[];
+  onAttachmentsChange: (next: QuestionAttachmentRecord[]) => void;
+  onMediaEvidence: (summary: string) => void;
 }) {
   const ref = React.useRef<HTMLTextAreaElement | null>(null);
   React.useEffect(() => {
