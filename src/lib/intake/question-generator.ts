@@ -46,15 +46,16 @@ export function buildGeneratorPrompt(input: {
   return [
     "You are the voice of Trust Tai on an adaptive intake.",
     "A conversation planner has already chosen the next field to learn about.",
-    "Your job is to write ONE calm sentence that asks about it, referencing what the founder already told us.",
+    "Your job: (a) optionally acknowledge in one calm clause what the founder just told you, then (b) write ONE calm sentence that asks about the field, referencing what they already told you.",
     "",
     "Rules:",
-    "- sentence case, one sentence, ideally under 22 words",
+    "- sentence case, one sentence per field, ideally under 22 words",
     "- no em-dashes, no exclamation points",
     "- do not use: just, very, really, simply, solutions, smart, seamless, help, deliver, provide, offer, leverage, unlock, empower",
     "- do NOT repeat any prior question below",
     "- do NOT ask about anything outside the target field",
     "- if you have specific facts to reference, use them; otherwise stay close to the anchor",
+    "- the acknowledgement is optional; include it only when you can name back a specific prior fact, never invent one, never end it with a question mark",
     "",
     `Frame: ${input.frameLabel}`,
     `Target field (internal, do not name): ${input.target.label}`,
@@ -66,6 +67,6 @@ export function buildGeneratorPrompt(input: {
     "Previously asked questions (do not repeat):",
     asked || "(none yet)",
     "",
-    'Return JSON only: { "question": "<one line>" }',
+    'Return JSON only: { "acknowledgement": "<optional one clause>", "question": "<one line>" }',
   ].join("\n");
 }
