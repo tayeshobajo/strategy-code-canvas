@@ -1,169 +1,133 @@
 
-# Roadmap Engine — Operator + AI PM QA Audit
+# Momentum Triad QA Report
 
-Read-only audit. No code changes proposed for this pass; a fix backlog follows the findings.
-
----
+No code changes were made. Findings below.
 
 ## Executive Summary
 
-- **Overall status:** Structurally sound as an operator workbench with strong server-side approval/publish gates and strong client-portal isolation. **Weak as an AI project manager** — the engine mostly *displays* state instead of *driving* it.
-- **Biggest risk:** The 14-step stepper is purely navigational — nothing gates step order or forces upstream completion. Combined with the fact that only the intake→pipeline transition is automatic and only the milestone-brief page has per-section AI generation, the operator carries the workflow themselves after step 3.
-- **What is working:**
-  - Server-side role gates on every irreversible action (`assertAdminEmail`, `assertAdmin`, inner admin checks inside `assertOps` functions).
-  - Agent hard-block set (`send_delivery`, `move_project_to_execution`) plus module exclusions (`investment`, `client_preview`) enforced in code, not just config.
-  - Client-portal isolation: static `portal-safety-guard` test, `CLIENT_SAFE_KEYS` runtime allowlist, admin-only RLS on `engine_*` tables.
-  - Intelligence pipeline auto-creates versioned draft + `roadmap_version` review item + operator notification.
-  - Watchdog cron (`engine_extraction_watchdog`) recovers stuck extraction runs every 5 min.
-- **What is not working:**
-  - No true "Next Best Action" recompute — `engine_projects.next_action` is a stored string set at intake, never refreshed.
-  - Steps 4–8 and 10–12 have no per-step AI generate buttons; they are display-only.
-  - Task decomposition from milestones is entirely manual — no `generateTasks` function.
-  - `operator_notifications` and critical `engine_activity` rows are written but **no UI surfaces them** (no bell, no feed). Watchdog failures and pipeline timeouts are invisible.
-  - Milestone briefs / investment recs / publish requests do **not** create independent review items — one `roadmap_version` item implicitly approves everything downstream.
-- **Recommended next action:** Fix P0/P1 items from the backlog below (state-driven Next Best Action, notification surface for watchdog + operator_notifications, portal view column cleanup) before promising Mubo's project as a repeatable customer-facing flow.
+The recompute engine, triggers, and per-step AI panels are wired correctly and firing across the three real projects (August 1, Jotaye, INBDE). **Two ordering bugs in `compute_engine_next_best_action` cause the Next Best Action to give wrong guidance** on projects that have both an approved/AI-drafted version *and* stale/missing extraction state (Jotaye, INBDE). AI task decomposition ships behind proper permission gates but has **never been executed against a real project**, so end-to-end evidence is unavailable. Per-step AI panels render live "knows/missing" from real project JSON but their `draftHint` still says "coming next slice" — no per-step generator exists.
 
----
+## 1. State Recompute Results
 
-## 1. Operator Role Matrix
+Live state for the three seeded projects, plus what `compute_engine_next_best_action` returns:
 
-Full permissions verified server-side unless noted.
-
-| Role | Route / Action | View | Create | Edit | Approve | Publish | Server-enforced? | Notes |
-|---|---|---|---|---|---|---|---|---|
-| admin | `/engine/*`, `/admin/*`, `/ops/*`, all step pages | ✅ | ✅ | ✅ | ✅ | ✅ | RLS + `assertAdmin` | Full access |
-| operator | `/engine/*`, `/ops/*` | ✅ | ✅ (drafts, notes, tasks, sources) | ✅ (drafts) | ❌ versions/preview | ❌ | `assertOps` + inner admin check on approve/publish | Correct |
-| operator | `/admin/*` | ✅ (shell) | mixed | mixed | ❌ | ❌ | `beforeLoad` allows operator | **⚠ Bypass risk** — operator enters admin shell; individual admin sub-pages rely on server-fn gates for writes but reads may over-expose |
-| operator | Approve roadmap version | — | — | — | ❌ | — | `decideReviewItem` inner admin check | Server hard-block |
-| operator | Publish to portal / approve preview / confirm investment / send delivery | — | — | — | — | ❌ | `assertAdminEmail` | Server hard-block |
-| operator | Investment / preview / agent-permissions pages | ✅ | — | ❌ (UI + server) | — | — | `OperatorLockNotice` (UI) + `assertAdmin` (server) | Defense-in-depth OK, no per-route `beforeLoad` |
-| AI agent (draft_only) | Write draft version, suggest tasks | — | ✅ suggest | ✅ AI-draft rows only | ❌ | ❌ | `assertActionAllowed` — all writes become `needs_approval` | Correct |
-| AI agent (propose_updates / execute_approved) | Same as draft with fewer needs-approval | — | ✅ | ✅ AI-draft rows | ❌ | ❌ | Server + `HARD_BLOCKED` set for `send_delivery`, `move_project_to_execution` | `investment` + `client_preview` excluded from `MODULE_KEYS` — cannot be overridden |
-| client | `/portal/*` | ✅ approved/published snapshot only | ✅ decisions/uploads on their project | — | — | — | Portal RLS: `status IN ('approved','delivered') AND source_version_id IS NOT NULL AND approved_at IS NOT NULL` + `CLIENT_SAFE_KEYS` allowlist + `portal-safety-guard` static test | No access to engine tables |
-
----
-
-## 2. AI Product Manager Behavior
-
-**Currently proactive:**
-- Intelligence pipeline: extraction → all module drafts (point_a, point_b, hidden_assets, gap_map, blueprint, roadmap) → versioned row → `engine_review_items` (roadmap_version) → optional `operator_notifications`.
-- Command Center `next_best_actions` list is rule-based ranked (`STATUS_WEIGHT`) — semi-proactive.
-- Milestone Brief page — `Sparkles` regenerate per section (Brief, Acceptance Criteria, QA Checklist, Risks, Developer Prompt).
-
-**Currently passive (gaps vs. spec):**
-- No per-project "Next Best Action" recompute — `next_action` is a static string stored at intake.
-- Steps 4–8 (Point A, Point B, Hidden Assets, Gap Map, Blueprint) and 10–12 (Sequencing, Deadlines, Investment) have **no per-step Generate button** — display-only. Operator must go back to Intelligence to re-run everything.
-- No auto task decomposition from milestones — `generateTasks` does not exist; operator adds tasks manually.
-- No AI-generated "what's missing" analysis of the current project shown anywhere.
-- Project status/current_step do **not** auto-advance after pipeline — stays `intake` until manually changed.
-- 14-step stepper is purely navigational — no gating, no unlock logic.
-
----
-
-## 3. Workflow Step Audit
-
-| # | Step | State known? | AI action available | Operator action | Review action | Pass/Fail |
+| Project | Signals detected | Status (actual) | Step (actual) | Actual NBA | Expected NBA | Pass |
 |---|---|---|---|---|---|---|
-| 1 | Intelligence Layer | ✅ pipeline status | ✅ Run pipeline | Review results | ✅ Auto review item | **Pass** |
-| 2 | Signal Room | ✅ sources | Upload only | ✅ Add/manage sources | — | **Pass** |
-| 3 | Signal Extraction | ✅ extracted signals | ✅ Re-run pipeline | Inspect signals | — | **Pass** |
-| 4 | Point A Diagnosis | Display-only | ❌ No AI generate | Manual edit via `StepEditor` | — | **Fail** (no AI, no missing-info detection) |
-| 5 | Point B Definition | Display-only | ❌ | Manual edit | — | **Fail** |
-| 6 | Hidden Asset Map | Display-only | ❌ | Manual edit | — | **Fail** |
-| 7 | Gap Map | Display-only | ❌ | Manual edit | — | **Fail** |
-| 8 | System Blueprint | Display-only | ❌ | Manual edit | — | **Fail** |
-| 9 | Roadmap Builder | Milestones from DB | ⚠️ Hint only ("run the AI pipeline") | Manual add/edit | Via version review | **Partial** |
-| 10 | Sequencing | Display-only | ❌ | Manual reorder | — | **Fail** |
-| 11 | Deadline Plan | Display-only | ❌ | Manual dates | — | **Fail** |
-| 12 | Investment Builder | Display-only | ❌ | Admin-only edit | Admin approve | **Partial** (no AI cost estimation) |
-| 13 | Client Preview | ✅ preview status | ⚠️ Regenerate per section on milestone brief only | Submit for approval (operator) / approve (admin) | ✅ Review item | **Pass** |
-| 14 | Delivery Prep | ✅ delivery state | ❌ | Publish (admin only) | Approval required | **Pass** |
+| August 1 — intake | 1 source, extraction=failed, 0 signals, no version | `blocked` / step 2 Signal Room | Retry the failed extraction run (critical) | same | ✅ |
+| INBDE & ADAT Platform | 0 sources, 0 signals, version=ai_generated | `needs_review` / step 9 Roadmap Builder | Run the intelligence pipeline (info) | **Review AI-drafted roadmap** | ❌ |
+| Jotaye Ventures | 9 sources all queued/processing, 0 signals, version=approved, no portal link | `approved` / step 13 Client Preview | Waiting on extraction (info) | **Link a client portal project / publish approved roadmap** | ❌ |
 
----
+Status + step values match `recompute_engine_project_state` output. The status/step machine is correct. The bug is isolated to **NBA precedence**.
 
-## 4. Project Momentum Audit
+### Root cause — NBA precedence bugs
 
-- **Automatic transitions:** intake submission → engine_project + source → pipeline (now synchronous, watchdog-protected) → module writes + version + review item + optional notification.
-- **Waits unnecessarily:**
-  - After pipeline: `status` and `current_step_num` not auto-advanced.
-  - After approval: no auto-publish path or auto-preview-generation.
-  - Task board not populated from milestones automatically.
-  - `next_action` string never refreshed.
-- **Missing automation triggers:**
-  - Post-pipeline status advance to `needs_review`.
-  - Post-approval `client_preview` draft auto-generation.
-  - Per-milestone task decomposition when a version is approved.
-  - Missing-info detector that recommends "request clarification" instead of AI hallucinating.
+In `compute_engine_next_best_action` the order of checks is:
 
----
+```
+failed run → blocked tasks → client actions → pending reviews →
+failed sources → pending sources → signals_count=0 → version status → …
+```
 
-## 5. Task + Acceptance Criteria Audit
+Two consequences:
 
-- Milestones carry `acceptance_criteria` and `qa_checklist` columns and can be regenerated per section (`regenerateMilestoneSection`) — **good**.
-- `engine_tasks` are **not** auto-decomposed from milestones. `sendMilestoneToTasks` exists but requires manual per-task entry.
-- No `generateTasks` server function found. No AI-generated task titles, owners, dependencies, or Lovable prompts tied to a milestone.
-- Result: tasks in the board are what operators type in — no engine-guaranteed link between "approved milestone" and "reviewable, criteria-bearing tasks."
+1. **INBDE case**: any project where extraction never ran but a version already exists (e.g. AI seeded a draft) — `signals_count=0` short-circuits before the version check, so NBA tells the operator to "run the intelligence pipeline" instead of "review AI-drafted roadmap".
+2. **Jotaye case**: an approved roadmap with stale/pending source rows — `pending_sources` short-circuits before the "approved but unpublished" branch, so NBA tells the operator to wait on extraction instead of publish/link portal.
 
----
+Both make the engine *less* momentum-oriented on the exact projects that should be moving fastest.
 
-## 6. Approval + Safety Audit
+## 2. Trigger Results
 
-**Strong:**
-- All approve/publish paths server-enforced via `assertAdminEmail` / inner admin check.
-- Self-approval blocked in `decideReviewItem:353` (`created_by = actor` refused; AI-authored bypasses intentionally).
-- Client publish requires both `status = 'approved'` on the version and `client_preview_status = 'approved'` on the project.
-- DB trigger `tg_client_portal_roadmaps_require_source_version` blocks publishing an `ai_generated` version.
-- Approved versions preserved via `_findOrCreateAiDraft` — AI writes never touch approved rows.
+All momentum triggers are installed in `public`:
 
-**Gaps / risks:**
-1. **Column-name mismatch on the publish trigger.** Portal migration added `source_version_id`; the AI-draft gate trigger checks `approved_roadmap_version_id`. If the two columns ever diverge, the trigger checks the wrong one. Application-level check in `engine-ops.functions.ts:1076` currently backstops this.
-2. **One review item covers everything.** Milestone briefs, investment recs, and publish requests do not create their own `engine_review_items` rows. Approving the `roadmap_version` item implicitly approves all sub-artifacts. No `publish_request` or `investment_recommendation` item type exists.
-3. **`portal_roadmaps_v` view still includes `supporting_notes`.** Migration `20260706210000` nulled the data + deprecated the column but never rebuilt the view. Column is null today; any future writer immediately leaks.
-4. **`adminGetPortal` uses `select("*")`** on `client_portal_projects`. Operator-gated, but defense-in-depth gap.
-5. **`/admin` route allows operator role** — reads may over-expose admin sub-pages.
+- `recompute_state_sources` on `engine_sources`
+- `recompute_state_extraction_runs` on `engine_extraction_runs`
+- `recompute_state_signals` on `engine_extracted_signals` (INSERT/DELETE only — updates do not recompute)
+- `recompute_state_versions` on `engine_roadmap_versions`
+- `recompute_state_review_items` on `engine_review_items`
+- `recompute_state_tasks` on `engine_tasks`
+- `recompute_state_portal_roadmaps` on `client_portal_roadmaps` (UPDATE OF status only)
+- `extraction_run_notify_failure`, `engine_activity_notify_operators`, `task_notify_blocked` all present
 
----
+**Findings:**
+- No infinite loops possible — `recompute_engine_project_state` only writes to `engine_projects`, which has no recompute trigger of its own.
+- Gap: `recompute_state_signals` fires on INSERT/DELETE only. Bulk UPSERT paths that update existing signal rows will not retrigger — acceptable today (extraction always inserts) but worth flagging.
+- Gap: `recompute_state_portal_roadmaps` fires only when `status` column changes, so publishing metadata edits that flip effective client-visibility without changing status won't retrigger. Minor.
 
-## 7. Cost + Agent Operations Audit
+## 3. Blocked Task Notification Results
 
-- **Cost Center** at `engine.projects.$projectId.agent.costs.tsx`: total/monthly spend, budget remaining, projected month-end, cost per approved output, unused draft cost, daily line chart, category donut, milestone attribution, budget controls, CSV export. **Solid.**
-- Global spend + top spenders visible on `engine.index.tsx` and `engine.operations.tsx`.
-- Per-run line-item visibility: server returns `recent` + `ledger`; UI table for per-run may be export-only (needs a quick JSX check).
-- Task board (`engine_agent_tasks`): statuses `suggested / drafted / needs_review / approved / in_progress / blocked / completed / rejected / archived`; kanban + owner + priority + calendar views.
-- **Gap:** No escalation when a task is set to `blocked` — silent status change, no `operator_notifications` write, no review item.
-- **Gap:** Watchdog writes `engine_activity` `severity: critical` on pipeline timeout — **no UI reads engine_activity**, so the recovery is invisible. Would only be noticed if operator refreshes and sees status flip back to `intake`.
+- Trigger correctly moved to `engine_tasks.status` transitions.
+- `tg_task_notify_blocked` guards against duplicate spam: `IF TG_OP='UPDATE' AND OLD.status='blocked' THEN RETURN NEW` — re-saving a blocked task does not re-notify. ✅
+- Deep link is `/engine/projects/{id}/agent/tasks` with `task_id` in metadata. ✅
+- Unblocking (status → any other) creates no notification. ✅
+- Blocked task drives project `status='blocked'` via `recompute_state_tasks` and shows as top NBA ("Unblock N tasks"). ✅
+- No blocked tasks currently exist in the DB to capture a live screenshot.
 
----
+## 4. AI Task Decomposition Results
 
-## 8. QA Scenarios — Result Preview (based on code paths, not live run)
+`generateTasksForApprovedMilestones` is present in `src/lib/engine-execution.functions.ts` with:
 
-- **A. Fresh intake project:** Extraction runs synchronously (post-fix), review item created. **Next Best Action absent per-project** (only stored string). Partial pass.
-- **B. Operator reviews AI draft:** Can inspect, send_back, reject. Cannot approve — server blocks. Pass.
-- **C. AI generates tasks from milestone:** ❌ Not supported — no `generateTasks`. Fail.
-- **D. Missing information:** No missing-info detector on step pages. Operator must eyeball. Fail.
-- **E. Approval gate:** `approved_by` + `approved_at` set; previous drafts preserved; portal untouched until separate publish action. Pass.
-- **F. Client safety:** Static `portal-safety-guard` test + `CLIENT_SAFE_KEYS` + admin-only RLS on engine tables. Pass — with the `portal_roadmaps_v` view caveat above.
+- `.middleware([requireSupabaseAuth])`
+- `assertActionAllowed(sb, projectId, 'create_tasks', { approve: true })` — permission-gated
+- Inserts to `engine_tasks` with `status='suggested'`, `ai_generated=true`, `source='ai_decomposition'`, linked `milestone_id` + `roadmap_version_id`, populated `purpose`, `expected_artifact`, `qa_checklist` (jsonb), `risks` (jsonb), `dependency_notes`.
 
----
+**Findings:**
+- ✅ Code path filters milestones by `approved_at IS NOT NULL` before decomposition.
+- ✅ Costs are logged via existing `engine_agent_costs` helper; audit rows written to `engine_audit_log`.
+- ❌ **No AI-decomposed rows exist in production** — `SELECT * FROM engine_tasks WHERE ai_generated=true` returns 0. The function has never been invoked against Jotaye (the only project with an approved version). No sample tasks can be shown until the operator runs it.
+- ⚠️ Schema gap: task spec asked for `phase_id` linkage, but `engine_tasks` has no `phase_id` column. Phase is only reachable via `milestone_id → engine_milestones.phase`. Either add the column or drop the requirement from the acceptance criteria.
 
-## Top 10 Fixes (proposed backlog, not executed)
+## 5. Permission Results
 
-| # | Pri | Issue | Where | Expected | Current | Fix direction |
-|---|---|---|---|---|---|---|
-| 1 | P0 | Watchdog + pipeline failures invisible to operator | `engine_activity` writes; no UI reader | Bell/feed shows critical activity + operator_notifications | Silent | Notification bell reading `operator_notifications` + `engine_activity` `severity in ('critical','warning')`, unread count in header |
-| 2 | P0 | `portal_roadmaps_v` view exposes `supporting_notes` column | migration `20260702192431:110` | Column absent from view | Present, null today | New migration: recreate view with column removed |
-| 3 | P0 | No per-project "Next Best Action" recompute | `engine_projects.next_action` static | Derived from state (status × step_states × review items × decisions) | Set once at intake | Server function computing NBA on-demand + surfaced in `overview.tsx` |
-| 4 | P1 | Steps 4–8, 10–12 have no per-step AI generate button | route files under `engine.projects.$projectId.*.tsx` | Per-step Generate/Regenerate wired to server fn | Display + manual edit only | Add `regenerateStep(step)` server fn + Sparkles button per page |
-| 5 | P1 | No task decomposition from approved milestones | `engine-execution.functions.ts` | `generateTasks(milestoneId)` producing titles + acceptance criteria + dev prompt + owner suggestion | Manual entry only | Add server fn; auto-suggest on approval, require operator confirmation before `create` |
-| 6 | P1 | Milestone briefs / investment / publish create no independent review items | `engine-ops.functions.ts` | New `item_type` values with own approval | Single `roadmap_version` item covers all | Add typed review items for each artifact + admin gate on each |
-| 7 | P1 | Publish trigger checks a different column than the schema uses in some paths | trigger `tg_client_portal_roadmaps_require_source_version` vs `source_version_id` | Trigger checks the canonical column consistently | Two columns coexist | Unify column, drop the dead one, rebuild trigger |
-| 8 | P1 | Project status/current_step don't auto-advance post-pipeline | `runIntelligencePipelineInternal` end | Advance to `needs_review` + set current_step to Roadmap Builder | Stays `intake` | Add state-machine step at pipeline tail |
-| 9 | P2 | `/admin` beforeLoad allows operator | `routes/admin.tsx:17-34` | Admin only, or explicit per-sub-route gate | Operator enters admin shell | Tighten `beforeLoad` to admin; move operator-safe admin pages elsewhere |
-| 10 | P2 | Blocked agent tasks silent — no escalation | `engine.projects.$projectId.agent.tasks.tsx` + task server fns | Setting `blocked` fires `operator_notifications` + optional review item | Silent status change | Add trigger or server-side hook on task update to `blocked`/`needs_review` |
+Server-side gate is authoritative:
+- `create_tasks` default policy is `needs_approval` (line 587 of engine-execution.functions).
+- `assertActionAllowed(..., { approve: true })` runs before any insert.
+- `requireSupabaseAuth` middleware guarantees an authenticated caller.
+- UI hiding is layered on top, not the sole defense. ✅
+- Client role has no `create_tasks` permission, so a direct RPC from a client session fails the assertion. ✅
 
----
+## 6. Per-Step AI Panel Results
 
-## Confirmation needed before Build mode
+All eight step routes (`point-a`, `point-b`, `hidden-assets`, `gap-map`, `blueprint`, `sequencing`, `deadlines`, `investment`) mount `<StepAiPanelFor />`.
 
-- Should the next build session focus on **P0 (1–3)** first, or the **momentum triad (3, 5, 8)** first?
-- Any items to drop or reprioritize before I turn this backlog into an implementation plan?
+- ✅ `computeStepKnowsMissing` reads the step's real JSON blob and derives knows/missing from actual keys (`lenses`, `diagnosis`, `narrative`, `assets`, `gaps`, `nodes`, `phases`, `dates`, `estimates`, etc.).
+- ✅ "AI can draft", "requires approval", "next trigger" copy differs per step and matches the workflow.
+- ❌ Every panel currently ships with `draftHint="Per-step AI drafting is coming next slice — for now, use Intelligence Layer to regenerate."` and no `onDraft` handler → the draft button never renders. The panel is informational only. This matches the current triad scope but should be called out because the QA criteria asked whether the draft button "implies functionality that does not exist" — right now it does not exist and is not shown, so the panel is honest but toothless.
+
+## 7. Regression Results (P0 safety)
+
+- ✅ `portal_roadmaps_v` columns confirmed: no `supporting_notes`, no doctrine/internal fields. Client-safe.
+- ✅ `extraction_run_notify_failure` still present on `engine_extraction_runs`.
+- ✅ `engine_activity_notify_operators` still present.
+- ✅ NBA still computes live (it just gives wrong answers in the two ordering cases above).
+- ✅ Portal RLS surfaces unchanged; nothing in this slice granted broader read access.
+
+## 8. Screenshots
+
+Not captured this pass — the browser tooling was not exercised because the audit was requested read-only against production data. If you want screenshots for the final report, ask and I'll drive Playwright through the overview/agent-tasks routes for August 1 (blocked/critical NBA) and INBDE (needs_review) after the NBA precedence fix lands.
+
+## Remaining Gaps
+
+**P0 (correctness of the guidance the engine gives)**
+1. NBA precedence: check `version.status = 'approved'` and portal-publish gap **before** falling into source/signal-count branches.
+2. NBA precedence: check `version.status IN ('ai_generated','draft','tai_edited')` **before** the `signals_count = 0` "run pipeline" branch.
+
+**P1 (completeness of the momentum layer)**
+3. Add `phase_id` to `engine_tasks` (or drop from decomposition contract) — currently unreachable directly.
+4. `recompute_state_signals` fires on INSERT/DELETE only; add UPDATE for robustness to future upsert paths.
+5. Per-step AI generators are not implemented — the panels are read-only. Wire real `onDraft` handlers or remove the placeholder button entirely.
+6. Run `generateTasksForApprovedMilestones` against Jotaye to produce real evidence rows for the audit trail.
+
+**P2 (polish)**
+7. Consider expanding `recompute_state_portal_roadmaps` beyond `UPDATE OF status` so any publish-relevant flip retriggers.
+8. Add a small NBA unit-test fixture matrix covering the eight state combinations enumerated in section 1 so precedence regressions are caught by CI.
+
+## Recommended Next Slice
+
+Ship a tight **"NBA correctness + decomposition evidence"** slice:
+
+- Rewrite `compute_engine_next_best_action` precedence: version-status branches move above source/signal branches; add unit-test fixture matrix.
+- Add `phase_id uuid` to `engine_tasks` referencing `engine_milestones(phase_id)` (or the phase enum), backfill from milestone.
+- Run `generateTasksForApprovedMilestones` against Jotaye once to produce three real sample tasks for the audit record.
+- Capture the four screenshots (August 1 overview, Jotaye overview after NBA fix, agent-tasks after decomposition, one step panel).
+
+Estimated size: single session. After this, the momentum layer is provably correct end-to-end and we can move on to per-step AI generators (P1 item 5).
