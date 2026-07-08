@@ -2456,19 +2456,25 @@ export type Database = {
         Row: {
           acceptance_criteria: Json
           agent_task_id: string | null
+          ai_generated: boolean
           blocked_decision: string | null
           created_at: string
           created_by: string
+          dependency_notes: string | null
           description: string | null
           due_date: string | null
           estimated_cost_cents: number | null
           estimated_effort_hours: number | null
+          expected_artifact: string | null
           id: string
           milestone_id: string
           name: string
           owner_email: string | null
           priority: string
           project_id: string
+          purpose: string | null
+          qa_checklist: Json
+          risks: Json
           roadmap_version_id: string | null
           source: string | null
           status: string
@@ -2477,19 +2483,25 @@ export type Database = {
         Insert: {
           acceptance_criteria?: Json
           agent_task_id?: string | null
+          ai_generated?: boolean
           blocked_decision?: string | null
           created_at?: string
           created_by?: string
+          dependency_notes?: string | null
           description?: string | null
           due_date?: string | null
           estimated_cost_cents?: number | null
           estimated_effort_hours?: number | null
+          expected_artifact?: string | null
           id?: string
           milestone_id: string
           name: string
           owner_email?: string | null
           priority?: string
           project_id: string
+          purpose?: string | null
+          qa_checklist?: Json
+          risks?: Json
           roadmap_version_id?: string | null
           source?: string | null
           status?: string
@@ -2498,19 +2510,25 @@ export type Database = {
         Update: {
           acceptance_criteria?: Json
           agent_task_id?: string | null
+          ai_generated?: boolean
           blocked_decision?: string | null
           created_at?: string
           created_by?: string
+          dependency_notes?: string | null
           description?: string | null
           due_date?: string | null
           estimated_cost_cents?: number | null
           estimated_effort_hours?: number | null
+          expected_artifact?: string | null
           id?: string
           milestone_id?: string
           name?: string
           owner_email?: string | null
           priority?: string
           project_id?: string
+          purpose?: string | null
+          qa_checklist?: Json
+          risks?: Json
           roadmap_version_id?: string | null
           source?: string | null
           status?: string
@@ -3467,6 +3485,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      recompute_engine_project_state: {
+        Args: { _project_id: string }
+        Returns: undefined
       }
       resolve_portal_follow_up: {
         Args: { _message_id: string }
