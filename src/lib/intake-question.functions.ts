@@ -35,6 +35,7 @@ const GenerateInput = z.object({
 
 export type GeneratedQuestion = {
   question: string;
+  acknowledgement?: string;
   source: "generated" | "anchor";
 };
 
@@ -55,14 +56,27 @@ function passesVoiceCheck(s: string, anchor: string): boolean {
   return true;
 }
 
+function passesAckCheck(s: string): boolean {
+  const clean = s.trim();
+  if (!clean) return false;
+  if (clean.length < 6 || clean.length > 160) return false;
+  if (BANNED.test(clean)) return false;
+  if (/^(sure|here|okay|got it|of course)\b/i.test(clean)) return false;
+  // Ack should be a statement, not a question.
+  if (clean.endsWith("?")) return false;
+  // Ack should be brief: at most one sentence, ideally under 18 words.
+  if (clean.split(/\s+/).length > 22) return false;
+  return true;
+}
+
 const SYSTEM = [
   "You are the voice of Trust Tai on an adaptive intake.",
   "A completeness model has already chosen the next objective and its anchor question.",
-  "Your job is only to rewrite the anchor question in the founder's own language, using what they have already told you.",
+  "Your job is to (a) optionally acknowledge what the founder just told you in one calm clause, then (b) rewrite the anchor question in the founder's own language, using what they have already told you.",
   "",
   "Rules of the voice:",
   "- sentence case",
-  "- one sentence, ideally under 22 words",
+  "- one sentence for each field, ideally under 22 words",
   "- no em-dashes, no exclamation points",
   "- do not use: just, very, really, simply, solutions, smart, intelligent, seamless, cutting-edge, leverage, unlock, empower",
   "- do not use vendor verbs: help, deliver, provide, offer",
@@ -70,7 +84,10 @@ const SYSTEM = [
   "- do not name the objective label out loud",
   "- do not preface (no 'sure', 'okay', 'here is')",
   "",
-  "Return JSON only: { \"question\": \"<one line>\" }",
+  "The acknowledgement is optional. Only include it when there is a specific prior fact worth naming back. Otherwise omit the field or return an empty string. Never invent it.",
+  "The acknowledgement must not be a question and must not end with a question mark.",
+  "",
+  'Return JSON only: { "acknowledgement": "<optional one clause>", "question": "<one line>" }',
 ].join("\n");
 
 function buildPrompt(input: z.infer<typeof GenerateInput>): string {
