@@ -114,8 +114,14 @@ function TaskBoardPage() {
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
-          <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50 flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5" /> Generate New Tasks
+          <button
+            type="button"
+            onClick={() => decompose.mutate()}
+            disabled={decompose.isPending}
+            className="text-xs border border-royal/40 bg-royal/5 rounded-md px-3 py-1.5 hover:border-royal flex items-center gap-1.5 disabled:opacity-50"
+            title={milestoneId ? "Decompose selected milestone into suggested tasks" : "Decompose all approved milestones into suggested tasks"}
+          >
+            <Zap className="w-3.5 h-3.5" /> {decompose.isPending ? "Drafting…" : milestoneId ? "AI: decompose milestone" : "AI: decompose approved milestones"}
           </button>
           <button className="text-xs border border-border rounded-md px-3 py-1.5 hover:border-royal/50">Import Tasks</button>
         </div>
