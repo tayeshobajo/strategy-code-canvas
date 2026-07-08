@@ -170,9 +170,11 @@ function WriteIntake() {
   const [currentObjective, setCurrentObjective] = React.useState<IntakeObjective | null>(null);
   const [scoringNext, setScoringNext] = React.useState(false);
   // Generated wording for the current anchor question. The completeness
-  // model still picks the objective; AI only rewrites its anchor. On any
-  // failure we render the anchor verbatim — never surface an error.
+  // model still picks the objective; AI only rewrites its anchor and may
+  // add a short acknowledgement. On any failure we render the anchor
+  // verbatim — never surface an error.
   const [generatedQuestion, setGeneratedQuestion] = React.useState<string | null>(null);
+  const [generatedAck, setGeneratedAck] = React.useState<string | null>(null);
   const [generatingQuestion, setGeneratingQuestion] = React.useState(false);
 
   // Submit state
