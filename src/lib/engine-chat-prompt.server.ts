@@ -139,6 +139,36 @@ function normalizeLinkArray(raw: unknown): Array<{ label: string; to: string }> 
     .slice(0, 8);
 }
 
+const PROPOSAL_TYPE_SET = new Set<ProposalType>(PROPOSAL_TYPES);
+
+export function normalizeProposals(raw: unknown): ProposalDraft[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ProposalDraft[] = [];
+  for (const it of raw) {
+    if (!it || typeof it !== "object") continue;
+    const o = it as Record<string, unknown>;
+    const t = String(o.proposal_type ?? "").trim();
+    if (!PROPOSAL_TYPE_SET.has(t as ProposalType)) continue;
+    const title = String(o.title ?? "").trim();
+    if (!title) continue;
+    const summary = String(o.summary ?? "").trim();
+    const payload =
+      o.payload && typeof o.payload === "object" && !Array.isArray(o.payload)
+        ? (o.payload as Json)
+        : ({} as Json);
+    const target_route = String(o.target_route ?? "").trim() || undefined;
+    out.push({
+      proposal_type: t as ProposalType,
+      title: title.slice(0, 300),
+      summary: summary.slice(0, 4000),
+      payload,
+      target_route,
+    });
+    if (out.length >= 3) break;
+  }
+  return out;
+}
+
 export function parseIntelligenceAnswer(text: string): IntelligenceAnswer {
   const fallback: IntelligenceAnswer = {
     summary:
@@ -147,6 +177,7 @@ export function parseIntelligenceAnswer(text: string): IntelligenceAnswer {
     citations: [],
     missing: ["ai_response_unparseable"],
     suggested_links: [],
+    proposals: [],
   };
   const cleaned = text
     .trim()
@@ -174,5 +205,6 @@ export function parseIntelligenceAnswer(text: string): IntelligenceAnswer {
     citations: normalizeStringArray(p.citations),
     missing: normalizeStringArray(p.missing),
     suggested_links: normalizeLinkArray(p.suggested_links),
+    proposals: normalizeProposals(p.proposals),
   };
 }
