@@ -163,6 +163,15 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
       >
         <Database className="w-3.5 h-3.5" /> Backend Builder
       </Link>
+      <Link
+        to="/engine/projects/$projectId/qa-factory"
+        params={{ projectId }}
+        className={linkFor("qa-factory")}
+        activeProps={{ "data-status": "active" } as unknown as Record<string, string>}
+        data-qa-nav="qa-factory"
+      >
+        <ClipboardCheck className="w-3.5 h-3.5" /> QA Factory
+      </Link>
       <Link to="/engine/projects/$projectId/intelligence-layer" params={{ projectId }} className={linkFor("intelligence-layer")}>
         <Sparkles className="w-3.5 h-3.5" /> Intelligence
       </Link>
