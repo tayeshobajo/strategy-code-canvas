@@ -33,7 +33,6 @@ export const Route = createFileRoute("/engine/projects/$projectId/chat")({
     const { supabase } = await import("@/integrations/supabase/client");
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
-      const { redirect } = await import("@tanstack/react-router");
       throw redirect({ to: "/auth", search: { redirect: location.href } });
     }
     return { user: data.user };
