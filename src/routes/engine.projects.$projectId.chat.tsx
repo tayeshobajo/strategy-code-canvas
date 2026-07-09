@@ -433,15 +433,16 @@ function AnswerCard({ answer }: { answer: IntelligenceAnswer }) {
           return (
             <div key={i} className="flex flex-wrap gap-1.5 pt-1">
               {s.items.map((it) => (
-                <a
+                <Link
                   key={it.to + it.label}
-                  href={it.to}
+                  to={it.to as never}
                   className="text-[11px] inline-flex items-center gap-1 border border-border rounded-md px-2 py-1 hover:border-royal/50"
                 >
                   {it.label} <ChevronRight className="w-3 h-3" />
-                </a>
+                </Link>
               ))}
             </div>
+
           );
         }
         const label =
