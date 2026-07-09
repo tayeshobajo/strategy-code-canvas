@@ -28,11 +28,12 @@ import {
 } from "@/lib/engine-chat.functions";
 import {
   listChatProposals,
+  getChatCapabilities,
+  type ChatCapabilities,
   type ChatProposalRow,
 } from "@/lib/engine-chat-proposals.functions";
 import { ProposalCard } from "@/components/engine/chat/ProposalCard";
 import { supabase } from "@/integrations/supabase/client";
-import { isAdminEmail } from "@/lib/ops/access";
 
 export const Route = createFileRoute("/engine/projects/$projectId/chat")({
   ssr: false,
