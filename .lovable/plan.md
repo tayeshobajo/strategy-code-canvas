@@ -1,105 +1,43 @@
-# Mockup Builder v1 — Structured Mockup Specs from Approved Frame
+# Mockup Builder v1 — End-to-End QA Pass
 
-Builds the next factory stage after Frame Builder. Consumes an **approved** `engine_project_frames` payload and produces a structured, buildable mockup spec (no image generation). Mirrors Frame Builder's shape (table + server fns + workspace route + chat context) for consistency.
+Run a full 15-section QA against Mockup Builder v1 on Jotaye Ventures (with spot checks on INBDE & ADAT Platform and August 1 intake). Do not build Backend Builder. Deliverable: `/mnt/documents/qa/mockup-builder-v1/REPORT.md` + screenshots.
 
-## 1. Database
+## Approach
 
-New migration creates `public.engine_project_mockups`:
+Mirror the Frame Builder v1 generation-proof QA harness. One Python driver script using Playwright + seeded admin session + direct psql/PostgREST probes.
 
-- `id uuid pk`, `project_id uuid → engine_projects`, `frame_id uuid → engine_project_frames`
-- `title text`, `summary text`
-- `status text` in (`draft`,`in_review`,`approved`,`archived`) default `draft`
-- `generated_by text` in (`ai`,`human`,`hybrid`)
-- `payload jsonb not null default '{}'`
-- `created_by`, `created_by_email`, `approved_by`, `approved_by_email`, `approved_at`
-- `created_at`, `updated_at` + trigger
-- index on (`project_id`, `status`, `updated_at desc`), (`frame_id`)
+**Script:** `scripts/qa/mockup-builder-v1-qa.py`
 
-Grants + RLS (mirroring hardened Frame Builder):
-- `GRANT SELECT ON public.engine_project_mockups TO authenticated;`
-- `GRANT ALL ON public.engine_project_mockups TO service_role;`
-- **No INSERT/UPDATE/DELETE grants to authenticated/anon** — writes go through server fns using `supabaseAdmin` after capability checks.
-- RLS SELECT policy: `public.is_engine_staff(auth.uid())`.
-- Trigger `protect_approved_mockup()`: block UPDATE of `payload`/`title`/`status` (except approved→archived by admin) once `status='approved'`; block reverse transitions.
-- Trigger `enforce_mockup_status_flow()`: draft→in_review→approved; approved→archived only.
-- `submit_project_mockup(mockup_id)` and `approve_project_mockup(mockup_id)` SQL helpers (SECURITY DEFINER) that also write `engine_review_items` (kind=`mockup_set`) and `engine_audit_log`/`engine_activity`.
+Phases:
+1. **Setup** — resolve Jotaye project id, confirm approved frame exists, snapshot baseline of protected surfaces (client_portal_*, roadmap_approvals, engine_tasks, engine_milestones counts + updated_at).
+2. **Route + access (§1)** — hit `/engine/projects/:id/mockup-builder` as admin (200 + nav active), as anon (redirect to `/auth`), as non-staff (blocked). Verify RLS via anon PostgREST SELECT/INSERT on `engine_project_mockups` → denied.
+3. **Readiness (§2)** — pick a project with no approved frame, confirm Generate button disabled + copy present; call `generateProjectMockups` server fn directly → expect refusal, zero rows inserted. Then Jotaye: approved-frame badge visible, Generate enabled.
+4. **Generate (§3)** — click Generate on Jotaye; assert row created with status=draft, generated_by ∈ {ai,hybrid}, frame_id = approved frame id, audit + activity rows written, protected-surface snapshot unchanged.
+5. **Payload schema (§4)** — Zod-style validation in Python against the schema in `engine-mockup-builder-prompt.server.ts` (top-level keys, design_system_notes, page shape, layout_sections, states). Fail on image output, missing responsive_notes, generic QA, etc.
+6. **Must-page coverage (§5)** — diff approved frame `pages[priority=must]` vs mockup `pages[frame_page_id]`. Report counts + missing ids.
+7. **UI rendering (§6)** — desktop / tablet (768) / mobile (390) screenshots of every section (header, NBA, badges, buttons, Overview, Pages by priority, Global Components, Interaction Model, Responsive Strategy, QA, Open Decisions, History, AI PM panel). Assert page-card subsections visible.
+8. **Submit to review (§7)** — click Submit; assert status draft→in_review, exactly one `engine_review_items` row (item_type=mockup_set, status=pending, mockup ref in metadata), audit + activity, no approval, no backend, no portal change. Double-click guard check.
+9. **Approve (§8)** — admin approves; status=approved, approved_by/approved_at set, audit + activity, NBA recommends Backend Builder or next step. Non-admin path: probe server fn directly with a non-staff bearer if seedable, else document skip.
+10. **Approved protection (§9)** — direct PostgREST PATCH attempts (status, payload, title) → denied; server-fn save/generation on approved id → creates new draft or refuses, never overwrites; invalid transitions blocked by trigger.
+11. **Archive (§10)** — admin archives a draft; status=archived, audit + activity; latest-active logic ignores it.
+12. **Chat awareness (§11)** — send seven questions listed; assert answers reference latest mockup counts (pages, states, global components, open decisions, ready_for_backend) and refuse approve/backend/generation actions.
+13. **Permission + RLS (§12)** — anon SELECT/INSERT/UPDATE/DELETE → denied; authenticated non-staff same; cross-project id in server-fn payload → rejected.
+14. **Protected surface regression (§13)** — re-snapshot client_portal_*, roadmap_approvals, tasks, milestones, investment/delivered fields; diff against baseline = zero.
+15. **Audit / activity (§14)** — enumerate expected event kinds (`mockup_generated`, `mockup_submitted_to_review`, `mockup_approved`, `mockup_archived`, plus `mockup_generation_failed` induced by forcing missing frame). Assert no prompts/keys/reasoning/tokens leaked into stored payload.
+16. **Regression (§15)** — smoke: Spine, Chat, Action Mode, Frame Builder, portal isolation still load; run tsgo typecheck; capture any console errors.
 
-## 2. Server functions
+## Spot checks
 
-New file `src/lib/engine-mockup-builder.functions.ts` (client-safe wrapper file, admin import lazy inside handlers):
+INBDE & ADAT Platform + August 1 intake: readiness check only (no approved frame expected → Generate disabled + refusal proof). Screenshot each.
 
-- `getProjectMockupBuilder({ id })` — returns `{ project, approved_frame_summary, latest_mockup, history, missing_inputs, can_generate, next_best_action }`.
-- `generateProjectMockups({ id })` — requires approved frame; calls Lovable AI Gateway with prompt built in new `src/lib/engine-mockup-builder-prompt.server.ts`; validates Zod schema; inserts new draft row (preserving prior versions); writes activity + chat event `mockup_generated`.
-- `saveProjectMockupDraft({ mockupId, payload })` — staff only; blocked on approved.
-- `submitProjectMockupToReview({ mockupId })` — draft→in_review, creates `engine_review_items` row.
-- `approveProjectMockup({ mockupId })` — admin only; sets approved_*, writes audit/activity, triggers `compute_engine_next_best_action` → Backend Builder.
-- `archiveProjectMockup({ mockupId })` — admin only.
+## Deliverable
 
-All use `requireSupabaseAuth` + `has_role`/`is_engine_staff` checks; writes via lazy-imported `supabaseAdmin`.
+`/mnt/documents/qa/mockup-builder-v1/REPORT.md` with the 16 requested sections (Executive Summary → Recommendation) and `screenshots/` folder. Recommendation states safe / not safe to proceed to Backend Builder v1, with top fixes if any.
 
-## 3. Prompt / Zod schema
+## Technical notes
 
-`src/lib/engine-mockup-builder-prompt.server.ts` — system prompt scoped to structured spec (no image output), inputs = approved frame payload + spine + roadmap summary + open decisions + artifacts.
-
-`MockupBuilderPayload` Zod schema in `.functions.ts` matching the payload shape in the request (mockup_goal, source_frame_summary, design_system_notes, pages[], global_components, navigation_model, interaction_model, responsive_strategy, qa_expectations, open_decisions). Per-page: layout_sections, key_actions, states, responsive_notes, data_dependencies, backend_dependencies, qa_checks, open_questions. Parse strictly; reject on missing must-build pages from the approved frame.
-
-## 4. Route + UI
-
-New route `src/routes/engine.projects.$projectId.mockup-builder.tsx` (mirrors `frame-builder.tsx`):
-
-- Header strip: status, current step, NBA, approved frame badge, mockup status, action buttons (Generate / Submit / Approve / Archive) gated by state + role.
-- Sections A–I from the spec: Overview, Page Mockups (grouped by priority), Global Components, Interaction Model, Responsive Strategy, QA Expectations, Open Decisions, right-side AI PM panel.
-- Empty state when no approved frame: disabled Generate with "Approve a frame before generating mockups." link back to Frame Builder.
-
-Nav: add `Mockup Builder` step to `WORKSPACE_STEPS` in `src/lib/engine-workspace.ts` immediately after Frame Builder.
-
-## 5. Project Chat integration
-
-Extend `src/lib/engine-chat-context.server.ts` to include `latest_mockup_set` (status, page count, state count, global component count, open decisions, approved summary).
-
-Update `src/lib/engine-chat-prompt.server.ts` (or equivalent) so chat can answer: what mockups exist, which pages/states covered, what's missing before backend, approval status, backend readiness.
-
-## 6. Action Mode
-
-In `src/lib/engine-chat-actions.ts` / `.functions.ts`, register only two low-risk proposals:
-- `mockup.save_planning_artifact`
-- `mockup.submit_to_review`
-
-Explicitly deny (with clear refusal reason): approve mockup, generate backend, publish to client, send client messages.
-
-## 7. QA script
-
-`scripts/qa/mockup-builder-v1-qa.py` — Playwright-driven, using the seeded Jotaye admin session:
-
-1. Load route as staff → 200; as anon → redirected.
-2. With no approved frame (test project) → Generate disabled + copy shown.
-3. On Jotaye (approved frame) → click Generate → capture row, chat event, activity.
-4. Zod-validate payload; assert pages cover approved frame must-build pages.
-5. Submit → verify `in_review` + `engine_review_items` (kind=`mockup_set`, pending).
-6. Approve as admin → verify approved fields + NBA advances to Backend Builder.
-7. Protection: PostgREST PATCH, reverse transition, silent overwrite — all fail.
-8. Regression snapshot: client_portal_*, roadmap_approvals, engine_tasks, milestones — zero deltas.
-9. Chat: ask 6 canonical mockup questions; verify grounded answers + refusal on approve/backend asks.
-10. Screenshots at 1280×1800, 1024×1366, 390×844 for empty state, generated draft, page cards, global components, interaction model, responsive, QA, open decisions, submitted, approved.
-11. Deliverable: `/mnt/documents/qa/mockup-builder-v1/REPORT.md`.
-
-## 8. Out of scope
-
-- Image / visual mockup generation (v2).
-- Backend Builder (next stage).
-- Client portal surfacing of mockups.
-- Broad Action Mode actions beyond the two above.
-- Non-admin operator role seeding (still deferred).
-
-## Files (planned)
-
-- `supabase/migrations/<ts>_mockup_builder_v1.sql`
-- `src/lib/engine-mockup-builder.functions.ts`
-- `src/lib/engine-mockup-builder-prompt.server.ts`
-- `src/routes/engine.projects.$projectId.mockup-builder.tsx`
-- edits: `src/lib/engine-workspace.ts` (nav step), `src/lib/engine-chat-context.server.ts`, chat prompt, `src/lib/engine-chat-actions*.ts`, `src/integrations/supabase/types.ts` (regen after migration)
-- `scripts/qa/mockup-builder-v1-qa.py`
-
-## Acceptance
-
-All acceptance criteria from the request map 1:1 to the checks in the QA script (§7). Typecheck via `tsgo` at the end. No writes to `client_portal_*`, `roadmap_approvals`, `engine_tasks`, or milestones from any Mockup Builder path.
+- Reuse seeded admin session via `LOVABLE_BROWSER_SUPABASE_*` env vars.
+- Direct DB reads via `psql` (`PG*` env vars) for row/audit inspection.
+- Anon RLS probes via `fetch` to `${SUPABASE_URL}/rest/v1/engine_project_mockups` with publishable key only.
+- Screenshots saved under `/mnt/documents/qa/mockup-builder-v1/screenshots/`.
+- No schema or code changes as part of QA. If a defect is found, list it under Top Fixes; do not patch during the pass.
