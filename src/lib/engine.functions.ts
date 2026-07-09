@@ -637,7 +637,7 @@ export const getProjectWorkspace = createServerFn({ method: "GET" })
       from: (t: string) => {
         select: (s: string) => {
           eq: (c: string, v: string) => {
-            single: () => Promise<{ data: unknown; error: unknown }>;
+            maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
             order: (c: string, o: { ascending: boolean }) => {
               limit: (n: number) => Promise<{ data: unknown }>;
             } & Promise<{ data: unknown }>;
@@ -645,8 +645,9 @@ export const getProjectWorkspace = createServerFn({ method: "GET" })
         };
       };
     };
-    const { data: p, error } = await sb.from("engine_projects").select(WORKSPACE_SELECT).eq("id", data.id).single();
+    const { data: p, error } = await sb.from("engine_projects").select(WORKSPACE_SELECT).eq("id", data.id).maybeSingle();
     if (error) throw new Error((error as { message?: string }).message ?? "not found");
+    if (!p) throw new Error(`Project not found: ${data.id}`);
     const row = p as Record<string, unknown> & { engine_clients: { company: string; owner_email: string | null } | null };
 
     const { data: datesData } = await sb.from("engine_project_dates").select("id,label,due_on,kind").eq("project_id", data.id).order("due_on", { ascending: true });
@@ -1215,8 +1216,9 @@ export const getProjectSpine = createServerFn({ method: "GET" })
         "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,point_a,point_b,roadmap,blueprint, engine_clients(company)",
       )
       .eq("id", data.id)
-      .single();
+      .maybeSingle();
     if (projErr) throw new Error((projErr as { message?: string }).message ?? "project not found");
+    if (!projRow) throw new Error(`Project not found: ${data.id}`);
 
     // Frame / goal live inside the roadmap or blueprint JSON blobs today.
     const roadmap = (projRow.roadmap ?? {}) as Record<string, unknown>;
