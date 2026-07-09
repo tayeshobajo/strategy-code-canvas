@@ -1,47 +1,99 @@
-## QA Factory v1 — Extended QA (3 additional checks)
+## Implementation Plan v1 — Build Sequence Layer
 
-Re-run the existing QA Factory v1 end-to-end harness on Jotaye Ventures (with spot checks on INBDE and August 1), and extend it with three new assertions. No feature code changes unless a blocker is uncovered.
+Mirror the QA Factory v1 pattern (table + server fns + workspace route + chat context + review integration). Planning-only: no migrations applied, no code deployed, no QA marked passed, no delivery mutations.
 
-### New checks to add to `scripts/qa/qa-factory-v1-qa.py`
+### 1. Migration — `engine_project_implementation_plans`
 
-**1. Next Best Action after QA approval**
-After the `qa_plan_approved` step in the Jotaye lifecycle:
-- Call `SELECT * FROM compute_engine_next_best_action(:jotaye_project_id)` via psql.
-- Assert `action` recommends Implementation Plan / Build Execution / next build layer (regex: `implementation|build|execute|next.*build`), not "Publish", "Deliver", or "Nothing waiting".
-- Assert `engine_projects.status` for Jotaye is NOT `delivered` and NOT `in_execution`.
-- Snapshot `client_portal_roadmaps` (status, updated_at) and `client_portal_projects.last_client_activity_at` before and after approval — assert zero diff.
+Single migration adding one new table. Follows Cloud grant/RLS discipline.
 
-**2. Archived plan is not treated as active**
-After the `qa_plan_archived` step:
-- Invoke `getProjectQaFactory` server fn (via `stack_modern--invoke-server-function` with seeded admin session) for Jotaye.
-- Assert archived plan appears in the returned `history` array.
-- Assert the returned `active` / `current` / `latest` plan field is NOT the archived plan id (either null or a different non-archived row).
-- Inspect `engine-chat-context.server.ts` runtime output: call chat-context server fn and assert `qa_plan.status` is not `archived` and `qa_plan.latest_id` is not the archived plan id. If no non-archived plan exists, assert the context reports no active QA plan (readiness flags false).
+Columns: `id`, `project_id` (FK `engine_projects`), `backend_plan_id` (FK `engine_project_backend_plans`), `qa_plan_id` (FK `engine_project_qa_plans`), `mockup_id`, `frame_id` (both nullable), `title`, `summary`, `status` (`draft|in_review|approved|archived`, default `draft`), `generated_by` (`ai|human|hybrid`), `payload` jsonb, `created_by`, `created_by_email`, `approved_by`, `approved_by_email`, `approved_at`, `created_at`, `updated_at`.
 
-**3. New generation after approval creates a new draft (no overwrite)**
-After archiving the first approved plan is complete, first re-approve a second plan for a cleaner test — OR before archiving, capture the approved plan and:
-- Compute a stable hash of the approved plan's `payload` JSONB (`md5(payload::text)`) and record `updated_at`, `title`, `status`.
-- Call `generateProjectQaPlan` again via server fn.
-- Assert a new row is inserted with `status = 'draft'` and a distinct `id`.
-- Re-read the previously-approved row: assert `status = 'approved'`, `payload` hash unchanged, `updated_at` unchanged, `title` unchanged.
-- Assert `SELECT count(*) FROM engine_project_qa_plans WHERE project_id = :jotaye` reflects both rows (approved + new draft) plus any prior rows.
-- Assert `getProjectQaFactory` history contains both.
+Indexes: `(project_id, status)`, `(project_id, updated_at desc)`.
 
-Sequence the lifecycle so check 3 runs BEFORE archive (so the approved plan is the protected target), then archive, then run check 2.
+Grants + RLS:
+- `GRANT SELECT ON ... TO authenticated` (staff-only surface — RLS gates)
+- `GRANT ALL ... TO service_role`
+- No anon grants
+- RLS enabled; SELECT policy: `has_role(auth.uid(),'admin' | 'operator' | 'team_member')`; no INSERT/UPDATE/DELETE policies (server functions use service_role)
 
-### Report additions to `.lovable/qa-factory-v1-qa-report.md`
+Trigger: `protect_approved_implementation_plan()` — blocks UPDATE of `payload`/`title`/`status` downgrades on `approved` rows (mirrors QA plan protection). `updated_at` trigger.
 
-Add three new sections under numbered headings:
-- **16. Next Best Action After Approval** — table with action recommended, project status, portal diff.
-- **17. Archived Plan Not Treated as Active** — table with active-plan id, history includes archived, chat context snapshot.
-- **18. Regenerate After Approval — No Overwrite** — table with approved payload hash before/after, new draft id, history row count.
+No changes to `client_portal_*`, `roadmap_approvals`, `engine_projects.status`, backend/mockup/frame/QA payloads.
 
-Update the Executive Summary and final Recommendation line (SAFE or NOT SAFE) based on outcomes.
+### 2. Server functions — `src/lib/engine-implementation-plan.functions.ts`
 
-### Deliverables
-- Updated `scripts/qa/qa-factory-v1-qa.py` (reproducible)
-- Updated `.lovable/qa-factory-v1-qa-report.md` with sections 16–18 + refreshed recommendation
-- New screenshots (if UI evidence produced) under `/mnt/documents/qa/qa-factory-v1/screenshots/` (e.g. `10_nba_after_approval.png`, `11_history_after_archive.png`, `12_regenerate_new_draft.png`)
+All use `requireSupabaseAuth` + staff role check. Load `supabaseAdmin` inside handlers.
 
-### Not in scope
-No migrations, no server-fn changes, no UI changes unless a check fails and reveals a real blocker — in which case stop and report before fixing.
+- `getProjectImplementationPlan({ projectId })` — returns `{ current, history[], readiness }`. `readiness` reports approved backend plan + approved QA plan presence.
+- `generateProjectImplementationPlan({ projectId })` — refuses if either approved backend plan or approved QA plan is missing. Builds prompt from approved payloads (backend, QA, mockup, frame, Spine, milestones, tasks, artifacts, open decisions/risks). Calls Lovable AI, validates schema, inserts new `draft` row. Never mutates prior rows.
+- `saveProjectImplementationPlanDraft({ projectId, planId, payload })` — only when status = `draft`. Schema-validated.
+- `submitProjectImplementationPlanToReview({ planId })` — sets `in_review`, inserts `engine_review_items` row (`item_type='implementation_plan'`, `status='pending'`).
+- `approveProjectImplementationPlan({ planId })` — admin only. Sets `approved`, `approved_by/_at/_email`. Writes audit + activity.
+- `archiveProjectImplementationPlan({ planId })` — admin only. Sets `archived`.
+
+Every mutation writes `engine_audit_log` + `engine_activity`. None touch client portal, roadmap approvals, QA test statuses, project delivered status, or approved upstream payloads.
+
+Prompt builder in `src/lib/engine-implementation-plan-prompt.server.ts` producing the payload shape from the user's spec (implementation_goal, phases, build_steps, migration_plan, server_function_plan, ui_wiring_plan, permission_rls_plan, integration_plan, qa_execution_order, developer_prompts, parallelization, rollback_strategy, release_gates, open_decisions, risks).
+
+Zod schema for payload validation (rejects LLM output that marks steps as executed/deployed/passed).
+
+### 3. Route + UI — `src/routes/engine.projects.$projectId.implementation-plan.tsx`
+
+Follow QA Factory page structure.
+
+Header: project name, status, current step, live NBA, approved backend badge, approved QA badge, implementation plan status, Generate / Submit / Approve (admin) / Archive (admin) buttons.
+
+Sections A–L per spec: Overview, Build Phases, Build Steps (grouped by phase + priority), Migration Plan, Server Function Plan, UI Wiring Plan, Permission/RLS Plan, QA Execution Order, Developer Prompts (Lovable / OpenClaw / dev / QA with copy buttons), Rollback + Release Gates, Open Decisions + Risks.
+
+Right rail M: `StepAiPanel`-style AI PM panel showing what's known, what blocks execution, next recommended action.
+
+Empty state when readiness fails: explains "Approve a backend plan and QA plan before generating implementation." Generate button disabled.
+
+### 4. Workspace nav wiring
+
+- `src/components/engine/WorkspaceHeader.tsx` — add "Implementation Plan" step after "QA Factory".
+- Any workspace stepper enum / step registry that lists QA Factory — add implementation-plan entry.
+
+### 5. Chat context integration
+
+`src/lib/engine-chat-context.server.ts` — add `implementation_plan` block: `status`, `latest_id`, `phase_count`, `build_step_count`, p0/p1/p2 counts, high-risk count, open decisions, approved summary, `ready_for_build_execution` flag. Filter out `archived` (mirror QA plan handling).
+
+Update chat prompt so it can answer the build-planning questions in the spec, and reiterate it must not apply migrations, deploy, mark tests passed, approve plans, or mark delivered.
+
+### 6. Review + NBA integration
+
+- `engine_review_items` already supports arbitrary `item_type`; add `'implementation_plan'` handling wherever the review console renders labels/links (route to the new page).
+- `compute_engine_next_best_action` (SQL function): extend to recommend "Generate Implementation Plan" when backend+QA approved and no draft; "Submit Implementation Plan to Review" when draft exists; "Approve Implementation Plan" when in review; "Ready for Build Execution / OpenClaw handoff" when approved. Never returns "delivered".
+
+### 7. Types + route tree
+
+- Regenerate `src/integrations/supabase/types.ts` (post-migration).
+- `src/routeTree.gen.ts` regenerates from new route file.
+
+### 8. Files created / edited
+
+Created:
+- `supabase/migrations/<ts>_implementation_plans.sql`
+- `src/lib/engine-implementation-plan.functions.ts`
+- `src/lib/engine-implementation-plan-prompt.server.ts`
+- `src/routes/engine.projects.$projectId.implementation-plan.tsx`
+
+Edited:
+- `src/components/engine/WorkspaceHeader.tsx` (nav)
+- `src/lib/engine-chat-context.server.ts` (context block)
+- `src/lib/engine-chat-prompt.server.ts` (guidance)
+- `compute_engine_next_best_action` SQL (in the same migration)
+- review console label/link map (if one exists)
+- `src/integrations/supabase/types.ts` + `src/routeTree.gen.ts` (regenerated)
+
+### 9. Out of scope (v1)
+
+- No Build Execution / OpenClaw handoff runner
+- No auto-migration application
+- No code generation from developer prompts
+- No changes to Frame / Mockup / Backend / QA payload shapes
+- No client portal surfaces
+
+### 10. QA follow-up (separate task after build)
+
+End-to-end harness (mirroring `scripts/qa/qa-factory-v1-qa.py`): readiness gating, generate → submit → approve → archive lifecycle, protection of approved payloads, chat awareness, RLS/permission checks, protected-surface diff (client_portal_*, backend/QA/mockup/frame payloads, project status, roadmap approvals) before/after approval.
