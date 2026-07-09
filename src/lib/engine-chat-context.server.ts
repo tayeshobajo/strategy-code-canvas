@@ -427,6 +427,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     qa_gates,
     portal_publish,
     frame: frameSummary,
+    mockup: mockupSummary,
     missing_data: missing,
   };
 
