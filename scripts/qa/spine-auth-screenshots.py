@@ -61,7 +61,20 @@ async def main():
             url = f"http://localhost:8080/engine/projects/{pid}/spine"
             print(f"\n[{slug}] -> {url}")
             await page.goto(url, wait_until="networkidle")
-            await page.wait_for_timeout(1000)
+            await page.wait_for_selector('[data-qa-state="spine-loaded"], [data-qa-state="spine-error"], [data-qa-state="workspace-error"]', timeout=15000)
+            state = await page.evaluate(
+                """() => {
+                    const node = document.querySelector('[data-qa-state]');
+                    return {
+                        state: node?.getAttribute('data-qa-state') ?? null,
+                        hasRoadmap: document.body.innerText.includes('Roadmap Spine'),
+                        hasTasks: document.body.innerText.includes('Task Spine'),
+                        hasAiPm: document.body.innerText.includes('AI Product Manager'),
+                        bodyPreview: document.body.innerText.slice(0, 500),
+                    };
+                }"""
+            )
+            print("  qa state:", state)
             await shot(page, f"{slug}-desktop.png", {"width": 1440, "height": 1800})
             await shot(page, f"{slug}-tablet.png",  {"width": 768,  "height": 1400})
             await shot(page, f"{slug}-mobile.png",  {"width": 390,  "height": 1400})
