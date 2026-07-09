@@ -288,6 +288,7 @@ export const askProjectIntelligence = createServerFn({ method: "POST" })
         citations: [],
         missing: ["ai_response"],
         suggested_links: [],
+        proposals: [],
       };
       assistantText = JSON.stringify(answer);
     }
