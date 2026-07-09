@@ -1,96 +1,55 @@
-# QA Factory v1
+## QA Factory v1 — End-to-end QA Plan
 
-Mirror the Backend Builder v1 pattern (grants-hardened table, service-role server functions, staff-only UI, chat context injection, review integration) applied to QA planning derived from the approved backend plan + mockup + frame + spine.
+Mirror the Backend Builder v1 QA harness (`scripts/qa/backend-builder-v1-qa.py` + Playwright + psql) applied to QA Factory v1. No feature code changes — verification only.
 
-## 1. Migration
+### Test targets
+- Primary: Jotaye Ventures — Strategy Sprint (has approved backend plan from prior QA)
+- Spot: INBDE & ADAT Platform, August 1 — intake
 
-`supabase/migrations/<ts>_qa_factory_v1.sql`
+### Harness
+Create `scripts/qa/qa-factory-v1-qa.py` — psql + server-fn checks covering:
+1. Grants: anon/authenticated revoked writes, authenticated SELECT, service_role ALL on `engine_project_qa_plans`
+2. RLS policies + `is_engine_staff()` gate
+3. Trigger `trg_engine_project_qa_plans_enforce` (block out-of-approved except archive, block silent payload overwrite when approved, block skipping in_review)
+4. Direct PostgREST INSERT/UPDATE/DELETE as anon and authenticated → expect 401/403
+5. Cross-project scoping check
 
-Create `public.engine_project_qa_plans`:
-- `id uuid pk`, `project_id uuid` (fk `engine_projects`, cascade), `backend_plan_id uuid` (fk `engine_project_backend_plans`), `mockup_id uuid null`, `frame_id uuid null`
-- `title text`, `summary text`, `status text check in (draft,in_review,approved,archived) default 'draft'`
-- `generated_by text check in (ai,human,hybrid) default 'ai'`
-- `payload jsonb not null default '{}'`
-- `created_by uuid`, `created_by_email text`, `approved_by uuid null`, `approved_by_email text null`, `approved_at timestamptz null`
-- `created_at`, `updated_at` + updated_at trigger
+Playwright script `/tmp/browser/qa-factory/run.py` (seeded admin session, restore Supabase session from env):
+- Route load `/engine/projects/:id/qa-factory` for each target project
+- Nav active state + WorkspaceHeader placement after Backend Builder
+- Anon redirect proof (fresh context, no session)
+- Readiness gating: project without approved backend plan → Generate disabled + explainer text
+- Jotaye lifecycle: Generate → inspect draft payload → Save (with poisoned status=passed → expect normalized to not_run) → Submit → Approve → Archive
+- Screenshots: desktop full page, Test Matrix + filters, each category section, Go/No-Go, AI PM panel, tablet, mobile
+- Approved-plan protection: attempt overwrite via server fn + direct PATCH → expect refusal
+- Non-admin operator: approve/archive controls hidden + server fn 403
 
-Grants (mirror Frame/Mockup/Backend hygiene):
-```
-REVOKE ALL ON public.engine_project_qa_plans FROM anon, authenticated;
-GRANT SELECT ON public.engine_project_qa_plans TO authenticated;
-GRANT ALL ON public.engine_project_qa_plans TO service_role;
-```
+### Payload schema verification
+Read latest generated draft from DB via psql, parse `payload` JSONB, assert every top-level key:
+`qa_goal, source_backend_summary, overall_readiness, test_matrix, role_tests, route_tests, data_tests, rls_tests, workflow_tests, ui_state_tests, responsive_tests, integration_tests, audit_tests, regression_tests, edge_cases, blocked_items, evidence_plan, go_no_go_criteria, open_decisions, risks`.
 
-RLS: enable; single SELECT policy `Staff can view qa plans` → `authenticated USING public.is_engine_staff()`. No INSERT/UPDATE/DELETE policies — all writes go through service-role server functions.
+For each `test_matrix` item, assert required fields present and `status == "not_run"`. Assert P0/P1/P2 distribution non-empty. Assert evidence_required non-empty. Assert RLS/role/responsive/audit tests present.
 
-Trigger `trg_engine_project_qa_plans_enforce`:
-- block transitions out of `approved` except to `archived`
-- block silent overwrite of `payload` when status = `approved` (must archive + new draft)
-- block status jumps that skip `in_review` before `approved`
+### Project Chat awareness
+Drive the chat UI with the 11 listed prompts against Jotaye after approval. Verify context injection returns accurate counts (compare to payload). Verify refusal to mark tests passed / approve / mark delivered.
 
-Indexes: `(project_id, status)`, `(backend_plan_id)`.
+### Protected surface regression
+Snapshot before/after all lifecycle actions:
+- `client_portal_*` row counts + updated_at
+- `roadmap_approvals`, `roadmap_documents`
+- `engine_projects.status` for Jotaye
+- `engine_tasks`, `engine_milestones` counts + status distribution
+- Approved backend plan / mockup / frame payloads (hash)
+Expect zero drift.
 
-## 2. Server functions
+### Audit + activity
+Query `engine_audit_log` and `engine_activity` for each lifecycle event. Assert events present with expected names (`qa_plan_generated`, `qa_plan_saved`, `qa_plan_submitted_to_review`, `qa_plan_approved`, `qa_plan_archived`). Assert no system prompt / provider key / auth token stored (grep payloads).
 
-`src/lib/engine-qa-factory.functions.ts` (all `requireSupabaseAuth`, verify staff via `is_engine_staff`; approve/archive require admin role):
+### Regression sanity
+Load Spine, Project Chat, Frame Builder, Mockup Builder, Backend Builder routes for Jotaye. Screenshot each. Confirm typecheck runs clean vs prior baseline.
 
-- `getProjectQaFactory({ projectId })` → readiness (approved backend plan? mockup? frame?), latest plan, history, review item state
-- `generateProjectQaPlan({ projectId })` → refuses without approved backend plan; loads approved backend/mockup/frame payloads + spine + milestones/tasks/artifacts + open decisions/risks; calls AI via `engine-ai.server` with prompt from new `engine-qa-factory-prompt.server.ts`; validates payload schema (zod) covering all matrix categories + role/route/data/rls/workflow/ui_state/responsive/integration/audit/regression/edge_cases + evidence_plan + go_no_go_criteria + open_decisions + risks; inserts draft row; writes `engine_audit_log` + `engine_activity`
-- `saveProjectQaPlanDraft({ planId, payload })` → only when status = `draft`; re-validates schema
-- `submitProjectQaPlanToReview({ planId })` → draft → in_review; creates `engine_review_items` row `item_type='qa_plan'`, `status='pending'`, linked plan id; audit/activity
-- `approveProjectQaPlan({ planId })` → admin only; in_review → approved; sets approved_by/at; audit/activity; refuses if already approved
-- `archiveProjectQaPlan({ planId })` → admin only; any → archived; audit/activity
+### Deliverable
+`.lovable/qa-factory-v1-qa-report.md` with all sections requested:
+Executive Summary, Route+Access, Readiness, Generate, Payload Schema, Test Status Hard-Lock, UI Rendering, Submit-to-Review, Approve/Protection, Archive, Chat Awareness, Permission/RLS, Protected Surface Regression, Audit/Activity, Screenshots (linked from `/mnt/documents/qa/qa-factory-v1/screenshots/`), Top Fixes, Recommendation (safe / not safe → Implementation Plan v1).
 
-Guardrails (all functions): never touch `client_portal_*`, `roadmap_approvals`, `roadmap_documents`, `engine_projects.status`/investment fields, `engine_tasks`/`engine_milestones` status. No test execution. No deploy. Enforce in code and rely on grants as defense-in-depth.
-
-## 3. Prompt
-
-`src/lib/engine-qa-factory-prompt.server.ts` — system + user prompt builders. Inputs: approved backend plan payload, approved mockup payload, approved frame payload, spine snapshot, milestones/tasks, open decisions & risks. Output contract = payload schema above. Explicitly instruct: planning only, no auto-pass statuses, no delivery/deploy language, all statuses start `not_run`.
-
-## 4. Chat context
-
-Edit `src/lib/engine-chat-context.server.ts` to fetch latest non-archived `engine_project_qa_plans` row for the project and inject: status, overall_readiness, test count, blocking count, P0/P1/P2 counts, open decision count, risk count, approved summary. No new chat actions — read-only.
-
-## 5. Route + UI
-
-`src/routes/engine.projects.$projectId.qa-factory.tsx` — mirror `backend-builder.tsx` structure:
-- Loader ensures staff via `requireSupabaseAuth`; suspense query on `getProjectQaFactory`
-- Header: project meta, backend-plan-approved badge, QA plan status, buttons (Generate disabled with tooltip when no approved backend plan; Submit when draft; Approve/Archive admin-only)
-- Sections A–K as specified: Overview, Test Matrix (grouped tabs by category / filters by priority + blocking), Role+Route, Data+RLS, Workflow, UI State+Responsive, Integration+Audit, Go/No-Go, Open Decisions+Risks, right-side AI PM panel summarizing coverage vs approved backend plan
-- Uses existing engine primitives (`EngineStatusBadge`, cards, `AuditTrail`, `AIDraftBadge`) — no new design system
-
-Add nav entry in `src/components/engine/WorkspaceHeader.tsx` `WorkspaceToolbar` after Backend Builder: `QA Factory` linking to the new route (icon `ClipboardCheck`).
-
-## 6. Review integration
-
-Reuse existing `engine_review_items` table. Add handling in the review queue UI only if it already renders by `item_type` generically; otherwise leave to a follow-up (out of scope for v1 — plan approval works from the QA Factory page). Note this as a known limitation.
-
-## 7. Acceptance verification (post-build)
-
-- typecheck
-- migration applies cleanly (grants + RLS + trigger)
-- `psql` sanity: anon/authenticated cannot INSERT/UPDATE/DELETE; authenticated SELECT via `is_engine_staff`
-- Route loads for staff; hidden for anon/client
-- Generate disabled without approved backend plan, enabled with one; produces schema-valid payload
-- Submit → creates pending qa_plan review item
-- Approve blocks silent overwrite (trigger)
-- No writes to protected surfaces (snapshot before/after)
-- Chat answers listed questions
-
-## Deliverables (returned after build)
-
-Files changed, tables/RLS/grants, server functions, payload schema (zod), screenshots, test evidence, known limitations (v1 does not execute tests; generic review-queue rendering may need per-item-type UI follow-up), recommended QA prompt.
-
-## Files touched
-
-New:
-- `supabase/migrations/<ts>_qa_factory_v1.sql`
-- `src/lib/engine-qa-factory.functions.ts`
-- `src/lib/engine-qa-factory-prompt.server.ts`
-- `src/routes/engine.projects.$projectId.qa-factory.tsx`
-
-Edited:
-- `src/components/engine/WorkspaceHeader.tsx` (nav entry)
-- `src/lib/engine-chat-context.server.ts` (QA context injection)
-- `src/integrations/supabase/types.ts` (regenerated by migration)
-- `src/routeTree.gen.ts` (auto)
+Reproducible harness committed at `scripts/qa/qa-factory-v1-qa.py`.
