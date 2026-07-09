@@ -249,7 +249,5 @@ Produce the ordered build packets now. Return JSON only. Do NOT include
 real SQL, code, or shell commands — the handoff_prompt is natural
 language for the target builder. Do NOT claim any step has run.`;
 
-  // Silence the unused-payload eslint hint — payload IS in the JSON above.
-  void (impl.payload as ImplementationPayload);
   return { system: BUILD_EXECUTION_SYSTEM_PROMPT, user };
 }
