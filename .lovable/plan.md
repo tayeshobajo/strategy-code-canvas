@@ -1,55 +1,47 @@
-## QA Factory v1 — End-to-end QA Plan
+## QA Factory v1 — Extended QA (3 additional checks)
 
-Mirror the Backend Builder v1 QA harness (`scripts/qa/backend-builder-v1-qa.py` + Playwright + psql) applied to QA Factory v1. No feature code changes — verification only.
+Re-run the existing QA Factory v1 end-to-end harness on Jotaye Ventures (with spot checks on INBDE and August 1), and extend it with three new assertions. No feature code changes unless a blocker is uncovered.
 
-### Test targets
-- Primary: Jotaye Ventures — Strategy Sprint (has approved backend plan from prior QA)
-- Spot: INBDE & ADAT Platform, August 1 — intake
+### New checks to add to `scripts/qa/qa-factory-v1-qa.py`
 
-### Harness
-Create `scripts/qa/qa-factory-v1-qa.py` — psql + server-fn checks covering:
-1. Grants: anon/authenticated revoked writes, authenticated SELECT, service_role ALL on `engine_project_qa_plans`
-2. RLS policies + `is_engine_staff()` gate
-3. Trigger `trg_engine_project_qa_plans_enforce` (block out-of-approved except archive, block silent payload overwrite when approved, block skipping in_review)
-4. Direct PostgREST INSERT/UPDATE/DELETE as anon and authenticated → expect 401/403
-5. Cross-project scoping check
+**1. Next Best Action after QA approval**
+After the `qa_plan_approved` step in the Jotaye lifecycle:
+- Call `SELECT * FROM compute_engine_next_best_action(:jotaye_project_id)` via psql.
+- Assert `action` recommends Implementation Plan / Build Execution / next build layer (regex: `implementation|build|execute|next.*build`), not "Publish", "Deliver", or "Nothing waiting".
+- Assert `engine_projects.status` for Jotaye is NOT `delivered` and NOT `in_execution`.
+- Snapshot `client_portal_roadmaps` (status, updated_at) and `client_portal_projects.last_client_activity_at` before and after approval — assert zero diff.
 
-Playwright script `/tmp/browser/qa-factory/run.py` (seeded admin session, restore Supabase session from env):
-- Route load `/engine/projects/:id/qa-factory` for each target project
-- Nav active state + WorkspaceHeader placement after Backend Builder
-- Anon redirect proof (fresh context, no session)
-- Readiness gating: project without approved backend plan → Generate disabled + explainer text
-- Jotaye lifecycle: Generate → inspect draft payload → Save (with poisoned status=passed → expect normalized to not_run) → Submit → Approve → Archive
-- Screenshots: desktop full page, Test Matrix + filters, each category section, Go/No-Go, AI PM panel, tablet, mobile
-- Approved-plan protection: attempt overwrite via server fn + direct PATCH → expect refusal
-- Non-admin operator: approve/archive controls hidden + server fn 403
+**2. Archived plan is not treated as active**
+After the `qa_plan_archived` step:
+- Invoke `getProjectQaFactory` server fn (via `stack_modern--invoke-server-function` with seeded admin session) for Jotaye.
+- Assert archived plan appears in the returned `history` array.
+- Assert the returned `active` / `current` / `latest` plan field is NOT the archived plan id (either null or a different non-archived row).
+- Inspect `engine-chat-context.server.ts` runtime output: call chat-context server fn and assert `qa_plan.status` is not `archived` and `qa_plan.latest_id` is not the archived plan id. If no non-archived plan exists, assert the context reports no active QA plan (readiness flags false).
 
-### Payload schema verification
-Read latest generated draft from DB via psql, parse `payload` JSONB, assert every top-level key:
-`qa_goal, source_backend_summary, overall_readiness, test_matrix, role_tests, route_tests, data_tests, rls_tests, workflow_tests, ui_state_tests, responsive_tests, integration_tests, audit_tests, regression_tests, edge_cases, blocked_items, evidence_plan, go_no_go_criteria, open_decisions, risks`.
+**3. New generation after approval creates a new draft (no overwrite)**
+After archiving the first approved plan is complete, first re-approve a second plan for a cleaner test — OR before archiving, capture the approved plan and:
+- Compute a stable hash of the approved plan's `payload` JSONB (`md5(payload::text)`) and record `updated_at`, `title`, `status`.
+- Call `generateProjectQaPlan` again via server fn.
+- Assert a new row is inserted with `status = 'draft'` and a distinct `id`.
+- Re-read the previously-approved row: assert `status = 'approved'`, `payload` hash unchanged, `updated_at` unchanged, `title` unchanged.
+- Assert `SELECT count(*) FROM engine_project_qa_plans WHERE project_id = :jotaye` reflects both rows (approved + new draft) plus any prior rows.
+- Assert `getProjectQaFactory` history contains both.
 
-For each `test_matrix` item, assert required fields present and `status == "not_run"`. Assert P0/P1/P2 distribution non-empty. Assert evidence_required non-empty. Assert RLS/role/responsive/audit tests present.
+Sequence the lifecycle so check 3 runs BEFORE archive (so the approved plan is the protected target), then archive, then run check 2.
 
-### Project Chat awareness
-Drive the chat UI with the 11 listed prompts against Jotaye after approval. Verify context injection returns accurate counts (compare to payload). Verify refusal to mark tests passed / approve / mark delivered.
+### Report additions to `.lovable/qa-factory-v1-qa-report.md`
 
-### Protected surface regression
-Snapshot before/after all lifecycle actions:
-- `client_portal_*` row counts + updated_at
-- `roadmap_approvals`, `roadmap_documents`
-- `engine_projects.status` for Jotaye
-- `engine_tasks`, `engine_milestones` counts + status distribution
-- Approved backend plan / mockup / frame payloads (hash)
-Expect zero drift.
+Add three new sections under numbered headings:
+- **16. Next Best Action After Approval** — table with action recommended, project status, portal diff.
+- **17. Archived Plan Not Treated as Active** — table with active-plan id, history includes archived, chat context snapshot.
+- **18. Regenerate After Approval — No Overwrite** — table with approved payload hash before/after, new draft id, history row count.
 
-### Audit + activity
-Query `engine_audit_log` and `engine_activity` for each lifecycle event. Assert events present with expected names (`qa_plan_generated`, `qa_plan_saved`, `qa_plan_submitted_to_review`, `qa_plan_approved`, `qa_plan_archived`). Assert no system prompt / provider key / auth token stored (grep payloads).
+Update the Executive Summary and final Recommendation line (SAFE or NOT SAFE) based on outcomes.
 
-### Regression sanity
-Load Spine, Project Chat, Frame Builder, Mockup Builder, Backend Builder routes for Jotaye. Screenshot each. Confirm typecheck runs clean vs prior baseline.
+### Deliverables
+- Updated `scripts/qa/qa-factory-v1-qa.py` (reproducible)
+- Updated `.lovable/qa-factory-v1-qa-report.md` with sections 16–18 + refreshed recommendation
+- New screenshots (if UI evidence produced) under `/mnt/documents/qa/qa-factory-v1/screenshots/` (e.g. `10_nba_after_approval.png`, `11_history_after_archive.png`, `12_regenerate_new_draft.png`)
 
-### Deliverable
-`.lovable/qa-factory-v1-qa-report.md` with all sections requested:
-Executive Summary, Route+Access, Readiness, Generate, Payload Schema, Test Status Hard-Lock, UI Rendering, Submit-to-Review, Approve/Protection, Archive, Chat Awareness, Permission/RLS, Protected Surface Regression, Audit/Activity, Screenshots (linked from `/mnt/documents/qa/qa-factory-v1/screenshots/`), Top Fixes, Recommendation (safe / not safe → Implementation Plan v1).
-
-Reproducible harness committed at `scripts/qa/qa-factory-v1-qa.py`.
+### Not in scope
+No migrations, no server-fn changes, no UI changes unless a check fails and reveals a real blocker — in which case stop and report before fixing.
