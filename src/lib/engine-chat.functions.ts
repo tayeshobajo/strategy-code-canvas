@@ -258,6 +258,12 @@ export const askProjectIntelligence = createServerFn({ method: "POST" })
     let tokens_out = 0;
     let cost_cents = 0;
     let answer: IntelligenceAnswer;
+    let aiSuccess = true;
+    let aiErrorCode: string | null = null;
+    let aiErrorMessage: string | null = null;
+    const MODEL = "google/gemini-3-flash-preview";
+    const PROVIDER = "lovable-ai";
+    const startedAt = Date.now();
     try {
       const result = await callLovableAi(messages, { json: true, temperature: 0.2 });
       assistantText = result.text;
@@ -266,21 +272,25 @@ export const askProjectIntelligence = createServerFn({ method: "POST" })
       cost_cents = result.cost_cents;
       answer = parseIntelligenceAnswer(assistantText);
     } catch (err) {
+      aiSuccess = false;
+      const raw = (err as Error).message || "AI call failed";
+      // Classify without leaking provider details
+      if (/rate limit/i.test(raw)) aiErrorCode = "ai_rate_limited";
+      else if (/credit/i.test(raw)) aiErrorCode = "ai_credits_exhausted";
+      else if (/gateway/i.test(raw)) aiErrorCode = "ai_gateway_error";
+      else aiErrorCode = "ai_unknown_error";
+      aiErrorMessage = raw.slice(0, 300);
       answer = {
         summary:
           "I couldn't reach the AI service to answer that. The project data is still available in the panels on this page.",
-        sections: [
-          {
-            kind: "status",
-            text: (err as Error).message || "AI call failed",
-          },
-        ],
+        sections: [{ kind: "status", text: aiErrorMessage }],
         citations: [],
         missing: ["ai_response"],
         suggested_links: [],
       };
       assistantText = JSON.stringify(answer);
     }
+    const latency_ms = Date.now() - startedAt;
 
     const { data: asstMsg, error: aErr } = await sb
       .from("engine_project_chat_messages")
@@ -295,6 +305,11 @@ export const askProjectIntelligence = createServerFn({ method: "POST" })
           tokens_in,
           tokens_out,
           cost_cents,
+          model: MODEL,
+          provider: PROVIDER,
+          success: aiSuccess,
+          error_code: aiErrorCode,
+          latency_ms,
         },
       })
       .select("id,thread_id,project_id,role,content,metadata,created_at")
@@ -305,6 +320,43 @@ export const askProjectIntelligence = createServerFn({ method: "POST" })
       .from("engine_project_chat_threads")
       .update({ updated_at: new Date().toISOString() })
       .eq("id", threadRow.id);
+
+    // ---- Audit event (never store prompts, system messages, or secrets) -----
+    try {
+      await sb.from("engine_project_chat_events").insert({
+        project_id: data.projectId,
+        user_id: userId,
+        user_email: email,
+        thread_id: threadRow.id,
+        message_id: (asstMsg as { id: string }).id,
+        model: MODEL,
+        provider: PROVIDER,
+        success: aiSuccess,
+        error_code: aiErrorCode,
+        error_message: aiErrorMessage,
+        tokens_in,
+        tokens_out,
+        cost_cents,
+        latency_ms,
+      });
+    } catch {
+      // audit best-effort; never break the chat response
+    }
+
+    try {
+      await sb.from("engine_activity").insert({
+        project_id: data.projectId,
+        kind: aiSuccess ? "chat_ask" : "chat_ask_failed",
+        title: aiSuccess ? "Project Chat query" : "Project Chat query failed",
+        body: aiSuccess
+          ? `${email} asked the project intelligence layer (${tokens_in}+${tokens_out} tokens, ${latency_ms}ms)`
+          : `${email} — ${aiErrorCode ?? "error"}`,
+        severity: aiSuccess ? "info" : "warn",
+      });
+    } catch {
+      // best-effort
+    }
+
 
     return {
       thread: threadRow,
