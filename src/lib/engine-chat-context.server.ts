@@ -340,8 +340,85 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
       };
     }
   } catch { /* mockup table may not be readable — ignore */ }
-
-
+  // Backend Builder — latest + latest approved
+  let backendPlanSummary: {
+    latest_id: string | null;
+    status: string | null;
+    title: string | null;
+    generated_by: string | null;
+    mockup_id: string | null;
+    table_count: number;
+    server_function_count: number;
+    permission_count: number;
+    integration_count: number;
+    workflow_count: number;
+    open_decisions_count: number;
+    implementation_blockers_count: number;
+    high_risk_count: number;
+    approved_summary: string | null;
+    approved_backend_goal: string | null;
+    approved_architecture_summary: string | null;
+    approved_at: string | null;
+    ready_for_implementation: boolean;
+  } | null = null;
+  try {
+    const { data: planRows } = await sb
+      .from("engine_project_backend_plans")
+      .select("id,title,status,generated_by,mockup_id,summary,payload,approved_at,created_at")
+      .eq("project_id", projectId)
+      .neq("status", "archived")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    const rows = (planRows ?? []) as Array<{
+      id: string; title: string; status: string; generated_by: string;
+      mockup_id: string | null; summary: string | null;
+      payload: Record<string, unknown> | null;
+      approved_at: string | null; created_at: string;
+    }>;
+    const latest = rows[0] ?? null;
+    const approved = rows.find((r) => r.status === "approved") ?? null;
+    if (latest) {
+      const p = (latest.payload ?? {}) as {
+        backend_goal?: string;
+        architecture_summary?: string;
+        data_model?: { tables?: unknown[] };
+        server_functions?: unknown[];
+        permissions?: unknown[];
+        integrations?: unknown[];
+        workflows?: unknown[];
+        open_decisions?: Array<{ blocks?: string[] }>;
+        risks?: Array<{ severity?: string }>;
+      };
+      const implBlockers = (p.open_decisions ?? []).filter((d) =>
+        Array.isArray(d.blocks) && d.blocks.includes("implementation"),
+      ).length;
+      const highRisks = (p.risks ?? []).filter((r) => r.severity === "high").length;
+      const approvedPayload = (approved?.payload ?? {}) as {
+        backend_goal?: string;
+        architecture_summary?: string;
+      };
+      backendPlanSummary = {
+        latest_id: latest.id,
+        status: latest.status,
+        title: latest.title,
+        generated_by: latest.generated_by,
+        mockup_id: latest.mockup_id,
+        table_count: p.data_model?.tables?.length ?? 0,
+        server_function_count: p.server_functions?.length ?? 0,
+        permission_count: p.permissions?.length ?? 0,
+        integration_count: p.integrations?.length ?? 0,
+        workflow_count: p.workflows?.length ?? 0,
+        open_decisions_count: p.open_decisions?.length ?? 0,
+        implementation_blockers_count: implBlockers,
+        high_risk_count: highRisks,
+        approved_summary: approved?.summary ?? null,
+        approved_backend_goal: approvedPayload.backend_goal ?? null,
+        approved_architecture_summary: approvedPayload.architecture_summary ?? null,
+        approved_at: approved?.approved_at ?? null,
+        ready_for_implementation: !!approved && implBlockers === 0,
+      };
+    }
+  } catch { /* backend plan table may not be readable — ignore */ }
 
 
   // QA gates — derived, not model-guessed.
