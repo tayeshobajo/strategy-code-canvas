@@ -90,6 +90,7 @@ import { Route as EngineProjectsProjectIdPreviewRouteImport } from './routes/eng
 import { Route as EngineProjectsProjectIdPointBRouteImport } from './routes/engine.projects.$projectId.point-b'
 import { Route as EngineProjectsProjectIdPointARouteImport } from './routes/engine.projects.$projectId.point-a'
 import { Route as EngineProjectsProjectIdOverviewRouteImport } from './routes/engine.projects.$projectId.overview'
+import { Route as EngineProjectsProjectIdMockupBuilderRouteImport } from './routes/engine.projects.$projectId.mockup-builder'
 import { Route as EngineProjectsProjectIdInvestmentRouteImport } from './routes/engine.projects.$projectId.investment'
 import { Route as EngineProjectsProjectIdIntelligenceLayerRouteImport } from './routes/engine.projects.$projectId.intelligence-layer'
 import { Route as EngineProjectsProjectIdIntelligenceRouteImport } from './routes/engine.projects.$projectId.intelligence'
@@ -529,6 +530,12 @@ const EngineProjectsProjectIdOverviewRoute =
     path: '/overview',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdMockupBuilderRoute =
+  EngineProjectsProjectIdMockupBuilderRouteImport.update({
+    id: '/mockup-builder',
+    path: '/mockup-builder',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdInvestmentRoute =
   EngineProjectsProjectIdInvestmentRouteImport.update({
     id: '/investment',
@@ -740,6 +747,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
   '/engine/projects/$projectId/intelligence-layer': typeof EngineProjectsProjectIdIntelligenceLayerRoute
   '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
+  '/engine/projects/$projectId/mockup-builder': typeof EngineProjectsProjectIdMockupBuilderRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
@@ -838,6 +846,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
   '/engine/projects/$projectId/intelligence-layer': typeof EngineProjectsProjectIdIntelligenceLayerRoute
   '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
+  '/engine/projects/$projectId/mockup-builder': typeof EngineProjectsProjectIdMockupBuilderRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
@@ -943,6 +952,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
   '/engine/projects/$projectId/intelligence-layer': typeof EngineProjectsProjectIdIntelligenceLayerRoute
   '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
+  '/engine/projects/$projectId/mockup-builder': typeof EngineProjectsProjectIdMockupBuilderRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
@@ -1047,6 +1057,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/intelligence'
     | '/engine/projects/$projectId/intelligence-layer'
     | '/engine/projects/$projectId/investment'
+    | '/engine/projects/$projectId/mockup-builder'
     | '/engine/projects/$projectId/overview'
     | '/engine/projects/$projectId/point-a'
     | '/engine/projects/$projectId/point-b'
@@ -1145,6 +1156,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/intelligence'
     | '/engine/projects/$projectId/intelligence-layer'
     | '/engine/projects/$projectId/investment'
+    | '/engine/projects/$projectId/mockup-builder'
     | '/engine/projects/$projectId/overview'
     | '/engine/projects/$projectId/point-a'
     | '/engine/projects/$projectId/point-b'
@@ -1249,6 +1261,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/intelligence'
     | '/engine/projects/$projectId/intelligence-layer'
     | '/engine/projects/$projectId/investment'
+    | '/engine/projects/$projectId/mockup-builder'
     | '/engine/projects/$projectId/overview'
     | '/engine/projects/$projectId/point-a'
     | '/engine/projects/$projectId/point-b'
@@ -1876,6 +1889,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdOverviewRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/mockup-builder': {
+      id: '/engine/projects/$projectId/mockup-builder'
+      path: '/mockup-builder'
+      fullPath: '/engine/projects/$projectId/mockup-builder'
+      preLoaderRoute: typeof EngineProjectsProjectIdMockupBuilderRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/investment': {
       id: '/engine/projects/$projectId/investment'
       path: '/investment'
@@ -2125,6 +2145,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdIntelligenceRoute: typeof EngineProjectsProjectIdIntelligenceRoute
   EngineProjectsProjectIdIntelligenceLayerRoute: typeof EngineProjectsProjectIdIntelligenceLayerRoute
   EngineProjectsProjectIdInvestmentRoute: typeof EngineProjectsProjectIdInvestmentRoute
+  EngineProjectsProjectIdMockupBuilderRoute: typeof EngineProjectsProjectIdMockupBuilderRoute
   EngineProjectsProjectIdOverviewRoute: typeof EngineProjectsProjectIdOverviewRoute
   EngineProjectsProjectIdPointARoute: typeof EngineProjectsProjectIdPointARoute
   EngineProjectsProjectIdPointBRoute: typeof EngineProjectsProjectIdPointBRoute
@@ -2161,6 +2182,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
       EngineProjectsProjectIdIntelligenceLayerRoute,
     EngineProjectsProjectIdInvestmentRoute:
       EngineProjectsProjectIdInvestmentRoute,
+    EngineProjectsProjectIdMockupBuilderRoute:
+      EngineProjectsProjectIdMockupBuilderRoute,
     EngineProjectsProjectIdOverviewRoute: EngineProjectsProjectIdOverviewRoute,
     EngineProjectsProjectIdPointARoute: EngineProjectsProjectIdPointARoute,
     EngineProjectsProjectIdPointBRoute: EngineProjectsProjectIdPointBRoute,
