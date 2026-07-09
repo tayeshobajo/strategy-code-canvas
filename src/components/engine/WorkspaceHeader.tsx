@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle, Network } from "lucide-react";
+import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle, Network, Layers } from "lucide-react";
 
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import { EngineStatusBadge } from "@/components/engine/primitives";
@@ -135,6 +135,15 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
         data-qa-nav="chat"
       >
         <MessageCircle className="w-3.5 h-3.5" /> Project Chat
+      </Link>
+      <Link
+        to="/engine/projects/$projectId/frame-builder"
+        params={{ projectId }}
+        className={linkFor("frame-builder")}
+        activeProps={{ "data-status": "active" } as unknown as Record<string, string>}
+        data-qa-nav="frame-builder"
+      >
+        <Layers className="w-3.5 h-3.5" /> Frame Builder
       </Link>
       <Link to="/engine/projects/$projectId/intelligence-layer" params={{ projectId }} className={linkFor("intelligence-layer")}>
         <Sparkles className="w-3.5 h-3.5" /> Intelligence

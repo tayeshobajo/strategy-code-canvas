@@ -52,6 +52,19 @@ export type ProjectChatContext = {
     audit_recent: Array<{ action: string; summary: string | null; actor_email: string | null; created_at: string }>;
     qa_gates: Array<{ name: string; status: "pass" | "warn" | "fail"; detail: string }>;
     portal_publish: { status: string; published_at: string | null } | null;
+    frame: {
+      latest_id: string | null;
+      status: string | null;
+      title: string | null;
+      generated_by: string | null;
+      page_count: number;
+      must_build_count: number;
+      flow_count: number;
+      open_decisions_count: number;
+      backend_requirements_count: number;
+      approved_summary: string | null;
+      approved_at: string | null;
+    } | null;
     missing_data: string[];
   };
 };
@@ -214,6 +227,59 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     if (r) portal_publish = { status: r.status, published_at: r.published_at };
   }
 
+  // Frame Builder — latest + latest approved
+  let frameSummary: {
+    latest_id: string | null;
+    status: string | null;
+    title: string | null;
+    generated_by: string | null;
+    page_count: number;
+    must_build_count: number;
+    flow_count: number;
+    open_decisions_count: number;
+    backend_requirements_count: number;
+    approved_summary: string | null;
+    approved_at: string | null;
+  } | null = null;
+  try {
+    const { data: frameRows } = await sb
+      .from("engine_project_frames")
+      .select("id,title,status,generated_by,summary,payload,approved_at,created_at")
+      .eq("project_id", projectId)
+      .neq("status", "archived")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    const rows = (frameRows ?? []) as Array<{
+      id: string; title: string; status: string; generated_by: string;
+      summary: string | null; payload: Record<string, unknown> | null;
+      approved_at: string | null; created_at: string;
+    }>;
+    const latest = rows[0] ?? null;
+    const approved = rows.find((r) => r.status === "approved") ?? null;
+    if (latest) {
+      const p = (latest.payload ?? {}) as {
+        pages?: Array<{ priority?: string }>;
+        flows?: unknown[];
+        open_decisions?: unknown[];
+        backend_requirements?: unknown[];
+      };
+      frameSummary = {
+        latest_id: latest.id,
+        status: latest.status,
+        title: latest.title,
+        generated_by: latest.generated_by,
+        page_count: p.pages?.length ?? 0,
+        must_build_count: (p.pages ?? []).filter((pg) => pg.priority === "must").length,
+        flow_count: p.flows?.length ?? 0,
+        open_decisions_count: p.open_decisions?.length ?? 0,
+        backend_requirements_count: p.backend_requirements?.length ?? 0,
+        approved_summary: approved?.summary ?? null,
+        approved_at: approved?.approved_at ?? null,
+      };
+    }
+  } catch { /* frame table may not be readable — ignore */ }
+
+
   // QA gates — derived, not model-guessed.
   const qa_gates: Array<{ name: string; status: "pass" | "warn" | "fail"; detail: string }> = [];
   qa_gates.push({
@@ -296,6 +362,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     audit_recent,
     qa_gates,
     portal_publish,
+    frame: frameSummary,
     missing_data: missing,
   };
 
