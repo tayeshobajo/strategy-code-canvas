@@ -360,6 +360,25 @@ export const askProjectIntelligence = createServerFn({ method: "POST" })
     }
 
 
+    // ---- Persist AI-emitted proposals (drafts) so they survive reload ------
+    try {
+      if (answer.proposals && answer.proposals.length > 0) {
+        const { persistProposalsFromAssistant } = await import(
+          "@/lib/engine-chat-proposals.functions"
+        );
+        await persistProposalsFromAssistant(sb, {
+          projectId: data.projectId,
+          threadId: threadRow.id,
+          sourceMessageId: (asstMsg as { id: string }).id,
+          userId,
+          email,
+          proposals: answer.proposals,
+        });
+      }
+    } catch {
+      // best-effort; do not break chat response
+    }
+
     return {
       thread: threadRow,
       userMessage: userMsg as ChatMessageRow,
