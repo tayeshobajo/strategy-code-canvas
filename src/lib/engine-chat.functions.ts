@@ -149,9 +149,42 @@ export const askProjectIntelligence = createServerFn({ method: "POST" })
     answer: IntelligenceAnswer;
     context_snapshot_keys: string[];
   }> => {
-    await assertStaff(context as unknown as Parameters<typeof assertStaff>[0]);
+    const email = await assertStaff(context as unknown as Parameters<typeof assertStaff>[0]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
+    const userId = (context as { userId?: string }).userId ?? null;
+
+    // ---- Rate limit (per user + per project, 60s window) --------------------
+    const WINDOW_SECONDS = 60;
+    const USER_LIMIT = 12;
+    const PROJECT_LIMIT = 30;
+    try {
+      const { data: rl } = await sb.rpc("count_recent_chat_events", {
+        _user_id: userId,
+        _project_id: data.projectId,
+        _window_seconds: WINDOW_SECONDS,
+      });
+      const row = Array.isArray(rl) ? rl[0] : rl;
+      const userCount = Number(row?.user_count ?? 0);
+      const projectCount = Number(row?.project_count ?? 0);
+      if (userCount >= USER_LIMIT || projectCount >= PROJECT_LIMIT) {
+        await sb.from("engine_project_chat_events").insert({
+          project_id: data.projectId,
+          user_id: userId,
+          user_email: email,
+          success: false,
+          error_code: "rate_limited",
+          error_message: `Per-${userCount >= USER_LIMIT ? "user" : "project"} limit reached (${WINDOW_SECONDS}s window)`,
+        });
+        throw new Error(
+          `Rate limit reached. Please wait a moment before asking again (limit: ${USER_LIMIT} requests/min per user, ${PROJECT_LIMIT}/min per project).`,
+        );
+      }
+    } catch (rlErr) {
+      // If the RPC itself fails, don't block chat — but surface only rate-limit errors.
+      if ((rlErr as Error).message?.startsWith("Rate limit reached")) throw rlErr;
+    }
+
 
     // Load Spine + build compact context (server-only helper).
     const { buildProjectChatContext } = await import("@/lib/engine-chat-context.server");
