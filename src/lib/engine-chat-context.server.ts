@@ -420,6 +420,121 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     }
   } catch { /* backend plan table may not be readable — ignore */ }
 
+  // QA Factory — latest + latest approved
+  let qaPlanSummary: {
+    latest_id: string | null;
+    status: string | null;
+    title: string | null;
+    generated_by: string | null;
+    backend_plan_id: string | null;
+    overall_readiness: string | null;
+    test_count: number;
+    blocking_count: number;
+    p0_count: number;
+    p1_count: number;
+    p2_count: number;
+    role_test_count: number;
+    route_test_count: number;
+    data_test_count: number;
+    rls_test_count: number;
+    workflow_test_count: number;
+    ui_state_test_count: number;
+    responsive_test_count: number;
+    integration_test_count: number;
+    audit_test_count: number;
+    regression_test_count: number;
+    edge_case_count: number;
+    evidence_plan_count: number;
+    open_decisions_count: number;
+    build_blockers_count: number;
+    delivery_blockers_count: number;
+    high_risk_count: number;
+    approved_summary: string | null;
+    approved_qa_goal: string | null;
+    approved_at: string | null;
+    ready_for_build: boolean;
+    ready_for_delivery: boolean;
+  } | null = null;
+  try {
+    const { data: qaRows } = await sb
+      .from("engine_project_qa_plans")
+      .select("id,title,status,generated_by,backend_plan_id,summary,payload,approved_at,created_at")
+      .eq("project_id", projectId)
+      .neq("status", "archived")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    const rows = (qaRows ?? []) as Array<{
+      id: string; title: string; status: string; generated_by: string;
+      backend_plan_id: string | null; summary: string | null;
+      payload: Record<string, unknown> | null;
+      approved_at: string | null; created_at: string;
+    }>;
+    const latest = rows[0] ?? null;
+    const approved = rows.find((r) => r.status === "approved") ?? null;
+    if (latest) {
+      const p = (latest.payload ?? {}) as {
+        qa_goal?: string;
+        overall_readiness?: string;
+        test_matrix?: Array<{ priority?: string; blocking?: boolean }>;
+        role_tests?: unknown[]; route_tests?: unknown[]; data_tests?: unknown[];
+        rls_tests?: unknown[]; workflow_tests?: unknown[]; ui_state_tests?: unknown[];
+        responsive_tests?: unknown[]; integration_tests?: unknown[]; audit_tests?: unknown[];
+        regression_tests?: unknown[]; edge_cases?: unknown[]; evidence_plan?: unknown[];
+        open_decisions?: Array<{ blocks?: string[] }>;
+        go_no_go_criteria?: Array<{ gate?: string }>;
+        risks?: Array<{ severity?: string }>;
+      };
+      const tests = p.test_matrix ?? [];
+      const p0 = tests.filter((t) => t.priority === "p0").length;
+      const p1 = tests.filter((t) => t.priority === "p1").length;
+      const p2 = tests.filter((t) => t.priority === "p2").length;
+      const blocking = tests.filter((t) => t.blocking).length;
+      const buildBlockers =
+        (p.open_decisions ?? []).filter((d) => Array.isArray(d.blocks) && d.blocks.includes("build")).length +
+        (p.go_no_go_criteria ?? []).filter((c) => c.gate === "before_build").length;
+      const deliveryBlockers =
+        (p.open_decisions ?? []).filter((d) => Array.isArray(d.blocks) && d.blocks.includes("delivery")).length +
+        (p.go_no_go_criteria ?? []).filter((c) => c.gate === "before_delivery").length;
+      const highRisks = (p.risks ?? []).filter((r) => r.severity === "high").length;
+      const approvedPayload = (approved?.payload ?? {}) as { qa_goal?: string };
+      qaPlanSummary = {
+        latest_id: latest.id,
+        status: latest.status,
+        title: latest.title,
+        generated_by: latest.generated_by,
+        backend_plan_id: latest.backend_plan_id,
+        overall_readiness: p.overall_readiness ?? null,
+        test_count: tests.length,
+        blocking_count: blocking,
+        p0_count: p0,
+        p1_count: p1,
+        p2_count: p2,
+        role_test_count: p.role_tests?.length ?? 0,
+        route_test_count: p.route_tests?.length ?? 0,
+        data_test_count: p.data_tests?.length ?? 0,
+        rls_test_count: p.rls_tests?.length ?? 0,
+        workflow_test_count: p.workflow_tests?.length ?? 0,
+        ui_state_test_count: p.ui_state_tests?.length ?? 0,
+        responsive_test_count: p.responsive_tests?.length ?? 0,
+        integration_test_count: p.integration_tests?.length ?? 0,
+        audit_test_count: p.audit_tests?.length ?? 0,
+        regression_test_count: p.regression_tests?.length ?? 0,
+        edge_case_count: p.edge_cases?.length ?? 0,
+        evidence_plan_count: p.evidence_plan?.length ?? 0,
+        open_decisions_count: p.open_decisions?.length ?? 0,
+        build_blockers_count: buildBlockers,
+        delivery_blockers_count: deliveryBlockers,
+        high_risk_count: highRisks,
+        approved_summary: approved?.summary ?? null,
+        approved_qa_goal: approvedPayload.qa_goal ?? null,
+        approved_at: approved?.approved_at ?? null,
+        ready_for_build: !!approved && buildBlockers === 0,
+        ready_for_delivery: !!approved && buildBlockers === 0 && deliveryBlockers === 0,
+      };
+    }
+  } catch { /* qa plan table may not be readable — ignore */ }
+
+
 
   // QA gates — derived, not model-guessed.
   const qa_gates: Array<{ name: string; status: "pass" | "warn" | "fail"; detail: string }> = [];
