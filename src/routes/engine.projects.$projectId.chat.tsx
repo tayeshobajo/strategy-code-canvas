@@ -450,10 +450,29 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
   );
 }
 
-function MessageBubble({ message }: { message: ChatMessageRow }) {
+function MessageBubble({
+  message,
+  projectId,
+  threadId,
+  persistedProposals,
+  canConvertToTask,
+}: {
+  message: ChatMessageRow;
+  projectId: string;
+  threadId: string | null;
+  persistedProposals: ChatProposalRow[];
+  canConvertToTask: boolean;
+}) {
   const isUser = message.role === "user";
   const meta = (message.metadata ?? {}) as { answer?: IntelligenceAnswer };
   const answer = meta.answer;
+
+  // Prefer persisted proposal rows (source of truth after reload); fall back
+  // to the drafts embedded in the assistant metadata for freshly-sent messages
+  // before the proposals query returns.
+  const draftsFromMeta = answer?.proposals ?? [];
+  const showPersisted = persistedProposals.length > 0;
+
   return (
     <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (
@@ -461,11 +480,38 @@ function MessageBubble({ message }: { message: ChatMessageRow }) {
           <Bot className="w-3.5 h-3.5" />
         </div>
       )}
-      <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-sm", isUser ? "bg-ink text-white" : "bg-white border border-border text-ink")}>
-        {isUser || !answer ? (
-          <div className="whitespace-pre-wrap">{message.content}</div>
-        ) : (
-          <AnswerCard answer={answer} />
+      <div className={cn("max-w-[75%] min-w-0", isUser ? "" : "flex-1")}>
+        <div className={cn("rounded-lg px-3 py-2 text-sm", isUser ? "bg-ink text-white inline-block" : "bg-white border border-border text-ink")}>
+          {isUser || !answer ? (
+            <div className="whitespace-pre-wrap">{message.content}</div>
+          ) : (
+            <AnswerCard answer={answer} />
+          )}
+        </div>
+        {!isUser && (showPersisted || draftsFromMeta.length > 0) && (
+          <div className="mt-1 space-y-1" data-qa-role="chat-proposals" data-qa-message-id={message.id}>
+            {showPersisted
+              ? persistedProposals.map((p) => (
+                  <ProposalCard
+                    key={p.id}
+                    projectId={projectId}
+                    threadId={threadId}
+                    sourceMessageId={message.id}
+                    proposal={p}
+                    canConvertToTask={canConvertToTask}
+                  />
+                ))
+              : draftsFromMeta.map((d, i) => (
+                  <ProposalCard
+                    key={`draft-${i}`}
+                    projectId={projectId}
+                    threadId={threadId}
+                    sourceMessageId={message.id === "pending-user" ? null : message.id}
+                    proposal={d}
+                    canConvertToTask={canConvertToTask}
+                  />
+                ))}
+          </div>
         )}
       </div>
       {isUser && (
