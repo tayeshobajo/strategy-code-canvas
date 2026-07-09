@@ -279,7 +279,7 @@ function ProjectChatPage() {
                   projectId={projectId}
                   threadId={activeThreadId}
                   persistedProposals={proposalsByMessage.get(m.id) ?? []}
-                  canConvertToTask={canConvertToTask}
+                  caps={caps}
                 />
               ))}
               {pendingUser && (
@@ -296,7 +296,7 @@ function ProjectChatPage() {
                   projectId={projectId}
                   threadId={activeThreadId}
                   persistedProposals={[]}
-                  canConvertToTask={canConvertToTask}
+                  caps={caps}
                 />
               )}
               {askMut.isPending && (
@@ -457,13 +457,13 @@ function MessageBubble({
   projectId,
   threadId,
   persistedProposals,
-  canConvertToTask,
+  caps,
 }: {
   message: ChatMessageRow;
   projectId: string;
   threadId: string | null;
   persistedProposals: ChatProposalRow[];
-  canConvertToTask: boolean;
+  caps: ChatCapabilities | undefined;
 }) {
   const isUser = message.role === "user";
   const meta = (message.metadata ?? {}) as { answer?: IntelligenceAnswer };
@@ -500,7 +500,7 @@ function MessageBubble({
                     threadId={threadId}
                     sourceMessageId={message.id}
                     proposal={p}
-                    canConvertToTask={canConvertToTask}
+                    caps={caps}
                   />
                 ))
               : draftsFromMeta.map((d, i) => (
@@ -510,7 +510,7 @@ function MessageBubble({
                     threadId={threadId}
                     sourceMessageId={message.id === "pending-user" ? null : message.id}
                     proposal={d}
-                    canConvertToTask={canConvertToTask}
+                    caps={caps}
                   />
                 ))}
           </div>
