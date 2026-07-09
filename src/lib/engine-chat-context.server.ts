@@ -149,7 +149,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     .slice(0, 20)
     .map((t) => ({ id: t.id, name: t.name, milestone_id: t.milestone_id, blocked_decision: t.blocked_decision }));
   const suggested_unapproved = tasks
-    .filter((t) => t.ai_generated && t.approval_status !== "approved")
+    .filter((t) => t.ai_generated && ["todo", "suggested", "proposed", "draft", "pending"].includes(t.status))
     .slice(0, 20)
     .map((t) => ({ id: t.id, name: t.name, milestone_id: t.milestone_id }));
   const needs_owner = tasks
