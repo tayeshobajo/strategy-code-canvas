@@ -132,14 +132,21 @@ function ProjectChatPage() {
     return map;
   }, [proposalsQ.data]);
 
-  // ----- Admin flag (needed for Save-as-Suggested-Task) --------------------
+  // ----- Capabilities (DB-role backed; replaces hardcoded ADMIN_EMAILS) ----
   const [callerEmail, setCallerEmail] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCallerEmail(data.user?.email ?? null);
     });
   }, []);
-  const canConvertToTask = isAdminEmail(callerEmail);
+  const capsFn = useServerFn(getChatCapabilities);
+  const capsQ = useQuery({
+    queryKey: ["engine", "chat", "capabilities", projectId],
+    queryFn: () => capsFn({ data: { projectId } }),
+    staleTime: 60_000,
+  });
+  const caps = capsQ.data as ChatCapabilities | undefined;
+  const canConvertToTask = caps?.canConvertProposalToTask ?? false;
 
   const [input, setInput] = useState("");
   const [pendingUser, setPendingUser] = useState<string | null>(null);
