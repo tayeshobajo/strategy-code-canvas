@@ -13,10 +13,12 @@ import { Route as WhatWeBuildRouteImport } from './routes/what-we-build'
 import { Route as WalksRouteImport } from './routes/walks'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as EngineRouteImport } from './routes/engine'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -137,6 +139,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
@@ -155,6 +162,11 @@ const InvestmentRoute = InvestmentRouteImport.update({
 const InsightsRoute = InsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EngineRoute = EngineRouteImport.update({
@@ -698,10 +710,12 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/engine': typeof EngineRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/mcp': typeof McpRoute
   '/portal': typeof AuthenticatedPortalRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
@@ -802,9 +816,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/mcp': typeof McpRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
@@ -910,10 +926,12 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/engine': typeof EngineRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
   '/mcp': typeof McpRoute
   '/portal': typeof PortalRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
@@ -1020,10 +1038,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/engine'
+    | '/forgot-password'
     | '/insights'
     | '/investment'
     | '/mcp'
     | '/portal'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
@@ -1124,9 +1144,11 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/forgot-password'
     | '/insights'
     | '/investment'
     | '/mcp'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
@@ -1231,10 +1253,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/engine'
+    | '/forgot-password'
     | '/insights'
     | '/investment'
     | '/mcp'
     | '/portal'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
@@ -1341,10 +1365,12 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   EngineRoute: typeof EngineRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
   McpRoute: typeof McpRoute
   PortalRoute: typeof PortalRouteWithChildren
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   WalksRoute: typeof WalksRoute
@@ -1402,6 +1428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/portal': {
       id: '/portal'
       path: '/portal'
@@ -1428,6 +1461,13 @@ declare module '@tanstack/react-router' {
       path: '/insights'
       fullPath: '/insights'
       preLoaderRoute: typeof InsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/engine': {
@@ -2366,10 +2406,12 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   EngineRoute: EngineRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
   McpRoute: McpRoute,
   PortalRoute: PortalRouteWithChildren,
+  ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   WalksRoute: WalksRoute,
