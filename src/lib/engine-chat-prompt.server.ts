@@ -4,6 +4,12 @@
 import type { AiChatMessage } from "@/lib/engine-ai.server";
 import type { ProjectChatContext } from "@/lib/engine-chat-context.server";
 import type { IntelligenceAnswer, AnswerSection } from "@/lib/engine-chat.functions";
+import {
+  PROPOSAL_TYPES,
+  type ProposalDraft,
+  type ProposalType,
+} from "@/lib/engine-chat-proposals.functions";
+import type { Json } from "@/lib/engine-workspace";
 
 const SYSTEM_PROMPT = `You are the Project Intelligence Layer for a single client project inside Trust Tai's internal engine. You act as an AI product manager for one specific project.
 
