@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle, Network, Layers, Database, ClipboardCheck, Wrench } from "lucide-react";
+import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle, Network, Layers, Database, ClipboardCheck, Wrench, Package } from "lucide-react";
 
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import { EngineStatusBadge } from "@/components/engine/primitives";
@@ -180,6 +180,15 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
         data-qa-nav="implementation-plan"
       >
         <Wrench className="w-3.5 h-3.5" /> Implementation Plan
+      </Link>
+      <Link
+        to="/engine/projects/$projectId/build-execution"
+        params={{ projectId }}
+        className={linkFor("build-execution")}
+        activeProps={{ "data-status": "active" } as unknown as Record<string, string>}
+        data-qa-nav="build-execution"
+      >
+        <Package className="w-3.5 h-3.5" /> Build Execution
       </Link>
       <Link to="/engine/projects/$projectId/intelligence-layer" params={{ projectId }} className={linkFor("intelligence-layer")}>
         <Sparkles className="w-3.5 h-3.5" /> Intelligence
