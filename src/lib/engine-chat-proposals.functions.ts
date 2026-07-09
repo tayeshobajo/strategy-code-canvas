@@ -46,10 +46,10 @@ export type ChatProposalRow = {
   proposal_type: ProposalType;
   title: string;
   summary: string | null;
-  payload: Record<string, unknown>;
+  payload: Json;
   status: ProposalStatus;
   target_route: string | null;
-  converted_ref: Record<string, unknown>;
+  converted_ref: Json;
   created_at: string;
   updated_at: string;
 };
