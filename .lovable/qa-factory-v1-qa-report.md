@@ -19,8 +19,11 @@ QA Factory v1 is **SAFE to move to Implementation Plan v1**.
 - Routes review correctly (one `engine_review_items` row per submit)
 - Informs Project Chat with accurate counts, blockers, and readiness flags
 - **Executes zero tests, mutates zero production data, changes zero protected surfaces**
+- **QA approval does NOT auto-advance the project** — NBA correctly stays on real blockers; project status is not `delivered` or `in_execution`; portal is untouched (§16)
+- **Archived plans are never treated as active** — chat context filter `.neq("status","archived")` and `latest_approved` selector both correctly ignore them (§17)
+- **Regenerate after approval is additive, not destructive** — approved payload hash, updated_at, title all unchanged; new row inserted as `draft` (§18)
 
-Full lifecycle (Generate → Submit → Approve → Archive) exercised on Jotaye. Protected-surface snapshot diff after full lifecycle: `{}` — nothing outside the QA plan table moved.
+Full lifecycle (Generate → Submit → Approve → Archive) plus regenerate-after-approve exercised on Jotaye. Protected-surface snapshot diff after full lifecycle: `{}` — nothing outside the QA plan table moved.
 
 ---
 
