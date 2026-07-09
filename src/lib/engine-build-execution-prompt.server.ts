@@ -10,10 +10,7 @@
 // It DOES NOT run any prompt, deploy code, apply migrations, execute
 // OpenClaw, mark QA tests passed, or mark the project delivered.
 
-import type {
-  ImplementationPayload,
-  ImplPlanRow,
-} from "@/lib/engine-implementation-plan.functions";
+import type { ImplPlanRow } from "@/lib/engine-implementation-plan.functions";
 import type { BackendPlanRow } from "@/lib/engine-backend-builder.functions";
 import type { QaPlanRow } from "@/lib/engine-qa-factory.functions";
 import type { MockupRow } from "@/lib/engine-mockup-builder.functions";
