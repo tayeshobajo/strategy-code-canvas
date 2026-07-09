@@ -83,11 +83,17 @@ const ProposalDraftSchema = z.object({
   proposal_type: z.enum(PROPOSAL_TYPES),
   title: z.string().trim().min(1).max(300),
   summary: z.string().trim().max(4000).optional().default(""),
-  payload: z.record(z.string(), z.unknown()).optional().default({}),
+  payload: z.record(z.string(), z.any()).optional().default({}),
   target_route: z.string().trim().max(500).optional(),
 });
 
-export type ProposalDraft = z.infer<typeof ProposalDraftSchema>;
+export type ProposalDraft = {
+  proposal_type: ProposalType;
+  title: string;
+  summary?: string;
+  payload?: Json;
+  target_route?: string;
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function insertActivity(sb: any, projectId: string, kind: string, title: string, body: string) {
