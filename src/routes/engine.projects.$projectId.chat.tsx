@@ -140,7 +140,6 @@ function ProjectChatPage() {
     staleTime: 60_000,
   });
   const caps = capsQ.data as ChatCapabilities | undefined;
-  const canConvertToTask = caps?.canConvertProposalToTask ?? false;
 
   const [input, setInput] = useState("");
   const [pendingUser, setPendingUser] = useState<string | null>(null);

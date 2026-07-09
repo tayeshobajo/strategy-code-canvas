@@ -1884,6 +1884,69 @@ export type Database = {
           },
         ]
       }
+      engine_project_artifacts: {
+        Row: {
+          artifact_type: string
+          created_at: string
+          created_by_email: string | null
+          created_by_user_id: string | null
+          id: string
+          payload: Json
+          project_id: string
+          source_proposal_id: string | null
+          status: string
+          summary: string | null
+          thread_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          artifact_type: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          id?: string
+          payload?: Json
+          project_id: string
+          source_proposal_id?: string | null
+          status?: string
+          summary?: string | null
+          thread_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          artifact_type?: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          id?: string
+          payload?: Json
+          project_id?: string
+          source_proposal_id?: string | null
+          status?: string
+          summary?: string | null
+          thread_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_artifacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_artifacts_source_proposal_id_fkey"
+            columns: ["source_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_chat_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_chat_events: {
         Row: {
           cost_cents: number
@@ -2178,6 +2241,9 @@ export type Database = {
       }
       engine_projects: {
         Row: {
+          action_mode_enabled: boolean
+          action_mode_updated_at: string | null
+          action_mode_updated_by: string | null
           agent_allowed_modules: string[]
           agent_budget_monthly_cents: number
           agent_permission_level: Database["public"]["Enums"]["engine_agent_permission"]
@@ -2222,6 +2288,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          action_mode_enabled?: boolean
+          action_mode_updated_at?: string | null
+          action_mode_updated_by?: string | null
           agent_allowed_modules?: string[]
           agent_budget_monthly_cents?: number
           agent_permission_level?: Database["public"]["Enums"]["engine_agent_permission"]
@@ -2266,6 +2335,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          action_mode_enabled?: boolean
+          action_mode_updated_at?: string | null
+          action_mode_updated_by?: string | null
           agent_allowed_modules?: string[]
           agent_budget_monthly_cents?: number
           agent_permission_level?: Database["public"]["Enums"]["engine_agent_permission"]
