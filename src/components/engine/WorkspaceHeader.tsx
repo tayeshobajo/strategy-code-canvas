@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList } from "lucide-react";
+import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle } from "lucide-react";
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import { EngineStatusBadge } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
@@ -106,6 +106,9 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
   const linkCls = "inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 hover:border-royal/50 text-ink";
   return (
     <div className="flex items-center justify-end gap-2 flex-wrap">
+      <Link to="/engine/projects/$projectId/chat" params={{ projectId }} className={linkCls}>
+        <MessageCircle className="w-3.5 h-3.5" /> Project Chat
+      </Link>
       <Link to="/engine/projects/$projectId/intelligence-layer" params={{ projectId }} className={linkCls}>
         <Sparkles className="w-3.5 h-3.5" /> Intelligence
       </Link>
