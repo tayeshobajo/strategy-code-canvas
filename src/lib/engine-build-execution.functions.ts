@@ -113,6 +113,8 @@ export type BuildPacketRow = {
   updated_at: string;
 };
 
+import type { Json } from "@/lib/engine-workspace";
+
 export type BuildEvidenceRow = {
   id: string;
   project_id: string;
@@ -120,7 +122,7 @@ export type BuildEvidenceRow = {
   evidence_type: BuildEvidenceType;
   title: string;
   summary: string | null;
-  payload: Record<string, unknown>;
+  payload: Json;
   created_by_user_id: string | null;
   created_by_email: string | null;
   created_at: string;
