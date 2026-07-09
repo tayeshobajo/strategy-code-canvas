@@ -145,6 +145,15 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
       >
         <Layers className="w-3.5 h-3.5" /> Frame Builder
       </Link>
+      <Link
+        to="/engine/projects/$projectId/mockup-builder"
+        params={{ projectId }}
+        className={linkFor("mockup-builder")}
+        activeProps={{ "data-status": "active" } as unknown as Record<string, string>}
+        data-qa-nav="mockup-builder"
+      >
+        <Layers className="w-3.5 h-3.5" /> Mockup Builder
+      </Link>
       <Link to="/engine/projects/$projectId/intelligence-layer" params={{ projectId }} className={linkFor("intelligence-layer")}>
         <Sparkles className="w-3.5 h-3.5" /> Intelligence
       </Link>

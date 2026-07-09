@@ -2318,6 +2318,75 @@ export type Database = {
         }
         Relationships: []
       }
+      engine_project_mockups: {
+        Row: {
+          approved_at: string | null
+          approved_by_email: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          created_by_email: string | null
+          created_by_user_id: string | null
+          frame_id: string | null
+          generated_by: string
+          id: string
+          payload: Json
+          project_id: string
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          frame_id?: string | null
+          generated_by?: string
+          id?: string
+          payload?: Json
+          project_id: string
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          frame_id?: string | null
+          generated_by?: string
+          id?: string
+          payload?: Json
+          project_id?: string
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_mockups_frame_id_fkey"
+            columns: ["frame_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_frames"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_mockups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_projects: {
         Row: {
           action_mode_enabled: boolean
