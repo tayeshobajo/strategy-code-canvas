@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle, Network, Layers, Database } from "lucide-react";
+import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle, Network, Layers, Database, ClipboardCheck } from "lucide-react";
 
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import { EngineStatusBadge } from "@/components/engine/primitives";
@@ -162,6 +162,15 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
         data-qa-nav="backend-builder"
       >
         <Database className="w-3.5 h-3.5" /> Backend Builder
+      </Link>
+      <Link
+        to="/engine/projects/$projectId/qa-factory"
+        params={{ projectId }}
+        className={linkFor("qa-factory")}
+        activeProps={{ "data-status": "active" } as unknown as Record<string, string>}
+        data-qa-nav="qa-factory"
+      >
+        <ClipboardCheck className="w-3.5 h-3.5" /> QA Factory
       </Link>
       <Link to="/engine/projects/$projectId/intelligence-layer" params={{ projectId }} className={linkFor("intelligence-layer")}>
         <Sparkles className="w-3.5 h-3.5" /> Intelligence

@@ -86,6 +86,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as EngineProjectsProjectIdSpineRouteImport } from './routes/engine.projects.$projectId.spine'
 import { Route as EngineProjectsProjectIdSignalRoomRouteImport } from './routes/engine.projects.$projectId.signal-room'
 import { Route as EngineProjectsProjectIdSequencingRouteImport } from './routes/engine.projects.$projectId.sequencing'
+import { Route as EngineProjectsProjectIdQaFactoryRouteImport } from './routes/engine.projects.$projectId.qa-factory'
 import { Route as EngineProjectsProjectIdPreviewRouteImport } from './routes/engine.projects.$projectId.preview'
 import { Route as EngineProjectsProjectIdPointBRouteImport } from './routes/engine.projects.$projectId.point-b'
 import { Route as EngineProjectsProjectIdPointARouteImport } from './routes/engine.projects.$projectId.point-a'
@@ -507,6 +508,12 @@ const EngineProjectsProjectIdSequencingRoute =
     path: '/sequencing',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdQaFactoryRoute =
+  EngineProjectsProjectIdQaFactoryRouteImport.update({
+    id: '/qa-factory',
+    path: '/qa-factory',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdPreviewRoute =
   EngineProjectsProjectIdPreviewRouteImport.update({
     id: '/preview',
@@ -760,6 +767,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
   '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
+  '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
@@ -860,6 +868,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
   '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
+  '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
@@ -967,6 +976,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
   '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
+  '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
@@ -1073,6 +1083,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/point-a'
     | '/engine/projects/$projectId/point-b'
     | '/engine/projects/$projectId/preview'
+    | '/engine/projects/$projectId/qa-factory'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/spine'
@@ -1173,6 +1184,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/point-a'
     | '/engine/projects/$projectId/point-b'
     | '/engine/projects/$projectId/preview'
+    | '/engine/projects/$projectId/qa-factory'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/spine'
@@ -1279,6 +1291,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/point-a'
     | '/engine/projects/$projectId/point-b'
     | '/engine/projects/$projectId/preview'
+    | '/engine/projects/$projectId/qa-factory'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/spine'
@@ -1874,6 +1887,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdSequencingRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/qa-factory': {
+      id: '/engine/projects/$projectId/qa-factory'
+      path: '/qa-factory'
+      fullPath: '/engine/projects/$projectId/qa-factory'
+      preLoaderRoute: typeof EngineProjectsProjectIdQaFactoryRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/preview': {
       id: '/engine/projects/$projectId/preview'
       path: '/preview'
@@ -2171,6 +2191,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdPointARoute: typeof EngineProjectsProjectIdPointARoute
   EngineProjectsProjectIdPointBRoute: typeof EngineProjectsProjectIdPointBRoute
   EngineProjectsProjectIdPreviewRoute: typeof EngineProjectsProjectIdPreviewRoute
+  EngineProjectsProjectIdQaFactoryRoute: typeof EngineProjectsProjectIdQaFactoryRoute
   EngineProjectsProjectIdSequencingRoute: typeof EngineProjectsProjectIdSequencingRoute
   EngineProjectsProjectIdSignalRoomRoute: typeof EngineProjectsProjectIdSignalRoomRoute
   EngineProjectsProjectIdSpineRoute: typeof EngineProjectsProjectIdSpineRoute
@@ -2211,6 +2232,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdPointARoute: EngineProjectsProjectIdPointARoute,
     EngineProjectsProjectIdPointBRoute: EngineProjectsProjectIdPointBRoute,
     EngineProjectsProjectIdPreviewRoute: EngineProjectsProjectIdPreviewRoute,
+    EngineProjectsProjectIdQaFactoryRoute:
+      EngineProjectsProjectIdQaFactoryRoute,
     EngineProjectsProjectIdSequencingRoute:
       EngineProjectsProjectIdSequencingRoute,
     EngineProjectsProjectIdSignalRoomRoute:
