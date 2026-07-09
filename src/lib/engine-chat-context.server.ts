@@ -126,11 +126,11 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
 
   const { data: taskRows } = await sb
     .from("engine_tasks")
-    .select("id,milestone_id,name,status,priority,owner_email,ai_generated,approval_status,blocked_decision")
+    .select("id,milestone_id,name,status,priority,owner_email,ai_generated,blocked_decision")
     .eq("project_id", projectId);
   const tasks = (taskRows ?? []) as Array<{
     id: string; milestone_id: string | null; name: string; status: string; priority: string | null;
-    owner_email: string | null; ai_generated: boolean | null; approval_status: string | null; blocked_decision: string | null;
+    owner_email: string | null; ai_generated: boolean | null; blocked_decision: string | null;
   }>;
 
   const taskCountByMs = new Map<string, number>();
