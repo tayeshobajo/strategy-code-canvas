@@ -177,6 +177,7 @@ function ProjectChatPage() {
       qc.invalidateQueries({ queryKey: ["engine", "chat", "thread", res.thread.id] });
       // refresh spine context panel numbers after any ask
       qc.invalidateQueries({ queryKey: ["engine", "spine", projectId] });
+      qc.invalidateQueries({ queryKey: ["engine", "chat", "proposals", projectId] });
       composerRef.current?.focus();
     },
     onError: () => {
