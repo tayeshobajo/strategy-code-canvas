@@ -346,7 +346,8 @@ export const submitChatProposalToReview = createServerFn({ method: "POST" })
     if (rErr) throw new Error(rErr.message ?? "Failed to create review item");
     const reviewItemId = (reviewRow as { id: string }).id;
 
-    const { data: updated, error: uErr } = await sb
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: updated, error: uErr } = await supabaseAdmin
       .from("engine_project_chat_proposals")
       .update({
         status: "submitted_for_review",
