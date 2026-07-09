@@ -1,5 +1,6 @@
-import { Link } from "@tanstack/react-router";
-import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle, Network } from "lucide-react";
+import { cn as _cn } from "@/lib/utils";
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import { EngineStatusBadge } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
