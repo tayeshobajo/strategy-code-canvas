@@ -8,7 +8,7 @@ PASSWORD = os.environ["QA_SEED_PASSWORD"]
 SUPA_URL = "https://jqehcikzvyewijjvpszh.supabase.co"
 SUPA_KEY = "sb_publishable_mF24_o-spzzxHlB3i3jDkA_8euIpH9o"
 STORAGE_KEY = "sb-jqehcikzvyewijjvpszh-auth-token"
-JOTAYE = "bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbb0002"
+JOTAYE = "bbbbbbb1-0000-4000-8000-000000000002"
 
 PROJECTS = [
     ("jotaye", JOTAYE),
