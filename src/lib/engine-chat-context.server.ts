@@ -279,6 +279,70 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     }
   } catch { /* frame table may not be readable — ignore */ }
 
+  // Mockup Builder — latest + latest approved
+  let mockupSummary: {
+    latest_id: string | null;
+    status: string | null;
+    title: string | null;
+    generated_by: string | null;
+    frame_id: string | null;
+    page_count: number;
+    must_build_count: number;
+    state_count: number;
+    global_component_count: number;
+    open_decisions_count: number;
+    backend_blockers_count: number;
+    approved_summary: string | null;
+    approved_at: string | null;
+    ready_for_backend: boolean;
+  } | null = null;
+  try {
+    const { data: mockupRows } = await sb
+      .from("engine_project_mockups")
+      .select("id,title,status,generated_by,frame_id,summary,payload,approved_at,created_at")
+      .eq("project_id", projectId)
+      .neq("status", "archived")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    const rows = (mockupRows ?? []) as Array<{
+      id: string; title: string; status: string; generated_by: string;
+      frame_id: string | null; summary: string | null;
+      payload: Record<string, unknown> | null;
+      approved_at: string | null; created_at: string;
+    }>;
+    const latest = rows[0] ?? null;
+    const approved = rows.find((r) => r.status === "approved") ?? null;
+    if (latest) {
+      const p = (latest.payload ?? {}) as {
+        pages?: Array<{ priority?: string; states?: unknown[] }>;
+        global_components?: unknown[];
+        open_decisions?: Array<{ blocks?: string[] }>;
+      };
+      const pages = p.pages ?? [];
+      const backendBlockers = (p.open_decisions ?? []).filter((d) =>
+        Array.isArray(d.blocks) && d.blocks.includes("backend"),
+      ).length;
+      mockupSummary = {
+        latest_id: latest.id,
+        status: latest.status,
+        title: latest.title,
+        generated_by: latest.generated_by,
+        frame_id: latest.frame_id,
+        page_count: pages.length,
+        must_build_count: pages.filter((pg) => pg.priority === "must").length,
+        state_count: pages.reduce((n, pg) => n + (pg.states?.length ?? 0), 0),
+        global_component_count: p.global_components?.length ?? 0,
+        open_decisions_count: p.open_decisions?.length ?? 0,
+        backend_blockers_count: backendBlockers,
+        approved_summary: approved?.summary ?? null,
+        approved_at: approved?.approved_at ?? null,
+        ready_for_backend: !!approved && backendBlockers === 0,
+      };
+    }
+  } catch { /* mockup table may not be readable — ignore */ }
+
+
+
 
   // QA gates — derived, not model-guessed.
   const qa_gates: Array<{ name: string; status: "pass" | "warn" | "fail"; detail: string }> = [];
