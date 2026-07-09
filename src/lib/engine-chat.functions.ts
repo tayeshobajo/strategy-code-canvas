@@ -27,7 +27,7 @@ export type ChatMessageRow = {
   project_id: string;
   role: ChatRole;
   content: string;
-  metadata: Record<string, unknown>;
+  metadata: Json;
   created_at: string;
 };
 
