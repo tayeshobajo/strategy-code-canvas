@@ -295,8 +295,74 @@ Approved frame, mockup, backend plan payloads all unchanged (snapshot diff empty
 
 ---
 
+## 16. Next Best Action After QA Approval
+
+Harness: `scripts/qa/qa-factory-v1-qa-extras.py` → `check1_nba_after_approval`.
+
+Sequence: fresh Generate → Submit → Approve on Jotaye; snapshot portal + project status; call `compute_engine_next_best_action(jotaye)`.
+
+| Check | Result |
+|---|---|
+| `engine_projects.status` after approval | `blocked` ✓ (NOT `delivered`, NOT `in_execution`) |
+| `client_portal_roadmaps` / `client_portal_projects` / `client_portal_messages` / `client_portal_files` snapshot diff | `{}` — zero drift ✓ |
+| NBA `action` | `Unblock 1 task` |
+| NBA `severity` | `warning` |
+| NBA `href` | `/engine/projects/{jotaye}/agent/tasks` |
+| NBA recommends delivery / publish / "Nothing waiting" | ✗ (correctly does NOT) ✓ |
+
+**Interpretation.** QA plan approval did NOT auto-advance the project into `in_execution` or `delivered`, did NOT publish anything to the portal, and did NOT cause NBA to return "Nothing waiting" or a delivery action. NBA correctly stayed on the pre-existing blocked task (a task remained blocked from earlier QA runs). The QA approval was neutral to project state — exactly what "QA plans do not ship anything" requires.
+
+Once the blocked task is cleared, `recompute_engine_project_state` will move Jotaye into `approved` / `needs_review` based on roadmap version + portal state — QA plan approval never appears in that state machine, which is the correct architectural invariant. Verified by reading `recompute_engine_project_state` and confirming no branch reads `engine_project_qa_plans`.
+
+---
+
+## 17. Archived Plan Is Not Treated As Active
+
+Harness: `scripts/qa/qa-factory-v1-qa-extras.py` → `check2_archived_not_active`.
+
+State at time of check: plan1 = approved (`b9cde226-…`), new draft2 = archived (`1a9ea0a0-…`).
+
+| Check | Result |
+|---|---|
+| History contains the archived plan (draft2) | ✓ |
+| `latest_approved` (server fn) points to non-archived approved plan | plan1 ✓ (correctly skips archived) |
+| Chat-context filter `.neq("status","archived")` present in `engine-chat-context.server.ts` | ✓ (line 463) |
+| Chat context row selected for QA | plan1 (approved, non-archived) ✓ |
+| Would archived draft2 be selected by chat context? | ✗ (filter excludes it) ✓ |
+
+**Interpretation.** The archived plan is filed under history and is never the target of chat context or `latest_approved`. The `.neq("status","archived")` predicate in `engine-chat-context.server.ts` is the enforcement point; the server-fn state also exposes `latest_approved` derived via `plans.find((p) => p.status === "approved")` which by construction cannot return an archived row.
+
+Note: `getProjectQaFactory`'s `latest` field is ordered by `created_at DESC` and CAN be an archived row (this is the raw "most recently created" for history rendering). The UI must render decisions from `latest_approved` — verified in `src/routes/engine.projects.$projectId.qa-factory.tsx`, which uses the readiness / capability flags derived server-side rather than blindly showing `latest.status`. No place in the codebase treats `latest.status === "archived"` as an active QA plan.
+
+---
+
+## 18. Regenerate After Approval — No Overwrite
+
+Harness: `scripts/qa/qa-factory-v1-qa-extras.py` → `check3_regenerate_no_overwrite`.
+
+Sequence: with plan1 approved, snapshot payload hash + updated_at + title, then click Generate again.
+
+| Check | Result |
+|---|---|
+| New row created | ✓ (row count went from N to N+1) |
+| New row `status` | `draft` ✓ |
+| New draft id distinct from approved plan1 id | ✓ (`1a9ea0a0-…` ≠ `b9cde226-…`) |
+| Approved plan1 `status` still `approved` after regenerate | ✓ |
+| Approved plan1 `payload` md5 hash before vs after | **identical** (`c5ba314db70fbb720a58cda7b62340d0` == `c5ba314db70fbb720a58cda7b62340d0`) ✓ |
+| Approved plan1 `updated_at` unchanged | ✓ (regenerate did not touch the approved row) |
+| Approved plan1 `title` unchanged | ✓ |
+| History contains both plan1 (approved) and new draft | ✓ (`1a9ea0a0:draft, b9cde226:approved`) |
+
+**Interpretation.** Regenerate is additive, never destructive. Approved plans are immutable through the generate path (server fn always `.insert`s a new row and the DB trigger `trg_engine_project_qa_plans_enforce` refuses any silent mutation of an approved row). This mirrors the protection pattern already verified in Backend Builder, Mockup Builder, and Frame Builder.
+
+---
+
 ## Recommendation
 
 **SAFE to proceed to Implementation Plan v1.**
 
-QA Factory v1 is planning-only. It cannot execute tests, deploy code, mutate protected surfaces, or mark anything as delivered. Every write path is service-role-gated, every approval is admin-only, and every approved plan is protected by grants + RLS + trigger.
+QA Factory v1 is planning-only. It cannot execute tests, deploy code, mutate protected surfaces, mark anything as delivered, or overwrite an approved QA plan on regenerate. Every write path is service-role-gated, every approval is admin-only, every approved plan is protected by grants + RLS + trigger, and QA approval does NOT trigger any downstream state advance in `recompute_engine_project_state` or `compute_engine_next_best_action` beyond planning-layer flags. The three additional checks (NBA-after-approval, archived-not-active, regenerate-no-overwrite) all pass.
+
+Extras harness: `scripts/qa/qa-factory-v1-qa-extras.py`
+Extras raw results: `/mnt/documents/qa/qa-factory-v1/extras-results.json`
+Extras screenshots: `12_before_regenerate.png`, `12_after_regenerate.png`, `11_history_after_archive.png` under `/mnt/documents/qa/qa-factory-v1/screenshots/`.
