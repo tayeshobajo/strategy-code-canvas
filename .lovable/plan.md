@@ -1,54 +1,80 @@
-# Frame Builder v1 — End-to-End QA Plan
+# Frame Builder v1 — Generation Proof Pass
 
-Run the full 14-section QA on Frame Builder v1 against Jotaye Ventures — Strategy Sprint (primary), with spot checks on INBDE & ADAT Platform and August 1 — intake. No feature work. Do not build Mockup Builder.
+Prove the AI generation contract end-to-end on Jotaye Ventures, then rerun the affected Frame Builder QA slices. No Mockup Builder work.
 
-## Approach
+## 1. Seed readiness (migration, minimal)
 
-Combine three evidence channels:
-- **Playwright (headless Chromium)** with the injected admin Supabase session for UI, nav, active state, screenshots (desktop/tablet/mobile), and anon-redirect proof.
-- **Direct server-fn invocation** (`stack_modern--invoke-server-function`) for `getProjectFrameBuilder`, `generateProjectFrame`, `saveProjectFrameDraft`, `submitProjectFrameToReview`, `approveProjectFrame`, `archiveProjectFrame` — including cross-project scope refusal and non-admin refusal simulations.
-- **psql** for RLS/grants, trigger presence, row-level state (`engine_project_frames`, `engine_review_items`, `engine_activity`, `engine_project_chat_events`), and protected-surface diffs (`client_portal_*`, `roadmap_approvals`, `engine_tasks`, `engine_milestones`).
+Update only Jotaye Ventures (`bbbbbbb1-0000-4000-8000-000000000002`) in `engine_projects`:
+- `point_a` → concise current-state JSON (founder, offer, constraints) if null/empty
+- `point_b` → jsonb with `goal` = "Create a buildable strategy sprint system that turns Jotaye's founder goals, service offer, and operating constraints into a clear roadmap, client-facing structure, and execution plan."
+- `goal` column → same string (readiness checks `project.goal`)
 
-## Execution steps
+Leave milestones, roadmap, portal, tasks untouched. Verify existing 6 milestones remain.
 
-1. **Baseline snapshot** — capture row counts + latest timestamps for `engine_project_frames`, `engine_review_items`, `engine_activity`, `engine_project_chat_events`, `client_portal_messages`, `client_portal_roadmaps`, `roadmap_approvals`, `engine_tasks`, `engine_milestones` for the three test projects. Used later to prove protected-surface isolation.
+Then via authenticated admin session: call `getProjectFrameBuilder` → confirm `missing_inputs` is empty and Generate button is enabled.
 
-2. **Route + access (§1)** — Playwright: admin loads `/engine/projects/<jotaye>/frame-builder` (screenshot), verify workspace nav "Frame Builder" link + active state, anon session hits route → redirect to `/auth` (screenshot). psql: confirm RLS policies + GRANTs on `engine_project_frames` match the plan (staff-only SELECT via `is_engine_staff()`, no INSERT/UPDATE/DELETE to `authenticated`). Attempt anon + authenticated-non-staff PostgREST insert → expect denial.
+## 2. Live generation
 
-3. **Readiness / missing inputs (§2)** — Pick a project with no Point A / goal / milestones (August 1 — intake likely candidate; confirm via psql). Invoke `generateProjectFrame`. Expect `{ ok: false, missing_inputs: [...] }`, no new `engine_project_frames` row. Screenshot UI state.
+Invoke `generateProjectFrame` (Playwright, click Generate Frame Set in UI). Capture:
+- returned frame row (id, status, generated_by, payload)
+- `engine_project_chat_events` row with `frame_generated`
+- `engine_activity` row
 
-4. **Generate Frame Set (§3)** — On Jotaye: invoke `generateProjectFrame`. Assert draft row exists, `status='draft'`, `generated_by` in {ai, hybrid}. JSON-schema-validate `payload` against the Zod shape in `engine-frame-builder-prompt.server.ts`: `project_summary`, `frame_goal`, `roles`, `pages[]` (with all 17 required page fields), `flows[]`, `data_objects[]`, `backend_requirements[]`, `permissions[]`, `qa_gates[]`, `open_decisions[]`. Sanity-check pages aren't generic and reference project spine facts.
+## 3. Payload validation
 
-5. **UI rendering (§4)** — Screenshots at 1440×900, 1024×1366, 390×844 of: full page, Pages/Screens (Must/Should/Later groups), Flows, Data+Backend, QA, Open Decisions, AI PM panel, history. Verify Approve/Archive visibility for admin.
+Zod-parse the payload against `FrameBuilderPayload` schema from `engine-frame-builder.functions.ts`. Verify every top-level field and every page's 17 required fields. Fail loudly on missing/empty.
 
-6. **Save draft (§5)** — If `saveProjectFrameDraft` supports edit, mutate a draft field, verify persistence + audit + activity. If UI edit not shipped, mark N/A and just verify generated draft persists across reload.
+Grade usefulness against Jotaye's spine:
+- pages reference real Jotaye concepts (founder goals, service offer, sprint, roadmap)
+- must/should/later distribution present
+- flows have actor + steps + success + edge cases
+- open_decisions name real blockers
 
-7. **Submit to Review (§6)** — Click Submit (or invoke fn). Assert: status→`in_review`, exactly one new `engine_review_items` row (`item_type='frame_set'`, `status='pending'`, links to frame), audit + activity events, no `client_portal_*` / `roadmap_approvals` deltas, no duplicate on second click within debounce.
+Return: page count, flow count, must-build count, backend req count, open decision count, QA gate count, top-3 strongest pages, top-3 weakest areas.
 
-8. **Approve (§7)** — As admin: approve. Assert status=`approved`, `approved_by`/`approved_at` set, audit + activity, NBA on route updates toward Mockup Builder. Simulate non-admin: call `approveProjectFrame` with operator-only session (or by asserting server-side capability check path); expect refusal.
+## 4. Submit → Approve → Protection retest
 
-9. **Approved protection (§8)** — Attempt via server fn: overwrite payload, reverse status approved→draft. Attempt PostgREST direct UPDATE as authenticated. All must fail via `enforce_transition` / `preserve_approved` triggers + RLS. Verify archive from approved works only if plan allows and is audited.
+- Submit draft → verify status=`in_review`, one `engine_review_items` (kind=`frame_set`, status=`pending`, linked to frame_id), no portal/roadmap/task deltas.
+- Approve as admin → status=`approved`, approved_by/at set, activity+audit written, `compute_engine_next_best_action` recommends next step.
+- Protection retest against the approved AI frame:
+  - PostgREST PATCH payload/title/status as authenticated user
+  - Server-fn save over approved
+  - Reverse-transition approved → draft
+  - All expected to fail via triggers/RLS.
 
-10. **Archive (§9)** — Admin archives a draft; non-admin attempt fails.
+## 5. Defense-in-depth migration
 
-11. **Project Chat integration (§10)** — Via chat server fn, send the 7 canonical questions; assert answers reference the latest approved frame (page count, must-build count, open decisions). Confirm chat cannot approve/generate mockups/mutate protected surfaces (verify by post-chat protected-surface diff).
+```sql
+REVOKE INSERT, UPDATE, DELETE ON public.engine_project_frames FROM authenticated, anon;
+-- keep SELECT for authenticated (RLS still gates via is_engine_staff)
+```
 
-12. **Permission / RLS (§11)** — psql matrix: SELECT/INSERT/UPDATE/DELETE attempts as anon, authenticated non-staff, staff. Cross-project scope: call `saveProjectFrameDraft` with mismatched `projectId` vs `frameId`; expect rejection.
+Verify via `information_schema.role_table_grants` that write grants are gone for anon+authenticated; confirm server functions (which use the user's authenticated Supabase client, not service role) still work — if they break, switch the writes in `engine-frame-builder.functions.ts` to `supabaseAdmin` after capability checks. Report finding either way.
 
-13. **Protected-surface regression (§12)** — Diff baseline vs post-QA counts/max(updated_at) on `client_portal_*`, `roadmap_approvals`, `engine_tasks`, `engine_milestones`, investment fields, delivered status. Zero deltas expected except explicitly-created review item + frame rows + audit/activity.
+## 6. Project Chat frame awareness
 
-14. **Audit / activity (§13)** — Query `engine_project_chat_events` + `engine_activity` for event kinds: `frame_generated`, `frame_saved` (if applicable), `frame_submitted_to_review`, `frame_approved`, `frame_archived`, `frame_generation_failed` (induce by empty-input call). Grep stored payloads for leaks: system prompt, API keys, chain-of-thought, auth tokens.
+Signed-in admin on Jotaye chat, ask the 7 canonical frame questions. Verify answers reference the approved frame (page count matches, must-build pages named, open decisions accurate). Verify chat refuses to approve/generate mockups/mutate protected surfaces (diff snapshot before/after).
 
-15. **Regression (§14)** — Load Spine, Chat, Action Mode panel, Proposals list, NBA endpoint; run `tsgo` typecheck; confirm no console/runtime errors.
+## 7. Screenshots (1280×1800 desktop, 1024×1366 tablet, 390×844 mobile)
 
-## Deliverable
+Readiness enabled, Generate action, generated draft, Pages, Flows, Data+Backend, QA, Open Decisions, Submitted, Approved, Chat frame answer, mobile, tablet.
 
-Single report with the 12 result sections + Executive Summary + Screenshots index + Top Fixes + explicit go/no-go recommendation for Mockup Builder v1. Screenshots saved to `/tmp/browser/frame-builder-v1/screenshots/` and referenced by path.
+## 8. Deliverable
 
-## Technical details
+`/mnt/documents/qa/frame-builder-v1/GENERATION_REPORT.md` with the requested sections:
 
-- Playwright script at `/tmp/browser/frame-builder-v1/run.py`, viewport 1280×1800 (plus 1024×1366, 390×844 for responsive shots), restore `LOVABLE_BROWSER_SUPABASE_*` session against `http://localhost:8080`.
-- Anon proof: fresh context with no session restoration.
-- Non-admin refusal: preferred path is calling the server fn with a session for `qa-operator-lite@trust-tai.com`; if no password is provisioned in this environment, fall back to asserting the capability-check code path + a psql check that operator role lacks admin, and note the limitation in the report.
-- All destructive-looking ops are gated (drafts + one approval on a test frame we created), and every side-effect is included in the audit/activity totals.
-- No schema changes. No app code edits.
+Executive Summary · Readiness Seed Results · Live Generation Results · Payload Schema Results · Frame Usefulness Results · Submit/Approve Results · Approved Protection Results · Defense-in-Depth Grant Results · Project Chat Frame Awareness Results · Screenshots · Top Fixes · Recommendation (safe / not safe for Mockup Builder v1)
+
+## Technical notes
+
+- Seeding uses `supabase--migration` (touches `point_a`/`point_b`/`goal` on one project row — schema-safe UPDATE wrapped in a migration since data change is tied to a readiness contract; if preferred we can use `supabase--insert` instead — flag your preference).
+- Grant revocation is a schema change → migration tool.
+- All UI + server-fn invocations run via Playwright with the seeded admin session (`LOVABLE_BROWSER_AUTH_STATUS=injected` expected this turn).
+- No changes to Mockup Builder, portal, roadmap, or protected surfaces.
+- Typecheck (`tsgo`) + smoke of Spine/Chat/Action Mode/Proposals routes at the end.
+
+## Out of scope
+
+- Mockup Builder v1
+- Any schema change to `engine_project_frames` beyond the REVOKE
+- Seeding a non-admin operator (deferred; noted in prior report)
