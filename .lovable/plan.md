@@ -1,123 +1,47 @@
-# Backend Builder v1
+# Backend Builder v1 — End-to-End QA Plan
 
-Turn the approved mockup spec into a structured, reviewable backend blueprint. Planning layer only — no migrations applied, no code deployed, no schema changes outside Backend Builder's own table.
+Run a full read-only QA sweep against Backend Builder v1 on the seeded admin session. No feature code changes; only a QA script + report.
 
-## 1. Database (single migration)
+## Scope
 
-New table `public.engine_project_backend_plans`:
-- `id`, `project_id` (FK engine_projects), `mockup_id` (FK engine_project_mockups), `frame_id` (nullable FK engine_project_frames)
-- `title`, `summary`, `status` (`draft|in_review|approved|archived`), `generated_by` (`ai|human|hybrid`)
-- `payload jsonb` (schema per spec: backend_goal, data_model, server_functions, permissions, integrations, workflows, api_endpoints, background_jobs, notifications, security_checks, qa_plan, implementation_sequence, open_decisions, risks)
-- `created_by`, `created_by_email`, `approved_by`, `approved_by_email`, `approved_at`, `created_at`, `updated_at`
-- Indexes on `project_id`, `mockup_id`, `status`
+- Primary project: **Jotaye Ventures — Strategy Sprint**
+- Spot-check: **INBDE & ADAT Platform**, **August 1 — intake**
+- Do NOT build QA Factory. Do NOT modify Backend Builder code unless a blocking bug is found (then stop and report before fixing).
 
-Grants (Frame/Mockup-parity):
-```
-REVOKE ALL ON public.engine_project_backend_plans FROM anon, authenticated;
-GRANT SELECT ON public.engine_project_backend_plans TO authenticated;
-GRANT ALL ON public.engine_project_backend_plans TO service_role;
-```
+## Approach
 
-RLS:
-- Enable RLS
-- SELECT policy: staff only via `has_role(auth.uid(),'operator'|'admin')`
-- No INSERT/UPDATE/DELETE policies for anon/authenticated (server-only writes via service_role)
+1. **DB baseline snapshot** via `psql` (read-only) — capture pre-state counts for protected surfaces so post-QA diff proves planning-only safety:
+   - `client_portal_*`, `roadmap_approvals`, `roadmap_documents`, `engine_tasks`, `engine_milestones`, `engine_projects.status/investment_confirmed_at`, migration file list, `engine_project_backend_plans` row count.
 
-Protection trigger `protect_approved_backend_plan()`:
-- On UPDATE/DELETE where OLD.status='approved', raise exception unless status transitioning to `archived` by admin server fn (mirror mockup protection pattern)
+2. **Grants / RLS probe** (SQL): confirm `anon` has no privs, `authenticated` SELECT only, `service_role` ALL; confirm RLS policies + approved-plan protection trigger on `engine_project_backend_plans`.
 
-`updated_at` trigger.
+3. **Playwright QA script** at `scripts/qa/backend-builder-v1-qa.py` (mirrors `mockup-builder-v1-qa.py` shape) using the seeded admin session env vars:
+   - Route + access: load `/engine/projects/:projectId/backend-builder` as admin; capture screenshots; test anon redirect in a clean context.
+   - Readiness: visit a project with no approved mockup → assert Generate disabled + guidance copy; assert server refusal (invoke server fn directly via page fetch).
+   - Generate: click Generate on Jotaye → assert new draft row, `mockup_id`/`frame_id` linkage, audit + activity written.
+   - Payload schema: fetch the plan via server fn, validate every required top-level key + nested keys (data_model.tables[].{name,purpose,fields[].{name,type,required,notes},relationships,indexes,rls_rules,audit_requirements}, server_functions[], permissions[], integrations[], workflows[], qa_plan.{role_tests,...}, implementation_sequence, open_decisions, risks). Fail on generic/empty sections.
+   - Submit → in_review: assert exactly one `engine_review_items` row with `item_type='backend_plan'`, `status='pending'`; assert audit event.
+   - Approve (admin): assert status/approved_by/approved_at, audit + activity, Next Best Action shift.
+   - Protection: attempt PostgREST PATCH from authenticated browser client (via `page.evaluate` + supabase client) on approved row → assert failure; attempt regeneration → assert new draft, approved untouched.
+   - Archive: admin archive a draft, assert status + audit; non-admin path skipped if no non-admin seed.
+   - Project Chat awareness: send the 8 prompts; assert answers cite table/function/permission counts matching payload; assert chat refuses to apply migrations or approve.
+   - UI capture: desktop + tablet (1024) + mobile (390) screenshots for each section listed in step 6.
 
-## 2. Server functions (`src/lib/engine-backend-builder.functions.ts`)
+4. **Planning-only safety diff**: re-snapshot protected surfaces post-QA; diff against baseline; fail if anything except `engine_project_backend_plans`, `engine_audit_log`, `engine_activity`, `engine_review_items` changed.
 
-All use `requireSupabaseAuth` + staff-role check. Approve/archive require admin.
+5. **Regression smoke**: hit Spine, Chat, Frame Builder, Mockup Builder routes; assert 200 + no console errors.
 
-- `getProjectBackendBuilder({ projectId })` — returns `{ project, approved_mockup, approved_frame, latest_plan, plans[], readiness: MissingBackendInput[] }`
-- `generateProjectBackendPlan({ projectId })` — refuses if no approved mockup; assembles bundle (approved mockup + approved frame + spine + roadmap + artifacts + open decisions), calls AI via `engine-ai.server` with strict JSON schema prompt, inserts new `draft` row, writes audit + engine_activity
-- `saveProjectBackendPlanDraft({ planId, payload })` — draft-only; blocks edits to approved
-- `submitProjectBackendPlanToReview({ planId })` — status → `in_review`; creates `engine_review_items` row (`item_type='backend_plan'`, `status='pending'`, linked plan id); audit + activity
-- `approveProjectBackendPlan({ planId })` — admin; sets approved_by/at; audit + activity; never touches roadmap_approvals, client_portal_*, or schema
-- `archiveProjectBackendPlan({ planId })` — admin; status → `archived`; preserves payload
+6. **Report** in `.lovable/backend-builder-v1-qa-report.md` with all 16 sections from the request + screenshots index + Top Fixes + safe/not-safe recommendation for QA Factory v1.
 
-Prompt module: `src/lib/engine-backend-builder-prompt.server.ts` — mirrors mockup prompt module (system prompt: planning-only, spec-only, no runnable SQL executed; JSON schema hint; compact bundle assembly).
+## Deliverables
 
-Readiness helper `assessBackendReadiness({ approved_mockup })` returns missing inputs (approved mockup required; empty pages array blocks).
+- `scripts/qa/backend-builder-v1-qa.py` (new)
+- `/tmp/browser/backend-builder-v1/screenshots/*.png`
+- `.lovable/backend-builder-v1-qa-report.md`
+- Chat reply with the full report inline
 
-## 3. Route + UI
+## Non-goals
 
-New file `src/routes/engine.projects.$projectId.backend-builder.tsx` under the existing engine workspace layout.
-
-Layout (following Mockup Builder pattern):
-- **Header strip**: project name, status, current step, Next Best Action, approved mockup badge, plan status; buttons: Generate Backend Plan (disabled with tooltip if no approved mockup), Save Draft, Submit to Review, Approve (admin), Archive (admin)
-- **A. Overview**: backend_goal, source_mockup_summary, architecture_summary, counts (tables, server fns, permissions, integrations, open decisions), readiness state
-- **B. Data Model**: tables (name, purpose, fields, relationships, indexes, rls_rules, audit_requirements), enums, views, storage_buckets
-- **C. Server Functions**: name, purpose, inputs, outputs, permissions, side_effects, audit_events, failure_modes
-- **D. Permissions / RLS**: roles matrix; staff vs client-safe callouts; cross-project + portal boundary notes
-- **E. Integrations / Workflows**: integrations, workflows (trigger, steps, success, failure), background_jobs, notifications
-- **F. QA Plan**: role/data/rls/integration/edge/regression tests + expected evidence
-- **G. Implementation Sequence**: migration → server fn → UI wiring → QA → rollback
-- **H. Open Decisions + Risks**: blocking decisions, security risks, integration unknowns, owner, next action
-- **Right-side AI PM panel** (reuse `StepAiPanel` shape): mockup requirements vs plan coverage, gaps, blockers, review status, next recommended action
-
-Empty state when no plan exists: readiness card + Generate CTA (or blocked-explanation if no approved mockup).
-
-## 4. Nav
-
-Add "Backend Builder" `<Link>` in `src/components/engine/WorkspaceHeader.tsx` `WorkspaceToolbar`, positioned after Mockup Builder, using a `Database` lucide icon.
-
-## 5. Review integration
-
-`submitProjectBackendPlanToReview` inserts into `engine_review_items` with `item_type='backend_plan'`, `status='pending'`, and plan reference. Approve writes audit + activity; Next Best Action logic updated to recommend QA Factory / Implementation Plan after approved backend plan exists.
-
-## 6. Project Chat integration
-
-Extend `src/lib/engine-chat-context.server.ts` to fetch latest backend plan and inject a compact summary: status, table count, server-function count, permission/RLS count, integration count, open decisions, and approved payload summary (backend_goal + architecture_summary) when approved.
-
-Chat prompt gains a "Backend plan" section describing what the chat can answer (plan status, tables, server fns, RLS, sequence, risks, readiness) and explicit prohibitions: no migration application, no deployment, no plan approval from chat, no schema mutation.
-
-## 7. Safety invariants (enforced in every server fn)
-
-- Never write to `client_portal_*`, `roadmap_approvals`, `roadmap_documents`, `subscriptions`, `orders`
-- Never run DDL / never call `supabase.rpc` that mutates schema
-- Never modify approved plans (trigger + application check)
-- Every mutation writes `engine_audit_log` + `engine_activity`
-- Generation refuses without approved mockup — server-side, not just UI
-
-## 8. Files changed
-
-Created:
-- `supabase/migrations/<ts>_backend_builder_v1.sql`
-- `src/lib/engine-backend-builder.functions.ts`
-- `src/lib/engine-backend-builder-prompt.server.ts`
-- `src/routes/engine.projects.$projectId.backend-builder.tsx`
-- `scripts/qa/backend-builder-v1-qa.py` (harness scaffold; run in follow-up QA turn)
-
-Edited:
-- `src/components/engine/WorkspaceHeader.tsx` (nav link)
-- `src/lib/engine-chat-context.server.ts` (backend plan context)
-- `src/lib/engine-chat-prompt.server.ts` (chat instructions for backend plan)
-- `src/integrations/supabase/types.ts` (regenerated after migration)
-- `src/routeTree.gen.ts` (regenerated by router plugin)
-- `.lovable/plan.md`
-
-## 9. Acceptance verification (post-build)
-
-- Route loads for staff; anon → `/auth`; client role → blocked
-- Generate disabled + server-refused without approved mockup
-- With approved mockup: generate → schema-valid payload with all required sections
-- Save draft / Submit → creates pending `backend_plan` review item
-- Approve → status=approved, audit+activity written, protection trigger blocks silent overwrite
-- No writes to portal/roadmap tables (verified via probe)
-- Project Chat answers backend-plan questions using injected context
-- Typecheck clean (aside from pre-existing unrelated errors)
-
-## 10. Known non-goals for v1
-
-- No SQL execution / migration application
-- No code deployment
-- No auto-linking to QA Factory (recommendation only)
-- No versioned diff view between plans (kept as list of preserved rows)
-
-## 11. Recommended QA prompt (for follow-up)
-
-Run Backend Builder v1 end-to-end QA covering: route+access, readiness gate, generation with/without approved mockup, payload schema, must-section coverage, UI rendering, submit-to-review, approve/protection, archive, Project Chat backend awareness, RLS/grants, protected-surface regression (portal/roadmap/tasks/milestones/subscriptions), audit+activity parity. Return report + screenshots + safe/not-safe recommendation for Implementation/QA Factory next.
+- No Backend Builder code changes.
+- No QA Factory work.
+- No migrations (except if a blocking security finding is confirmed — stop and ask first).
