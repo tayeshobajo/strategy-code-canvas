@@ -318,9 +318,9 @@ const ExecuteInput = z.object({
   ]),
   options: z
     .object({
-      decisionNote: z.string().trim().max(4000).optional(),
+      decisionNote: z.string().trim().max(4000).nullish(),
     })
-    .optional(),
+    .nullish(),
 });
 
 export type ExecuteChatActionResult = {

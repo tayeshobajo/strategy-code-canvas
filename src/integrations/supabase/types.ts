@@ -2203,6 +2203,85 @@ export type Database = {
           },
         ]
       }
+      engine_project_frames: {
+        Row: {
+          approved_at: string | null
+          approved_by_email: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          created_by_email: string | null
+          created_by_user_id: string | null
+          generated_by: string
+          id: string
+          payload: Json
+          project_id: string
+          source_artifact_id: string | null
+          source_version_id: string | null
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          generated_by?: string
+          id?: string
+          payload?: Json
+          project_id: string
+          source_artifact_id?: string | null
+          source_version_id?: string | null
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          generated_by?: string
+          id?: string
+          payload?: Json
+          project_id?: string
+          source_artifact_id?: string | null
+          source_version_id?: string | null
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_frames_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_frames_source_artifact_id_fkey"
+            columns: ["source_artifact_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_artifacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_frames_source_version_id_fkey"
+            columns: ["source_version_id"]
+            isOneToOne: false
+            referencedRelation: "engine_roadmap_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_intake_failures: {
         Row: {
           actor_email: string | null
