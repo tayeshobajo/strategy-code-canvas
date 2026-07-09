@@ -34,11 +34,21 @@ PROMPTS = [
 ]
 
 async def sign_in(page):
-    await page.goto("http://localhost:8080/auth", wait_until="domcontentloaded")
-    await page.get_by_placeholder("you@company.com").fill(EMAIL)
-    await page.get_by_placeholder("••••••••").fill(PASSWORD)
-    await page.get_by_role("button", name="Sign in").click()
-    await page.wait_for_url("**/engine/**", timeout=15000)
+    await page.goto("http://localhost:8080", wait_until="domcontentloaded")
+    return await page.evaluate(
+        """async ({url, key, email, password, storageKey}) => {
+            const r = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+                method:'POST', headers:{'apikey':key,'Content-Type':'application/json'},
+                body: JSON.stringify({email,password})});
+            const j = await r.json();
+            if (!r.ok) return {error:j};
+            const session={access_token:j.access_token,refresh_token:j.refresh_token,
+              expires_at:Math.floor(Date.now()/1000)+(j.expires_in??3600),
+              expires_in:j.expires_in,token_type:j.token_type,user:j.user};
+            localStorage.setItem(storageKey, JSON.stringify(session));
+            return {ok:true, uid:j.user?.id, email:j.user?.email};
+        }""",
+        {"url":SUPA_URL,"key":SUPA_KEY,"email":EMAIL,"password":PASSWORD,"storageKey":STORAGE_KEY})
 
 async def open_chat(page):
     await page.goto(f"http://localhost:8080/engine/projects/{PROJECT_ID}/chat", wait_until="networkidle")
