@@ -4,6 +4,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import type { WorkspaceProject, WorkspaceStepKey } from "@/lib/engine-workspace";
 
+const databaseUuid = z
+  .string()
+  .regex(
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+    "Invalid UUID",
+  );
+
 async function assertAdmin(context: {
   claims?: Record<string, unknown>;
   supabase: {
@@ -623,7 +630,7 @@ const WORKSPACE_SELECT =
 
 export const getProjectWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .inputValidator((raw: unknown) => z.object({ id: databaseUuid }).parse(raw))
   .handler(async ({ context, data }): Promise<{ project: WorkspaceProject; dates: Array<{ id: string; label: string; due_on: string; kind: string }>; activity: Array<{ id: string; kind: string; title: string; body: string | null; severity: string; created_at: string }> }> => {
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
     const sb = context.supabase as unknown as {
@@ -1184,7 +1191,7 @@ export type ProjectSpinePayload = {
 
 export const getProjectSpine = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .inputValidator((raw: unknown) => z.object({ id: databaseUuid }).parse(raw))
   .handler(async ({ context, data }): Promise<ProjectSpinePayload> => {
     const email = (context.claims as { email?: string } | undefined)?.email;
     const isOperator = await hasRoleForEmail(
