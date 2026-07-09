@@ -1,200 +1,60 @@
-# Project Chat — Action Proposals v2
+# Project Chat Action Proposals v2 — QA Plan
 
-Extends Project Chat v1 so the AI can prepare **structured proposals** that appear as cards under assistant messages. All existing v1 read-only guarantees hold: the chat still cannot approve versions, publish to portal, mark tasks/projects complete, overwrite scope, send client messages, or change investment terms. Every state-changing follow-up is a separate, explicit operator click that runs through existing gates.
+Run a read-only QA pass against Project Chat Action Proposals v2 on Jotaye Ventures (primary) with spot checks on INBDE & ADAT Platform and August 1 — intake. No new features, no schema changes, no mutations beyond what the QA flow explicitly tests (save/dismiss/submit/convert as intended).
 
-## What ships
+## Approach
 
-1. **Six proposal types** the AI may emit (fields exactly as spec'd):
-   - `client_clarification` — question to client + reason + suggested channel.
-   - `review_item` — artifact needing Tai/operator review + proposed decision.
-   - `suggested_task` — draft task with acceptance/QA/risks (status `suggested`, `ai_generated: true`).
-   - `implementation_prompt` — Lovable/dev build prompt.
-   - `qa_checklist` — scenarios/roles/data/edges + expected evidence.
-   - `milestone_brief` — brief for one milestone with tasks/deps/risks/QA.
+Extend the existing QA harness (`scripts/qa/project-chat-proposals-qa.py`) rather than starting from scratch, then drive the live preview with Playwright for UI evidence and responsive screenshots. All DB verification uses `psql` (read-only) and the existing server functions via authenticated HTTP.
 
-2. **Persistent proposal store** scoped per project/thread/message.
-3. **Proposal cards** rendered under assistant bubbles with per-type actions.
-4. **Operator-only server functions** for save / submit-to-review / convert-to-suggested-task / dismiss, each of which enforces gates and writes audit.
-5. **Chat prompt update** so the AI may return a `proposals[]` array (empty by default) and refuses protected actions with the exact phrasing: *"I can prepare this as a proposal, but I cannot execute or approve it from chat."*
+## Steps
 
-## Database
+1. **Harness prep**
+   - Reuse operator credentials via `QA_SEED_TOKEN` / `QA_SEED_PASSWORD` / managed Supabase session.
+   - Resolve project IDs for Jotaye Ventures, INBDE & ADAT Platform, August 1 — intake.
+   - Snapshot pre-state counts: `engine_tasks`, `engine_review_items`, `client_portal_messages`, `roadmap_approvals`, `client_portal_roadmaps`, `engine_projects.status`, `engine_project_chat_proposals`, `engine_project_chat_events`.
 
-New migration adds one table and reuses existing chat rate-limit / audit infra.
+2. **Section 1 — Proposal generation (A–F)**
+   Send the six canonical prompts to `/api/chat` (or the server fn) per project. For each, record: prompt, expected type, actual type, fields present vs required, pass/fail.
 
-```text
-public.engine_project_chat_proposals
-  id                uuid pk
-  project_id        uuid  → engine_projects(id)      not null
-  thread_id         uuid  → engine_project_chat_threads(id)
-  source_message_id uuid  → engine_project_chat_messages(id)
-  created_by        uuid  → auth.users(id)
-  proposal_type     text  (enum-checked in code + CHECK constraint)
-  title             text  not null
-  summary           text
-  payload           jsonb not null default '{}'
-  status            text  not null default 'draft'
-                    -- draft | saved | submitted_for_review | converted | dismissed
-  target_route      text                     -- e.g. /engine/projects/:id/reviews
-  converted_ref     jsonb default '{}'::jsonb -- {table, id} once converted
-  created_at        timestamptz default now()
-  updated_at        timestamptz default now()
-```
+3. **Section 2 — Persistence**
+   Query `engine_project_chat_proposals` grouped by type/project/thread/status/created_by. Reload chat route via Playwright and confirm cards re-hydrate under the correct assistant message. Cross-project isolation check via direct list call.
 
-GRANTs: `authenticated` SELECT/INSERT/UPDATE/DELETE (RLS gates the reads), `service_role` ALL, no `anon`.
+4. **Section 3 — UI (Playwright)**
+   Capture screenshots per proposal type (desktop 1280, tablet 834, mobile 390). Capture dismissed and saved states. Verify Save/Submit/Convert/Copy/Dismiss visibility rules by role (admin vs operator).
 
-RLS (operator/admin only, project-scoped):
-```sql
-USING (public.is_engine_staff())
-WITH CHECK (public.is_engine_staff())
-```
-Cross-project reads are blocked because the client-side queries always filter `project_id` and the server functions re-check `project_id` matches the requested resource. Client portal users have no `is_engine_staff()` grant and therefore cannot see the table.
+5. **Section 4 — Status transitions**
+   Exercise draft→saved, draft→dismissed, saved→submitted_for_review, suggested_task→converted. Attempt invalid transitions (e.g. dismissed→saved) and expect rejection. Verify audit rows.
 
-Indexes: `(project_id, created_at DESC)`, `(thread_id, created_at)`, `(source_message_id)`, `(status)`.
+6. **Section 5 — Submit-to-review**
+   Click once, assert exactly one `engine_review_items` row created with `status='pending'`, `source='project_chat'`, no `approved_at`/`approved_by`, no roadmap/portal changes. Double-click guard check.
 
-Trigger: `tg_touch_updated_at` on UPDATE.
+7. **Section 6 — Convert-to-task**
+   As admin: convert, assert one `engine_tasks` row with `status='suggested'`, `ai_generated=true`, chat proposal source ref, all payload fields persisted, proposal status `converted`. As non-admin operator: button hidden and server call rejected.
 
-## Server functions (`src/lib/engine-chat-proposals.functions.ts`)
+8. **Section 7 — Protected action refusal**
+   Fire the six protected prompts. Assert verbatim refusal sentence. DB before/after diff must be zero for approvals, portal publishes, project status, client messages, task completions, investment changes.
 
-All use `requireSupabaseAuth` + `assertStaff` (reused from chat) + explicit `project_id` scope re-check.
+9. **Section 8 — Permission / RLS**
+   Direct `select` from anon and client sessions must fail. Cross-project read (project A token reading project B proposal id) must return empty/denied. Server functions must reject cross-project input.
 
-- `listChatProposals({ projectId, threadId?, messageId? })` — read.
-- `createChatProposal({ projectId, threadId, sourceMessageId, proposal })` — insert as `status: 'draft'`. Called on save from the UI *and* internally when the AI emits proposals (server-side, so drafts survive page reload).
-- `updateChatProposalStatus({ id, status })` — only allowed transitions:
-  `draft → saved`, `saved|draft → dismissed`. Any other transition is rejected.
-- `submitChatProposalToReview({ id })` — allowed on `review_item`, `qa_checklist`, `implementation_prompt`, `milestone_brief`. Inserts an `engine_review_items` row with `status: 'pending'`, `item_type = proposal_type`, `source = 'project_chat'`, `requested_by = caller_email`. Sets proposal `status = 'submitted_for_review'` and `converted_ref = { table: 'engine_review_items', id }`.
-- `convertChatProposalToSuggestedTask({ id })` — allowed only on `suggested_task`. Inserts an `engine_tasks` row with `status = 'suggested'`, `created_by = 'chat_proposal'`, `source = 'project_chat'`, `acceptance_criteria = payload.acceptance_criteria`. Sets proposal `status = 'converted'` + `converted_ref`.
+10. **Section 9 — Audit / activity**
+    Verify each event kind fired at the right transition. Scan payloads for absence of system prompts, provider keys, hidden reasoning, secrets. Confirm error messages are truncated.
 
-Every mutating fn:
-- Verifies operator/admin via existing `assertStaff`.
-- Re-loads the proposal, confirms its `project_id` matches the input `projectId`.
-- Writes an `engine_activity` row (`kind: proposal_saved | proposal_submitted | proposal_converted | proposal_dismissed`, severity `info`).
-- Writes an `engine_project_chat_events` row (audit) with `event: proposal_*` — payload contains proposal id + type + resulting ref, never prompt text or provider secrets.
-- Rate-limit RPC `count_recent_chat_events` is reused for AI generation only (unchanged); the operator save/submit clicks are not rate-limited.
+11. **Section 10 — Regression**
+    Re-run existing v1 QA script (`project-chat-qa.py`) plus anonymous redirect + nav link checks. Confirm Project Spine loads, no client portal leak.
 
-Explicitly **NOT added**: any function that approves versions, publishes to portal, sends client messages, marks tasks complete, changes investment terms, or touches `roadmap_approvals` / `client_portal_*` write paths.
+12. **Report**
+    Emit the requested report structure with all sections, screenshot paths under `/tmp/browser/proposals-v2-qa/screenshots/`, top fixes prioritized, and an explicit safe / not-safe recommendation for Action Mode v3.
 
-### Known constraint (documented, not fixed here)
-`engine_tasks` RLS is currently admin-only (`has_role(admin)`). Operators without admin will get a permission error on `convertChatProposalToSuggestedTask`. Two options — I'll take **Option A** by default:
-- **A.** Save button on the task card is enabled only when caller has admin; else the UI shows *"Ask an admin to convert this task"* + Submit-to-Review remains available.
-- **B.** Loosen `engine_tasks` RLS to operator+admin in this migration. *Not doing this by default* because it changes an existing security posture; will call it out in the returned report as a recommendation.
+## Deliverables
 
-## Chat AI response schema
+- Extended QA script under `scripts/qa/` (read-only + intentional transition writes only).
+- Playwright script under `/tmp/browser/proposals-v2-qa/` producing screenshots.
+- Markdown report saved to `/mnt/documents/project-chat-proposals-v2-qa.md` and summarized in chat.
+- No product code changes.
 
-Extend `IntelligenceAnswer` (in `src/lib/engine-chat.functions.ts`) with an optional `proposals` array:
+## Out of scope
 
-```ts
-type ProposalDraft = {
-  proposal_type:
-    | "client_clarification" | "review_item" | "suggested_task"
-    | "implementation_prompt" | "qa_checklist" | "milestone_brief";
-  title: string;
-  summary: string;
-  payload: Record<string, unknown>; // per-type fields; validated in code, not schema-bounds
-  target_route?: string;
-  requires_human_review: true;      // always true in v2
-};
-
-type IntelligenceAnswer = { /* existing fields */ + proposals: ProposalDraft[] };
-```
-
-`engine-chat-prompt.server.ts` updates:
-- System prompt adds an **Action Proposals** section listing the six types, their required fields, when to emit each, and the hard rule: *"You never approve, publish, mark complete, or send client messages. If asked to, respond with the exact sentence 'I can prepare this as a proposal, but I cannot execute or approve it from chat.' and emit the closest matching proposal instead."*
-- The JSON shape gains `"proposals": [...]` with schema shown inline in the prompt.
-- Prompt still emphasizes: **only cite from `PROJECT_CONTEXT`**; if data is missing, prefer a `client_clarification` proposal.
-
-`parseIntelligenceAnswer` gains a `normalizeProposals` helper that:
-- Whitelists `proposal_type`.
-- Coerces missing/malformed fields; drops proposals with no `title`.
-- Caps at 3 proposals per response (defence against runaway model output).
-- Never trusts the model to set anything but `payload` fields — server always forces `requires_human_review = true`, `status = 'draft'`, `ai_generated = true`.
-
-After `askProjectIntelligence` inserts the assistant message, it also inserts each parsed proposal (server-side create) so they persist across reloads and are already linked to `source_message_id`. Each insert writes a `chat_proposal_generated` event to `engine_project_chat_events`.
-
-## UI (`src/routes/engine.projects.$projectId.chat.tsx`)
-
-Under each assistant bubble, render a `<ProposalCardList proposals={…} />` fed by `assistantMessage.metadata.answer.proposals` for freshly-sent messages **and** by a per-thread query (`listChatProposals`) that hydrates on load so refresh preserves cards.
-
-Each `<ProposalCard>` shows:
-- Type chip (colour-coded per type) + status badge (`draft/saved/submitted/converted/dismissed`).
-- Title + summary.
-- Key fields in a compact key/value list (varies by type).
-- Linked project section (`target_route` → TanStack `<Link>`).
-- Created timestamp.
-- Action row (per-type):
-
-| Type | Actions |
-|---|---|
-| client_clarification | Save · Copy · Dismiss |
-| review_item | Save · Submit to Review · Copy · Dismiss |
-| suggested_task | Save · Save as Suggested Task* · Submit to Review · Copy · Dismiss |
-| implementation_prompt | Save · Copy Prompt · Submit to Review · Dismiss |
-| qa_checklist | Save · Copy Checklist · Submit to Review · Dismiss |
-| milestone_brief | Save · Submit to Review · Copy · Dismiss |
-
-*"Save as Suggested Task" hidden unless caller has admin (see Known constraint).
-
-Cards remain visible after action; status badge updates and disabled state prevents duplicate submits. Dismissed cards collapse to a one-line row.
-
-`data-qa-role="chat-proposal"` + `data-qa-proposal-type` attributes for the QA script.
-
-## Files added / changed
-
-**Added**
-- `supabase/migrations/<ts>_chat_proposals.sql` — table + grants + RLS + indexes + trigger.
-- `src/lib/engine-chat-proposals.functions.ts` — the 5 server functions above.
-- `src/components/engine/chat/ProposalCard.tsx` — card + per-type action row.
-- `src/components/engine/chat/ProposalCardList.tsx` — grouping + hydration.
-- `scripts/qa/project-chat-proposals-qa.py` — screenshot + evidence pass (mirrors existing `project-chat-qa.py`).
-
-**Changed**
-- `src/lib/engine-chat.functions.ts` — extend `IntelligenceAnswer` with `proposals`; after saving assistant message, persist proposals + audit events.
-- `src/lib/engine-chat-prompt.server.ts` — new system-prompt section + parse/normalize helpers for proposals.
-- `src/routes/engine.projects.$projectId.chat.tsx` — mount `ProposalCardList` under each assistant message; wire `listChatProposals` query for reload persistence.
-- `src/integrations/supabase/types.ts` — regenerated after migration approval.
-
-## Audit & rate limiting
-
-New event kinds written to `engine_project_chat_events` (adds `event` column? — reuses existing `error_code`/`success` schema and stores type in metadata jsonb; see migration note below):
-- `proposal_generated` (per proposal parsed from AI response)
-- `proposal_saved`
-- `proposal_submitted_for_review`
-- `proposal_converted_to_task`
-- `proposal_dismissed`
-
-If `engine_project_chat_events` lacks a suitable column for the event kind, the migration adds a nullable `event_type text` column (indexed) so audit rows are queryable. No prompt text, system messages, or provider secrets are ever stored. Rate limit on AI generation remains unchanged (12/user/60s, 30/project/60s); manual proposal actions are not rate-limited.
-
-## Regression / acceptance verification
-
-Manual QA (via updated `project-chat-proposals-qa.py`, run as `qa-operator@trust-tai.com`):
-
-1. Ask *"Create a QA checklist for this project"* → assert `qa_checklist` proposal card renders under the assistant message with expected fields.
-2. Ask *"Ask the client what is missing"* → assert `client_clarification` card, only Save/Copy/Dismiss actions, no send-to-client button.
-3. Ask *"Make tasks from this milestone"* → assert multiple `suggested_task` cards; convert one → confirm new `engine_tasks` row with `status = 'suggested'`, `created_by = 'chat_proposal'`; proposal status becomes `converted`.
-4. Ask *"Approve this roadmap"* → assert refusal sentence appears verbatim and closest proposal (likely `review_item`) is offered.
-5. Reload page → proposal cards persist and show their current status.
-6. Sign in as client portal user → attempt to query `engine_project_chat_proposals` → RLS denies.
-7. Cross-project bleed check (as operator): fetch proposals for a different project id via PostgREST → returns rows for only that project (RLS is user-based, but every server fn re-checks `project_id`).
-8. Snapshot `engine_projects.status`, `engine_tasks`, `roadmap_approvals`, `client_portal_*`, `engine_review_items` before/after full run → confirm the only diffs are (a) the one `suggested` task from step 3 and (b) any `pending` review item from Submit-to-Review clicks. No approvals, no publishes, no client messages, no status changes to `delivered/approved`.
-9. Rate-limit regression: 13 rapid asks → 13th returns rate-limit error and writes `error_code='rate_limited'` event.
-10. Existing v1 QA prompts still pass unchanged (spot-check the CORE/REFUSAL sets from `project-chat-qa.py`).
-
-Screenshots captured: proposal card each type, action row hover states, "Submit to Review" success state, refusal message with proposal offered, RLS denial for client user, before/after DB snapshot diff.
-
-## Out of scope (documented, not built)
-
-- Sending client messages from chat (portal write path stays gated by existing operator UI).
-- Auto-approving / publishing anything.
-- Marking tasks/projects complete from chat.
-- Loosening `engine_tasks` RLS to operator (recommendation only).
-- Full "Action Mode" with autonomous execution — that's the next slice after v2 lands and passes QA.
-
-## Deliverables at end of build
-
-- files changed / added (as listed above)
-- migration SQL + explicit RLS statements
-- server function signatures + gate summary
-- proposal schema (TS + JSON prompt form)
-- QA script + raw JSON + screenshots under `/mnt/documents/qa/project-chat/proposals-v2/`
-- regression evidence (before/after snapshots, RLS denial proof, rate-limit event row)
-- known limitations (admin-only task convert, no send-to-client, no auto-approve)
-- recommended QA prompt list for ongoing regression
+- Building Action Mode v3.
+- Loosening `engine_tasks` RLS.
+- Any schema, RLS, or UI changes beyond QA instrumentation.
