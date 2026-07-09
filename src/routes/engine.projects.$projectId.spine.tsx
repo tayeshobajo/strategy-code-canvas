@@ -728,6 +728,15 @@ function prettyStep(s: string): string {
   return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function formatSources(s: ProjectSpinePayload["sources"]): string {
+  const parts = [`${s.total} total`];
+  if (s.queued) parts.push(`${s.queued} queued`);
+  if (s.processing) parts.push(`${s.processing} processing`);
+  parts.push(`${s.processed} processed`);
+  if (s.failed) parts.push(`${s.failed} failed`);
+  return parts.join(" · ");
+}
+
 function timeAgo(iso: string): string {
   const d = new Date(iso).getTime();
   const diff = Date.now() - d;
