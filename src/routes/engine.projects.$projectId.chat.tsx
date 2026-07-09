@@ -486,7 +486,9 @@ function ContextPanel({
   const suggestedCount = useMemo(
     () =>
       (spine?.tasks ?? []).filter(
-        (t) => (t as { ai_generated?: boolean }).ai_generated && (t as { approval_status?: string }).approval_status !== "approved",
+        (t) =>
+          (t as { ai_generated?: boolean }).ai_generated &&
+          ["todo", "suggested", "proposed", "draft", "pending"].includes(t.status),
       ).length,
     [spine],
   );
