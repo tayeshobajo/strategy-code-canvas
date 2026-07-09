@@ -1126,6 +1126,7 @@ export type ProjectSpinePayload = {
   nba: NextBestAction;
   sources: {
     total: number;
+    queued: number;
     processing: number;
     failed: number;
     processed: number;
