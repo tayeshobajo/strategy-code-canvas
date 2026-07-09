@@ -133,12 +133,6 @@ function ProjectChatPage() {
   }, [proposalsQ.data]);
 
   // ----- Capabilities (DB-role backed; replaces hardcoded ADMIN_EMAILS) ----
-  const [callerEmail, setCallerEmail] = useState<string | null>(null);
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setCallerEmail(data.user?.email ?? null);
-    });
-  }, []);
   const capsFn = useServerFn(getChatCapabilities);
   const capsQ = useQuery({
     queryKey: ["engine", "chat", "capabilities", projectId],
