@@ -44,6 +44,7 @@ export type IntelligenceAnswer = {
   citations: string[];
   missing: string[];
   suggested_links: Array<{ label: string; to: string }>;
+  proposals: import("@/lib/engine-chat-proposals.functions").ProposalDraft[];
 };
 
 async function assertStaff(context: {
