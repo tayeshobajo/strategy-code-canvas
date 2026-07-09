@@ -99,6 +99,7 @@ import { Route as EngineProjectsProjectIdGapMapRouteImport } from './routes/engi
 import { Route as EngineProjectsProjectIdExtractionRouteImport } from './routes/engine.projects.$projectId.extraction'
 import { Route as EngineProjectsProjectIdDeliveryRouteImport } from './routes/engine.projects.$projectId.delivery'
 import { Route as EngineProjectsProjectIdDeadlinesRouteImport } from './routes/engine.projects.$projectId.deadlines'
+import { Route as EngineProjectsProjectIdChatRouteImport } from './routes/engine.projects.$projectId.chat'
 import { Route as EngineProjectsProjectIdBuilderRouteImport } from './routes/engine.projects.$projectId.builder'
 import { Route as EngineProjectsProjectIdBlueprintRouteImport } from './routes/engine.projects.$projectId.blueprint'
 import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engine.projects.$projectId.agent'
@@ -581,6 +582,12 @@ const EngineProjectsProjectIdDeadlinesRoute =
     path: '/deadlines',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdChatRoute =
+  EngineProjectsProjectIdChatRouteImport.update({
+    id: '/chat',
+    path: '/chat',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdBuilderRoute =
   EngineProjectsProjectIdBuilderRouteImport.update({
     id: '/builder',
@@ -715,6 +722,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
+  '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
@@ -811,6 +819,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
+  '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
@@ -914,6 +923,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
+  '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
@@ -1016,6 +1026,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/builder'
+    | '/engine/projects/$projectId/chat'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
     | '/engine/projects/$projectId/extraction'
@@ -1112,6 +1123,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/builder'
+    | '/engine/projects/$projectId/chat'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
     | '/engine/projects/$projectId/extraction'
@@ -1214,6 +1226,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/builder'
+    | '/engine/projects/$projectId/chat'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
     | '/engine/projects/$projectId/extraction'
@@ -1913,6 +1926,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdDeadlinesRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/chat': {
+      id: '/engine/projects/$projectId/chat'
+      path: '/chat'
+      fullPath: '/engine/projects/$projectId/chat'
+      preLoaderRoute: typeof EngineProjectsProjectIdChatRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/builder': {
       id: '/engine/projects/$projectId/builder'
       path: '/builder'
@@ -2074,6 +2094,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdAgentRoute: typeof EngineProjectsProjectIdAgentRouteWithChildren
   EngineProjectsProjectIdBlueprintRoute: typeof EngineProjectsProjectIdBlueprintRoute
   EngineProjectsProjectIdBuilderRoute: typeof EngineProjectsProjectIdBuilderRoute
+  EngineProjectsProjectIdChatRoute: typeof EngineProjectsProjectIdChatRoute
   EngineProjectsProjectIdDeadlinesRoute: typeof EngineProjectsProjectIdDeadlinesRoute
   EngineProjectsProjectIdDeliveryRoute: typeof EngineProjectsProjectIdDeliveryRoute
   EngineProjectsProjectIdExtractionRoute: typeof EngineProjectsProjectIdExtractionRoute
@@ -2101,6 +2122,7 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdBlueprintRoute:
       EngineProjectsProjectIdBlueprintRoute,
     EngineProjectsProjectIdBuilderRoute: EngineProjectsProjectIdBuilderRoute,
+    EngineProjectsProjectIdChatRoute: EngineProjectsProjectIdChatRoute,
     EngineProjectsProjectIdDeadlinesRoute:
       EngineProjectsProjectIdDeadlinesRoute,
     EngineProjectsProjectIdDeliveryRoute: EngineProjectsProjectIdDeliveryRoute,
