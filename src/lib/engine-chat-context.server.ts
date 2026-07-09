@@ -505,6 +505,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     portal_publish,
     frame: frameSummary,
     mockup: mockupSummary,
+    backend_plan: backendPlanSummary,
     missing_data: missing,
   };
 
