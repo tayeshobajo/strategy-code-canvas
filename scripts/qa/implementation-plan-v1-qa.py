@@ -317,7 +317,7 @@ async def main():
 
             # §11 NBA post-approval
             print("== §11 NBA ==")
-            R["nba"] = psql(f"SELECT string_agg(action_kind||':'||coalesce(label,''), ' | ') FROM (SELECT * FROM n('{JOTAYE_ID}') LIMIT 5) t")
+            R["nba"] = psql(f"SELECT string_agg(action||':'||coalesce(reason,''), ' | ') FROM (SELECT * FROM compute_engine_next_best_action('{JOTAYE_ID}') LIMIT 5) t")
             R["project_status_after_approve"] = psql(f"SELECT status||'|'||coalesce(current_step,'') FROM engine_projects WHERE id='{JOTAYE_ID}'")
 
             # §17 regenerate-after-approval
