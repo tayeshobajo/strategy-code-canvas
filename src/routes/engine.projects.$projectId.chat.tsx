@@ -271,7 +271,14 @@ function ProjectChatPage() {
           ) : (
             <>
               {messages.map((m) => (
-                <MessageBubble key={m.id} message={m} />
+                <MessageBubble
+                  key={m.id}
+                  message={m}
+                  projectId={projectId}
+                  threadId={activeThreadId}
+                  persistedProposals={proposalsByMessage.get(m.id) ?? []}
+                  canConvertToTask={canConvertToTask}
+                />
               ))}
               {pendingUser && (
                 <MessageBubble
@@ -284,6 +291,10 @@ function ProjectChatPage() {
                     metadata: {},
                     created_at: new Date().toISOString(),
                   }}
+                  projectId={projectId}
+                  threadId={activeThreadId}
+                  persistedProposals={[]}
+                  canConvertToTask={canConvertToTask}
                 />
               )}
               {askMut.isPending && (
