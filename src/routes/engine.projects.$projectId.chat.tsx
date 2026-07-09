@@ -33,6 +33,7 @@ import {
   type ChatProposalRow,
 } from "@/lib/engine-chat-proposals.functions";
 import { ProposalCard } from "@/components/engine/chat/ProposalCard";
+import { ActionModePanel } from "@/components/engine/chat/ActionModePanel";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/engine/projects/$projectId/chat")({
