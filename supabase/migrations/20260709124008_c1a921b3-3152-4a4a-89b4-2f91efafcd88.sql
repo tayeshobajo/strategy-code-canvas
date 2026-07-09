@@ -1,0 +1,1 @@
+REVOKE SELECT ON public.engine_project_artifacts FROM anon;

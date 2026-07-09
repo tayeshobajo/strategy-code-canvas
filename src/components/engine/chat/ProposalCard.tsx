@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
@@ -11,18 +11,31 @@ import {
   ClipboardList,
   CheckCircle2,
   Loader2,
+  Sparkles,
+  FileText,
+  BookOpenCheck,
+  StickyNote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   createChatProposal,
-  updateChatProposalStatus,
-  submitChatProposalToReview,
-  convertChatProposalToSuggestedTask,
+  type ChatCapabilities,
   type ChatProposalRow,
   type ProposalDraft,
   type ProposalStatus,
   type ProposalType,
 } from "@/lib/engine-chat-proposals.functions";
+import {
+  executeChatAction,
+  type ExecuteChatActionResult,
+} from "@/lib/engine-chat-actions.functions";
+import {
+  CHAT_ACTIONS,
+  isActionAvailable,
+  type ChatActionDefinition,
+  type ChatActionId,
+} from "@/lib/engine-chat-actions";
+import { ActionConfirmDialog } from "./ActionConfirmDialog";
 
 type Props = {
   projectId: string;
@@ -30,7 +43,7 @@ type Props = {
   sourceMessageId: string | null;
   // Either an already-persisted row, or a client-side draft awaiting save.
   proposal: ChatProposalRow | (ProposalDraft & { id?: undefined; status?: ProposalStatus });
-  canConvertToTask: boolean;
+  caps: ChatCapabilities | undefined;
 };
 
 const TYPE_LABELS: Record<ProposalType, string> = {
@@ -59,12 +72,22 @@ const STATUS_TONE: Record<ProposalStatus, string> = {
   dismissed: "bg-ink/5 text-ink/50 border-border",
 };
 
-export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, canConvertToTask }: Props) {
+const ACTION_ICONS: Partial<Record<ChatActionId, React.ReactNode>> = {
+  save_proposal: <Save className="w-3 h-3" />,
+  dismiss_proposal: <Trash2 className="w-3 h-3" />,
+  submit_proposal_to_review: <SendHorizontal className="w-3 h-3" />,
+  convert_to_suggested_task: <CheckCircle2 className="w-3 h-3" />,
+  save_clarification_draft: <FileText className="w-3 h-3" />,
+  save_implementation_prompt_artifact: <Sparkles className="w-3 h-3" />,
+  save_qa_checklist_artifact: <BookOpenCheck className="w-3 h-3" />,
+  save_milestone_brief_artifact: <FileText className="w-3 h-3" />,
+  add_internal_decision_note: <StickyNote className="w-3 h-3" />,
+};
+
+export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, caps }: Props) {
   const qc = useQueryClient();
   const createFn = useServerFn(createChatProposal);
-  const updateFn = useServerFn(updateChatProposalStatus);
-  const submitFn = useServerFn(submitChatProposalToReview);
-  const convertFn = useServerFn(convertChatProposalToSuggestedTask);
+  const executeFn = useServerFn(executeChatAction);
 
   const [row, setRow] = useState<ChatProposalRow | null>(
     proposal && (proposal as ChatProposalRow).id ? (proposal as ChatProposalRow) : null,
@@ -79,98 +102,59 @@ export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, c
   const currentStatus: ProposalStatus = row?.status ?? "draft";
   const [copied, setCopied] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ChatActionDefinition | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
 
-  const saveMut = useMutation({
-    mutationFn: async () => {
-      if (row) {
-        const res = await updateFn({
-          data: { id: row.id, projectId, status: "saved" },
-        });
-        return (res as { proposal: ChatProposalRow }).proposal;
-      }
-      const res = await createFn({
+  const capState = useMemo(
+    () => ({
+      isStaff: caps?.isStaff ?? false,
+      canCreateTasks: caps?.canCreateTasks ?? false,
+      canSubmitReview: caps?.canSubmitReview ?? false,
+      canCreateArtifacts: caps?.canCreateArtifacts ?? false,
+      actionModeEnabled: caps?.actionModeEnabled ?? false,
+    }),
+    [caps],
+  );
+
+  async function ensurePersisted(): Promise<ChatProposalRow> {
+    if (row) return row;
+    const res = await createFn({
+      data: {
+        projectId,
+        threadId: threadId ?? undefined,
+        sourceMessageId: sourceMessageId ?? undefined,
+        proposal: draft,
+      },
+    });
+    const p = (res as { proposal: ChatProposalRow }).proposal;
+    setRow(p);
+    return p;
+  }
+
+  const runMut = useMutation({
+    mutationFn: async (args: { action: ChatActionDefinition; opts?: { decisionNote?: string } }) => {
+      const persisted = await ensurePersisted();
+      const res = await executeFn({
         data: {
           projectId,
-          threadId: threadId ?? undefined,
-          sourceMessageId: sourceMessageId ?? undefined,
-          proposal: draft,
+          proposalId: persisted.id,
+          actionId: args.action.action_id,
+          options: args.opts,
         },
       });
-      return (res as { proposal: ChatProposalRow }).proposal;
+      return { action: args.action, result: res as ExecuteChatActionResult };
     },
-    onSuccess: (p) => {
-      setRow(p);
+    onSuccess: ({ action, result }) => {
       setErrMsg(null);
+      setOkMsg(action.success_message);
+      if (result.proposal) setRow(result.proposal);
       qc.invalidateQueries({ queryKey: ["engine", "chat", "proposals", projectId] });
+      qc.invalidateQueries({ queryKey: ["engine", "chat", "artifacts", projectId] });
+      qc.invalidateQueries({ queryKey: ["engine", "spine", projectId] });
+      window.setTimeout(() => setOkMsg(null), 2500);
     },
     onError: (e: unknown) => setErrMsg((e as Error).message),
-  });
-
-  const dismissMut = useMutation({
-    mutationFn: async () => {
-      if (!row) return null;
-      const res = await updateFn({
-        data: { id: row.id, projectId, status: "dismissed" },
-      });
-      return (res as { proposal: ChatProposalRow }).proposal;
-    },
-    onSuccess: (p) => {
-      if (p) setRow(p);
-      qc.invalidateQueries({ queryKey: ["engine", "chat", "proposals", projectId] });
-    },
-    onError: (e: unknown) => setErrMsg((e as Error).message),
-  });
-
-  const submitMut = useMutation({
-    mutationFn: async () => {
-      let target = row;
-      if (!target) {
-        const res = await createFn({
-          data: {
-            projectId,
-            threadId: threadId ?? undefined,
-            sourceMessageId: sourceMessageId ?? undefined,
-            proposal: draft,
-          },
-        });
-        target = (res as { proposal: ChatProposalRow }).proposal;
-        setRow(target);
-      }
-      const res = await submitFn({ data: { id: target.id, projectId } });
-      return (res as { proposal: ChatProposalRow }).proposal;
-    },
-    onSuccess: (p) => {
-      setRow(p);
-      setErrMsg(null);
-      qc.invalidateQueries({ queryKey: ["engine", "chat", "proposals", projectId] });
-    },
-    onError: (e: unknown) => setErrMsg((e as Error).message),
-  });
-
-  const convertMut = useMutation({
-    mutationFn: async () => {
-      let target = row;
-      if (!target) {
-        const res = await createFn({
-          data: {
-            projectId,
-            threadId: threadId ?? undefined,
-            sourceMessageId: sourceMessageId ?? undefined,
-            proposal: draft,
-          },
-        });
-        target = (res as { proposal: ChatProposalRow }).proposal;
-        setRow(target);
-      }
-      const res = await convertFn({ data: { id: target.id, projectId } });
-      return (res as { proposal: ChatProposalRow }).proposal;
-    },
-    onSuccess: (p) => {
-      setRow(p);
-      setErrMsg(null);
-      qc.invalidateQueries({ queryKey: ["engine", "chat", "proposals", projectId] });
-    },
-    onError: (e: unknown) => setErrMsg((e as Error).message),
+    onSettled: () => setConfirmAction(null),
   });
 
   function copyContent() {
@@ -201,20 +185,24 @@ export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, c
         data-qa-proposal-type={draft.proposal_type}
         data-qa-proposal-status="dismissed"
       >
-        <span>
-          Dismissed · {TYPE_LABELS[draft.proposal_type]} — {draft.title}
-        </span>
+        <span>Dismissed · {TYPE_LABELS[draft.proposal_type]} — {draft.title}</span>
       </div>
     );
   }
 
-  const busy = saveMut.isPending || submitMut.isPending || convertMut.isPending || dismissMut.isPending;
-  const showTaskConvert = draft.proposal_type === "suggested_task" && canConvertToTask;
-  const canSubmitReview =
-    draft.proposal_type === "review_item" ||
-    draft.proposal_type === "implementation_prompt" ||
-    draft.proposal_type === "qa_checklist" ||
-    draft.proposal_type === "milestone_brief";
+  // Compute available actions from the registry, filtering by proposal type,
+  // status, capability, and Action Mode.
+  const availableActions = CHAT_ACTIONS
+    .map((action) => ({
+      action,
+      state: isActionAvailable({
+        action,
+        proposalType: draft.proposal_type,
+        proposalStatus: currentStatus,
+        caps: capState,
+      }),
+    }))
+    .filter(({ state }) => state.visible);
 
   return (
     <div
@@ -222,6 +210,7 @@ export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, c
       data-qa-role="chat-proposal"
       data-qa-proposal-type={draft.proposal_type}
       data-qa-proposal-status={currentStatus}
+      data-qa-action-mode={capState.actionModeEnabled ? "on" : "off"}
     >
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-2">
@@ -281,53 +270,68 @@ export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, c
           {errMsg}
         </div>
       )}
+      {okMsg && (
+        <div className="mt-2 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 inline-flex items-center gap-1">
+          <CheckCircle2 className="w-3 h-3" /> {okMsg}
+        </div>
+      )}
 
       {!isTerminal && (
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <ActionBtn
-            onClick={() => saveMut.mutate()}
-            disabled={busy || currentStatus === "saved"}
-            icon={<Save className="w-3 h-3" />}
-            label={currentStatus === "saved" ? "Saved" : "Save"}
-          />
-          {canSubmitReview && (
+          {availableActions.map(({ action, state }) => (
             <ActionBtn
-              onClick={() => submitMut.mutate()}
-              disabled={busy}
-              icon={<SendHorizontal className="w-3 h-3" />}
-              label="Submit to Review"
+              key={action.action_id}
+              onClick={() => {
+                if (!state.enabled) return;
+                if (action.requires_approval) {
+                  setConfirmAction(action);
+                } else {
+                  runMut.mutate({ action });
+                }
+              }}
+              disabled={runMut.isPending || !state.enabled}
+              tooltip={state.disabledReason}
+              icon={ACTION_ICONS[action.action_id] ?? <Save className="w-3 h-3" />}
+              label={action.label}
+              danger={action.action_id === "dismiss_proposal"}
+              qaAction={action.action_id}
             />
-          )}
-          {showTaskConvert && (
-            <ActionBtn
-              onClick={() => convertMut.mutate()}
-              disabled={busy}
-              icon={<CheckCircle2 className="w-3 h-3" />}
-              label="Save as Suggested Task"
-            />
-          )}
+          ))}
           <ActionBtn
             onClick={copyContent}
             disabled={false}
             icon={<CopyIcon className="w-3 h-3" />}
-            label={copied ? "Copied" : draft.proposal_type === "implementation_prompt" ? "Copy Prompt" : draft.proposal_type === "qa_checklist" ? "Copy Checklist" : "Copy"}
+            label={
+              copied
+                ? "Copied"
+                : draft.proposal_type === "implementation_prompt"
+                  ? "Copy Prompt"
+                  : draft.proposal_type === "qa_checklist"
+                    ? "Copy Checklist"
+                    : "Copy"
+            }
+            qaAction="copy_proposal"
           />
-          <ActionBtn
-            onClick={() => dismissMut.mutate()}
-            disabled={busy || !row}
-            icon={<Trash2 className="w-3 h-3" />}
-            label="Dismiss"
-            danger
-          />
-          {busy && <Loader2 className="w-3 h-3 animate-spin opacity-60" />}
+          {runMut.isPending && <Loader2 className="w-3 h-3 animate-spin opacity-60" />}
         </div>
       )}
 
-      {draft.proposal_type === "suggested_task" && !canConvertToTask && (
-        <div className="mt-2 text-[10px] opacity-70">
-          Ask an admin to convert this proposal into a suggested task.
-        </div>
-      )}
+      {!capState.actionModeEnabled &&
+        availableActions.some((a) => a.action.requires_action_mode) && (
+          <div className="mt-2 text-[10px] opacity-70">
+            Action Mode is off for this project. Ask an admin to enable it in the chat sidebar to run
+            stronger actions.
+          </div>
+        )}
+
+      <ActionConfirmDialog
+        open={!!confirmAction}
+        action={confirmAction}
+        proposalTitle={draft.title}
+        busy={runMut.isPending}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={(opts) => confirmAction && runMut.mutate({ action: confirmAction, opts })}
+      />
     </div>
   );
 }
@@ -338,18 +342,24 @@ function ActionBtn({
   icon,
   label,
   danger,
+  tooltip,
+  qaAction,
 }: {
   onClick: () => void;
   disabled: boolean;
   icon: React.ReactNode;
   label: string;
   danger?: boolean;
+  tooltip?: string;
+  qaAction?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      title={tooltip}
+      data-qa-action={qaAction}
       className={cn(
         "text-[11px] inline-flex items-center gap-1 rounded-md border px-2 py-1 bg-white/80 hover:bg-white",
         "disabled:opacity-50 disabled:cursor-not-allowed",

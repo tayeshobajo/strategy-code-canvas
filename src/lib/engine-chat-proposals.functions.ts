@@ -160,12 +160,14 @@ export type ChatCapabilities = {
   canCreateTasks: boolean;
   canConvertProposalToTask: boolean;
   canSubmitReview: boolean;
+  canCreateArtifacts: boolean;
+  actionModeEnabled: boolean;
 };
 
 export const getChatCapabilities = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ projectId: uuid }).parse(raw))
-  .handler(async ({ context }): Promise<ChatCapabilities> => {
+  .handler(async ({ context, data }): Promise<ChatCapabilities> => {
     // Not using assertStaff — we want a graceful `false` payload rather than
     // an error when the caller lacks staff roles (the chat route itself is
     // already staff-gated at beforeLoad time).
@@ -182,6 +184,22 @@ export const getChatCapabilities = createServerFn({ method: "GET" })
     // engine_tasks RLS is admin-only in this workspace — mirror the
     // permission the server enforces inside convertChatProposalToSuggestedTask.
     const canCreateTasks = isAdmin;
+
+    // Read project-level Action Mode flag; falls back to false when the row
+    // isn't visible (e.g. cross-project caller — the row won't exist for
+    // them under RLS, but the chat route is scoped to a valid project id).
+    let actionModeEnabled = false;
+    try {
+      const { data: proj } = await sb
+        .from("engine_projects")
+        .select("action_mode_enabled")
+        .eq("id", data.projectId)
+        .maybeSingle();
+      actionModeEnabled = !!(proj as { action_mode_enabled?: boolean } | null)?.action_mode_enabled;
+    } catch {
+      actionModeEnabled = false;
+    }
+
     return {
       isStaff,
       isAdmin,
@@ -189,6 +207,8 @@ export const getChatCapabilities = createServerFn({ method: "GET" })
       canCreateTasks,
       canConvertProposalToTask: canCreateTasks,
       canSubmitReview: isStaff,
+      canCreateArtifacts: isStaff,
+      actionModeEnabled,
     };
   });
 
