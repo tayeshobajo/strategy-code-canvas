@@ -534,6 +534,100 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     }
   } catch { /* qa plan table may not be readable — ignore */ }
 
+  // ---------- implementation plan summary ----------
+  let implementationPlanSummary: {
+    latest_id: string;
+    status: string;
+    title: string;
+    generated_by: string;
+    backend_plan_id: string | null;
+    qa_plan_id: string | null;
+    phase_count: number;
+    build_step_count: number;
+    p0_count: number;
+    p1_count: number;
+    p2_count: number;
+    high_risk_count: number;
+    migration_count: number;
+    server_function_count: number;
+    ui_wiring_count: number;
+    integration_count: number;
+    developer_prompt_count: number;
+    qa_execution_order_count: number;
+    open_decisions_count: number;
+    release_gate_count: number;
+    approved_summary: string | null;
+    approved_goal: string | null;
+    approved_at: string | null;
+    ready_for_build_execution: boolean;
+  } | null = null;
+  try {
+    const { data: implRows } = await sb
+      .from("engine_project_implementation_plans")
+      .select("id,title,status,generated_by,backend_plan_id,qa_plan_id,summary,payload,approved_at,created_at")
+      .eq("project_id", projectId)
+      .neq("status", "archived")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    const rows = (implRows ?? []) as Array<{
+      id: string; title: string; status: string; generated_by: string;
+      backend_plan_id: string | null; qa_plan_id: string | null;
+      summary: string | null; payload: Record<string, unknown> | null;
+      approved_at: string | null; created_at: string;
+    }>;
+    const latest = rows[0] ?? null;
+    const approved = rows.find((r) => r.status === "approved") ?? null;
+    if (latest) {
+      const p = (latest.payload ?? {}) as {
+        implementation_goal?: string;
+        phases?: unknown[];
+        build_steps?: Array<{ priority?: string; risk_level?: string }>;
+        migration_plan?: unknown[]; server_function_plan?: unknown[];
+        ui_wiring_plan?: unknown[]; integration_plan?: unknown[];
+        developer_prompts?: unknown[]; qa_execution_order?: unknown[];
+        open_decisions?: Array<{ blocks?: string[] }>;
+        release_gates?: Array<{ no_go_conditions?: unknown[] }>;
+      };
+      const steps = p.build_steps ?? [];
+      const p0 = steps.filter((s) => s.priority === "p0").length;
+      const p1 = steps.filter((s) => s.priority === "p1").length;
+      const p2 = steps.filter((s) => s.priority === "p2").length;
+      const highRisk = steps.filter((s) => s.risk_level === "high").length;
+      const buildBlockers =
+        (p.open_decisions ?? []).filter((d) => Array.isArray(d.blocks) && d.blocks.includes("build")).length +
+        (p.release_gates ?? []).filter((g) => Array.isArray(g.no_go_conditions) && g.no_go_conditions.length > 0).length;
+      const approvedPayload = (approved?.payload ?? {}) as { implementation_goal?: string };
+      implementationPlanSummary = {
+        latest_id: latest.id,
+        status: latest.status,
+        title: latest.title,
+        generated_by: latest.generated_by,
+        backend_plan_id: latest.backend_plan_id,
+        qa_plan_id: latest.qa_plan_id,
+        phase_count: p.phases?.length ?? 0,
+        build_step_count: steps.length,
+        p0_count: p0,
+        p1_count: p1,
+        p2_count: p2,
+        high_risk_count: highRisk,
+        migration_count: p.migration_plan?.length ?? 0,
+        server_function_count: p.server_function_plan?.length ?? 0,
+        ui_wiring_count: p.ui_wiring_plan?.length ?? 0,
+        integration_count: p.integration_plan?.length ?? 0,
+        developer_prompt_count: p.developer_prompts?.length ?? 0,
+        qa_execution_order_count: p.qa_execution_order?.length ?? 0,
+        open_decisions_count: p.open_decisions?.length ?? 0,
+        release_gate_count: p.release_gates?.length ?? 0,
+        approved_summary: approved?.summary ?? null,
+        approved_goal: approvedPayload.implementation_goal ?? null,
+        approved_at: approved?.approved_at ?? null,
+        ready_for_build_execution: !!approved && buildBlockers === 0,
+      };
+    }
+  } catch { /* impl plan table may not be readable — ignore */ }
+
+
+
 
 
   // QA gates — derived, not model-guessed.
@@ -622,6 +716,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     mockup: mockupSummary,
     backend_plan: backendPlanSummary,
     qa_plan: qaPlanSummary,
+    implementation_plan: implementationPlanSummary,
     missing_data: missing,
   };
 
