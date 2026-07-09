@@ -152,6 +152,46 @@ async function loadProposal(sb: any, id: string): Promise<ChatProposalRow> {
   return data as ChatProposalRow;
 }
 
+// -------------------- capabilities (client-facing role gate) --------------
+export type ChatCapabilities = {
+  isStaff: boolean;
+  isAdmin: boolean;
+  isOperator: boolean;
+  canCreateTasks: boolean;
+  canConvertProposalToTask: boolean;
+  canSubmitReview: boolean;
+};
+
+export const getChatCapabilities = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ projectId: uuid }).parse(raw))
+  .handler(async ({ context }): Promise<ChatCapabilities> => {
+    // Not using assertStaff — we want a graceful `false` payload rather than
+    // an error when the caller lacks staff roles (the chat route itself is
+    // already staff-gated at beforeLoad time).
+    const email = (((context as { claims?: Record<string, unknown> }).claims?.email as
+      | string
+      | undefined) ?? "").toLowerCase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = (context as any).supabase;
+    const [isOperator, isAdmin] = await Promise.all([
+      hasRoleForEmail(sb, email, "operator"),
+      hasRoleForEmail(sb, email, "admin"),
+    ]);
+    const isStaff = isAdmin || isOperator;
+    // engine_tasks RLS is admin-only in this workspace — mirror the
+    // permission the server enforces inside convertChatProposalToSuggestedTask.
+    const canCreateTasks = isAdmin;
+    return {
+      isStaff,
+      isAdmin,
+      isOperator,
+      canCreateTasks,
+      canConvertProposalToTask: canCreateTasks,
+      canSubmitReview: isStaff,
+    };
+  });
+
 // -------------------- list --------------------
 export const listChatProposals = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -269,7 +309,8 @@ export const updateChatProposalStatus = createServerFn({ method: "POST" })
       throw new Error(`Cannot transition ${existing.status} → ${data.status}`);
     }
 
-    const { data: row, error } = await sb
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
       .from("engine_project_chat_proposals")
       .update({ status: data.status })
       .eq("id", data.id)
@@ -345,7 +386,8 @@ export const submitChatProposalToReview = createServerFn({ method: "POST" })
     if (rErr) throw new Error(rErr.message ?? "Failed to create review item");
     const reviewItemId = (reviewRow as { id: string }).id;
 
-    const { data: updated, error: uErr } = await sb
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: updated, error: uErr } = await supabaseAdmin
       .from("engine_project_chat_proposals")
       .update({
         status: "submitted_for_review",
@@ -445,7 +487,8 @@ export const convertChatProposalToSuggestedTask = createServerFn({ method: "POST
     if (tErr) throw new Error(tErr.message ?? "Failed to create suggested task");
     const taskId = (taskRow as { id: string }).id;
 
-    const { data: updated, error: uErr } = await sb
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: updated, error: uErr } = await supabaseAdmin
       .from("engine_project_chat_proposals")
       .update({
         status: "converted",
