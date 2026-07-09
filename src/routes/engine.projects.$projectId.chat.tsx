@@ -364,7 +364,10 @@ function ProjectChatPage() {
       </section>
 
       {/* Context panel */}
-      <ContextPanel projectId={projectId} spine={spine} isPending={spineQ.isPending} />
+      <div className="space-y-4">
+        {caps?.isStaff && <ActionModePanel projectId={projectId} isAdmin={caps.isAdmin} />}
+        <ContextPanel projectId={projectId} spine={spine} isPending={spineQ.isPending} />
+      </div>
     </div>
   );
 }
