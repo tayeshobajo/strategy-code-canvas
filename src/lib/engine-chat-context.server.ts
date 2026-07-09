@@ -621,6 +621,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     frame: frameSummary,
     mockup: mockupSummary,
     backend_plan: backendPlanSummary,
+    qa_plan: qaPlanSummary,
     missing_data: missing,
   };
 
