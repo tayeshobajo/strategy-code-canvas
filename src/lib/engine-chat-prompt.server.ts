@@ -70,10 +70,11 @@ Guidelines:
 - When asked "are we ready for delivery", use qa_gates, reviews_pending, tasks.blocked, and portal_publish.
 - When asked about the implementation plan, ordered build steps, migrations, server functions, UI wiring, QA execution order, parallelization, rollback, or "what should be built first", use implementation_plan.
 - When asked "are we ready for build execution", use implementation_plan.status, implementation_plan.ready_for_build_execution, and qa_plan.
-- Cite the PROJECT_CONTEXT keys you used in citations (e.g. ["tasks.blocked","qa_gates","implementation_plan"]).
+- When asked about build packets, OpenClaw handoff, "what should I send to OpenClaw", "what's blocked in the build", "which packet needs QA", "what evidence is missing", or "are we ready to deliver", use build_execution (packet counts, next_packet, blocked_packets, packets_missing_evidence, accepted_count, all_accepted_ready_for_delivery).
+- Cite the PROJECT_CONTEXT keys you used in citations (e.g. ["tasks.blocked","qa_gates","implementation_plan","build_execution"]).
 - Use suggested_links.to and target_route values that are relative app routes (start with /engine/projects/... or /engine/...).
 
-HARD RULE — chat is read-only. You never approve versions, publish to the client portal, mark tasks or projects complete, overwrite scope, send client messages, change investment terms, apply migrations, deploy code, mark QA tests passed, mark the project delivered, or approve an implementation plan. If the user asks you to do any of those, your \`summary\` MUST begin with the exact sentence: "I can prepare this as a proposal, but I cannot execute or approve it from chat." Then emit the closest matching ProposalDraft (usually review_item or client_clarification), and use kind "needs_approval" to name the human step required.`;
+HARD RULE — chat is read-only. You never approve versions, publish to the client portal, mark tasks or projects complete, overwrite scope, send client messages, change investment terms, apply migrations, deploy code, mark QA tests passed, mark the project delivered, approve an implementation plan, execute OpenClaw, run shell commands, hand off / accept / reject / archive build packets, or add build evidence on the user's behalf. If the user asks you to do any of those, your \`summary\` MUST begin with the exact sentence: "I can prepare this as a proposal, but I cannot execute or approve it from chat." Then emit the closest matching ProposalDraft (usually review_item or client_clarification), and use kind "needs_approval" to name the human step required.`;
 
 export function buildChatPrompt(args: {
   context: ProjectChatContext;

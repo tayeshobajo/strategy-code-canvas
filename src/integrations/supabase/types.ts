@@ -2026,6 +2026,147 @@ export type Database = {
           },
         ]
       }
+      engine_project_build_evidence: {
+        Row: {
+          build_packet_id: string
+          created_at: string
+          created_by_email: string | null
+          created_by_user_id: string | null
+          evidence_type: string
+          id: string
+          payload: Json
+          project_id: string
+          summary: string | null
+          title: string
+        }
+        Insert: {
+          build_packet_id: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          evidence_type: string
+          id?: string
+          payload?: Json
+          project_id: string
+          summary?: string | null
+          title: string
+        }
+        Update: {
+          build_packet_id?: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          evidence_type?: string
+          id?: string
+          payload?: Json
+          project_id?: string
+          summary?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_build_evidence_build_packet_id_fkey"
+            columns: ["build_packet_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_build_packets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_build_evidence_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_project_build_packets: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_email: string | null
+          accepted_by_user_id: string | null
+          archived_at: string | null
+          assigned_to: string | null
+          created_at: string
+          created_by_email: string | null
+          created_by_user_id: string | null
+          handed_off_at: string | null
+          id: string
+          implementation_plan_id: string
+          packet_type: string
+          payload: Json
+          priority: string
+          project_id: string
+          rejected_reason: string | null
+          sequence_number: number
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_email?: string | null
+          accepted_by_user_id?: string | null
+          archived_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          handed_off_at?: string | null
+          id?: string
+          implementation_plan_id: string
+          packet_type?: string
+          payload?: Json
+          priority?: string
+          project_id: string
+          rejected_reason?: string | null
+          sequence_number?: number
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_email?: string | null
+          accepted_by_user_id?: string | null
+          archived_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          handed_off_at?: string | null
+          id?: string
+          implementation_plan_id?: string
+          packet_type?: string
+          payload?: Json
+          priority?: string
+          project_id?: string
+          rejected_reason?: string | null
+          sequence_number?: number
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_build_packets_implementation_plan_id_fkey"
+            columns: ["implementation_plan_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_implementation_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_build_packets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_chat_events: {
         Row: {
           cost_cents: number

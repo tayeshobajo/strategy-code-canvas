@@ -626,6 +626,95 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     }
   } catch { /* impl plan table may not be readable — ignore */ }
 
+  // ---------- build execution summary ----------
+  let buildExecutionSummary: {
+    total: number;
+    by_status: Record<string, number>;
+    next_packet: {
+      id: string;
+      title: string;
+      sequence_number: number;
+      packet_type: string;
+      priority: string;
+      target_builder: string | null;
+    } | null;
+    blocked_packets: Array<{ id: string; title: string; blockers: string[] }>;
+    packets_missing_evidence: Array<{ id: string; title: string; status: string }>;
+    accepted_count: number;
+    all_accepted_ready_for_delivery: boolean;
+  } | null = null;
+  try {
+    const { data: pktRows } = await sb
+      .from("engine_project_build_packets")
+      .select("id,title,status,sequence_number,packet_type,priority,payload")
+      .eq("project_id", projectId)
+      .order("sequence_number", { ascending: true });
+    const pkts = (pktRows ?? []) as Array<{
+      id: string; title: string; status: string; sequence_number: number;
+      packet_type: string; priority: string;
+      payload: { target_builder?: string; blocking_conditions?: string[]; evidence_required?: string[] } | null;
+    }>;
+    if (pkts.length > 0) {
+      const by_status: Record<string, number> = {};
+      for (const p of pkts) by_status[p.status] = (by_status[p.status] ?? 0) + 1;
+      const priOrder = ["p0", "p1", "p2"];
+      const readyish = pkts
+        .filter((p) => ["ready", "returned", "in_progress"].includes(p.status))
+        .sort(
+          (a, b) =>
+            priOrder.indexOf(a.priority) - priOrder.indexOf(b.priority) ||
+            a.sequence_number - b.sequence_number,
+        );
+      const next = readyish[0] ?? null;
+      const blocked = pkts
+        .filter((p) => (p.payload?.blocking_conditions ?? []).length > 0)
+        .slice(0, 10)
+        .map((p) => ({
+          id: p.id,
+          title: p.title,
+          blockers: p.payload?.blocking_conditions ?? [],
+        }));
+      // Packets needing evidence: status qa_required with no evidence
+      const qaIds = pkts.filter((p) => p.status === "qa_required").map((p) => p.id);
+      let evByPacket: Record<string, number> = {};
+      if (qaIds.length > 0) {
+        const { data: evRows } = await sb
+          .from("engine_project_build_evidence")
+          .select("build_packet_id")
+          .in("build_packet_id", qaIds);
+        for (const r of (evRows ?? []) as Array<{ build_packet_id: string }>) {
+          evByPacket[r.build_packet_id] = (evByPacket[r.build_packet_id] ?? 0) + 1;
+        }
+      }
+      const packets_missing_evidence = pkts
+        .filter((p) => p.status === "qa_required" && !evByPacket[p.id])
+        .slice(0, 10)
+        .map((p) => ({ id: p.id, title: p.title, status: p.status }));
+      const acceptedCount = by_status.accepted ?? 0;
+      const nonArchived = pkts.filter((p) => p.status !== "archived").length;
+      buildExecutionSummary = {
+        total: pkts.length,
+        by_status,
+        next_packet: next
+          ? {
+              id: next.id,
+              title: next.title,
+              sequence_number: next.sequence_number,
+              packet_type: next.packet_type,
+              priority: next.priority,
+              target_builder: next.payload?.target_builder ?? null,
+            }
+          : null,
+        blocked_packets: blocked,
+        packets_missing_evidence,
+        accepted_count: acceptedCount,
+        all_accepted_ready_for_delivery:
+          nonArchived > 0 && acceptedCount === nonArchived,
+      };
+    }
+  } catch { /* build packets table may not be readable — ignore */ }
+
+
 
 
 
@@ -717,6 +806,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     backend_plan: backendPlanSummary,
     qa_plan: qaPlanSummary,
     implementation_plan: implementationPlanSummary,
+    build_execution: buildExecutionSummary,
     missing_data: missing,
   };
 
