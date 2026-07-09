@@ -2361,6 +2361,105 @@ export type Database = {
           },
         ]
       }
+      engine_project_implementation_plans: {
+        Row: {
+          approved_at: string | null
+          approved_by_email: string | null
+          approved_by_user_id: string | null
+          backend_plan_id: string
+          created_at: string
+          created_by_email: string | null
+          created_by_user_id: string | null
+          frame_id: string | null
+          generated_by: string
+          id: string
+          mockup_id: string | null
+          payload: Json
+          project_id: string
+          qa_plan_id: string
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_by_user_id?: string | null
+          backend_plan_id: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          frame_id?: string | null
+          generated_by?: string
+          id?: string
+          mockup_id?: string | null
+          payload?: Json
+          project_id: string
+          qa_plan_id: string
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_by_user_id?: string | null
+          backend_plan_id?: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          frame_id?: string | null
+          generated_by?: string
+          id?: string
+          mockup_id?: string | null
+          payload?: Json
+          project_id?: string
+          qa_plan_id?: string
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_implementation_plans_backend_plan_id_fkey"
+            columns: ["backend_plan_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_backend_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_implementation_plans_frame_id_fkey"
+            columns: ["frame_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_frames"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_implementation_plans_mockup_id_fkey"
+            columns: ["mockup_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_mockups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_implementation_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_implementation_plans_qa_plan_id_fkey"
+            columns: ["qa_plan_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_qa_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_intake_failures: {
         Row: {
           actor_email: string | null
