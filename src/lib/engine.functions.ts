@@ -4,6 +4,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import type { WorkspaceProject, WorkspaceStepKey } from "@/lib/engine-workspace";
 
+const databaseUuid = z
+  .string()
+  .regex(
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+    "Invalid UUID",
+  );
+
 async function assertAdmin(context: {
   claims?: Record<string, unknown>;
   supabase: {
@@ -623,14 +630,14 @@ const WORKSPACE_SELECT =
 
 export const getProjectWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .inputValidator((raw: unknown) => z.object({ id: databaseUuid }).parse(raw))
   .handler(async ({ context, data }): Promise<{ project: WorkspaceProject; dates: Array<{ id: string; label: string; due_on: string; kind: string }>; activity: Array<{ id: string; kind: string; title: string; body: string | null; severity: string; created_at: string }> }> => {
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
     const sb = context.supabase as unknown as {
       from: (t: string) => {
         select: (s: string) => {
           eq: (c: string, v: string) => {
-            single: () => Promise<{ data: unknown; error: unknown }>;
+            maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
             order: (c: string, o: { ascending: boolean }) => {
               limit: (n: number) => Promise<{ data: unknown }>;
             } & Promise<{ data: unknown }>;
@@ -638,8 +645,9 @@ export const getProjectWorkspace = createServerFn({ method: "GET" })
         };
       };
     };
-    const { data: p, error } = await sb.from("engine_projects").select(WORKSPACE_SELECT).eq("id", data.id).single();
+    const { data: p, error } = await sb.from("engine_projects").select(WORKSPACE_SELECT).eq("id", data.id).maybeSingle();
     if (error) throw new Error((error as { message?: string }).message ?? "not found");
+    if (!p) throw new Error(`Project not found: ${data.id}`);
     const row = p as Record<string, unknown> & { engine_clients: { company: string; owner_email: string | null } | null };
 
     const { data: datesData } = await sb.from("engine_project_dates").select("id,label,due_on,kind").eq("project_id", data.id).order("due_on", { ascending: true });
@@ -1184,7 +1192,7 @@ export type ProjectSpinePayload = {
 
 export const getProjectSpine = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .inputValidator((raw: unknown) => z.object({ id: databaseUuid }).parse(raw))
   .handler(async ({ context, data }): Promise<ProjectSpinePayload> => {
     const email = (context.claims as { email?: string } | undefined)?.email;
     const isOperator = await hasRoleForEmail(
@@ -1208,8 +1216,9 @@ export const getProjectSpine = createServerFn({ method: "GET" })
         "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,point_a,point_b,roadmap,blueprint, engine_clients(company)",
       )
       .eq("id", data.id)
-      .single();
+      .maybeSingle();
     if (projErr) throw new Error((projErr as { message?: string }).message ?? "project not found");
+    if (!projRow) throw new Error(`Project not found: ${data.id}`);
 
     // Frame / goal live inside the roadmap or blueprint JSON blobs today.
     const roadmap = (projRow.roadmap ?? {}) as Record<string, unknown>;

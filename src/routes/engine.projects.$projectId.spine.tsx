@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getProjectSpine, type ProjectSpinePayload, type SpineTask, type SpineMilestone } from "@/lib/engine.functions";
 import { SectionCard, EmptyState, EngineStatusBadge, formatDate } from "@/components/engine/primitives";
@@ -14,6 +14,7 @@ import {
   Circle,
   ArrowRight,
   Bot,
+  Loader2,
 } from "lucide-react";
 import type { EngineProjectStatus } from "@/lib/engine.functions";
 
@@ -37,7 +38,7 @@ export const Route = createFileRoute("/engine/projects/$projectId/spine")({
     void params;
   },
   errorComponent: ({ error }) => (
-    <div className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+    <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-800" data-qa-state="spine-route-error">
       Failed to load project spine: {(error as Error).message}
     </div>
   ),
@@ -46,13 +47,34 @@ export const Route = createFileRoute("/engine/projects/$projectId/spine")({
 function SpinePage() {
   const { projectId } = Route.useParams();
   const fn = useServerFn(getProjectSpine);
-  const { data } = useSuspenseQuery(
+  const { data, error, isError, isPending, isFetching, refetch } = useQuery(
     spineQueryOptions(projectId, fn as unknown as (i: { data: { id: string } }) => Promise<unknown>),
   );
+
+  if (isPending) {
+    return <SpineLoading projectId={projectId} />;
+  }
+
+  if (isError || !data) {
+    return (
+      <SpineError
+        projectId={projectId}
+        message={(error as Error | null)?.message ?? "The Spine data request returned no payload."}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
+
   const spine = data as ProjectSpinePayload;
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div className="space-y-3" data-qa-state="spine-loaded" data-project-id={projectId}>
+      {isFetching ? (
+        <div className="inline-flex items-center gap-2 rounded border border-border bg-card px-3 py-2 text-xs text-ink/60 shadow-sm">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Refreshing Spine data
+        </div>
+      ) : null}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6">
         <ProjectDirection spine={spine} />
         <ApprovedScope spine={spine} />
@@ -64,6 +86,53 @@ function SpinePage() {
       <div className="xl:col-span-1">
         <div className="xl:sticky xl:top-4">
           <AiPmPanel spine={spine} />
+        </div>
+      </div>
+      </div>
+    </div>
+  );
+}
+
+function SpineLoading({ projectId }: { projectId: string }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-3" data-qa-state="spine-loading" data-project-id={projectId}>
+      <div className="xl:col-span-2 space-y-4">
+        {["Project Direction", "Roadmap Spine", "Task Spine", "QA Gates"].map((label) => (
+          <div key={label} className="rounded-lg border border-border bg-card p-5 shadow-sm">
+            <div className="flex items-center gap-2 text-sm text-ink/70">
+              <Loader2 className="h-4 w-4 animate-spin text-royal" /> Loading {label}
+            </div>
+            <div className="mt-4 space-y-2">
+              <div className="h-2 w-2/3 rounded bg-border" />
+              <div className="h-2 w-1/2 rounded bg-border" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-sm text-ink/70">
+          <Loader2 className="h-4 w-4 animate-spin text-royal" /> Loading AI Product Manager
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SpineError({ projectId, message, onRetry }: { projectId: string; message: string; onRetry: () => void }) {
+  return (
+    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-5 text-red-900 shadow-sm" data-qa-state="spine-error" data-project-id={projectId}>
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+        <div className="min-w-0 flex-1">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-red-700/70">Spine data failed</div>
+          <div className="mt-1 text-sm">{message}</div>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-3 inline-flex items-center gap-2 rounded border border-red-300 bg-red-100 px-3 py-1.5 text-xs font-medium text-red-900 hover:bg-red-200"
+          >
+            Retry data load
+          </button>
         </div>
       </div>
     </div>
