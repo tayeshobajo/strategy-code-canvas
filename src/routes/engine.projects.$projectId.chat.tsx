@@ -26,6 +26,13 @@ import {
   type ChatThreadRow,
   type IntelligenceAnswer,
 } from "@/lib/engine-chat.functions";
+import {
+  listChatProposals,
+  type ChatProposalRow,
+} from "@/lib/engine-chat-proposals.functions";
+import { ProposalCard } from "@/components/engine/chat/ProposalCard";
+import { supabase } from "@/integrations/supabase/client";
+import { isAdminEmail } from "@/lib/ops/access";
 
 export const Route = createFileRoute("/engine/projects/$projectId/chat")({
   ssr: false,
@@ -98,6 +105,41 @@ function ProjectChatPage() {
   });
   const messages = ((threadQ.data as { messages: ChatMessageRow[] } | undefined)?.messages ?? []);
 
+  // ----- Proposals (persisted per project) ---------------------------------
+  const proposalsFn = useServerFn(listChatProposals);
+  const proposalsQ = useQuery({
+    queryKey: ["engine", "chat", "proposals", projectId, activeThreadId ?? ""],
+    queryFn: () =>
+      proposalsFn({
+        data: {
+          projectId,
+          threadId: activeThreadId ?? undefined,
+        },
+      }),
+    enabled: !!activeThreadId,
+    staleTime: 5_000,
+  });
+  const proposalsByMessage = useMemo(() => {
+    const list = (proposalsQ.data as { proposals: ChatProposalRow[] } | undefined)?.proposals ?? [];
+    const map = new Map<string, ChatProposalRow[]>();
+    for (const p of list) {
+      if (!p.source_message_id) continue;
+      const arr = map.get(p.source_message_id) ?? [];
+      arr.push(p);
+      map.set(p.source_message_id, arr);
+    }
+    return map;
+  }, [proposalsQ.data]);
+
+  // ----- Admin flag (needed for Save-as-Suggested-Task) --------------------
+  const [callerEmail, setCallerEmail] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCallerEmail(data.user?.email ?? null);
+    });
+  }, []);
+  const canConvertToTask = isAdminEmail(callerEmail);
+
   const [input, setInput] = useState("");
   const [pendingUser, setPendingUser] = useState<string | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
@@ -135,6 +177,7 @@ function ProjectChatPage() {
       qc.invalidateQueries({ queryKey: ["engine", "chat", "thread", res.thread.id] });
       // refresh spine context panel numbers after any ask
       qc.invalidateQueries({ queryKey: ["engine", "spine", projectId] });
+      qc.invalidateQueries({ queryKey: ["engine", "chat", "proposals", projectId] });
       composerRef.current?.focus();
     },
     onError: () => {
@@ -229,7 +272,14 @@ function ProjectChatPage() {
           ) : (
             <>
               {messages.map((m) => (
-                <MessageBubble key={m.id} message={m} />
+                <MessageBubble
+                  key={m.id}
+                  message={m}
+                  projectId={projectId}
+                  threadId={activeThreadId}
+                  persistedProposals={proposalsByMessage.get(m.id) ?? []}
+                  canConvertToTask={canConvertToTask}
+                />
               ))}
               {pendingUser && (
                 <MessageBubble
@@ -242,6 +292,10 @@ function ProjectChatPage() {
                     metadata: {},
                     created_at: new Date().toISOString(),
                   }}
+                  projectId={projectId}
+                  threadId={activeThreadId}
+                  persistedProposals={[]}
+                  canConvertToTask={canConvertToTask}
                 />
               )}
               {askMut.isPending && (
@@ -397,10 +451,29 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
   );
 }
 
-function MessageBubble({ message }: { message: ChatMessageRow }) {
+function MessageBubble({
+  message,
+  projectId,
+  threadId,
+  persistedProposals,
+  canConvertToTask,
+}: {
+  message: ChatMessageRow;
+  projectId: string;
+  threadId: string | null;
+  persistedProposals: ChatProposalRow[];
+  canConvertToTask: boolean;
+}) {
   const isUser = message.role === "user";
   const meta = (message.metadata ?? {}) as { answer?: IntelligenceAnswer };
   const answer = meta.answer;
+
+  // Prefer persisted proposal rows (source of truth after reload); fall back
+  // to the drafts embedded in the assistant metadata for freshly-sent messages
+  // before the proposals query returns.
+  const draftsFromMeta = answer?.proposals ?? [];
+  const showPersisted = persistedProposals.length > 0;
+
   return (
     <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (
@@ -408,11 +481,38 @@ function MessageBubble({ message }: { message: ChatMessageRow }) {
           <Bot className="w-3.5 h-3.5" />
         </div>
       )}
-      <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-sm", isUser ? "bg-ink text-white" : "bg-white border border-border text-ink")}>
-        {isUser || !answer ? (
-          <div className="whitespace-pre-wrap">{message.content}</div>
-        ) : (
-          <AnswerCard answer={answer} />
+      <div className={cn("max-w-[75%] min-w-0", isUser ? "" : "flex-1")}>
+        <div className={cn("rounded-lg px-3 py-2 text-sm", isUser ? "bg-ink text-white inline-block" : "bg-white border border-border text-ink")}>
+          {isUser || !answer ? (
+            <div className="whitespace-pre-wrap">{message.content}</div>
+          ) : (
+            <AnswerCard answer={answer} />
+          )}
+        </div>
+        {!isUser && (showPersisted || draftsFromMeta.length > 0) && (
+          <div className="mt-1 space-y-1" data-qa-role="chat-proposals" data-qa-message-id={message.id}>
+            {showPersisted
+              ? persistedProposals.map((p) => (
+                  <ProposalCard
+                    key={p.id}
+                    projectId={projectId}
+                    threadId={threadId}
+                    sourceMessageId={message.id}
+                    proposal={p}
+                    canConvertToTask={canConvertToTask}
+                  />
+                ))
+              : draftsFromMeta.map((d, i) => (
+                  <ProposalCard
+                    key={`draft-${i}`}
+                    projectId={projectId}
+                    threadId={threadId}
+                    sourceMessageId={message.id === "pending-user" ? null : message.id}
+                    proposal={d}
+                    canConvertToTask={canConvertToTask}
+                  />
+                ))}
+          </div>
         )}
       </div>
       {isUser && (

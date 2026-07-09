@@ -1890,6 +1890,7 @@ export type Database = {
           created_at: string
           error_code: string | null
           error_message: string | null
+          event_type: string | null
           id: string
           latency_ms: number | null
           message_id: string | null
@@ -1908,6 +1909,7 @@ export type Database = {
           created_at?: string
           error_code?: string | null
           error_message?: string | null
+          event_type?: string | null
           id?: string
           latency_ms?: number | null
           message_id?: string | null
@@ -1926,6 +1928,7 @@ export type Database = {
           created_at?: string
           error_code?: string | null
           error_message?: string | null
+          event_type?: string | null
           id?: string
           latency_ms?: number | null
           message_id?: string | null
@@ -1987,6 +1990,79 @@ export type Database = {
           },
           {
             foreignKeyName: "engine_project_chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_project_chat_proposals: {
+        Row: {
+          converted_ref: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          payload: Json
+          project_id: string
+          proposal_type: string
+          source_message_id: string | null
+          status: string
+          summary: string | null
+          target_route: string | null
+          thread_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          converted_ref?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payload?: Json
+          project_id: string
+          proposal_type: string
+          source_message_id?: string | null
+          status?: string
+          summary?: string | null
+          target_route?: string | null
+          thread_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          converted_ref?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payload?: Json
+          project_id?: string
+          proposal_type?: string
+          source_message_id?: string | null
+          status?: string
+          summary?: string | null
+          target_route?: string | null
+          thread_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_chat_proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_chat_proposals_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_chat_proposals_thread_id_fkey"
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "engine_project_chat_threads"

@@ -4,6 +4,12 @@
 import type { AiChatMessage } from "@/lib/engine-ai.server";
 import type { ProjectChatContext } from "@/lib/engine-chat-context.server";
 import type { IntelligenceAnswer, AnswerSection } from "@/lib/engine-chat.functions";
+import {
+  PROPOSAL_TYPES,
+  type ProposalDraft,
+  type ProposalType,
+} from "@/lib/engine-chat-proposals.functions";
+import type { Json } from "@/lib/engine-workspace";
 
 const SYSTEM_PROMPT = `You are the Project Intelligence Layer for a single client project inside Trust Tai's internal engine. You act as an AI product manager for one specific project.
 
@@ -32,8 +38,28 @@ You always return valid JSON matching this shape:
   >,
   "citations": string[],                   // keys of PROJECT_CONTEXT.json that you used
   "missing": string[],                     // context keys or data points that were needed but absent
-  "suggested_links": Array<{ "label": string, "to": string }>
+  "suggested_links": Array<{ "label": string, "to": string }>,
+  "proposals": ProposalDraft[]             // 0-3; omit or use [] when none
 }
+
+ProposalDraft shape (each item):
+{
+  "proposal_type": "client_clarification" | "review_item" | "suggested_task"
+                 | "implementation_prompt" | "qa_checklist" | "milestone_brief",
+  "title": string,
+  "summary": string,
+  "target_route": string,                  // optional relative app route
+  "payload": object                        // fields depend on proposal_type (see below)
+}
+
+Emit an Action Proposal when the operator asks for something structured or action-like. Use exactly the fields for that type. Never invent facts — every field must be supported by PROJECT_CONTEXT; when data is missing, prefer a "client_clarification" proposal.
+
+client_clarification payload:  { "reason","question_to_client","context","related_project_section","suggested_channel" }
+review_item payload:           { "artifact_type","artifact_summary","reason_for_review","linked_section","proposed_decision" }
+suggested_task payload:        { "purpose","milestone_id","phase","priority","dependency_notes","acceptance_criteria":string[],"qa_checklist":string[],"risks":string[],"expected_artifact" }
+implementation_prompt payload: { "target_surface","build_goal","context_summary","implementation_prompt","acceptance_criteria":string[],"safety_notes":string[],"related_tasks":string[] }
+qa_checklist payload:          { "target_surface","qa_goal","scenarios":string[],"role_tests":string[],"data_tests":string[],"edge_cases":string[],"acceptance_criteria":string[],"expected_evidence":string[] }
+milestone_brief payload:       { "milestone_id","milestone_summary","why_it_matters","required_outputs":string[],"tasks":string[],"dependencies":string[],"risks":string[],"acceptance_criteria":string[],"qa_checklist":string[] }
 
 Guidelines:
 - Prefer concrete counts and names from PROJECT_CONTEXT over vague summaries.
@@ -43,8 +69,9 @@ Guidelines:
 - When asked "what should happen next", use next_best_action first, then qa_gates and reviews_pending.
 - When asked "are we ready for delivery", use qa_gates, reviews_pending, tasks.blocked, and portal_publish.
 - Cite the PROJECT_CONTEXT keys you used in citations (e.g. ["tasks.blocked","qa_gates"]).
-- Use suggested_links.to values that are relative app routes (start with /engine/projects/... or /engine/...).
-- v1 is read-only: NEVER produce a section that would approve, publish, mutate, or send anything. Instead use kind "needs_approval" to name what a human still has to do.`;
+- Use suggested_links.to and target_route values that are relative app routes (start with /engine/projects/... or /engine/...).
+
+HARD RULE — chat is read-only. You never approve versions, publish to the client portal, mark tasks or projects complete, overwrite scope, send client messages, or change investment terms. If the user asks you to do any of those, your \`summary\` MUST begin with the exact sentence: "I can prepare this as a proposal, but I cannot execute or approve it from chat." Then emit the closest matching ProposalDraft (usually review_item or client_clarification), and use kind "needs_approval" to name the human step required.`;
 
 export function buildChatPrompt(args: {
   context: ProjectChatContext;
@@ -112,6 +139,36 @@ function normalizeLinkArray(raw: unknown): Array<{ label: string; to: string }> 
     .slice(0, 8);
 }
 
+const PROPOSAL_TYPE_SET = new Set<ProposalType>(PROPOSAL_TYPES);
+
+export function normalizeProposals(raw: unknown): ProposalDraft[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ProposalDraft[] = [];
+  for (const it of raw) {
+    if (!it || typeof it !== "object") continue;
+    const o = it as Record<string, unknown>;
+    const t = String(o.proposal_type ?? "").trim();
+    if (!PROPOSAL_TYPE_SET.has(t as ProposalType)) continue;
+    const title = String(o.title ?? "").trim();
+    if (!title) continue;
+    const summary = String(o.summary ?? "").trim();
+    const payload =
+      o.payload && typeof o.payload === "object" && !Array.isArray(o.payload)
+        ? (o.payload as Json)
+        : ({} as Json);
+    const target_route = String(o.target_route ?? "").trim() || undefined;
+    out.push({
+      proposal_type: t as ProposalType,
+      title: title.slice(0, 300),
+      summary: summary.slice(0, 4000),
+      payload,
+      target_route,
+    });
+    if (out.length >= 3) break;
+  }
+  return out;
+}
+
 export function parseIntelligenceAnswer(text: string): IntelligenceAnswer {
   const fallback: IntelligenceAnswer = {
     summary:
@@ -120,6 +177,7 @@ export function parseIntelligenceAnswer(text: string): IntelligenceAnswer {
     citations: [],
     missing: ["ai_response_unparseable"],
     suggested_links: [],
+    proposals: [],
   };
   const cleaned = text
     .trim()
@@ -147,5 +205,6 @@ export function parseIntelligenceAnswer(text: string): IntelligenceAnswer {
     citations: normalizeStringArray(p.citations),
     missing: normalizeStringArray(p.missing),
     suggested_links: normalizeLinkArray(p.suggested_links),
+    proposals: normalizeProposals(p.proposals),
   };
 }
