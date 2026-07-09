@@ -28,13 +28,29 @@ import {
 } from "@/lib/engine-chat.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/chat")({
+  ssr: false,
+  beforeLoad: async ({ location }) => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      const { redirect } = await import("@tanstack/react-router");
+      throw redirect({ to: "/auth", search: { redirect: location.href } });
+    }
+    return { user: data.user };
+  },
   component: ProjectChatPage,
   errorComponent: ({ error }) => (
-    <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+    <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-800" data-qa-state="chat-error">
       Project Chat failed to load: {(error as Error).message}
     </div>
   ),
+  notFoundComponent: () => (
+    <div className="rounded border border-border bg-card p-4 text-sm text-ink" data-qa-state="chat-notfound">
+      Project Chat not found for this project.
+    </div>
+  ),
 });
+
 
 const SUGGESTED_PROMPTS = [
   "What is the status of this project?",
