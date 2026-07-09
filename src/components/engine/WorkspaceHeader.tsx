@@ -1,5 +1,6 @@
-import { Link } from "@tanstack/react-router";
-import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Settings, PlusCircle, Sparkles, Bot, ListChecks, DollarSign, GitCompare, ShieldCheck, ClipboardList, MessageCircle, Network } from "lucide-react";
+
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import { EngineStatusBadge } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
@@ -103,31 +104,57 @@ function Metric({
 }
 
 export function WorkspaceToolbar({ projectId }: { projectId: string }) {
-  const linkCls = "inline-flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1.5 hover:border-royal/50 text-ink";
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const baseCls =
+    "inline-flex items-center gap-1.5 text-xs border rounded-md px-2.5 py-1.5 transition-colors";
+  const linkFor = (suffix: string) => {
+    const active = pathname.endsWith(`/${suffix}`) || pathname.includes(`/${suffix}/`);
+    return cn(
+      baseCls,
+      active
+        ? "border-royal bg-royal/10 text-ink font-medium"
+        : "border-border text-ink hover:border-royal/50",
+    );
+  };
   return (
-    <div className="flex items-center justify-end gap-2 flex-wrap">
-      <Link to="/engine/projects/$projectId/chat" params={{ projectId }} className={linkCls}>
+    <div className="flex items-center justify-end gap-2 flex-wrap" data-qa-role="workspace-toolbar">
+      <Link
+        to="/engine/projects/$projectId/spine"
+        params={{ projectId }}
+        className={linkFor("spine")}
+        activeProps={{ "data-status": "active" } as unknown as Record<string, string>}
+        data-qa-nav="spine"
+      >
+        <Network className="w-3.5 h-3.5" /> Project Spine
+      </Link>
+      <Link
+        to="/engine/projects/$projectId/chat"
+        params={{ projectId }}
+        className={linkFor("chat")}
+        activeProps={{ "data-status": "active" } as unknown as Record<string, string>}
+        data-qa-nav="chat"
+      >
         <MessageCircle className="w-3.5 h-3.5" /> Project Chat
       </Link>
-      <Link to="/engine/projects/$projectId/intelligence-layer" params={{ projectId }} className={linkCls}>
+      <Link to="/engine/projects/$projectId/intelligence-layer" params={{ projectId }} className={linkFor("intelligence-layer")}>
         <Sparkles className="w-3.5 h-3.5" /> Intelligence
       </Link>
-      <Link to="/engine/projects/$projectId/agent" params={{ projectId }} className={linkCls}>
+      <Link to="/engine/projects/$projectId/agent" params={{ projectId }} className={linkFor("agent")}>
         <Bot className="w-3.5 h-3.5" /> Agent
       </Link>
-      <Link to="/engine/projects/$projectId/agent/tasks" params={{ projectId }} className={linkCls}>
+      <Link to="/engine/projects/$projectId/agent/tasks" params={{ projectId }} className={linkFor("agent/tasks")}>
         <ListChecks className="w-3.5 h-3.5" /> Tasks
       </Link>
-      <Link to="/engine/projects/$projectId/agent/costs" params={{ projectId }} className={linkCls}>
+      <Link to="/engine/projects/$projectId/agent/costs" params={{ projectId }} className={linkFor("agent/costs")}>
         <DollarSign className="w-3.5 h-3.5" /> Costs
       </Link>
-      <Link to="/engine/projects/$projectId/versions/compare" params={{ projectId }} className={linkCls}>
+      <Link to="/engine/projects/$projectId/versions/compare" params={{ projectId }} className={linkFor("versions/compare")}>
         <GitCompare className="w-3.5 h-3.5" /> Compare
       </Link>
-      <Link to="/engine/projects/$projectId/agent/permissions" params={{ projectId }} className={linkCls}>
+      <Link to="/engine/projects/$projectId/agent/permissions" params={{ projectId }} className={linkFor("agent/permissions")}>
         <ShieldCheck className="w-3.5 h-3.5" /> Permissions
       </Link>
-      <Link to="/engine/projects/$projectId/intake" params={{ projectId }} className={linkCls}>
+      <Link to="/engine/projects/$projectId/intake" params={{ projectId }} className={linkFor("intake")}>
         <ClipboardList className="w-3.5 h-3.5" /> Intake Review
       </Link>
       <Link
@@ -140,3 +167,4 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
     </div>
   );
 }
+

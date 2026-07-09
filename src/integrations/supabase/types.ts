@@ -1884,6 +1884,71 @@ export type Database = {
           },
         ]
       }
+      engine_project_chat_events: {
+        Row: {
+          cost_cents: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          id: string
+          latency_ms: number | null
+          message_id: string | null
+          model: string | null
+          project_id: string
+          provider: string | null
+          success: boolean
+          thread_id: string | null
+          tokens_in: number
+          tokens_out: number
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cost_cents?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          message_id?: string | null
+          model?: string | null
+          project_id: string
+          provider?: string | null
+          success?: boolean
+          thread_id?: string | null
+          tokens_in?: number
+          tokens_out?: number
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cost_cents?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          message_id?: string | null
+          model?: string | null
+          project_id?: string
+          provider?: string | null
+          success?: boolean
+          thread_id?: string | null
+          tokens_in?: number
+          tokens_out?: number
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_chat_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_chat_messages: {
         Row: {
           content: string
@@ -3507,6 +3572,13 @@ export type Database = {
           href: string
           reason: string
           severity: string
+        }[]
+      }
+      count_recent_chat_events: {
+        Args: { _project_id: string; _user_id: string; _window_seconds: number }
+        Returns: {
+          project_count: number
+          user_count: number
         }[]
       }
       current_client_portal_project_id: { Args: never; Returns: string }
