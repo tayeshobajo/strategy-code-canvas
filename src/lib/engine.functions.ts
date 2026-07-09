@@ -1126,6 +1126,7 @@ export type ProjectSpinePayload = {
   nba: NextBestAction;
   sources: {
     total: number;
+    queued: number;
     processing: number;
     failed: number;
     processed: number;
@@ -1249,7 +1250,8 @@ export const getProjectSpine = createServerFn({ method: "GET" })
     const src = (srcRows ?? []) as Array<{ id: string; status: string }>;
     const sources = {
       total: src.length,
-      processing: src.filter((s) => s.status === "queued" || s.status === "processing").length,
+      queued: src.filter((s) => s.status === "queued").length,
+      processing: src.filter((s) => s.status === "processing").length,
       failed: src.filter((s) => s.status === "failed").length,
       processed: src.filter((s) => s.status === "processed").length,
       last_run: null as ProjectSpinePayload["sources"]["last_run"],

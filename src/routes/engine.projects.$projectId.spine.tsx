@@ -85,7 +85,7 @@ function ProjectDirection({ spine }: { spine: ProjectSpinePayload }) {
         <Field label="Frame / Type" value={p.frame ?? <Missing to={`/engine/projects/${p.id}/point-b`} label="Set in Point B" />} />
         <Field label="Project goal" value={p.goal ?? <Missing to={`/engine/projects/${p.id}/point-b`} label="Set in Point B" />} />
         <Field label="Current step" value={`${p.current_step_num}. ${prettyStep(p.current_step)}`} />
-        <Field label="Sources" value={`${spine.sources.total} total · ${spine.sources.processed} processed · ${spine.sources.processing} processing${spine.sources.failed ? ` · ${spine.sources.failed} failed` : ""}`} />
+        <Field label="Sources" value={formatSources(spine.sources)} />
         <Field
           label="Point A"
           value={summarizeJson(p.point_a) ?? <Missing to={`/engine/projects/${p.id}/point-a`} label="Diagnose in Point A" />}
@@ -471,23 +471,40 @@ function Bucket({ title, items, tone, empty }: { title: string; items: string[];
 type Gate = { label: string; status: "pass" | "warn" | "fail" | "info"; reason: string; next?: { label: string; href: string } };
 
 function computeGates(spine: ProjectSpinePayload): Gate[] {
+  const pid = spine.project.id;
   const gates: Gate[] = [];
   gates.push({ label: "Role access", status: "pass", reason: "Route gated to operator/admin roles." });
 
   const orphanTasks = spine.tasks.filter((t) => !spine.milestones.some((m) => m.id === t.milestone_id)).length;
+  const integrityBad = orphanTasks || spine.sources.failed;
   gates.push({
     label: "Data integrity",
-    status: orphanTasks || spine.sources.failed ? "warn" : "pass",
-    reason: orphanTasks ? `${orphanTasks} orphan task(s) — milestone missing.` : spine.sources.failed ? `${spine.sources.failed} failed source(s).` : "No orphan tasks; no failed sources.",
+    status: integrityBad ? "warn" : "pass",
+    reason: orphanTasks
+      ? `${orphanTasks} orphan task(s) — milestone missing.`
+      : spine.sources.failed
+        ? `${spine.sources.failed} failed source(s).`
+        : "No orphan tasks; no failed sources.",
+    next: integrityBad ? { label: "Open Signal Room", href: `/engine/projects/${pid}/signal-room` } : undefined,
   });
 
   const aiDelivered =
     spine.portal_publish?.status === "delivered" &&
     spine.version?.status !== "approved";
+  const draftAwaitingApproval =
+    spine.version && (spine.version.status === "ai_generated" || spine.version.status === "draft" || spine.version.status === "tai_edited");
+  const approvalWarn = aiDelivered || spine.reviews.length > 0 || draftAwaitingApproval;
   gates.push({
     label: "Approval gates",
-    status: aiDelivered ? "fail" : "pass",
-    reason: aiDelivered ? "AI-draft version is published to the portal without approval." : "No AI-draft published to portal.",
+    status: aiDelivered ? "fail" : approvalWarn ? "warn" : "pass",
+    reason: aiDelivered
+      ? "AI-draft version is published to the portal without approval."
+      : spine.reviews.length
+        ? `${spine.reviews.length} pending review item(s) awaiting decision.`
+        : draftAwaitingApproval
+          ? "Roadmap draft is waiting on human approval."
+          : "No AI-draft published to portal.",
+    next: approvalWarn ? { label: "Open Reviews", href: `/engine/projects/${pid}/reviews` } : undefined,
   });
 
   const portalUnsafe =
@@ -497,27 +514,45 @@ function computeGates(spine: ProjectSpinePayload): Gate[] {
     label: "Client portal safety",
     status: portalUnsafe ? "fail" : "pass",
     reason: portalUnsafe ? "Portal shows an approved roadmap while engine version is still AI-drafted." : "Portal state consistent with approved engine version.",
+    next: portalUnsafe ? { label: "Open Delivery Prep", href: `/engine/projects/${pid}/delivery` } : undefined,
   });
 
+  const lastRun = spine.sources.last_run;
+  const backendStatus: Gate["status"] = lastRun
+    ? lastRun.status === "succeeded"
+      ? "pass"
+      : lastRun.status === "running"
+        ? "info"
+        : "warn"
+    : "info";
   gates.push({
     label: "Backend readiness",
-    status: spine.sources.last_run
-      ? spine.sources.last_run.status === "succeeded"
-        ? "pass"
-        : spine.sources.last_run.status === "running"
-          ? "info"
-          : "warn"
-      : "info",
-    reason: spine.sources.last_run ? `Last extraction run: ${spine.sources.last_run.status}${spine.sources.last_run.error ? ` — ${spine.sources.last_run.error}` : ""}` : "No extraction run yet.",
-  });
-
-  gates.push({
-    label: "Mobile responsive",
-    status: "info",
-    reason: "Spine layout stacks on mobile; verify manually per release.",
+    status: backendStatus,
+    reason: lastRun
+      ? `Last extraction run: ${lastRun.status}${lastRun.error ? ` — ${lastRun.error}` : ""}`
+      : "No extraction run yet.",
+    next: backendStatus === "warn" || backendStatus === "info"
+      ? { label: "Open System Blueprint", href: `/engine/projects/${pid}/blueprint` }
+      : undefined,
   });
 
   const blockedTasks = spine.tasks.filter((t) => t.status === "blocked").length;
+  if (blockedTasks) {
+    gates.push({
+      label: "Blocked tasks",
+      status: "warn",
+      reason: `${blockedTasks} task(s) blocked — need operator input.`,
+      next: { label: "Open Task Board", href: `/engine/projects/${pid}/agent/tasks` },
+    });
+  }
+
+  gates.push({
+    label: "Responsive readiness",
+    status: "info",
+    reason: "Mobile and tablet review has not been captured for this project yet.",
+    next: { label: "Run responsive QA", href: `/engine/projects/${pid}/spine` },
+  });
+
   const deliveryReady =
     spine.version?.status === "approved" && spine.portal_publish?.status && spine.portal_publish.status !== "not_published" && !blockedTasks;
   gates.push({
@@ -530,11 +565,7 @@ function computeGates(spine: ProjectSpinePayload): Gate[] {
         : blockedTasks
           ? `${blockedTasks} blocked task(s) must be resolved.`
           : "All delivery gates clear.",
-    next: !spine.portal_publish
-      ? { label: "Open Delivery", href: `/engine/projects/${spine.project.id}/delivery` }
-      : blockedTasks
-        ? { label: "Open Tasks", href: `/engine/projects/${spine.project.id}/agent/tasks` }
-        : undefined,
+    next: deliveryReady ? undefined : { label: "Open Delivery Prep", href: `/engine/projects/${pid}/delivery` },
   });
 
   return gates;
@@ -695,6 +726,15 @@ function groupByPhase(milestones: SpineMilestone[]): Map<string, SpineMilestone[
 
 function prettyStep(s: string): string {
   return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatSources(s: ProjectSpinePayload["sources"]): string {
+  const parts = [`${s.total} total`];
+  if (s.queued) parts.push(`${s.queued} queued`);
+  if (s.processing) parts.push(`${s.processing} processing`);
+  parts.push(`${s.processed} processed`);
+  if (s.failed) parts.push(`${s.failed} failed`);
+  return parts.join(" · ");
 }
 
 function timeAgo(iso: string): string {
