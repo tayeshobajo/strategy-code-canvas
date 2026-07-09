@@ -105,6 +105,41 @@ function ProjectChatPage() {
   });
   const messages = ((threadQ.data as { messages: ChatMessageRow[] } | undefined)?.messages ?? []);
 
+  // ----- Proposals (persisted per project) ---------------------------------
+  const proposalsFn = useServerFn(listChatProposals);
+  const proposalsQ = useQuery({
+    queryKey: ["engine", "chat", "proposals", projectId, activeThreadId ?? ""],
+    queryFn: () =>
+      proposalsFn({
+        data: {
+          projectId,
+          threadId: activeThreadId ?? undefined,
+        },
+      }),
+    enabled: !!activeThreadId,
+    staleTime: 5_000,
+  });
+  const proposalsByMessage = useMemo(() => {
+    const list = (proposalsQ.data as { proposals: ChatProposalRow[] } | undefined)?.proposals ?? [];
+    const map = new Map<string, ChatProposalRow[]>();
+    for (const p of list) {
+      if (!p.source_message_id) continue;
+      const arr = map.get(p.source_message_id) ?? [];
+      arr.push(p);
+      map.set(p.source_message_id, arr);
+    }
+    return map;
+  }, [proposalsQ.data]);
+
+  // ----- Admin flag (needed for Save-as-Suggested-Task) --------------------
+  const [callerEmail, setCallerEmail] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCallerEmail(data.user?.email ?? null);
+    });
+  }, []);
+  const canConvertToTask = isAdminEmail(callerEmail);
+
   const [input, setInput] = useState("");
   const [pendingUser, setPendingUser] = useState<string | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
