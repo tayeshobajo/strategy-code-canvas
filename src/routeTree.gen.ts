@@ -104,6 +104,7 @@ import { Route as EngineProjectsProjectIdDeadlinesRouteImport } from './routes/e
 import { Route as EngineProjectsProjectIdChatRouteImport } from './routes/engine.projects.$projectId.chat'
 import { Route as EngineProjectsProjectIdBuilderRouteImport } from './routes/engine.projects.$projectId.builder'
 import { Route as EngineProjectsProjectIdBlueprintRouteImport } from './routes/engine.projects.$projectId.blueprint'
+import { Route as EngineProjectsProjectIdBackendBuilderRouteImport } from './routes/engine.projects.$projectId.backend-builder'
 import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engine.projects.$projectId.agent'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
@@ -614,6 +615,12 @@ const EngineProjectsProjectIdBlueprintRoute =
     path: '/blueprint',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdBackendBuilderRoute =
+  EngineProjectsProjectIdBackendBuilderRouteImport.update({
+    id: '/backend-builder',
+    path: '/backend-builder',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdAgentRoute =
   EngineProjectsProjectIdAgentRouteImport.update({
     id: '/agent',
@@ -734,6 +741,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
+  '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
@@ -833,6 +841,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
+  '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
@@ -939,6 +948,7 @@ export interface FileRoutesById {
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
+  '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
@@ -1044,6 +1054,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
+    | '/engine/projects/$projectId/backend-builder'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/builder'
     | '/engine/projects/$projectId/chat'
@@ -1143,6 +1154,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
+    | '/engine/projects/$projectId/backend-builder'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/builder'
     | '/engine/projects/$projectId/chat'
@@ -1248,6 +1260,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
+    | '/engine/projects/$projectId/backend-builder'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/builder'
     | '/engine/projects/$projectId/chat'
@@ -1987,6 +2000,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdBlueprintRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/backend-builder': {
+      id: '/engine/projects/$projectId/backend-builder'
+      path: '/backend-builder'
+      fullPath: '/engine/projects/$projectId/backend-builder'
+      preLoaderRoute: typeof EngineProjectsProjectIdBackendBuilderRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/agent': {
       id: '/engine/projects/$projectId/agent'
       path: '/agent'
@@ -2132,6 +2152,7 @@ const EngineProjectsProjectIdAgentRouteWithChildren =
 
 interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdAgentRoute: typeof EngineProjectsProjectIdAgentRouteWithChildren
+  EngineProjectsProjectIdBackendBuilderRoute: typeof EngineProjectsProjectIdBackendBuilderRoute
   EngineProjectsProjectIdBlueprintRoute: typeof EngineProjectsProjectIdBlueprintRoute
   EngineProjectsProjectIdBuilderRoute: typeof EngineProjectsProjectIdBuilderRoute
   EngineProjectsProjectIdChatRoute: typeof EngineProjectsProjectIdChatRoute
@@ -2161,6 +2182,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
   {
     EngineProjectsProjectIdAgentRoute:
       EngineProjectsProjectIdAgentRouteWithChildren,
+    EngineProjectsProjectIdBackendBuilderRoute:
+      EngineProjectsProjectIdBackendBuilderRoute,
     EngineProjectsProjectIdBlueprintRoute:
       EngineProjectsProjectIdBlueprintRoute,
     EngineProjectsProjectIdBuilderRoute: EngineProjectsProjectIdBuilderRoute,
