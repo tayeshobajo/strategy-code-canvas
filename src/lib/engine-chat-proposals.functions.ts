@@ -269,7 +269,8 @@ export const updateChatProposalStatus = createServerFn({ method: "POST" })
       throw new Error(`Cannot transition ${existing.status} → ${data.status}`);
     }
 
-    const { data: row, error } = await sb
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
       .from("engine_project_chat_proposals")
       .update({ status: data.status })
       .eq("id", data.id)
