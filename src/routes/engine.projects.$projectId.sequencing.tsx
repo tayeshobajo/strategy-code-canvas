@@ -22,7 +22,14 @@ const LANES = [
 function Sequencing() {
   const { projectId } = Route.useParams();
   const { project } = useWorkspace(projectId);
-  const data = (project.sequencing ?? {}) as Record<string, string[] | undefined>;
+  const raw = (project.sequencing ?? {}) as Record<string, unknown>;
+  const data: Record<string, string[]> = {};
+  for (const { key } of LANES) {
+    const v = raw[key];
+    if (Array.isArray(v)) data[key] = v.map((x) => String(x));
+    else if (typeof v === "string" && v.trim()) data[key] = [v];
+    else data[key] = [];
+  }
   return (
     <div className="space-y-4">
       <header>
