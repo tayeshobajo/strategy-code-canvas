@@ -266,6 +266,7 @@ type AssessedFacts = {
     acknowledged_at: string | null;
   }>;
   monitor_settings: { enabled: boolean } | null;
+  monitor_load_error: string | null;
   qa_plan: {
     id: string;
     title: string;
