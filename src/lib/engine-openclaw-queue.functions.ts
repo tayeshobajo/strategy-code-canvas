@@ -184,6 +184,7 @@ async function insertAuditLog(args: {
       error_message: args.errorMessage ? String(args.errorMessage).slice(0, 500) : null,
       ...(args.extraMetadata ?? {}),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await supabaseAdmin.from("engine_audit_log").insert({
       project_id: args.projectId,
       actor_email: args.actorEmail,
@@ -191,8 +192,8 @@ async function insertAuditLog(args: {
       summary: args.summary.slice(0, 500),
       target_id: args.queueItemId ?? args.queueId ?? null,
       affected_modules: ["build_execution", "openclaw_queue"],
-      metadata: metadata as unknown as import("@/integrations/supabase/types").Json,
-    });
+      metadata,
+    } as any);
   } catch {
     /* audit is best-effort — never break the caller */
   }
