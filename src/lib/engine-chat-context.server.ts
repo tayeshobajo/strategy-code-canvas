@@ -955,6 +955,78 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     }
   } catch { /* monitor tables may not be readable — ignore */ }
 
+  // ---------- qa evidence reviews summary (v5) ----------
+  let qaEvidenceReviewSummary: {
+    total: number;
+    by_status: Record<string, number>;
+    by_verdict: Record<string, number>;
+    latest_approved_at: string | null;
+    packets_with_review: number;
+    packets_missing_review: number;
+    recent: Array<{
+      id: string;
+      packet_id: string;
+      status: string;
+      verdict: string;
+      title: string;
+      updated_at: string;
+      generated_by: string;
+    }>;
+  } | null = null;
+  try {
+    const { data: revRaw } = await sb
+      .from("engine_project_qa_evidence_reviews")
+      .select("id,build_packet_id,status,verdict,title,updated_at,approved_at,generated_by")
+      .eq("project_id", projectId)
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    const reviews = (revRaw ?? []) as Array<{
+      id: string; build_packet_id: string; status: string; verdict: string;
+      title: string; updated_at: string; approved_at: string | null; generated_by: string;
+    }>;
+    if (reviews.length > 0) {
+      const by_status: Record<string, number> = {};
+      const by_verdict: Record<string, number> = {};
+      for (const r of reviews) {
+        by_status[r.status] = (by_status[r.status] ?? 0) + 1;
+        by_verdict[r.verdict] = (by_verdict[r.verdict] ?? 0) + 1;
+      }
+      const packetsWithReview = new Set(reviews.map((r) => r.build_packet_id));
+      let packetsMissing = 0;
+      try {
+        const { data: pktRaw } = await sb
+          .from("engine_project_build_packets")
+          .select("id,status")
+          .eq("project_id", projectId)
+          .in("status", ["handed_off", "in_progress", "returned", "qa_required", "accepted"]);
+        const pkts = (pktRaw ?? []) as Array<{ id: string; status: string }>;
+        packetsMissing = pkts.filter((p) => !packetsWithReview.has(p.id)).length;
+      } catch { /* ignore */ }
+      const latestApproved = reviews
+        .filter((r) => r.status === "approved" && r.approved_at)
+        .sort((a, b) => (b.approved_at ?? "").localeCompare(a.approved_at ?? ""))[0]?.approved_at ?? null;
+      qaEvidenceReviewSummary = {
+        total: reviews.length,
+        by_status,
+        by_verdict,
+        latest_approved_at: latestApproved,
+        packets_with_review: packetsWithReview.size,
+        packets_missing_review: packetsMissing,
+        recent: reviews.slice(0, 10).map((r) => ({
+          id: r.id,
+          packet_id: r.build_packet_id,
+          status: r.status,
+          verdict: r.verdict,
+          title: r.title,
+          updated_at: r.updated_at,
+          generated_by: r.generated_by,
+        })),
+      };
+    }
+  } catch { /* qa evidence review table may not be readable — ignore */ }
+
+
+
 
 
 
