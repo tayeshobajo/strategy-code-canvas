@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +47,8 @@ function AuthPage() {
   const navigate = useNavigate();
   const sendPortalLink = useServerFn(requestPortalMagicLink);
   const [email, setEmail] = useState(search.email ?? "");
+  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<"password" | "magic">("password");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -55,8 +57,6 @@ function AuthPage() {
     const sub = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN") {
         const staffLanding = await resolveStaffLanding(session?.user?.email);
-        // Only honor an explicit ?redirect= if it's set to something other than
-        // the default. Staff should always land in /engine on a fresh sign-in.
         const explicit =
           search.redirect && search.redirect !== "/portal" ? search.redirect : null;
         navigate({ to: staffLanding ?? explicit ?? "/portal" });
@@ -67,7 +67,31 @@ function AuthPage() {
     };
   }, [navigate, search.redirect]);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onPasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error) {
+        setErr(
+          error.message === "Invalid login credentials"
+            ? "Incorrect email or password. If you haven't set a password yet, use the sign-in link instead."
+            : error.message,
+        );
+      }
+      // On success, onAuthStateChange navigates.
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onMagicSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setBusy(true);
@@ -107,8 +131,9 @@ function AuthPage() {
               Sign in to your portal
             </h1>
             <p className="text-[15px] leading-[1.75] text-ink/70">
-              Enter the email you used when you purchased. We will send you a
-              one-time link.
+              {mode === "password"
+                ? "Enter your email and password."
+                : "Enter your email and we'll send you a one-time sign-in link."}
             </p>
           </header>
 
@@ -116,12 +141,61 @@ function AuthPage() {
             <div className="rounded-lg border border-border bg-card p-4 text-[15px] text-ink">
               Check {email}. The link signs you in.
             </div>
-          ) : (
-            <form onSubmit={onSubmit} className="space-y-4">
+          ) : mode === "password" ? (
+            <form onSubmit={onPasswordSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-ink">
-                  Email
-                </Label>
+                <Label htmlFor="email" className="text-ink">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-ink">Password</Label>
+                  <Link
+                    to="/forgot-password"
+                    className="text-xs text-ink/60 underline underline-offset-2"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+              {err && <p className="text-sm text-destructive">{err}</p>}
+              <Button
+                type="submit"
+                disabled={busy}
+                className="w-full bg-ink hover:bg-ink/90 text-white"
+              >
+                {busy ? "Signing in…" : "Sign in"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => { setMode("magic"); setErr(null); }}
+                className="w-full text-sm text-ink/60 underline underline-offset-2"
+              >
+                Email me a sign-in link instead
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={onMagicSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-ink">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -141,6 +215,13 @@ function AuthPage() {
               >
                 {busy ? "Sending…" : "Send link"}
               </Button>
+              <button
+                type="button"
+                onClick={() => { setMode("password"); setErr(null); }}
+                className="w-full text-sm text-ink/60 underline underline-offset-2"
+              >
+                Sign in with password instead
+              </button>
             </form>
           )}
         </div>

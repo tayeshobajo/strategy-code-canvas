@@ -1,111 +1,58 @@
-# Build Execution / OpenClaw Handoff v1
+## Goal
 
-Package the approved Implementation Plan into controlled build packets with prompts, scope, evidence tracking, and lifecycle — no autonomous execution.
+Let anyone with portal or staff access sign in with an email + password instead of (or alongside) the current magic-link flow, reset a forgotten password by email, and change their password from the account page.
 
-## 1. Database migration
+## What already exists
 
-New table `engine_project_build_packets`:
-- id, project_id (FK engine_projects), implementation_plan_id (FK engine_project_implementation_plans)
-- title, summary, status (enum: draft|ready|handed_off|in_progress|returned|qa_required|accepted|rejected|archived)
-- packet_type (lovable|openclaw|developer|qa|mixed), sequence_number int, priority (p0|p1|p2)
-- payload jsonb (schema below)
-- created_by/email, assigned_to, handed_off_at, accepted_by/email, accepted_at, archived_at
-- created_at, updated_at (+ trigger)
+- `/portal/account` already has a working "Set / update password" form (`supabase.auth.updateUser`). No change needed there beyond a small "Change password" link surfaced from the account menu.
+- Two magic-link sign-in surfaces: `/auth` (used by staff + portal) and `/portal/login` (portal-focused). Both call `requestPortalMagicLink`.
 
-New table `engine_project_build_evidence`:
-- id, project_id, build_packet_id (FK cascade)
-- evidence_type (screenshot|log|diff_summary|qa_report|link|note|artifact)
-- title, summary, payload jsonb
-- created_by/email, created_at
+## Changes
 
-Security:
-- GRANT SELECT to authenticated (RLS staff-only via `has_role` operator/admin); GRANT ALL to service_role; no anon
-- RLS: staff SELECT via has_role; all writes blocked at policy level for authenticated (mutations via service-role in server fns)
-- Trigger: block UPDATE on packets when previous status is `accepted` or `archived` (except `archived_at` field)
-- Trigger: forbid deleting evidence rows unless service_role
-- update_updated_at trigger
+### 1. Add password sign-in to both sign-in pages
 
-## 2. Server functions (`src/lib/engine-build-execution.functions.ts`)
+On `/auth` and `/portal/login`, keep the magic-link path but add:
 
-All use `requireSupabaseAuth` + staff assertion (reuse `assertStaff` pattern from chat fns). Mutations dynamic-import `client.server` for `supabaseAdmin`.
+- Password input (with show/hide toggle)
+- Primary button: **Sign in** → `supabase.auth.signInWithPassword({ email, password })`
+- Secondary link: **Email me a sign-in link instead** (falls back to existing magic-link flow)
+- Link: **Forgot password?** → `/forgot-password`
 
-- `getProjectBuildExecution(projectId)` → project header, approved impl plan summary, packets grouped by status, evidence counts, NBA hint
-- `generateBuildPackets(projectId)` — requires approved implementation plan; calls Lovable AI with impl+QA+backend+mockup+frame+spine context; inserts draft packets; audit + activity; refuses if no approved plan
-- `saveBuildPacketDraft(packetId, payload)`
-- `markBuildPacketReady(packetId)` (from draft)
-- `handoffBuildPacket(packetId)` (ready → handed_off; sets handed_off_at)
-- `markBuildPacketInProgress(packetId)`
-- `markBuildPacketReturned(packetId, evidence?)`
-- `markBuildPacketQaRequired(packetId)`
-- `acceptBuildPacket(packetId, { evidenceAck })` — admin/operator; requires evidence rows OR explicit ack note; audit
-- `rejectBuildPacket(packetId, reason)`
-- `archiveBuildPacket(packetId)` — admin
-- `addBuildEvidence(packetId, evidence)`
+Post-sign-in navigation reuses the existing `onAuthStateChange` staff-vs-portal routing already in `/auth`. `/portal/login` gets the same listener so password sign-in lands correctly.
 
-Every mutation writes `engine_audit_log` + `engine_activity`. Invalid state transitions throw. None touch client_portal_*, roadmap_approvals, engine_projects.status, or QA/impl plan payloads.
+Error handling: show Supabase's `Invalid login credentials` message inline; if the account has no password set yet, show "No password set for this email — use the sign-in link, then set a password on your account page."
 
-## 3. AI generation prompt (`src/lib/engine-build-execution-prompt.server.ts`)
+### 2. Forgot password flow
 
-Composes context from approved impl plan phases/build_steps, QA plan, backend plan, mockups/frames, spine, tasks, risks. Output schema (JSON):
+New public route `/forgot-password`:
 
-```
-{ packets: [{
-  title, summary, packet_type, priority, sequence_number,
-  payload: {
-    packet_goal, source_implementation_steps[],
-    target_builder, execution_scope: { included[], excluded[], expected_files_or_surfaces[], do_not_touch[] },
-    handoff_prompt, context_summary, implementation_steps[],
-    acceptance_criteria[], qa_requirements[], evidence_required[],
-    risk_notes[], rollback_notes[], dependencies[], blocking_conditions[],
-    post_execution_checks[], open_decisions[]
-  }
-}] }
-```
+- Email input → `supabase.auth.resetPasswordForEmail(email, { redirectTo: ${origin}/reset-password })`
+- Always show the same neutral success message (no user enumeration).
 
-Prompt forbids "execute", "deploy", "apply", "mark passed", "delivered".
+New public route `/reset-password`:
 
-## 4. Route + UI (`src/routes/engine.projects.$projectId.build-execution.tsx`)
+- SSR off. On mount, check `supabase.auth.onAuthStateChange` for `PASSWORD_RECOVERY` (Supabase auto-exchanges the recovery link hash into a session).
+- If in recovery session: show "New password" + "Confirm password" form → `supabase.auth.updateUser({ password })` → on success, sign out, redirect to `/auth?email=…` with a "Password updated — sign in" flash.
+- If not in a recovery session: show "This reset link is invalid or expired" + link back to `/forgot-password`.
 
-Sections:
-- **Header**: project header strip, current status, NBA, approved impl plan badge, packet count, "Generate Build Packets" (disabled + tooltip when no approved impl plan)
-- **Execution Overview**: counts by status, next packet recommendation
-- **Packet Board**: grouped columns by status; cards show title/type/seq/priority/goal/target/deps/blockers/evidence count/next action
-- **Packet Detail Drawer**: full payload sections, activity + evidence history, lifecycle action buttons (permission-gated), Copy handoff prompt
-- **Handoff Prompt Panel** (in drawer): large monospaced block, copy button, target label, safety notes, do-not-touch warning
-- **Evidence Section**: list rows + "Add evidence" modal (type, title, summary, payload URL/note)
-- **Right AI PM panel**: reuse `StepAiPanelFor` pattern with build-execution context
+Both routes are outside `_authenticated` (must be reachable when signed out) and marked `noindex`.
 
-Filters: status, priority, target builder.
+### 3. Account page tweak
 
-## 5. Workspace nav integration
+`/portal/account` password form stays as-is. Add a small "Change password" anchor in the account nav that scrolls to that section (cosmetic only — no logic change).
 
-`src/components/engine/WorkspaceHeader.tsx`: add "Build Execution" tab after "Implementation Plan" pointing to the new route. Update `WORKSPACE_STEPS` in `src/lib/engine-workspace.ts` if steps drive stepper.
+### 4. Auth emails
 
-## 6. Chat context (`src/lib/engine-chat-context.server.ts` + `engine-chat-prompt.server.ts`)
+Password reset uses the existing Supabase `recovery` email template already scaffolded under `auth-email-hook`. No new template needed; verify the recovery template's link points to `/reset-password` (it uses the redirect URL passed to `resetPasswordForEmail`, so nothing to change in the template file itself).
 
-Add build-execution slice: packet counts by status, next packet, blocked packets, missing evidence, accepted count. Prompt gains hard rule: chat may summarize/answer but never execute OpenClaw, run shell, deploy, mark passed/delivered/accept packets — user must act in UI.
+## Non-goals
 
-## 7. Types
+- No new sign-up form. Password is still only settable by users who already have portal or staff access.
+- No changes to RLS, tables, or server functions.
+- No changes to Google OAuth or the magic-link server function.
 
-Regenerate `src/integrations/supabase/types.ts` after migration approval to include the two new tables.
+## Files
 
-## 8. Discipline (enforced in code + prompts)
-
-Allowed: generate packets, copy prompt, lifecycle transitions, evidence collection, accept/reject.
-Forbidden: auto-run OpenClaw/Lovable, apply migrations, deploy, mark QA passed, mark delivered, mutate approved upstream payloads.
-
-## 9. Deliverables at end
-
-- Migration file
-- New server-fn file + prompt file
-- New route file
-- Updated WorkspaceHeader + chat context/prompt + types
-- Screenshots checklist (route empty, generation disabled, packets board, detail drawer, evidence add) — captured after user runs QA harness in a follow-up
-- Recommended QA prompt appended to plan for the next end-to-end verification pass (mirroring implementation-plan-v1-qa.py)
-
-## Technical notes
-
-- Follows existing patterns from `engine-implementation-plan.functions.ts` and route `.implementation-plan.tsx` for lifecycle/UI conventions.
-- `assertStaff` reused; admin-only actions check `has_role(admin)`.
-- All secrets/env stay server-side; no `supabaseAdmin` at module scope of `.functions.ts` — dynamic-import inside handlers.
-- No changes to protected surfaces (portal, roadmap approvals, investment terms, project delivery status).
+- Edit: `src/routes/auth.tsx`, `src/routes/portal.login.tsx`
+- Create: `src/routes/forgot-password.tsx`, `src/routes/reset-password.tsx`
+- Minor edit: `src/routes/portal.account.tsx` (add "Change password" anchor in nav)
