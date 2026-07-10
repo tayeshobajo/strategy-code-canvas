@@ -748,7 +748,7 @@ export const markOpenClawRunReturnedForReview = createServerFn({ method: "POST" 
           .eq("id", packet.id)
           .select("status")
           .single();
-        if (pkt) newPacketStatus = (pkt as { status: string }).status;
+        if (pkt) newPacketStatus = (pkt as { status: string }).status as typeof packet.status;
       } else if (packet.status === "handed_off" && data.movePacketTo === "qa_required") {
         // two-step transition: handed_off -> in_progress -> qa_required
         await supabaseAdmin
