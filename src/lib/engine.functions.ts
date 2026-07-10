@@ -684,9 +684,30 @@ export const getProjectWorkspace = createServerFn({ method: "GET" })
 
     // Fallback progress % from touched step states (any recorded state counts).
     const storedProgress = (row.progress_pct as number) ?? 0;
-    const stepsTouched = Object.values(step_states).filter((s) => s?.state).length;
-    const computedProgress = Math.round((stepsTouched / 14) * 100);
+    const hasRoadmapDraft = !!row.roadmap_version || hasKeys(row.roadmap);
+    const hasApproved = !!row.approved_version;
+    const artifactHasData: Record<WorkspaceStepKey, boolean> = {
+      intelligence: signal_count > 0,
+      "signal-room": signal_count > 0 || hasKeys(row.signal_room),
+      extraction: signal_count > 0 || hasKeys(row.extraction),
+      "point-a": hasKeys(row.point_a),
+      "point-b": hasKeys(row.point_b),
+      "hidden-assets": hasKeys(row.hidden_assets),
+      "gap-map": hasKeys(row.gap_map),
+      blueprint: hasKeys(row.blueprint),
+      builder: hasRoadmapDraft,
+      sequencing: hasKeys(row.sequencing) || hasApproved,
+      deadlines: hasKeys(row.deadlines) || hasApproved,
+      investment: hasKeys(row.investment) || hasApproved,
+      preview: hasKeys(row.client_preview) || hasApproved,
+      delivery: hasKeys(row.delivery),
+    };
+    const stepsActive = WORKSPACE_STEPS.filter(
+      ({ key }) => !!step_states[key]?.state || artifactHasData[key as WorkspaceStepKey],
+    ).length;
+    const computedProgress = Math.round((stepsActive / 14) * 100);
     const progress_pct = storedProgress > 0 ? storedProgress : computedProgress;
+
 
     const project: WorkspaceProject = {
       id: row.id as string,
