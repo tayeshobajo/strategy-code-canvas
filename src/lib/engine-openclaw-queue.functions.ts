@@ -482,6 +482,21 @@ export const createOpenClawQueue = createServerFn({ method: "POST" })
         "OpenClaw queue created",
         `${staff.email} created queue "${data.name}" with ${items.length} packet(s).`,
       );
+      await insertAuditLog({
+        projectId: data.projectId,
+        actorEmail: staff.email,
+        userId: staff.userId,
+        action: "openclaw_queue_created",
+        summary: `Queue "${data.name}" created with ${items.length} packet(s), policy=${data.failurePolicy}, simulated=${data.simulated ?? false}.`,
+        queueId: queue.id,
+        extraMetadata: {
+          queue_name: data.name,
+          failure_policy: data.failurePolicy,
+          simulated: data.simulated ?? false,
+          item_count: items.length,
+          build_packet_ids: uniqueIds,
+        },
+      });
       return { queue, items };
     },
   );
