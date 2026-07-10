@@ -471,7 +471,8 @@ async function transitionQueue(
   }
   const { data: upd, error } = await supabaseAdmin
     .from("engine_project_openclaw_queues")
-    .update(patch)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(patch as any)
     .eq("id", q.id)
     .select("*")
     .single();
