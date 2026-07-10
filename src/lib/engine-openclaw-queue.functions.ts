@@ -938,6 +938,17 @@ export const skipQueueItem = createServerFn({ method: "POST" })
       "OpenClaw queue item skipped",
       `Item #${item.sequence_number} skipped by ${staff.email} — ${data.reason.slice(0, 200)}`,
     );
+    await insertAuditLog({
+      projectId: data.projectId,
+      actorEmail: staff.email,
+      userId: staff.userId,
+      action: "openclaw_queue_item_skipped",
+      summary: `Item #${item.sequence_number} skipped — ${data.reason.slice(0, 200)}`,
+      queueId: item.queue_id,
+      queueItemId: item.id,
+      buildPacketId: item.build_packet_id,
+      extraMetadata: { reason: data.reason.slice(0, 500) },
+    });
     return { item: upd as OpenClawQueueItemRow };
   });
 
