@@ -158,6 +158,8 @@ function BuildExecutionPage() {
         <HeaderCard state={state} busy={busy} onGenerate={onGenerate} />
         <OverviewCard state={state} />
         <OpenClawQueuePanel projectId={projectId} />
+        <OpenClawMonitorPanel projectId={projectId} isAdmin />
+
         <PacketBoard
           state={state}
           onOpen={(id) => setOpenPacketId(id)}
