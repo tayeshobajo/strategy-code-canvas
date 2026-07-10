@@ -44,11 +44,11 @@ function Sequencing() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {LANES.map((l) => (
           <SectionCard key={l.key} title={l.label}>
-            {(data[l.key]?.length ?? 0) === 0 ? (
+            {data[l.key].length === 0 ? (
               <EmptyState title="Empty" />
             ) : (
               <ul className="list-disc list-inside text-sm text-ink/80 space-y-1">
-                {data[l.key]!.map((v, i) => <li key={i}>{v}</li>)}
+                {data[l.key].map((v, i) => <li key={i}>{v}</li>)}
               </ul>
             )}
           </SectionCard>
