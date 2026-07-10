@@ -15,7 +15,6 @@ import {
   Info,
   CheckCircle2,
   PackageCheck,
-  Ban,
   ClipboardCheck,
 } from "lucide-react";
 import {
