@@ -150,6 +150,54 @@ async function insertAudit(
   }
 }
 
+// Persistent audit trail in engine_audit_log. Written via supabaseAdmin so it
+// records regardless of the caller's role (operators do not have INSERT
+// privilege by policy). Payload contains queue/item/packet/run identifiers,
+// the actor, and pass/fail info — NEVER provider keys, tokens, hidden
+// prompts, or raw secrets.
+async function insertAuditLog(args: {
+  projectId: string;
+  actorEmail: string;
+  userId: string | null;
+  action: string;
+  summary: string;
+  queueId?: string | null;
+  queueItemId?: string | null;
+  buildPacketId?: string | null;
+  openclawRunId?: string | null;
+  success?: boolean;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  extraMetadata?: Record<string, unknown>;
+}) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const metadata: Record<string, unknown> = {
+      queue_id: args.queueId ?? null,
+      queue_item_id: args.queueItemId ?? null,
+      build_packet_id: args.buildPacketId ?? null,
+      openclaw_run_id: args.openclawRunId ?? null,
+      user_id: args.userId ?? null,
+      user_email: args.actorEmail,
+      success: args.success ?? true,
+      error_code: args.errorCode ?? null,
+      error_message: args.errorMessage ? String(args.errorMessage).slice(0, 500) : null,
+      ...(args.extraMetadata ?? {}),
+    };
+    await supabaseAdmin.from("engine_audit_log").insert({
+      project_id: args.projectId,
+      actor_email: args.actorEmail,
+      action: args.action,
+      summary: args.summary.slice(0, 500),
+      target_id: args.queueItemId ?? args.queueId ?? null,
+      affected_modules: ["build_execution", "openclaw_queue"],
+      metadata,
+    });
+  } catch {
+    /* audit is best-effort — never break the caller */
+  }
+}
+
 async function loadQueue(sb: Sb, queueId: string): Promise<OpenClawQueueRow> {
   const { data, error } = await sb
     .from("engine_project_openclaw_queues")
