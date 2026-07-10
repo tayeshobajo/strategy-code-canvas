@@ -13,6 +13,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { startOpenClawRun } from "@/lib/engine-openclaw.functions";
 import type { BuildPacketRow, BuildPacketPayload } from "@/lib/engine-build-execution.functions";
+import type { Json } from "@/lib/engine-workspace";
 
 const uuid = z
   .string()
