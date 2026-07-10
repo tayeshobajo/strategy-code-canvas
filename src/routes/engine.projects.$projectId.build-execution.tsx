@@ -156,6 +156,7 @@ function BuildExecutionPage() {
       <div className="xl:col-span-2 space-y-5">
         <HeaderCard state={state} busy={busy} onGenerate={onGenerate} />
         <OverviewCard state={state} />
+        <OpenClawQueuePanel projectId={projectId} />
         <PacketBoard
           state={state}
           onOpen={(id) => setOpenPacketId(id)}
