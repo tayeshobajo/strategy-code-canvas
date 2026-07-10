@@ -81,7 +81,7 @@ export type MonitorFinding = {
   build_packet_id?: string | null;
   status_before?: string | null;
   status_after?: string | null;
-  payload?: Record<string, unknown>;
+  payload?: Json;
   notify?: boolean;
   notify_kind?: string;
 };
