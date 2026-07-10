@@ -568,7 +568,7 @@ function PasswordSection() {
                 />
               </div>
               <span className="text-[11px] text-ink/60">
-                {["Weak", "Weak", "Fair", "Strong", "Very strong"][strength]}
+                {PASSWORD_STRENGTH_LABELS[strength]}
               </span>
             </div>
           )}
