@@ -761,7 +761,7 @@ export const markOpenClawRunReturnedForReview = createServerFn({ method: "POST" 
           .eq("id", packet.id)
           .select("status")
           .single();
-        if (pkt) newPacketStatus = (pkt as { status: string }).status;
+        if (pkt) newPacketStatus = (pkt as { status: string }).status as typeof packet.status;
       }
 
       if (data.note) {
