@@ -117,15 +117,14 @@ export type MonitorSnapshot = {
 
 async function assertStaff(ctx: StaffContext) {
   const email = ((ctx.claims?.email as string | undefined) ?? "").toLowerCase();
-  const [isOperator, isAdmin, isTeam] = await Promise.all([
+  const [isOperator, isAdmin] = await Promise.all([
     hasRoleForEmail(ctx.supabase, email, "operator"),
     hasRoleForEmail(ctx.supabase, email, "admin"),
-    hasRoleForEmail(ctx.supabase, email, "team_member"),
   ]);
-  if (!isOperator && !isAdmin && !isTeam) {
-    throw new Error("Forbidden: staff role required");
+  if (!isOperator && !isAdmin) {
+    throw new Error("Forbidden: operator or admin role required");
   }
-  return { email, userId: ctx.userId ?? null, isAdmin, isOperator, isTeam };
+  return { email, userId: ctx.userId ?? null, isAdmin, isOperator };
 }
 
 async function assertAdmin(ctx: StaffContext) {
