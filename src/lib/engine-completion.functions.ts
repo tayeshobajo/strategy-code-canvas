@@ -81,6 +81,31 @@ async function logActivity(
 }
 
 // ============================================================
+// getProjectCompletionState — small read for the delivery page
+// ============================================================
+
+export const getProjectCompletionState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ projectId: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertOps(context);
+    const sb = (context as any).supabase;
+    const { data: row, error } = await sb
+      .from("engine_projects")
+      .select("status,completed_at,completed_by_email")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return {
+      status: (row?.status as string | null) ?? null,
+      completedAt: (row?.completed_at as string | null) ?? null,
+      completedByEmail: (row?.completed_by_email as string | null) ?? null,
+    };
+  });
+
+// ============================================================
 // completeProject
 // ============================================================
 
