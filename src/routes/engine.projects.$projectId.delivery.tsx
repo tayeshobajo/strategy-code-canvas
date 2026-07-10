@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Send, CheckCircle2, Loader2, Rocket, Clock } from "lucide-react";
+import { Send, CheckCircle2, Loader2, Rocket, Clock, CheckSquare, Star, Save } from "lucide-react";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
@@ -16,6 +16,12 @@ import {
   startExecutionEngagement,
 } from "@/lib/engine-execution.functions";
 import { markPortalFollowUpNeeded } from "@/lib/portal.functions";
+import {
+  completeProject,
+  getProjectCompletionState,
+  saveClientFeedback,
+} from "@/lib/engine-completion.functions";
+import { toast } from "sonner";
 
 
 export const Route = createFileRoute("/engine/projects/$projectId/delivery")({
