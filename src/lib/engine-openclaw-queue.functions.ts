@@ -883,6 +883,16 @@ export const retryQueueItem = createServerFn({ method: "POST" })
       "OpenClaw queue item retried",
       `Item #${item.sequence_number} requeued by ${staff.email}.`,
     );
+    await insertAuditLog({
+      projectId: data.projectId,
+      actorEmail: staff.email,
+      userId: staff.userId,
+      action: "openclaw_queue_item_retried",
+      summary: `Item #${item.sequence_number} requeued by ${staff.email}.`,
+      queueId: item.queue_id,
+      queueItemId: item.id,
+      buildPacketId: item.build_packet_id,
+    });
     return { item: upd as OpenClawQueueItemRow };
   });
 
