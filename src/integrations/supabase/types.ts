@@ -2706,6 +2706,155 @@ export type Database = {
           },
         ]
       }
+      engine_project_openclaw_artifacts: {
+        Row: {
+          artifact_type: string
+          build_packet_id: string
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          id: string
+          openclaw_run_id: string
+          payload: Json
+          project_id: string
+          summary: string | null
+          title: string
+        }
+        Insert: {
+          artifact_type: string
+          build_packet_id: string
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          id?: string
+          openclaw_run_id: string
+          payload?: Json
+          project_id: string
+          summary?: string | null
+          title: string
+        }
+        Update: {
+          artifact_type?: string
+          build_packet_id?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          id?: string
+          openclaw_run_id?: string
+          payload?: Json
+          project_id?: string
+          summary?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_openclaw_artifacts_build_packet_id_fkey"
+            columns: ["build_packet_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_build_packets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_artifacts_openclaw_run_id_fkey"
+            columns: ["openclaw_run_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_openclaw_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_artifacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_project_openclaw_runs: {
+        Row: {
+          build_packet_id: string
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          id: string
+          implementation_plan_id: string | null
+          output_summary: string | null
+          project_id: string
+          provider: string
+          request_payload: Json
+          response_payload: Json
+          run_mode: string
+          started_at: string
+          started_by: string | null
+          started_by_email: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          build_packet_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          implementation_plan_id?: string | null
+          output_summary?: string | null
+          project_id: string
+          provider?: string
+          request_payload?: Json
+          response_payload?: Json
+          run_mode?: string
+          started_at?: string
+          started_by?: string | null
+          started_by_email?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          build_packet_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          implementation_plan_id?: string | null
+          output_summary?: string | null
+          project_id?: string
+          provider?: string
+          request_payload?: Json
+          response_payload?: Json
+          run_mode?: string
+          started_at?: string
+          started_by?: string | null
+          started_by_email?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_openclaw_runs_build_packet_id_fkey"
+            columns: ["build_packet_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_build_packets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_runs_implementation_plan_id_fkey"
+            columns: ["implementation_plan_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_implementation_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_qa_plans: {
         Row: {
           approved_at: string | null
