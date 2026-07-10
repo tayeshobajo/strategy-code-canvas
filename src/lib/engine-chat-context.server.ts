@@ -1025,6 +1025,113 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     }
   } catch { /* qa evidence review table may not be readable — ignore */ }
 
+  // ---------- delivery readiness summary (v6) ----------
+  let deliveryReadinessSummary: {
+    latest_status: string | null;
+    latest_readiness: string | null;
+    latest_recommendation: string | null;
+    latest_confidence: string | null;
+    latest_approved_at: string | null;
+    total: number;
+    by_status: Record<string, number>;
+    by_readiness: Record<string, number>;
+    can_prepare_delivery_package: boolean;
+    packet_counts: {
+      total: number;
+      accepted: number;
+      missing_acceptance: number;
+      rejected: number;
+    } | null;
+    missing_qa_reviews: number | null;
+    critical_monitor_findings: number | null;
+    blockers: string[];
+    recent: Array<{
+      id: string;
+      status: string;
+      readiness: string;
+      recommendation: string;
+      updated_at: string;
+      generated_by: string;
+    }>;
+  } | null = null;
+  try {
+    const { data: drrRaw } = await sb
+      .from("engine_project_delivery_readiness_reviews")
+      .select("id,status,readiness,recommendation,confidence,updated_at,approved_at,generated_by,payload")
+      .eq("project_id", projectId)
+      .order("updated_at", { ascending: false })
+      .limit(20);
+    const drrs = (drrRaw ?? []) as Array<{
+      id: string; status: string; readiness: string; recommendation: string;
+      confidence: string; updated_at: string; approved_at: string | null;
+      generated_by: string; payload: Record<string, unknown>;
+    }>;
+    if (drrs.length > 0) {
+      const by_status: Record<string, number> = {};
+      const by_readiness: Record<string, number> = {};
+      for (const r of drrs) {
+        by_status[r.status] = (by_status[r.status] ?? 0) + 1;
+        by_readiness[r.readiness] = (by_readiness[r.readiness] ?? 0) + 1;
+      }
+      const latest = drrs[0];
+      const latestApproved = drrs
+        .filter((r) => r.status === "approved" && r.approved_at)
+        .sort((a, b) => (b.approved_at ?? "").localeCompare(a.approved_at ?? ""))[0] ?? null;
+      const pr = (latest.payload?.packet_readiness ?? null) as {
+        total_packets?: number; accepted_packets?: number;
+        rejected_packets?: number; missing_acceptance?: unknown[];
+      } | null;
+      const qer = (latest.payload?.qa_evidence_readiness ?? null) as {
+        missing_reviews?: unknown[];
+      } | null;
+      const mf = (latest.payload?.monitor_findings ?? null) as {
+        critical_events?: unknown[];
+      } | null;
+      const blockers = Array.isArray(latest.payload?.blockers)
+        ? (latest.payload.blockers as unknown[]).map((x) => String(x)).slice(0, 10)
+        : [];
+      deliveryReadinessSummary = {
+        latest_status: latest.status,
+        latest_readiness: latest.readiness,
+        latest_recommendation: latest.recommendation,
+        latest_confidence: latest.confidence,
+        latest_approved_at: latestApproved?.approved_at ?? null,
+        total: drrs.length,
+        by_status,
+        by_readiness,
+        can_prepare_delivery_package:
+          latest.status === "approved" && latest.readiness === "ready_for_delivery_package",
+        packet_counts: pr
+          ? {
+              total: pr.total_packets ?? 0,
+              accepted: pr.accepted_packets ?? 0,
+              missing_acceptance: Array.isArray(pr.missing_acceptance)
+                ? pr.missing_acceptance.length
+                : 0,
+              rejected: pr.rejected_packets ?? 0,
+            }
+          : null,
+        missing_qa_reviews: qer && Array.isArray(qer.missing_reviews)
+          ? qer.missing_reviews.length
+          : null,
+        critical_monitor_findings: mf && Array.isArray(mf.critical_events)
+          ? mf.critical_events.length
+          : null,
+        blockers,
+        recent: drrs.slice(0, 5).map((r) => ({
+          id: r.id,
+          status: r.status,
+          readiness: r.readiness,
+          recommendation: r.recommendation,
+          updated_at: r.updated_at,
+          generated_by: r.generated_by,
+        })),
+      };
+    }
+  } catch { /* delivery readiness table may not be readable — ignore */ }
+
+
+
 
 
 
