@@ -55,6 +55,11 @@ function DeliveryPrep() {
     approval_checklist?: Record<string, boolean>;
     sent_at?: string;
     sent_by_email?: string;
+    client_rating?: number;
+    client_feedback?: string;
+    client_feedback_date?: string;
+    client_feedback_recorded_at?: string;
+    client_feedback_recorded_by?: string;
   };
 
   const [checked, setChecked] = useState<Record<string, boolean>>(d.approval_checklist ?? {});
