@@ -191,7 +191,7 @@ async function insertAuditLog(args: {
       summary: args.summary.slice(0, 500),
       target_id: args.queueItemId ?? args.queueId ?? null,
       affected_modules: ["build_execution", "openclaw_queue"],
-      metadata,
+      metadata: metadata as unknown as import("@/integrations/supabase/types").Json,
     });
   } catch {
     /* audit is best-effort — never break the caller */
