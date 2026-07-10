@@ -61,7 +61,7 @@ export type OpenClawQueueRow = {
   started_by_email: string | null;
   started_at: string | null;
   completed_at: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Json;
   created_at: string;
   updated_at: string;
 };
