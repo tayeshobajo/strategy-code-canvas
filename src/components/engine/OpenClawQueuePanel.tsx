@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import {
   listOpenClawQueues,
+  getOpenClawQueue,
   createOpenClawQueue,
   startOpenClawQueue,
   pauseOpenClawQueue,
