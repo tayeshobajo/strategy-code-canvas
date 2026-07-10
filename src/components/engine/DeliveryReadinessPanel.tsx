@@ -77,6 +77,7 @@ export function DeliveryReadinessPanel({ projectId }: { projectId: string }) {
   const approveFn = useServerFn(approveDeliveryReadinessReview);
   const rejectFn = useServerFn(rejectDeliveryReadinessReview);
   const archiveFn = useServerFn(archiveDeliveryReadinessReview);
+  const prepareFn = useServerFn(prepareDeliveryPackage);
 
   const refresh = async () => {
     await qc.invalidateQueries({ queryKey: ["delivery-readiness", projectId] });
