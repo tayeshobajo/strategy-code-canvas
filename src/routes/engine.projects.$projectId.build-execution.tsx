@@ -44,6 +44,7 @@ import {
 import { OpenClawPanel } from "@/components/engine/OpenClawPanel";
 import { OpenClawQueuePanel } from "@/components/engine/OpenClawQueuePanel";
 import { OpenClawMonitorPanel } from "@/components/engine/OpenClawMonitorPanel";
+import { QaEvidenceReviewPanel } from "@/components/engine/QaEvidenceReviewPanel";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
@@ -804,6 +805,14 @@ function PacketDrawer({
 
         {/* OpenClaw Direct Connection v2 */}
         <OpenClawPanel projectId={projectId} packet={packet} onChanged={onChanged} />
+
+        {/* QA Evidence Review v1 */}
+        <QaEvidenceReviewPanel
+          projectId={projectId}
+          packetId={packet.id}
+          onChanged={onChanged}
+        />
+
 
 
 

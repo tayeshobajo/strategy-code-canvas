@@ -3149,6 +3149,91 @@ export type Database = {
           },
         ]
       }
+      engine_project_qa_evidence_reviews: {
+        Row: {
+          approved_at: string | null
+          approved_by_email: string | null
+          approved_by_user_id: string | null
+          build_packet_id: string
+          created_at: string
+          created_by_email: string | null
+          created_by_user_id: string | null
+          generated_by: string
+          id: string
+          openclaw_run_id: string | null
+          payload: Json
+          project_id: string
+          rejected_reason: string | null
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+          verdict: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_by_user_id?: string | null
+          build_packet_id: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          generated_by?: string
+          id?: string
+          openclaw_run_id?: string | null
+          payload?: Json
+          project_id: string
+          rejected_reason?: string | null
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          verdict?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_by_user_id?: string | null
+          build_packet_id?: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          generated_by?: string
+          id?: string
+          openclaw_run_id?: string | null
+          payload?: Json
+          project_id?: string
+          rejected_reason?: string | null
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_qa_evidence_reviews_build_packet_id_fkey"
+            columns: ["build_packet_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_build_packets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_qa_evidence_reviews_openclaw_run_id_fkey"
+            columns: ["openclaw_run_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_openclaw_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_qa_evidence_reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_qa_plans: {
         Row: {
           approved_at: string | null
