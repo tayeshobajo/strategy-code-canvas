@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Send, CheckCircle2, Loader2, Rocket, Clock } from "lucide-react";
+import { Send, CheckCircle2, Loader2, Rocket, Clock, CheckSquare, Star, Save } from "lucide-react";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
@@ -16,6 +16,12 @@ import {
   startExecutionEngagement,
 } from "@/lib/engine-execution.functions";
 import { markPortalFollowUpNeeded } from "@/lib/portal.functions";
+import {
+  completeProject,
+  getProjectCompletionState,
+  saveClientFeedback,
+} from "@/lib/engine-completion.functions";
+import { toast } from "sonner";
 
 
 export const Route = createFileRoute("/engine/projects/$projectId/delivery")({
@@ -49,6 +55,11 @@ function DeliveryPrep() {
     approval_checklist?: Record<string, boolean>;
     sent_at?: string;
     sent_by_email?: string;
+    client_rating?: number;
+    client_feedback?: string;
+    client_feedback_date?: string;
+    client_feedback_recorded_at?: string;
+    client_feedback_recorded_by?: string;
   };
 
   const [checked, setChecked] = useState<Record<string, boolean>>(d.approval_checklist ?? {});
@@ -195,6 +206,8 @@ function DeliveryPrep() {
           </SectionCard>
 
           {alreadySent && <ExecutionHandoffCard projectId={projectId} />}
+          {alreadySent && <ClientFeedbackCard projectId={projectId} delivery={d} />}
+          <MarkCompleteCard projectId={projectId} />
         </div>
       </div>
     </div>
@@ -342,5 +355,208 @@ function ExecutionHandoffCard({ projectId }: { projectId: string }) {
     </SectionCard>
   );
 }
+
+
+function MarkCompleteCard({ projectId }: { projectId: string }) {
+  const qc = useQueryClient();
+  const { isAdmin, adminOnlyReason } = useEngineRole();
+  const stateFn = useServerFn(getProjectCompletionState);
+  const completeFn = useServerFn(completeProject);
+
+  const q = useQuery({
+    queryKey: ["engine", "completion", projectId],
+    queryFn: () => stateFn({ data: { projectId } }),
+  });
+
+  const mut = useMutation({
+    mutationFn: () => completeFn({ data: { projectId } }),
+    onSuccess: async () => {
+      toast.success("Project marked complete");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["engine", "completion", projectId] }),
+        qc.invalidateQueries({ queryKey: ["engine"] }),
+      ]);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const completed = !!q.data?.completedAt;
+
+  return (
+    <SectionCard title="Project completion">
+      {q.isLoading ? (
+        <div className="text-sm text-ink/50 flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+        </div>
+      ) : completed ? (
+        <div className="flex items-start gap-2 text-sm text-[#1f6b3b]">
+          <CheckCircle2 className="w-4 h-4 mt-0.5" />
+          <div>
+            <div className="font-medium">Completed</div>
+            <div className="text-xs text-ink/60">
+              {new Date(q.data!.completedAt!).toLocaleString()}
+              {q.data?.completedByEmail ? ` by ${q.data.completedByEmail}` : ""}
+            </div>
+          </div>
+        </div>
+      ) : !isAdmin ? (
+        <OperatorLockNotice message={adminOnlyReason} />
+      ) : (
+        <>
+          <p className="text-xs text-ink/60 mb-3">
+            Marks the project complete. Requires an approved roadmap version. This action cannot be undone.
+          </p>
+          <button
+            disabled={mut.isPending}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "This will mark the project as complete. This action cannot be undone.",
+                )
+              )
+                return;
+              mut.mutate();
+            }}
+            className="inline-flex items-center gap-2 rounded-md bg-ink text-white text-sm px-3 py-2 hover:bg-ink/90 disabled:opacity-50"
+          >
+            {mut.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <CheckSquare className="w-4 h-4" />
+            )}
+            Mark project complete
+          </button>
+        </>
+      )}
+    </SectionCard>
+  );
+}
+
+function ClientFeedbackCard({
+  projectId,
+  delivery,
+}: {
+  projectId: string;
+  delivery: {
+    client_rating?: number;
+    client_feedback?: string;
+    client_feedback_date?: string;
+    client_feedback_recorded_at?: string;
+    client_feedback_recorded_by?: string;
+  };
+}) {
+  const qc = useQueryClient();
+  const { canEdit, editDeniedReason } = useEngineRole();
+  const saveFn = useServerFn(saveClientFeedback);
+
+  const [rating, setRating] = useState<number>(delivery.client_rating ?? 0);
+  const [feedback, setFeedback] = useState<string>(delivery.client_feedback ?? "");
+  const [feedbackDate, setFeedbackDate] = useState<string>(
+    delivery.client_feedback_date ?? new Date().toISOString().slice(0, 10),
+  );
+
+  useEffect(() => {
+    setRating(delivery.client_rating ?? 0);
+    setFeedback(delivery.client_feedback ?? "");
+    setFeedbackDate(delivery.client_feedback_date ?? new Date().toISOString().slice(0, 10));
+  }, [delivery.client_rating, delivery.client_feedback, delivery.client_feedback_date]);
+
+  const mut = useMutation({
+    mutationFn: () =>
+      saveFn({
+        data: { projectId, rating, feedback, feedbackDate },
+      }),
+    onSuccess: async () => {
+      toast.success("Client feedback saved");
+      await qc.invalidateQueries({ queryKey: ["engine"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <SectionCard title="Client feedback (manual entry)">
+      <p className="text-[11px] text-ink/50 mb-3">
+        Operator-entered. Not client-facing. Not sent to the client.
+      </p>
+
+      <div className="mb-3">
+        <div className="text-[10px] font-mono uppercase tracking-widest text-ink/50 mb-1">
+          Rating
+        </div>
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => canEdit && setRating(n)}
+              disabled={!canEdit}
+              className="p-0.5 disabled:cursor-not-allowed"
+              aria-label={`${n} star${n > 1 ? "s" : ""}`}
+            >
+              <Star
+                className={`w-5 h-5 ${
+                  n <= rating ? "text-amber-400 fill-amber-400" : "text-ink/20"
+                }`}
+              />
+            </button>
+          ))}
+          <span className="ml-2 text-xs text-ink/60">{rating || "—"}/5</span>
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-ink/50 mb-1">
+          Feedback date
+        </label>
+        <input
+          type="date"
+          value={feedbackDate}
+          onChange={(e) => setFeedbackDate(e.target.value)}
+          disabled={!canEdit}
+          className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
+        />
+      </div>
+
+      <div className="mb-3">
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-ink/50 mb-1">
+          Feedback
+        </label>
+        <textarea
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          rows={4}
+          disabled={!canEdit}
+          maxLength={4000}
+          placeholder="What did the client say?"
+          className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
+        />
+      </div>
+
+      {canEdit ? (
+        <button
+          type="button"
+          disabled={rating < 1 || mut.isPending}
+          onClick={() => mut.mutate()}
+          className="inline-flex items-center gap-2 rounded-md bg-ink text-white text-sm px-3 py-2 hover:bg-ink/90 disabled:opacity-50"
+        >
+          {mut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Save feedback
+        </button>
+      ) : (
+        <OperatorLockNotice message={editDeniedReason} />
+      )}
+
+      {delivery.client_feedback_recorded_at && (
+        <div className="mt-3 text-[10px] text-ink/50">
+          Last saved {new Date(delivery.client_feedback_recorded_at).toLocaleString()}
+          {delivery.client_feedback_recorded_by
+            ? ` by ${delivery.client_feedback_recorded_by}`
+            : ""}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 
 

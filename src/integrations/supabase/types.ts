@@ -3433,6 +3433,8 @@ export type Database = {
           client_id: string
           client_portal_project_id: string | null
           client_preview: Json
+          completed_at: string | null
+          completed_by_email: string | null
           created_at: string
           current_step: string
           current_step_num: number
@@ -3458,6 +3460,7 @@ export type Database = {
           roadmap_version: string | null
           sequencing: Json
           signal_room: Json
+          spirit_first_analysis: Json | null
           status: Database["public"]["Enums"]["engine_project_status"]
           step_states: Json
           updated_at: string
@@ -3480,6 +3483,8 @@ export type Database = {
           client_id: string
           client_portal_project_id?: string | null
           client_preview?: Json
+          completed_at?: string | null
+          completed_by_email?: string | null
           created_at?: string
           current_step?: string
           current_step_num?: number
@@ -3505,6 +3510,7 @@ export type Database = {
           roadmap_version?: string | null
           sequencing?: Json
           signal_room?: Json
+          spirit_first_analysis?: Json | null
           status?: Database["public"]["Enums"]["engine_project_status"]
           step_states?: Json
           updated_at?: string
@@ -3527,6 +3533,8 @@ export type Database = {
           client_id?: string
           client_portal_project_id?: string | null
           client_preview?: Json
+          completed_at?: string | null
+          completed_by_email?: string | null
           created_at?: string
           current_step?: string
           current_step_num?: number
@@ -3552,6 +3560,7 @@ export type Database = {
           roadmap_version?: string | null
           sequencing?: Json
           signal_room?: Json
+          spirit_first_analysis?: Json | null
           status?: Database["public"]["Enums"]["engine_project_status"]
           step_states?: Json
           updated_at?: string
@@ -5023,6 +5032,7 @@ export type Database = {
         | "in_execution"
         | "blocked"
         | "archived"
+        | "completed"
       engine_signal_category:
         | "goal"
         | "pain"
@@ -5240,6 +5250,7 @@ export const Constants = {
         "in_execution",
         "blocked",
         "archived",
+        "completed",
       ],
       engine_signal_category: [
         "goal",
