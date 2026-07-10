@@ -150,6 +150,55 @@ async function insertAudit(
   }
 }
 
+// Persistent audit trail in engine_audit_log. Written via supabaseAdmin so it
+// records regardless of the caller's role (operators do not have INSERT
+// privilege by policy). Payload contains queue/item/packet/run identifiers,
+// the actor, and pass/fail info — NEVER provider keys, tokens, hidden
+// prompts, or raw secrets.
+async function insertAuditLog(args: {
+  projectId: string;
+  actorEmail: string;
+  userId: string | null;
+  action: string;
+  summary: string;
+  queueId?: string | null;
+  queueItemId?: string | null;
+  buildPacketId?: string | null;
+  openclawRunId?: string | null;
+  success?: boolean;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  extraMetadata?: Record<string, unknown>;
+}) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const metadata: Record<string, unknown> = {
+      queue_id: args.queueId ?? null,
+      queue_item_id: args.queueItemId ?? null,
+      build_packet_id: args.buildPacketId ?? null,
+      openclaw_run_id: args.openclawRunId ?? null,
+      user_id: args.userId ?? null,
+      user_email: args.actorEmail,
+      success: args.success ?? true,
+      error_code: args.errorCode ?? null,
+      error_message: args.errorMessage ? String(args.errorMessage).slice(0, 500) : null,
+      ...(args.extraMetadata ?? {}),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await supabaseAdmin.from("engine_audit_log").insert({
+      project_id: args.projectId,
+      actor_email: args.actorEmail,
+      action: args.action,
+      summary: args.summary.slice(0, 500),
+      target_id: args.queueItemId ?? args.queueId ?? null,
+      affected_modules: ["build_execution", "openclaw_queue"],
+      metadata,
+    } as any);
+  } catch {
+    /* audit is best-effort — never break the caller */
+  }
+}
+
 async function loadQueue(sb: Sb, queueId: string): Promise<OpenClawQueueRow> {
   const { data, error } = await sb
     .from("engine_project_openclaw_queues")
@@ -433,6 +482,21 @@ export const createOpenClawQueue = createServerFn({ method: "POST" })
         "OpenClaw queue created",
         `${staff.email} created queue "${data.name}" with ${items.length} packet(s).`,
       );
+      await insertAuditLog({
+        projectId: data.projectId,
+        actorEmail: staff.email,
+        userId: staff.userId,
+        action: "openclaw_queue_created",
+        summary: `Queue "${data.name}" created with ${items.length} packet(s), policy=${data.failurePolicy}, simulated=${data.simulated ?? false}.`,
+        queueId: queue.id,
+        extraMetadata: {
+          queue_name: data.name,
+          failure_policy: data.failurePolicy,
+          simulated: data.simulated ?? false,
+          item_count: items.length,
+          build_packet_ids: uniqueIds,
+        },
+      });
       return { queue, items };
     },
   );
@@ -486,6 +550,15 @@ async function transitionQueue(
     success: args.severity !== "error",
   });
   await insertActivity(sb, args.projectId, args.eventType, args.activityTitle, args.activityBody, args.severity);
+  await insertAuditLog({
+    projectId: args.projectId,
+    actorEmail: staff.email,
+    userId: staff.userId,
+    action: args.eventType,
+    summary: args.activityBody,
+    queueId: q.id,
+    success: args.severity !== "error",
+  });
 
   if (args.severity === "error") {
     try {
@@ -651,6 +724,23 @@ export const runNextQueueItem = createServerFn({ method: "POST" })
         email: staff.email,
         eventType: "openclaw_queue_item_started",
       });
+      await insertActivity(
+        sb,
+        data.projectId,
+        "openclaw_queue_item_started",
+        "OpenClaw queue item started",
+        `Item #${item.sequence_number} started by ${staff.email}.`,
+      );
+      await insertAuditLog({
+        projectId: data.projectId,
+        actorEmail: staff.email,
+        userId: staff.userId,
+        action: "openclaw_queue_item_started",
+        summary: `Item #${item.sequence_number} started by ${staff.email}.`,
+        queueId: q.id,
+        queueItemId: item.id,
+        buildPacketId: item.build_packet_id,
+      });
 
       // Call the existing v2 startOpenClawRun via its handler (server-to-server).
       // If it fails, mark the item failed and apply failure policy.
@@ -709,6 +799,20 @@ export const runNextQueueItem = createServerFn({ method: "POST" })
           `Item #${item.sequence_number} failed: ${itemFailedError.slice(0, 200)}`,
           "error",
         );
+        await insertAuditLog({
+          projectId: data.projectId,
+          actorEmail: staff.email,
+          userId: staff.userId,
+          action: "openclaw_queue_item_failed",
+          summary: `Item #${item.sequence_number} failed: ${itemFailedError.slice(0, 200)}`,
+          queueId: q.id,
+          queueItemId: item.id,
+          buildPacketId: item.build_packet_id,
+          openclawRunId: runId,
+          success: false,
+          errorCode: "start_failed",
+          errorMessage: itemFailedError,
+        });
         try {
           await supabaseAdmin.from("operator_notifications").insert({
             kind: "openclaw_queue_item_failed",
@@ -779,6 +883,16 @@ export const retryQueueItem = createServerFn({ method: "POST" })
       "OpenClaw queue item retried",
       `Item #${item.sequence_number} requeued by ${staff.email}.`,
     );
+    await insertAuditLog({
+      projectId: data.projectId,
+      actorEmail: staff.email,
+      userId: staff.userId,
+      action: "openclaw_queue_item_retried",
+      summary: `Item #${item.sequence_number} requeued by ${staff.email}.`,
+      queueId: item.queue_id,
+      queueItemId: item.id,
+      buildPacketId: item.build_packet_id,
+    });
     return { item: upd as OpenClawQueueItemRow };
   });
 
@@ -824,6 +938,17 @@ export const skipQueueItem = createServerFn({ method: "POST" })
       "OpenClaw queue item skipped",
       `Item #${item.sequence_number} skipped by ${staff.email} — ${data.reason.slice(0, 200)}`,
     );
+    await insertAuditLog({
+      projectId: data.projectId,
+      actorEmail: staff.email,
+      userId: staff.userId,
+      action: "openclaw_queue_item_skipped",
+      summary: `Item #${item.sequence_number} skipped — ${data.reason.slice(0, 200)}`,
+      queueId: item.queue_id,
+      queueItemId: item.id,
+      buildPacketId: item.build_packet_id,
+      extraMetadata: { reason: data.reason.slice(0, 500) },
+    });
     return { item: upd as OpenClawQueueItemRow };
   });
 
@@ -851,6 +976,21 @@ export const markQueueItemReviewed = createServerFn({ method: "POST" })
     await insertAudit(sb, {
       projectId: data.projectId, userId: staff.userId, email: staff.email,
       eventType: "openclaw_queue_item_reviewed",
+    });
+    await insertActivity(
+      sb, data.projectId, "openclaw_queue_item_reviewed",
+      "OpenClaw queue item reviewed",
+      `Item #${item.sequence_number} marked reviewed by ${staff.email} and requeued.`,
+    );
+    await insertAuditLog({
+      projectId: data.projectId,
+      actorEmail: staff.email,
+      userId: staff.userId,
+      action: "openclaw_queue_item_reviewed",
+      summary: `Item #${item.sequence_number} reviewed and requeued.`,
+      queueId: item.queue_id,
+      queueItemId: item.id,
+      buildPacketId: item.build_packet_id,
     });
     return { item: upd as OpenClawQueueItemRow };
   });
@@ -930,6 +1070,14 @@ export async function _mirrorRunToQueueItem(
           .update({ status: "completed", completed_at: new Date().toISOString() })
           .eq("id", item.queue_id)
           .in("status", ["running", "paused"]);
+        await insertAuditLog({
+          projectId: args.projectId,
+          actorEmail: "system@openclaw-mirror",
+          userId: null,
+          action: "openclaw_queue_completed",
+          summary: `Queue auto-completed after all items reached terminal states.`,
+          queueId: item.queue_id,
+        });
       }
     }
 
@@ -944,6 +1092,20 @@ export async function _mirrorRunToQueueItem(
     } catch {
       /* best-effort */
     }
+    await insertAuditLog({
+      projectId: args.projectId,
+      actorEmail: "system@openclaw-mirror",
+      userId: null,
+      action: `openclaw_queue_item_${itemStatus}`,
+      summary: `Item #${item.sequence_number} moved to ${itemStatus} via run outcome ${args.outcome}.`,
+      queueId: item.queue_id,
+      queueItemId: item.id,
+      buildPacketId: item.build_packet_id,
+      openclawRunId: args.runId,
+      success: itemStatus !== "failed",
+      errorCode: itemStatus === "failed" ? "run_failed" : null,
+      errorMessage: itemStatus === "failed" ? (args.errorMessage ?? null) : null,
+    });
   } catch {
     /* mirroring is best-effort */
   }
