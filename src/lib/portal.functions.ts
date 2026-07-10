@@ -2049,7 +2049,9 @@ export const submitPortalOnboarding = createServerFn({ method: "POST" })
       });
     }
 
-    // NOTE: engineSourceId is intentionally NOT returned — engine-internal
-    // identifiers never cross the portal boundary to the client caller.
+    // Portal-facing return: never expose internal engine IDs to client context.
+    // engineSourceId, engineProj.id, and other engine-internal identifiers are
+    // intentionally omitted — they must never cross the portal boundary to the
+    // client caller.
     return { ok: true as const };
   });

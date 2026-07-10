@@ -459,6 +459,54 @@ export const submitIntake = createServerFn({ method: "POST" })
         },
       }),
     ];
+    // --- Rate limiting (server-side, no external service required) ---
+    // Allow at most 3 submissions per email (or IP) within a 10-minute window.
+    {
+      const { getRequestHeader } = await import("@tanstack/react-start/server");
+      const forwardedFor = getRequestHeader("x-forwarded-for");
+      // x-forwarded-for may be a comma-separated list; take the first (leftmost) entry.
+      const submitterIp =
+        (forwardedFor ? forwardedFor.split(",")[0].trim() : null) ||
+        getRequestHeader("x-real-ip") ||
+        null;
+
+      const windowStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
+      // Build the filter: always check email; add IP check when we have one.
+      type RawRow = { id: string };
+      const emailQuery = (supabaseAdmin.from("intake_submissions") as unknown as {
+        select: (s: string) => {
+          gte: (col: string, val: string) => {
+            or: (filter: string) => Promise<{ data: RawRow[] | null; error: unknown }>;
+          };
+        };
+      })
+        .select("id")
+        .gte("created_at", windowStart);
+
+      const orFilter = submitterIp
+        ? `email.eq.${data.email},submitter_ip.eq.${submitterIp}`
+        : `email.eq.${data.email}`;
+
+      const { data: recentRows, error: rlErr } = await emailQuery.or(orFilter);
+
+      if (rlErr) {
+        // Log but don't block on a rate-limit query failure — fail open
+        // so a transient DB hiccup doesn't lock out legitimate submitters.
+        console.warn("[submit-intake] rate-limit check failed (fail open)", rlErr);
+      } else if (recentRows && recentRows.length >= 3) {
+        console.warn("[submit-intake] rate limit hit", {
+          email: data.email,
+          ip: submitterIp,
+          recent_count: recentRows.length,
+        });
+        throw new Error(
+          "Too many submissions. Please wait a few minutes before trying again."
+        );
+      }
+    }
+    // --- End rate limiting ---
+
     const { data: inserted, error } = await intake
       .from("intake_submissions")
       .insert({
