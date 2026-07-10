@@ -496,39 +496,19 @@ function InfoRow({
   );
 }
 
-const PasswordSchema = z
-  .object({
-    newPassword: z
-      .string()
-      .min(10, "At least 10 characters")
-      .max(128, "Too long")
-      .regex(/[A-Za-z]/, "Include a letter")
-      .regex(/[0-9]/, "Include a number"),
-    confirm: z.string(),
-  })
-  .refine((v) => v.newPassword === v.confirm, {
-    message: "Passwords don't match",
-    path: ["confirm"],
-  });
-
 function PasswordSection() {
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [errors, setErrors] = useState<{ newPassword?: string; confirm?: string }>({});
+  const [errors, setErrors] = useState<PasswordFieldErrors>({});
   const [saving, setSaving] = useState(false);
 
-  const strength = scoreStrength(newPassword);
+  const strength = scorePasswordStrength(newPassword);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = PasswordSchema.safeParse({ newPassword, confirm });
-    if (!parsed.success) {
-      const next: { newPassword?: string; confirm?: string } = {};
-      for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as "newPassword" | "confirm";
-        if (!next[key]) next[key] = issue.message;
-      }
-      setErrors(next);
+    const result = validatePassword({ newPassword, confirm });
+    if (!result.ok) {
+      setErrors(result.errors);
       return;
     }
     setErrors({});
