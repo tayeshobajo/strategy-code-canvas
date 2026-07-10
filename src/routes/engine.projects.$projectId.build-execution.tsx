@@ -43,6 +43,7 @@ import {
 } from "@/lib/engine-build-execution.functions";
 import { OpenClawPanel } from "@/components/engine/OpenClawPanel";
 import { OpenClawQueuePanel } from "@/components/engine/OpenClawQueuePanel";
+import { OpenClawMonitorPanel } from "@/components/engine/OpenClawMonitorPanel";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
