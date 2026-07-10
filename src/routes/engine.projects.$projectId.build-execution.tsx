@@ -45,6 +45,7 @@ import { OpenClawPanel } from "@/components/engine/OpenClawPanel";
 import { OpenClawQueuePanel } from "@/components/engine/OpenClawQueuePanel";
 import { OpenClawMonitorPanel } from "@/components/engine/OpenClawMonitorPanel";
 import { QaEvidenceReviewPanel } from "@/components/engine/QaEvidenceReviewPanel";
+import { DeliveryReadinessPanel } from "@/components/engine/DeliveryReadinessPanel";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
