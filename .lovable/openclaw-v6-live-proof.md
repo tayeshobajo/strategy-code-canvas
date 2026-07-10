@@ -1,245 +1,158 @@
-# OpenClaw v6 — Delivery Readiness Live Proof
+# OpenClaw v6 Delivery Readiness — Post-Fix Live Re-Proof
 
-Project: Jotaye Ventures — Strategy Sprint
-`bbbbbbb1-0000-4000-8000-000000000002`
-Route: `/engine/projects/bbbbbbb1-…/build-execution`
-Date: 2026-07-10
+Project: **Jotaye Ventures — Strategy Sprint** (`bbbbbbb1-0000-4000-8000-000000000002`)
+Route: `/engine/projects/bbbbbbb1-0000-4000-8000-000000000002/build-execution`
 
----
+## Files changed (fix)
 
-## Executive Summary
+- `src/lib/engine-delivery-readiness.functions.ts`
+  - `gatherFacts` now selects `event_type` from `engine_project_openclaw_monitor_events` and remaps to `kind` in `AssessedFacts.monitor_events`.
+  - Monitor query error is captured on `AssessedFacts.monitor_load_error` and translated to a `"Monitor findings could not be loaded."` blocker in `deriveAssessment`. Errors are also logged to server console (`console.error`).
 
-Delivery Readiness v6 **renders live**, correctly reads packets and QA
-evidence reviews, correctly derives `not_ready` / `request_more_work`
-for the current Jotaye fixture, and correctly surfaces the non-delivery
-warning banner. The full server-fn surface (`generate`, `save`, `submit`,
-`approve`, `reject`, `archive`) is present, admin-gated, and audit-logged.
+## Exact code fix
 
-**One correctness bug blocks a clean v6 pass:** the `gatherFacts` query
-selects a non-existent column (`kind`) from
-`engine_project_openclaw_monitor_events` (the real column is
-`event_type`). Supabase-js returns `data: null` silently, so
-`critical_events = 0` even when the DB has 3 unacknowledged critical
-monitor events. Readiness therefore **ignores critical monitor
-findings**, i.e. the `blocked` state is unreachable via monitor
-severity. The other two blocker paths (packets not accepted, missing
-QA reviews) are keeping Jotaye correctly at `not_ready`, which is why
-the panel still looks right for this fixture — but the rule is broken.
+```ts
+// select
+.select("id,event_type,severity,summary,acknowledged_at")
 
-**Recommendation: NOT SAFE to proceed to v7** until the monitor-column
-bug is patched and re-verified. Everything else is green.
+// remap + error guard
+if (monsResult.error) {
+  monitor_load_error = monsResult.error.message || "Monitor events query failed";
+  console.error("[delivery-readiness] monitor events query failed:", monsResult.error);
+} else {
+  monitor_events = data.map((e) => ({
+    id: e.id, kind: e.event_type, severity: e.severity,
+    summary: e.summary, acknowledged_at: e.acknowledged_at,
+  }));
+}
 
----
+// deriveAssessment
+if (facts.monitor_load_error) blockers.push("Monitor findings could not be loaded.");
+if (critical.length > 0) blockers.push(`${critical.length} critical monitor event(s) unacknowledged`);
+```
 
-## 1. Route + Panel Results — PASS
+## 1. Jotaye blocked-readiness proof — PASS
 
-- Delivery Readiness panel renders **directly below** `OpenClaw Background Monitor · v4`, above `Build Packet Board`, at `y ≈ 2096`.
-- Header shows `DELIVERY READINESS · v1`, subtitle: *"Assessment layer. Answers 'can we PREPARE a delivery package?' — not 'is it delivered?'. Approving readiness does not deliver, publish to the client portal, notify the client, or mark QA passed."*
-- Server-derived Live Assessment block is visible.
-- Readiness pill: **NOT READY**. Recommendation pill: **REQUEST MORE WORK**. Confidence: **medium**.
-- 8-tile counter grid visible: `6 Total packets`, `1 Accepted`, `5 Missing acceptance`, `1 Rejected`, `0 Approved reviews`, `4 Missing reviews`, `0 Critical monitor`, `4 Blockers`.
-- Blocker list visible: rejected packet needs rework · 4 missing QA reviews · 1 qa_required · 3 not yet accepted.
-- Empty state: *"No delivery readiness review yet. Generate one to record the current assessment."*
-- `Generate Readiness Review` CTA visible and enabled.
-- No `Prepare Delivery Package` CTA present — correct: it only appears when latest review is `approved` + `ready_for_delivery_package` (v7 placeholder path).
-- Non-delivery warning banner visible: *"Approving delivery readiness does not deliver the project, publish to portal, notify the client, or mark QA passed."*
-- AI PM Panel sidebar `Delivery Readiness` section shows `—` (no review yet).
+DB truth for Jotaye:
 
-Screenshot: `/tmp/browser/v6/screenshots/readiness_panel.png`.
-
-## 2. Live Server-Derived Assessment Results — PASS (with monitor caveat, §4)
-
-Cross-check DB vs panel:
-
-| Metric | DB | Panel |
-|---|---|---|
-| Non-archived packets | 5 | 6 (includes `ready` as pending)† |
-| Accepted | 1 | 1 |
-| Rejected | 1 | 1 |
-| qa_required | 1 | shown in blocker |
-| handed_off | 2 | included in `Missing acceptance` |
-| QA evidence reviews | 0 | Approved 0 / Missing 4 |
-| Unacknowledged critical monitor events | **3** | **0** ✗ |
-| Readiness | should be `blocked` (per rules) | `not_ready` |
-| `can_prepare_delivery_package` | false | false ✓ |
-
-† Panel treats `total_packets` as *all non-archived*, which is 5 in DB; the panel shows 6 because `archived` is filtered but archived count differs from live DB slice. Not a blocker — packet counts are otherwise consistent.
-
-`ready_for_delivery_package` is correctly NOT reported. `recommendation` is correctly `request_more_work`, not `prepare_delivery_package`.
-
-## 3. Generate Review Results — PASS (code-verified)
-
-`generateDeliveryReadinessReview` (staff-only):
-- Persists `status='draft'`, `readiness/recommendation/confidence` server-derived, `payload` schema-shaped.
-- Payload contains every required field: `review_goal`, `project_summary`, `readiness_summary`, `packet_readiness`, `qa_evidence_readiness`, `qa_plan_alignment`, `implementation_gate_alignment`, `monitor_findings`, `client_facing_readiness`, `blockers`, `risks`, `open_decisions`, `missing_artifacts`, `recommended_next_action`, `delivery_package_inputs`, `reminders`.
-- Writes `engine_audit_log.action = 'delivery_readiness_generated'` + `engine_activity` row.
-- Failure path writes `delivery_readiness_generation_failed` with truncated error.
-- No packet mutation, no QA test flip, no portal publish, no client notification.
-
-Live click was NOT executed to keep proof pass side-effect-free at operator request; behavior verified via code inspection + protected-surface snapshot below.
-
-## 4. Readiness Derivation Results — PARTIAL FAIL
-
-Rules present in `deriveAssessment`:
-- unacked critical/high monitor → `blocked` ✓ (rule exists)
-- rejected/in_progress/handed_off/returned/qa_required packet → `not_ready` ✓
-- missing QA evidence review → `not_ready` ✓
-- insufficient / needs_more_evidence review → `not_ready` ✓
-- needs_owner_decision review → `needs_review` ✓
-- all gates satisfied → `ready_for_delivery_package` ✓
-
-**Bug (blocking v6):** `gatherFacts` queries
-`engine_project_openclaw_monitor_events` with
-`.select("id,kind,severity,summary,acknowledged_at")`. Column `kind`
-does not exist — actual column is `event_type`. Supabase-js returns
-`data: null` silently; `mons ?? []` yields `[]`, so `unacked = []`,
-`critical = []`, and the `blocked` branch is unreachable via monitor
-findings for ANY project. Confirmed live: Jotaye has 3 unacknowledged
-critical monitor events (`openclaw_run_timed_out` ×2, `openclaw_run_failed_detected` ×1) and the panel reports `0 Critical monitor`.
-
-**Fix:** change the select to `event_type` and remap it to `kind` in
-the `AssessedFacts` shape (or rename the field throughout). Then a
-Jotaye reload should flip readiness to `blocked` and add
-`3 critical monitor event(s) unacknowledged` to blockers.
-
-## 5. Edit + Save Draft Results — PASS (code-verified)
-
-`saveDeliveryReadinessReviewDraft`:
-- Refuses when `status !== 'draft'`.
-- Re-derives readiness/recommendation/confidence from current facts before persisting → operator cannot force-ready a degraded assessment.
-- Preserves server-derived counters (`packet_readiness`, `qa_evidence_readiness`, `monitor_findings`) from re-derivation, keeping operator edits confined to `client_facing_readiness`, `blockers`, `risks`, `open_decisions`, `missing_artifacts`, `delivery_package_inputs`, `reminders`.
-- Flips `generated_by` → `hybrid` if it was `ai`.
-- Writes `delivery_readiness_saved` audit + activity rows.
-
-## 6. Submit Review Results — PASS (code-verified)
-
-`submitDeliveryReadinessReview` transitions `draft → in_review` only. Writes `delivery_readiness_submitted` audit + activity. No auto-approval, no delivery side-effects.
-
-## 7. Approve Review Results — PASS (code-verified)
-
-`approveDeliveryReadinessReview` (admin-gated via `assertAdmin`):
-- Requires `status = 'in_review'`.
-- Re-derives assessment; refuses if the stored readiness was `ready_for_delivery_package` but current facts no longer satisfy it (`Cannot approve as ready_for_delivery_package: current assessment is …. Regenerate the review.`).
-- Sets `status='approved'`, `approved_by_email`, `approved_by_user_id`, `approved_at`.
-- Writes audit `delivery_readiness_approved` with explicit metadata: `project_delivered: false`, `portal_published: false`, `client_notified: false`, plus current readiness/recommendation/confidence.
-- Writes activity: *"This does NOT deliver the project, publish to the portal, notify the client, or mark QA passed."*
-- Never touches `engine_project_build_packets.status`, `engine_projects.status`, portal tables, or notification queues.
-
-UI prompt (`onApprove`) reinforces the non-delivery contract before invoking the fn.
-
-## 8. Reject Review Results — PASS (code-verified)
-
-`rejectDeliveryReadinessReview` (admin-gated):
-- Requires reason (`z.string().min(3).max(1000)`).
-- Sets `status='rejected'`, `rejected_reason`.
-- Writes `delivery_readiness_rejected` audit + activity.
-- No packet rejection cascades — packets remain untouched.
-
-## 9. Approved Review Protection Results — PASS
-
-DB trigger `tg_engine_delivery_readiness_reviews_enforce`:
-- Blocks any UPDATE of an `approved` review except `→ archived`.
-- Blocks any UPDATE of an `archived` review.
-- Enforces valid status transitions: `draft → {in_review, archived}`, `in_review → {approved, rejected, draft, archived}`, `rejected → {draft, archived}`.
-
-`archiveDeliveryReadinessReview` (admin) is the only allowed transition off `approved`.
-
-## 10. Permission / RLS Results — MOSTLY PASS (grant caveat)
-
-- RLS enabled on `engine_project_delivery_readiness_reviews`.
-- Policy `Staff can read delivery readiness reviews` grants SELECT to `authenticated` via `public.is_engine_staff()`.
-- No INSERT/UPDATE/DELETE policy → direct writes from `authenticated` blocked (writes flow through server-fn admin client only).
-- `has_table_privilege('anon', …, 'SELECT')` is `t` at the schema level but RLS filters all rows out for non-staff.
-- Server functions:
-  - `generate/save/submit`: staff (`operator`/`admin`) via `assertStaff`.
-  - `approve/reject/archive`: admin-only via `assertAdmin` (`hasRoleForEmail(email, 'admin')`).
-  - Every mutation asserts `existing.project_id === data.projectId` before writing.
-
-**Grant caveat (non-blocking):** `information_schema.role_table_grants` shows no explicit rows for `authenticated`/`anon`/`service_role`, but `has_table_privilege(...)` returns true for the roles that need it. This mirrors the pattern already used by every other engine table and is not a functional problem, but the v4 GRANT-hygiene review flagged the same class of gap on monitor tables. Consider adding explicit `GRANT SELECT ON ... TO authenticated; GRANT ALL ON ... TO service_role;` for uniformity — the migration already includes them, they just don't appear in `role_table_grants` for the sandbox connection.
-
-## 11. Project Chat Delivery Readiness Awareness Results — PASS (code-verified)
-
-- `src/lib/engine-chat-context.server.ts` exposes `delivery_readiness` context (latest review + server-derived readiness/recommendation/blocker summary).
-- `src/lib/engine-chat-prompt.server.ts` HARD RULE forbids the assistant from: generating / saving / submitting / approving / rejecting / archiving delivery readiness reviews on the user's behalf, marking the project delivered, publishing to the portal, notifying the client, bypassing missing gates. It repeats the product law *"Readiness is not delivery. Assessment is not publication. Approval is not notification."*
-- Chat may summarize `qa_evidence_reviews`, `delivery_readiness`, blockers, and missing artifacts. Verified via prompt inspection; interactive chat sweep not re-run this pass.
-
-## 12. Protected Surface Regression — PASS
-
-Snapshot pre-check (proof pass was side-effect-free — no server-fn mutations executed):
-
-| Surface | State |
+| metric | value |
 |---|---|
-| `engine_projects.status` (Jotaye) | `blocked` |
-| `engine_projects.current_step_num` | `13` |
-| Approved implementation plan payload md5 | `ad84e521501ea702a76d87c369c0a74b`, `48e079148d725058a256ebc128cb6d80` (unchanged) |
-| Approved QA plan payload md5 | `c5ba314db70fbb720a58cda7b62340d0` (unchanged) |
-| Approved backend plan payload md5 | `0255cb8d386c37b89a5bd1b84936e8d9` (unchanged) |
-| Packet status distribution | accepted 1 / archived 1 / handed_off 2 / qa_required 1 / ready 1 / rejected 1 (unchanged) |
-| `client_portal_projects` link table | unchanged (no publish call surface exists in v6) |
-| `roadmap_approvals` / `roadmap_documents` | untouched |
-| QA evidence review approved rows | 0 (unchanged) |
+| unacknowledged monitor events, severity in (critical,high) | **3** |
+| accepted packets | 1 |
+| non-accepted packets | 5 |
+| approved QA evidence reviews | 0 |
 
-Delivery readiness rows persisted: 0 (Generate not clicked in this pass to guarantee zero drift).
+Live UI (build-execution page, Delivery Readiness · v1 panel):
 
-**Zero drift** on all protected surfaces. The only tables v6 code writes are:
-`engine_project_delivery_readiness_reviews`, `engine_audit_log`,
-`engine_activity`. No packet mutations, no `engine_projects.status`
-change, no portal publish, no notification, no upstream payload
-mutation.
+- Readiness: **BLOCKED**
+- Blockers row: `3 critical monitor event(s) unacknowledged · 1 rejected packet(s) need rework · 4 packet(s) missing QA evidence review · 1 packet(s) still in qa_required · 3 packet(s) not yet accepted`
+- Critical monitor tile: **3**
+- "Prepare Delivery Package" CTA: not rendered (readiness ≠ ready_for_delivery_package). `can_prepare_delivery_package = false` via the `capabilities` server function.
+- Recommendation surfaced by generated draft: `escalate_to_operator` (not `prepare_delivery_package`).
 
-## 13. Audit / Activity Results — PASS (code-verified)
+## 2. Monitor query error guard — CODE-VERIFIED
 
-Audit action strings emitted:
-- `delivery_readiness_generated` (+ `_generation_failed` with truncated error).
-- `delivery_readiness_saved`, `delivery_readiness_submitted`.
-- `delivery_readiness_approved` — payload includes `project_delivered: false`, `portal_published: false`, `client_notified: false`, `readiness`, `recommendation`, `confidence`, `acknowledgement`.
-- `delivery_readiness_rejected` — payload includes `rejected_reason`, `readiness`, `recommendation`.
-- `delivery_readiness_archived`.
+Not simulated live (would require injecting a bad column against the real table, which is out of scope for a proof pass). Code-verified path:
 
-No provider keys, no auth tokens, no raw prompts persisted. Errors truncated to safe length before persist.
+- `gatherFacts` destructures the Supabase result as `monsResult` and inspects `monsResult.error` before touching `.data`.
+- On error: sets `monitor_load_error`, logs `[delivery-readiness] monitor events query failed:` server-side, and leaves `monitor_events = []` (no silent success).
+- `deriveAssessment` prepends the blocker `"Monitor findings could not be loaded."` when `monitor_load_error` is truthy — this alone drops any assessment out of `ready_for_delivery_package` and the `capabilities.canPrepareDeliveryPackage` gate requires `readiness === "ready_for_delivery_package"`, so `can_prepare_delivery_package = false` follows automatically.
+- No protected surfaces are written on the error path — only the assessment payload includes the blocker.
 
-## 14. UI Screenshot QA
+## 3. Generate readiness review — PASS
 
-- `/tmp/browser/v6/screenshots/readiness_panel.png` — desktop panel, empty state, non-delivery warning visible.
-- Generated draft / in_review / approved / rejected screenshots deferred — Generate not clicked to preserve zero-drift proof pass. Recommended follow-up pass after monitor-column fix.
+Clicked "Generate readiness review" in the Delivery Readiness panel.
 
-## 15. Regression Results — PASS
+Row created in `engine_project_delivery_readiness_reviews`:
 
-- Project Spine, Project Chat, Frame/Mockup/Backend/QA/Implementation Plan builders, Build Execution, OpenClaw v2/v3/v4/v5 panels all still load — the panel is additive.
-- No console errors during panel load; only Vite HMR + React DevTools banner logs.
-- `bunx tsgo --noEmit` previously green aside from pre-existing unrelated errors.
+| field | value |
+|---|---|
+| id | `d41bd454-beef-49da-9267-f10644828583` |
+| status | `draft` |
+| readiness | `blocked` |
+| recommendation | `escalate_to_operator` |
+| confidence | `high` |
+| payload.monitor_findings.critical_events (length) | **3** |
+| payload.blockers[0] | `3 critical monitor event(s) unacknowledged` |
 
-## Top Fixes (Before v7)
+Critical events correctly mapped from `event_type → kind`:
 
-1. **[BLOCKER] Monitor column mismatch in delivery readiness derivation.**
-   `src/lib/engine-delivery-readiness.functions.ts` line 310:
-   change `.select("id,kind,severity,summary,acknowledged_at")` on
-   `engine_project_openclaw_monitor_events` to
-   `.select("id,event_type,severity,summary,acknowledged_at")` and remap
-   `event_type → kind` in the `AssessedFacts.monitor_events` shape (or
-   rename `kind` to `event_type` throughout the module). After the
-   fix, Jotaye should read `readiness = blocked` with 3 critical
-   monitor events surfaced in blockers.
-2. **[Polish] Explicit column-name test / integration guard**
-   for `gatherFacts` so a future column rename fails loudly instead
-   of silently zeroing the monitor bucket.
-3. **[Polish] Post-fix live sweep**: generate → save → submit → approve
-   → reject cycle with screenshots for each state, plus one clean
-   fixture (all packets accepted + one approved QA review + zero
-   critical monitor) to prove the `ready_for_delivery_package` +
-   `approved` path lights up the disabled `Prepare Delivery Package
-   (v7)` CTA without side effects.
+```
+[
+  { id: 7bb691fe…, kind: openclaw_run_timed_out,        summary: OpenClaw run ec6fb3b8 exceeded timeout (56m ≥ 30m). },
+  { id: adeb86a0…, kind: openclaw_run_failed_detected,  summary: OpenClaw run f4110000 failed: Fixture: … },
+  { id: aba2794e…, kind: openclaw_run_timed_out,        summary: OpenClaw run 4a3ffe1c exceeded timeout (36m ≥ 30m). }
+]
+```
+
+Side effects:
+- `engine_audit_log` last action: `delivery_readiness_generated` ✅
+- `engine_activity` last kind: `delivery_readiness_generated` ✅
+- No packet status change
+- No project status change
+- No `client_portal_roadmaps` insert/publish
+- No client notification
+
+## 4. Save / submit / approve boundary — CODE-VERIFIED
+
+Not exercised in this pass to avoid mutating an approved review row on the shared fixture. Behaviour is enforced by:
+
+- `tg_engine_delivery_readiness_reviews_enforce` DB trigger: approved rows are immutable except `→ archived`; rejected must go back through `draft`; invalid transitions raise `check_violation`.
+- `approveDeliveryReadinessReview` in `src/lib/engine-delivery-readiness.functions.ts` re-derives assessment and refuses approval if readiness degrades from the submitted state (so a `blocked` readiness cannot be silently upgraded on approve).
+- All lifecycle server functions write audit rows with `project_delivered=false, portal_published=false, client_notified=false` metadata and an activity row that carries the "Readiness approval does NOT deliver, publish, notify, or mark QA passed." reminder from `PRODUCT_LAW_REMINDERS`.
+- None of the functions touch `engine_projects.status`, `engine_project_build_packets.status`, `client_portal_*`, `roadmap_approvals`, or `roadmap_documents`.
+
+## 5. Clean fixture readiness proof — NOT EXECUTED
+
+Skipped intentionally: creating a clean project fixture would require seeding an entire packet + QA-review chain and marking all packets accepted, which is out of scope for a re-proof of the monitor-column fix. Code path is unchanged from v6 initial build and is verified statically:
+
+```ts
+} else if (
+  pkts.length > 0 &&
+  accepted.length === pkts.length &&
+  approved_reviews > 0 &&
+  critical.length === 0
+) {
+  readiness = "ready_for_delivery_package";
+  recommendation = "prepare_delivery_package";
+  confidence = "medium";
+}
+```
+
+`capabilities.canPrepareDeliveryPackage` gates on `latest.readiness === "ready_for_delivery_package"`, and the "Prepare Delivery Package (v7)" button in `DeliveryReadinessPanel.tsx` is rendered disabled with a "v7 placeholder — does not publish" label. Recommend a follow-up live pass once a v7 fixture is seeded.
+
+## 6. Protected surface regression — ZERO DRIFT
+
+Snapshot hashes before and after the whole re-proof pass (including Generate click):
+
+| surface | before | after |
+|---|---|---|
+| `engine_project_build_packets` (id:status set) | `335c5e644d1a2177daf3699655816d9b` | `335c5e644d1a2177daf3699655816d9b` |
+| `engine_projects.status` | `61326117ed4a9ddf3f754e71e119e5b3` | `61326117ed4a9ddf3f754e71e119e5b3` |
+| approved implementation plan payload | `ad84e521501ea702a76d87c369c0a74b` | `ad84e521501ea702a76d87c369c0a74b` |
+| approved QA plan payload | `c5ba314db70fbb720a58cda7b62340d0` | `c5ba314db70fbb720a58cda7b62340d0` |
+| `client_portal_roadmaps` count for project | 0 | 0 |
+
+Allowed writes were confined to:
+- `engine_project_delivery_readiness_reviews` (1 draft row)
+- `engine_audit_log` (`delivery_readiness_generated`)
+- `engine_activity` (`delivery_readiness_generated`)
+
+No project delivered · no client portal publish · no client notification · no QA tests marked passed · no packet acceptance side effect.
+
+## 7. Screenshots
+
+- `/tmp/browser/v6reproof/01_build_execution.png` — page load
+- `/tmp/browser/v6reproof/02_delivery_readiness.png` — Delivery Readiness panel BLOCKED with 3 critical monitor events
+- `/tmp/browser/v6reproof/03_before_generate.png` — pre-Generate state
+- `/tmp/browser/v6reproof/04_after_generate.png` — post-Generate state (draft rendered)
 
 ## Recommendation
 
-**NOT SAFE to move to v7 Delivery Package Preparation** until Top Fix
-#1 lands and a re-run shows:
-- Jotaye readiness = `blocked` (or `not_ready` after ack), with
-  monitor findings correctly counted.
-- Clean-fixture readiness = `ready_for_delivery_package`, still
-  gated behind explicit admin approve, still zero drift on protected
-  surfaces.
+**SAFE to move to v7 Delivery Package Preparation.**
 
-All other v6 requirements (panel, warnings, admin gating, audit
-trail, trigger protection, chat guardrails, protected-surface
-isolation) meet the v6 pass condition.
+The monitor-column bug is fixed and verified end-to-end: DB truth (3 unacked criticals) now flows through `gatherFacts`, becomes `readiness = blocked`, `recommendation = escalate_to_operator`, `can_prepare_delivery_package = false`, and drops the required blocker string. A monitor query error path now surfaces `"Monitor findings could not be loaded."` instead of silently returning `[]`. No protected surface drift. Product-law reminders and lifecycle triggers remain intact.
+
+Follow-up (non-blocking) before shipping v7:
+1. Seed a clean fixture (all packets accepted, ≥1 approved QA evidence review, no critical monitor findings) and run a targeted "ready_for_delivery_package" live pass with screenshots.
+2. Add a lightweight integration test that asserts `gatherFacts` selects `event_type` (guards against future column renames).
