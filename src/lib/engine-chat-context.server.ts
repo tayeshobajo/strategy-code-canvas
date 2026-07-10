@@ -709,6 +709,10 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
           : null,
         blocked_packets: blocked,
         packets_missing_evidence,
+        rejected_packets: pkts
+          .filter((p) => p.status === "rejected")
+          .slice(0, 10)
+          .map((p) => ({ id: p.id, title: p.title, reason: p.rejected_reason })),
         accepted_count: acceptedCount,
         all_accepted_ready_for_delivery:
           nonArchived > 0 && acceptedCount === nonArchived,
