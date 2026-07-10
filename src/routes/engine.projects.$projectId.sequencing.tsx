@@ -22,7 +22,14 @@ const LANES = [
 function Sequencing() {
   const { projectId } = Route.useParams();
   const { project } = useWorkspace(projectId);
-  const data = (project.sequencing ?? {}) as Record<string, string[] | undefined>;
+  const raw = (project.sequencing ?? {}) as Record<string, unknown>;
+  const data: Record<string, string[]> = {};
+  for (const { key } of LANES) {
+    const v = raw[key];
+    if (Array.isArray(v)) data[key] = v.map((x) => String(x));
+    else if (typeof v === "string" && v.trim()) data[key] = [v];
+    else data[key] = [];
+  }
   return (
     <div className="space-y-4">
       <header>
@@ -37,11 +44,11 @@ function Sequencing() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {LANES.map((l) => (
           <SectionCard key={l.key} title={l.label}>
-            {(data[l.key]?.length ?? 0) === 0 ? (
+            {data[l.key].length === 0 ? (
               <EmptyState title="Empty" />
             ) : (
               <ul className="list-disc list-inside text-sm text-ink/80 space-y-1">
-                {data[l.key]!.map((v, i) => <li key={i}>{v}</li>)}
+                {data[l.key].map((v, i) => <li key={i}>{v}</li>)}
               </ul>
             )}
           </SectionCard>
