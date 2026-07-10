@@ -795,7 +795,10 @@ function PacketDrawer({
             the target builder outside this app. Do NOT deploy, mark QA
             passed, or mark delivered from this surface.
           </p>
-        </div>
+
+        {/* OpenClaw Direct Connection v2 */}
+        <OpenClawPanel projectId={projectId} packet={packet} onChanged={onChanged} />
+
 
         {/* Scope */}
         <Section title="Execution scope">
