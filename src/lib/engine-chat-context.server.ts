@@ -1236,6 +1236,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     openclaw_queue: openClawQueueSummary,
     openclaw_monitor: openClawMonitorSummary,
     qa_evidence_reviews: qaEvidenceReviewSummary,
+    delivery_readiness: deliveryReadinessSummary,
     missing_data: missing,
   };
 
