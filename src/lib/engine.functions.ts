@@ -653,25 +653,60 @@ export const getProjectWorkspace = createServerFn({ method: "GET" })
     const { data: datesData } = await sb.from("engine_project_dates").select("id,label,due_on,kind").eq("project_id", data.id).order("due_on", { ascending: true });
     const { data: actData } = await sb.from("engine_activity").select("id,kind,title,body,severity,created_at").eq("project_id", data.id).order("created_at", { ascending: false }).limit(20);
 
+    // Extracted signals count (display metric on workspace header)
+    const signalCountResp = await (context.supabase as unknown as {
+      from: (t: string) => {
+        select: (s: string, opts: { count: "exact"; head: true }) => {
+          eq: (c: string, v: string) => Promise<{ count: number | null }>;
+        };
+      };
+    })
+      .from("engine_extracted_signals")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", data.id);
+    const signal_count = signalCountResp.count ?? 0;
+
+    const step_states = (row.step_states as Record<string, import("@/lib/engine-workspace").StepState>) ?? {};
+    const hasKeys = (v: unknown) =>
+      !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v as Record<string, unknown>).length > 0;
+
+    // Fallback health score when the stored value is 0 / unset.
+    const storedHealth = (row.health_score as number) ?? 0;
+    let computedHealth = 0;
+    computedHealth += Math.min(40, Math.round((signal_count / 20) * 40));
+    if (row.roadmap_version) computedHealth += 20;
+    if (hasKeys(row.point_a) || hasKeys(row.point_b)) computedHealth += 15;
+    if (row.approved_version) computedHealth += 15;
+    if (hasKeys(row.delivery)) computedHealth += 10;
+    computedHealth = Math.max(0, Math.min(100, computedHealth));
+    const health_score = storedHealth > 0 ? storedHealth : computedHealth;
+
+    // Fallback progress % from touched step states (any recorded state counts).
+    const storedProgress = (row.progress_pct as number) ?? 0;
+    const stepsTouched = Object.values(step_states).filter((s) => s?.state).length;
+    const computedProgress = Math.round((stepsTouched / 14) * 100);
+    const progress_pct = storedProgress > 0 ? storedProgress : computedProgress;
+
     const project: WorkspaceProject = {
       id: row.id as string,
       name: row.name as string,
       status: row.status as string,
       current_step_num: (row.current_step_num as number) ?? 1,
-      progress_pct: (row.progress_pct as number) ?? 0,
-      health_score: (row.health_score as number) ?? 0,
+      progress_pct,
+      health_score,
       roadmap_version: (row.roadmap_version as string | null) ?? null,
       approved_version: (row.approved_version as string | null) ?? null,
       agent_status: (row.agent_status as string) ?? "idle",
       agent_budget_monthly_cents: (row.agent_budget_monthly_cents as number) ?? 0,
       agent_spend_month_cents: (row.agent_spend_month_cents as number) ?? 0,
       open_decisions: (row.open_decisions as number) ?? 0,
+      signal_count,
       next_action: (row.next_action as string | null) ?? null,
       last_activity_at: row.last_activity_at as string,
       updated_at: row.updated_at as string,
       client_company: row.engine_clients?.company ?? "—",
       client_owner_email: row.engine_clients?.owner_email ?? null,
-      step_states: (row.step_states as Record<string, import("@/lib/engine-workspace").StepState>) ?? {},
+      step_states,
 
       signal_room: (row.signal_room as import("@/lib/engine-workspace").Json) ?? {},
       extraction: (row.extraction as import("@/lib/engine-workspace").Json) ?? {},
