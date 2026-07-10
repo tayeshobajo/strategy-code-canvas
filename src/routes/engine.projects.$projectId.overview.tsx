@@ -4,7 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { SectionCard, EmptyState, formatDate, formatCents } from "@/components/engine/primitives";
 import { AuditTrailCard } from "@/components/engine/AuditTrail";
-import { BrainCircuit, Layers, Eye, PackageCheck, AlertCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { BrainCircuit, Layers, Eye, PackageCheck, AlertCircle, Info } from "lucide-react";
 import { getVersionCompareData } from "@/lib/engine-execution.functions";
 import { getNextBestAction } from "@/lib/engine.functions";
 
@@ -172,7 +173,29 @@ function ProjectOverview() {
             )}
           </SectionCard>
 
-          <SectionCard title="Roadmap health">
+          <SectionCard
+            title={
+              <span className="inline-flex items-center">
+                Roadmap health
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="What roadmap health means"
+                        className="ml-1 inline-flex"
+                      >
+                        <Info className="h-3.5 w-3.5 text-ink/40 transition hover:text-ink/60" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Reflects signal coverage, roadmap completeness, and review status.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </span>
+            }
+          >
             <div
               className="font-display text-5xl text-ink"
               title="Health score reflects signal coverage, roadmap completeness, and review status."

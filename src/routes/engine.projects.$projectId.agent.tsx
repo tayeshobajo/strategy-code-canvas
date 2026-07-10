@@ -110,7 +110,13 @@ function AgentConsoleContent() {
               <Bot className="w-5 h-5 text-royal" />
             </div>
             <div>
-              <h2 className="font-display text-2xl text-ink">Project Agent</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-display text-2xl text-ink">Project Agent</h2>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Active
+                </span>
+              </div>
               <p className="text-sm text-ink/60 mt-0.5">
                 Dedicated AI product manager for {project?.name ?? "this project"}.
               </p>
