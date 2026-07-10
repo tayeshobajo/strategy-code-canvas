@@ -201,6 +201,8 @@ function DeliveryPrep() {
           </SectionCard>
 
           {alreadySent && <ExecutionHandoffCard projectId={projectId} />}
+          {alreadySent && <ClientFeedbackCard projectId={projectId} delivery={d} />}
+          <MarkCompleteCard projectId={projectId} />
         </div>
       </div>
     </div>
