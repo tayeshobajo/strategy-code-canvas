@@ -2423,6 +2423,97 @@ export type Database = {
           },
         ]
       }
+      engine_project_delivery_readiness_reviews: {
+        Row: {
+          approved_at: string | null
+          approved_by_email: string | null
+          approved_by_user_id: string | null
+          confidence: string
+          created_at: string
+          created_by_email: string | null
+          created_by_user_id: string | null
+          generated_by: string
+          id: string
+          implementation_plan_id: string | null
+          payload: Json
+          project_id: string
+          qa_plan_id: string | null
+          readiness: string
+          recommendation: string
+          rejected_reason: string | null
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_by_user_id?: string | null
+          confidence?: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          generated_by?: string
+          id?: string
+          implementation_plan_id?: string | null
+          payload?: Json
+          project_id: string
+          qa_plan_id?: string | null
+          readiness?: string
+          recommendation?: string
+          rejected_reason?: string | null
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          approved_by_user_id?: string | null
+          confidence?: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_user_id?: string | null
+          generated_by?: string
+          id?: string
+          implementation_plan_id?: string | null
+          payload?: Json
+          project_id?: string
+          qa_plan_id?: string | null
+          readiness?: string
+          recommendation?: string
+          rejected_reason?: string | null
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_delivery_readiness_r_implementation_plan_id_fkey"
+            columns: ["implementation_plan_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_implementation_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_delivery_readiness_reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_delivery_readiness_reviews_qa_plan_id_fkey"
+            columns: ["qa_plan_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_qa_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_frames: {
         Row: {
           approved_at: string | null
