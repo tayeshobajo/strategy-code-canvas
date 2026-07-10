@@ -58,7 +58,7 @@ export function ProjectHeaderStrip({ project }: { project: WorkspaceProject }) {
           </div>
         </div>
         <div className="flex items-center gap-6 flex-wrap">
-          <Metric label="Signals" value={project.open_decisions.toString()} hint="All sources" tone="blue" />
+          <Metric label="Signals" value={project.signal_count.toString()} hint="All sources" tone="blue" />
           <Metric label="Health Score" value={`${project.health_score}`} hint="Out of 100" tone="amber" />
           <Metric label="Progress" value={`${project.progress_pct}%`} hint="Complete" tone="green" />
           <button
