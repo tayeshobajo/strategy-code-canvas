@@ -610,12 +610,3 @@ function PasswordSection() {
   );
 }
 
-function scoreStrength(pw: string) {
-  let s = 0;
-  if (pw.length >= 10) s++;
-  if (pw.length >= 14) s++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
-  if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++;
-  return Math.min(4, s);
-}
-
