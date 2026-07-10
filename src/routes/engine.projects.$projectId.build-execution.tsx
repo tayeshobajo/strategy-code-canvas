@@ -806,6 +806,14 @@ function PacketDrawer({
         {/* OpenClaw Direct Connection v2 */}
         <OpenClawPanel projectId={projectId} packet={packet} onChanged={onChanged} />
 
+        {/* QA Evidence Review v1 */}
+        <QaEvidenceReviewPanel
+          projectId={projectId}
+          packetId={packet.id}
+          onChanged={onChanged}
+        />
+
+
 
 
 
