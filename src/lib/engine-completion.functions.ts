@@ -94,14 +94,32 @@ export const getProjectCompletionState = createServerFn({ method: "GET" })
     const sb = (context as any).supabase;
     const { data: row, error } = await sb
       .from("engine_projects")
-      .select("status,completed_at,completed_by_email")
+      .select("status,completed_at,completed_by_email,delivery")
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
+
+    const delivery = (row?.delivery as Record<string, any> | null) ?? {};
+
     return {
       status: (row?.status as string | null) ?? null,
       completedAt: (row?.completed_at as string | null) ?? null,
       completedByEmail: (row?.completed_by_email as string | null) ?? null,
+      delivery: {
+        packagePreparedAt: (delivery.package_prepared_at as string | null) ?? null,
+        packagePreparedBy: (delivery.package_prepared_by as string | null) ?? null,
+        portalRoadmapId: (delivery.portal_roadmap_id as string | null) ?? null,
+        portalProjectId: (delivery.portal_project_id as string | null) ?? null,
+        recipientEmail: (delivery.recipient_email as string | null) ?? null,
+        clientRating:
+          typeof delivery.client_rating === "number" ? delivery.client_rating : null,
+        clientFeedback: (delivery.client_feedback as string | null) ?? "",
+        clientFeedbackDate: (delivery.client_feedback_date as string | null) ?? null,
+        clientFeedbackRecordedAt:
+          (delivery.client_feedback_recorded_at as string | null) ?? null,
+        clientFeedbackRecordedBy:
+          (delivery.client_feedback_recorded_by as string | null) ?? null,
+      },
     };
   });
 
@@ -297,16 +315,69 @@ export const prepareDeliveryPackage = createServerFn({ method: "POST" })
 
     // Build client-safe body from approved snapshot.
     const snap = (proj.approved_snapshot as Record<string, any>) ?? {};
+    const versionPayload = (approvedVersion.payload as Record<string, any> | null) ?? {};
+    const roadmap = (proj.roadmap as Record<string, any> | null) ?? {};
+    const clientPreview = (snap.client_preview as Record<string, any> | null) ?? {};
     const priorities: any[] = Array.isArray(snap.roadmap?.priorities)
       ? snap.roadmap.priorities
-      : Array.isArray((proj.roadmap as any)?.priorities)
-        ? (proj.roadmap as any).priorities
-        : [];
+      : Array.isArray(roadmap.priorities)
+        ? roadmap.priorities
+        : Array.isArray(versionPayload.strategic_priorities)
+          ? versionPayload.strategic_priorities
+          : [];
     const execSummary: string =
-      snap.client_preview?.executive_summary ||
+      clientPreview.executive_summary ||
       snap.roadmap?.summary ||
-      (proj.roadmap as any)?.summary ||
+      roadmap.summary ||
+      versionPayload.executive_summary ||
       "";
+    const currentDiagnosis: string | null =
+      clientPreview.current_diagnosis ||
+      snap.current_diagnosis ||
+      versionPayload.current_diagnosis ||
+      null;
+    const sequence3090 =
+      clientPreview.sequence_30_60_90 ??
+      snap.sequence_30_60_90 ??
+      snap.roadmap?.sequence_30_60_90 ??
+      versionPayload.sequence_30_60_90 ??
+      null;
+    const clientSafeCanvas =
+      clientPreview.client_safe_canvas ??
+      snap.client_safe_canvas ??
+      versionPayload.client_safe_canvas ??
+      {};
+    const risksDependencies =
+      clientPreview.risks_dependencies ??
+      snap.risks_dependencies ??
+      versionPayload.risks_dependencies ??
+      [];
+    const recommendedNextMove: string | null =
+      clientPreview.recommended_next_move ||
+      snap.recommended_next_move ||
+      versionPayload.recommended_next_move ||
+      null;
+    const currentFocus: string | null =
+      clientPreview.current_focus ||
+      snap.current_focus ||
+      versionPayload.current_focus ||
+      null;
+    const nextMilestone: string | null =
+      clientPreview.next_milestone ||
+      snap.next_milestone ||
+      versionPayload.next_milestone ||
+      null;
+    const ownerName: string | null =
+      clientPreview.owner_name ||
+      snap.owner_name ||
+      versionPayload.owner_name ||
+      "Trust Tai";
+    const nextMeetingAt: string | null =
+      clientPreview.next_meeting_at ||
+      snap.next_meeting_at ||
+      versionPayload.next_meeting_at ||
+      null;
+
     const bodyMd = [
       `# ${proj.name}`,
       execSummary ? `\n${execSummary}\n` : "",
@@ -335,23 +406,56 @@ export const prepareDeliveryPackage = createServerFn({ method: "POST" })
       .single();
     if (docErr) throw new Error(docErr.message);
 
-    const { data: cpr, error: cprErr } = await sb
+    const roadmapPayload = {
+      project_id: portalProjectId,
+      approved_roadmap_version_id: approvedVersion.id,
+      roadmap_document_id: doc.id,
+      title: `${proj.name} — Roadmap ${approvedVersion.version ?? ""}`.trim(),
+      version_label: approvedVersion.version ?? "Version 1",
+      status: "approved",
+      approved_at: approvedVersion.approved_at ?? nowIso,
+      published_at: nowIso,
+      published_by: actor,
+      executive_summary: execSummary || null,
+      current_diagnosis: currentDiagnosis,
+      strategic_priorities: priorities as any,
+      sequence_30_60_90: sequence3090 as any,
+      risks_dependencies: risksDependencies as any,
+      recommended_next_move: recommendedNextMove,
+      current_focus: currentFocus,
+      next_milestone: nextMilestone,
+      owner_name: ownerName,
+      next_meeting_at: nextMeetingAt,
+      client_safe_canvas: clientSafeCanvas as any,
+    };
+
+    const { data: existingPortalRoadmap } = await sb
       .from("client_portal_roadmaps")
-      .insert({
-        project_id: portalProjectId,
-        approved_roadmap_version_id: approvedVersion.id,
-        roadmap_document_id: doc.id,
-        title: `${proj.name} — Roadmap ${approvedVersion.version ?? ""}`.trim(),
-        version_label: approvedVersion.version ?? "Version 1",
-        status: "published",
-        approved_at: nowIso,
-        executive_summary: execSummary || null,
-        strategic_priorities: priorities as any,
-      })
-      .select("id")
-      .single();
-    if (cprErr) throw new Error(cprErr.message);
-    const portalRoadmapId = cpr.id as string;
+      .select("id,status")
+      .eq("approved_roadmap_version_id", approvedVersion.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let portalRoadmapId: string;
+    if (existingPortalRoadmap?.id) {
+      const { data: updatedRoadmap, error: updateErr } = await sb
+        .from("client_portal_roadmaps")
+        .update(roadmapPayload)
+        .eq("id", existingPortalRoadmap.id)
+        .select("id")
+        .single();
+      if (updateErr) throw new Error(updateErr.message);
+      portalRoadmapId = updatedRoadmap.id as string;
+    } else {
+      const { data: createdRoadmap, error: createErr } = await sb
+        .from("client_portal_roadmaps")
+        .insert(roadmapPayload)
+        .select("id")
+        .single();
+      if (createErr) throw new Error(createErr.message);
+      portalRoadmapId = createdRoadmap.id as string;
+    }
 
     // Persist package marker on the engine project delivery JSONB (no status flip).
     const nextDelivery = {

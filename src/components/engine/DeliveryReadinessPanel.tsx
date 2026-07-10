@@ -31,7 +31,12 @@ import {
   type DeliveryReadiness,
   type DeliveryReadinessRecommendation,
 } from "@/lib/engine-delivery-readiness.functions";
-import { prepareDeliveryPackage } from "@/lib/engine-completion.functions";
+import {
+  completeProject,
+  getProjectCompletionState,
+  prepareDeliveryPackage,
+  saveClientFeedback,
+} from "@/lib/engine-completion.functions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const call = (fn: unknown, data: unknown) => (fn as any)({ data });
@@ -56,19 +61,47 @@ const STATUS_TONE: Record<string, string> = {
   archived: "bg-neutral-200 text-neutral-600 border-neutral-300",
 };
 
+type CompletionState = {
+  status: string | null;
+  completedAt: string | null;
+  completedByEmail: string | null;
+  delivery: {
+    packagePreparedAt: string | null;
+    packagePreparedBy: string | null;
+    portalRoadmapId: string | null;
+    portalProjectId: string | null;
+    recipientEmail: string | null;
+    clientRating: number | null;
+    clientFeedback: string;
+    clientFeedbackDate: string | null;
+    clientFeedbackRecordedAt: string | null;
+    clientFeedbackRecordedBy: string | null;
+  };
+};
+
 export function DeliveryReadinessPanel({ projectId }: { projectId: string }) {
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["delivery-readiness", projectId],
     queryFn: () => call(getDeliveryReadiness, { projectId }),
   });
+  const completionQ = useQuery({
+    queryKey: ["project-completion", projectId],
+    queryFn: () => call(getProjectCompletionState, { projectId }),
+  });
   const state = q.data as DeliveryReadinessState | undefined;
+  const completion = completionQ.data as CompletionState | undefined;
 
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [payloadJson, setPayloadJson] = useState("");
+  const [feedbackRating, setFeedbackRating] = useState("5");
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackDate, setFeedbackDate] = useState(
+    () => new Date().toISOString().slice(0, 10),
+  );
 
   const genFn = useServerFn(generateDeliveryReadinessReview);
   const saveFn = useServerFn(saveDeliveryReadinessReviewDraft);
@@ -77,9 +110,14 @@ export function DeliveryReadinessPanel({ projectId }: { projectId: string }) {
   const rejectFn = useServerFn(rejectDeliveryReadinessReview);
   const archiveFn = useServerFn(archiveDeliveryReadinessReview);
   const prepareFn = useServerFn(prepareDeliveryPackage);
+  const completeFn = useServerFn(completeProject);
+  const saveFeedbackFn = useServerFn(saveClientFeedback);
 
   const refresh = async () => {
-    await qc.invalidateQueries({ queryKey: ["delivery-readiness", projectId] });
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["delivery-readiness", projectId] }),
+      qc.invalidateQueries({ queryKey: ["project-completion", projectId] }),
+    ]);
   };
 
   const latest = state?.latest ?? null;
@@ -92,6 +130,15 @@ export function DeliveryReadinessPanel({ projectId }: { projectId: string }) {
       setPayloadJson(JSON.stringify(latest.payload, null, 2));
     }
   }, [latest, editing]);
+
+  useEffect(() => {
+    if (!completion) return;
+    setFeedbackRating(String(completion.delivery.clientRating ?? 5));
+    setFeedbackText(completion.delivery.clientFeedback ?? "");
+    setFeedbackDate(
+      completion.delivery.clientFeedbackDate ?? new Date().toISOString().slice(0, 10),
+    );
+  }, [completion]);
 
   const runWith = async (label: string, fn: () => Promise<unknown>, ok: string) => {
     setBusy(label);
@@ -188,6 +235,44 @@ export function DeliveryReadinessPanel({ projectId }: { projectId: string }) {
     );
   };
 
+  const onCompleteProject = () => {
+    if (
+      !window.confirm(
+        "Mark project complete?\n\nThis sets the project status to completed and records who completed it. It does not notify the client.",
+      )
+    ) {
+      return;
+    }
+    runWith(
+      "complete",
+      () => call(completeFn, { projectId }),
+      "Project marked complete",
+    );
+  };
+
+  const onSaveFeedback = () => {
+    const rating = Number(feedbackRating);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      toast.error("Rating must be between 1 and 5");
+      return;
+    }
+    if (!feedbackDate) {
+      toast.error("Feedback date is required");
+      return;
+    }
+    runWith(
+      "feedback",
+      () =>
+        call(saveFeedbackFn, {
+          projectId,
+          rating,
+          feedback: feedbackText.trim(),
+          feedbackDate,
+        }),
+      "Client feedback saved",
+    );
+  };
+
   const showPrepareCta = useMemo(
     () =>
       latest?.status === "approved" && latest.readiness === "ready_for_delivery_package",
@@ -218,6 +303,37 @@ export function DeliveryReadinessPanel({ projectId }: { projectId: string }) {
         </button>
       </div>
 
+      {completion?.completedAt ? (
+        <div className="rounded border border-emerald-300 bg-emerald-50 p-3 text-[11px] text-emerald-900">
+          <div className="font-mono uppercase tracking-widest text-[10px] mb-1">
+            Completed
+          </div>
+          <div>
+            Marked complete {new Date(completion.completedAt).toLocaleString()}
+            {completion.completedByEmail ? ` by ${completion.completedByEmail}` : ""}
+          </div>
+        </div>
+      ) : null}
+
+      {completion?.delivery.packagePreparedAt ? (
+        <div className="rounded border border-sky-300 bg-sky-50 p-3 text-[11px] text-sky-900">
+          <div className="font-mono uppercase tracking-widest text-[10px] mb-1">
+            Portal Publish
+          </div>
+          <div>
+            Published to client portal {new Date(completion.delivery.packagePreparedAt).toLocaleString()}
+            {completion.delivery.packagePreparedBy
+              ? ` by ${completion.delivery.packagePreparedBy}`
+              : ""}
+          </div>
+          {completion.delivery.recipientEmail ? (
+            <div className="text-sky-800/80 mt-1">
+              Recipient access: {completion.delivery.recipientEmail}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {q.isLoading ? (
         <div className="flex items-center gap-2 text-xs text-ink/60">
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
@@ -228,7 +344,6 @@ export function DeliveryReadinessPanel({ projectId }: { projectId: string }) {
         </div>
       ) : !state || !derived ? null : (
         <>
-          {/* Live derived assessment (server-authoritative) */}
           <div className="rounded-lg border border-indigo-300 bg-white/70 p-3 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-mono uppercase tracking-widest text-indigo-800">
@@ -369,6 +484,15 @@ export function DeliveryReadinessPanel({ projectId }: { projectId: string }) {
                 onClick={onArchive}
               />
             ) : null}
+            {cap?.isAdmin && !completion?.completedAt ? (
+              <ActionButton
+                icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                label="Mark Complete"
+                tone="ok"
+                busy={busy === "complete"}
+                onClick={onCompleteProject}
+              />
+            ) : null}
           </div>
 
           <div className="rounded border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900 flex items-start gap-2">
@@ -380,41 +504,111 @@ export function DeliveryReadinessPanel({ projectId }: { projectId: string }) {
           </div>
 
           {showPrepareCta ? (
-            <div className="rounded border border-emerald-300 bg-emerald-50 p-3 flex items-start gap-3">
-              <PackageCheck className="w-4 h-4 text-emerald-700 mt-0.5" />
-              <div className="flex-1">
-                <div className="text-xs font-semibold text-emerald-900">
-                  Ready to prepare delivery package
+            <div className="rounded border border-emerald-300 bg-emerald-50 p-3 space-y-3">
+              <div className="flex items-start gap-3">
+                <PackageCheck className="w-4 h-4 text-emerald-700 mt-0.5" />
+                <div className="flex-1">
+                  <div className="text-xs font-semibold text-emerald-900">
+                    Ready to publish v7 delivery package
+                  </div>
+                  <p className="text-[11px] text-emerald-800/80">
+                    Publishes the approved roadmap to the client portal. Does NOT send
+                    a client notification and does NOT mark the project delivered.
+                  </p>
                 </div>
-                <p className="text-[11px] text-emerald-800/80">
-                  Publishes the approved roadmap to the client portal. Does NOT send
-                  a client notification and does NOT mark the project delivered.
+                {cap?.isAdmin ? (
+                  <button
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          "Publish v7 delivery package?\n\nThis will publish the approved roadmap to the client portal. It will NOT notify the client and will NOT mark the project delivered.",
+                        )
+                      )
+                        return;
+                      runWith(
+                        "prepare",
+                        () => call(prepareFn, { projectId }),
+                        "Delivery package published to portal — client not notified",
+                      );
+                    }}
+                    disabled={busy === "prepare"}
+                    className="inline-flex items-center gap-1.5 rounded border border-emerald-500 bg-emerald-600 px-2.5 py-1 text-[11px] font-mono uppercase tracking-widest text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {busy === "prepare" ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <PackageCheck className="w-3.5 h-3.5" />
+                    )}
+                    Publish v7 Delivery Package
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {cap?.isStaff ? (
+            <div className="rounded border border-sky-300 bg-white/80 p-3 space-y-3">
+              <div>
+                <div className="font-mono text-[10px] uppercase tracking-widest text-sky-800">
+                  Manual Client Feedback
+                </div>
+                <p className="text-[11px] text-ink/60 mt-1">
+                  Record client rating and notes manually on the delivery page. Stored
+                  on the project delivery JSON.
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      "Prepare delivery package?\n\nThis will publish the approved roadmap to the client portal. It will NOT notify the client and will NOT mark the project delivered.",
-                    )
-                  )
-                    return;
-                  runWith(
-                    "prepare",
-                    () => call(prepareFn, { projectId }),
-                    "Delivery package prepared — portal published, client not notified",
-                  );
-                }}
-                disabled={busy === "prepare"}
-                className="inline-flex items-center gap-1.5 rounded border border-emerald-500 bg-emerald-600 px-2.5 py-1 text-[11px] font-mono uppercase tracking-widest text-white hover:bg-emerald-700 disabled:opacity-50"
-              >
-                {busy === "prepare" ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <PackageCheck className="w-3.5 h-3.5" />
-                )}
-                Prepare Delivery Package
-              </button>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="text-[11px] text-ink/70">
+                  Rating
+                  <select
+                    value={feedbackRating}
+                    onChange={(e) => setFeedbackRating(e.target.value)}
+                    className="mt-1 w-full rounded border border-sky-300 bg-white p-1.5 text-xs"
+                  >
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={n}>
+                        {n} star{n === 1 ? "" : "s"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-[11px] text-ink/70 sm:col-span-2">
+                  Feedback Date
+                  <input
+                    type="date"
+                    value={feedbackDate}
+                    onChange={(e) => setFeedbackDate(e.target.value)}
+                    className="mt-1 w-full rounded border border-sky-300 bg-white p-1.5 text-xs"
+                  />
+                </label>
+              </div>
+              <label className="block text-[11px] text-ink/70">
+                Feedback Notes
+                <textarea
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  rows={4}
+                  className="mt-1 w-full rounded border border-sky-300 bg-white p-1.5 text-xs"
+                  placeholder="What the client said, liked, or wants adjusted…"
+                />
+              </label>
+              {completion?.delivery.clientFeedbackRecordedAt ? (
+                <div className="text-[11px] text-ink/50">
+                  Last recorded {new Date(completion.delivery.clientFeedbackRecordedAt).toLocaleString()}
+                  {completion.delivery.clientFeedbackRecordedBy
+                    ? ` by ${completion.delivery.clientFeedbackRecordedBy}`
+                    : ""}
+                </div>
+              ) : null}
+              <div className="flex justify-end">
+                <ActionButton
+                  icon={<ClipboardCheck className="w-3.5 h-3.5" />}
+                  label="Save client feedback"
+                  tone="ok"
+                  busy={busy === "feedback"}
+                  onClick={onSaveFeedback}
+                />
+              </div>
             </div>
           ) : null}
 
@@ -562,8 +756,8 @@ function ReviewCard({ row }: { row: DeliveryReadinessRow }) {
                     a.status === "satisfied"
                       ? "border-emerald-300 text-emerald-800"
                       : a.status === "partial"
-                      ? "border-amber-300 text-amber-800"
-                      : "border-red-300 text-red-800"
+                        ? "border-amber-300 text-amber-800"
+                        : "border-red-300 text-red-800"
                   }`}
                 >
                   {a.status}
@@ -579,9 +773,7 @@ function ReviewCard({ row }: { row: DeliveryReadinessRow }) {
       ) : null}
 
       {p.implementation_gate_alignment.length > 0 ? (
-        <Section
-          title={`Implementation gates (${p.implementation_gate_alignment.length})`}
-        >
+        <Section title={`Implementation gates (${p.implementation_gate_alignment.length})`}>
           <ul className="space-y-1 text-[11px]">
             {p.implementation_gate_alignment.slice(0, 12).map((a, i) => (
               <li key={i} className="flex flex-wrap items-start gap-1">
@@ -590,8 +782,8 @@ function ReviewCard({ row }: { row: DeliveryReadinessRow }) {
                     a.status === "satisfied"
                       ? "border-emerald-300 text-emerald-800"
                       : a.status === "partial"
-                      ? "border-amber-300 text-amber-800"
-                      : "border-red-300 text-red-800"
+                        ? "border-amber-300 text-amber-800"
+                        : "border-red-300 text-red-800"
                   }`}
                 >
                   {a.status}
@@ -645,8 +837,7 @@ function ReviewCard({ row }: { row: DeliveryReadinessRow }) {
             <strong>{p.delivery_package_inputs.qa_review_ids.length}</strong>
           </div>
           <div>
-            Screenshots:{" "}
-            <strong>{p.delivery_package_inputs.screenshots.length}</strong>
+            Screenshots: <strong>{p.delivery_package_inputs.screenshots.length}</strong>
           </div>
           {p.delivery_package_inputs.change_summary ? (
             <div className="text-ink/70">
@@ -712,8 +903,8 @@ function MiniStat({
         tone === "warn"
           ? "border-amber-300 bg-amber-50/50 text-amber-900"
           : tone === "ok"
-          ? "border-emerald-300 bg-emerald-50/40 text-emerald-900"
-          : "border-indigo-200 bg-white/60 text-ink/80"
+            ? "border-emerald-300 bg-emerald-50/40 text-emerald-900"
+            : "border-indigo-200 bg-white/60 text-ink/80"
       }`}
     >
       <span className="font-semibold">{value}</span>
@@ -739,10 +930,10 @@ function ActionButton({
     tone === "ok"
       ? "border-emerald-400 text-emerald-900 bg-emerald-100 hover:bg-emerald-200"
       : tone === "danger"
-      ? "border-red-400 text-red-800 bg-red-50 hover:bg-red-100"
-      : tone === "ghost"
-      ? "border-neutral-300 text-ink/70 bg-white hover:bg-neutral-100"
-      : "border-indigo-400 text-indigo-900 bg-white hover:bg-indigo-100";
+        ? "border-red-400 text-red-800 bg-red-50 hover:bg-red-100"
+        : tone === "ghost"
+          ? "border-neutral-300 text-ink/70 bg-white hover:bg-neutral-100"
+          : "border-indigo-400 text-indigo-900 bg-white hover:bg-indigo-100";
   return (
     <button
       onClick={onClick}
