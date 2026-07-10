@@ -41,6 +41,7 @@ import {
   type BuildPacketPriority,
   type BuildEvidenceType,
 } from "@/lib/engine-build-execution.functions";
+import { OpenClawPanel } from "@/components/engine/OpenClawPanel";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
@@ -795,6 +796,12 @@ function PacketDrawer({
             passed, or mark delivered from this surface.
           </p>
         </div>
+
+        {/* OpenClaw Direct Connection v2 */}
+        <OpenClawPanel projectId={projectId} packet={packet} onChanged={onChanged} />
+
+
+
 
         {/* Scope */}
         <Section title="Execution scope">
