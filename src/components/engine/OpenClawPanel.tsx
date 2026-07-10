@@ -101,8 +101,15 @@ export function OpenClawPanel({
     | undefined;
   const eligible = isOpenClawEligible(packet);
 
-  const refresh = () => {
-    void qc.invalidateQueries({ queryKey: ["openclaw-runs", projectId, packet.id] });
+  const refresh = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["openclaw-runs", projectId, packet.id] }),
+      qc.invalidateQueries({ queryKey: ["openclaw-status", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "build-execution", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "build-packet", packet.id] }),
+      qc.invalidateQueries({ queryKey: ["engine", "build-evidence", packet.id] }),
+      qc.invalidateQueries({ queryKey: ["engine", "workspace", projectId] }),
+    ]);
     onChanged();
   };
 
@@ -111,7 +118,7 @@ export function OpenClawPanel({
     try {
       await fn();
       toast.success(ok);
-      refresh();
+      await refresh();
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
