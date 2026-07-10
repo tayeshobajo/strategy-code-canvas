@@ -550,6 +550,15 @@ async function transitionQueue(
     success: args.severity !== "error",
   });
   await insertActivity(sb, args.projectId, args.eventType, args.activityTitle, args.activityBody, args.severity);
+  await insertAuditLog({
+    projectId: args.projectId,
+    actorEmail: staff.email,
+    userId: staff.userId,
+    action: args.eventType,
+    summary: args.activityBody,
+    queueId: q.id,
+    success: args.severity !== "error",
+  });
 
   if (args.severity === "error") {
     try {
