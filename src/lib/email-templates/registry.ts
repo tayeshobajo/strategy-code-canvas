@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import { template as adminAccessGranted } from './admin-access-granted'
+import { template as intakeClientConfirmation } from './intake-client-confirmation'
 import { template as intakeSubmissionOperatorAlert } from './intake-submission-operator-alert'
 
 export interface TemplateEntry {
@@ -17,5 +18,6 @@ export interface TemplateEntry {
  */
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'admin-access-granted': adminAccessGranted,
+  'intake-client-confirmation': intakeClientConfirmation,
   'intake-submission-operator-alert': intakeSubmissionOperatorAlert,
 }

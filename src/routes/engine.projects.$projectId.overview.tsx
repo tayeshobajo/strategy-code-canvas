@@ -106,7 +106,11 @@ function ProjectOverview() {
             {compareQ.isLoading ? (
               <div className="text-sm text-ink/50">Loading…</div>
             ) : modulesNeedingReview.length === 0 ? (
-              <div className="text-sm text-ink/60">All modules are in sync with the approved roadmap.</div>
+              <div className="text-sm text-ink/60">
+                {p.approved_version
+                  ? "All modules are in sync with the approved roadmap."
+                  : "No roadmap version yet — approve a version to start tracking module sync."}
+              </div>
             ) : (
               <ul className="flex flex-wrap gap-2">
                 {modulesNeedingReview.map((m) => (
@@ -144,7 +148,7 @@ function ProjectOverview() {
             )}
           </SectionCard>
 
-          <SectionCard title="Audit trail">
+          <SectionCard title="Audit trail" right={<span className="text-[11px] text-ink/40">Formal audit events only</span>}>
             <AuditTrailCard projectId={projectId} limit={50} compact />
           </SectionCard>
         </div>
@@ -169,8 +173,16 @@ function ProjectOverview() {
           </SectionCard>
 
           <SectionCard title="Roadmap health">
-            <div className="font-display text-5xl text-ink">{p.health_score}</div>
+            <div
+              className="font-display text-5xl text-ink"
+              title="Health score reflects signal coverage, roadmap completeness, and review status."
+            >
+              {p.health_score}
+            </div>
             <div className="text-xs text-ink/60 mt-1">Out of 100</div>
+            <div className="text-[11px] text-ink/40 mt-2 leading-relaxed">
+              Reflects signal coverage, roadmap completeness, and review status.
+            </div>
           </SectionCard>
 
           <SectionCard title="Shortcuts">

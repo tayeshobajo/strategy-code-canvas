@@ -591,6 +591,25 @@ export const submitIntake = createServerFn({ method: "POST" })
       console.warn("[submit-intake] engine bridge failed (non-blocking)", bridgeErr);
     }
 
+    // Send a confirmation email to the client so they have proof of submission
+    // even if they close the browser tab immediately. Fire-and-forget:
+    // delivery failure must never block or fail the submission.
+    try {
+      const { enqueueTransactionalEmail } = await import("@/lib/email/enqueue-transactional.server");
+      await enqueueTransactionalEmail({
+        templateName: "intake-client-confirmation",
+        recipientEmail: data.email,
+        idempotencyKey: `intake-client-confirmation-${inserted.id}`,
+        metadata: {
+          submission_id: inserted.id,
+          kind: "intake_client_confirmation",
+        },
+        templateData: { name: data.name },
+      });
+    } catch (confirmErr) {
+      console.warn("[submit-intake] client confirmation email failed (non-blocking)", confirmErr);
+    }
+
     // Notify every operator/admin that a new intake needs review.
     // Non-blocking: submission success does not depend on email delivery.
     try {

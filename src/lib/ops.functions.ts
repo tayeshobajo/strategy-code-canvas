@@ -517,7 +517,7 @@ async function createProjectFromSubmission(
         name: projectName,
         status: "intake",
         current_step: "signal",
-        agent_status: "inactive",
+        agent_status: "active",
         next_action: "Processing intake submission",
         last_activity_at: nowIso,
         delivery_mode: contactEmail ? "client_portal_required" : "internal_only",
