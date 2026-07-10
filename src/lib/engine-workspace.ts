@@ -61,6 +61,7 @@ export type WorkspaceProject = {
   agent_budget_monthly_cents: number;
   agent_spend_month_cents: number;
   open_decisions: number;
+  signal_count: number;
   next_action: string | null;
   last_activity_at: string;
   updated_at: string;

@@ -1,50 +1,43 @@
+## Fix: Signals count + Health/Progress showing 0 on project overview
 
-## Findings from investigation
+Display-only fixes in the workspace loader and header. No DB / migration / server-fn business logic changes.
 
-Before proposing changes, two of the three items don't match the current codebase state. Flagging so we don't ship a phantom fix.
+### 1. `src/lib/engine.functions.ts` — `getProjectWorkspace` handler
 
-### Item 1 — TS error in `src/lib/ops.functions.ts:612`
-Not reproducible on the current tree:
-- Line 612 is `severity: "error",` inside an `engine_activity` insert — not a query chain.
-- `rg "\.catch\("` on `src/lib/ops.functions.ts` returns **zero matches**. There is no misplaced `.catch()` anywhere in the file.
-- `bunx tsgo --noEmit` reports zero errors in `ops.functions.ts`. (There are ~30 unrelated pre-existing errors in `portal.*`, `_authenticated/route.tsx`, `engine.tsx`, etc. — router `search`/redirect typings, untouched by this request.)
+Add two extra parallel reads after the base project fetch:
 
-The earlier turn already corrected a `.catch()` misuse in this file. Commit `919f2fd` (direct GitHub commit) likely landed after that fix, so the error you're seeing may be from a **stale local build cache** or a different branch. **Proposed action: no code change; ask you to re-run the build to confirm.** If it still errors, paste the exact `tsgo`/build output and I'll patch precisely.
+- Count extracted signals: `sb.from("engine_extracted_signals").select("id", { count: "exact", head: true }).eq("project_id", data.id)` → `signalCount`.
+- Latest roadmap version (for health scoring, if `row.roadmap_version` alone isn't enough — reuse the existing `row.approved_version` / `row.roadmap_version` columns instead of a new query when possible).
 
-### Item 2 — Extraction watchdog (10 min → 30 min)
-The watchdog is **not** in TS. It lives in Postgres functions inside migrations (`nba_*`, `watchdog_timeout_increase`). Current state:
-- Most recent migration `20260710110100_watchdog_timeout_increase.sql` already bumped the interval from **10 → 20 minutes** (the earlier 10-min hard cap is gone).
-- Two functions still reference the interval: `run_watchdog_sweep()` and the `_nba_*` helper used when NBA triggers extractions.
+Compute derived values before building the `project` object:
 
-The reset-to-queued path: status is flipped in Postgres via `engine_sources.status = 'queued'`, and the extraction-run creation is done in the same PL/pgSQL helpers. I need to confirm both helpers insert a fresh `engine_extraction_runs` row on the transition rather than reusing the last one — will `read_query` the current function bodies before writing the migration.
+- `signal_count = signalCount ?? 0`
+- `computed_health_score` — clamp 0–100:
+  - signals: `min(40, round(signalCount / 20 * 40))`
+  - roadmap draft exists (`row.roadmap_version` truthy): +20
+  - Spirit First analysis (heuristic: `row.point_a` or `row.point_b` has non-empty keys): +15
+  - approved roadmap (`row.approved_version` truthy): +15
+  - delivery checklist (`row.delivery` has non-empty keys): +10
+  - If the stored `row.health_score` is already > 0, prefer it (keeps future backend logic authoritative); otherwise use computed.
+- `computed_progress_pct` — count workspace steps in `row.step_states` whose `state` is `"review"` or `"approved"` (touched beyond draft would be too loose; use any state != null). Actually use: `stepsTouched = Object.values(step_states).filter(s => s?.state).length`, then `round(stepsTouched / 14 * 100)`. Prefer stored `progress_pct` when > 0.
 
-### Item 3 — Push to production
-Publish/deploy is a user action from the Publish dialog (frontend must be published via "Update"; backend/migrations deploy automatically on approval). I can surface the publish action but cannot push for you.
+Populate `project.health_score`, `project.progress_pct`, `project.signal_count` from those.
 
----
+### 2. `src/lib/engine-workspace.ts`
 
-## Proposed plan
+Add `signal_count: number` to `WorkspaceProject` type.
 
-### Step 1 — Confirm/dismiss the TS error
-Ask you to re-run `bun run build` (or `bunx tsgo --noEmit`) on the current tree. If `ops.functions.ts` still shows a `.catch` error, share the exact output and I'll fix the specific chain. Otherwise this item is already resolved by the earlier fix.
+### 3. `src/components/engine/WorkspaceHeader.tsx`
 
-### Step 2 — Watchdog migration: 20 → 30 minutes + guaranteed new run on reset
-Single migration that:
-1. Updates `run_watchdog_sweep()` (and the NBA helper) to use `interval '30 minutes'` everywhere the current `'20 minutes'` appears, and updates the audit/error message strings accordingly.
-2. Adjusts the reset-to-queued path so setting `engine_sources.status = 'queued'` always inserts a new `engine_extraction_runs` row (status `queued`, fresh `started_at = NULL`) instead of reopening the last row. Exact SQL depends on the current function bodies — I'll read them first, then write the migration.
+Change:
+```tsx
+<Metric label="Signals" value={project.open_decisions.toString()} hint="All sources" tone="blue" />
+```
+to:
+```tsx
+<Metric label="Signals" value={project.signal_count.toString()} hint="All sources" tone="blue" />
+```
 
-No table shape changes, no policy changes, no touching `lib/calculations.ts`, `engine-spirit-first.functions.ts`, or `engine-completion.functions.ts`.
-
-### Step 3 — Verify + publish
-- Re-run `bunx tsgo --noEmit` after the migration; confirm no new errors introduced (pre-existing unrelated errors remain out of scope).
-- Surface the publish CTA so you can push frontend + confirm the migration to production.
-
----
-
-## Question before I switch to build
-
-Given items 1 and 3 are essentially no-ops from my side, the only real code change here is the watchdog migration. Want me to:
-
-**(A)** Proceed with just Step 2 (watchdog migration to 30 min + guaranteed new run on reset), and surface the publish action, treating Step 1 as "no change needed unless build still errors"?
-
-**(B)** Or do you have a fresh build log showing the `ops.functions.ts:612` `.catch` error that I should look at first?
+### Out of scope
+- No DB schema changes, no migrations.
+- No changes to how `engine_projects.health_score` / `progress_pct` are written by other code paths — this is a read-time fallback so pages render meaningful values today.
