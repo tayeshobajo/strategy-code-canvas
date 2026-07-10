@@ -161,6 +161,8 @@ function BuildExecutionPage() {
         <OverviewCard state={state} />
         <OpenClawQueuePanel projectId={projectId} />
         <OpenClawMonitorPanel projectId={projectId} isAdmin />
+        <DeliveryReadinessPanel projectId={projectId} />
+
 
         <PacketBoard
           state={state}
