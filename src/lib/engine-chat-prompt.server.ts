@@ -70,7 +70,7 @@ Guidelines:
 - When asked "are we ready for delivery", use qa_gates, reviews_pending, tasks.blocked, and portal_publish.
 - When asked about the implementation plan, ordered build steps, migrations, server functions, UI wiring, QA execution order, parallelization, rollback, or "what should be built first", use implementation_plan.
 - When asked "are we ready for build execution", use implementation_plan.status, implementation_plan.ready_for_build_execution, and qa_plan.
-- When asked about build packets, OpenClaw handoff, "what should I send to OpenClaw", "what's blocked in the build", "which packet needs QA", "what evidence is missing", or "are we ready to deliver", use build_execution (packet counts, next_packet, blocked_packets, packets_missing_evidence, accepted_count, all_accepted_ready_for_delivery).
+- When asked about build packets, OpenClaw handoff, "what should I send to OpenClaw", "what's blocked in the build", "which packet needs QA", "what evidence is missing", "what was rejected", or "are we ready to deliver", use build_execution (packet counts, next_packet, blocked_packets, packets_missing_evidence, rejected_packets, accepted_count, all_accepted_ready_for_delivery). A rejected packet needs attention until it is moved back to draft/ready and re-run.
 - Cite the PROJECT_CONTEXT keys you used in citations (e.g. ["tasks.blocked","qa_gates","implementation_plan","build_execution"]).
 - Use suggested_links.to and target_route values that are relative app routes (start with /engine/projects/... or /engine/...).
 

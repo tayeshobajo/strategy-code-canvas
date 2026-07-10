@@ -640,19 +640,21 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     } | null;
     blocked_packets: Array<{ id: string; title: string; blockers: string[] }>;
     packets_missing_evidence: Array<{ id: string; title: string; status: string }>;
+    rejected_packets: Array<{ id: string; title: string; reason: string | null }>;
     accepted_count: number;
     all_accepted_ready_for_delivery: boolean;
   } | null = null;
   try {
     const { data: pktRows } = await sb
       .from("engine_project_build_packets")
-      .select("id,title,status,sequence_number,packet_type,priority,payload")
+      .select("id,title,status,sequence_number,packet_type,priority,payload,rejected_reason")
       .eq("project_id", projectId)
       .order("sequence_number", { ascending: true });
     const pkts = (pktRows ?? []) as Array<{
       id: string; title: string; status: string; sequence_number: number;
       packet_type: string; priority: string;
       payload: { target_builder?: string; blocking_conditions?: string[]; evidence_required?: string[] } | null;
+      rejected_reason: string | null;
     }>;
     if (pkts.length > 0) {
       const by_status: Record<string, number> = {};
@@ -707,6 +709,10 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
           : null,
         blocked_packets: blocked,
         packets_missing_evidence,
+        rejected_packets: pkts
+          .filter((p) => p.status === "rejected")
+          .slice(0, 10)
+          .map((p) => ({ id: p.id, title: p.title, reason: p.rejected_reason })),
         accepted_count: acceptedCount,
         all_accepted_ready_for_delivery:
           nonArchived > 0 && acceptedCount === nonArchived,

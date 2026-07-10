@@ -726,8 +726,7 @@ function PacketDrawer({
               }}
             />
           ) : null}
-          {["qa_required", "in_progress", "returned"].includes(packet.status) &&
-          caps.canReject ? (
+          {packet.status === "qa_required" && caps.canReject ? (
             <ActionBtn
               icon={<XCircle className="w-3.5 h-3.5" />}
               label="Reject"
