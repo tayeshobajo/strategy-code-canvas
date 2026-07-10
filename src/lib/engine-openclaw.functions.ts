@@ -610,6 +610,15 @@ export const cancelOpenClawRun = createServerFn({ method: "POST" })
       "OpenClaw run cancelled",
       `${staff.email} cancelled OpenClaw run${data.reason ? ` — ${data.reason.slice(0, 200)}` : ""}.`,
     );
+    {
+      const { _mirrorRunToQueueItem } = await import("@/lib/engine-openclaw-queue.functions");
+      await _mirrorRunToQueueItem(supabaseAdmin, {
+        projectId: data.projectId,
+        runId: run.id,
+        outcome: "cancelled",
+        errorMessage: data.reason ?? null,
+      });
+    }
     return { run: upd as OpenClawRunRow };
   });
 
