@@ -107,9 +107,14 @@ function NewProjectPage() {
     onSuccess: (res) => {
       if (res.status === "processing") {
         toast.success("Project created — extracting signals now");
+      } else if (res.status === "failed") {
+        toast.error("Project created, but extraction failed — review the project overview", {
+          duration: 8000,
+        });
       } else {
         toast.success("Blank project created");
       }
+
       navigate({
         to: "/engine/projects/$projectId/overview",
         params: { projectId: res.project_id },
