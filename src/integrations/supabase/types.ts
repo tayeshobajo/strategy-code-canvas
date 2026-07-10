@@ -2770,6 +2770,154 @@ export type Database = {
           },
         ]
       }
+      engine_project_openclaw_queue_items: {
+        Row: {
+          build_packet_id: string
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          failure_policy: string
+          id: string
+          openclaw_run_id: string | null
+          project_id: string
+          queue_id: string
+          requires_confirmation: boolean
+          sequence_number: number
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          build_packet_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          failure_policy?: string
+          id?: string
+          openclaw_run_id?: string | null
+          project_id: string
+          queue_id: string
+          requires_confirmation?: boolean
+          sequence_number: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          build_packet_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          failure_policy?: string
+          id?: string
+          openclaw_run_id?: string | null
+          project_id?: string
+          queue_id?: string
+          requires_confirmation?: boolean
+          sequence_number?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_openclaw_queue_items_build_packet_id_fkey"
+            columns: ["build_packet_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_build_packets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_queue_items_openclaw_run_id_fkey"
+            columns: ["openclaw_run_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_openclaw_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_queue_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_queue_items_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_openclaw_queues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_project_openclaw_queues: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          failure_policy: string
+          id: string
+          metadata: Json
+          name: string
+          project_id: string
+          run_mode: string
+          simulated: boolean
+          started_at: string | null
+          started_by: string | null
+          started_by_email: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          failure_policy?: string
+          id?: string
+          metadata?: Json
+          name: string
+          project_id: string
+          run_mode?: string
+          simulated?: boolean
+          started_at?: string | null
+          started_by?: string | null
+          started_by_email?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          failure_policy?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          project_id?: string
+          run_mode?: string
+          simulated?: boolean
+          started_at?: string | null
+          started_by?: string | null
+          started_by_email?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_openclaw_queues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_openclaw_runs: {
         Row: {
           build_packet_id: string
