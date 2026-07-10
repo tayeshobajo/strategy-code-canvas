@@ -1042,7 +1042,7 @@ export const rejectBuildPacket = createServerFn({ method: "POST" })
     transitionPacket(context as unknown as StaffContext, {
       projectId: data.projectId,
       packetId: data.packetId,
-      from: ["qa_required", "in_progress", "returned"],
+      from: ["qa_required"],
       to: "rejected",
       extra: { rejected_reason: data.reason },
       eventType: "build_packet_rejected",
