@@ -41,6 +41,7 @@ import {
   type BuildPacketPriority,
   type BuildEvidenceType,
 } from "@/lib/engine-build-execution.functions";
+import { OpenClawPanel } from "@/components/engine/OpenClawPanel";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
