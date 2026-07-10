@@ -388,16 +388,33 @@ export function DeliveryReadinessPanel({ projectId }: { projectId: string }) {
                   Ready to prepare delivery package
                 </div>
                 <p className="text-[11px] text-emerald-800/80">
-                  Delivery Package is the next layer (v7 — not built yet). This does
-                  not publish, notify, or deliver.
+                  Publishes the approved roadmap to the client portal. Does NOT send
+                  a client notification and does NOT mark the project delivered.
                 </p>
               </div>
               <button
-                disabled
-                title="Delivery Package is the next layer. This does not publish."
-                className="inline-flex items-center gap-1.5 rounded border border-emerald-400 bg-white/70 px-2.5 py-1 text-[11px] font-mono uppercase tracking-widest text-emerald-900/60 cursor-not-allowed opacity-70"
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      "Prepare delivery package?\n\nThis will publish the approved roadmap to the client portal. It will NOT notify the client and will NOT mark the project delivered.",
+                    )
+                  )
+                    return;
+                  runWith(
+                    "prepare",
+                    () => call(prepareFn, { projectId }),
+                    "Delivery package prepared — portal published, client not notified",
+                  );
+                }}
+                disabled={busy === "prepare"}
+                className="inline-flex items-center gap-1.5 rounded border border-emerald-500 bg-emerald-600 px-2.5 py-1 text-[11px] font-mono uppercase tracking-widest text-white hover:bg-emerald-700 disabled:opacity-50"
               >
-                <Ban className="w-3.5 h-3.5" /> Prepare Delivery Package (v7)
+                {busy === "prepare" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <PackageCheck className="w-3.5 h-3.5" />
+                )}
+                Prepare Delivery Package
               </button>
             </div>
           ) : null}
