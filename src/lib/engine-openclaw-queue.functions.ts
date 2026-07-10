@@ -724,6 +724,23 @@ export const runNextQueueItem = createServerFn({ method: "POST" })
         email: staff.email,
         eventType: "openclaw_queue_item_started",
       });
+      await insertActivity(
+        sb,
+        data.projectId,
+        "openclaw_queue_item_started",
+        "OpenClaw queue item started",
+        `Item #${item.sequence_number} started by ${staff.email}.`,
+      );
+      await insertAuditLog({
+        projectId: data.projectId,
+        actorEmail: staff.email,
+        userId: staff.userId,
+        action: "openclaw_queue_item_started",
+        summary: `Item #${item.sequence_number} started by ${staff.email}.`,
+        queueId: q.id,
+        queueItemId: item.id,
+        buildPacketId: item.build_packet_id,
+      });
 
       // Call the existing v2 startOpenClawRun via its handler (server-to-server).
       // If it fails, mark the item failed and apply failure policy.
