@@ -566,7 +566,7 @@ async function gatherImplBundle(
     .from("engine_milestones")
     .select("id,name,phase")
     .eq("project_id", project.id)
-    .order("sort_order", { ascending: true, nullsFirst: false })
+    .order("sort_index", { ascending: true, nullsFirst: false })
     .limit(30);
 
   const milestones: ImplementationInputBundle["milestones"] = [];
