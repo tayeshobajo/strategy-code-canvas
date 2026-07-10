@@ -647,7 +647,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
   try {
     const { data: pktRows } = await sb
       .from("engine_project_build_packets")
-      .select("id,title,status,sequence_number,packet_type,priority,payload")
+      .select("id,title,status,sequence_number,packet_type,priority,payload,rejected_reason")
       .eq("project_id", projectId)
       .order("sequence_number", { ascending: true });
     const pkts = (pktRows ?? []) as Array<{
