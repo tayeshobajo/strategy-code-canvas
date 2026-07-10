@@ -510,7 +510,8 @@ export const refreshOpenClawRun = createServerFn({ method: "POST" })
 
     const { data: upd, error } = await supabaseAdmin
       .from("engine_project_openclaw_runs")
-      .update(patch)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(patch as any)
       .eq("id", run.id)
       .select("*")
       .single();
