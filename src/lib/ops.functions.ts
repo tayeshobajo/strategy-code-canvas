@@ -442,6 +442,186 @@ export const saveDraft = createServerFn({ method: "POST" })
   });
 
 // ---------------------------------------------------------------------------
+// Intake → project bridge (called inside approveSubmission, fire-and-forget
+// with hard try/catch so a pipeline failure never rolls back the approval).
+// ---------------------------------------------------------------------------
+
+/**
+ * Map a public intake submission to a new engine project + kick the
+ * intelligence pipeline.  Intentionally uses the service-role client so no
+ * user-scoped RLS row is needed for the background create call.
+ *
+ * Returns the new project_id on success, or null on any failure (caller logs).
+ */
+async function createProjectFromSubmission(
+  submission: IntakeSubmissionRow,
+  operatorEmail: string,
+  submissionId: string,
+): Promise<{ project_id: string } | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { runIntelligencePipelineInternal } = await import("@/lib/engine-intelligence.functions");
+    const { throwGeneric } = await import("@/lib/engine-error");
+
+    const sb = supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient;
+
+    // -- Resolve or create client from the submission contact email ----------
+    const contactEmail = (submission.email ?? "").trim().toLowerCase() || null;
+    let clientId: string | null = null;
+
+    if (contactEmail) {
+      // Check if a client already exists for this contact email.
+      const { data: existing } = await sb
+        .from("engine_clients")
+        .select("id")
+        .eq("contact_email", contactEmail)
+        .maybeSingle();
+      if (existing?.id) {
+        clientId = existing.id as string;
+      }
+    }
+
+    if (!clientId) {
+      const { data: newClient, error: clientErr } = await sb
+        .from("engine_clients")
+        .insert({
+          company: submission.business ?? submission.name ?? "Unknown Business",
+          contact_email: contactEmail,
+          primary_contact: submission.name ?? null,
+          owner_email: operatorEmail,
+        })
+        .select("id")
+        .single();
+      if (clientErr) throwGeneric(clientErr, "[intake-bridge] client insert failed");
+      clientId = (newClient as { id: string }).id;
+    }
+
+    // -- Build raw_text from submission answers ------------------------------
+    const answers: Array<{ key: string; question: string; response: string }> =
+      Array.isArray(submission.answers) ? submission.answers : [];
+    const visibleAnswers = answers.filter((a) => !a.key.startsWith("_"));
+    const rawText = visibleAnswers
+      .map((a) => `Q: ${a.question}\nA: ${a.response}`)
+      .join("\n\n");
+
+    const projectName = submission.business
+      ? `${submission.business} — Roadmap`
+      : `${submission.name ?? "Unnamed"} — Roadmap`;
+
+    // -- Create project row --------------------------------------------------
+    const nowIso = new Date().toISOString();
+    const { data: proj, error: projErr } = await sb
+      .from("engine_projects")
+      .insert({
+        client_id: clientId,
+        name: projectName,
+        status: "intake",
+        current_step: "signal",
+        agent_status: "inactive",
+        next_action: "Processing intake submission",
+        last_activity_at: nowIso,
+        delivery_mode: contactEmail ? "client_portal_required" : "internal_only",
+        signal_room: {
+          intake_submission_id: submissionId,
+          intake_bridged_at: nowIso,
+          intake_bridged_by: operatorEmail,
+        },
+      })
+      .select("id")
+      .single();
+    if (projErr) throwGeneric(projErr, "[intake-bridge] project insert failed");
+    const projectId = (proj as { id: string }).id;
+
+    // -- Sibling rows (non-fatal soft errors) --------------------------------
+    await Promise.allSettled([
+      sb.from("engine_project_agents").insert({
+        project_id: projectId,
+        name: "Roadmap Agent",
+        status: "Draft",
+        health: "Healthy",
+        policy: "Draft only",
+      }),
+      sb.from("engine_agent_permissions").insert({
+        project_id: projectId,
+        permission_mode: "draft_only",
+      }),
+      sb.from("engine_roadmap_versions").insert({
+        project_id: projectId,
+        version: "v0.0",
+        status: "draft",
+        created_by: "system",
+        summary: "Project container — created at intake bridge",
+      }),
+      sb.from("engine_activity").insert({
+        project_id: projectId,
+        kind: "project_created",
+        title: `Project created from intake submission (approved by ${operatorEmail})`,
+        body: `Intake submission: ${submissionId}`,
+        severity: "info",
+      }),
+    ]);
+
+    // -- Link submission → engine project in intake audit log ----------------
+    try {
+      const { getIntakeClient } = await import("@/integrations/intake/client.server");
+      await getIntakeClient()
+        .from("review_audit_log")
+        .insert({
+          submission_id: submissionId,
+          actor_email: operatorEmail,
+          action: "bridged_to_engine",
+          metadata: { engine_project_id: projectId, project_name: projectName },
+        });
+    } catch (bridgeAuditErr) {
+      console.warn("[intake-bridge] review_audit_log write failed", bridgeAuditErr);
+    }
+
+    // -- Insert source + run pipeline (non-fatal failure) -------------------
+    if (rawText.trim()) {
+      const { data: srcRow, error: srcErr } = await sb
+        .from("engine_sources")
+        .insert({
+          project_id: projectId,
+          name: "Intake Submission",
+          type: "brief",
+          raw_text: rawText,
+          status: "queued",
+          created_by_email: operatorEmail,
+          visibility: "internal_only",
+        })
+        .select("id")
+        .single();
+
+      if (srcErr) {
+        console.warn("[intake-bridge] source insert failed — pipeline skipped", srcErr);
+      } else {
+        try {
+          await runIntelligencePipelineInternal(sb, {
+            projectId,
+            sourceIds: [(srcRow as { id: string }).id],
+            actorEmail: operatorEmail,
+          });
+        } catch (pipeErr) {
+          console.error("[intake-bridge] intelligence pipeline failed — project exists, pipeline skipped", pipeErr);
+          await sb.from("engine_activity").insert({
+            project_id: projectId,
+            kind: "pipeline_failed",
+            title: "Intelligence pipeline failed during intake bridge",
+            body: pipeErr instanceof Error ? pipeErr.message : String(pipeErr),
+            severity: "error",
+          }).catch(() => { /* best-effort */ });
+        }
+      }
+    }
+
+    return { project_id: projectId };
+  } catch (err) {
+    console.error("[intake-bridge] createProjectFromSubmission failed — approval preserved", err);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Approve → notify operator
 // ---------------------------------------------------------------------------
 
@@ -547,7 +727,53 @@ export const approveSubmission = createServerFn({ method: "POST" })
       });
     }
 
-    return { ok: true as const, notified: !enqErr };
+    // ---------------------------------------------------------------------------
+    // Intake → engine project bridge.
+    // Fire and forget with hard try/catch: a pipeline failure must NEVER roll
+    // back the approval. The operator already approved — that's committed above.
+    // ---------------------------------------------------------------------------
+    const bridgeResult = await createProjectFromSubmission(
+      submission as IntakeSubmissionRow,
+      operatorEmail,
+      data.submission_id,
+    );
+
+    if (bridgeResult?.project_id) {
+      // Store the engine_project_id on the intake review row's metadata so
+      // the ops console can link directly to the new project.
+      try {
+        await intake
+          .from("roadmap_intake_reviews")
+          .update({
+            artifact: {
+              ...(review as ReviewRow | null)?.artifact,
+              engine_project_id: bridgeResult.project_id,
+            },
+          })
+          .eq("submission_id", data.submission_id);
+      } catch (linkErr) {
+        console.warn("[intake-bridge] review artifact project-link update failed", linkErr);
+      }
+      await writeAudit(intake, data.submission_id, operatorEmail, "bridged_to_engine" as AuditAction, {
+        engine_project_id: bridgeResult.project_id,
+      });
+    } else {
+      // Bridge failed — log for manual retry but leave approval intact.
+      console.warn(
+        "[ops.approveSubmission] intake-bridge failed for submission",
+        data.submission_id,
+        "— project must be manually created at /engine/projects/new",
+      );
+      await writeAudit(intake, data.submission_id, operatorEmail, "bridge_failed" as AuditAction, {
+        note: "Automatic project creation failed. Manual re-key required.",
+      });
+    }
+
+    return {
+      ok: true as const,
+      notified: !enqErr,
+      engine_project_id: bridgeResult?.project_id ?? null,
+    };
   });
 
 // ---------------------------------------------------------------------------
