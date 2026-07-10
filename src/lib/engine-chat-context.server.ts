@@ -978,6 +978,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     implementation_plan: implementationPlanSummary,
     build_execution: buildExecutionSummary,
     openclaw: openClawSummary,
+    openclaw_queue: openClawQueueSummary,
     missing_data: missing,
   };
 
