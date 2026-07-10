@@ -543,11 +543,7 @@ function QueueDetailModal({
   const qc = useQueryClient();
   const detailQ = useQuery({
     queryKey: ["openclaw-queue", projectId, queueId],
-    queryFn: () => call(
-      // Import lazily via require would break bundling — use direct import.
-      require("@/lib/engine-openclaw-queue.functions").getOpenClawQueue,
-      { projectId, queueId },
-    ),
+    queryFn: () => call(getOpenClawQueue, { projectId, queueId }),
   });
   const detail = detailQ.data as
     | { queue: OpenClawQueueRow; items: OpenClawQueueItemRow[]; packets: Record<string, { id: string; title: string; status: string; target_builder: string }> }
