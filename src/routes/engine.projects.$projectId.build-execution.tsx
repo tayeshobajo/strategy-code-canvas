@@ -43,6 +43,7 @@ import {
 } from "@/lib/engine-build-execution.functions";
 import { OpenClawPanel } from "@/components/engine/OpenClawPanel";
 import { OpenClawQueuePanel } from "@/components/engine/OpenClawQueuePanel";
+import { OpenClawMonitorPanel } from "@/components/engine/OpenClawMonitorPanel";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
@@ -157,6 +158,8 @@ function BuildExecutionPage() {
         <HeaderCard state={state} busy={busy} onGenerate={onGenerate} />
         <OverviewCard state={state} />
         <OpenClawQueuePanel projectId={projectId} />
+        <OpenClawMonitorPanel projectId={projectId} isAdmin />
+
         <PacketBoard
           state={state}
           onOpen={(id) => setOpenPacketId(id)}

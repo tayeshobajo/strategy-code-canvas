@@ -881,6 +881,82 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     }
   } catch { /* openclaw queue tables may not be readable — ignore */ }
 
+  // ---------- openclaw monitor summary (v4) ----------
+  let openClawMonitorSummary: {
+    enabled: boolean;
+    latest_tick_at: string | null;
+    allow_auto_refresh: boolean;
+    allow_auto_run_next: boolean;
+    stale_run_minutes: number;
+    timeout_minutes: number;
+    counts: {
+      critical_unack: number;
+      warning_unack: number;
+      info_unack: number;
+      stale_runs: number;
+      timed_out_runs: number;
+      failed_runs: number;
+      queues_needing_attention: number;
+      packets_awaiting_qa: number;
+      missing_evidence: number;
+    };
+    recent_events: Array<{ event_type: string; severity: string; summary: string; created_at: string }>;
+  } | null = null;
+  try {
+    const { data: setsRow } = await sb
+      .from("engine_project_openclaw_monitor_settings")
+      .select("*")
+      .eq("project_id", projectId)
+      .maybeSingle();
+    const { data: unackRaw } = await sb
+      .from("engine_project_openclaw_monitor_events")
+      .select("id,event_type,severity,summary,created_at")
+      .eq("project_id", projectId)
+      .is("acknowledged_at", null)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    const unack = (unackRaw ?? []) as Array<{
+      id: string; event_type: string; severity: string; summary: string; created_at: string;
+    }>;
+    if (setsRow || unack.length > 0) {
+      const sets = (setsRow ?? {}) as {
+        enabled?: boolean; last_tick_at?: string | null;
+        allow_auto_refresh?: boolean; allow_auto_run_next?: boolean;
+        stale_run_minutes?: number; timeout_minutes?: number;
+      };
+      openClawMonitorSummary = {
+        enabled: sets.enabled ?? false,
+        latest_tick_at: sets.last_tick_at ?? null,
+        allow_auto_refresh: sets.allow_auto_refresh ?? false,
+        allow_auto_run_next: sets.allow_auto_run_next ?? false,
+        stale_run_minutes: sets.stale_run_minutes ?? 15,
+        timeout_minutes: sets.timeout_minutes ?? 30,
+        counts: {
+          critical_unack: unack.filter((e) => e.severity === "critical").length,
+          warning_unack: unack.filter((e) => e.severity === "warning").length,
+          info_unack: unack.filter((e) => e.severity === "info").length,
+          stale_runs: unack.filter((e) => e.event_type === "openclaw_run_stale_detected").length,
+          timed_out_runs: unack.filter((e) => e.event_type === "openclaw_run_timed_out").length,
+          failed_runs: unack.filter((e) => e.event_type === "openclaw_run_failed_detected").length,
+          queues_needing_attention: unack.filter((e) =>
+            e.event_type === "openclaw_queue_stale_detected" ||
+            e.event_type === "openclaw_queue_failed_detected"
+          ).length,
+          packets_awaiting_qa: unack.filter((e) => e.event_type === "openclaw_packet_awaiting_qa").length,
+          missing_evidence: unack.filter((e) => e.event_type === "openclaw_packet_missing_evidence").length,
+        },
+        recent_events: unack.slice(0, 10).map((e) => ({
+          event_type: e.event_type,
+          severity: e.severity,
+          summary: e.summary,
+          created_at: e.created_at,
+        })),
+      };
+    }
+  } catch { /* monitor tables may not be readable — ignore */ }
+
+
+
 
 
 
@@ -979,6 +1055,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     build_execution: buildExecutionSummary,
     openclaw: openClawSummary,
     openclaw_queue: openClawQueueSummary,
+    openclaw_monitor: openClawMonitorSummary,
     missing_data: missing,
   };
 

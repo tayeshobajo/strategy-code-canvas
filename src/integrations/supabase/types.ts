@@ -2770,6 +2770,152 @@ export type Database = {
           },
         ]
       }
+      engine_project_openclaw_monitor_events: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by_email: string | null
+          build_packet_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          openclaw_run_id: string | null
+          payload: Json
+          project_id: string
+          queue_id: string | null
+          queue_item_id: string | null
+          severity: string
+          status_after: string | null
+          status_before: string | null
+          summary: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by_email?: string | null
+          build_packet_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          openclaw_run_id?: string | null
+          payload?: Json
+          project_id: string
+          queue_id?: string | null
+          queue_item_id?: string | null
+          severity?: string
+          status_after?: string | null
+          status_before?: string | null
+          summary: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by_email?: string | null
+          build_packet_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          openclaw_run_id?: string | null
+          payload?: Json
+          project_id?: string
+          queue_id?: string | null
+          queue_item_id?: string | null
+          severity?: string
+          status_after?: string | null
+          status_before?: string | null
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_openclaw_monitor_events_build_packet_id_fkey"
+            columns: ["build_packet_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_build_packets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_monitor_events_openclaw_run_id_fkey"
+            columns: ["openclaw_run_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_openclaw_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_monitor_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_monitor_events_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_openclaw_queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_monitor_events_queue_item_id_fkey"
+            columns: ["queue_item_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_openclaw_queue_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_project_openclaw_monitor_settings: {
+        Row: {
+          allow_auto_refresh: boolean
+          allow_auto_run_next: boolean
+          created_at: string
+          enabled: boolean
+          id: string
+          last_tick_at: string | null
+          notify_on_failure: boolean
+          notify_on_stale: boolean
+          notify_on_timeout: boolean
+          project_id: string
+          stale_run_minutes: number
+          timeout_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          allow_auto_refresh?: boolean
+          allow_auto_run_next?: boolean
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_tick_at?: string | null
+          notify_on_failure?: boolean
+          notify_on_stale?: boolean
+          notify_on_timeout?: boolean
+          project_id: string
+          stale_run_minutes?: number
+          timeout_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          allow_auto_refresh?: boolean
+          allow_auto_run_next?: boolean
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_tick_at?: string | null
+          notify_on_failure?: boolean
+          notify_on_stale?: boolean
+          notify_on_timeout?: boolean
+          project_id?: string
+          stale_run_minutes?: number
+          timeout_minutes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_openclaw_monitor_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_openclaw_queue_items: {
         Row: {
           build_packet_id: string
