@@ -22,6 +22,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resendPortalWelcome, updatePortalProfile } from "@/lib/portal.functions";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import {
+  PASSWORD_STRENGTH_LABELS,
+  scorePasswordStrength,
+  validatePassword,
+  type PasswordFieldErrors,
+} from "@/lib/password-validation";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal/account")({
@@ -496,39 +502,19 @@ function InfoRow({
   );
 }
 
-const PasswordSchema = z
-  .object({
-    newPassword: z
-      .string()
-      .min(10, "At least 10 characters")
-      .max(128, "Too long")
-      .regex(/[A-Za-z]/, "Include a letter")
-      .regex(/[0-9]/, "Include a number"),
-    confirm: z.string(),
-  })
-  .refine((v) => v.newPassword === v.confirm, {
-    message: "Passwords don't match",
-    path: ["confirm"],
-  });
-
 function PasswordSection() {
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [errors, setErrors] = useState<{ newPassword?: string; confirm?: string }>({});
+  const [errors, setErrors] = useState<PasswordFieldErrors>({});
   const [saving, setSaving] = useState(false);
 
-  const strength = scoreStrength(newPassword);
+  const strength = scorePasswordStrength(newPassword);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = PasswordSchema.safeParse({ newPassword, confirm });
-    if (!parsed.success) {
-      const next: { newPassword?: string; confirm?: string } = {};
-      for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as "newPassword" | "confirm";
-        if (!next[key]) next[key] = issue.message;
-      }
-      setErrors(next);
+    const result = validatePassword({ newPassword, confirm });
+    if (!result.ok) {
+      setErrors(result.errors);
       return;
     }
     setErrors({});
@@ -582,7 +568,7 @@ function PasswordSection() {
                 />
               </div>
               <span className="text-[11px] text-ink/60">
-                {["Weak", "Weak", "Fair", "Strong", "Very strong"][strength]}
+                {PASSWORD_STRENGTH_LABELS[strength]}
               </span>
             </div>
           )}
@@ -622,14 +608,5 @@ function PasswordSection() {
       </form>
     </section>
   );
-}
-
-function scoreStrength(pw: string) {
-  let s = 0;
-  if (pw.length >= 10) s++;
-  if (pw.length >= 14) s++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
-  if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++;
-  return Math.min(4, s);
 }
 
