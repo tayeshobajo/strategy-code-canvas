@@ -10,11 +10,7 @@ import {
   FileText,
   CalendarClock,
 } from "lucide-react";
-import type {
-  RoadmapJourney,
-  RoadmapMilestone,
-  MilestoneKind,
-} from "@/lib/portal-roadmap-model";
+import type { RoadmapJourney, RoadmapMilestone, MilestoneKind } from "@/lib/portal-roadmap-model";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 type Props = {
@@ -33,8 +29,7 @@ const KIND_ICON: Record<MilestoneKind, typeof Circle> = {
 
 const STATUS_TONE: Record<RoadmapMilestone["status"], string> = {
   completed: "bg-royal text-white border-royal",
-  in_progress:
-    "bg-white text-royal border-royal ring-2 ring-royal/25",
+  in_progress: "bg-white text-royal border-royal ring-2 ring-royal/25",
   upcoming: "bg-white text-ink/60 border-ink/20",
   blocked: "bg-white text-[#a4283c] border-[#a4283c]",
   optional: "bg-white/80 text-ink/40 border-dashed border-ink/25",
@@ -48,14 +43,66 @@ const STATUS_LABEL: Record<RoadmapMilestone["status"], string> = {
   optional: "Optional",
 };
 
+function MobilePointCard({
+  kind,
+  point,
+  className = "",
+}: {
+  kind: "A" | "B";
+  point: RoadmapJourney["pointA"];
+  className?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const detail = point.detail?.trim();
+  const isLongDetail = !!detail && detail.length > 160;
+  const label = point.label?.trim() || (kind === "A" ? "Current state" : "Destination");
+  const detailId = `mobile-point-${kind.toLowerCase()}-detail`;
+
+  return (
+    <div
+      data-testid={`mobile-point-${kind.toLowerCase()}`}
+      className={`rounded-xl px-3 py-2 text-white ${className}`}
+    >
+      <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
+        Point {kind} · {label}
+      </div>
+      {detail ? (
+        <>
+          <p
+            id={detailId}
+            className={`text-[13px] text-white/85 leading-snug mt-0.5 ${
+              isLongDetail && !expanded ? "line-clamp-3" : "max-h-[14rem] overflow-y-auto pr-1"
+            }`}
+          >
+            {detail}
+          </p>
+          {isLongDetail && (
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls={detailId}
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-1 text-[11px] font-medium text-[#f0d282] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-royal rounded-sm"
+            >
+              {expanded ? "Show less" : "Show full point"}
+            </button>
+          )}
+        </>
+      ) : (
+        <p className="text-[13px] text-white/60 leading-snug mt-0.5">
+          This point is being finalized.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function MobilePhaseStack({ journey, selectedSlug, onSelect, matchingSlugs }: Props) {
   const reduced = useReducedMotion();
   // Start on the phase containing the active milestone, if any.
   const activePhaseIndex = Math.max(
     0,
-    journey.phases.findIndex(
-      (p) => p.key === journey.activeMilestone?.phase,
-    ),
+    journey.phases.findIndex((p) => p.key === journey.activeMilestone?.phase),
   );
   const [index, setIndex] = useState(activePhaseIndex);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -100,21 +147,12 @@ export function MobilePhaseStack({ journey, selectedSlug, onSelect, matchingSlug
 
   return (
     <div className="rounded-2xl border border-white/10 bg-[oklch(0.14_0.05_265)] p-4">
-      {/* Point A — where the journey starts. Mirrors the desktop canvas so
-          mobile clients see the same authored truth. */}
-      {journey.pointA.detail && (
-        <div
-          data-testid="mobile-point-a"
-          className="mb-3 rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white"
-        >
-          <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
-            Point A · {journey.pointA.label}
-          </div>
-          <p className="text-[13px] text-white/85 leading-snug mt-0.5 line-clamp-3">
-            {journey.pointA.detail}
-          </p>
-        </div>
-      )}
+      {/* Point A mirrors the desktop canvas so mobile clients see the same authored truth. */}
+      <MobilePointCard
+        kind="A"
+        point={journey.pointA}
+        className="mb-3 bg-white/10 border border-white/15"
+      />
       <div className="flex items-center justify-between text-white/85 mb-3">
         <button
           type="button"
@@ -171,9 +209,7 @@ export function MobilePhaseStack({ journey, selectedSlug, onSelect, matchingSlug
             className="snap-center shrink-0 basis-full rounded-xl bg-white text-ink border border-border p-4"
           >
             {phase.milestones.length === 0 ? (
-              <p className="text-sm text-ink/60">
-                No milestones in this phase yet.
-              </p>
+              <p className="text-sm text-ink/60">No milestones in this phase yet.</p>
             ) : (
               <ul className="space-y-2">
                 {phase.milestones.map((m) => {
@@ -196,9 +232,7 @@ export function MobilePhaseStack({ journey, selectedSlug, onSelect, matchingSlug
                         onClick={() => onSelect(m.slug)}
                         aria-pressed={isSel}
                         className={`w-full text-left rounded-xl border p-3 flex items-start gap-3 transition-all ${
-                          isSel
-                            ? "border-royal/40 bg-royal/5"
-                            : "border-border hover:border-ink/20"
+                          isSel ? "border-royal/40 bg-royal/5" : "border-border hover:border-ink/20"
                         } ${dim ? "opacity-40" : "opacity-100"}`}
                       >
                         <span
@@ -255,20 +289,12 @@ export function MobilePhaseStack({ journey, selectedSlug, onSelect, matchingSlug
       <p className="mt-2 text-center text-[11px] text-white/50">
         Swipe left or right to move between phases
       </p>
-      {/* Point B — the destination the phases lead to. */}
-      {journey.pointB.detail && (
-        <div
-          data-testid="mobile-point-b"
-          className="mt-3 rounded-xl bg-[color:var(--royal,#2f5df6)]/15 border border-[color:var(--royal,#2f5df6)]/30 px-3 py-2 text-white"
-        >
-          <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/60">
-            Point B · {journey.pointB.label}
-          </div>
-          <p className="text-[13px] text-white/85 leading-snug mt-0.5 line-clamp-3">
-            {journey.pointB.detail}
-          </p>
-        </div>
-      )}
+      {/* Point B is always present, with a neutral empty state if it is still being authored. */}
+      <MobilePointCard
+        kind="B"
+        point={journey.pointB}
+        className="mt-3 bg-[color:var(--royal,#2f5df6)]/15 border border-[color:var(--royal,#2f5df6)]/30"
+      />
     </div>
   );
 }

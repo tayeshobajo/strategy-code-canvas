@@ -151,10 +151,19 @@ describe("no demo phase copy in client components (static)", () => {
 
   it("MobilePhaseStack renders Point A and Point B", () => {
     const src = read("src/components/portal/roadmap/MobilePhaseStack.tsx");
-    expect(src).toMatch(/journey\.pointA\.detail/);
-    expect(src).toMatch(/journey\.pointB\.detail/);
-    expect(src).toMatch(/journey\.pointA\.label/);
-    expect(src).toMatch(/journey\.pointB\.label/);
+    expect(src).toMatch(/point=\{journey\.pointA\}/);
+    expect(src).toMatch(/point=\{journey\.pointB\}/);
+    expect(src).toMatch(/point\.detail/);
+    expect(src).toMatch(/point\.label/);
+    expect(src).toMatch(/aria-expanded=\{expanded\}/);
+  });
+
+  it("MapCanvas keeps long Point A/B details expandable instead of destructive truncation", () => {
+    const src = read("src/components/portal/roadmap/MapCanvas.tsx");
+    expect(src).toMatch(/point=\{journey\.pointA\}/);
+    expect(src).toMatch(/point=\{journey\.pointB\}/);
+    expect(src).toMatch(/aria-expanded=\{expanded\}/);
+    expect(src).toMatch(/Show full point/);
   });
 
   it("jump menu derives entries from journey phases", () => {

@@ -314,63 +314,62 @@ export const decideReviewItem = createServerFn({ method: "POST" })
       label: string | null;
     };
     let target: ReviewTargetVersion | null = null;
+    let versionApprovalTarget: ReviewTargetVersion | null = null;
     const isVersionApproval =
       data.action === "approved"
-      && (it.item_type === "roadmap_version" || it.item_type === "Roadmap Update")
-      && !!projId;
+      && (it.item_type === "roadmap_version" || it.item_type === "Roadmap Update");
 
     if (isVersionApproval) {
-      // G-3: prefer the FK `version_id` on the review item — it points
-      // exactly at the draft this review was created for. Fall back to
-      // label matching only for legacy review items created before the
-      // FK was added (version_id IS NULL).
-      if (it.version_id) {
-        const { data: v } = await sb
-          .from("engine_roadmap_versions")
-          .select("id, version, payload, created_by, status, label")
-          .eq("id", it.version_id)
-          .maybeSingle() as unknown as { data: ReviewTargetVersion | null };
-        target = v ?? null;
-        if (target && !["ai_generated", "tai_edited", "draft"].includes(target.status)) {
-          throw new Error(`Cannot approve: linked version is already ${target.status}.`);
-        }
-      } else {
-        // Legacy fallback — label match, then most-recent pending.
-        const { data: matches } = await sb
-          .from("engine_roadmap_versions")
-          .select("id, version, payload, created_by, status, label")
-          .eq("project_id", projId)
-          .in("status", ["ai_generated", "tai_edited", "draft"])
-          .order("created_at", { ascending: false })
-          .limit(20) as unknown as { data: ReviewTargetVersion[] | null };
-        const rows = matches ?? [];
-        target = rows.find((r) => (r.label ?? "").trim() === it.title.trim()) ?? rows[0] ?? null;
+      // G-3/P1: version approval must target the exact FK-linked draft.
+      // Legacy label/most-recent matching is intentionally disabled here:
+      // approving without a version_id can lock the wrong roadmap snapshot.
+      if (!projId) {
+        throw new Error("Cannot approve: review item is not linked to an engine project.");
+      }
+      if (!it.version_id) {
+        throw new Error(
+          `Cannot approve: review item "${it.title}" is not linked to a specific roadmap version.`,
+        );
+      }
+      const { data: v } = await sb
+        .from("engine_roadmap_versions")
+        .select("id, version, payload, created_by, status, label")
+        .eq("id", it.version_id)
+        .eq("project_id", projId)
+        .maybeSingle() as unknown as { data: ReviewTargetVersion | null };
+      target = v ?? null;
+      if (!target) {
+        throw new Error(
+          `Cannot approve: unable to resolve the exact roadmap version for review item "${it.title}". The version may have been removed, already approved, or linked to a different project.`,
+        );
+      }
+      if (!["ai_generated", "tai_edited", "draft"].includes(target.status)) {
+        throw new Error(`Cannot approve: linked version is already ${target.status}.`);
       }
 
-      if (target) {
-        const createdBy = (target.created_by ?? "").toString().toLowerCase();
-        // Self-approval guard mirrors approveVersion.
-        if (createdBy && createdBy !== "ai" && createdBy === actor.toLowerCase()) {
-          throw new Error("You cannot approve a version you authored yourself — a second reviewer must approve this review item.");
-        }
-        // Block on unresolved critical change events.
-        const { data: openCritical } = await sb
-          .from("engine_change_events")
-          .select("id").eq("project_id", projId)
-          .eq("severity", "critical").is("resolved_at", null);
-        if ((openCritical ?? []).length) {
-          throw new Error("Resolve open critical change events before approving this version.");
-        }
-        // Pillar 7: investment must be confirmed before version approval.
-        const { data: projGate } = await sb
-          .from("engine_projects")
-          .select("investment_confirmed_at")
-          .eq("id", projId)
-          .single() as unknown as { data: { investment_confirmed_at: string | null } | null };
-        if (!projGate?.investment_confirmed_at) {
-          throw new Error("Confirm the investment on this project before approving the roadmap version.");
-        }
+      const createdBy = (target.created_by ?? "").toString().toLowerCase();
+      // Self-approval guard mirrors approveVersion.
+      if (createdBy && createdBy !== "ai" && createdBy === actor.toLowerCase()) {
+        throw new Error("You cannot approve a version you authored yourself — a second reviewer must approve this review item.");
       }
+      // Block on unresolved critical change events.
+      const { data: openCritical } = await sb
+        .from("engine_change_events")
+        .select("id").eq("project_id", projId)
+        .eq("severity", "critical").is("resolved_at", null);
+      if ((openCritical ?? []).length) {
+        throw new Error("Resolve open critical change events before approving this version.");
+      }
+      // Pillar 7: investment must be confirmed before version approval.
+      const { data: projGate } = await sb
+        .from("engine_projects")
+        .select("investment_confirmed_at")
+        .eq("id", projId)
+        .single() as unknown as { data: { investment_confirmed_at: string | null } | null };
+      if (!projGate?.investment_confirmed_at) {
+        throw new Error("Confirm the investment on this project before approving the roadmap version.");
+      }
+      versionApprovalTarget = target;
     }
 
     // ---- All guards passed: writes start here. The review item is flipped
@@ -387,17 +386,8 @@ export const decideReviewItem = createServerFn({ method: "POST" })
       actor,
     });
 
-    if (isVersionApproval) {
-      if (!target) {
-        // HIGH FIX (Audit V3 #5): A version-approval review item whose
-        // linked version can't be resolved must NOT be silently marked
-        // approved. Throw so the item stays pending and the operator can
-        // investigate.
-        throw new Error(
-          `Cannot approve: unable to resolve the target roadmap version for review item "${it.title}". The version may have been removed or already approved.`,
-        );
-      }
-      if (target) {
+    if (versionApprovalTarget) {
+      const target = versionApprovalTarget;
         const nowIso = new Date().toISOString();
         const { error: vErr } = await sb.from("engine_roadmap_versions")
           .update({ status: "approved", approved_by: actor, approved_at: nowIso })
@@ -566,7 +556,6 @@ export const decideReviewItem = createServerFn({ method: "POST" })
           });
           if (warnErr) console.warn("[decideReviewItem] failed to persist milestone-diff warning:", warnErr.message);
         }
-      }
     }
 
 

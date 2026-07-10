@@ -49,7 +49,6 @@ function scalePathD(d: string, w: number, h: number): string {
     .join("");
 }
 
-
 type Props = {
   journey: RoadmapJourney;
   selectedSlug: string | null;
@@ -58,6 +57,65 @@ type Props = {
   fitHeight?: boolean;
   className?: string;
 };
+
+type MapPointCardProps = {
+  kind: "A" | "B";
+  point: RoadmapJourney["pointA"];
+  align?: "left" | "right";
+};
+
+function MapPointCard({ kind, point, align = "left" }: MapPointCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const detail = point.detail?.trim();
+  const isLongDetail = !!detail && detail.length > 140;
+  const detailId = `map-point-${kind.toLowerCase()}-detail`;
+  const fallbackLabel = kind === "A" ? "Current state" : "Destination";
+  const label = point.label?.trim() || fallbackLabel;
+
+  return (
+    <div
+      data-no-drag
+      className={`pointer-events-auto rounded-lg bg-slate-900/75 border border-white/20 backdrop-blur px-3 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)] ${
+        align === "right" ? "text-right" : ""
+      }`}
+    >
+      <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/75">
+        Point {kind}
+      </div>
+      <div className="font-display text-[15px] leading-tight">{label}</div>
+      {detail ? (
+        <>
+          <div
+            id={detailId}
+            className={`text-[11px] text-white/80 max-w-[280px] break-words ${
+              isLongDetail && !expanded ? "line-clamp-3" : "max-h-[13rem] overflow-y-auto pr-1"
+            }`}
+          >
+            {detail}
+          </div>
+          {isLongDetail && (
+            <button
+              type="button"
+              data-no-drag
+              aria-expanded={expanded}
+              aria-controls={detailId}
+              onClick={() => setExpanded((v) => !v)}
+              className={`mt-1 block text-[10px] font-medium text-[#f0d282] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-royal rounded-sm ${
+                align === "right" ? "ml-auto" : ""
+              }`}
+            >
+              {expanded ? "Show less" : "Show full point"}
+            </button>
+          )}
+        </>
+      ) : (
+        <div className="text-[11px] text-white/55 max-w-[240px] break-words">
+          This point is being finalized.
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function MapCanvas({
   journey,
@@ -85,10 +143,7 @@ export function MapCanvas({
   // Widen lane offsets, marker gap, and title buffer when the canvas is
   // scaled down (short viewport / browser zoom-out) so lanes stay visually
   // separated and pills don't overlap. Baseline scale=1 → paddingScale=1.
-  const paddingScale = useMemo(
-    () => Math.max(1, Math.min(1.6, 1 / Math.max(scale, 0.5))),
-    [scale],
-  );
+  const paddingScale = useMemo(() => Math.max(1, Math.min(1.6, 1 / Math.max(scale, 0.5))), [scale]);
   const layout = useMemo(
     () => computeMapLayout(journey, { paddingScale }),
     [journey, paddingScale],
@@ -124,8 +179,7 @@ export function MapCanvas({
           return;
         }
         const centerX =
-          (el.scrollLeft + el.clientWidth / 2) *
-          (CANVAS_WIDTH / Math.max(el.scrollWidth, 1));
+          (el.scrollLeft + el.clientWidth / 2) * (CANVAS_WIDTH / Math.max(el.scrollWidth, 1));
         const cn = centerX / CANVAS_WIDTH;
         const band = layout.bands.find((b) => cn >= b.x0 && cn < b.x1);
         const key =
@@ -199,12 +253,7 @@ export function MapCanvas({
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (
-      (e.target as HTMLElement).closest(
-        "button, a, [role='slider'], [data-no-drag]",
-      )
-    )
-      return;
+    if ((e.target as HTMLElement).closest("button, a, [role='slider'], [data-no-drag]")) return;
     const el = scrollRef.current;
     if (!el) return;
     stopMomentum();
@@ -240,7 +289,9 @@ export function MapCanvas({
       el.style.cursor = "grab";
       try {
         el.releasePointerCapture(e.pointerId);
-      } catch {}
+      } catch {
+        /* pointer capture may already be released */
+      }
     }
     if (st && st.moved) startMomentum(st.velocity);
   };
@@ -258,10 +309,7 @@ export function MapCanvas({
       const next =
         idx < 0
           ? 0
-          : Math.min(
-              Math.max(idx + (e.key === "ArrowRight" ? 1 : -1), 0),
-              nodes.length - 1,
-            );
+          : Math.min(Math.max(idx + (e.key === "ArrowRight" ? 1 : -1), 0), nodes.length - 1);
       nodes[next].focus();
       nodes[next].scrollIntoView({
         behavior: reduced ? "auto" : "smooth",
@@ -297,7 +345,17 @@ export function MapCanvas({
       }
       return map;
     });
-  }, [layout.markers, viewMode, canvas.zoomLevel, canvas.currentPhaseKey, canvas.selectedPhaseKey, canvas.visibleKinds, canvas.mutedKinds, journey, selectedSlug]);
+  }, [
+    layout.markers,
+    viewMode,
+    canvas.zoomLevel,
+    canvas.currentPhaseKey,
+    canvas.selectedPhaseKey,
+    canvas.visibleKinds,
+    canvas.mutedKinds,
+    journey,
+    selectedSlug,
+  ]);
 
   const keepFull = useMemo(() => {
     const set = new Set<string>();
@@ -308,7 +366,8 @@ export function MapCanvas({
     return set;
   }, [journey, selectedSlug]);
 
-  const clusterThreshold = canvas.zoomLevel === "strategic" ? 0.05 : canvas.zoomLevel === "phase" ? 0.03 : 0;
+  const clusterThreshold =
+    canvas.zoomLevel === "strategic" ? 0.05 : canvas.zoomLevel === "phase" ? 0.03 : 0;
 
   const clustered = useMemo(() => {
     const visibleMarkers = layout.markers.filter(
@@ -319,7 +378,13 @@ export function MapCanvas({
 
   type FannedEntry =
     | { kind: "cluster"; cluster: MarkerClusterModel }
-    | { kind: "marker"; pos: MarkerPos; overrideX?: number; overrideY?: number; fannedFrom?: string };
+    | {
+        kind: "marker";
+        pos: MarkerPos;
+        overrideX?: number;
+        overrideY?: number;
+        fannedFrom?: string;
+      };
   const rendered = useMemo<FannedEntry[]>(() => {
     return measure("cluster:relayout", () => {
       const out: FannedEntry[] = [];
@@ -336,7 +401,13 @@ export function MapCanvas({
             const dx = startX + i * step - cx;
             const t = n > 1 ? i / (n - 1) - 0.5 : 0;
             const dy = -60 + Math.abs(t) * 120;
-            out.push({ kind: "marker", pos: member, overrideX: cx + dx, overrideY: cy + dy, fannedFrom: entry.cluster.key });
+            out.push({
+              kind: "marker",
+              pos: member,
+              overrideX: cx + dx,
+              overrideY: cy + dy,
+              fannedFrom: entry.cluster.key,
+            });
           }
           out.push({ kind: "cluster", cluster: entry.cluster });
         } else if (entry.kind === "cluster") {
@@ -396,7 +467,6 @@ export function MapCanvas({
       .join(" ");
     return pts || null;
   }, [selectedSlug, journey.criticalPathSlugs, layout.markers]);
-
 
   return (
     <div
@@ -490,14 +560,18 @@ export function MapCanvas({
           <div
             aria-hidden="true"
             className="absolute inset-x-0 top-0 h-48 pointer-events-none"
-            style={{ background: "linear-gradient(180deg, rgba(4,10,25,0.35) 0%, rgba(4,10,25,0) 100%)" }}
+            style={{
+              background: "linear-gradient(180deg, rgba(4,10,25,0.35) 0%, rgba(4,10,25,0) 100%)",
+            }}
           />
 
           {/* Bottom warm haze for depth */}
           <div
             aria-hidden="true"
             className="absolute inset-x-0 bottom-0 h-72 pointer-events-none"
-            style={{ background: "linear-gradient(0deg, rgba(15,10,5,0.3) 0%, rgba(15,10,5,0) 100%)" }}
+            style={{
+              background: "linear-gradient(0deg, rgba(15,10,5,0.3) 0%, rgba(15,10,5,0) 100%)",
+            }}
           />
 
           {/* === SPINE PATH — smooth Catmull-Rom, phase-aware === */}
@@ -543,9 +617,7 @@ export function MapCanvas({
             {phaseSegmentDs.map((seg) => {
               const isCurrent = seg.key === currentPhaseKey;
               const phaseIdx = journey.phases.findIndex((p) => p.key === seg.key);
-              const currentIdx = journey.phases.findIndex(
-                (p) => p.key === currentPhaseKey,
-              );
+              const currentIdx = journey.phases.findIndex((p) => p.key === currentPhaseKey);
               const isCompleted = currentIdx >= 0 && phaseIdx < currentIdx;
               if (isCompleted) {
                 return (
@@ -590,7 +662,6 @@ export function MapCanvas({
             })}
           </svg>
 
-
           {/* === SELECTED CRITICAL PATH — bright golden glow === */}
           {selectedPathPoints && (
             <svg
@@ -606,16 +677,45 @@ export function MapCanvas({
               <defs>
                 <filter id="sel-route-outer" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="8" result="b" />
-                  <feMerge><feMergeNode in="b" /></feMerge>
+                  <feMerge>
+                    <feMergeNode in="b" />
+                  </feMerge>
                 </filter>
                 <filter id="sel-route-inner" x="-10%" y="-10%" width="120%" height="120%">
                   <feGaussianBlur stdDeviation="3" result="b" />
-                  <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  <feMerge>
+                    <feMergeNode in="b" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
                 </filter>
               </defs>
-              <polyline points={selectedPathPoints} fill="none" stroke={`rgba(${ROUTE_GOLD},0.4)`} strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" filter="url(#sel-route-outer)" />
-              <polyline points={selectedPathPoints} fill="none" stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.85)`} strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" filter="url(#sel-route-inner)" />
-              <polyline points={selectedPathPoints} fill="none" stroke="rgba(255,250,240,0.95)" strokeWidth={2.5} strokeDasharray="6 6" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline
+                points={selectedPathPoints}
+                fill="none"
+                stroke={`rgba(${ROUTE_GOLD},0.4)`}
+                strokeWidth={16}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                filter="url(#sel-route-outer)"
+              />
+              <polyline
+                points={selectedPathPoints}
+                fill="none"
+                stroke={`rgba(${ROUTE_GOLD_BRIGHT},0.85)`}
+                strokeWidth={7}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                filter="url(#sel-route-inner)"
+              />
+              <polyline
+                points={selectedPathPoints}
+                fill="none"
+                stroke="rgba(255,250,240,0.95)"
+                strokeWidth={2.5}
+                strokeDasharray="6 6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           )}
           {/* === SELECTED PHASE SEGMENT — segment that owns the active marker
@@ -657,7 +757,6 @@ export function MapCanvas({
               </svg>
             );
           })()}
-
 
           {journey.phases.map((phase, i) => {
             const band = layout.bands[i];
@@ -736,45 +835,35 @@ export function MapCanvas({
             );
           })}
 
-
           {/* Point A */}
           <div
             className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 text-white pointer-events-none"
-            style={{ left: `${POINT_A_POS.nx * CANVAS_WIDTH}px`, top: `${POINT_A_POS.ny * CANVAS_HEIGHT}px`, zIndex: 7 }}
+            style={{
+              left: `${POINT_A_POS.nx * CANVAS_WIDTH}px`,
+              top: `${POINT_A_POS.ny * CANVAS_HEIGHT}px`,
+              zIndex: 7,
+            }}
           >
             <div className="flex items-center justify-center h-9 w-9 rounded-full bg-slate-900/75 border border-white/30 backdrop-blur shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
               <MapPin className="w-4 h-4" />
             </div>
-            <div className="rounded-lg bg-slate-900/75 border border-white/20 backdrop-blur px-3 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/75">Point A</div>
-              <div className="font-display text-[15px] leading-tight">{journey.pointA.label || "Current state"}</div>
-              {journey.pointA.detail && (
-                <div className="text-[11px] text-white/80 max-w-[220px] line-clamp-2 break-words">
-                  {journey.pointA.detail}
-                </div>
-              )}
-            </div>
+            <MapPointCard kind="A" point={journey.pointA} />
           </div>
 
           {/* Point B */}
           <div
             className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 text-white pointer-events-none"
-            style={{ left: `${POINT_B_POS.nx * CANVAS_WIDTH}px`, top: `${POINT_B_POS.ny * CANVAS_HEIGHT}px`, zIndex: 7 }}
+            style={{
+              left: `${POINT_B_POS.nx * CANVAS_WIDTH}px`,
+              top: `${POINT_B_POS.ny * CANVAS_HEIGHT}px`,
+              zIndex: 7,
+            }}
           >
-            <div className="rounded-lg bg-slate-900/75 border border-white/20 backdrop-blur px-3 py-1.5 text-right shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.28em] text-white/75">Point B</div>
-              <div className="font-display text-[15px] leading-tight">{journey.pointB.label || "Destination"}</div>
-              {journey.pointB.detail && (
-                <div className="text-[11px] text-white/80 max-w-[220px] line-clamp-2 break-words">
-                  {journey.pointB.detail}
-                </div>
-              )}
-            </div>
+            <MapPointCard kind="B" point={journey.pointB} align="right" />
             <div className="flex items-center justify-center h-9 w-9 rounded-full bg-[color:var(--royal,#2f5df6)] text-white shadow-[0_0_28px_rgba(47,93,246,0.6),0_4px_16px_rgba(0,0,0,0.5)]">
               <Flag className="w-4 h-4" />
             </div>
           </div>
-
 
           {/* Markers + clusters */}
           {rendered.map((entry, i) => {
@@ -782,7 +871,10 @@ export function MapCanvas({
               return (
                 <div
                   key={entry.cluster.key}
-                  style={{ opacity: ready ? 1 : 0, transition: reduced ? "none" : "opacity 400ms ease-out" }}
+                  style={{
+                    opacity: ready ? 1 : 0,
+                    transition: reduced ? "none" : "opacity 400ms ease-out",
+                  }}
                 >
                   <MarkerClusterChip
                     cluster={entry.cluster}
@@ -800,13 +892,17 @@ export function MapCanvas({
             const mutedBySelection = !!selectedSlug && pos.milestone.slug !== selectedSlug;
             const px = entry.overrideX != null ? entry.overrideX : pos.nx * CANVAS_WIDTH;
             const py = entry.overrideY != null ? entry.overrideY : pos.ny * CANVAS_HEIGHT;
-            const keyId = entry.fannedFrom ? `${entry.fannedFrom}:${pos.milestone.slug}:${i}` : pos.milestone.slug;
+            const keyId = entry.fannedFrom
+              ? `${entry.fannedFrom}:${pos.milestone.slug}:${i}`
+              : pos.milestone.slug;
             return (
               <div
                 key={keyId}
                 style={{
                   opacity: ready ? 1 : 0,
-                  transition: reduced ? "none" : "opacity 400ms ease-out, left 260ms ease-out, top 260ms ease-out",
+                  transition: reduced
+                    ? "none"
+                    : "opacity 400ms ease-out, left 260ms ease-out, top 260ms ease-out",
                   zIndex: entry.fannedFrom ? 12 : undefined,
                 }}
               >

@@ -472,11 +472,9 @@ export const getPortalContext = createServerFn({ method: "GET" })
         // Pillar 8: explicit safe-column projection — never select "*" for
         // client-visible roadmap reads. Internal fields (metadata,
         // approved_roadmap_version_id, published_by, engine linkage,
-        // supporting_notes) MUST NOT reach the browser. Keys mirror the
-        // getPortalRoadmapDocs whitelist + row metadata the portal UI
-        // needs (id, title, status, timestamps).
+        // supporting_notes, acknowledged_by_email) MUST NOT reach the browser.
         .select(
-          "id, project_id, title, version_label, status, approved_at, published_at, acknowledged_at, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, client_safe_canvas",
+          "id, project_id, status, title, version_label, published_at, approved_at, acknowledged_at, roadmap_data:client_safe_canvas",
         )
         .eq("project_id", project.id)
         // Status-based filter, mirroring getPortalRoadmapDocs: an archived or
@@ -496,13 +494,44 @@ export const getPortalContext = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false })
         .limit(3),
     ]);
+    const roadmapRow = (roadmapRes.data?.[0] ?? null) as {
+      id: string;
+      project_id: string;
+      status: string;
+      title: string;
+      version_label: string | null;
+      published_at: string | null;
+      approved_at: string | null;
+      acknowledged_at: string | null;
+      roadmap_data: unknown;
+    } | null;
+    const approvedRoadmap = roadmapRow
+      ? {
+          id: roadmapRow.id,
+          project_id: roadmapRow.project_id,
+          status: roadmapRow.status,
+          title: roadmapRow.title,
+          subtitle: null as string | null,
+          roadmap_data: roadmapRow.roadmap_data ?? null,
+          published_at: roadmapRow.published_at,
+          delivered_at:
+            roadmapRow.status === "delivered"
+              ? (roadmapRow.published_at ?? roadmapRow.approved_at)
+              : null,
+          version_label: roadmapRow.version_label,
+          client_acknowledged: Boolean(roadmapRow.acknowledged_at),
+          acknowledged_at: roadmapRow.acknowledged_at,
+          // Display date retained for the current portal home card.
+          approved_at: roadmapRow.approved_at ?? roadmapRow.published_at,
+        }
+      : null;
 
     return {
       hasAccess: true as const,
       email,
       project,
       onboarding: onboardingRes.data,
-      approvedRoadmap: roadmapRes.data?.[0] ?? null,
+      approvedRoadmap,
       billing: billingRes.data ?? [],
       isOperator: isOperator(email),
       correlationId,

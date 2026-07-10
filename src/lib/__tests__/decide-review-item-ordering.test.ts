@@ -40,6 +40,15 @@ describe("decideReviewItem write ordering (New Issue #2)", () => {
     expect(guard).toBeLessThan(auditInsert());
   });
 
+  it("exact-version resolution guards run before the item update and audit insert", () => {
+    const missingVersionId = idxOf("is not linked to a specific roadmap version");
+    const unresolvedVersion = idxOf("unable to resolve the exact roadmap version");
+    expect(missingVersionId).toBeLessThan(itemUpdate());
+    expect(missingVersionId).toBeLessThan(auditInsert());
+    expect(unresolvedVersion).toBeLessThan(itemUpdate());
+    expect(unresolvedVersion).toBeLessThan(auditInsert());
+  });
+
   it("self-approval guard runs before the item update and audit insert", () => {
     const guard = idxOf("You cannot approve a version you authored yourself");
     expect(guard).toBeLessThan(itemUpdate());
