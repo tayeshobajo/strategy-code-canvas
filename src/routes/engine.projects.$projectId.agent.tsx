@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -55,7 +55,18 @@ const ALL_MODULES = [
   "client_preview",
 ];
 
+// Router-aware wrapper: child routes (tasks, costs, permissions) render via <Outlet />;
+// the exact /agent path renders the full Agent Console.
 function AgentConsolePage() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isChildRoute = !pathname.endsWith("/agent");
+  if (isChildRoute) {
+    return <Outlet />;
+  }
+  return <AgentConsoleContent />;
+}
+
+function AgentConsoleContent() {
   const { projectId } = Route.useParams();
   const qc = useQueryClient();
   const dashFn = useServerFn(getAgentDashboard);
