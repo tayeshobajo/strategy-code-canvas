@@ -603,13 +603,15 @@ async function createProjectFromSubmission(
           });
         } catch (pipeErr) {
           console.error("[intake-bridge] intelligence pipeline failed — project exists, pipeline skipped", pipeErr);
-          await sb.from("engine_activity").insert({
-            project_id: projectId,
-            kind: "pipeline_failed",
-            title: "Intelligence pipeline failed during intake bridge",
-            body: pipeErr instanceof Error ? pipeErr.message : String(pipeErr),
-            severity: "error",
-          }).catch(() => { /* best-effort */ });
+          try {
+            await sb.from("engine_activity").insert({
+              project_id: projectId,
+              kind: "pipeline_failed",
+              title: "Intelligence pipeline failed during intake bridge",
+              body: pipeErr instanceof Error ? pipeErr.message : String(pipeErr),
+              severity: "error",
+            });
+          } catch { /* best-effort */ }
         }
       }
     }
