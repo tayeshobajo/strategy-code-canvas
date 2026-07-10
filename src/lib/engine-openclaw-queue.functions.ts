@@ -799,6 +799,20 @@ export const runNextQueueItem = createServerFn({ method: "POST" })
           `Item #${item.sequence_number} failed: ${itemFailedError.slice(0, 200)}`,
           "error",
         );
+        await insertAuditLog({
+          projectId: data.projectId,
+          actorEmail: staff.email,
+          userId: staff.userId,
+          action: "openclaw_queue_item_failed",
+          summary: `Item #${item.sequence_number} failed: ${itemFailedError.slice(0, 200)}`,
+          queueId: q.id,
+          queueItemId: item.id,
+          buildPacketId: item.build_packet_id,
+          openclawRunId: runId,
+          success: false,
+          errorCode: "start_failed",
+          errorMessage: itemFailedError,
+        });
         try {
           await supabaseAdmin.from("operator_notifications").insert({
             kind: "openclaw_queue_item_failed",
