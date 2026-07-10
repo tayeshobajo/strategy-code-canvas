@@ -288,7 +288,7 @@ async function gatherFacts(sb: Sb, projectId: string): Promise<AssessedFacts> {
   const [
     { data: pkts },
     { data: revs },
-    { data: mons },
+    monsResult,
     { data: monSet },
     { data: qaPlan },
     { data: implPlan },
@@ -308,7 +308,7 @@ async function gatherFacts(sb: Sb, projectId: string): Promise<AssessedFacts> {
       .order("updated_at", { ascending: false }),
     sb
       .from("engine_project_openclaw_monitor_events")
-      .select("id,kind,severity,summary,acknowledged_at")
+      .select("id,event_type,severity,summary,acknowledged_at")
       .eq("project_id", projectId)
       .order("created_at", { ascending: false })
       .limit(200),
@@ -349,6 +349,29 @@ async function gatherFacts(sb: Sb, projectId: string): Promise<AssessedFacts> {
       .eq("project_id", projectId),
   ]);
 
+  let monitor_load_error: string | null = null;
+  let monitor_events: AssessedFacts["monitor_events"] = [];
+  if (monsResult.error) {
+    monitor_load_error = monsResult.error.message || "Monitor events query failed";
+    console.error("[delivery-readiness] monitor events query failed:", monsResult.error);
+  } else {
+    monitor_events = (
+      (monsResult.data ?? []) as Array<{
+        id: string;
+        event_type: string;
+        severity: string;
+        summary: string;
+        acknowledged_at: string | null;
+      }>
+    ).map((e) => ({
+      id: e.id,
+      kind: e.event_type,
+      severity: e.severity,
+      summary: e.summary,
+      acknowledged_at: e.acknowledged_at,
+    }));
+  }
+
   const evidence_by_packet = new Map<string, number>();
   for (const e of ((ev ?? []) as Array<{ build_packet_id: string }>)) {
     evidence_by_packet.set(e.build_packet_id, (evidence_by_packet.get(e.build_packet_id) ?? 0) + 1);
@@ -361,8 +384,9 @@ async function gatherFacts(sb: Sb, projectId: string): Promise<AssessedFacts> {
   return {
     packets: (pkts ?? []) as AssessedFacts["packets"],
     reviews: (revs ?? []) as AssessedFacts["reviews"],
-    monitor_events: (mons ?? []) as AssessedFacts["monitor_events"],
+    monitor_events,
     monitor_settings: (monSet as AssessedFacts["monitor_settings"]) ?? null,
+    monitor_load_error,
     qa_plan: (qaPlan as AssessedFacts["qa_plan"]) ?? null,
     implementation_plan: (implPlan as AssessedFacts["implementation_plan"]) ?? null,
     openclaw_runs: (runs ?? []) as AssessedFacts["openclaw_runs"],
@@ -370,6 +394,7 @@ async function gatherFacts(sb: Sb, projectId: string): Promise<AssessedFacts> {
     artifact_by_packet,
   };
 }
+
 
 type DerivedAssessment = {
   readiness: DeliveryReadiness;
