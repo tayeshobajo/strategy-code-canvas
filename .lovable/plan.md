@@ -1,43 +1,48 @@
-## Fix: Signals count + Health/Progress showing 0 on project overview
+## Fix: progress_pct still 0 when pipeline auto-produces artifacts
 
-Display-only fixes in the workspace loader and header. No DB / migration / server-fn business logic changes.
+Read-only computation change in `src/lib/engine.functions.ts` (`getProjectWorkspace` handler), around lines 684-688. No DB, migration, or business-logic changes.
 
-### 1. `src/lib/engine.functions.ts` — `getProjectWorkspace` handler
+### Change
 
-Add two extra parallel reads after the base project fetch:
+Replace the "count only touched step_states" fallback with an artifact-aware count over all 14 workspace steps. A step is counted as active when either:
 
-- Count extracted signals: `sb.from("engine_extracted_signals").select("id", { count: "exact", head: true }).eq("project_id", data.id)` → `signalCount`.
-- Latest roadmap version (for health scoring, if `row.roadmap_version` alone isn't enough — reuse the existing `row.approved_version` / `row.roadmap_version` columns instead of a new query when possible).
+- `step_states[stepKey]?.state` is set (draft/review/approved), OR
+- The corresponding project artifact has data.
 
-Compute derived values before building the `project` object:
+Artifact map (using existing row columns already in the select):
 
-- `signal_count = signalCount ?? 0`
-- `computed_health_score` — clamp 0–100:
-  - signals: `min(40, round(signalCount / 20 * 40))`
-  - roadmap draft exists (`row.roadmap_version` truthy): +20
-  - Spirit First analysis (heuristic: `row.point_a` or `row.point_b` has non-empty keys): +15
-  - approved roadmap (`row.approved_version` truthy): +15
-  - delivery checklist (`row.delivery` has non-empty keys): +10
-  - If the stored `row.health_score` is already > 0, prefer it (keeps future backend logic authoritative); otherwise use computed.
-- `computed_progress_pct` — count workspace steps in `row.step_states` whose `state` is `"review"` or `"approved"` (touched beyond draft would be too loose; use any state != null). Actually use: `stepsTouched = Object.values(step_states).filter(s => s?.state).length`, then `round(stepsTouched / 14 * 100)`. Prefer stored `progress_pct` when > 0.
+| Step # | Key            | Artifact "has activity" when                                             |
+|--------|----------------|--------------------------------------------------------------------------|
+| 1      | intelligence   | `signal_count > 0`                                                       |
+| 2      | signal-room    | `signal_count > 0` (or `hasKeys(row.signal_room)`)                        |
+| 3      | extraction     | `signal_count > 0` (or `hasKeys(row.extraction)`)                         |
+| 4      | point-a        | `hasKeys(row.point_a)`                                                   |
+| 5      | point-b        | `hasKeys(row.point_b)`                                                   |
+| 6      | hidden-assets  | `hasKeys(row.hidden_assets)`                                             |
+| 7      | gap-map        | `hasKeys(row.gap_map)`                                                   |
+| 8      | blueprint      | `hasKeys(row.blueprint)`                                                 |
+| 9      | builder        | `!!row.roadmap_version` or `hasKeys(row.roadmap)`                        |
+| 10     | sequencing     | `hasKeys(row.sequencing)` or `!!row.approved_version`                    |
+| 11     | deadlines      | `hasKeys(row.deadlines)` or `!!row.approved_version`                     |
+| 12     | investment     | `hasKeys(row.investment)` or `!!row.approved_version`                    |
+| 13     | preview        | `hasKeys(row.client_preview)` or `!!row.approved_version`                |
+| 14     | delivery       | `hasKeys(row.delivery)`                                                  |
 
-Populate `project.health_score`, `project.progress_pct`, `project.signal_count` from those.
+Then:
 
-### 2. `src/lib/engine-workspace.ts`
-
-Add `signal_count: number` to `WorkspaceProject` type.
-
-### 3. `src/components/engine/WorkspaceHeader.tsx`
-
-Change:
-```tsx
-<Metric label="Signals" value={project.open_decisions.toString()} hint="All sources" tone="blue" />
+```ts
+const stepsActive = WORKSPACE_STEPS.filter(({ key }) => {
+  if (step_states[key]?.state) return true;
+  return artifactHasData(key);
+}).length;
+const computedProgress = Math.round((stepsActive / 14) * 100);
+const progress_pct = storedProgress > 0 ? storedProgress : computedProgress;
 ```
-to:
-```tsx
-<Metric label="Signals" value={project.signal_count.toString()} hint="All sources" tone="blue" />
-```
+
+`WORKSPACE_STEPS` is already exported from `@/lib/engine-workspace` (imported elsewhere in the file — reuse the import).
 
 ### Out of scope
-- No DB schema changes, no migrations.
-- No changes to how `engine_projects.health_score` / `progress_pct` are written by other code paths — this is a read-time fallback so pages render meaningful values today.
+
+- No changes to how `engine_projects.progress_pct` is written elsewhere.
+- No schema, migration, or server-fn business logic changes.
+- Health score fallback stays as-is (already working).
