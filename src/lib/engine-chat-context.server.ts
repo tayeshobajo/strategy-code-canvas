@@ -654,6 +654,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
       id: string; title: string; status: string; sequence_number: number;
       packet_type: string; priority: string;
       payload: { target_builder?: string; blocking_conditions?: string[]; evidence_required?: string[] } | null;
+      rejected_reason: string | null;
     }>;
     if (pkts.length > 0) {
       const by_status: Record<string, number> = {};
