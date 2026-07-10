@@ -512,7 +512,9 @@ function deriveAssessment(facts: AssessedFacts): DerivedAssessment {
 
   // Blockers
   const blockers: string[] = [];
+  if (facts.monitor_load_error) blockers.push("Monitor findings could not be loaded.");
   if (critical.length > 0) blockers.push(`${critical.length} critical monitor event(s) unacknowledged`);
+
   if (rejected.length > 0) blockers.push(`${rejected.length} rejected packet(s) need rework`);
   if (missing_reviews.length > 0)
     blockers.push(`${missing_reviews.length} packet(s) missing QA evidence review`);
