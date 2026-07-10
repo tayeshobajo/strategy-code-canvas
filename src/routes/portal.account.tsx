@@ -22,6 +22,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resendPortalWelcome, updatePortalProfile } from "@/lib/portal.functions";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import {
+  PASSWORD_STRENGTH_LABELS,
+  scorePasswordStrength,
+  validatePassword,
+  type PasswordFieldErrors,
+} from "@/lib/password-validation";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal/account")({
