@@ -211,6 +211,9 @@ export function WorkspaceToolbar({ projectId }: { projectId: string }) {
       <Link to="/engine/projects/$projectId/intake" params={{ projectId }} className={linkFor("intake")}>
         <ClipboardList className="w-3.5 h-3.5" /> Intake Review
       </Link>
+      <Link to="/engine/projects/$projectId/spirit-first" params={{ projectId }} className={linkFor("spirit-first")}>
+        <Compass className="w-3.5 h-3.5" /> Spirit First
+      </Link>
       <Link
         to="/engine/projects/$projectId/signal-room"
         params={{ projectId }}
