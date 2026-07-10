@@ -1,0 +1,1 @@
+DELETE FROM engine_project_qa_evidence_reviews WHERE id='177660d2-9cde-4404-9308-e77dd89238b2' AND title='test';
