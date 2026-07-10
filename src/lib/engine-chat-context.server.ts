@@ -640,6 +640,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     } | null;
     blocked_packets: Array<{ id: string; title: string; blockers: string[] }>;
     packets_missing_evidence: Array<{ id: string; title: string; status: string }>;
+    rejected_packets: Array<{ id: string; title: string; reason: string | null }>;
     accepted_count: number;
     all_accepted_ready_for_delivery: boolean;
   } | null = null;
