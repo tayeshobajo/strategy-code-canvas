@@ -112,7 +112,7 @@ export const Route = createFileRoute("/portal/roadmap")({
   errorComponent: ({ error, reset }) => <FailedToLoad error={error} reset={reset} />,
   component: () => {
     const search = Route.useSearch();
-    if (search.__visual === "demo") {
+    if (import.meta.env.DEV && search.__visual === "demo") {
       return (
         <RoadmapCanvasProvider>
           <DemoRoadmapView />

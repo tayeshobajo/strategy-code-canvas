@@ -38,6 +38,7 @@ export const Route = createFileRoute("/portal")({
       return { user: null };
     }
     if (
+      import.meta.env.DEV &&
       location.pathname === "/portal/roadmap" &&
       /(?:^|[?&])__visual=demo(?:&|$)/.test(location.searchStr ?? "")
     ) {

@@ -368,14 +368,34 @@ export async function processSingleSource(
         client_safe: false,
         metadata: { importance: s.importance ?? null, module: s.module ?? null },
       }));
+    // Deduplication guard: skip insert if the full pipeline already wrote
+    // signals for this source (e.g. a later runIntelligencePipeline call).
+    // We check by source_id so we never double-insert for the same source.
+    // The check is best-effort: if it fails (e.g. unsupported client shape
+    // in a test environment), we fall through and attempt the insert.
+    let signalsWritten = 0;
     if (signalRows.length) {
-      const { error: sigErr } = await sb.from("engine_extracted_signals").insert(signalRows);
-      if (sigErr) throwGeneric(sigErr, "extracted signals insert failed");
+      let alreadyExists = false;
+      try {
+        const { data: existing } = await (sb
+          .from("engine_extracted_signals")
+          .select("id")
+          .eq("source_id", src.id) as any).limit(1);
+        alreadyExists = Array.isArray(existing) && existing.length > 0;
+      } catch {
+        // Best-effort: if the existence check fails, proceed with insert.
+        alreadyExists = false;
+      }
+      if (!alreadyExists) {
+        const { error: sigErr } = await sb.from("engine_extracted_signals").insert(signalRows);
+        if (sigErr) throwGeneric(sigErr, "extracted signals insert failed");
+        signalsWritten = signalRows.length;
+      }
     }
     await writeStage(sb, sourceId, stages, "persist", {
       status: "completed",
       finished_at: now(),
-      note: `${count} change events · ${signalRows.length} categorized signals written`,
+      note: `${count} change events · ${signalsWritten} categorized signals written`,
     });
   } catch (e: any) {
     const msg = e?.message ?? "persist failed";

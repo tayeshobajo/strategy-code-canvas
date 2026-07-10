@@ -359,6 +359,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
     role: "", timeline: "", decision_makers: "", reply_preference: "",
   });
   const [consent, setConsent] = React.useState<boolean>(false);
+  const [authorizesScan, setAuthorizesScan] = React.useState<boolean>(false);
   const [contactErrors, setContactErrors] = React.useState<ContactErrors>({});
   const [status, setStatus] = React.useState<SubmitStatus>("idle");
   const [hydrated, setHydrated] = React.useState(false);
@@ -778,7 +779,7 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
       timeline: contact.timeline.trim(),
       decision_makers: contact.decision_makers.trim(),
       reply_preference: contact.reply_preference,
-      authorizes_scan: false,
+      authorizes_scan: authorizesScan,
       answers: QUESTIONS.map((q) => ({
         key: q.key,
         question: `${q.before}${q.accent}${q.after}`,
@@ -1080,6 +1081,9 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
             <ConsentStep
               consent={consent}
               setConsent={setConsent}
+              authorizesScan={authorizesScan}
+              setAuthorizesScan={setAuthorizesScan}
+              website={contact.website}
               status={status}
               onBack={() => setStep(STEP_REVIEW)}
               onSubmit={onSubmit}
@@ -1933,6 +1937,9 @@ function ReviewStep({
 function ConsentStep({
   consent,
   setConsent,
+  authorizesScan,
+  setAuthorizesScan,
+  website,
   status,
   onBack,
   onSubmit,
@@ -1940,6 +1947,9 @@ function ConsentStep({
 }: {
   consent: boolean;
   setConsent: (v: boolean) => void;
+  authorizesScan: boolean;
+  setAuthorizesScan: (v: boolean) => void;
+  website: string;
   status: SubmitStatus;
   onBack: () => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -1965,6 +1975,20 @@ function ConsentStep({
           I understand this note will be read by a person at Trust Tai so they can decide whether a 30-minute conversation makes sense.
         </span>
       </label>
+
+      {website.trim() && (
+        <label className="mt-4 flex items-start gap-3 text-[14px] leading-[1.7] text-ink/75">
+          <input
+            type="checkbox"
+            checked={authorizesScan}
+            onChange={(e) => setAuthorizesScan(e.target.checked)}
+            className="mt-[5px] h-4 w-4 accent-[#2563FF]"
+          />
+          <span>
+            I authorize Trust Tai to scan my website for additional context before our conversation.
+          </span>
+        </label>
+      )}
 
       <div className="mt-10 flex items-center justify-between">
         <button
