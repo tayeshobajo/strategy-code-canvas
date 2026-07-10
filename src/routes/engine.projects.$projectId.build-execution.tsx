@@ -42,6 +42,7 @@ import {
   type BuildEvidenceType,
 } from "@/lib/engine-build-execution.functions";
 import { OpenClawPanel } from "@/components/engine/OpenClawPanel";
+import { OpenClawQueuePanel } from "@/components/engine/OpenClawQueuePanel";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
@@ -155,6 +156,7 @@ function BuildExecutionPage() {
       <div className="xl:col-span-2 space-y-5">
         <HeaderCard state={state} busy={busy} onGenerate={onGenerate} />
         <OverviewCard state={state} />
+        <OpenClawQueuePanel projectId={projectId} />
         <PacketBoard
           state={state}
           onOpen={(id) => setOpenPacketId(id)}

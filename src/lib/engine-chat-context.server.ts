@@ -796,6 +796,93 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     }
   } catch { /* openclaw tables may not be readable — ignore */ }
 
+  // ---------- openclaw queue summary (v3) ----------
+  let openClawQueueSummary: {
+    total: number;
+    active_status: string | null;
+    active_queue_id: string | null;
+    active_queue_name: string | null;
+    running_item: { packet_id: string; packet_title: string | null; sequence_number: number } | null;
+    next_item: { packet_id: string; packet_title: string | null; sequence_number: number } | null;
+    queued_count: number;
+    failed_count: number;
+    blocked_count: number;
+    packets_waiting_qa_after_queue: Array<{ packet_id: string; packet_title: string | null }>;
+    blockers: string[];
+  } | null = null;
+  try {
+    const { data: queueRows } = await sb
+      .from("engine_project_openclaw_queues")
+      .select("id,name,status,created_at")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    const queues = (queueRows ?? []) as Array<{ id: string; name: string; status: string; created_at: string }>;
+    if (queues.length > 0) {
+      const active = queues.find((q) => ["ready", "running", "paused"].includes(q.status)) ?? queues[0];
+      const { data: itemRows } = await sb
+        .from("engine_project_openclaw_queue_items")
+        .select("id,queue_id,build_packet_id,sequence_number,status,error_message")
+        .eq("queue_id", active.id)
+        .order("sequence_number", { ascending: true });
+      const items = (itemRows ?? []) as Array<{
+        id: string; queue_id: string; build_packet_id: string; sequence_number: number; status: string; error_message: string | null;
+      }>;
+      const packetIds = Array.from(new Set(items.map((i) => i.build_packet_id)));
+      const pktTitles = new Map<string, string>();
+      if (packetIds.length > 0) {
+        const { data: pkts } = await sb
+          .from("engine_project_build_packets")
+          .select("id,title,status")
+          .in("id", packetIds);
+        for (const p of (pkts ?? []) as Array<{ id: string; title: string; status: string }>) {
+          pktTitles.set(p.id, p.title);
+        }
+      }
+      const running = items.find((i) => i.status === "running") ?? null;
+      const next = items.find((i) => i.status === "queued") ?? null;
+      const failed = items.filter((i) => i.status === "failed");
+      const blocked = items.filter((i) => i.status === "blocked");
+      const completedItems = items.filter((i) => i.status === "completed");
+      const waitingQa: Array<{ packet_id: string; packet_title: string | null }> = [];
+      if (completedItems.length > 0) {
+        const cids = completedItems.map((i) => i.build_packet_id);
+        const { data: cpkts } = await sb
+          .from("engine_project_build_packets")
+          .select("id,status")
+          .in("id", cids);
+        for (const p of (cpkts ?? []) as Array<{ id: string; status: string }>) {
+          if (p.status === "qa_required" || p.status === "returned") {
+            waitingQa.push({ packet_id: p.id, packet_title: pktTitles.get(p.id) ?? null });
+          }
+        }
+      }
+      const blockers: string[] = [];
+      if (active.status === "paused") blockers.push(`Queue "${active.name}" is paused.`);
+      for (const f of failed) blockers.push(`Item #${f.sequence_number} failed: ${(f.error_message ?? "unknown").slice(0, 160)}`);
+      for (const b of blocked) blockers.push(`Item #${b.sequence_number} blocked — needs operator review.`);
+      openClawQueueSummary = {
+        total: queues.length,
+        active_status: active.status,
+        active_queue_id: active.id,
+        active_queue_name: active.name,
+        running_item: running
+          ? { packet_id: running.build_packet_id, packet_title: pktTitles.get(running.build_packet_id) ?? null, sequence_number: running.sequence_number }
+          : null,
+        next_item: next
+          ? { packet_id: next.build_packet_id, packet_title: pktTitles.get(next.build_packet_id) ?? null, sequence_number: next.sequence_number }
+          : null,
+        queued_count: items.filter((i) => i.status === "queued").length,
+        failed_count: failed.length,
+        blocked_count: blocked.length,
+        packets_waiting_qa_after_queue: waitingQa.slice(0, 10),
+        blockers: blockers.slice(0, 10),
+      };
+    }
+  } catch { /* openclaw queue tables may not be readable — ignore */ }
+
+
+
 
 
 
@@ -891,6 +978,7 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     implementation_plan: implementationPlanSummary,
     build_execution: buildExecutionSummary,
     openclaw: openClawSummary,
+    openclaw_queue: openClawQueueSummary,
     missing_data: missing,
   };
 

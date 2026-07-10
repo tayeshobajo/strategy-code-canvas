@@ -518,6 +518,17 @@ export const refreshOpenClawRun = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message ?? "Failed to refresh run");
     const updated = upd as OpenClawRunRow;
 
+    if (data.status === "completed" || data.status === "failed" || data.status === "timed_out") {
+      const outcome = data.status === "completed" ? "completed" : "failed";
+      const { _mirrorRunToQueueItem } = await import("@/lib/engine-openclaw-queue.functions");
+      await _mirrorRunToQueueItem(supabaseAdmin, {
+        projectId: data.projectId,
+        runId: run.id,
+        outcome,
+        errorMessage: data.errorMessage ?? null,
+      });
+    }
+
     await insertAudit(sb, {
       projectId: data.projectId,
       userId: staff.userId,
@@ -599,6 +610,15 @@ export const cancelOpenClawRun = createServerFn({ method: "POST" })
       "OpenClaw run cancelled",
       `${staff.email} cancelled OpenClaw run${data.reason ? ` — ${data.reason.slice(0, 200)}` : ""}.`,
     );
+    {
+      const { _mirrorRunToQueueItem } = await import("@/lib/engine-openclaw-queue.functions");
+      await _mirrorRunToQueueItem(supabaseAdmin, {
+        projectId: data.projectId,
+        runId: run.id,
+        outcome: "cancelled",
+        errorMessage: data.reason ?? null,
+      });
+    }
     return { run: upd as OpenClawRunRow };
   });
 
@@ -790,6 +810,14 @@ export const markOpenClawRunReturnedForReview = createServerFn({ method: "POST" 
         "OpenClaw run returned for review",
         `${staff.email} marked OpenClaw run returned for review; packet "${packet.title.slice(0, 80)}" now ${newPacketStatus}.`,
       );
+      {
+        const { _mirrorRunToQueueItem } = await import("@/lib/engine-openclaw-queue.functions");
+        await _mirrorRunToQueueItem(supabaseAdmin, {
+          projectId: data.projectId,
+          runId: run.id,
+          outcome: "returned_for_review",
+        });
+      }
 
       return { run: upd as OpenClawRunRow, packetStatus: newPacketStatus };
     },
