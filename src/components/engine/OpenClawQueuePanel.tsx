@@ -84,12 +84,30 @@ export function OpenClawQueuePanel({ projectId }: { projectId: string }) {
   const [showQueueId, setShowQueueId] = useState<string | null>(null);
 
   const refresh = async () => {
+    // Invalidate every query surface that can be affected by a queue mutation
+    // or by a queue item transition (which flows through v2 openclaw-run
+    // updates and can move packet.status to handed_off / qa_required).
     await Promise.all([
+      // queue list + counters
       qc.invalidateQueries({ queryKey: ["openclaw-queues", projectId] }),
+      // active queue detail (partial-match; also covers ["openclaw-queue", projectId, queueId])
       qc.invalidateQueries({ queryKey: ["openclaw-queue", projectId] }),
-      qc.invalidateQueries({ queryKey: ["engine", "build-execution", projectId] }),
+      // eligible packet list (packet status may have changed)
+      qc.invalidateQueries({ queryKey: ["openclaw-eligible", projectId] }),
+      // v2 openclaw status + runs
+      qc.invalidateQueries({ queryKey: ["openclaw-status", projectId] }),
       qc.invalidateQueries({ queryKey: ["openclaw-runs", projectId] }),
+      // build execution overview + packet board/list + evidence
+      qc.invalidateQueries({ queryKey: ["engine", "build-execution", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "build-packet", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "build-packets", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "build-evidence", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "workspace", projectId] }),
     ]);
+    // Force refetch of the active queues list so counters update in the same
+    // tick as the item board — invalidate alone waits for the next observer
+    // subscription.
+    await qc.refetchQueries({ queryKey: ["openclaw-queues", projectId] });
   };
 
   const startFn = useServerFn(startOpenClawQueue);
