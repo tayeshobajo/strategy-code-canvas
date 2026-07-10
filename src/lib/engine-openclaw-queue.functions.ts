@@ -1070,6 +1070,14 @@ export async function _mirrorRunToQueueItem(
           .update({ status: "completed", completed_at: new Date().toISOString() })
           .eq("id", item.queue_id)
           .in("status", ["running", "paused"]);
+        await insertAuditLog({
+          projectId: args.projectId,
+          actorEmail: "system@openclaw-mirror",
+          userId: null,
+          action: "openclaw_queue_completed",
+          summary: `Queue auto-completed after all items reached terminal states.`,
+          queueId: item.queue_id,
+        });
       }
     }
 
@@ -1084,6 +1092,20 @@ export async function _mirrorRunToQueueItem(
     } catch {
       /* best-effort */
     }
+    await insertAuditLog({
+      projectId: args.projectId,
+      actorEmail: "system@openclaw-mirror",
+      userId: null,
+      action: `openclaw_queue_item_${itemStatus}`,
+      summary: `Item #${item.sequence_number} moved to ${itemStatus} via run outcome ${args.outcome}.`,
+      queueId: item.queue_id,
+      queueItemId: item.id,
+      buildPacketId: item.build_packet_id,
+      openclawRunId: args.runId,
+      success: itemStatus !== "failed",
+      errorCode: itemStatus === "failed" ? "run_failed" : null,
+      errorMessage: itemStatus === "failed" ? (args.errorMessage ?? null) : null,
+    });
   } catch {
     /* mirroring is best-effort */
   }
