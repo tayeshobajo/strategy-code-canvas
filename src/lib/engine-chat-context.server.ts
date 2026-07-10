@@ -720,6 +720,83 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
     }
   } catch { /* build packets table may not be readable — ignore */ }
 
+  // ---------- openclaw runs summary ----------
+  let openClawSummary: {
+    total_runs: number;
+    by_status: Record<string, number>;
+    latest_run: {
+      id: string;
+      packet_id: string;
+      packet_title: string | null;
+      status: string;
+      started_at: string;
+      error_message: string | null;
+    } | null;
+    failed_or_timed_out_count: number;
+    packets_awaiting_qa_after_openclaw: Array<{ packet_id: string; packet_title: string | null; run_status: string }>;
+    artifacts_count: number;
+  } | null = null;
+  try {
+    const { data: runRows } = await sb
+      .from("engine_project_openclaw_runs")
+      .select("id,build_packet_id,status,started_at,error_message")
+      .eq("project_id", projectId)
+      .order("started_at", { ascending: false })
+      .limit(50);
+    const runs = (runRows ?? []) as Array<{
+      id: string; build_packet_id: string; status: string; started_at: string; error_message: string | null;
+    }>;
+    if (runs.length > 0) {
+      const by_status: Record<string, number> = {};
+      for (const r of runs) by_status[r.status] = (by_status[r.status] ?? 0) + 1;
+      const packetIds = Array.from(new Set(runs.map((r) => r.build_packet_id)));
+      const pktMap = new Map<string, string>();
+      if (packetIds.length > 0) {
+        const { data: pkts } = await sb
+          .from("engine_project_build_packets")
+          .select("id,title,status")
+          .in("id", packetIds);
+        for (const p of (pkts ?? []) as Array<{ id: string; title: string; status: string }>) {
+          pktMap.set(p.id, p.title);
+        }
+      }
+      const { count: artCount } = await sb
+        .from("engine_project_openclaw_artifacts")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", projectId);
+      const latest = runs[0];
+      const awaitingQa: Array<{ packet_id: string; packet_title: string | null; run_status: string }> = [];
+      const seen = new Set<string>();
+      for (const r of runs) {
+        if (seen.has(r.build_packet_id)) continue;
+        if (r.status === "returned_for_review" || r.status === "completed") {
+          awaitingQa.push({
+            packet_id: r.build_packet_id,
+            packet_title: pktMap.get(r.build_packet_id) ?? null,
+            run_status: r.status,
+          });
+          seen.add(r.build_packet_id);
+        }
+      }
+      openClawSummary = {
+        total_runs: runs.length,
+        by_status,
+        latest_run: {
+          id: latest.id,
+          packet_id: latest.build_packet_id,
+          packet_title: pktMap.get(latest.build_packet_id) ?? null,
+          status: latest.status,
+          started_at: latest.started_at,
+          error_message: latest.error_message,
+        },
+        failed_or_timed_out_count: (by_status.failed ?? 0) + (by_status.timed_out ?? 0),
+        packets_awaiting_qa_after_openclaw: awaitingQa.slice(0, 10),
+        artifacts_count: artCount ?? 0,
+      };
+    }
+  } catch { /* openclaw tables may not be readable — ignore */ }
+
+
 
 
 
