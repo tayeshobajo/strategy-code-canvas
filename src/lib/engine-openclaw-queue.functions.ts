@@ -977,6 +977,21 @@ export const markQueueItemReviewed = createServerFn({ method: "POST" })
       projectId: data.projectId, userId: staff.userId, email: staff.email,
       eventType: "openclaw_queue_item_reviewed",
     });
+    await insertActivity(
+      sb, data.projectId, "openclaw_queue_item_reviewed",
+      "OpenClaw queue item reviewed",
+      `Item #${item.sequence_number} marked reviewed by ${staff.email} and requeued.`,
+    );
+    await insertAuditLog({
+      projectId: data.projectId,
+      actorEmail: staff.email,
+      userId: staff.userId,
+      action: "openclaw_queue_item_reviewed",
+      summary: `Item #${item.sequence_number} reviewed and requeued.`,
+      queueId: item.queue_id,
+      queueItemId: item.id,
+      buildPacketId: item.build_packet_id,
+    });
     return { item: upd as OpenClawQueueItemRow };
   });
 
