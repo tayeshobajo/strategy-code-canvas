@@ -537,6 +537,166 @@ export const convertChatProposalToSuggestedTask = createServerFn({ method: "POST
     return { proposal: updated as ChatProposalRow, taskId };
   });
 
+// -------------------- approve (dispatch by proposal_type) ----------------
+// Validates the proposal, creates the downstream record (engine_tasks for
+// suggested_task, engine_review_items for review_item / implementation_prompt
+// / qa_checklist / milestone_brief), writes audit rows to engine_activity and
+// engine_project_chat_events, and flips proposal status to 'converted'.
+// Refuses client_clarification (must go through an operator-authored client
+// message) and refuses self-approval.
+export const approveChatProposal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ id: uuid, projectId: uuid, note: z.string().trim().max(2000).optional() }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{
+    proposal: ChatProposalRow;
+    downstream: { table: "engine_tasks" | "engine_review_items"; id: string };
+  }> => {
+    const { email, isAdmin } = await assertStaff(
+      context as unknown as Parameters<typeof assertStaff>[0],
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = (context as any).supabase;
+    const userId = (context as { userId?: string }).userId ?? null;
+
+    const existing = await loadProposal(sb, data.id);
+    if (existing.project_id !== data.projectId) throw new Error("Project scope mismatch");
+    if (existing.status === "converted") throw new Error("Proposal already approved");
+    if (existing.status === "dismissed") throw new Error("Cannot approve a dismissed proposal");
+    if (existing.proposal_type === "client_clarification") {
+      throw new Error(
+        "Client clarifications cannot be approved from chat. An operator must send the client message manually.",
+      );
+    }
+    if (existing.created_by && userId && existing.created_by === userId) {
+      throw new Error("You cannot approve a proposal you created.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let downstream: { table: "engine_tasks" | "engine_review_items"; id: string };
+
+    if (existing.proposal_type === "suggested_task") {
+      if (!isAdmin) {
+        throw new Error(
+          "Only admins can approve suggested tasks. Ask an admin to approve this proposal.",
+        );
+      }
+      const payload = existing.payload as {
+        milestone_id?: string;
+        priority?: string;
+        acceptance_criteria?: unknown[];
+        purpose?: string;
+        qa_checklist?: unknown[];
+        risks?: unknown[];
+        dependency_notes?: string;
+        expected_artifact?: string;
+      };
+      const ac = Array.isArray(payload.acceptance_criteria) ? payload.acceptance_criteria : [];
+      const description = [
+        payload.purpose ? `Purpose: ${payload.purpose}` : null,
+        payload.dependency_notes ? `Dependencies: ${payload.dependency_notes}` : null,
+        payload.expected_artifact ? `Expected artifact: ${payload.expected_artifact}` : null,
+        Array.isArray(payload.qa_checklist) && payload.qa_checklist.length
+          ? `QA:\n- ${payload.qa_checklist.map((x) => String(x)).join("\n- ")}`
+          : null,
+        Array.isArray(payload.risks) && payload.risks.length
+          ? `Risks:\n- ${payload.risks.map((x) => String(x)).join("\n- ")}`
+          : null,
+        data.note ? `Approval note (${email}): ${data.note}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const { data: taskRow, error: tErr } = await sb
+        .from("engine_tasks")
+        .insert({
+          project_id: data.projectId,
+          milestone_id: payload.milestone_id ?? null,
+          name: existing.title.slice(0, 300),
+          description: description || existing.summary || null,
+          source: "project_chat",
+          priority: (payload.priority as string | undefined) ?? "P2",
+          status: "suggested",
+          acceptance_criteria: ac,
+          created_by: "chat_proposal_approved",
+        })
+        .select("id")
+        .single();
+      if (tErr) throw new Error(tErr.message ?? "Failed to create task on approval");
+      downstream = { table: "engine_tasks", id: (taskRow as { id: string }).id };
+    } else {
+      const priorRef = (existing.converted_ref as { table?: string; id?: string } | null) ?? null;
+      if (priorRef?.table === "engine_review_items" && priorRef.id) {
+        const { data: updRow, error: updErr } = await sb
+          .from("engine_review_items")
+          .update({
+            status: "approved",
+            reviewed_by: email,
+            reviewed_at: new Date().toISOString(),
+            resolution_note: data.note ?? null,
+          })
+          .eq("id", priorRef.id)
+          .select("id")
+          .single();
+        if (updErr) throw new Error(updErr.message ?? "Failed to approve review item");
+        downstream = { table: "engine_review_items", id: (updRow as { id: string }).id };
+      } else {
+        const { data: proj } = await sb
+          .from("engine_projects")
+          .select("name")
+          .eq("id", data.projectId)
+          .maybeSingle();
+        const projectLabel = (proj as { name?: string } | null)?.name ?? data.projectId;
+        const { data: revRow, error: rErr } = await sb
+          .from("engine_review_items")
+          .insert({
+            project_id: data.projectId,
+            project: projectLabel,
+            item_type: existing.proposal_type,
+            title: existing.title.slice(0, 300),
+            impact: "medium",
+            source: "project_chat",
+            requested_by: email,
+            reviewed_by: email,
+            reviewed_at: new Date().toISOString(),
+            resolution_note: data.note ?? null,
+            status: "approved",
+          })
+          .select("id")
+          .single();
+        if (rErr) throw new Error(rErr.message ?? "Failed to create approved review item");
+        downstream = { table: "engine_review_items", id: (revRow as { id: string }).id };
+      }
+    }
+
+    const { data: updated, error: uErr } = await supabaseAdmin
+      .from("engine_project_chat_proposals")
+      .update({ status: "converted", converted_ref: downstream })
+      .eq("id", data.id)
+      .select("*")
+      .single();
+    if (uErr) throw new Error(uErr.message ?? "Failed to update proposal after approval");
+
+    await insertAuditEvent(sb, {
+      projectId: data.projectId,
+      userId,
+      email,
+      threadId: existing.thread_id,
+      messageId: existing.source_message_id,
+      eventType: "proposal_approved",
+    });
+    await insertActivity(
+      sb,
+      data.projectId,
+      "chat_proposal_approved",
+      `Chat proposal approved: ${existing.proposal_type}`,
+      `${email} approved a ${existing.proposal_type} proposal ("${existing.title.slice(0, 80)}") → ${downstream.table}:${downstream.id.slice(0, 8)}`,
+    );
+
+    return { proposal: updated as ChatProposalRow, downstream };
+  });
+
 // -------------------- helper for server-side proposal persistence --------
 // Used by askProjectIntelligence to persist AI-emitted drafts server-side.
 export async function persistProposalsFromAssistant(
