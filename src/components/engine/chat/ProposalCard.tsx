@@ -158,6 +158,27 @@ export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, c
     onSettled: () => setConfirmAction(null),
   });
 
+  const approveFn = useServerFn(approveChatProposal);
+  const approveMut = useMutation({
+    mutationFn: async () => {
+      const persisted = await ensurePersisted();
+      const res = await approveFn({
+        data: { projectId, id: persisted.id },
+      });
+      return res as { proposal: ChatProposalRow; downstream: { table: string; id: string } };
+    },
+    onSuccess: (res) => {
+      setErrMsg(null);
+      setOkMsg(`Approved → ${res.downstream.table}`);
+      setRow(res.proposal);
+      qc.invalidateQueries({ queryKey: ["engine", "chat", "proposals", projectId] });
+      qc.invalidateQueries({ queryKey: ["engine", "spine", projectId] });
+      qc.invalidateQueries({ queryKey: ["engine", "review-queue"] });
+      window.setTimeout(() => setOkMsg(null), 2500);
+    },
+    onError: (e: unknown) => setErrMsg((e as Error).message),
+  });
+
   function copyContent() {
     const payload = draft.payload as Record<string, unknown>;
     const promptText =
