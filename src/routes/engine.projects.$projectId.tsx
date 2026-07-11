@@ -72,7 +72,7 @@ function WorkspaceLayout() {
           clientName={workspace.project.client_company}
           stepLabel={currentStep}
         />
-        <WorkspaceToolbar projectId={projectId} />
+        <WorkspaceToolbar projectId={projectId} project={workspace.project} />
       </div>
       <ProjectHeaderStrip project={workspace.project} />
       <WorkspaceStepper
