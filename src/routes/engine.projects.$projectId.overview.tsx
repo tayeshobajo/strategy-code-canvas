@@ -2,10 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { SectionCard, EmptyState, formatDate, formatCents } from "@/components/engine/primitives";
+import { SectionCard, EmptyState, formatDate } from "@/components/engine/primitives";
 import { AuditTrailCard } from "@/components/engine/AuditTrail";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { BrainCircuit, Layers, Eye, PackageCheck, AlertCircle, Info } from "lucide-react";
+import { BrainCircuit, Layers, Eye, PackageCheck, Info, Sparkles } from "lucide-react";
 import { getVersionCompareData } from "@/lib/engine-execution.functions";
 import { getNextBestAction } from "@/lib/engine.functions";
 
@@ -23,10 +23,8 @@ function ProjectOverview() {
     queryFn: () => compareFn({ data: { projectId } }),
     staleTime: 30_000,
   });
-  const modulesNeedingReview: { key: string; label: string; count: number }[] =
-    ((compareQ.data as { modules?: { key: string; label: string; changes: unknown[] }[] } | undefined)?.modules ?? [])
-      .filter((m) => m.changes.length > 0)
-      .map((m) => ({ key: m.key, label: m.label, count: m.changes.length }));
+  // compareQ is intentionally kept alive for future review-aware UI; compareQ.isLoading is unused.
+  void compareQ;
 
   const nbaFn = useServerFn(getNextBestAction);
   const nbaQ = useQuery({
@@ -40,17 +38,21 @@ function ProjectOverview() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Stat label="Roadmap Draft" value={p.roadmap_version ?? "—"} />
-            <Stat label="Approved" value={p.approved_version ?? "—"} />
-            <Stat label="Agent" value={<span className="capitalize">{p.agent_status}</span>} />
-            <Stat
-              label="Monthly Spend"
-              value={`${formatCents(p.agent_spend_month_cents)} / ${formatCents(p.agent_budget_monthly_cents)}`}
-            />
-          </div>
+          <SectionCard title="Project Summary">
+            <p className="text-sm text-ink/60 italic">
+              This summary updates as the project evolves — covering the current objective, stage, recent accomplishments, current blockers, and pending decisions.
+            </p>
+          </SectionCard>
 
-          <SectionCard title="Next best action">
+          <SectionCard
+            title={
+              <span className="inline-flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-royal" />
+                Next best action
+              </span>
+            }
+            className="border-l-4 border-royal"
+          >
             {nbaQ.isLoading ? (
               <div className="text-sm text-ink/50">Computing…</div>
             ) : nbaQ.data ? (
@@ -90,48 +92,7 @@ function ProjectOverview() {
             )}
           </SectionCard>
 
-          <SectionCard
-            title="Modules needing review"
-            right={
-              modulesNeedingReview.length > 0 ? (
-                <Link
-                  to="/engine/projects/$projectId/versions/compare"
-                  params={{ projectId }}
-                  className="text-royal hover:underline"
-                >
-                  Open version compare →
-                </Link>
-              ) : null
-            }
-          >
-            {compareQ.isLoading ? (
-              <div className="text-sm text-ink/50">Loading…</div>
-            ) : modulesNeedingReview.length === 0 ? (
-              <div className="text-sm text-ink/60">
-                {p.approved_version
-                  ? "All modules are in sync with the approved roadmap."
-                  : "No roadmap version yet — approve a version to start tracking module sync."}
-              </div>
-            ) : (
-              <ul className="flex flex-wrap gap-2">
-                {modulesNeedingReview.map((m) => (
-                  <li key={m.key}>
-                    <Link
-                      to="/engine/projects/$projectId/versions/compare"
-                      params={{ projectId }}
-                      className="inline-flex items-center gap-1.5 text-xs rounded-full border border-[#f1e3b9] bg-[#fbf3e0] text-[#8a6713] px-2.5 py-1 hover:border-royal/50"
-                    >
-                      <AlertCircle className="w-3 h-3" />
-                      {m.label}
-                      <span className="font-mono text-[10px] bg-white/70 rounded px-1">{m.count}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </SectionCard>
-
-          <SectionCard title="Recent activity">
+          <SectionCard title="Recent Activity">
             {activity.length === 0 ? (
               <EmptyState title="No activity yet" />
             ) : (
@@ -149,14 +110,13 @@ function ProjectOverview() {
             )}
           </SectionCard>
 
-          <SectionCard title="Audit trail" right={<span className="text-[11px] text-ink/40">Formal audit events only</span>}>
+          <SectionCard title="Audit Trail" right={<span className="text-[11px] text-ink/40">Formal audit events only</span>}>
             <AuditTrailCard projectId={projectId} limit={50} compact />
           </SectionCard>
         </div>
 
-
         <div className="space-y-6">
-          <SectionCard title="Critical dates">
+          <SectionCard title="Critical Dates">
             {dates.length === 0 ? (
               <EmptyState title="No dates set" />
             ) : (
@@ -218,15 +178,6 @@ function ProjectOverview() {
           </SectionCard>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">{label}</div>
-      <div className="text-ink font-display text-xl mt-1">{value}</div>
     </div>
   );
 }
