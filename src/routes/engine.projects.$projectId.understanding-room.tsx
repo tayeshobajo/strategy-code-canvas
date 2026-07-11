@@ -11,7 +11,7 @@ import type {
   UnderstandingRoom,
   UnderstandingState,
 } from "@/lib/engine.functions";
-import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CornerDownRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
@@ -125,6 +125,11 @@ function AreaCard({ area }: { area: UnderstandingArea }) {
           {st.label}
         </span>
       </div>
+      {area.key && (
+        <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-ink/40">
+          {area.key.replace(/_/g, " ")}
+        </div>
+      )}
       <p className="text-xs text-ink/70 mt-2 line-clamp-3 flex-1">
         {area.summary}
       </p>
@@ -165,6 +170,29 @@ function AreaCard({ area }: { area: UnderstandingArea }) {
               ) : null}
               <div className="text-ink/40 mt-0.5">
                 {s.category} · {s.confidence}%
+              </div>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => window.alert(`Confirmed: ${s.label}`)}
+                  className="rounded px-2 py-0.5 text-[10px] font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.alert(`Correction queued for: ${s.label}`)}
+                  className="rounded px-2 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                >
+                  Correct
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.alert(`Assign action queued for: ${s.label}`)}
+                  className="rounded px-2 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                >
+                  Assign
+                </button>
               </div>
             </li>
           ))}
@@ -291,13 +319,14 @@ function OpenQuestionsPanel({ items }: { items: UnderstandingOpenQuestion[] }) {
           <div className="mt-2 flex items-center gap-2">
             <button
               type="button"
-              className="text-[11px] rounded-md border border-border px-2 py-1 text-ink/80 hover:border-royal/50 hover:text-ink"
+              className="inline-flex items-center gap-1.5 text-[11px] rounded-md border border-[#3E68B2]/40 px-2.5 py-1 text-[#3E68B2] hover:bg-[#3E68B2]/5"
             >
+              <CornerDownRight className="w-3 h-3" />
               {q.suggested_action}
             </button>
             <button
               type="button"
-              className="text-[11px] text-ink/50 hover:text-ink"
+              className="text-[11px] text-ink/40 hover:text-ink/70 px-2 py-1 rounded hover:bg-[#E8E1D6]/40"
             >
               Defer
             </button>
@@ -354,6 +383,7 @@ function UnderstandingRoomPage() {
     queryFn: () => fn({ data: { projectId } }),
     staleTime: 30_000,
   });
+  const [areaFilter, setAreaFilter] = useState<UnderstandingState | "all">("all");
 
   return (
     <div className="space-y-6">
@@ -387,8 +417,47 @@ function UnderstandingRoomPage() {
         <>
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <div className="xl:col-span-2 min-w-0 space-y-6">
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setAreaFilter("all")}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium border transition-colors",
+                    areaFilter === "all"
+                      ? "bg-[#0A0F1F] text-white border-[#0A0F1F]"
+                      : "bg-white text-[#667085] border-[#E8E1D6] hover:border-[#3E68B2]"
+                  )}
+                >
+                  All
+                </button>
+                {STATE_ORDER.map((s) => {
+                  const st = STATE_STYLES[s];
+                  const count = data.areas.filter((a) => a.state === s).length;
+                  if (count === 0) return null;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setAreaFilter(s)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-medium border transition-colors inline-flex items-center gap-1.5",
+                        areaFilter === s
+                          ? "bg-[#0A0F1F] text-white border-[#0A0F1F]"
+                          : "bg-white text-[#667085] border-[#E8E1D6] hover:border-[#3E68B2]"
+                      )}
+                    >
+                      <span className={cn("inline-block w-1.5 h-1.5 rounded-full", st.dot)} />
+                      {st.label}
+                      <span className="ml-0.5 opacity-60">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {data.areas.map((a) => (
+                {(areaFilter === "all"
+                  ? data.areas
+                  : data.areas.filter((a) => a.state === areaFilter)
+                ).map((a) => (
                   <AreaCard key={a.key} area={a} />
                 ))}
               </div>
