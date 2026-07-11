@@ -112,6 +112,77 @@ export type CommandCenterPayload = {
   review_queue: EngineProjectRow[];
   delivery_queue: EngineProjectRow[];
   execution_queue: EngineProjectRow[];
+  stage_breakdown: Array<{
+    stage: string;
+    count: number;
+    projects: Array<{
+      id: string;
+      name: string;
+      client_company: string;
+      status: EngineProjectStatus;
+    }>;
+  }>;
+  health_breakdown: {
+    on_track: number;
+    needs_attention: number;
+    at_risk: number;
+    blocked: number;
+    planning: number;
+  };
+  sparklines: {
+    active_projects: number[];
+    needs_attention: number[];
+    awaiting_approval: number[];
+    at_risk: number[];
+    delivery_this_month: number[];
+  };
+  next_best_actions_v2: Array<{
+    project_id: string;
+    project_name: string;
+    client_company: string;
+    action: string;
+    reason: string;
+    due_on: string | null;
+    priority: "high" | "medium" | "low";
+    action_type:
+      "review" | "send_reminder" | "review_evidence" | "open_intake" | "view_risk" | "advance";
+  }>;
+  approval_breakdown: {
+    total: number;
+    by_type: Array<{ type: string; count: number }>;
+    items: Array<{
+      id: string;
+      title: string;
+      item_type: string;
+      impact: string;
+      project_name: string;
+      created_at: string;
+    }>;
+  };
+  client_action_counts: {
+    decisions_needed: number;
+    info_requests: number;
+    feedback_pending: number;
+  };
+  agent_ops: {
+    runs_in_progress: number;
+    failures_24h: number;
+    needs_attention: number;
+  };
+  delivery_forecast: Array<{
+    week: string;
+    count: number;
+  }>;
+  recent_activity: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    body: string | null;
+    severity: string;
+    created_at: string;
+    project_id: string | null;
+    project_name: string | null;
+  }>;
 };
 
 type ProjectDbRow = {
@@ -195,6 +266,39 @@ function mapRow(
       : "not_published",
     client_portal_project_id: r.client_portal_project_id,
   };
+}
+
+const COMMAND_CENTER_STAGE_ORDER = [
+  "Discovery",
+  "Diagnosis",
+  "Roadmap",
+  "Delivery",
+  "Execution",
+] as const;
+
+const COMMAND_CENTER_STATUS_SORT_WEIGHT: Partial<Record<EngineProjectStatus, number>> = {
+  blocked: 5,
+  needs_review: 4,
+  active: 3,
+  in_execution: 2,
+  draft: 1,
+};
+
+function dueSortValue(project: EngineProjectRow) {
+  return project.next_critical_date?.due_on ?? "9999-12-31";
+}
+
+function isDueWithinDays(iso: string | null | undefined, days: number, now: number) {
+  if (!iso) return false;
+  const delta = new Date(iso).getTime() - now;
+  if (Number.isNaN(delta)) return false;
+  return delta >= 0 && delta <= days * 24 * 3600 * 1000;
+}
+
+function makeSyntheticSparkline(currentValue: number) {
+  return Array.from({ length: 7 }, (_, dayIndex) =>
+    Math.max(0, currentValue + Math.round(Math.sin(dayIndex) * currentValue * 0.15)),
+  );
 }
 
 async function fetchProjects(supabase: {
@@ -329,6 +433,15 @@ export const getCommandCenter = createServerFn({ method: "GET" })
 
     const now = Date.now();
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const nextMonthStart = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth() + 1,
+      1,
+    ).toISOString();
+    const dayAgo = new Date(now - 24 * 3600 * 1000).toISOString();
+    const twoHoursAgo = new Date(now - 2 * 3600 * 1000).toISOString();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
 
     // Signals this month
     const { count: signalCount } = await (
@@ -476,6 +589,213 @@ export const getCommandCenter = createServerFn({ method: "GET" })
       .slice(0, 6)
       .map(({ _rank: _r, ...rest }) => rest);
 
+    const stage_breakdown = COMMAND_CENTER_STAGE_ORDER.map((stage) => {
+      const stageProjects = projects
+        .filter((project) => project.current_phase === stage)
+        .sort((a, b) => {
+          const dueCompare = dueSortValue(a).localeCompare(dueSortValue(b));
+          if (dueCompare !== 0) return dueCompare;
+          return (
+            (COMMAND_CENTER_STATUS_SORT_WEIGHT[b.status] ?? 0) -
+            (COMMAND_CENTER_STATUS_SORT_WEIGHT[a.status] ?? 0)
+          );
+        });
+
+      return {
+        stage,
+        count: stageProjects.length,
+        projects: stageProjects.slice(0, 4).map((project) => ({
+          id: project.id,
+          name: project.name,
+          client_company: project.client_company,
+          status: project.status,
+        })),
+      };
+    });
+
+    const health_breakdown = projects.reduce(
+      (acc, project) => {
+        const statusValue = project.status as string;
+        const atRisk =
+          isDueWithinDays(project.next_critical_date?.due_on, 7, now) &&
+          statusValue !== "completed";
+        if (project.status === "blocked") acc.blocked += 1;
+        if (project.status === "needs_review") acc.needs_attention += 1;
+        if (atRisk) acc.at_risk += 1;
+        if (project.status === "draft") acc.planning += 1;
+        if (
+          ["active", "in_execution", "approved"].includes(project.status) &&
+          !atRisk &&
+          project.status !== "blocked"
+        ) {
+          acc.on_track += 1;
+        }
+        return acc;
+      },
+      {
+        on_track: 0,
+        needs_attention: 0,
+        at_risk: 0,
+        blocked: 0,
+        planning: 0,
+      },
+    );
+
+    const { data: approvalRows } = await sb
+      .from("engine_review_items")
+      .select("id,title,item_type,impact,created_at,project_id, engine_projects(name)")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    const approvalItemsRaw = (approvalRows ?? []) as Array<{
+      id: string;
+      title: string | null;
+      item_type: string | null;
+      impact: string | null;
+      created_at: string;
+      project_id: string | null;
+      engine_projects: { name: string } | null;
+    }>;
+    const approval_breakdown = {
+      total: approvalItemsRaw.length,
+      by_type: Array.from(
+        approvalItemsRaw.reduce((map, item) => {
+          const type = item.item_type?.trim() || "other";
+          map.set(type, (map.get(type) ?? 0) + 1);
+          return map;
+        }, new Map<string, number>()),
+      )
+        .map(([type, count]) => ({ type, count }))
+        .sort((a, b) => b.count - a.count),
+      items: approvalItemsRaw.slice(0, 5).map((item) => ({
+        id: item.id,
+        title: item.title?.trim() || "Untitled review item",
+        item_type: item.item_type?.trim() || "other",
+        impact: item.impact?.trim() || "Standard review item",
+        project_name: item.engine_projects?.name ?? "—",
+        created_at: item.created_at,
+      })),
+    };
+
+    const { data: pendingClientTasks } = await sb
+      .from("engine_tasks")
+      .select("id")
+      .eq("status", "pending")
+      .is("owner_email", null)
+      .limit(50);
+
+    const client_action_counts = {
+      decisions_needed: projects.filter((project) => project.open_decisions > 0).length,
+      info_requests: ((pendingClientTasks ?? []) as Array<{ id: string }>).length,
+      feedback_pending: projects.filter((project) => project.status === "delivered").length,
+    };
+
+    const { data: agentRunRows } = await sb
+      .from("engine_project_openclaw_runs")
+      .select("status,created_at");
+    const agent_ops = (
+      (agentRunRows ?? []) as Array<{
+        status: string;
+        created_at: string;
+      }>
+    ).reduce(
+      (acc, run) => {
+        if (run.status === "running") acc.runs_in_progress += 1;
+        if (run.status === "failed" && run.created_at >= dayAgo) acc.failures_24h += 1;
+        if (run.status === "failed" || (run.status === "running" && run.created_at < twoHoursAgo)) {
+          acc.needs_attention += 1;
+        }
+        return acc;
+      },
+      { runs_in_progress: 0, failures_24h: 0, needs_attention: 0 },
+    );
+
+    const { data: forecastRows } = await sb
+      .from("engine_project_dates")
+      .select("due_on")
+      .gte("due_on", monthStart)
+      .lt("due_on", nextMonthStart)
+      .order("due_on", { ascending: true });
+    const deliveryForecastMap = new Map<string, number>(
+      ["W1", "W2", "W3", "W4", "W5"].map((week) => [week, 0]),
+    );
+    for (const row of (forecastRows ?? []) as Array<{ due_on: string }>) {
+      const date = new Date(row.due_on);
+      if (Number.isNaN(date.getTime())) continue;
+      const week = `W${Math.min(5, Math.floor((date.getDate() - 1) / 7) + 1)}`;
+      deliveryForecastMap.set(week, (deliveryForecastMap.get(week) ?? 0) + 1);
+    }
+    const delivery_forecast = Array.from(deliveryForecastMap, ([week, count]) => ({
+      week,
+      count,
+    }));
+
+    const { data: recentActivityRows } = await sb
+      .from("engine_activity")
+      .select("id,kind,title,body,severity,created_at,project_id, engine_projects(name)")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    const recent_activity = (
+      (recentActivityRows ?? []) as Array<{
+        id: string;
+        kind: string | null;
+        title: string;
+        body: string | null;
+        severity: string | null;
+        created_at: string;
+        project_id: string | null;
+        engine_projects: { name: string } | null;
+      }>
+    ).map((activity) => ({
+      id: activity.id,
+      kind: activity.kind ?? "activity",
+      title: activity.title,
+      body: activity.body,
+      severity: activity.severity ?? "info",
+      created_at: activity.created_at,
+      project_id: activity.project_id,
+      project_name: activity.engine_projects?.name ?? null,
+    }));
+
+    const sparklines = {
+      active_projects: makeSyntheticSparkline(metrics.active_projects),
+      needs_attention: makeSyntheticSparkline(metrics.needs_review),
+      awaiting_approval: makeSyntheticSparkline(approval_breakdown.total),
+      at_risk: makeSyntheticSparkline(health_breakdown.at_risk),
+      delivery_this_month: makeSyntheticSparkline(metrics.deliveries_pending),
+    };
+
+    const next_best_actions_v2 = nextBestActions.map((action) => {
+      const project = projects.find((candidate) => candidate.id === action.project_id);
+      const nearDeadline = isDueWithinDays(action.due_on, 7, now);
+      const priority: "high" | "medium" | "low" =
+        project?.status === "blocked" || project?.status === "needs_review"
+          ? "high"
+          : project?.status === "active" && nearDeadline
+            ? "medium"
+            : "low";
+
+      const action_type:
+        "review" | "send_reminder" | "review_evidence" | "open_intake" | "view_risk" | "advance" =
+        project?.status === "blocked"
+          ? "view_risk"
+          : project?.status === "needs_review"
+            ? "review"
+            : project?.status === "approved"
+              ? "send_reminder"
+              : project?.status === "delivered"
+                ? "review_evidence"
+                : project?.status === "draft"
+                  ? "open_intake"
+                  : "advance";
+
+      return {
+        ...action,
+        priority,
+        action_type,
+      };
+    });
+
     return {
       metrics,
       priority_queue: priority,
@@ -486,6 +806,15 @@ export const getCommandCenter = createServerFn({ method: "GET" })
       review_queue: projects.filter((p) => p.status === "needs_review").slice(0, 5),
       delivery_queue: projects.filter((p) => p.status === "delivered").slice(0, 5),
       execution_queue: projects.filter((p) => p.status === "in_execution").slice(0, 5),
+      stage_breakdown,
+      health_breakdown,
+      sparklines,
+      next_best_actions_v2,
+      approval_breakdown,
+      client_action_counts,
+      agent_ops,
+      delivery_forecast,
+      recent_activity,
     };
   });
 
