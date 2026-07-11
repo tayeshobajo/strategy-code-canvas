@@ -1,7 +1,7 @@
 # BUILD_STATE.md — Autonomous Build Loop Tracker
 
 > Captain reads and updates this file every build cycle.
-> Last updated: 2026-07-11
+> Last updated: 2026-07-11 18:42 CDT
 
 ---
 
@@ -11,7 +11,7 @@
 |---|---|---|---|---|
 | 1 | 2C | Proposed Change Flow — wire ProposalCard into chat route, add approve/reject mutations | ✅ COMPLETE | phase-2c-output.md |
 | 2 | 6C | Client Acknowledgment Flow — client formally acks roadmap before phases begin | ✅ COMPLETE | phase-6c-output.md |
-| 3 | 13B | Portal as downstream-only — enforce approval boundary at data layer | 🟡 IN PROGRESS | phase-13b-output.md |
+| 3 | 13B | Portal as downstream-only — enforce approval boundary at data layer | ✅ COMPLETE | phase-13b-output.md |
 | 4 | 4B | Spine Governance — version history, diff view, change audit trail | 🟠 BLOCKED | phase-4b-output.md |
 | 5 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | 🟡 IN PROGRESS | phase-6b-output.md |
 | 6 | 9B | Evidence Requirements Enforcement — block milestone completion without evidence | 🔴 NOT STARTED | phase-9b-output.md |
@@ -22,6 +22,16 @@
 | 11 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 🔴 NOT STARTED | phase-7b-output.md |
 | 12 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | 🔴 NOT STARTED | phase-10c-output.md |
 | 13 | 9C | AI Self-Assessment Prevention — DB constraint (MIGRATION ONLY — write to PENDING_MIGRATIONS.md) | 🔴 NOT STARTED | phase-9c-output.md |
+
+---
+
+## ⚠️ LOOP HALTED — CREDITS EXHAUSTED
+
+**Halted at:** 2026-07-11 18:42 CDT  
+**Reason:** Lovable workspace returned 402 — "Workspace out of credits"  
+**Phase attempted:** 6B (Delivery Completeness Gate)  
+**Action required:** Tai must top up Lovable credits before the next cycle can execute.  
+**Resume:** Once credits are restored, re-run the build cron. It will pick up Phase 6B.
 
 ---
 
@@ -51,6 +61,7 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 |---|---|---|---|
 | 2C | Proposed Change Flow — ProposalCard wired, approveChatProposal built | 2026-07-11 | approveChatProposal server fn + ChatMessageProposals committed |
 | 6C | Client Acknowledgment Flow — server fn + portal gate component | 2026-07-11 | Version-locked acknowledgment stored in engine_activity, execution gate updated, engine_projects migration queued for Tai review. |
+| 13B | Portal as downstream-only — enforce approval boundary at data layer | 2026-07-11 | published_at IS NOT NULL enforced in portal queries. /portal/roadmap loader redirect added. |
 
 ---
 
@@ -65,3 +76,4 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 2026-07-11 17:22 CDT | 6C | COMPLETE | Client Acknowledgment Flow — server fn + UI gate component committed |
 | 2026-07-11 17:23 CDT | 13B | Starting | Portal as downstream-only — enforce approval boundary at data layer. |
 | 2026-07-11 18:12 CDT | 4B | BLOCKED | No `engine_spine_versions` table exists. Approved spine edits still write directly to `engine_projects`. Stubbed Spine Version History panel, wrote pending migration, and moved 6B into progress. |
+| 2026-07-11 18:42 CDT | 6B | HALTED — CREDITS OUT | Lovable workspace returned 402. Phase 6B build prompt ready but could not be sent. Top up credits to resume. |
