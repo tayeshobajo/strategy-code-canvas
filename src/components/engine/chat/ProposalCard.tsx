@@ -24,7 +24,17 @@ import {
   type ProposalDraft,
   type ProposalStatus,
   type ProposalType,
+  approveChatProposal,
 } from "@/lib/engine-chat-proposals.functions";
+import type {
+  ChatCapabilities,
+  ChatProposalRow,
+  ProposalDraft,
+  ProposalStatus,
+  ProposalType,
+} from "@/lib/engine-chat-proposals.functions";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const __types = { createChatProposal } as const;
 import {
   executeChatAction,
   type ExecuteChatActionResult,
