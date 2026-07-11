@@ -1440,5 +1440,208 @@ export const getProjectSpine = createServerFn({ method: "GET" })
   });
 
 
+// ─────────── Understanding Room ─────────────────────────────────
+export type UnderstandingState =
+  | "known"
+  | "inferred"
+  | "needs_confirmation"
+  | "missing"
+  | "contradictory"
+  | "assumed"
+  | "approved";
 
+export type UnderstandingSignal = {
+  id: string;
+  label: string;
+  detail: string | null;
+  confidence: number;
+  category: string;
+  created_at: string;
+};
+
+export type UnderstandingArea = {
+  key: string;
+  name: string;
+  state: UnderstandingState;
+  confidence: number;
+  summary: string;
+  signals: UnderstandingSignal[];
+  last_updated: string | null;
+};
+
+export type UnderstandingOpenQuestion = {
+  id: string;
+  question: string;
+  type: "client" | "research" | "internal" | "assumption";
+  suggested_action: string;
+};
+
+export type UnderstandingRecommendation = {
+  id: string;
+  title: string;
+  reason: string;
+  cta: string;
+  href?: string | null;
+};
+
+export type UnderstandingRoom = {
+  areas: UnderstandingArea[];
+  summary: {
+    overall_confidence: number;
+    total_areas: number;
+    by_state: Record<UnderstandingState, number>;
+    by_confidence: { high: number; medium: number; low: number };
+    open_questions_count: number;
+  };
+  open_questions: UnderstandingOpenQuestion[];
+  recommendations: UnderstandingRecommendation[];
+};
+
+const AREA_DEFS: Array<{ key: string; name: string; categories: string[] }> = [
+  { key: "business_model", name: "Business Model", categories: ["business_model"] },
+  { key: "audience", name: "Audience & Customers", categories: ["decision_maker", "client_language"] },
+  { key: "value_prop", name: "Value Proposition", categories: ["opportunity", "hidden_asset"] },
+  { key: "revenue_model", name: "Revenue Model", categories: ["business_model", "investment_signal"] },
+  { key: "current_challenges", name: "Current Challenges", categories: ["pain"] },
+  { key: "existing_systems", name: "Existing Systems", categories: ["current_system"] },
+  { key: "digital_presence", name: "Digital Presence", categories: ["current_system"] },
+  { key: "desired_outcomes", name: "Desired Outcomes", categories: ["goal"] },
+  { key: "success_metrics", name: "Success Metrics", categories: ["goal", "milestone_candidate"] },
+  { key: "assets_strengths", name: "Assets & Strengths", categories: ["hidden_asset"] },
+  { key: "constraints", name: "Constraints", categories: ["constraint", "investment_signal", "deadline"] },
+  { key: "risks", name: "Risks", categories: ["risk"] },
+];
+
+export const getUnderstandingRoom = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ projectId: databaseUuid }).parse(raw))
+  .handler(async ({ context, data }): Promise<UnderstandingRoom> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+
+    const { data: sigs } = await sb
+      .from("engine_extracted_signals")
+      .select("id,label,detail,confidence,category,created_at")
+      .eq("project_id", data.projectId)
+      .order("created_at", { ascending: false });
+
+    const signals = (sigs ?? []) as UnderstandingSignal[];
+
+    const { data: openQs } = await sb
+      .from("engine_extracted_signals")
+      .select("id,label,detail,created_at")
+      .eq("project_id", data.projectId)
+      .eq("category", "open_question")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    const areas: UnderstandingArea[] = AREA_DEFS.map((def) => {
+      const matched = signals.filter((s) => def.categories.includes(s.category));
+      if (matched.length === 0) {
+        return {
+          key: def.key,
+          name: def.name,
+          state: "missing" as UnderstandingState,
+          confidence: 0,
+          summary: "No signals captured yet.",
+          signals: [],
+          last_updated: null,
+        };
+      }
+      const avgConf = Math.round(
+        matched.reduce((sum, s) => sum + (s.confidence ?? 0), 0) / matched.length,
+      );
+      let state: UnderstandingState = "inferred";
+      if (avgConf >= 85) state = "known";
+      else if (avgConf >= 70) state = "inferred";
+      else if (avgConf >= 40) state = "needs_confirmation";
+      else state = "assumed";
+
+      const top = matched.slice(0, 3);
+      const summary = top.map((s) => s.label).join(" · ");
+      const last_updated =
+        matched.map((s) => s.created_at).sort().reverse()[0] ?? null;
+
+      return {
+        key: def.key,
+        name: def.name,
+        state,
+        confidence: avgConf,
+        summary,
+        signals: matched.slice(0, 8),
+        last_updated,
+      };
+    });
+
+    const by_state: Record<UnderstandingState, number> = {
+      known: 0,
+      inferred: 0,
+      needs_confirmation: 0,
+      missing: 0,
+      contradictory: 0,
+      assumed: 0,
+      approved: 0,
+    };
+    let confSum = 0;
+    const by_confidence = { high: 0, medium: 0, low: 0 };
+    for (const a of areas) {
+      by_state[a.state]++;
+      confSum += a.confidence;
+      if (a.confidence >= 75) by_confidence.high++;
+      else if (a.confidence >= 40) by_confidence.medium++;
+      else by_confidence.low++;
+    }
+    const overall_confidence = Math.round(confSum / Math.max(1, areas.length));
+
+    const open_questions: UnderstandingOpenQuestion[] = (openQs ?? []).map(
+      (q: { id: string; label: string; detail: string | null }) => ({
+        id: q.id,
+        question: q.label,
+        type: "client" as const,
+        suggested_action: "Ask Client",
+      }),
+    );
+
+    const missingAreas = areas.filter((a) => a.state === "missing").slice(0, 5);
+    for (const a of missingAreas) {
+      open_questions.push({
+        id: `missing-${a.key}`,
+        question: `Gather information about ${a.name.toLowerCase()}.`,
+        type: "research",
+        suggested_action: "Research",
+      });
+    }
+
+    const recommendations: UnderstandingRecommendation[] = [];
+    for (const a of missingAreas.slice(0, 3)) {
+      recommendations.push({
+        id: `rec-${a.key}`,
+        title: `Ask the client about ${a.name.toLowerCase()}`,
+        reason: "No signals captured for this area yet.",
+        cta: "Ask Client",
+      });
+    }
+    if (overall_confidence >= 75 && by_state.missing <= 2) {
+      recommendations.push({
+        id: "approve-point-a",
+        title: "Approve Point A — understanding is sufficient",
+        reason: `Overall confidence at ${overall_confidence}% with limited gaps.`,
+        cta: "Approve",
+      });
+    }
+
+    return {
+      areas,
+      summary: {
+        overall_confidence,
+        total_areas: areas.length,
+        by_state,
+        by_confidence,
+        open_questions_count: open_questions.length,
+      },
+      open_questions: open_questions.slice(0, 10),
+      recommendations: recommendations.slice(0, 5),
+    };
+  });
 

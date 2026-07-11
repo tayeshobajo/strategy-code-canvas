@@ -22,6 +22,7 @@ import {
   Truck,
   ChevronDown,
   MoreHorizontal,
+  BrainCircuit,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
@@ -141,6 +142,7 @@ type NavEntry = { key: string; label: string; suffix: string; icon: Icon };
 const ALL_NAV: Record<string, NavEntry> = {
   overview: { key: "overview", label: "Overview", suffix: "overview", icon: LayoutDashboard },
   intelligence: { key: "intelligence", label: "Intelligence", suffix: "intelligence-layer", icon: Sparkles },
+  understanding: { key: "understanding", label: "Understanding", suffix: "understanding-room", icon: BrainCircuit },
   roadmap: { key: "roadmap", label: "Roadmap", suffix: "builder", icon: Map },
   delivery: { key: "delivery", label: "Delivery", suffix: "delivery", icon: Truck },
   chat: { key: "chat", label: "Chat", suffix: "chat", icon: MessageCircle },
@@ -201,12 +203,12 @@ function primaryNavFor(project: WorkspaceProject): NavEntry[] {
 
   const items: NavEntry[] = [ALL_NAV.overview];
   if (hasApproved || hasDelivery) {
-    items.push(ALL_NAV.roadmap, ALL_NAV.delivery);
+    items.push(ALL_NAV.understanding, ALL_NAV.roadmap, ALL_NAV.delivery);
     if (!hasApproved) items.splice(1, 0, ALL_NAV.intelligence);
   } else if (hasSignals || hasRoadmapDraft) {
-    items.push(ALL_NAV.intelligence, ALL_NAV.roadmap);
+    items.push(ALL_NAV.intelligence, ALL_NAV.understanding, ALL_NAV.roadmap);
   } else {
-    items.push(ALL_NAV.intelligence);
+    items.push(ALL_NAV.intelligence, ALL_NAV.understanding);
   }
   items.push(ALL_NAV.chat);
   return items.slice(0, 6);
