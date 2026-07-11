@@ -13,6 +13,12 @@ import {
   Info,
   Sparkles,
   Check,
+  Map,
+  ClipboardList,
+  FlaskConical,
+  Lightbulb,
+  GitBranch,
+  MessageSquare,
 } from "lucide-react";
 import { getVersionCompareData } from "@/lib/engine-execution.functions";
 import { getNextBestAction } from "@/lib/engine.functions";
@@ -487,27 +493,51 @@ function ProjectOverview() {
             <div className="grid grid-cols-2 gap-2">
               <Shortcut
                 projectId={projectId}
+                to="/engine/projects/$projectId/spine"
+                icon={<GitBranch className="w-4 h-4" />}
+                label="Project Spine"
+              />
+              <Shortcut
+                projectId={projectId}
+                to="/engine/projects/$projectId/builder"
+                icon={<Map className="w-4 h-4" />}
+                label="Roadmap"
+              />
+              <Shortcut
+                projectId={projectId}
+                to="/engine/projects/$projectId/plans"
+                icon={<ClipboardList className="w-4 h-4" />}
+                label="Plans & Specs"
+              />
+              <Shortcut
+                projectId={projectId}
+                to="/engine/projects/$projectId/evidence"
+                icon={<FlaskConical className="w-4 h-4" />}
+                label="Evidence & QA"
+              />
+              <Shortcut
+                projectId={projectId}
+                to="/engine/projects/$projectId/understanding-room"
+                icon={<Lightbulb className="w-4 h-4" />}
+                label="Understanding"
+              />
+              <Shortcut
+                projectId={projectId}
                 to="/engine/projects/$projectId/intelligence"
                 icon={<BrainCircuit className="w-4 h-4" />}
                 label="Intelligence"
               />
               <Shortcut
                 projectId={projectId}
-                to="/engine/projects/$projectId/builder"
-                icon={<Layers className="w-4 h-4" />}
-                label="Roadmap Builder"
+                to="/engine/projects/$projectId/chat"
+                icon={<MessageSquare className="w-4 h-4" />}
+                label="Captain Chat"
               />
               <Shortcut
                 projectId={projectId}
                 to="/engine/projects/$projectId/preview"
                 icon={<Eye className="w-4 h-4" />}
                 label="Client Preview"
-              />
-              <Shortcut
-                projectId={projectId}
-                to="/engine/projects/$projectId/delivery"
-                icon={<PackageCheck className="w-4 h-4" />}
-                label="Delivery Prep"
               />
             </div>
           </SectionCard>
@@ -528,7 +558,12 @@ function Shortcut({
     | "/engine/projects/$projectId/intelligence"
     | "/engine/projects/$projectId/builder"
     | "/engine/projects/$projectId/preview"
-    | "/engine/projects/$projectId/delivery";
+    | "/engine/projects/$projectId/delivery"
+    | "/engine/projects/$projectId/spine"
+    | "/engine/projects/$projectId/plans"
+    | "/engine/projects/$projectId/evidence"
+    | "/engine/projects/$projectId/understanding-room"
+    | "/engine/projects/$projectId/chat";
   icon: React.ReactNode;
   label: string;
 }) {
