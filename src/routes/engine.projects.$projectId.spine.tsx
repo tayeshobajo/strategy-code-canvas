@@ -8,6 +8,7 @@ import {
   type ProjectSpinePayload,
 } from "@/lib/engine.functions";
 import { EngineStatusBadge, formatDate } from "@/components/engine/primitives";
+import { SpineVersionHistory } from "@/components/engine/SpineVersionHistory";
 import { Lock, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -432,6 +433,11 @@ function ProjectSpine() {
           )}
         </div>
       </details>
+
+      <SpineVersionHistory
+        auditCount={spine.audit.length}
+        currentVersionLabel={spine.version?.label ?? null}
+      />
     </div>
   );
 }

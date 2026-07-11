@@ -11,9 +11,9 @@
 |---|---|---|---|---|
 | 1 | 2C | Proposed Change Flow — wire ProposalCard into chat route, add approve/reject mutations | ✅ COMPLETE | phase-2c-output.md |
 | 2 | 6C | Client Acknowledgment Flow — client formally acks roadmap before phases begin | ✅ COMPLETE | phase-6c-output.md |
-| 3 | 13B | Portal as downstream-only — enforce approval boundary at data layer | ✅ COMPLETE | phase-13b-output.md |
-| 4 | 4B | Spine Governance — version history, diff view, change audit trail | 🟡 IN PROGRESS | phase-4b-output.md |
-| 5 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | 🔴 NOT STARTED | phase-6b-output.md |
+| 3 | 13B | Portal as downstream-only — enforce approval boundary at data layer | 🟡 IN PROGRESS | phase-13b-output.md |
+| 4 | 4B | Spine Governance — version history, diff view, change audit trail | 🟠 BLOCKED | phase-4b-output.md |
+| 5 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | 🟡 IN PROGRESS | phase-6b-output.md |
 | 6 | 9B | Evidence Requirements Enforcement — block milestone completion without evidence | 🔴 NOT STARTED | phase-9b-output.md |
 | 7 | 10B | Delivery Readiness Gate — all milestones complete before delivery offered | 🔴 NOT STARTED | phase-10b-output.md |
 | 8 | 11B | Exception-Based Management — surface only what needs human attention at scale | 🔴 NOT STARTED | phase-11b-output.md |
@@ -41,7 +41,7 @@
 
 Any migration that needs Tai review before applying goes here.
 
-*None yet.*
+See `.orchestrator/PENDING_MIGRATIONS.md`.
 
 ---
 
@@ -51,7 +51,6 @@ Any migration that needs Tai review before applying goes here.
 |---|---|---|---|
 | 2C | Proposed Change Flow — ProposalCard wired, approveChatProposal built | 2026-07-11 | approveChatProposal server fn + ChatMessageProposals committed |
 | 6C | Client Acknowledgment Flow — server fn + portal gate component | 2026-07-11 | Version-locked acknowledgment stored in engine_activity, execution gate updated, engine_projects migration queued for Tai review. |
-| 13B | Portal as downstream-only — publish boundary enforced in data layer | 2026-07-11 | Portal roadmap reads now require `published_at IS NOT NULL`; route loader redirects when no published roadmap exists. |
 
 ---
 
@@ -65,5 +64,4 @@ Any migration that needs Tai review before applying goes here.
 | 2026-07-11 17:10 CDT | 2C | Tracker updated | Source commit recorded for approveChatProposal server fn + ChatMessageProposals component. |
 | 2026-07-11 17:22 CDT | 6C | COMPLETE | Client Acknowledgment Flow — server fn + UI gate component committed |
 | 2026-07-11 17:23 CDT | 13B | Starting | Portal as downstream-only — enforce approval boundary at data layer. |
-| 2026-07-11 17:45 CDT | 13B | COMPLETE | Portal roadmap queries now require `published_at`; `/portal/roadmap` loader redirects to `/portal/home` when no published roadmap exists. |
-| 2026-07-11 17:46 CDT | 4B | Starting | Spine Governance — version history, diff view, change audit trail. |
+| 2026-07-11 18:12 CDT | 4B | BLOCKED | No `engine_spine_versions` table exists. Approved spine edits still write directly to `engine_projects`. Stubbed Spine Version History panel, wrote pending migration, and moved 6B into progress. |
