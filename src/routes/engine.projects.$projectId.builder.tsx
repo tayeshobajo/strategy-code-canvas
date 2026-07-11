@@ -118,7 +118,7 @@ function Builder() {
         </div>
       </header>
 
-      <StepStateBar projectId={projectId} step="builder" current={spine.project.current_step === "builder" ? { state: "active" } : undefined} />
+      <StepStateBar projectId={projectId} step="builder" current={undefined} />
 
       {clientSafe ? (
         <div className="rounded-2xl border border-[#f1e3b9] bg-[#fbf3e0] px-4 py-3 text-sm text-[#8a6713]">
