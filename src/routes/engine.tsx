@@ -56,7 +56,7 @@ export const Route = createFileRoute("/engine")({
 });
 
 type NavItem = {
-  to: "/engine" | "/engine/projects" | "/engine/templates" | "/engine/review" | "/engine/delivery" | "/engine/execution" | "/engine/operations" | "/engine/intelligence";
+  to: "/engine" | "/engine/projects" | "/engine/approvals" | "/engine/templates" | "/engine/review" | "/engine/delivery" | "/engine/execution" | "/engine/operations" | "/engine/intelligence";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
@@ -65,6 +65,7 @@ type NavItem = {
 const NAV: NavItem[] = [
   { to: "/engine", label: "Command Center", icon: LayoutDashboard, exact: true },
   { to: "/engine/projects", label: "Projects", icon: FolderKanban },
+  { to: "/engine/approvals", label: "Approvals", icon: ClipboardCheck },
   { to: "/engine/templates", label: "Templates", icon: FileStack },
   { to: "/engine/review", label: "Review & Approvals", icon: ClipboardCheck },
   { to: "/engine/delivery", label: "Delivery Room", icon: PackageCheck },
