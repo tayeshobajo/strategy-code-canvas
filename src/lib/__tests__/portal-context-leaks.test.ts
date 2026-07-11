@@ -5,8 +5,8 @@
  * via select("*") (owner_email, five Stripe identifiers, intake_submission_id,
  * approved_roadmap_id, metadata, access_revoked_at), plus full-row
  * onboarding and billing. The roadmap projection included supporting_notes
- * against the getPortalRoadmapDocs doctrine comment, filtered on approved_at
- * (letting archived rows resurface), and submitPortalOnboarding returned the
+ * against the getPortalRoadmapDocs doctrine comment, lacked a published_at
+ * gate at the query layer, and submitPortalOnboarding returned the
  * engine-internal engineSourceId to the client caller.
  */
 import { describe, it, expect } from "vitest";
@@ -14,6 +14,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const src = readFileSync(resolve(process.cwd(), "src/lib/portal.functions.ts"), "utf8");
+const routeSrc = readFileSync(resolve(process.cwd(), "src/routes/portal.roadmap.tsx"), "utf8");
 
 const ctxStart = src.indexOf("export const getPortalContext");
 const ctxEnd = src.indexOf("createServerFn", ctxStart + 100);
@@ -92,9 +93,9 @@ describe("getPortalContext projections (Pillar 8)", () => {
     expect(cols).not.toContain("metadata");
   });
 
-  it("roadmap filter is status-based, not approved_at-based", () => {
+  it("roadmap filter requires both publish status and published_at", () => {
     expect(ctx).toMatch(/\.in\("status",\s*\["approved",\s*"delivered"\]\)/);
-    expect(ctx).not.toMatch(/\.not\("approved_at",\s*"is",\s*null\)/);
+    expect(ctx).toMatch(/\.not\("published_at",\s*"is",\s*null\)/);
   });
 });
 
@@ -105,5 +106,13 @@ describe("submitPortalOnboarding return surface", () => {
     const body = src.slice(start, end === -1 ? undefined : end);
     expect(start).toBeGreaterThan(-1);
     expect(body).not.toMatch(/return\s*\{[^}]*engineSourceId/);
+  });
+});
+
+describe("portal roadmap route guard", () => {
+  it("redirects away when no published roadmap exists", () => {
+    expect(routeSrc).toMatch(/loader:\s*async\s*\(\)\s*=>\s*\{/);
+    expect(routeSrc).toMatch(/const data = await getPortalRoadmapDocs\(\)/);
+    expect(routeSrc).toMatch(/if \(data\.docs\.length === 0\)\s*\{\s*throw redirect\(\{ to: "\/portal\/home" \}\);/);
   });
 });

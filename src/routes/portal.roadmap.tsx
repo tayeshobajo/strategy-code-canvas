@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   useSuspenseQuery,
@@ -101,6 +101,16 @@ function readStoredView(): RoadmapViewMode | null {
 }
 
 export const Route = createFileRoute("/portal/roadmap")({
+  loader: async () => {
+    const data = await getPortalRoadmapDocs();
+    if (data.revoked) {
+      throw redirect({ to: "/portal/access-denied" });
+    }
+    if (data.docs.length === 0) {
+      throw redirect({ to: "/portal/home" });
+    }
+    return null;
+  },
   validateSearch: zodValidator(searchSchema),
   head: () => ({
     meta: [
@@ -1432,4 +1442,3 @@ function DemoRoadmapView() {
     </RoadmapViewport>
   );
 }
-

@@ -15,7 +15,8 @@
  *     NEW.approved_roadmap_version_id IS NOT NULL and rejects ai_generated versions.
  *   - engine-ops.publishVersionToPortal + engine-execution.sendProjectDelivery
  *     both insert `approved_roadmap_version_id: <ver.id>`.
- *   - getPortalRoadmapDocs filters by status; RLS handles the version-id gate.
+ *   - getPortalRoadmapDocs filters by status AND published_at; RLS handles the
+ *     version-id gate while the app-layer query enforces the portal publish boundary.
  *
  * This test locks that consistency in so a future rename or a stray
  * `source_version_id` reference fails CI before it can hide client roadmaps.

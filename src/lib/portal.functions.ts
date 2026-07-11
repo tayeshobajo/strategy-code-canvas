@@ -477,11 +477,9 @@ export const getPortalContext = createServerFn({ method: "GET" })
           "id, project_id, status, title, version_label, published_at, approved_at, acknowledged_at, roadmap_data:client_safe_canvas",
         )
         .eq("project_id", project.id)
-        // Status-based filter, mirroring getPortalRoadmapDocs: an archived or
-        // reverted roadmap keeps its approved_at stamp, so gating on
-        // approved_at alone lets stale rows resurface.
         .in("status", ["approved", "delivered"])
-        .order("approved_at", { ascending: false })
+        .not("published_at", "is", null)
+        .order("published_at", { ascending: false })
         .limit(1),
       // No Stripe identifiers or metadata to the browser — receipt/invoice
       // URLs and display fields only.
@@ -697,11 +695,12 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("client_portal_roadmaps")
       .select(
-        "id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, current_focus, owner_name, next_milestone, next_meeting_at, share_url, approved_at, updated_at, version_label, client_safe_canvas",
+        "id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, current_focus, owner_name, next_milestone, next_meeting_at, share_url, approved_at, published_at, updated_at, version_label, client_safe_canvas",
       )
       .in("project_id", projectIds)
       .in("status", ["approved", "delivered"])
-      .order("approved_at", { ascending: false });
+      .not("published_at", "is", null)
+      .order("published_at", { ascending: false });
     if (error) throw error;
 
     const docs: PortalRoadmapDoc[] = (data ?? []).map((r: any) => {
@@ -741,7 +740,7 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
         title: r.version_label ? `${r.title} — ${r.version_label}` : r.title,
         body_md: renderRoadmapMarkdown(r),
         file_url: r.share_url ?? null,
-        published_at: r.approved_at,
+        published_at: r.published_at ?? null,
         updated_at: r.updated_at,
         raw: safeRaw,
         project,
@@ -1715,7 +1714,8 @@ export const getPortalRoadmapContextOptions = createServerFn({ method: "POST" })
       .select("client_safe_canvas")
       .eq("project_id", data.portalProjectId)
       .in("status", ["approved", "delivered"])
-      .order("approved_at", { ascending: false })
+      .not("published_at", "is", null)
+      .order("published_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     const canvas =
