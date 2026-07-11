@@ -7,9 +7,7 @@ import { AuditTrailCard } from "@/components/engine/AuditTrail";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   BrainCircuit,
-  Layers,
   Eye,
-  PackageCheck,
   Info,
   Sparkles,
   Check,
@@ -21,7 +19,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { getVersionCompareData } from "@/lib/engine-execution.functions";
-import { getNextBestAction } from "@/lib/engine.functions";
+import { getIntelligentNextAction, type NextBestAction } from "@/lib/engine-nba.functions";
 import { listReviewQueue, type ReviewItem } from "@/lib/engine-ops.functions";
 import type { StepState } from "@/lib/engine-workspace";
 
@@ -302,12 +300,13 @@ function ProjectOverview() {
   });
   void compareQ;
 
-  const nbaFn = useServerFn(getNextBestAction);
+  // Intelligent NBA — Claude-powered, falls back to SQL RPC on error
+  const nbaFn = useServerFn(getIntelligentNextAction);
   const nbaQ = useQuery({
-    queryKey: ["engine", "next-best-action", projectId],
+    queryKey: ["engine", "intelligent-nba", projectId],
     queryFn: () => nbaFn({ data: { projectId } }),
-    refetchInterval: 30_000,
-    staleTime: 15_000,
+    refetchInterval: 120_000,
+    staleTime: 90_000,
   });
 
   const reviewFn = useServerFn(listReviewQueue);
@@ -320,12 +319,11 @@ function ProjectOverview() {
   const pendingItems: ReviewItem[] = (reviewQ.data?.items ?? []).filter(
     (i) =>
       i.status === "pending" &&
-      // ReviewItem.project may hold either project name or id; match on name for now.
       (i.project === p.name || i.project === p.id),
   );
   const pendingCount = pendingItems.length;
-
   const stages = computeStages(p);
+  const nba = nbaQ.data as NextBestAction | undefined;
 
   return (
     <div className="space-y-6">
@@ -336,48 +334,54 @@ function ProjectOverview() {
             <ProgressStepper stages={stages} />
           </SectionCard>
 
-          {/* Next Best Action */}
+          {/* Next Best Action — AI-powered */}
           <SectionCard
             title={
               <span className="inline-flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-royal" />
                 Next best action
+                {nba?.ai_generated && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#3E68B2]/10 px-2 py-0.5 text-[10px] font-medium text-[#3E68B2]">
+                    <Sparkles className="w-2.5 h-2.5" />
+                    AI
+                  </span>
+                )}
               </span>
             }
             className="border-l-4 border-royal"
           >
             {nbaQ.isLoading ? (
               <div className="text-sm text-ink/50">Computing…</div>
-            ) : nbaQ.data ? (
+            ) : nba ? (
               <div>
                 <div className="flex items-start gap-2">
                   <span
                     className={`mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ${
-                      nbaQ.data.severity === "critical"
+                      nba.severity === "critical"
                         ? "bg-red-500"
-                        : nbaQ.data.severity === "warning"
+                        : nba.severity === "warning"
                         ? "bg-amber-500"
                         : "bg-emerald-500"
                     }`}
                     aria-hidden
                   />
                   <div className="min-w-0 flex-1">
-                    {nbaQ.data.href ? (
-                      <a href={nbaQ.data.href} className="text-ink text-lg hover:underline">
-                        {nbaQ.data.action}
+                    {nba.href ? (
+                      <a href={nba.href} className="text-ink text-lg hover:underline">
+                        {nba.action}
                       </a>
                     ) : (
-                      <div className="text-ink text-lg">{nbaQ.data.action}</div>
+                      <div className="text-ink text-lg">{nba.action}</div>
                     )}
-                    {nbaQ.data.reason ? (
-                      <div className="text-sm text-ink/70 mt-1">{nbaQ.data.reason}</div>
+                    {nba.reason ? (
+                      <div className="text-sm text-ink/70 mt-1">{nba.reason}</div>
                     ) : null}
                   </div>
                 </div>
                 <div className="text-xs text-ink/60 mt-2">
                   {pendingCount} pending{" "}
                   {pendingCount === 1 ? "review item" : "review items"} · Step{" "}
-                  {p.current_step_num} of 14 · Live
+                  {p.current_step_num} of 14 · {nba.ai_generated ? "Captain AI" : "Live"}
                 </div>
               </div>
             ) : (
