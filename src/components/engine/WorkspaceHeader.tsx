@@ -142,6 +142,7 @@ type NavEntry = { key: string; label: string; suffix: string; icon: Icon };
 const ALL_NAV: Record<string, NavEntry> = {
   overview: { key: "overview", label: "Overview", suffix: "overview", icon: LayoutDashboard },
   intelligence: { key: "intelligence", label: "Intelligence", suffix: "intelligence-layer", icon: Sparkles },
+  understanding: { key: "understanding", label: "Understanding", suffix: "understanding-room", icon: BrainCircuit },
   roadmap: { key: "roadmap", label: "Roadmap", suffix: "builder", icon: Map },
   delivery: { key: "delivery", label: "Delivery", suffix: "delivery", icon: Truck },
   chat: { key: "chat", label: "Chat", suffix: "chat", icon: MessageCircle },
