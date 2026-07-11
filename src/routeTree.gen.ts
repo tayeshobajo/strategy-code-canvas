@@ -57,6 +57,7 @@ import { Route as EngineOperationsRouteImport } from './routes/engine.operations
 import { Route as EngineIntelligenceRouteImport } from './routes/engine.intelligence'
 import { Route as EngineExecutionRouteImport } from './routes/engine.execution'
 import { Route as EngineDeliveryRouteImport } from './routes/engine.delivery'
+import { Route as EngineApprovalsRouteImport } from './routes/engine.approvals'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
@@ -94,6 +95,7 @@ import { Route as EngineProjectsProjectIdQaFactoryRouteImport } from './routes/e
 import { Route as EngineProjectsProjectIdPreviewRouteImport } from './routes/engine.projects.$projectId.preview'
 import { Route as EngineProjectsProjectIdPointBRouteImport } from './routes/engine.projects.$projectId.point-b'
 import { Route as EngineProjectsProjectIdPointARouteImport } from './routes/engine.projects.$projectId.point-a'
+import { Route as EngineProjectsProjectIdPlansRouteImport } from './routes/engine.projects.$projectId.plans'
 import { Route as EngineProjectsProjectIdOverviewRouteImport } from './routes/engine.projects.$projectId.overview'
 import { Route as EngineProjectsProjectIdMockupBuilderRouteImport } from './routes/engine.projects.$projectId.mockup-builder'
 import { Route as EngineProjectsProjectIdInvestmentRouteImport } from './routes/engine.projects.$projectId.investment'
@@ -105,6 +107,7 @@ import { Route as EngineProjectsProjectIdHiddenAssetsRouteImport } from './route
 import { Route as EngineProjectsProjectIdGapMapRouteImport } from './routes/engine.projects.$projectId.gap-map'
 import { Route as EngineProjectsProjectIdFrameBuilderRouteImport } from './routes/engine.projects.$projectId.frame-builder'
 import { Route as EngineProjectsProjectIdExtractionRouteImport } from './routes/engine.projects.$projectId.extraction'
+import { Route as EngineProjectsProjectIdEvidenceRouteImport } from './routes/engine.projects.$projectId.evidence'
 import { Route as EngineProjectsProjectIdDeliveryRouteImport } from './routes/engine.projects.$projectId.delivery'
 import { Route as EngineProjectsProjectIdDeadlinesRouteImport } from './routes/engine.projects.$projectId.deadlines'
 import { Route as EngineProjectsProjectIdChatRouteImport } from './routes/engine.projects.$projectId.chat'
@@ -360,6 +363,11 @@ const EngineDeliveryRoute = EngineDeliveryRouteImport.update({
   path: '/delivery',
   getParentRoute: () => EngineRoute,
 } as any)
+const EngineApprovalsRoute = EngineApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => EngineRoute,
+} as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
@@ -560,6 +568,12 @@ const EngineProjectsProjectIdPointARoute =
     path: '/point-a',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdPlansRoute =
+  EngineProjectsProjectIdPlansRouteImport.update({
+    id: '/plans',
+    path: '/plans',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdOverviewRoute =
   EngineProjectsProjectIdOverviewRouteImport.update({
     id: '/overview',
@@ -624,6 +638,12 @@ const EngineProjectsProjectIdExtractionRoute =
   EngineProjectsProjectIdExtractionRouteImport.update({
     id: '/extraction',
     path: '/extraction',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdEvidenceRoute =
+  EngineProjectsProjectIdEvidenceRouteImport.update({
+    id: '/evidence',
+    path: '/evidence',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
 const EngineProjectsProjectIdDeliveryRoute =
@@ -746,6 +766,7 @@ export interface FileRoutesByFullPath {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/engine/approvals': typeof EngineApprovalsRoute
   '/engine/delivery': typeof EngineDeliveryRoute
   '/engine/execution': typeof EngineExecutionRoute
   '/engine/intelligence': typeof EngineIntelligenceRoute
@@ -797,6 +818,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
   '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
@@ -808,6 +830,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
   '/engine/projects/$projectId/mockup-builder': typeof EngineProjectsProjectIdMockupBuilderRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
+  '/engine/projects/$projectId/plans': typeof EngineProjectsProjectIdPlansRoute
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
   '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
@@ -854,6 +877,7 @@ export interface FileRoutesByTo {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/engine/approvals': typeof EngineApprovalsRoute
   '/engine/delivery': typeof EngineDeliveryRoute
   '/engine/execution': typeof EngineExecutionRoute
   '/engine/intelligence': typeof EngineIntelligenceRoute
@@ -904,6 +928,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
   '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
@@ -915,6 +940,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
   '/engine/projects/$projectId/mockup-builder': typeof EngineProjectsProjectIdMockupBuilderRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
+  '/engine/projects/$projectId/plans': typeof EngineProjectsProjectIdPlansRoute
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
   '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
@@ -967,6 +993,7 @@ export interface FileRoutesById {
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/engine/approvals': typeof EngineApprovalsRoute
   '/engine/delivery': typeof EngineDeliveryRoute
   '/engine/execution': typeof EngineExecutionRoute
   '/engine/intelligence': typeof EngineIntelligenceRoute
@@ -1018,6 +1045,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
   '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
@@ -1029,6 +1057,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
   '/engine/projects/$projectId/mockup-builder': typeof EngineProjectsProjectIdMockupBuilderRoute
   '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
+  '/engine/projects/$projectId/plans': typeof EngineProjectsProjectIdPlansRoute
   '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
   '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
@@ -1080,6 +1109,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/email/unsubscribe'
+    | '/engine/approvals'
     | '/engine/delivery'
     | '/engine/execution'
     | '/engine/intelligence'
@@ -1131,6 +1161,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/chat'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/extraction'
     | '/engine/projects/$projectId/frame-builder'
     | '/engine/projects/$projectId/gap-map'
@@ -1142,6 +1173,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/investment'
     | '/engine/projects/$projectId/mockup-builder'
     | '/engine/projects/$projectId/overview'
+    | '/engine/projects/$projectId/plans'
     | '/engine/projects/$projectId/point-a'
     | '/engine/projects/$projectId/point-b'
     | '/engine/projects/$projectId/preview'
@@ -1188,6 +1220,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/email/unsubscribe'
+    | '/engine/approvals'
     | '/engine/delivery'
     | '/engine/execution'
     | '/engine/intelligence'
@@ -1238,6 +1271,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/chat'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/extraction'
     | '/engine/projects/$projectId/frame-builder'
     | '/engine/projects/$projectId/gap-map'
@@ -1249,6 +1283,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/investment'
     | '/engine/projects/$projectId/mockup-builder'
     | '/engine/projects/$projectId/overview'
+    | '/engine/projects/$projectId/plans'
     | '/engine/projects/$projectId/point-a'
     | '/engine/projects/$projectId/point-b'
     | '/engine/projects/$projectId/preview'
@@ -1300,6 +1335,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/email/unsubscribe'
+    | '/engine/approvals'
     | '/engine/delivery'
     | '/engine/execution'
     | '/engine/intelligence'
@@ -1351,6 +1387,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/chat'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/extraction'
     | '/engine/projects/$projectId/frame-builder'
     | '/engine/projects/$projectId/gap-map'
@@ -1362,6 +1399,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/investment'
     | '/engine/projects/$projectId/mockup-builder'
     | '/engine/projects/$projectId/overview'
+    | '/engine/projects/$projectId/plans'
     | '/engine/projects/$projectId/point-a'
     | '/engine/projects/$projectId/point-b'
     | '/engine/projects/$projectId/preview'
@@ -1762,6 +1800,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineDeliveryRouteImport
       parentRoute: typeof EngineRoute
     }
+    '/engine/approvals': {
+      id: '/engine/approvals'
+      path: '/approvals'
+      fullPath: '/engine/approvals'
+      preLoaderRoute: typeof EngineApprovalsRouteImport
+      parentRoute: typeof EngineRoute
+    }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
       path: '/email/unsubscribe'
@@ -2021,6 +2066,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdPointARouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/plans': {
+      id: '/engine/projects/$projectId/plans'
+      path: '/plans'
+      fullPath: '/engine/projects/$projectId/plans'
+      preLoaderRoute: typeof EngineProjectsProjectIdPlansRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/overview': {
       id: '/engine/projects/$projectId/overview'
       path: '/overview'
@@ -2096,6 +2148,13 @@ declare module '@tanstack/react-router' {
       path: '/extraction'
       fullPath: '/engine/projects/$projectId/extraction'
       preLoaderRoute: typeof EngineProjectsProjectIdExtractionRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/evidence': {
+      id: '/engine/projects/$projectId/evidence'
+      path: '/evidence'
+      fullPath: '/engine/projects/$projectId/evidence'
+      preLoaderRoute: typeof EngineProjectsProjectIdEvidenceRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
     '/engine/projects/$projectId/delivery': {
@@ -2299,6 +2358,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdChatRoute: typeof EngineProjectsProjectIdChatRoute
   EngineProjectsProjectIdDeadlinesRoute: typeof EngineProjectsProjectIdDeadlinesRoute
   EngineProjectsProjectIdDeliveryRoute: typeof EngineProjectsProjectIdDeliveryRoute
+  EngineProjectsProjectIdEvidenceRoute: typeof EngineProjectsProjectIdEvidenceRoute
   EngineProjectsProjectIdExtractionRoute: typeof EngineProjectsProjectIdExtractionRoute
   EngineProjectsProjectIdFrameBuilderRoute: typeof EngineProjectsProjectIdFrameBuilderRoute
   EngineProjectsProjectIdGapMapRoute: typeof EngineProjectsProjectIdGapMapRoute
@@ -2310,6 +2370,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdInvestmentRoute: typeof EngineProjectsProjectIdInvestmentRoute
   EngineProjectsProjectIdMockupBuilderRoute: typeof EngineProjectsProjectIdMockupBuilderRoute
   EngineProjectsProjectIdOverviewRoute: typeof EngineProjectsProjectIdOverviewRoute
+  EngineProjectsProjectIdPlansRoute: typeof EngineProjectsProjectIdPlansRoute
   EngineProjectsProjectIdPointARoute: typeof EngineProjectsProjectIdPointARoute
   EngineProjectsProjectIdPointBRoute: typeof EngineProjectsProjectIdPointBRoute
   EngineProjectsProjectIdPreviewRoute: typeof EngineProjectsProjectIdPreviewRoute
@@ -2338,6 +2399,7 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdDeadlinesRoute:
       EngineProjectsProjectIdDeadlinesRoute,
     EngineProjectsProjectIdDeliveryRoute: EngineProjectsProjectIdDeliveryRoute,
+    EngineProjectsProjectIdEvidenceRoute: EngineProjectsProjectIdEvidenceRoute,
     EngineProjectsProjectIdExtractionRoute:
       EngineProjectsProjectIdExtractionRoute,
     EngineProjectsProjectIdFrameBuilderRoute:
@@ -2357,6 +2419,7 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdMockupBuilderRoute:
       EngineProjectsProjectIdMockupBuilderRoute,
     EngineProjectsProjectIdOverviewRoute: EngineProjectsProjectIdOverviewRoute,
+    EngineProjectsProjectIdPlansRoute: EngineProjectsProjectIdPlansRoute,
     EngineProjectsProjectIdPointARoute: EngineProjectsProjectIdPointARoute,
     EngineProjectsProjectIdPointBRoute: EngineProjectsProjectIdPointBRoute,
     EngineProjectsProjectIdPreviewRoute: EngineProjectsProjectIdPreviewRoute,
@@ -2383,6 +2446,7 @@ const EngineProjectsProjectIdRouteWithChildren =
   )
 
 interface EngineRouteChildren {
+  EngineApprovalsRoute: typeof EngineApprovalsRoute
   EngineDeliveryRoute: typeof EngineDeliveryRoute
   EngineExecutionRoute: typeof EngineExecutionRoute
   EngineIntelligenceRoute: typeof EngineIntelligenceRoute
@@ -2396,6 +2460,7 @@ interface EngineRouteChildren {
 }
 
 const EngineRouteChildren: EngineRouteChildren = {
+  EngineApprovalsRoute: EngineApprovalsRoute,
   EngineDeliveryRoute: EngineDeliveryRoute,
   EngineExecutionRoute: EngineExecutionRoute,
   EngineIntelligenceRoute: EngineIntelligenceRoute,

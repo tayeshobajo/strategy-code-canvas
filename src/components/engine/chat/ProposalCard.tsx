@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   createChatProposal,
+  approveChatProposal,
   type ChatCapabilities,
   type ChatProposalRow,
   type ProposalDraft,
@@ -157,6 +158,27 @@ export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, c
     onSettled: () => setConfirmAction(null),
   });
 
+  const approveFn = useServerFn(approveChatProposal);
+  const approveMut = useMutation({
+    mutationFn: async () => {
+      const persisted = await ensurePersisted();
+      const res = await approveFn({
+        data: { projectId, id: persisted.id },
+      });
+      return res as { proposal: ChatProposalRow; downstream: { table: string; id: string } };
+    },
+    onSuccess: (res) => {
+      setErrMsg(null);
+      setOkMsg(`Approved → ${res.downstream.table}`);
+      setRow(res.proposal);
+      qc.invalidateQueries({ queryKey: ["engine", "chat", "proposals", projectId] });
+      qc.invalidateQueries({ queryKey: ["engine", "spine", projectId] });
+      qc.invalidateQueries({ queryKey: ["engine", "review-queue"] });
+      window.setTimeout(() => setOkMsg(null), 2500);
+    },
+    onError: (e: unknown) => setErrMsg((e as Error).message),
+  });
+
   function copyContent() {
     const payload = draft.payload as Record<string, unknown>;
     const promptText =
@@ -278,6 +300,32 @@ export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, c
 
       {!isTerminal && (
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {capState.isStaff && draft.proposal_type !== "client_clarification" && (
+            <button
+              type="button"
+              onClick={() => {
+                if (approveMut.isPending) return;
+                const ok = typeof window !== "undefined"
+                  ? window.confirm(
+                      draft.proposal_type === "suggested_task"
+                        ? "Approve this proposal? A suggested task will be created in engine_tasks."
+                        : "Approve this proposal? An approved review item will be recorded.",
+                    )
+                  : true;
+                if (ok) approveMut.mutate();
+              }}
+              disabled={approveMut.isPending}
+              data-qa-action="approve_proposal"
+              className="text-[11px] inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-600 text-white px-2 py-1 hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {approveMut.isPending ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3 h-3" />
+              )}
+              Approve
+            </button>
+          )}
           {availableActions.map(({ action, state }) => (
             <ActionBtn
               key={action.action_id}
