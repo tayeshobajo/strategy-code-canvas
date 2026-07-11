@@ -9,7 +9,7 @@
 
 | # | Phase ID | Description | Status | Output File |
 |---|---|---|---|---|
-| 1 | 2C | Proposed Change Flow — wire ProposalCard into chat route, add approve/reject mutations | 🔴 NOT STARTED | phase-2c-output.md |
+| 1 | 2C | Proposed Change Flow — wire ProposalCard into chat route, add approve/reject mutations | ✅ COMPLETE (pre-existing) | phase-2c-output.md |
 | 2 | 6C | Client Acknowledgment Flow — client formally acks roadmap before phases begin | 🔴 NOT STARTED | phase-6c-output.md |
 | 3 | 13B | Portal as downstream-only — enforce approval boundary at data layer | 🔴 NOT STARTED | phase-13b-output.md |
 | 4 | 4B | Spine Governance — version history, diff view, change audit trail | 🔴 NOT STARTED | phase-4b-output.md |
@@ -47,7 +47,9 @@ Any migration that needs Tai review before applying goes here.
 
 ## Completed Phases
 
-*None yet — first build cycle starting.*
+| Phase | Description | Completed | Notes |
+|---|---|---|---|
+| 2C | Proposed Change Flow — ProposalCard wired, approveChatProposal built | 2026-07-11 | Pre-existing in repo at session resume |
 
 ---
 
@@ -56,3 +58,5 @@ Any migration that needs Tai review before applying goes here.
 | Timestamp | Phase | Action | Notes |
 |---|---|---|---|
 | 2026-07-11 16:38 CDT | — | Build loop initialized | Phase queue set. Cron active. |
+| 2026-07-11 17:07 CDT | 2C | Verified complete | ProposalCard fully wired in chat route. approveChatProposal built with full type dispatch, audit trail, downstream writes. |
+| 2026-07-11 17:07 CDT | 6C | Starting | Client Acknowledgment Flow |
