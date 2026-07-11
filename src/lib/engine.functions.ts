@@ -114,7 +114,6 @@ export type CommandCenterPayload = {
   execution_queue: EngineProjectRow[];
 };
 
-
 type ProjectDbRow = {
   id: string;
   name: string;
@@ -198,20 +197,16 @@ function mapRow(
   };
 }
 
-async function fetchProjects(
-  supabase: {
-    from: (t: string) => {
-      select: (
-        s: string,
-      ) => {
-        order: (
-          col: string,
-          o?: { ascending?: boolean },
-        ) => Promise<{ data: unknown; error: unknown }>;
-      };
+async function fetchProjects(supabase: {
+  from: (t: string) => {
+    select: (s: string) => {
+      order: (
+        col: string,
+        o?: { ascending?: boolean },
+      ) => Promise<{ data: unknown; error: unknown }>;
     };
-  },
-): Promise<{
+  };
+}): Promise<{
   rows: ProjectDbRow[];
   dates: Map<string, { label: string; due_on: string }>;
   agg: ProjectAggregates;
@@ -230,7 +225,11 @@ async function fetchProjects(
     .select("project_id,label,due_on")
     .order("due_on", { ascending: true });
   const dates = new Map<string, { label: string; due_on: string }>();
-  for (const d of (dateData ?? []) as Array<{ project_id: string; label: string; due_on: string }>) {
+  for (const d of (dateData ?? []) as Array<{
+    project_id: string;
+    label: string;
+    due_on: string;
+  }>) {
     if (!dates.has(d.project_id)) dates.set(d.project_id, { label: d.label, due_on: d.due_on });
   }
 
@@ -299,7 +298,10 @@ async function fetchProjects(
       .select("severity,created_at")
       .order("created_at", { ascending: false });
     for (const a of ((sev ?? []) as Array<{ severity: string; created_at: string }>).slice(0, 25)) {
-      if (a.severity === "error") { systemHealth = "red"; break; }
+      if (a.severity === "error") {
+        systemHealth = "red";
+        break;
+      }
       if (a.severity === "warning" || a.severity === "warn") systemHealth = "amber";
     }
   }
@@ -329,41 +331,50 @@ export const getCommandCenter = createServerFn({ method: "GET" })
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
     // Signals this month
-    const { count: signalCount } = await (context.supabase as unknown as {
-      from: (t: string) => {
-        select: (s: string, o: { count: "exact"; head: true }) => {
-          gte: (c: string, v: string) => Promise<{ count: number | null }>;
+    const { count: signalCount } = await (
+      context.supabase as unknown as {
+        from: (t: string) => {
+          select: (
+            s: string,
+            o: { count: "exact"; head: true },
+          ) => {
+            gte: (c: string, v: string) => Promise<{ count: number | null }>;
+          };
         };
-      };
-    })
+      }
+    )
       .from("engine_signals")
       .select("id", { count: "exact", head: true })
       .gte("received_at", monthStart);
 
-    const { data: alertData } = await (context.supabase as unknown as {
-      from: (t: string) => {
-        select: (s: string) => {
-          order: (
-            c: string,
-            o: { ascending: boolean },
-          ) => { limit: (n: number) => Promise<{ data: unknown }> };
+    const { data: alertData } = await (
+      context.supabase as unknown as {
+        from: (t: string) => {
+          select: (s: string) => {
+            order: (
+              c: string,
+              o: { ascending: boolean },
+            ) => { limit: (n: number) => Promise<{ data: unknown }> };
+          };
         };
-      };
-    })
+      }
+    )
       .from("engine_activity")
       .select("id,title,body,severity,created_at,project_id, engine_projects(name)")
       .order("created_at", { ascending: false })
       .limit(6);
 
-    const alerts = ((alertData ?? []) as Array<{
-      id: string;
-      title: string;
-      body: string | null;
-      severity: string;
-      created_at: string;
-      project_id: string | null;
-      engine_projects: { name: string } | null;
-    }>).map((a) => ({
+    const alerts = (
+      (alertData ?? []) as Array<{
+        id: string;
+        title: string;
+        body: string | null;
+        severity: string;
+        created_at: string;
+        project_id: string | null;
+        engine_projects: { name: string } | null;
+      }>
+    ).map((a) => ({
       id: a.id,
       title: a.title,
       body: a.body,
@@ -456,8 +467,7 @@ export const getCommandCenter = createServerFn({ method: "GET" })
                 0,
                 40 -
                   Math.floor(
-                    (new Date(p.next_critical_date.due_on).getTime() - now) /
-                      (24 * 3600 * 1000),
+                    (new Date(p.next_critical_date.due_on).getTime() - now) / (24 * 3600 * 1000),
                   ),
               )
             : 0),
@@ -478,7 +488,6 @@ export const getCommandCenter = createServerFn({ method: "GET" })
       execution_queue: projects.filter((p) => p.status === "in_execution").slice(0, 5),
     };
   });
-
 
 const ListInput = z.object({
   filter: z
@@ -508,8 +517,7 @@ export const listProjects = createServerFn({ method: "GET" })
     if (data.q) {
       const q = data.q.toLowerCase();
       out = out.filter(
-        (r) =>
-          r.name.toLowerCase().includes(q) || r.client_company.toLowerCase().includes(q),
+        (r) => r.name.toLowerCase().includes(q) || r.client_company.toLowerCase().includes(q),
       );
     }
     return { rows: out };
@@ -520,13 +528,18 @@ export const getProject = createServerFn({ method: "GET" })
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
   .handler(async ({ context, data }) => {
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
-    const { data: p, error } = await (context.supabase as unknown as {
-      from: (t: string) => {
-        select: (s: string) => {
-          eq: (c: string, v: string) => { single: () => Promise<{ data: unknown; error: unknown }> };
+    const { data: p, error } = await (
+      context.supabase as unknown as {
+        from: (t: string) => {
+          select: (s: string) => {
+            eq: (
+              c: string,
+              v: string,
+            ) => { single: () => Promise<{ data: unknown; error: unknown }> };
+          };
         };
-      };
-    })
+      }
+    )
       .from("engine_projects")
       .select(
         "id,name,client_id,status,current_step,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at, engine_clients(company,industry,owner_email,primary_contact,notes)",
@@ -557,48 +570,69 @@ export const getProject = createServerFn({ method: "GET" })
       } | null;
     };
 
-    const { data: datesData } = await (context.supabase as unknown as {
-      from: (t: string) => {
-        select: (s: string) => {
-          eq: (c: string, v: string) => {
-            order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown }>;
+    const { data: datesData } = await (
+      context.supabase as unknown as {
+        from: (t: string) => {
+          select: (s: string) => {
+            eq: (
+              c: string,
+              v: string,
+            ) => {
+              order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown }>;
+            };
           };
         };
-      };
-    })
+      }
+    )
       .from("engine_project_dates")
       .select("id,label,due_on,kind")
       .eq("project_id", data.id)
       .order("due_on", { ascending: true });
 
-    const { data: signalData } = await (context.supabase as unknown as {
-      from: (t: string) => {
-        select: (s: string) => {
-          eq: (c: string, v: string) => {
-            order: (c: string, o: { ascending: boolean }) => {
-              limit: (n: number) => Promise<{ data: unknown }>;
+    const { data: signalData } = await (
+      context.supabase as unknown as {
+        from: (t: string) => {
+          select: (s: string) => {
+            eq: (
+              c: string,
+              v: string,
+            ) => {
+              order: (
+                c: string,
+                o: { ascending: boolean },
+              ) => {
+                limit: (n: number) => Promise<{ data: unknown }>;
+              };
             };
           };
         };
-      };
-    })
+      }
+    )
       .from("engine_signals")
       .select("id,source,summary,received_at,triaged")
       .eq("project_id", data.id)
       .order("received_at", { ascending: false })
       .limit(10);
 
-    const { data: actData } = await (context.supabase as unknown as {
-      from: (t: string) => {
-        select: (s: string) => {
-          eq: (c: string, v: string) => {
-            order: (c: string, o: { ascending: boolean }) => {
-              limit: (n: number) => Promise<{ data: unknown }>;
+    const { data: actData } = await (
+      context.supabase as unknown as {
+        from: (t: string) => {
+          select: (s: string) => {
+            eq: (
+              c: string,
+              v: string,
+            ) => {
+              order: (
+                c: string,
+                o: { ascending: boolean },
+              ) => {
+                limit: (n: number) => Promise<{ data: unknown }>;
+              };
             };
           };
         };
-      };
-    })
+      }
+    )
       .from("engine_activity")
       .select("id,kind,title,body,severity,created_at")
       .eq("project_id", data.id)
@@ -607,7 +641,12 @@ export const getProject = createServerFn({ method: "GET" })
 
     return {
       project,
-      dates: (datesData ?? []) as Array<{ id: string; label: string; due_on: string; kind: string }>,
+      dates: (datesData ?? []) as Array<{
+        id: string;
+        label: string;
+        due_on: string;
+        kind: string;
+      }>,
       signals: (signalData ?? []) as Array<{
         id: string;
         source: string | null;
@@ -632,125 +671,182 @@ const WORKSPACE_SELECT =
 export const getProjectWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ id: databaseUuid }).parse(raw))
-  .handler(async ({ context, data }): Promise<{ project: WorkspaceProject; dates: Array<{ id: string; label: string; due_on: string; kind: string }>; activity: Array<{ id: string; kind: string; title: string; body: string | null; severity: string; created_at: string }> }> => {
-    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
-    const sb = context.supabase as unknown as {
-      from: (t: string) => {
-        select: (s: string) => {
-          eq: (c: string, v: string) => {
-            maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
-            order: (c: string, o: { ascending: boolean }) => {
-              limit: (n: number) => Promise<{ data: unknown }>;
-            } & Promise<{ data: unknown }>;
+  .handler(
+    async ({
+      context,
+      data,
+    }): Promise<{
+      project: WorkspaceProject;
+      dates: Array<{ id: string; label: string; due_on: string; kind: string }>;
+      activity: Array<{
+        id: string;
+        kind: string;
+        title: string;
+        body: string | null;
+        severity: string;
+        created_at: string;
+      }>;
+    }> => {
+      await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+      const sb = context.supabase as unknown as {
+        from: (t: string) => {
+          select: (s: string) => {
+            eq: (
+              c: string,
+              v: string,
+            ) => {
+              maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
+              order: (
+                c: string,
+                o: { ascending: boolean },
+              ) => {
+                limit: (n: number) => Promise<{ data: unknown }>;
+              } & Promise<{ data: unknown }>;
+            };
           };
         };
       };
-    };
-    const { data: p, error } = await sb.from("engine_projects").select(WORKSPACE_SELECT).eq("id", data.id).maybeSingle();
-    if (error) throw new Error((error as { message?: string }).message ?? "not found");
-    if (!p) throw new Error(`Project not found: ${data.id}`);
-    const row = p as Record<string, unknown> & { engine_clients: { company: string; owner_email: string | null } | null };
-
-    const { data: datesData } = await sb.from("engine_project_dates").select("id,label,due_on,kind").eq("project_id", data.id).order("due_on", { ascending: true });
-    const { data: actData } = await sb.from("engine_activity").select("id,kind,title,body,severity,created_at").eq("project_id", data.id).order("created_at", { ascending: false }).limit(20);
-
-    // Extracted signals count (display metric on workspace header)
-    const signalCountResp = await (context.supabase as unknown as {
-      from: (t: string) => {
-        select: (s: string, opts: { count: "exact"; head: true }) => {
-          eq: (c: string, v: string) => Promise<{ count: number | null }>;
-        };
+      const { data: p, error } = await sb
+        .from("engine_projects")
+        .select(WORKSPACE_SELECT)
+        .eq("id", data.id)
+        .maybeSingle();
+      if (error) throw new Error((error as { message?: string }).message ?? "not found");
+      if (!p) throw new Error(`Project not found: ${data.id}`);
+      const row = p as Record<string, unknown> & {
+        engine_clients: { company: string; owner_email: string | null } | null;
       };
-    })
-      .from("engine_extracted_signals")
-      .select("id", { count: "exact", head: true })
-      .eq("project_id", data.id);
-    const signal_count = signalCountResp.count ?? 0;
 
-    const step_states = (row.step_states as Record<string, import("@/lib/engine-workspace").StepState>) ?? {};
-    const hasKeys = (v: unknown) =>
-      !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v as Record<string, unknown>).length > 0;
+      const { data: datesData } = await sb
+        .from("engine_project_dates")
+        .select("id,label,due_on,kind")
+        .eq("project_id", data.id)
+        .order("due_on", { ascending: true });
+      const { data: actData } = await sb
+        .from("engine_activity")
+        .select("id,kind,title,body,severity,created_at")
+        .eq("project_id", data.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
 
-    // Fallback health score when the stored value is 0 / unset.
-    const storedHealth = (row.health_score as number) ?? 0;
-    let computedHealth = 0;
-    computedHealth += Math.min(40, Math.round((signal_count / 20) * 40));
-    if (row.roadmap_version) computedHealth += 20;
-    if (hasKeys(row.point_a) || hasKeys(row.point_b)) computedHealth += 15;
-    if (row.approved_version) computedHealth += 15;
-    if (hasKeys(row.delivery)) computedHealth += 10;
-    computedHealth = Math.max(0, Math.min(100, computedHealth));
-    const health_score = storedHealth > 0 ? storedHealth : computedHealth;
+      // Extracted signals count (display metric on workspace header)
+      const signalCountResp = await (
+        context.supabase as unknown as {
+          from: (t: string) => {
+            select: (
+              s: string,
+              opts: { count: "exact"; head: true },
+            ) => {
+              eq: (c: string, v: string) => Promise<{ count: number | null }>;
+            };
+          };
+        }
+      )
+        .from("engine_extracted_signals")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", data.id);
+      const signal_count = signalCountResp.count ?? 0;
 
-    // Fallback progress % from touched step states (any recorded state counts).
-    const storedProgress = (row.progress_pct as number) ?? 0;
-    const hasRoadmapDraft = !!row.roadmap_version || hasKeys(row.roadmap);
-    const hasApproved = !!row.approved_version;
-    const artifactHasData: Record<WorkspaceStepKey, boolean> = {
-      intelligence: signal_count > 0,
-      "signal-room": signal_count > 0 || hasKeys(row.signal_room),
-      extraction: signal_count > 0 || hasKeys(row.extraction),
-      "point-a": hasKeys(row.point_a),
-      "point-b": hasKeys(row.point_b),
-      "hidden-assets": hasKeys(row.hidden_assets),
-      "gap-map": hasKeys(row.gap_map),
-      blueprint: hasKeys(row.blueprint),
-      builder: hasRoadmapDraft,
-      sequencing: hasKeys(row.sequencing) || hasApproved,
-      deadlines: hasKeys(row.deadlines) || hasApproved,
-      investment: hasKeys(row.investment) || hasApproved,
-      preview: hasKeys(row.client_preview) || hasApproved,
-      delivery: hasKeys(row.delivery),
-    };
-    const stepsActive = WORKSPACE_STEPS.filter(
-      ({ key }) => !!step_states[key]?.state || artifactHasData[key as WorkspaceStepKey],
-    ).length;
-    const computedProgress = Math.round((stepsActive / 14) * 100);
-    const progress_pct = storedProgress > 0 ? storedProgress : computedProgress;
+      const step_states =
+        (row.step_states as Record<string, import("@/lib/engine-workspace").StepState>) ?? {};
+      const hasKeys = (v: unknown) =>
+        !!v &&
+        typeof v === "object" &&
+        !Array.isArray(v) &&
+        Object.keys(v as Record<string, unknown>).length > 0;
 
+      // Fallback health score when the stored value is 0 / unset.
+      const storedHealth = (row.health_score as number) ?? 0;
+      let computedHealth = 0;
+      computedHealth += Math.min(40, Math.round((signal_count / 20) * 40));
+      if (row.roadmap_version) computedHealth += 20;
+      if (hasKeys(row.point_a) || hasKeys(row.point_b)) computedHealth += 15;
+      if (row.approved_version) computedHealth += 15;
+      if (hasKeys(row.delivery)) computedHealth += 10;
+      computedHealth = Math.max(0, Math.min(100, computedHealth));
+      const health_score = storedHealth > 0 ? storedHealth : computedHealth;
 
-    const project: WorkspaceProject = {
-      id: row.id as string,
-      name: row.name as string,
-      status: row.status as string,
-      current_step_num: (row.current_step_num as number) ?? 1,
-      progress_pct,
-      health_score,
-      roadmap_version: (row.roadmap_version as string | null) ?? null,
-      approved_version: (row.approved_version as string | null) ?? null,
-      agent_status: (row.agent_status as string) ?? "idle",
-      agent_budget_monthly_cents: (row.agent_budget_monthly_cents as number) ?? 0,
-      agent_spend_month_cents: (row.agent_spend_month_cents as number) ?? 0,
-      open_decisions: (row.open_decisions as number) ?? 0,
-      signal_count,
-      next_action: (row.next_action as string | null) ?? null,
-      last_activity_at: row.last_activity_at as string,
-      updated_at: row.updated_at as string,
-      client_company: row.engine_clients?.company ?? "—",
-      client_owner_email: row.engine_clients?.owner_email ?? null,
-      step_states,
+      // Fallback progress % from touched step states (any recorded state counts).
+      const storedProgress = (row.progress_pct as number) ?? 0;
+      const hasRoadmapDraft = !!row.roadmap_version || hasKeys(row.roadmap);
+      const hasApproved = !!row.approved_version;
+      const artifactHasData: Record<WorkspaceStepKey, boolean> = {
+        intelligence: signal_count > 0,
+        "signal-room": signal_count > 0 || hasKeys(row.signal_room),
+        extraction: signal_count > 0 || hasKeys(row.extraction),
+        "point-a": hasKeys(row.point_a),
+        "point-b": hasKeys(row.point_b),
+        "hidden-assets": hasKeys(row.hidden_assets),
+        "gap-map": hasKeys(row.gap_map),
+        blueprint: hasKeys(row.blueprint),
+        builder: hasRoadmapDraft,
+        sequencing: hasKeys(row.sequencing) || hasApproved,
+        deadlines: hasKeys(row.deadlines) || hasApproved,
+        investment: hasKeys(row.investment) || hasApproved,
+        preview: hasKeys(row.client_preview) || hasApproved,
+        delivery: hasKeys(row.delivery),
+      };
+      const stepsActive = WORKSPACE_STEPS.filter(
+        ({ key }) => !!step_states[key]?.state || artifactHasData[key as WorkspaceStepKey],
+      ).length;
+      const computedProgress = Math.round((stepsActive / 14) * 100);
+      const progress_pct = storedProgress > 0 ? storedProgress : computedProgress;
 
-      signal_room: (row.signal_room as import("@/lib/engine-workspace").Json) ?? {},
-      extraction: (row.extraction as import("@/lib/engine-workspace").Json) ?? {},
-      point_a: (row.point_a as import("@/lib/engine-workspace").Json) ?? {},
-      point_b: (row.point_b as import("@/lib/engine-workspace").Json) ?? {},
-      hidden_assets: (row.hidden_assets as import("@/lib/engine-workspace").Json) ?? {},
-      gap_map: (row.gap_map as import("@/lib/engine-workspace").Json) ?? {},
-      blueprint: (row.blueprint as import("@/lib/engine-workspace").Json) ?? {},
-      roadmap: (row.roadmap as import("@/lib/engine-workspace").Json) ?? {},
-      sequencing: (row.sequencing as import("@/lib/engine-workspace").Json) ?? {},
-      deadlines: (row.deadlines as import("@/lib/engine-workspace").Json) ?? {},
-      investment: (row.investment as import("@/lib/engine-workspace").Json) ?? {},
-      client_preview: (row.client_preview as import("@/lib/engine-workspace").Json) ?? {},
-      delivery: (row.delivery as import("@/lib/engine-workspace").Json) ?? {},
-    };
+      const project: WorkspaceProject = {
+        id: row.id as string,
+        name: row.name as string,
+        status: row.status as string,
+        current_step_num: (row.current_step_num as number) ?? 1,
+        progress_pct,
+        health_score,
+        roadmap_version: (row.roadmap_version as string | null) ?? null,
+        approved_version: (row.approved_version as string | null) ?? null,
+        agent_status: (row.agent_status as string) ?? "idle",
+        agent_budget_monthly_cents: (row.agent_budget_monthly_cents as number) ?? 0,
+        agent_spend_month_cents: (row.agent_spend_month_cents as number) ?? 0,
+        open_decisions: (row.open_decisions as number) ?? 0,
+        signal_count,
+        next_action: (row.next_action as string | null) ?? null,
+        last_activity_at: row.last_activity_at as string,
+        updated_at: row.updated_at as string,
+        client_company: row.engine_clients?.company ?? "—",
+        client_owner_email: row.engine_clients?.owner_email ?? null,
+        step_states,
 
-    return {
-      project,
-      dates: (datesData ?? []) as Array<{ id: string; label: string; due_on: string; kind: string }>,
-      activity: (actData ?? []) as Array<{ id: string; kind: string; title: string; body: string | null; severity: string; created_at: string }>,
-    };
-  });
+        signal_room: (row.signal_room as import("@/lib/engine-workspace").Json) ?? {},
+        extraction: (row.extraction as import("@/lib/engine-workspace").Json) ?? {},
+        point_a: (row.point_a as import("@/lib/engine-workspace").Json) ?? {},
+        point_b: (row.point_b as import("@/lib/engine-workspace").Json) ?? {},
+        hidden_assets: (row.hidden_assets as import("@/lib/engine-workspace").Json) ?? {},
+        gap_map: (row.gap_map as import("@/lib/engine-workspace").Json) ?? {},
+        blueprint: (row.blueprint as import("@/lib/engine-workspace").Json) ?? {},
+        roadmap: (row.roadmap as import("@/lib/engine-workspace").Json) ?? {},
+        sequencing: (row.sequencing as import("@/lib/engine-workspace").Json) ?? {},
+        deadlines: (row.deadlines as import("@/lib/engine-workspace").Json) ?? {},
+        investment: (row.investment as import("@/lib/engine-workspace").Json) ?? {},
+        client_preview: (row.client_preview as import("@/lib/engine-workspace").Json) ?? {},
+        delivery: (row.delivery as import("@/lib/engine-workspace").Json) ?? {},
+      };
+
+      return {
+        project,
+        dates: (datesData ?? []) as Array<{
+          id: string;
+          label: string;
+          due_on: string;
+          kind: string;
+        }>,
+        activity: (actData ?? []) as Array<{
+          id: string;
+          kind: string;
+          title: string;
+          body: string | null;
+          severity: string;
+          created_at: string;
+        }>,
+      };
+    },
+  );
 
 const STEP_COLUMNS: Record<WorkspaceStepKey, string | null> = {
   intelligence: null,
@@ -772,7 +868,19 @@ const STEP_COLUMNS: Record<WorkspaceStepKey, string | null> = {
 const UpdateStepInput = z.object({
   id: z.string().uuid(),
   step: z.enum([
-    "signal-room","extraction","point-a","point-b","hidden-assets","gap-map","blueprint","builder","sequencing","deadlines","investment","preview","delivery",
+    "signal-room",
+    "extraction",
+    "point-a",
+    "point-b",
+    "hidden-assets",
+    "gap-map",
+    "blueprint",
+    "builder",
+    "sequencing",
+    "deadlines",
+    "investment",
+    "preview",
+    "delivery",
   ]),
   data: z.record(z.string(), z.unknown()),
   // Optimistic-lock guard. When present, the update fails if another writer
@@ -788,7 +896,7 @@ export const updateProjectStep = createServerFn({ method: "POST" })
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
     const col = STEP_COLUMNS[data.step as WorkspaceStepKey];
     if (!col) throw new Error("Unknown step");
-    const email = ((context as unknown as { claims?: { email?: string } }).claims?.email) ?? null;
+    const email = (context as unknown as { claims?: { email?: string } }).claims?.email ?? null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
 
@@ -799,15 +907,18 @@ export const updateProjectStep = createServerFn({ method: "POST" })
       .select("step_states, updated_at")
       .eq("id", data.id)
       .single();
-    const states = (cur?.step_states ?? {}) as Record<string, import("@/lib/engine-workspace").StepState>;
+    const states = (cur?.step_states ?? {}) as Record<
+      string,
+      import("@/lib/engine-workspace").StepState
+    >;
     const currentUpdatedAt = (cur?.updated_at as string | null) ?? null;
 
     // Optimistic lock: bail out early with a clear error if the row moved
     // under the caller. Client can re-open the editor with fresh data.
     if (
-      data.expectedUpdatedAt
-      && currentUpdatedAt
-      && new Date(data.expectedUpdatedAt).getTime() !== new Date(currentUpdatedAt).getTime()
+      data.expectedUpdatedAt &&
+      currentUpdatedAt &&
+      new Date(data.expectedUpdatedAt).getTime() !== new Date(currentUpdatedAt).getTime()
     ) {
       throw new Error(
         "This project changed while you were editing. Reload to see the latest and try again.",
@@ -818,13 +929,10 @@ export const updateProjectStep = createServerFn({ method: "POST" })
     // re-writes. Point A / Point B once approved represent Tai's signed-off
     // diagnosis + destination; overwriting them from the workspace should
     // require a fresh state transition (approved → draft via setStepState).
-    const PROTECTED_APPROVED_STEPS = new Set<WorkspaceStepKey>([
-      "point-a",
-      "point-b",
-    ]);
+    const PROTECTED_APPROVED_STEPS = new Set<WorkspaceStepKey>(["point-a", "point-b"]);
     if (
-      PROTECTED_APPROVED_STEPS.has(data.step as WorkspaceStepKey)
-      && states[data.step]?.state === "approved"
+      PROTECTED_APPROVED_STEPS.has(data.step as WorkspaceStepKey) &&
+      states[data.step]?.state === "approved"
     ) {
       throw new Error(
         `Cannot overwrite approved "${data.step}" content. Reset the step to draft before editing.`,
@@ -883,7 +991,19 @@ export const updateProjectStep = createServerFn({ method: "POST" })
 const SetStepStateInput = z.object({
   id: z.string().uuid(),
   step: z.enum([
-    "signal-room","extraction","point-a","point-b","hidden-assets","gap-map","blueprint","builder","sequencing","deadlines","investment","preview","delivery",
+    "signal-room",
+    "extraction",
+    "point-a",
+    "point-b",
+    "hidden-assets",
+    "gap-map",
+    "blueprint",
+    "builder",
+    "sequencing",
+    "deadlines",
+    "investment",
+    "preview",
+    "delivery",
   ]),
   state: z.enum(["draft", "review", "approved"]),
   note: z.string().max(500).nullable().optional(),
@@ -894,7 +1014,7 @@ export const setStepState = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => SetStepStateInput.parse(raw))
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
-    const email = ((context as unknown as { claims?: { email?: string } }).claims?.email) ?? null;
+    const email = (context as unknown as { claims?: { email?: string } }).claims?.email ?? null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
     const { data: cur } = await sb
@@ -902,7 +1022,10 @@ export const setStepState = createServerFn({ method: "POST" })
       .select("step_states")
       .eq("id", data.id)
       .single();
-    const states = (cur?.step_states ?? {}) as Record<string, import("@/lib/engine-workspace").StepState>;
+    const states = (cur?.step_states ?? {}) as Record<
+      string,
+      import("@/lib/engine-workspace").StepState
+    >;
     const prev = states[data.step]?.state ?? null;
     states[data.step] = {
       state: data.state,
@@ -910,7 +1033,10 @@ export const setStepState = createServerFn({ method: "POST" })
       updated_by: email,
       note: data.note ?? null,
     };
-    const { error } = await sb.from("engine_projects").update({ step_states: states }).eq("id", data.id);
+    const { error } = await sb
+      .from("engine_projects")
+      .update({ step_states: states })
+      .eq("id", data.id);
     if (error) throw new Error((error as { message?: string }).message ?? "state update failed");
 
     await sb.from("engine_audit_log").insert({
@@ -952,10 +1078,12 @@ export type StepEvidence = {
 export const listStepEvidence = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
-    z.object({
-      id: z.string().uuid(),
-      categories: z.array(z.string()).max(20).default([]),
-    }).parse(raw),
+    z
+      .object({
+        id: z.string().uuid(),
+        categories: z.array(z.string()).max(20).default([]),
+      })
+      .parse(raw),
   )
   .handler(async ({ context, data }): Promise<StepEvidence[]> => {
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
@@ -1001,7 +1129,12 @@ export type LiveMilestone = {
   related_gap: string | null;
   related_hidden_asset: string | null;
   related_system_node: string | null;
-  source_evidence: Array<{ source_id?: string; signal_id?: string; snippet: string; category?: string }>;
+  source_evidence: Array<{
+    source_id?: string;
+    signal_id?: string;
+    snippet: string;
+    category?: string;
+  }>;
 };
 
 export const listMilestonesLive = createServerFn({ method: "GET" })
@@ -1013,10 +1146,13 @@ export const listMilestonesLive = createServerFn({ method: "GET" })
     const sb = context.supabase as any;
     const { data: rows, error } = await sb
       .from("engine_milestones")
-      .select("id,name,phase,status,sort_index,approval_status,due_date,deadline_relevance,brief_md,client_safe_md,related_gap,related_hidden_asset,related_system_node,source_evidence")
+      .select(
+        "id,name,phase,status,sort_index,approval_status,due_date,deadline_relevance,brief_md,client_safe_md,related_gap,related_hidden_asset,related_system_node,source_evidence",
+      )
       .eq("project_id", data.id)
       .order("sort_index", { ascending: true });
-    if (error) throw new Error((error as { message?: string }).message ?? "milestones fetch failed");
+    if (error)
+      throw new Error((error as { message?: string }).message ?? "milestones fetch failed");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return ((rows ?? []) as any[]).map((r) => ({ ...r, source_evidence: r.source_evidence ?? [] }));
   });
@@ -1024,15 +1160,17 @@ export const listMilestonesLive = createServerFn({ method: "GET" })
 export const reorderMilestone = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
-    z.object({
-      projectId: z.string().uuid(),
-      milestoneId: z.string().uuid(),
-      direction: z.enum(["up", "down"]),
-    }).parse(raw),
+    z
+      .object({
+        projectId: z.string().uuid(),
+        milestoneId: z.string().uuid(),
+        direction: z.enum(["up", "down"]),
+      })
+      .parse(raw),
   )
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
-    const email = ((context as unknown as { claims?: { email?: string } }).claims?.email) ?? null;
+    const email = (context as unknown as { claims?: { email?: string } }).claims?.email ?? null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
     const { data: list } = await sb
@@ -1052,8 +1190,15 @@ export const reorderMilestone = createServerFn({ method: "POST" })
     await sb.from("engine_milestones").update({ sort_index: a.sort_index }).eq("id", b.id);
 
     // Reorder counts as a draft change — reset builder step to draft.
-    const { data: proj } = await sb.from("engine_projects").select("step_states").eq("id", data.projectId).single();
-    const states = (proj?.step_states ?? {}) as Record<string, import("@/lib/engine-workspace").StepState>;
+    const { data: proj } = await sb
+      .from("engine_projects")
+      .select("step_states")
+      .eq("id", data.projectId)
+      .single();
+    const states = (proj?.step_states ?? {}) as Record<
+      string,
+      import("@/lib/engine-workspace").StepState
+    >;
     states.builder = {
       state: "draft",
       updated_at: new Date().toISOString(),
@@ -1113,12 +1258,18 @@ export const getNextBestAction = createServerFn({ method: "POST" })
     if (!isOperator && !isAdmin) throw new Error("Forbidden: operator role required");
 
     const sb = context.supabase as unknown as {
-      rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: unknown }>;
     };
     const { data: rows, error } = await sb.rpc("compute_engine_next_best_action", {
       _project_id: data.projectId,
     });
-    if (error) throw new Error((error as { message?: string }).message ?? "Failed to compute next best action");
+    if (error)
+      throw new Error(
+        (error as { message?: string }).message ?? "Failed to compute next best action",
+      );
     const row = Array.isArray(rows) ? (rows[0] as Record<string, unknown> | undefined) : undefined;
     if (!row) {
       return {
@@ -1292,9 +1443,16 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       null;
 
     // Next best action via existing RPC
-    let nba: NextBestAction = { action: "Nothing waiting", reason: "", href: null, severity: "info" };
+    let nba: NextBestAction = {
+      action: "Nothing waiting",
+      reason: "",
+      href: null,
+      severity: "info",
+    };
     try {
-      const { data: rows } = await sb.rpc("compute_engine_next_best_action", { _project_id: data.id });
+      const { data: rows } = await sb.rpc("compute_engine_next_best_action", {
+        _project_id: data.id,
+      });
       const row = Array.isArray(rows) ? rows[0] : null;
       if (row) {
         nba = {
@@ -1393,11 +1551,20 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       .select("id,kind,title,body,href,created_at,metadata")
       .order("created_at", { ascending: false })
       .limit(50);
-    const notifications = ((notifRows ?? []) as Array<{
-      id: string; kind: string; title: string; body: string | null; href: string | null; created_at: string;
-      metadata: Record<string, unknown> | null;
-    }>)
-      .filter((n) => (n.metadata as { engine_project_id?: string } | null)?.engine_project_id === data.id)
+    const notifications = (
+      (notifRows ?? []) as Array<{
+        id: string;
+        kind: string;
+        title: string;
+        body: string | null;
+        href: string | null;
+        created_at: string;
+        metadata: Record<string, unknown> | null;
+      }>
+    )
+      .filter(
+        (n) => (n.metadata as { engine_project_id?: string } | null)?.engine_project_id === data.id,
+      )
       .slice(0, 15)
       .map(({ metadata: _m, ...rest }) => rest);
 
@@ -1438,7 +1605,6 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       audit,
     };
   });
-
 
 // ─────────── Understanding Room ─────────────────────────────────
 export type UnderstandingState =
@@ -1497,20 +1663,259 @@ export type UnderstandingRoom = {
   recommendations: UnderstandingRecommendation[];
 };
 
-const AREA_DEFS: Array<{ key: string; name: string; categories: string[] }> = [
-  { key: "business_model", name: "Business Model", categories: ["business_model"] },
-  { key: "audience", name: "Audience & Customers", categories: ["decision_maker", "client_language"] },
-  { key: "value_prop", name: "Value Proposition", categories: ["opportunity", "hidden_asset"] },
-  { key: "revenue_model", name: "Revenue Model", categories: ["business_model", "investment_signal"] },
-  { key: "current_challenges", name: "Current Challenges", categories: ["pain"] },
-  { key: "existing_systems", name: "Existing Systems", categories: ["current_system"] },
-  { key: "digital_presence", name: "Digital Presence", categories: ["current_system"] },
-  { key: "desired_outcomes", name: "Desired Outcomes", categories: ["goal"] },
-  { key: "success_metrics", name: "Success Metrics", categories: ["goal", "milestone_candidate"] },
-  { key: "assets_strengths", name: "Assets & Strengths", categories: ["hidden_asset"] },
-  { key: "constraints", name: "Constraints", categories: ["constraint", "investment_signal", "deadline"] },
-  { key: "risks", name: "Risks", categories: ["risk"] },
+type UnderstandingArtifactKey =
+  | "client"
+  | "point_a"
+  | "point_b"
+  | "hidden_assets"
+  | "gap_map"
+  | "blueprint"
+  | "roadmap"
+  | "sequencing"
+  | "deadlines"
+  | "investment"
+  | "client_preview"
+  | "spirit_first"
+  | "sources";
+
+type UnderstandingAreaDef = {
+  key: string;
+  name: string;
+  categories: string[];
+  artifacts: Array<{
+    key: UnderstandingArtifactKey;
+    label: string;
+    confidence: number;
+    stepKey?: string;
+  }>;
+};
+
+const AREA_DEFS: UnderstandingAreaDef[] = [
+  {
+    key: "business_model",
+    name: "Business Model",
+    categories: ["business_model"],
+    artifacts: [
+      { key: "client", label: "Client profile", confidence: 72 },
+      { key: "point_a", label: "Point A diagnosis", confidence: 78, stepKey: "point-a" },
+    ],
+  },
+  {
+    key: "audience",
+    name: "Audience & Customers",
+    categories: ["decision_maker", "client_language"],
+    artifacts: [
+      { key: "client", label: "Client record", confidence: 72 },
+      {
+        key: "client_preview",
+        label: "Client-facing language",
+        confidence: 76,
+        stepKey: "preview",
+      },
+      { key: "spirit_first", label: "Spirit First identity signals", confidence: 74 },
+    ],
+  },
+  {
+    key: "value_prop",
+    name: "Value Proposition",
+    categories: ["opportunity", "hidden_asset", "client_language"],
+    artifacts: [
+      { key: "point_b", label: "Point B destination", confidence: 78, stepKey: "point-b" },
+      { key: "hidden_assets", label: "Hidden assets", confidence: 76, stepKey: "hidden-assets" },
+      { key: "spirit_first", label: "Trust assets", confidence: 74 },
+    ],
+  },
+  {
+    key: "revenue_model",
+    name: "Revenue Model",
+    categories: ["business_model", "investment_signal"],
+    artifacts: [
+      { key: "investment", label: "Investment signal", confidence: 72, stepKey: "investment" },
+      { key: "client", label: "Client profile", confidence: 68 },
+    ],
+  },
+  {
+    key: "current_challenges",
+    name: "Current Challenges",
+    categories: ["pain", "risk", "constraint", "current_system"],
+    artifacts: [
+      { key: "point_a", label: "Point A diagnosis", confidence: 80, stepKey: "point-a" },
+      { key: "gap_map", label: "Gap map", confidence: 76, stepKey: "gap-map" },
+      { key: "spirit_first", label: "Trust deficits", confidence: 74 },
+    ],
+  },
+  {
+    key: "existing_systems",
+    name: "Existing Systems",
+    categories: ["current_system", "required_system"],
+    artifacts: [
+      { key: "blueprint", label: "System blueprint", confidence: 78, stepKey: "blueprint" },
+      { key: "point_a", label: "Current-state diagnosis", confidence: 76, stepKey: "point-a" },
+    ],
+  },
+  {
+    key: "digital_presence",
+    name: "Digital Presence",
+    categories: ["current_system", "required_system"],
+    artifacts: [
+      { key: "blueprint", label: "Digital system notes", confidence: 72, stepKey: "blueprint" },
+      { key: "sources", label: "Source material", confidence: 64 },
+    ],
+  },
+  {
+    key: "desired_outcomes",
+    name: "Desired Outcomes",
+    categories: ["goal", "opportunity"],
+    artifacts: [
+      { key: "point_b", label: "Point B destination", confidence: 80, stepKey: "point-b" },
+      { key: "roadmap", label: "Roadmap draft", confidence: 76, stepKey: "builder" },
+    ],
+  },
+  {
+    key: "success_metrics",
+    name: "Success Metrics",
+    categories: ["goal", "milestone_candidate"],
+    artifacts: [
+      { key: "roadmap", label: "Roadmap milestones", confidence: 72, stepKey: "builder" },
+      { key: "sequencing", label: "Sequencing plan", confidence: 70, stepKey: "sequencing" },
+      { key: "client_preview", label: "Client preview", confidence: 68, stepKey: "preview" },
+    ],
+  },
+  {
+    key: "assets_strengths",
+    name: "Assets & Strengths",
+    categories: ["hidden_asset", "opportunity"],
+    artifacts: [
+      { key: "hidden_assets", label: "Hidden asset map", confidence: 80, stepKey: "hidden-assets" },
+      { key: "spirit_first", label: "Trust assets", confidence: 74 },
+    ],
+  },
+  {
+    key: "constraints",
+    name: "Constraints",
+    categories: ["constraint", "investment_signal", "deadline"],
+    artifacts: [
+      { key: "deadlines", label: "Critical dates", confidence: 76, stepKey: "deadlines" },
+      { key: "investment", label: "Investment guardrails", confidence: 74, stepKey: "investment" },
+      { key: "gap_map", label: "Gap map", confidence: 72, stepKey: "gap-map" },
+    ],
+  },
+  {
+    key: "risks",
+    name: "Risks",
+    categories: ["risk", "constraint"],
+    artifacts: [
+      { key: "gap_map", label: "Risk and gap map", confidence: 78, stepKey: "gap-map" },
+      { key: "point_a", label: "Current-state diagnosis", confidence: 74, stepKey: "point-a" },
+      { key: "spirit_first", label: "Trust deficits", confidence: 72 },
+    ],
+  },
 ];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeUnderstandingConfidence(value: unknown): number {
+  const raw = typeof value === "number" && Number.isFinite(value) ? value : 0;
+  const scaled = raw > 0 && raw <= 1 ? raw * 100 : raw;
+  return Math.max(0, Math.min(100, Math.round(scaled)));
+}
+
+function cleanUnderstandingText(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.replace(/\s+/g, " ").trim();
+  if (!text || text === "—") return null;
+  return text;
+}
+
+function collectUnderstandingText(value: unknown, limit = 8): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const skipKeys = new Set([
+    "id",
+    "project_id",
+    "client_id",
+    "source_id",
+    "created_at",
+    "updated_at",
+    "confidence",
+    "status",
+  ]);
+
+  const visit = (node: unknown, depth: number) => {
+    if (out.length >= limit || depth > 5) return;
+    const text = cleanUnderstandingText(node);
+    if (text) {
+      const normalized = text.toLowerCase();
+      if (!seen.has(normalized)) {
+        seen.add(normalized);
+        out.push(text);
+      }
+      return;
+    }
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item, depth + 1);
+      return;
+    }
+    if (isRecord(node)) {
+      for (const [key, child] of Object.entries(node)) {
+        if (skipKeys.has(key)) continue;
+        visit(child, depth + 1);
+      }
+    }
+  };
+
+  visit(value, 0);
+  return out;
+}
+
+function understandingHeadline(text: string): string {
+  const sentence =
+    text
+      .split(/(?<=[.!?])\s+/)
+      .find((part) => part.trim().length >= 8)
+      ?.trim() ?? text;
+  return sentence.length > 118 ? `${sentence.slice(0, 115).trim()}...` : sentence;
+}
+
+function summarizeUnderstandingSources(rows: unknown[]): unknown[] {
+  return rows
+    .map((row) => {
+      if (!isRecord(row)) return null;
+      const raw = cleanUnderstandingText(row.raw_text);
+      const url = cleanUnderstandingText(row.url);
+      const name = cleanUnderstandingText(row.name) ?? "Source";
+      const type = cleanUnderstandingText(row.type) ?? "source";
+      const text = raw ?? url;
+      if (!text) return null;
+      return {
+        name,
+        type,
+        summary: text.length > 360 ? `${text.slice(0, 357).trim()}...` : text,
+      };
+    })
+    .filter(Boolean);
+}
+
+function artifactSignalsForArea(args: {
+  areaKey: string;
+  artifactKey: UnderstandingArtifactKey;
+  artifactLabel: string;
+  artifactValue: unknown;
+  confidence: number;
+  createdAt: string;
+}): UnderstandingSignal[] {
+  const texts = collectUnderstandingText(args.artifactValue, 3);
+  return texts.map((text, index) => ({
+    id: `${args.areaKey}-${args.artifactKey}-${index}`,
+    label: `${args.artifactLabel}: ${understandingHeadline(text)}`,
+    detail: text,
+    confidence: args.confidence,
+    category: args.artifactKey,
+    created_at: args.createdAt,
+  }));
+}
 
 export const getUnderstandingRoom = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -1520,13 +1925,52 @@ export const getUnderstandingRoom = createServerFn({ method: "GET" })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
 
+    const { data: project, error: projectError } = await sb
+      .from("engine_projects")
+      .select(
+        "id,name,updated_at,step_states,point_a,point_b,hidden_assets,gap_map,blueprint,roadmap,sequencing,deadlines,investment,client_preview,spirit_first_analysis, engine_clients(company,industry,primary_contact,owner_email,notes)",
+      )
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (projectError) {
+      throw new Error(
+        (projectError as { message?: string }).message ?? "understanding project fetch failed",
+      );
+    }
+    const projectRow = (project ?? {}) as Record<string, unknown>;
+    const clientRow = isRecord(projectRow.engine_clients) ? projectRow.engine_clients : {};
+    const stepStates = isRecord(projectRow.step_states)
+      ? (projectRow.step_states as Record<string, { state?: string }>)
+      : {};
+    const projectUpdatedAt =
+      cleanUnderstandingText(projectRow.updated_at) ?? new Date().toISOString();
+
+    const { data: sourceRows } = await sb
+      .from("engine_sources")
+      .select("id,name,type,url,raw_text,status,created_at,updated_at")
+      .eq("project_id", data.projectId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
     const { data: sigs } = await sb
       .from("engine_extracted_signals")
       .select("id,label,detail,confidence,category,created_at")
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
 
-    const signals = (sigs ?? []) as UnderstandingSignal[];
+    const signals = (
+      (sigs ?? []) as Array<{
+        id: string;
+        label: string;
+        detail: string | null;
+        confidence: number | null;
+        category: string;
+        created_at: string;
+      }>
+    ).map((s) => ({
+      ...s,
+      confidence: normalizeUnderstandingConfidence(s.confidence),
+    }));
 
     const { data: openQs } = await sb
       .from("engine_extracted_signals")
@@ -1536,9 +1980,70 @@ export const getUnderstandingRoom = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(20);
 
+    const sourceSummary = summarizeUnderstandingSources((sourceRows ?? []) as unknown[]);
+    const artifacts: Record<UnderstandingArtifactKey, unknown> = {
+      client: clientRow,
+      point_a: projectRow.point_a,
+      point_b: projectRow.point_b,
+      hidden_assets: projectRow.hidden_assets,
+      gap_map: projectRow.gap_map,
+      blueprint: projectRow.blueprint,
+      roadmap: projectRow.roadmap,
+      sequencing: projectRow.sequencing,
+      deadlines: projectRow.deadlines,
+      investment: projectRow.investment,
+      client_preview: projectRow.client_preview,
+      spirit_first: projectRow.spirit_first_analysis,
+      sources: sourceSummary,
+    };
+
     const areas: UnderstandingArea[] = AREA_DEFS.map((def) => {
       const matched = signals.filter((s) => def.categories.includes(s.category));
+      const artifactSignals = def.artifacts.flatMap((artifact) => {
+        const state = artifact.stepKey ? stepStates[artifact.stepKey]?.state : null;
+        const confidence = state === "approved" ? 92 : artifact.confidence;
+        return artifactSignalsForArea({
+          areaKey: def.key,
+          artifactKey: artifact.key,
+          artifactLabel: artifact.label,
+          artifactValue: artifacts[artifact.key],
+          confidence,
+          createdAt: projectUpdatedAt,
+        });
+      });
+      const combined = [...matched, ...artifactSignals].slice(0, 12);
+
       if (matched.length === 0) {
+        if (combined.length > 0) {
+          const avgConf = Math.round(
+            combined.reduce((sum, s) => sum + s.confidence, 0) / combined.length,
+          );
+          const summary = combined
+            .slice(0, 3)
+            .map((s) => s.label)
+            .join(" · ");
+          const last_updated =
+            combined
+              .map((s) => s.created_at)
+              .sort()
+              .reverse()[0] ?? projectUpdatedAt;
+          const hasApprovedArtifact = def.artifacts.some(
+            (artifact) => artifact.stepKey && stepStates[artifact.stepKey]?.state === "approved",
+          );
+          return {
+            key: def.key,
+            name: def.name,
+            state: hasApprovedArtifact
+              ? ("approved" as UnderstandingState)
+              : avgConf >= 75
+                ? ("known" as UnderstandingState)
+                : ("inferred" as UnderstandingState),
+            confidence: avgConf,
+            summary,
+            signals: combined.slice(0, 8),
+            last_updated,
+          };
+        }
         return {
           key: def.key,
           name: def.name,
@@ -1550,18 +2055,31 @@ export const getUnderstandingRoom = createServerFn({ method: "GET" })
         };
       }
       const avgConf = Math.round(
-        matched.reduce((sum, s) => sum + (s.confidence ?? 0), 0) / matched.length,
+        combined.reduce((sum, s) => sum + (s.confidence ?? 0), 0) / combined.length,
       );
       let state: UnderstandingState = "inferred";
-      if (avgConf >= 85) state = "known";
+      const hasApprovedArtifact = def.artifacts.some(
+        (artifact) => artifact.stepKey && stepStates[artifact.stepKey]?.state === "approved",
+      );
+      const hasOpenQuestion = matched.some((s) => s.category === "open_question");
+      const hasContradiction = matched.some((s) =>
+        `${s.label} ${s.detail ?? ""}`.toLowerCase().match(/\b(contradict|conflict|disagree)\b/),
+      );
+      if (hasApprovedArtifact) state = "approved";
+      else if (hasContradiction) state = "contradictory";
+      else if (hasOpenQuestion) state = "needs_confirmation";
+      else if (avgConf >= 85) state = "known";
       else if (avgConf >= 70) state = "inferred";
       else if (avgConf >= 40) state = "needs_confirmation";
       else state = "assumed";
 
-      const top = matched.slice(0, 3);
+      const top = combined.slice(0, 3);
       const summary = top.map((s) => s.label).join(" · ");
       const last_updated =
-        matched.map((s) => s.created_at).sort().reverse()[0] ?? null;
+        combined
+          .map((s) => s.created_at)
+          .sort()
+          .reverse()[0] ?? null;
 
       return {
         key: def.key,
@@ -1569,7 +2087,7 @@ export const getUnderstandingRoom = createServerFn({ method: "GET" })
         state,
         confidence: avgConf,
         summary,
-        signals: matched.slice(0, 8),
+        signals: combined.slice(0, 8),
         last_updated,
       };
     });
@@ -1644,4 +2162,3 @@ export const getUnderstandingRoom = createServerFn({ method: "GET" })
       recommendations: recommendations.slice(0, 5),
     };
   });
-
