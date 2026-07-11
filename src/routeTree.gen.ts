@@ -85,6 +85,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as EngineProjectsProjectIdUnderstandingRoomRouteImport } from './routes/engine.projects.$projectId.understanding-room'
 import { Route as EngineProjectsProjectIdSpiritFirstRouteImport } from './routes/engine.projects.$projectId.spirit-first'
 import { Route as EngineProjectsProjectIdSpineRouteImport } from './routes/engine.projects.$projectId.spine'
 import { Route as EngineProjectsProjectIdSignalRoomRouteImport } from './routes/engine.projects.$projectId.signal-room'
@@ -505,6 +506,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngineProjectsProjectIdUnderstandingRoomRoute =
+  EngineProjectsProjectIdUnderstandingRoomRouteImport.update({
+    id: '/understanding-room',
+    path: '/understanding-room',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdSpiritFirstRoute =
   EngineProjectsProjectIdSpiritFirstRouteImport.update({
     id: '/spirit-first',
@@ -809,6 +816,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
+  '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -915,6 +923,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
+  '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1028,6 +1037,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
+  '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1140,6 +1150,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
+    | '/engine/projects/$projectId/understanding-room'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1246,6 +1257,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
+    | '/engine/projects/$projectId/understanding-room'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1358,6 +1370,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
+    | '/engine/projects/$projectId/understanding-room'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1945,6 +1958,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engine/projects/$projectId/understanding-room': {
+      id: '/engine/projects/$projectId/understanding-room'
+      path: '/understanding-room'
+      fullPath: '/engine/projects/$projectId/understanding-room'
+      preLoaderRoute: typeof EngineProjectsProjectIdUnderstandingRoomRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/spirit-first': {
       id: '/engine/projects/$projectId/spirit-first'
       path: '/spirit-first'
@@ -2298,6 +2318,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdSignalRoomRoute: typeof EngineProjectsProjectIdSignalRoomRoute
   EngineProjectsProjectIdSpineRoute: typeof EngineProjectsProjectIdSpineRoute
   EngineProjectsProjectIdSpiritFirstRoute: typeof EngineProjectsProjectIdSpiritFirstRoute
+  EngineProjectsProjectIdUnderstandingRoomRoute: typeof EngineProjectsProjectIdUnderstandingRoomRoute
   EngineProjectsProjectIdVersionsCompareRoute: typeof EngineProjectsProjectIdVersionsCompareRoute
   EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
 }
@@ -2348,6 +2369,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdSpineRoute: EngineProjectsProjectIdSpineRoute,
     EngineProjectsProjectIdSpiritFirstRoute:
       EngineProjectsProjectIdSpiritFirstRoute,
+    EngineProjectsProjectIdUnderstandingRoomRoute:
+      EngineProjectsProjectIdUnderstandingRoomRoute,
     EngineProjectsProjectIdVersionsCompareRoute:
       EngineProjectsProjectIdVersionsCompareRoute,
     EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute:
