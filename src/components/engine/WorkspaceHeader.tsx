@@ -22,6 +22,7 @@ import {
   Truck,
   ChevronDown,
   MoreHorizontal,
+  BrainCircuit,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
