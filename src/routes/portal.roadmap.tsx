@@ -3,7 +3,6 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   useSuspenseQuery,
   queryOptions,
-  useMutation,
 } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -19,8 +18,8 @@ import { targetBounds } from "@/components/portal/roadmap/roadmap-layout";
 import { DEMO_ROADMAP_RAW, DEMO_PROJECT } from "@/lib/portal-roadmap-demo-fixture";
 import { usePortalContext } from "@/hooks/use-portal-context";
 import { Button } from "@/components/ui/button";
+import { RoadmapAcknowledgmentBanner } from "@/components/portal/RoadmapAcknowledgmentBanner";
 import {
-  CheckCircle2,
   Loader2,
   Download,
   Calendar,
@@ -324,6 +323,10 @@ function RoadmapJourneyView({
     ctx.data && "project" in ctx.data ? ctx.data.project?.id : undefined;
   const authorEmail =
     ctx.data && "email" in ctx.data ? ctx.data.email : undefined;
+  const acknowledgedAt =
+    ctx.data && "approvedRoadmap" in ctx.data
+      ? ctx.data.approvedRoadmap?.acknowledged_at ?? null
+      : null;
   const schedulingUrl =
     ctx.data && "project" in ctx.data
       ? (ctx.data.project as { scheduling_url?: string | null } | null | undefined)
@@ -500,6 +503,19 @@ function RoadmapJourneyView({
           onBookCall={() => setHeaderBookOpen(true)}
         />
       }
+      banner={
+        portalRoadmapId && projectId && authorEmail ? (
+          <RoadmapAcknowledgmentBanner
+            portalRoadmapId={portalRoadmapId}
+            projectId={projectId}
+            clientEmail={authorEmail}
+            acknowledgedAt={acknowledgedAt}
+            onAcknowledged={() => {
+              void ctx.refetch();
+            }}
+          />
+        ) : null
+      }
       canvas={
         !hasRealMilestones ? (
           <div className="m-6 rounded-2xl bg-card border border-border p-8 lg:p-10 text-center">
@@ -542,7 +558,6 @@ function RoadmapJourneyView({
       below={
         <>
           <SupportingContext journey={journey} />
-          <AcknowledgeBlock ctx={ctx} portalRoadmapId={portalRoadmapId} />
           {olderDocs.length > 0 && (
             <div className="rounded-2xl bg-card border border-border p-6">
               <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal mb-3">
@@ -609,11 +624,13 @@ function RoadmapJourneyView({
  */
 function RoadmapViewport({
   header,
+  banner,
   canvas,
   below,
   children,
 }: {
   header: React.ReactNode;
+  banner?: React.ReactNode;
   canvas: React.ReactNode;
   below?: React.ReactNode;
   children?: React.ReactNode;
@@ -627,8 +644,11 @@ function RoadmapViewport({
         <div className="shrink-0 border-b border-ink/10 bg-white px-4 sm:px-6 lg:px-8 py-3">
           {header}
         </div>
-        <div className="flex-1 min-h-0 relative px-3 sm:px-4 lg:px-6 py-3">
-          {canvas}
+        <div className="flex flex-1 min-h-0 flex-col gap-3 px-3 py-3 sm:px-4 lg:px-6">
+          {banner ? <div className="shrink-0">{banner}</div> : null}
+          <div className="relative flex-1 min-h-0">
+            {canvas}
+          </div>
         </div>
       </section>
       {below && (
@@ -1306,75 +1326,6 @@ function SupportingContext({
   );
 }
 
-function AcknowledgeBlock({
-  ctx,
-  portalRoadmapId,
-}: {
-  ctx: ReturnType<typeof usePortalContext>;
-  portalRoadmapId: string | undefined;
-}) {
-  const acknowledgedAt =
-    ctx.data && "approvedRoadmap" in ctx.data
-      ? ctx.data.approvedRoadmap?.acknowledged_at
-      : null;
-  const recordEvent = useServerFn(recordPortalRoadmapEvent);
-  const [ackConfirm, setAckConfirm] = useState(false);
-  const ackMut = useMutation({
-    mutationFn: () =>
-      recordEvent({
-        data: { roadmapId: portalRoadmapId!, event: "acknowledged" },
-      }),
-    onSuccess: () => ctx.refetch(),
-  });
-  if (!portalRoadmapId) return null;
-  return (
-    <div className="rounded-2xl bg-card border border-border p-6 lg:p-8">
-      {acknowledgedAt ? (
-        <div className="flex items-center gap-2 text-sm text-[#1f6b3b]">
-          <CheckCircle2 className="w-4 h-4" />
-          Roadmap acknowledged on{" "}
-          {new Date(acknowledgedAt).toLocaleDateString()}. Tai has been
-          notified.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-            Acknowledge roadmap
-          </div>
-          <label className="flex items-start gap-2 text-sm text-ink/80">
-            <input
-              type="checkbox"
-              checked={ackConfirm}
-              onChange={(e) => setAckConfirm(e.target.checked)}
-              className="mt-1 accent-royal"
-            />
-            <span>
-              I've read the approved roadmap and I'm ready to move into
-              execution.
-            </span>
-          </label>
-          <Button
-            disabled={!ackConfirm || ackMut.isPending}
-            onClick={() => ackMut.mutate()}
-            className="bg-ink hover:bg-ink/90 text-white"
-          >
-            {ackMut.isPending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-            )}
-            Acknowledge roadmap
-          </Button>
-          {ackMut.isError && (
-            <p className="text-xs text-[#a4283c]">
-              Could not record acknowledgement. Please try again.
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // -------------------- Visual demo mode --------------------
 // Rendered when the URL contains `?__visual=demo`. Zero server calls, zero
