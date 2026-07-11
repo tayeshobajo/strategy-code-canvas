@@ -49,7 +49,9 @@ export function WorkspaceBreadcrumb({
 }) {
   return (
     <nav aria-label="Breadcrumb" className="text-sm text-ink/60 flex items-center gap-2 flex-wrap">
-      <Link to="/engine/projects" className="hover:text-ink">Projects</Link>
+      <Link to="/engine/projects" className="hover:text-ink">
+        Projects
+      </Link>
       <span className="text-ink/30">/</span>
       <Link
         to="/engine/projects/$projectId/overview"
@@ -84,16 +86,44 @@ export function ProjectHeaderStrip({ project }: { project: WorkspaceProject }) {
             <div className="text-xs text-ink/60 mt-1">
               {project.client_company}
               {project.client_owner_email ? (
-                <> · Project Owner: <span className="text-ink/80">{project.client_owner_email}</span></>
+                <>
+                  {" "}
+                  · Project Owner: <span className="text-ink/80">{project.client_owner_email}</span>
+                </>
               ) : null}
-              <> · Last updated: {new Date(project.last_activity_at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</>
+              <>
+                {" "}
+                · Last updated:{" "}
+                {new Date(project.last_activity_at).toLocaleString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-6 flex-wrap">
-          <Metric label="Signals" value={project.signal_count.toString()} hint="All sources" tone="blue" />
-          <Metric label="Health Score" value={`${project.health_score}`} hint="Out of 100" tone="amber" />
-          <Metric label="Progress" value={`${project.progress_pct}%`} hint="Complete" tone="green" />
+          <Metric
+            label="Signals"
+            value={project.signal_count.toString()}
+            hint="All sources"
+            tone="blue"
+          />
+          <Metric
+            label="Health Score"
+            value={`${project.health_score}`}
+            hint="Out of 100"
+            tone="amber"
+          />
+          <Metric
+            label="Progress"
+            value={`${project.progress_pct}%`}
+            hint="Complete"
+            tone="green"
+          />
           <button
             type="button"
             className="inline-flex items-center gap-2 text-sm text-ink border border-border rounded-md px-3 py-1.5 hover:border-royal/50"
@@ -126,9 +156,7 @@ function Metric({
     <div className="flex items-center gap-2">
       <span className={cn("w-2 h-2 rounded-full shrink-0", dot[tone])} />
       <div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">
-          {label}
-        </div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">{label}</div>
         <div className="text-lg font-display text-ink leading-none">{value}</div>
         <div className="text-[10px] text-ink/50 mt-0.5">{hint}</div>
       </div>
@@ -141,14 +169,27 @@ type NavEntry = { key: string; label: string; suffix: string; icon: Icon };
 
 const ALL_NAV: Record<string, NavEntry> = {
   overview: { key: "overview", label: "Overview", suffix: "overview", icon: LayoutDashboard },
-  intelligence: { key: "intelligence", label: "Intelligence", suffix: "intelligence-layer", icon: Sparkles },
-  understanding: { key: "understanding", label: "Understanding", suffix: "understanding-room", icon: BrainCircuit },
+  intelligence: {
+    key: "intelligence",
+    label: "Intelligence",
+    suffix: "intelligence-layer",
+    icon: Sparkles,
+  },
+  understanding: {
+    key: "understanding",
+    label: "Understanding",
+    suffix: "understanding-room",
+    icon: BrainCircuit,
+  },
   roadmap: { key: "roadmap", label: "Roadmap", suffix: "builder", icon: Map },
   delivery: { key: "delivery", label: "Delivery", suffix: "delivery", icon: Truck },
   chat: { key: "chat", label: "Chat", suffix: "chat", icon: MessageCircle },
 };
 
-const MORE_SECTIONS: Array<{ heading: string; items: Array<{ label: string; suffix: string; icon: Icon }> }> = [
+const MORE_SECTIONS: Array<{
+  heading: string;
+  items: Array<{ label: string; suffix: string; icon: Icon }>;
+}> = [
   {
     heading: "Intelligence",
     items: [
@@ -196,20 +237,24 @@ function hasKeys(v: unknown): boolean {
 }
 
 function primaryNavFor(project: WorkspaceProject): NavEntry[] {
-  const hasSignals = project.signal_count > 0 || hasKeys(project.signal_room) || hasKeys(project.extraction);
+  const hasSignals =
+    project.signal_count > 0 || hasKeys(project.signal_room) || hasKeys(project.extraction);
   const hasRoadmapDraft = !!project.roadmap_version || hasKeys(project.roadmap);
   const hasApproved = !!project.approved_version;
   const hasDelivery = hasKeys(project.delivery) || hasKeys(project.client_preview);
+  const stage =
+    hasApproved || hasDelivery || project.current_step_num >= 13
+      ? 4
+      : hasRoadmapDraft || project.current_step_num >= 9
+        ? 3
+        : hasSignals || project.current_step_num >= 4
+          ? 2
+          : 1;
 
-  const items: NavEntry[] = [ALL_NAV.overview];
-  if (hasApproved || hasDelivery) {
-    items.push(ALL_NAV.understanding, ALL_NAV.roadmap, ALL_NAV.delivery);
-    if (!hasApproved) items.splice(1, 0, ALL_NAV.intelligence);
-  } else if (hasSignals || hasRoadmapDraft) {
-    items.push(ALL_NAV.intelligence, ALL_NAV.understanding, ALL_NAV.roadmap);
-  } else {
-    items.push(ALL_NAV.intelligence, ALL_NAV.understanding);
-  }
+  const items: NavEntry[] = [ALL_NAV.overview, ALL_NAV.intelligence];
+  if (stage >= 2) items.push(ALL_NAV.understanding);
+  if (stage >= 3) items.push(ALL_NAV.roadmap);
+  if (stage >= 4) items.push(ALL_NAV.delivery);
   items.push(ALL_NAV.chat);
   return items.slice(0, 6);
 }
@@ -248,9 +293,7 @@ export function WorkspaceToolbar({
               data-qa-nav={item.key}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] transition-colors",
-                active
-                  ? "bg-ink text-paper"
-                  : "text-ink/70 hover:text-ink hover:bg-ink/5",
+                active ? "bg-ink text-paper" : "text-ink/70 hover:text-ink hover:bg-ink/5",
               )}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -258,11 +301,7 @@ export function WorkspaceToolbar({
             </Link>
           );
         })}
-        <MoreMenu
-          projectId={projectId}
-          pathname={pathname}
-          hidden={primarySuffixes}
-        />
+        <MoreMenu projectId={projectId} pathname={pathname} hidden={primarySuffixes} />
         <Link
           to="/engine/projects/$projectId/signal-room"
           params={{ projectId }}
@@ -299,12 +338,7 @@ export function WorkspaceToolbar({
             );
           })}
           <li>
-            <MoreMenu
-              projectId={projectId}
-              pathname={pathname}
-              hidden={primarySuffixes}
-              mobile
-            />
+            <MoreMenu projectId={projectId} pathname={pathname} hidden={primarySuffixes} mobile />
           </li>
         </ul>
       </nav>
@@ -348,19 +382,14 @@ function MoreMenu({
             type="button"
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] transition-colors",
-              anyActive
-                ? "bg-ink/10 text-ink"
-                : "text-ink/70 hover:text-ink hover:bg-ink/5",
+              anyActive ? "bg-ink/10 text-ink" : "text-ink/70 hover:text-ink hover:bg-ink/5",
             )}
           >
             More <ChevronDown className="w-3.5 h-3.5" />
           </button>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-64 max-h-[70vh] overflow-y-auto"
-      >
+      <DropdownMenuContent align="end" className="w-64 max-h-[70vh] overflow-y-auto">
         {MORE_SECTIONS.map((section, idx) => {
           const items = section.items.filter((i) => !hidden.has(i.suffix));
           if (items.length === 0) return null;
@@ -401,4 +430,3 @@ function MoreMenu({
     </DropdownMenu>
   );
 }
-
