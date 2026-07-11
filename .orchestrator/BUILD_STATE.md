@@ -10,8 +10,8 @@
 | # | Phase ID | Description | Status | Output File |
 |---|---|---|---|---|
 | 1 | 2C | Proposed Change Flow — wire ProposalCard into chat route, add approve/reject mutations | ✅ COMPLETE | phase-2c-output.md |
-| 2 | 6C | Client Acknowledgment Flow — client formally acks roadmap before phases begin | 🔴 NOT STARTED | phase-6c-output.md |
-| 3 | 13B | Portal as downstream-only — enforce approval boundary at data layer | 🔴 NOT STARTED | phase-13b-output.md |
+| 2 | 6C | Client Acknowledgment Flow — client formally acks roadmap before phases begin | ✅ COMPLETE | phase-6c-output.md |
+| 3 | 13B | Portal as downstream-only — enforce approval boundary at data layer | 🟡 IN PROGRESS | phase-13b-output.md |
 | 4 | 4B | Spine Governance — version history, diff view, change audit trail | 🔴 NOT STARTED | phase-4b-output.md |
 | 5 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | 🔴 NOT STARTED | phase-6b-output.md |
 | 6 | 9B | Evidence Requirements Enforcement — block milestone completion without evidence | 🔴 NOT STARTED | phase-9b-output.md |
@@ -50,6 +50,7 @@ Any migration that needs Tai review before applying goes here.
 | Phase | Description | Completed | Notes |
 |---|---|---|---|
 | 2C | Proposed Change Flow — ProposalCard wired, approveChatProposal built | 2026-07-11 | approveChatProposal server fn + ChatMessageProposals committed |
+| 6C | Client Acknowledgment Flow — server fn + portal gate component | 2026-07-11 | Version-locked acknowledgment stored in engine_activity, execution gate updated, engine_projects migration queued for Tai review. |
 
 ---
 
@@ -61,3 +62,5 @@ Any migration that needs Tai review before applying goes here.
 | 2026-07-11 17:07 CDT | 2C | Verified complete | ProposalCard fully wired in chat route. approveChatProposal built with full type dispatch, audit trail, downstream writes. |
 | 2026-07-11 17:07 CDT | 6C | Starting | Client Acknowledgment Flow |
 | 2026-07-11 17:10 CDT | 2C | Tracker updated | Source commit recorded for approveChatProposal server fn + ChatMessageProposals component. |
+| 2026-07-11 17:22 CDT | 6C | COMPLETE | Client Acknowledgment Flow — server fn + UI gate component committed |
+| 2026-07-11 17:23 CDT | 13B | Starting | Portal as downstream-only — enforce approval boundary at data layer. |
