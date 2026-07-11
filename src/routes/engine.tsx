@@ -237,7 +237,10 @@ const PROJECT_SUBPAGE_LABELS: Record<string, string> = {
   blueprint: "Blueprint",
   investment: "Investment",
   deadlines: "Deadlines",
-  builder: "Roadmap Builder",
+  builder: "Roadmap",
+  plans: "Plans & Specs",
+  "understanding-room": "Understanding Room",
+  spine: "Project Spine",
   preview: "Client Preview",
   delivery: "Delivery Prep",
   agent: "Agent",
@@ -248,6 +251,7 @@ const PROJECT_SUBPAGE_LABELS: Record<string, string> = {
   compare: "Compare",
   milestones: "Milestones",
   brief: "Brief",
+  chat: "Captain Chat",
 };
 
 function titleFromSlug(slug: string): string {
