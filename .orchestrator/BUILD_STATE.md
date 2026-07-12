@@ -1,7 +1,7 @@
 # BUILD_STATE.md — Autonomous Build Loop Tracker
 
 > Captain reads and updates this file every build cycle.
-> Last updated: 2026-07-12 08:54 CDT
+> Last updated: 2026-07-12 12:06 CDT
 
 ---
 
@@ -30,8 +30,8 @@
 | 11 | 11B | Exception-Based Management — surface only what needs human attention at scale | ✅ COMPLETE | phase-11b-output.md |
 | 12 | 11C | Drift Detection — compare project state to approved Spine continuously | ✅ COMPLETE | phase-11c-output.md |
 | 13 | 5B | Roadmap Intelligence Layer — milestones explain themselves | ✅ COMPLETE | phase-5b-output.md |
-| 14 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 🔴 NOT STARTED | phase-7b-output.md |
-| 15 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | 🔴 NOT STARTED | phase-10c-output.md |
+| 14 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | ✅ COMPLETE | phase-7b-output.md |
+| 15 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | ✅ COMPLETE | phase-10c-output.md |
 | 16 | 9C | AI Self-Assessment Prevention — DB constraint (MIGRATION ONLY — write to PENDING_MIGRATIONS.md) | 🔴 NOT STARTED | phase-9c-output.md |
 | 17 | 8E | Context Inheritance — every execution packet carries the full chain: intake → understanding → mockup → spine → spec | 🔴 NOT STARTED | phase-8e-output.md |
 | 18 | 8F | Stage Transition Engine — automated handoffs between stages, right actor notified, no manual advancement | 🔴 NOT STARTED | phase-8f-output.md |
@@ -74,8 +74,10 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 9B | Evidence Requirements Enforcement — cross-project admin dashboard | 2026-07-12 | Direct commit 58c69cb9. getWorkspaceEvidenceReport() server fn + admin.evidence-enforcement.tsx + nav wired. No migrations. Batched 3-query cross-project report. |
 | 10B | Delivery Readiness Gate — cross-project build packet acceptance gate | 2026-07-12 | Direct commit d4154373. 3 files: engine-delivery-readiness-gate.functions.ts, admin.delivery-readiness-gate.tsx, admin.tsx (nav updated). No migrations. 3 batched queries. |
 | 11B | Exception-Based Management — cross-project exception board | 2026-07-12 | Direct commit 21d242fb. 3 files: engine-exception-management.functions.ts, admin.exception-management.tsx, admin.tsx (nav updated). No migrations. 8 exception categories, 4 batched queries, sorted by severity. Exception board placed first in admin nav. Next: 11C (Drift Detection). |
-| 11C | Drift Detection — continuous spine vs project state comparison | 2026-07-12 | Direct commit 3ea3f6e5. 3 files: engine-drift-detection.functions.ts, admin.drift-detection.tsx, admin.tsx (nav updated). No migrations. 6 drift signal categories, drift score per project, read-only diagnostic surface. Next: 5B (Roadmap Intelligence). |
-| 5B | Roadmap Intelligence Layer — milestone self-explanation cross-project admin view | 2026-07-12 | Direct commit bc0b5ac4. 2 files: admin.roadmap-intelligence.tsx (full rewrite), admin.tsx (Brain icon + nav entry). No migrations. WHY/WHERE/WHAT/RISKS/WHO inline expand cards, workspace summary bar, low-intelligence filter, lazy drill-down via getMilestoneIntelligence. |
+| 11C | Drift Detection — continuous spine vs project state comparison | 2026-07-12 | Direct commit 3ea3f6e5. 3 files: engine-drift-detection.functions.ts, admin.drift-detection.tsx, admin.tsx (nav updated). No migrations. 6 drift signal categories, drift score 0-100 per project. Read-only diagnostic, never auto-corrects. Next: 5B (Roadmap Intelligence). |
+| 5B | Roadmap Intelligence Layer — milestone self-explanation cross-project admin view | 2026-07-12 | Direct commit bc0b5ac4. 2 files: admin.roadmap-intelligence.tsx (full rewrite with WHY/WHERE/WHAT/RISKS/WHO expand cards, workspace summary bar, low-intelligence filter), admin.tsx (Brain icon + nav entry). No migrations. Lazy getMilestoneIntelligence drill-down. |
+| 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 2026-07-12 | Files already existed: engine-plan-depth.functions.ts + admin.plan-depth.tsx + nav (Layers icon). BUILD_STATE was not updated in the build cycle that wrote them. 7 depth dimensions, 0-100 score, shallow/partial/sufficient levels. No migrations. |
+| 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90-day check-ins | 2026-07-12 | Direct commit dd625438. 3 files: engine-post-delivery-learning.functions.ts, admin.post-delivery-learning.tsx, admin.tsx (TrendingUp + nav entry). No migrations. 4 server fns: getPostDeliveryLearningReport, getProjectDeliverySurveys, recordOutcomeSurvey, skipCheckIn. Stores outcomes in engine_activity. |
 
 ---
 
@@ -105,3 +107,5 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 2026-07-12 07:50 CDT | 11B | COMPLETE | Exception Management committed. Commit 21d242fb. 3 files: engine-exception-management.functions.ts, admin.exception-management.tsx, admin.tsx (nav updated). No migrations. 8 exception categories, 4 batched queries, sorted by severity. Exception board is now first in admin nav. Next: 11C (Drift Detection). |
 | 2026-07-12 08:43 CDT | 11C | COMPLETE | Drift Detection committed. Commit 3ea3f6e5. 3 files: engine-drift-detection.functions.ts, admin.drift-detection.tsx, admin.tsx (nav updated). No migrations. 6 drift signal categories (deliverable_orphaned, milestone_count_exceeded, spine_changed_post_proposal, scope_ahead_of_spine, undecided_spine, spine_stale), drift score 0-100 per project. Read-only diagnostic, never auto-corrects. Next: 5B (Roadmap Intelligence Layer). |
 | 2026-07-12 08:54 CDT | 5B | COMPLETE | Roadmap Intelligence Layer committed. Commit bc0b5ac4. 2 files: admin.roadmap-intelligence.tsx (full rewrite with WHY/WHERE/WHAT/RISKS/WHO expand cards, workspace summary bar, low-intelligence filter), admin.tsx (Brain icon + nav entry). No migrations. Lazy getMilestoneIntelligence drill-down. Next: 7B (Plan Depth and Completeness). |
+| 2026-07-12 12:06 CDT | 7B | COMPLETE (retroactive) | engine-plan-depth.functions.ts + admin.plan-depth.tsx were already committed in a prior cycle. BUILD_STATE not updated. Marking complete now. Files existed: 7 depth dimensions (user_journey, sitemap, data_model, spec_depth, qa_plan, mockup_coverage, backend_plan), 0-100 score. No migrations. |
+| 2026-07-12 12:06 CDT | 10C | COMPLETE | Post-Delivery Learning Loop committed. Commit dd625438. 3 files: engine-post-delivery-learning.functions.ts, admin.post-delivery-learning.tsx, admin.tsx (TrendingUp icon + nav entry). No migrations. 4 server fns. Outcomes stored in engine_activity as outcome_survey_submitted / outcome_check_in_skipped. 30/60/90-day check-in schedule derived from published_at. Next: 9C (MIGRATION ONLY — write SQL to PENDING_MIGRATIONS.md). |
