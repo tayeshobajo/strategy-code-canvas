@@ -1,57 +1,80 @@
-# Get the project fully green
+# Phase 6C acknowledgment migration — recommendation
 
-Items 2, 3, and 4 from your list are already fixed in the previous turn (the four targeted errors — `JSX.Element`, Lucide `title` props, and `spine.sources` filter/length/some — no longer appear in `bunx tsgo --noEmit`).
+## TL;DR
+**Do not apply the proposed `ALTER TABLE engine_projects` migration.** The three columns it adds (`acknowledged_roadmap_version`, `acknowledged_at`, `acknowledged_by`) duplicate data that already lives on `client_portal_roadmaps`, and every current reader in the codebase is already using that existing surface. Adding a second copy on `engine_projects` will drift and create a "which one is truth?" bug.
 
-Running the full typecheck now surfaces **27 pre-existing TypeScript errors across 16 files**, all in the same family: TanStack Router link/navigate/redirect calls that don't match the generated route tree's typed search params. Test run is blocked until typecheck passes cleanly (item 1 can't be satisfied without addressing these).
+## What already exists in the DB
 
-## What's actually broken
+`public.client_portal_roadmaps` already stores exactly this concept:
 
-All 27 errors fall into 4 buckets:
+| Proposed on `engine_projects`      | Already on `client_portal_roadmaps`             |
+| ---------------------------------- | ----------------------------------------------- |
+| `acknowledged_roadmap_version TEXT`| `approved_roadmap_version_id UUID` (FK to `engine_roadmap_versions`) |
+| `acknowledged_at TIMESTAMPTZ`      | `acknowledged_at TIMESTAMPTZ`                   |
+| `acknowledged_by TEXT`             | `acknowledged_by_email TEXT`                    |
 
-**Bucket A — `redirect({ search: { redirect: "..." } })` missing `email`** (5 errors)
-The `/auth` route's `validateSearch` requires `{ email: string | undefined; redirect: string }`. Callers only pass `redirect`.
-- `src/routes/_authenticated/route.tsx:11`
-- `src/routes/engine.projects.$projectId.chat.tsx:45`
-- `src/routes/engine.tsx:38`
-- `src/routes/engine.tsx:102` (`navigate({ to: "/auth" })` missing `search` entirely)
-- `src/routes/ops/route.tsx:27`
+There is also `engine_delivery_items.client_acknowledged_at` / `client_acknowledged_by_email` as a secondary readout.
 
-Fix: `search: { redirect: "...", email: undefined }` (and add `search` to the bare `navigate({ to: "/auth" })`).
+## What the code already uses
 
-**Bucket B — `<Link to="/auth" | "/portal/messages" | "/portal/roadmap">` missing required `search`** (6 errors)
-Same root cause on the JSX side.
-- `src/components/portal/roadmap/BookCallModal.tsx:129`
-- `src/components/portal/roadmap/ClarificationModal.tsx:115`
-- `src/components/portal/roadmap/DecisionResponseModal.tsx:130`
-- `src/routes/forgot-password.tsx:91`
-- `src/routes/portal.home.tsx:102`
-- `src/routes/portal.messages.tsx` / `portal.roadmap.tsx` (same pattern)
+Every current reader points at `client_portal_roadmaps`, not `engine_projects`:
 
-Fix: add `search={{ email: undefined, redirect: "..." }}` or the minimal required search per target route.
+- `src/routes/portal.roadmap.tsx:338` — `ctx.data.approvedRoadmap?.acknowledged_at`
+- `src/routes/portal.home.tsx:398` — `data.approvedRoadmap?.acknowledged_at`
+- `src/lib/engine-execution.functions.ts` — reads `client_portal_roadmaps.acknowledged_at` / `acknowledged_by_email`
+- `src/lib/engine-chat-context.server.ts:915` — filters unacked via `is("acknowledged_at", null)` on the same source
+- Types in `src/integrations/supabase/types.ts` already reflect the `client_portal_roadmaps` shape
 
-**Bucket C — template-literal `to` on `<Link>` not assignable to route-tree union** (5 errors)
-`` to={`/engine/projects/${projectId}/foo`} `` is inferred as a plain string, not one of the generated route paths.
-- `src/components/engine/WorkspaceHeader.tsx:297, 333, 415`
-- `src/routes/admin.plan-depth.tsx:195`
-- `src/routes/admin.roadmap-intelligence.tsx:288, 370`
+No code reads `engine_projects.acknowledged_*`. Applying the migration adds three permanently-NULL columns that nothing writes to and nothing reads from.
 
-Fix: use `to="/engine/projects/$projectId/overview"` (etc.) with `params={{ projectId }}` — the typed-params pattern the router expects — instead of interpolating into the string.
+## Options for the acknowledgment feature
 
-**Bucket D — search-updater functions on `ops/insights` and stray `beforeLoad` return** (4 errors)
-- `src/routes/ops/insights.tsx:81, 83, 85` — `navigate({ search: (prev) => ({...}) })` without `from`/`to`, so `prev` widens to `Record<string, unknown>` and the returned shape misses required fields. Fix per `tanstack-type-safety`: use `Route.useNavigate()` + `to: "."` so the updater's type resolves.
-- `src/routes/checkout.walk.$pace.tsx:89` — `beforeLoad` typed as returning `never` but current body returns `void`. Fix: `throw redirect(...)` on the redirect path, otherwise return nothing (no early `return;` that widens the type).
+**Option A — Recommended: reject the migration, keep the single source on `client_portal_roadmaps`.**
+Everything already works. If a new engine-side surface (e.g. "acknowledged in the last N days" panel on the project workspace) needs it, add a read-only helper:
 
-## Plan
+```sql
+CREATE OR REPLACE VIEW public.engine_project_acknowledgments AS
+SELECT
+  ep.id                              AS project_id,
+  cpr.approved_roadmap_version_id    AS acknowledged_roadmap_version_id,
+  cpr.acknowledged_at,
+  cpr.acknowledged_by_email
+FROM public.engine_projects ep
+JOIN public.client_portal_roadmaps cpr
+  ON cpr.project_id = ep.client_portal_project_id
+WHERE cpr.acknowledged_at IS NOT NULL;
 
-1. Fix Bucket A (5 sites): add `email: undefined` to every `redirect({ to: "/auth", search: { ... } })` and add the missing `search` on the bare `navigate({ to: "/auth" })` in `engine.tsx`.
-2. Fix Bucket B (6 sites): add the required `search` prop to `<Link to="/auth" | "/portal/messages" | "/portal/roadmap">`.
-3. Fix Bucket C (6 sites): rewrite `` to={`/engine/projects/${id}/x`} `` as `to="/engine/projects/$projectId/x"` with `params={{ projectId: id }}`.
-4. Fix Bucket D (4 sites): scope the `ops/insights` navigates through `Route.useNavigate()` with `to: "."`; correct the `checkout.walk.$pace.tsx` `beforeLoad` return type.
-5. Re-run `bunx tsgo --noEmit` — expect 0 errors.
-6. Run `bunx vitest run` — report pass/fail. Fix any test regressions caused by the router changes (unlikely; the tests I added earlier are source-scan only).
+GRANT SELECT ON public.engine_project_acknowledgments TO authenticated, service_role;
+```
 
-## Out of scope
+Pros: no drift, no dual-write, no backfill. Cons: none for the current spec.
 
-- No behaviour changes, no route restructuring, no new routes.
-- No DB migrations.
-- No changes to auto-generated files (`routeTree.gen.ts`, Supabase client).
+**Option B — Apply the migration only if Phase 6C explicitly needs a project-level ack independent of the portal roadmap.**
+If (and only if) the requirement is "the internal engine has its own ack event that a project can carry without a published portal roadmap", then the columns are justified. In that case the shape should still be tightened:
+
+```sql
+ALTER TABLE public.engine_projects
+  ADD COLUMN IF NOT EXISTS acknowledged_roadmap_version_id UUID
+    REFERENCES public.engine_roadmap_versions(id),   -- FK, not free-text
+  ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS acknowledged_by_email TEXT; -- match the naming used elsewhere
+```
+
+Plus a CHECK that all three are set together (`(ack_at IS NULL) = (ack_by IS NULL) AND (ack_at IS NULL) = (ack_version IS NULL)`), and a follow-up code change to keep the two ack surfaces in sync (or explicitly mark one authoritative).
+
+**Option C — Apply the migration as written.**
+Not recommended. Free-text `acknowledged_roadmap_version` (no FK), free-text `acknowledged_by` (no `_email` suffix used everywhere else), no CHECK, no writers, no readers. Guaranteed drift.
+
+## My recommendation
+
+Go with **Option A**. Reject Phase 6C's proposed ALTER, close it out in `.orchestrator/PENDING_MIGRATIONS.md` with a note pointing to the existing `client_portal_roadmaps` columns, and — if a joined engine-side read is needed — I'll add the `engine_project_acknowledgments` view in a small follow-up migration.
+
+If Tai confirms Phase 6C genuinely needs a separate engine-level ack independent of the portal, I'll implement **Option B** (typed FK, matching `_email` naming, CHECK, and the sync path) instead.
+
+## What I'll do next (once you pick)
+
+- **Option A**: update `.orchestrator/PENDING_MIGRATIONS.md` to mark Phase 6C as "rejected — superseded by `client_portal_roadmaps.acknowledged_*`", optionally scaffold the view migration.
+- **Option B**: draft the tightened `ALTER` migration (FK + `_email` naming + CHECK) plus the app-side write path.
+- **Option C**: apply the migration as-written (only if you tell me to override the recommendation).
+
+Out of scope for this plan: Phase 4B (`engine_spine_versions`) and Phase 9C (AI self-assessment CHECKs) — those are separate items in the same doc and I'll write dedicated plans for them when you're ready.
