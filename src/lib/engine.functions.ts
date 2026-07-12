@@ -1772,6 +1772,46 @@ export type ProjectSpinePayload = {
   }>;
 };
 
+// Phase 4B: field-level history reader for approved spine changes.
+// Reads from engine_audit_log filtered to action='spine_field_changed',
+// which is what updateProjectStep now writes when the step is point-a/point-b.
+export type SpineFieldHistoryEntry = {
+  id: string;
+  created_at: string;
+  actor_email: string | null;
+  field_changed: string | null;
+  old_value: unknown;
+  new_value: unknown;
+  reason: string | null;
+  summary: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+export const getSpineFieldHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        projectId: databaseUuid,
+        limit: z.number().int().min(1).max(200).optional().default(25),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ entries: SpineFieldHistoryEntry[] }> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: rows, error } = await sb
+      .from("engine_audit_log")
+      .select("id,created_at,actor_email,field_changed,old_value,new_value,reason,summary,metadata")
+      .eq("project_id", data.projectId)
+      .eq("action", "spine_field_changed")
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error((error as { message?: string }).message ?? "history read failed");
+    return { entries: (rows ?? []) as SpineFieldHistoryEntry[] };
+  });
+
 export const getProjectSpine = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ id: databaseUuid }).parse(raw))
