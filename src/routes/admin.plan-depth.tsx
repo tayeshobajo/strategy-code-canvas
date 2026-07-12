@@ -57,7 +57,7 @@ const LEVEL_COLORS: Record<PlanDepthLevel, { badge: string; bar: string; text: s
   },
 };
 
-const STATUS_ICON: Record<PlanDimensionStatus, React.ReactNode> = {
+const STATUS_ICON: Record<PlanDimensionStatus, ReactNode> = {
   present: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />,
   partial: <MinusCircle  className="w-3.5 h-3.5 text-yellow-400 shrink-0" />,
   missing: <XCircle      className="w-3.5 h-3.5 text-red-400    shrink-0" />,
