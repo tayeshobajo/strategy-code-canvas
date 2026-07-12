@@ -1404,6 +1404,9 @@ export type Database = {
           metadata: Json
           project_id: string
           source_id: string | null
+          source_ref: Json
+          status: Database["public"]["Enums"]["epistemic_status"]
+          superseded_by: string | null
           updated_at: string
           used_in_version_id: string | null
         }
@@ -1419,6 +1422,9 @@ export type Database = {
           metadata?: Json
           project_id: string
           source_id?: string | null
+          source_ref?: Json
+          status?: Database["public"]["Enums"]["epistemic_status"]
+          superseded_by?: string | null
           updated_at?: string
           used_in_version_id?: string | null
         }
@@ -1434,6 +1440,9 @@ export type Database = {
           metadata?: Json
           project_id?: string
           source_id?: string | null
+          source_ref?: Json
+          status?: Database["public"]["Enums"]["epistemic_status"]
+          superseded_by?: string | null
           updated_at?: string
           used_in_version_id?: string | null
         }
@@ -1457,6 +1466,13 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "engine_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_extracted_signals_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "engine_extracted_signals"
             referencedColumns: ["id"]
           },
           {
@@ -2171,6 +2187,7 @@ export type Database = {
         Row: {
           cost_cents: number
           created_at: string
+          epistemic_delta: Json
           error_code: string | null
           error_message: string | null
           event_type: string | null
@@ -2190,6 +2207,7 @@ export type Database = {
         Insert: {
           cost_cents?: number
           created_at?: string
+          epistemic_delta?: Json
           error_code?: string | null
           error_message?: string | null
           event_type?: string | null
@@ -2209,6 +2227,7 @@ export type Database = {
         Update: {
           cost_cents?: number
           created_at?: string
+          epistemic_delta?: Json
           error_code?: string | null
           error_message?: string | null
           event_type?: string | null
@@ -3929,6 +3948,50 @@ export type Database = {
           },
         ]
       }
+      engine_spine_field_truth: {
+        Row: {
+          field_key: string
+          id: string
+          project_id: string
+          source_ref: Json
+          spine: string
+          status: Database["public"]["Enums"]["epistemic_status"]
+          updated_at: string
+          updated_by_actor: string
+          updated_by_email: string | null
+        }
+        Insert: {
+          field_key: string
+          id?: string
+          project_id: string
+          source_ref?: Json
+          spine: string
+          status: Database["public"]["Enums"]["epistemic_status"]
+          updated_at?: string
+          updated_by_actor?: string
+          updated_by_email?: string | null
+        }
+        Update: {
+          field_key?: string
+          id?: string
+          project_id?: string
+          source_ref?: Json
+          spine?: string
+          status?: Database["public"]["Enums"]["epistemic_status"]
+          updated_at?: string
+          updated_by_actor?: string
+          updated_by_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_spine_field_truth_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_tasks: {
         Row: {
           acceptance_criteria: Json
@@ -4925,6 +4988,7 @@ export type Database = {
         Returns: number
       }
       has_client_access: { Args: { _email: string }; Returns: boolean }
+      has_contradictions: { Args: { _project_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5071,6 +5135,15 @@ export type Database = {
         | "approved"
         | "delivered"
         | "archived"
+      epistemic_status:
+        | "stated"
+        | "inferred"
+        | "assumed"
+        | "missing"
+        | "contradicted"
+        | "needs_confirmation"
+        | "verified"
+        | "approved_truth"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5293,6 +5366,16 @@ export const Constants = {
         "approved",
         "delivered",
         "archived",
+      ],
+      epistemic_status: [
+        "stated",
+        "inferred",
+        "assumed",
+        "missing",
+        "contradicted",
+        "needs_confirmation",
+        "verified",
+        "approved_truth",
       ],
     },
   },
