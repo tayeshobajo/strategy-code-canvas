@@ -303,7 +303,7 @@ function RoadmapJourneyView({
   useEffect(() => {
     if (requestedSlug && !selectedMilestone) {
       toast.info("The selected item couldn't be found on this roadmap.");
-      navigate({ search: () => ({}), replace: true });
+      navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, m: undefined, item: undefined, decision: undefined, deliverable: undefined }), replace: true });
     }
   }, [requestedSlug, selectedMilestone, navigate]);
 
