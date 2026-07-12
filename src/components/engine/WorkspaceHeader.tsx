@@ -230,6 +230,12 @@ const MORE_SECTIONS: Array<{
       { label: "Version Compare", suffix: "versions/compare", icon: GitCompare },
     ],
   },
+  {
+    heading: "Tools",
+    items: [
+      { label: "AI Workspace", suffix: "ai-workspace", icon: BrainCircuit },
+    ],
+  },
 ];
 
 function hasKeys(v: unknown): boolean {
