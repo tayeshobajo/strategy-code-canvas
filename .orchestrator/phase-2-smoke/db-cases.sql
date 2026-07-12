@@ -292,7 +292,7 @@ DO $$
 DECLARE v_op text := current_setting('smoke.operator');
         v_p3 uuid;
 BEGIN
-  INSERT INTO public.engine_projects(name,status) VALUES('smoke:phase-2:c9','active') RETURNING id INTO v_p3;
+  INSERT INTO public.engine_projects(name,status,client_id) VALUES('smoke:phase-2:c9','active','6cced335-64ac-4084-9824-89f2bfe5a52f') RETURNING id INTO v_p3;
   BEGIN
     INSERT INTO public.engine_spine_ceremonies(project_id,spine,status,opened_by_email)
     VALUES(v_p3,'point-b','in_progress',v_op);
@@ -480,7 +480,7 @@ DECLARE v_op text := current_setting('smoke.operator');
         v_p4 uuid;
         v_c4 uuid;
 BEGIN
-  INSERT INTO public.engine_projects(name,status) VALUES('smoke:phase-2:c17','active') RETURNING id INTO v_p4;
+  INSERT INTO public.engine_projects(name,status,client_id) VALUES('smoke:phase-2:c17','active','6cced335-64ac-4084-9824-89f2bfe5a52f') RETURNING id INTO v_p4;
   INSERT INTO public.engine_spine_ceremonies(project_id,spine,status,opened_by_email)
     VALUES(v_p4,'point-a','in_progress',v_op) RETURNING id INTO v_c4;
 
@@ -572,7 +572,7 @@ DECLARE v_op text := current_setting('smoke.operator');
         v_field text;
         v_sr jsonb;
 BEGIN
-  INSERT INTO public.engine_projects(name,status) VALUES('smoke:phase-2:c22','active') RETURNING id INTO v_p5;
+  INSERT INTO public.engine_projects(name,status,client_id) VALUES('smoke:phase-2:c22','active','6cced335-64ac-4084-9824-89f2bfe5a52f') RETURNING id INTO v_p5;
   INSERT INTO public.engine_spine_ceremonies(project_id,spine,status,opened_by_email)
     VALUES(v_p5,'point-a','in_progress',v_op) RETURNING id INTO v_c5;
 
