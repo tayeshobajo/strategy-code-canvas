@@ -16,7 +16,7 @@ import {
   type OutcomeFeedbackSignal,
 } from "@/lib/engine-outcome-feedback.functions";
 
-export const Route = createFileRoute("/admin/outcome-feedback" as never)({
+export const Route = createFileRoute("/admin/outcome-feedback")({
   component: OutcomeFeedbackPage,
 });
 
