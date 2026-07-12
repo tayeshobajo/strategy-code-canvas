@@ -1321,6 +1321,40 @@ export const updateProjectStep = createServerFn({ method: "POST" })
         metadata: { step: data.step, keys: Object.keys(data.data ?? {}) },
       });
     }
+
+    // Phase 4B: spine (point-a / point-b) changes get one field-level audit
+    // row per changed top-level key so operators get diff + reason history.
+    if (isSpineStep) {
+      const prev = (previousSpineValue ?? {}) as Record<string, unknown>;
+      const next = (data.data ?? {}) as Record<string, unknown>;
+      const keys = Array.from(new Set([...Object.keys(prev), ...Object.keys(next)]));
+      const changed = keys.filter(
+        (k) => JSON.stringify(prev[k] ?? null) !== JSON.stringify(next[k] ?? null),
+      );
+      if (changed.length) {
+        const rows = changed.map((key) => ({
+          project_id: data.id,
+          actor_email: email,
+          action: "spine_field_changed",
+          summary: `Updated ${data.step} · ${key}`,
+          affected_modules: ["spine", col],
+          field_changed: `${col}.${key}`,
+          old_value: (prev[key] ?? null) as unknown,
+          new_value: (next[key] ?? null) as unknown,
+          reason: data.reason ?? null,
+          metadata: { step: data.step, spine_field: key },
+        }));
+        await sb.from("engine_audit_log").insert(rows);
+        await sb.from("engine_activity").insert({
+          project_id: data.id,
+          kind: "spine_field_changed",
+          title: `${data.step} updated (${changed.length} field${changed.length === 1 ? "" : "s"})`,
+          body: email ? `By ${email}${data.reason ? ` — ${data.reason}` : ""}` : null,
+          severity: "info",
+        });
+      }
+    }
+
     return { ok: true };
   });
 
