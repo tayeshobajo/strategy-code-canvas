@@ -384,9 +384,31 @@ export const updateTaskStatus = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+
+    // Phase 9C guard: ai_generated tasks cannot reach terminal status without
+    // a human owner. Backfill owner_email with the acting admin when needed.
+    const TERMINAL = new Set(["done", "accepted", "verified", "complete", "completed"]);
+    const patch: any = { status: data.status };
+    if (TERMINAL.has(data.status)) {
+      const { data: cur } = await sb
+        .from("engine_tasks")
+        .select("ai_generated,owner_email")
+        .eq("id", data.id)
+        .single();
+      if (cur?.ai_generated && !cur?.owner_email) {
+        if (!email) {
+          throw new Error(
+            "Cannot mark an AI-generated task complete without a signed-in staff email.",
+          );
+        }
+        patch.owner_email = email;
+      }
+    }
+
     const { error } = await sb
       .from("engine_tasks")
-      .update({ status: data.status })
+      .update(patch)
       .eq("id", data.id);
     if (error) throwGeneric(error, "Operation failed");
     return { ok: true as const };
