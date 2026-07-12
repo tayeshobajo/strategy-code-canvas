@@ -408,7 +408,7 @@ function MoreMenu({
               {items.map((item) => {
                 const Icon = item.icon;
                 const active = isSuffixActive(pathname, item.suffix);
-                const to = `/engine/projects/$projectId/${item.suffix}` as const;
+                const to = `/engine/projects/$projectId/${item.suffix}` as unknown as "/engine/projects/$projectId/overview";
                 return (
                   <DropdownMenuItem key={item.suffix} asChild>
                     <Link
