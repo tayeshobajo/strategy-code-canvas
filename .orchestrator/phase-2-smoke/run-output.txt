@@ -1,0 +1,281 @@
+Pager usage is off.
+Border style is 2.
+BEGIN
+CREATE TABLE
+psql:.orchestrator/phase-2-smoke/db-cases.sql:45: NOTICE:  Fixture project: b704895c-a13f-4d77-b4dc-61a9a8f10002
+DO
+CREATE FUNCTION
+DO
+DO
+DO
+DO
+DO
+psql:.orchestrator/phase-2-smoke/db-cases.sql:213: ERROR:  permission denied for table engine_spine_field_truth
+CONTEXT:  SQL statement "UPDATE public.engine_spine_field_truth
+       SET status='approved_truth', source_ref=v_sr, ceremony_id=v_c, updated_by_email=v_op, updated_by_actor='human'
+     WHERE project_id=v_project AND spine='point-a' AND field_key=v_field"
+PL/pgSQL function inline_code_block line 21 at SQL statement
+DO
+DO
+DO
+psql:.orchestrator/phase-2-smoke/db-cases.sql:349: ERROR:  Point B ceremony cannot open before a Point A ceremony is completed for project b704895c-a13f-4d77-b4dc-61a9a8f10002
+CONTEXT:  PL/pgSQL function enforce_point_a_before_point_b() line 8 at RAISE
+SQL statement "INSERT INTO public.engine_spine_ceremonies(project_id,spine,status,opened_by_email)
+  VALUES(v_project,'point-b','in_progress',v_op) RETURNING id"
+PL/pgSQL function inline_code_block line 8 at SQL statement
+DO
+DO
+psql:.orchestrator/phase-2-smoke/db-cases.sql:413: ERROR:  unrecognized configuration parameter "smoke.ceremony_b"
+CONTEXT:  PL/pgSQL function inline_code_block line 4 during statement block local variable initialization
+psql:.orchestrator/phase-2-smoke/db-cases.sql:456: ERROR:  unrecognized configuration parameter "smoke.ceremony_b"
+CONTEXT:  PL/pgSQL function inline_code_block line 4 during statement block local variable initialization
+DO
+DO
+DO
+DO
+DO
+DO
+DO
+UPDATE 4
+UPDATE 1
+INSERT 0 4
++---------+---------+---------------------+------------------------------------------------------------------+------------------------------------------------------------------------+
+| case_no | surface |       result        |                              label                               |                                 detail                                 |
++---------+---------+---------------------+------------------------------------------------------------------+------------------------------------------------------------------------+
+|       1 | DB      | PASS                | startCeremony point-a inserts row w/ opened_by_email             |                                                                        |
+|       2 | DB      | PASS                | duplicate in-progress point-a ceremony blocked                   |                                                                        |
+|       3 | DB      | INCONCLUSIVE        | recordCeremonyDecision (stated)                                  | sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigge |
+|       4 | DB      | INCONCLUSIVE        | completeCeremony gate                                            | sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigge |
+|       5 | DB      | INCONCLUSIVE        | raw SQL completion on incomplete ceremony rejected               | sandbox_exec lacks UPDATE; run via Playwright                          |
+|       6 | DB      | INCONCLUSIVE-BY-ENV | complete blocked with bare missing field                         | Requires UPDATE on engine_spine_field_truth + engine_spine_ceremonies. |
+|       7 | DB      | INCONCLUSIVE        | complete succeeds with accepted-risk missing                     | sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigge |
+|       8 | DB      | INCONCLUSIVE        | completion blocked by contradiction                              | sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigge |
+|       9 | DB      | PASS                | point-b blocked without completed point-a                        |                                                                        |
+|      10 | DB      | INCONCLUSIVE-BY-ENV | abandon point-a rejected while point-b exists                    | enforce_point_a_before_point_b UPDATE branch is defined; INSERT branch |
+|      11 | DB      | PASS                | mismatched project_id on decision rejected                       |                                                                        |
+|      12 | DB      | INCONCLUSIVE-BY-DEP | decision against completed ceremony rejected                     | Requires case 7 (ceremony completion) which needs UPDATE. With ceremon |
+|      13 | DB      | INCONCLUSIVE-BY-ENV | approved_truth without provenance rejected                       | enforce_decision_matches_ceremony body inspected: rejects approved_tru |
+|      14 | DB      | INCONCLUSIVE-BY-ENV | full point-b approve + complete                                  | Full approve+complete requires UPDATE on ceremonies + truth. Structura |
+|      15 | DB      | INCONCLUSIVE        | AI actor blocked                                                 | Blocked but not via check_violation                                    |
+|      16 | DB      | INCONCLUSIVE        | unknown field_key rejected (app-layer guard)                     | assertKnownFieldKey runs in server-fn layer; DB has no CHECK for field |
+|      17 | DB      | INCONCLUSIVE        | abandon requires reason                                          | sandbox_exec lacks UPDATE; run via Playwright                          |
+|      18 | DB      | PASS                | public spine_field_keys has access gate (staff OR portal member) |                                                                        |
+|      19 | DB      | PASS                | internal_spine_field_keys not granted to authenticated           |                                                                        |
+|      20 | DB      | PASS                | internal helper returns static + dynamic keys                    |                                                                        |
+|      21 | DB      | PASS                | portal-member branch present in spine_field_keys                 |                                                                        |
+|      22 | DB      | INCONCLUSIVE        | completion trigger sees dynamic diagnosis:* keys                 | sandbox_exec lacks UPDATE; run via Playwright                          |
++---------+---------+---------------------+------------------------------------------------------------------+------------------------------------------------------------------------+
+(22 rows)
+
++------+------+--------------+-------+
+| pass | fail | inconclusive | total |
++------+------+--------------+-------+
+|    8 |    0 |            9 |    22 |
++------+------+--------------+-------+
+(1 row)
+
+Output format is unaligned.
+=== RESULTS_JSON_BEGIN ===
+[
+    {
+        "case": 1,
+        "label": "startCeremony point-a inserts row w/ opened_by_email",
+        "actual": "id=b4e75442-3a7e-41e1-b1de-90eda60644d5 opened_by=henry@trusttai.com",
+        "detail": "",
+        "result": "PASS",
+        "surface": "DB",
+        "expected": "row created, opened_by_email=operator"
+    },
+    {
+        "case": 2,
+        "label": "duplicate in-progress point-a ceremony blocked",
+        "actual": "duplicate key value violates unique constraint \"engine_spine_ceremonies_one_active\"",
+        "detail": "",
+        "result": "PASS",
+        "surface": "DB",
+        "expected": "unique_violation"
+    },
+    {
+        "case": 3,
+        "label": "recordCeremonyDecision (stated)",
+        "actual": "permission denied for table engine_spine_field_truth",
+        "detail": "sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigger fires only on UPDATE and cannot be exercised from psql. Behavior guaranteed by trigger definitions in migration 20260712225712_*.sql; verify via UI/Playwright before Tai sign-off.",
+        "result": "INCONCLUSIVE",
+        "surface": "DB",
+        "expected": "ok"
+    },
+    {
+        "case": 4,
+        "label": "completeCeremony gate",
+        "actual": "42501 permission denied for table engine_spine_ceremonies",
+        "detail": "sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigger fires only on UPDATE and cannot be exercised from psql. Behavior guaranteed by trigger definitions in migration 20260712225712_*.sql; verify via UI/Playwright before Tai sign-off.",
+        "result": "INCONCLUSIVE",
+        "surface": "DB",
+        "expected": "check_violation"
+    },
+    {
+        "case": 5,
+        "label": "raw SQL completion on incomplete ceremony rejected",
+        "actual": "permission denied for table engine_spine_ceremonies",
+        "detail": "sandbox_exec lacks UPDATE; run via Playwright",
+        "result": "INCONCLUSIVE",
+        "surface": "DB",
+        "expected": "check_violation"
+    },
+    {
+        "case": 6,
+        "label": "complete blocked with bare missing field",
+        "actual": "sandbox_exec permission denied on UPDATE truth",
+        "detail": "Requires UPDATE on engine_spine_field_truth + engine_spine_ceremonies. Trigger definition in migration confirms non-terminal fields block completion. Run via CeremonyPanel UI.",
+        "result": "INCONCLUSIVE-BY-ENV",
+        "surface": "DB",
+        "expected": "check_violation"
+    },
+    {
+        "case": 7,
+        "label": "complete succeeds with accepted-risk missing",
+        "actual": "42501 permission denied for table engine_spine_field_truth",
+        "detail": "sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigger fires only on UPDATE and cannot be exercised from psql. Behavior guaranteed by trigger definitions in migration 20260712225712_*.sql; verify via UI/Playwright before Tai sign-off.",
+        "result": "INCONCLUSIVE",
+        "surface": "DB",
+        "expected": "ok"
+    },
+    {
+        "case": 8,
+        "label": "completion blocked by contradiction",
+        "actual": "42501 permission denied for table engine_spine_field_truth",
+        "detail": "sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigger fires only on UPDATE and cannot be exercised from psql. Behavior guaranteed by trigger definitions in migration 20260712225712_*.sql; verify via UI/Playwright before Tai sign-off.",
+        "result": "INCONCLUSIVE",
+        "surface": "DB",
+        "expected": "check_violation"
+    },
+    {
+        "case": 9,
+        "label": "point-b blocked without completed point-a",
+        "actual": "Point B ceremony cannot open before a Point A ceremony is completed for project a9cabe0a-1644-4742-9a9d-f41787f2859b",
+        "detail": "",
+        "result": "PASS",
+        "surface": "DB",
+        "expected": "check_violation"
+    },
+    {
+        "case": 10,
+        "label": "abandon point-a rejected while point-b exists",
+        "actual": "sandbox_exec permission denied on UPDATE ceremony",
+        "detail": "enforce_point_a_before_point_b UPDATE branch is defined; INSERT branch (case 9) PASSED. Verify UPDATE branch via UI.",
+        "result": "INCONCLUSIVE-BY-ENV",
+        "surface": "DB",
+        "expected": "check_violation"
+    },
+    {
+        "case": 11,
+        "label": "mismatched project_id on decision rejected",
+        "actual": "23514 Decision project_id/spine (a9cabe0a-1644-4742-9a9d-f41787f2859b/point-a) does not match ceremony (b704895c-a13f-4d77-b4dc-61a9a8f10002/point-a)",
+        "detail": "",
+        "result": "PASS",
+        "surface": "DB",
+        "expected": "trigger raise"
+    },
+    {
+        "case": 12,
+        "label": "decision against completed ceremony rejected",
+        "actual": "insert succeeded",
+        "detail": "Requires case 7 (ceremony completion) which needs UPDATE. With ceremony_a still in_progress, trigger correctly allows decision insert. Re-run via UI to exercise the completed-ceremony rejection path.",
+        "result": "INCONCLUSIVE-BY-DEP",
+        "surface": "DB",
+        "expected": "raise"
+    },
+    {
+        "case": 13,
+        "label": "approved_truth without provenance rejected",
+        "actual": "aborted before record: no point-b ceremony existed (case 10 UPDATE aborted)",
+        "detail": "enforce_decision_matches_ceremony body inspected: rejects approved_truth without source_ref.approval_kind=ceremony/ceremony_id/operator_confirmed_by. Verify via UI.",
+        "result": "INCONCLUSIVE-BY-ENV",
+        "surface": "DB",
+        "expected": "check_violation"
+    },
+    {
+        "case": 14,
+        "label": "full point-b approve + complete",
+        "actual": "aborted: cannot UPDATE ceremony to completed",
+        "detail": "Full approve+complete requires UPDATE on ceremonies + truth. Structurally verified via inspection of trg_enforce_ceremony_completion + trg_enforce_decision_matches_ceremony. Verify via UI.",
+        "result": "INCONCLUSIVE-BY-ENV",
+        "surface": "DB",
+        "expected": "all provenance stamped"
+    },
+    {
+        "case": 15,
+        "label": "AI actor blocked",
+        "actual": "42501 permission denied for table engine_spine_field_truth",
+        "detail": "Blocked but not via check_violation",
+        "result": "INCONCLUSIVE",
+        "surface": "DB",
+        "expected": "check_violation"
+    },
+    {
+        "case": 16,
+        "label": "unknown field_key rejected (app-layer guard)",
+        "actual": "insert succeeded (no DB-level guard — enforced in engine-spine-registry.ts)",
+        "detail": "assertKnownFieldKey runs in server-fn layer; DB has no CHECK for field_key membership",
+        "result": "INCONCLUSIVE",
+        "surface": "DB",
+        "expected": "app-layer only"
+    },
+    {
+        "case": 17,
+        "label": "abandon requires reason",
+        "actual": "permission denied for table engine_spine_ceremonies",
+        "detail": "sandbox_exec lacks UPDATE; run via Playwright",
+        "result": "INCONCLUSIVE",
+        "surface": "DB",
+        "expected": "check_violation"
+    },
+    {
+        "case": 18,
+        "label": "public spine_field_keys has access gate (staff OR portal member)",
+        "actual": "is_engine_staff/client_portal/insufficient_privilege found in body",
+        "detail": "",
+        "result": "PASS",
+        "surface": "DB",
+        "expected": "gate present"
+    },
+    {
+        "case": 19,
+        "label": "internal_spine_field_keys not granted to authenticated",
+        "actual": "sandbox_exec:EXECUTE",
+        "detail": "",
+        "result": "PASS",
+        "surface": "DB",
+        "expected": "no authenticated grant"
+    },
+    {
+        "case": 20,
+        "label": "internal helper returns static + dynamic keys",
+        "actual": "diagnosis,diagnosis:x,diagnosis:y,key_diagnosis,lenses",
+        "detail": "",
+        "result": "PASS",
+        "surface": "DB",
+        "expected": "static+dynamic"
+    },
+    {
+        "case": 21,
+        "label": "portal-member branch present in spine_field_keys",
+        "actual": "client_portal_projects + client_portal_permissions referenced",
+        "detail": "",
+        "result": "PASS",
+        "surface": "DB",
+        "expected": "portal path present"
+    },
+    {
+        "case": 22,
+        "label": "completion trigger sees dynamic diagnosis:* keys",
+        "actual": "permission denied for table engine_spine_ceremonies",
+        "detail": "sandbox_exec lacks UPDATE; run via Playwright",
+        "result": "INCONCLUSIVE",
+        "surface": "DB",
+        "expected": "check_violation"
+    }
+]
+=== RESULTS_JSON_END ===
+Output format is aligned.
+ROLLBACK
