@@ -4,6 +4,8 @@ import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
+import { EpistemicStatusChip } from "@/components/engine/EpistemicStatusChip";
+import type { EpistemicStatus, SourceRef } from "@/lib/engine-epistemic.functions";
 import { cn } from "@/lib/utils";
 import { Share2, StickyNote, MoreHorizontal, Quote, AlertTriangle, Shield } from "lucide-react";
 
@@ -33,6 +35,8 @@ function PointA() {
   };
   const lenses = data.lenses ?? [];
   const diagnosis = data.diagnosis ?? [];
+  const statusMap = ((project as unknown as { point_a_status?: Record<string, { status: EpistemicStatus; source_ref?: SourceRef }> }).point_a_status) ?? {};
+  const statusFor = (key: string) => statusMap[key];
 
   return (
     <div className="space-y-6">
@@ -85,14 +89,20 @@ function PointA() {
                   <div key={d.title} className="rounded-xl border border-border bg-card p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="font-medium text-ink">{d.title}</div>
-                      <span
-                        className={cn(
-                          "text-[10px] font-mono uppercase tracking-wider border rounded px-1.5 py-0.5",
-                          TAG_TONE[d.tag] ?? TAG_TONE.DEFAULT,
-                        )}
-                      >
-                        {d.tag}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        <EpistemicStatusChip
+                          status={statusFor(d.title)?.status}
+                          sourceRef={statusFor(d.title)?.source_ref}
+                        />
+                        <span
+                          className={cn(
+                            "text-[10px] font-mono uppercase tracking-wider border rounded px-1.5 py-0.5",
+                            TAG_TONE[d.tag] ?? TAG_TONE.DEFAULT,
+                          )}
+                        >
+                          {d.tag}
+                        </span>
+                      </div>
                     </div>
                     <ul className="text-xs text-ink/75 space-y-1 list-disc list-inside">
                       {d.bullets.map((b, i) => <li key={i}>{b}</li>)}
