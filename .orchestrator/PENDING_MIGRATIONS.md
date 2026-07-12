@@ -487,5 +487,270 @@ DROP TYPE IF EXISTS public.epistemic_status;
 Results append to `.orchestrator/phase-1-output.md` as "Phase 1 R3
 verification".
 
+---
+
+## Phase 2 — Point A / Point B Approval Ceremonies (data model)
+
+Status: PROPOSED (2026-07-12) — awaiting Tai review. Do not apply.
+
+Adds the ceremony spine so an operator can formally walk every allowlisted
+Point A / Point B field, decide its epistemic status with evidence, and
+promote the spine toward `approved_truth`. This is the write path that
+finally consumes the R3 truth store built in Phase 1.
+
+### Design principles honored
+
+- No DELETE on ceremony state. Ceremonies are `abandoned`, not deleted.
+- Decisions and ceremonies both audit INSERT and UPDATE (Phase 1 R3 pattern).
+- All writes on `engine_spine_field_truth` still go through the existing
+  app-layer guards (`assertKnownFieldKey`, `assertStatusAllowedForActor`,
+  `assertEvidenceForStatus`, `enrichSourceRefForHuman`).
+- `ceremony_id` on the truth row is nullable so pre-ceremony history stays
+  intact and non-ceremony operator writes remain legal.
+- RLS gates writes to admin / operator via `has_role_email`. `team_member`
+  reads only, matching Phase 1 R3.
+- Completion gate requires every allowlisted field to have a truth row
+  whose status is not `needs_confirmation` (or is explicitly `missing`).
+  Contradiction gate reuses `has_contradictions(project_id)` from Phase 1.
+
+### Proposed SQL
+
+```sql
+-- 1. Ceremony header
+CREATE TABLE IF NOT EXISTS public.engine_spine_ceremonies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
+  spine TEXT NOT NULL CHECK (spine IN ('point-a','point-b')),
+  status TEXT NOT NULL DEFAULT 'in_progress'
+    CHECK (status IN ('in_progress','completed','abandoned')),
+  opened_by_email TEXT NOT NULL,
+  opened_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at TIMESTAMPTZ,
+  completed_by_email TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (
+    (status = 'completed' AND completed_at IS NOT NULL AND completed_by_email IS NOT NULL)
+    OR (status <> 'completed' AND completed_at IS NULL AND completed_by_email IS NULL)
+  )
+);
+
+-- At most one in-progress ceremony per (project, spine).
+CREATE UNIQUE INDEX IF NOT EXISTS engine_spine_ceremonies_one_active
+  ON public.engine_spine_ceremonies (project_id, spine)
+  WHERE status = 'in_progress';
+
+CREATE INDEX IF NOT EXISTS engine_spine_ceremonies_project_idx
+  ON public.engine_spine_ceremonies (project_id, spine, opened_at DESC);
+
+GRANT SELECT, INSERT, UPDATE ON public.engine_spine_ceremonies TO authenticated;
+GRANT ALL ON public.engine_spine_ceremonies TO service_role;
+
+ALTER TABLE public.engine_spine_ceremonies ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "ceremonies_select_staff" ON public.engine_spine_ceremonies
+  FOR SELECT TO authenticated
+  USING (
+    public.has_role_email(auth.jwt() ->> 'email', 'admin')
+    OR public.has_role_email(auth.jwt() ->> 'email', 'operator')
+    OR public.has_role_email(auth.jwt() ->> 'email', 'team_member')
+  );
+
+CREATE POLICY "ceremonies_insert_admin_op" ON public.engine_spine_ceremonies
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    public.has_role_email(auth.jwt() ->> 'email', 'admin')
+    OR public.has_role_email(auth.jwt() ->> 'email', 'operator')
+  );
+
+CREATE POLICY "ceremonies_update_admin_op" ON public.engine_spine_ceremonies
+  FOR UPDATE TO authenticated
+  USING (
+    public.has_role_email(auth.jwt() ->> 'email', 'admin')
+    OR public.has_role_email(auth.jwt() ->> 'email', 'operator')
+  )
+  WITH CHECK (
+    public.has_role_email(auth.jwt() ->> 'email', 'admin')
+    OR public.has_role_email(auth.jwt() ->> 'email', 'operator')
+  );
+-- No DELETE policy: use status='abandoned' instead.
+
+-- 2. Per-field decisions
+CREATE TABLE IF NOT EXISTS public.engine_spine_ceremony_decisions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ceremony_id UUID NOT NULL REFERENCES public.engine_spine_ceremonies(id) ON DELETE CASCADE,
+  project_id UUID NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
+  spine TEXT NOT NULL CHECK (spine IN ('point-a','point-b')),
+  field_key TEXT NOT NULL,
+  prior_status TEXT,
+  new_status TEXT NOT NULL,
+  source_ref JSONB NOT NULL DEFAULT '{}'::jsonb,
+  decided_by_email TEXT NOT NULL,
+  decided_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS engine_spine_ceremony_decisions_ceremony_idx
+  ON public.engine_spine_ceremony_decisions (ceremony_id, decided_at DESC);
+CREATE INDEX IF NOT EXISTS engine_spine_ceremony_decisions_project_idx
+  ON public.engine_spine_ceremony_decisions (project_id, spine, field_key, decided_at DESC);
+
+GRANT SELECT, INSERT ON public.engine_spine_ceremony_decisions TO authenticated;
+GRANT ALL ON public.engine_spine_ceremony_decisions TO service_role;
+
+ALTER TABLE public.engine_spine_ceremony_decisions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "ceremony_decisions_select_staff" ON public.engine_spine_ceremony_decisions
+  FOR SELECT TO authenticated
+  USING (
+    public.has_role_email(auth.jwt() ->> 'email', 'admin')
+    OR public.has_role_email(auth.jwt() ->> 'email', 'operator')
+    OR public.has_role_email(auth.jwt() ->> 'email', 'team_member')
+  );
+
+CREATE POLICY "ceremony_decisions_insert_admin_op" ON public.engine_spine_ceremony_decisions
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    public.has_role_email(auth.jwt() ->> 'email', 'admin')
+    OR public.has_role_email(auth.jwt() ->> 'email', 'operator')
+  );
+-- No UPDATE/DELETE: decisions are append-only audit facts.
+
+-- 3. Stamp ceremony provenance on the truth row.
+ALTER TABLE public.engine_spine_field_truth
+  ADD COLUMN IF NOT EXISTS ceremony_id UUID
+    REFERENCES public.engine_spine_ceremonies(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS engine_spine_field_truth_ceremony_idx
+  ON public.engine_spine_field_truth (ceremony_id)
+  WHERE ceremony_id IS NOT NULL;
+
+-- 4. updated_at trigger for ceremonies (decisions are append-only)
+CREATE TRIGGER trg_engine_spine_ceremonies_updated
+  BEFORE UPDATE ON public.engine_spine_ceremonies
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- 5. Audit (INSERT + UPDATE) via engine_audit_log, mirroring Phase 1 R3.
+CREATE OR REPLACE FUNCTION public.audit_spine_ceremony_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.engine_audit_log
+    (project_id, action, field_changed, old_value, new_value, actor_email, metadata)
+  VALUES (
+    NEW.project_id,
+    CASE TG_OP WHEN 'INSERT' THEN 'spine_ceremony_opened' ELSE 'spine_ceremony_changed' END,
+    'ceremony_status',
+    CASE TG_OP WHEN 'UPDATE' THEN to_jsonb(OLD.status) ELSE NULL END,
+    to_jsonb(NEW.status),
+    COALESCE(NEW.completed_by_email, NEW.opened_by_email),
+    jsonb_build_object('ceremony_id', NEW.id, 'spine', NEW.spine)
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_audit_spine_ceremony_ins
+  AFTER INSERT ON public.engine_spine_ceremonies
+  FOR EACH ROW EXECUTE FUNCTION public.audit_spine_ceremony_change();
+CREATE TRIGGER trg_audit_spine_ceremony_upd
+  AFTER UPDATE ON public.engine_spine_ceremonies
+  FOR EACH ROW EXECUTE FUNCTION public.audit_spine_ceremony_change();
+
+CREATE OR REPLACE FUNCTION public.audit_spine_ceremony_decision()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.engine_audit_log
+    (project_id, action, field_changed, old_value, new_value, actor_email, metadata)
+  VALUES (
+    NEW.project_id,
+    'spine_ceremony_decision',
+    NEW.field_key,
+    to_jsonb(NEW.prior_status),
+    to_jsonb(NEW.new_status),
+    NEW.decided_by_email,
+    jsonb_build_object(
+      'ceremony_id', NEW.ceremony_id,
+      'spine', NEW.spine,
+      'source_ref', NEW.source_ref
+    )
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_audit_spine_ceremony_decision_ins
+  AFTER INSERT ON public.engine_spine_ceremony_decisions
+  FOR EACH ROW EXECUTE FUNCTION public.audit_spine_ceremony_decision();
+```
+
+### App-layer changes (shipped WITH the migration, once approved)
+
+New file `src/lib/engine-spine-ceremonies.functions.ts` exposing:
+
+- `startCeremony({ projectId, spine })` — opens or returns the current
+  in-progress ceremony (upsert on the partial unique index).
+- `listCeremonyFields({ ceremonyId })` — returns every allowlisted key for
+  the ceremony's spine with its current truth-row status and a suggested
+  next action. Point A includes the current `diagnosis:*` set derived from
+  existing sidecar keys plus any truth rows.
+- `recordCeremonyDecision({ ceremonyId, fieldKey, newStatus, sourceRef })` —
+  in one server-function handler: (a) validates field key + evidence via
+  the Phase 1 helpers, (b) inserts the decision row, (c) upserts
+  `engine_spine_field_truth` stamped with `ceremony_id`.
+- `completeCeremony({ ceremonyId })` — verifies every allowlisted field
+  either has a non-`needs_confirmation` truth row OR was explicitly
+  decided `missing` in this ceremony; verifies `has_contradictions` is
+  false; then updates the ceremony row.
+
+All four are gated by `assertAdminOrOperator`.
+
+### UI changes
+
+- New `CeremonyPanel` on the Point A and Point B routes (list every field,
+  current chip, popover to set new status + source_ref, running audit tail).
+- `WorkspaceStepper` grows a badge on Point A / Point B when a ceremony is
+  in-progress OR the project has `needs_confirmation` rows (covers the
+  deferred Phase 1B item cheaply).
+- Neutral fallback ("No status") from Phase 1 remains for unclassified
+  fields; the panel exposes a "Classify" affordance for those.
+
+### Backfill / migration risk
+
+- All new columns/tables are additive; no data rewrite.
+- `ceremony_id` on truth rows is nullable — historical rows stay untouched.
+- `has_contradictions` and truth-row helpers already exist from Phase 1.
+
+### Preflight (to run before applying)
+
+1. Confirm no orphaned in-progress ceremony rows would violate the partial
+   unique index (table doesn't exist yet, so should be trivial).
+2. Confirm `engine_audit_log` accepts the new actions
+   (`spine_ceremony_opened`, `spine_ceremony_changed`,
+   `spine_ceremony_decision`) — the column is free-text today.
+3. Confirm `public.update_updated_at_column()` exists (Phase 1 R3 shipped it).
+4. Confirm `public.has_role_email(text,text)` exists (used by Phase 1 R3 RLS).
+
+### Smoke plan (post-apply)
+
+1. `startCeremony(point-b)` → row created, `opened_by_email` = operator.
+2. Attempting a second start returns the same ceremony id (partial unique
+   index does its job).
+3. `recordCeremonyDecision` for one field with `new_status='stated'` →
+   truth row upserted, `ceremony_id` stamped, decision row present, two
+   audit rows written.
+4. `completeCeremony` blocked while any allowlisted field is still
+   `needs_confirmation` and no `missing` decision exists.
+5. Resolve remaining fields; `completeCeremony` succeeds; status flips to
+   `completed`, `completed_at` + `completed_by_email` populated.
+6. Contradiction path: seed one `contradicted` row, then attempt
+   `completeCeremony` → rejected with contradiction reason.
+7. AI actor attempting `recordCeremonyDecision` with `verified` /
+   `approved_truth` → rejected by `assertStatusAllowedForActor`.
+8. Unknown `field_key` → rejected by `assertKnownFieldKey`.
+
+Results append to `.orchestrator/phase-2-output.md`.
+
+
 
 
