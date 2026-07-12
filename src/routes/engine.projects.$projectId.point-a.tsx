@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 import { EpistemicStatusChip } from "@/components/engine/EpistemicStatusChip";
-import type { EpistemicStatus, SourceRef } from "@/lib/engine-epistemic.functions";
+import {
+  getSpineFieldStatus,
+  type FieldStatusEntry,
+} from "@/lib/engine-epistemic.functions";
 import { cn } from "@/lib/utils";
 import { Share2, StickyNote, MoreHorizontal, Quote, AlertTriangle, Shield } from "lucide-react";
 
@@ -35,7 +40,13 @@ function PointA() {
   };
   const lenses = data.lenses ?? [];
   const diagnosis = data.diagnosis ?? [];
-  const statusMap = ((project as unknown as { point_a_status?: Record<string, { status: EpistemicStatus; source_ref?: SourceRef }> }).point_a_status) ?? {};
+  const fetchStatus = useServerFn(getSpineFieldStatus);
+  const { data: statusData } = useQuery({
+    queryKey: ["engine", "spine-status", projectId, "point-a"],
+    queryFn: () => fetchStatus({ data: { projectId, spine: "point-a" } }),
+    staleTime: 30_000,
+  });
+  const statusMap = (statusData?.statuses ?? {}) as Record<string, FieldStatusEntry>;
   const statusFor = (key: string) => statusMap[key];
 
   return (
@@ -93,6 +104,10 @@ function PointA() {
                         <EpistemicStatusChip
                           status={statusFor(d.title)?.status}
                           sourceRef={statusFor(d.title)?.source_ref}
+                          projectId={projectId}
+                          spine="point-a"
+                          fieldKey={d.title}
+                          fieldLabel={d.title}
                         />
                         <span
                           className={cn(

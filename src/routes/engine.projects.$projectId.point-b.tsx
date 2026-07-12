@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 import { EpistemicStatusChip } from "@/components/engine/EpistemicStatusChip";
-import type { EpistemicStatus, SourceRef } from "@/lib/engine-epistemic.functions";
+import {
+  getSpineFieldStatus,
+  type FieldStatusEntry,
+} from "@/lib/engine-epistemic.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/point-b")({
   component: PointB,
@@ -25,7 +30,13 @@ function PointB() {
   const { projectId } = Route.useParams();
   const { project } = useWorkspace(projectId);
   const data = (project.point_b ?? {}) as Record<string, string | undefined>;
-  const statusMap = ((project as unknown as { point_b_status?: Record<string, { status: EpistemicStatus; source_ref?: SourceRef }> }).point_b_status) ?? {};
+  const fetchStatus = useServerFn(getSpineFieldStatus);
+  const { data: statusData } = useQuery({
+    queryKey: ["engine", "spine-status", projectId, "point-b"],
+    queryFn: () => fetchStatus({ data: { projectId, spine: "point-b" } }),
+    staleTime: 30_000,
+  });
+  const statusMap = (statusData?.statuses ?? {}) as Record<string, FieldStatusEntry>;
 
   return (
     <div className="space-y-4">
@@ -45,7 +56,16 @@ function PointB() {
             <SectionCard
               key={s.key}
               title={s.label}
-              right={<EpistemicStatusChip status={st?.status} sourceRef={st?.source_ref} />}
+              right={
+                <EpistemicStatusChip
+                  status={st?.status}
+                  sourceRef={st?.source_ref}
+                  projectId={projectId}
+                  spine="point-b"
+                  fieldKey={s.key}
+                  fieldLabel={s.label}
+                />
+              }
             >
               <p className="text-sm text-ink/80">{data[s.key] ?? <span className="text-ink/40">Not defined yet.</span>}</p>
             </SectionCard>
