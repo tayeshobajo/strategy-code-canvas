@@ -285,7 +285,8 @@ function RoadmapJourneyView({
       search.m !== requestedSlug
     ) {
       navigate({
-        search: () => ({ m: requestedSlug }),
+        to: ".",
+        search: (prev) => ({ ...prev, m: requestedSlug ?? undefined }),
         replace: true,
       });
     }
