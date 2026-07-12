@@ -1216,6 +1216,9 @@ const UpdateStepInput = z.object({
   // has changed the project since the caller loaded it. Client passes the
   // `updated_at` seen at edit time.
   expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
+  // Phase 4B: optional reason string for spine field changes (point-a / point-b).
+  // When present, it's recorded on each engine_audit_log row written for the change.
+  reason: z.string().trim().max(500).optional(),
 });
 
 export const updateProjectStep = createServerFn({ method: "POST" })
@@ -1230,16 +1233,24 @@ export const updateProjectStep = createServerFn({ method: "POST" })
     const sb = context.supabase as any;
 
     // Read current step_states + updated_at so we can merge state and detect
-    // concurrent writes.
+    // concurrent writes. For spine steps (point-a / point-b) also read the
+    // current column value so we can diff and write field-level audit rows.
+    const isSpineStep = data.step === "point-a" || data.step === "point-b";
+    const selectCols = isSpineStep
+      ? `step_states, updated_at, ${col}`
+      : "step_states, updated_at";
     const { data: cur } = await sb
       .from("engine_projects")
-      .select("step_states, updated_at")
+      .select(selectCols)
       .eq("id", data.id)
       .single();
     const states = (cur?.step_states ?? {}) as Record<
       string,
       import("@/lib/engine-workspace").StepState
     >;
+    const previousSpineValue: Record<string, unknown> | null = isSpineStep
+      ? ((cur?.[col] as Record<string, unknown> | null) ?? null)
+      : null;
     const currentUpdatedAt = (cur?.updated_at as string | null) ?? null;
 
     // Optimistic lock: bail out early with a clear error if the row moved
@@ -1310,6 +1321,40 @@ export const updateProjectStep = createServerFn({ method: "POST" })
         metadata: { step: data.step, keys: Object.keys(data.data ?? {}) },
       });
     }
+
+    // Phase 4B: spine (point-a / point-b) changes get one field-level audit
+    // row per changed top-level key so operators get diff + reason history.
+    if (isSpineStep) {
+      const prev = (previousSpineValue ?? {}) as Record<string, unknown>;
+      const next = (data.data ?? {}) as Record<string, unknown>;
+      const keys = Array.from(new Set([...Object.keys(prev), ...Object.keys(next)]));
+      const changed = keys.filter(
+        (k) => JSON.stringify(prev[k] ?? null) !== JSON.stringify(next[k] ?? null),
+      );
+      if (changed.length) {
+        const rows = changed.map((key) => ({
+          project_id: data.id,
+          actor_email: email,
+          action: "spine_field_changed",
+          summary: `Updated ${data.step} · ${key}`,
+          affected_modules: ["spine", col],
+          field_changed: `${col}.${key}`,
+          old_value: (prev[key] ?? null) as unknown,
+          new_value: (next[key] ?? null) as unknown,
+          reason: data.reason ?? null,
+          metadata: { step: data.step, spine_field: key },
+        }));
+        await sb.from("engine_audit_log").insert(rows);
+        await sb.from("engine_activity").insert({
+          project_id: data.id,
+          kind: "spine_field_changed",
+          title: `${data.step} updated (${changed.length} field${changed.length === 1 ? "" : "s"})`,
+          body: email ? `By ${email}${data.reason ? ` — ${data.reason}` : ""}` : null,
+          severity: "info",
+        });
+      }
+    }
+
     return { ok: true };
   });
 
@@ -1726,6 +1771,59 @@ export type ProjectSpinePayload = {
     created_at: string;
   }>;
 };
+
+// Phase 4B: field-level history reader for approved spine changes.
+// Reads from engine_audit_log filtered to action='spine_field_changed',
+// which is what updateProjectStep now writes when the step is point-a/point-b.
+// Values are jsonb and passed through as JSON strings so the server-fn
+// serializer accepts them; the reader parses them client-side.
+export type SpineFieldHistoryEntry = {
+  id: string;
+  created_at: string;
+  actor_email: string | null;
+  field_changed: string | null;
+  old_value_json: string | null;
+  new_value_json: string | null;
+  reason: string | null;
+  summary: string | null;
+  metadata_json: string | null;
+};
+
+export const getSpineFieldHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        projectId: databaseUuid,
+        limit: z.number().int().min(1).max(200).optional().default(25),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<{ entries: SpineFieldHistoryEntry[] }> => {
+    await assertAdmin(context as unknown as Parameters<typeof assertAdmin>[0]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
+    const { data: rows, error } = await sb
+      .from("engine_audit_log")
+      .select("id,created_at,actor_email,field_changed,old_value,new_value,reason,summary,metadata")
+      .eq("project_id", data.projectId)
+      .eq("action", "spine_field_changed")
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error((error as { message?: string }).message ?? "history read failed");
+    const entries: SpineFieldHistoryEntry[] = (rows ?? []).map((r: Record<string, unknown>) => ({
+      id: String(r.id),
+      created_at: String(r.created_at),
+      actor_email: (r.actor_email as string | null) ?? null,
+      field_changed: (r.field_changed as string | null) ?? null,
+      old_value_json: r.old_value == null ? null : JSON.stringify(r.old_value),
+      new_value_json: r.new_value == null ? null : JSON.stringify(r.new_value),
+      reason: (r.reason as string | null) ?? null,
+      summary: (r.summary as string | null) ?? null,
+      metadata_json: r.metadata == null ? null : JSON.stringify(r.metadata),
+    }));
+    return { entries };
+  });
 
 export const getProjectSpine = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -120,7 +120,7 @@ export const updateMilestone = createServerFn({ method: "POST" })
     // caller must explicitly force (creates a new draft brief version).
     const { data: current } = await sb
       .from("engine_milestones")
-      .select("approval_status,project_id,name")
+      .select("approval_status,project_id,name,created_by_kind,approved_by_email")
       .eq("id", data.id)
       .single();
     const patch: any = { ...data.patch };
@@ -134,6 +134,31 @@ export const updateMilestone = createServerFn({ method: "POST" })
           `Cannot overwrite approved milestone fields (${touched.join(", ")}). Reset approval or explicitly force to create a new draft.`,
         );
       }
+    }
+
+    // Phase 9C guard: AI-created milestones cannot reach approved/complete
+    // without a human on record. When an admin triggers such a transition,
+    // backfill approved_by_email with the caller's email so the DB CHECK
+    // (no_ai_self_approval / no_ai_self_complete) passes cleanly.
+    const AI_KINDS = new Set(["ai", "captain", "agent", "system_agent", "pipeline"]);
+    const TERMINAL_STATUS = new Set(["complete", "completed", "done"]);
+    const isAiCreated = AI_KINDS.has(String(current?.created_by_kind ?? ""));
+    const willApprove = patch.approval_status === "approved";
+    const willComplete =
+      typeof patch.status === "string" && TERMINAL_STATUS.has(patch.status);
+    if (
+      isAiCreated &&
+      (willApprove || willComplete) &&
+      !patch.approved_by_email &&
+      !current?.approved_by_email
+    ) {
+      if (!email) {
+        throw new Error(
+          "Cannot mark an AI-created milestone approved/complete without a signed-in staff email.",
+        );
+      }
+      patch.approved_by_email = email;
+      if (willApprove && !patch.approved_at) patch.approved_at = new Date().toISOString();
     }
 
     const { error } = await sb.from("engine_milestones").update(patch).eq("id", data.id);
@@ -359,9 +384,31 @@ export const updateTaskStatus = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+
+    // Phase 9C guard: ai_generated tasks cannot reach terminal status without
+    // a human owner. Backfill owner_email with the acting admin when needed.
+    const TERMINAL = new Set(["done", "accepted", "verified", "complete", "completed"]);
+    const patch: any = { status: data.status };
+    if (TERMINAL.has(data.status)) {
+      const { data: cur } = await sb
+        .from("engine_tasks")
+        .select("ai_generated,owner_email")
+        .eq("id", data.id)
+        .single();
+      if (cur?.ai_generated && !cur?.owner_email) {
+        if (!email) {
+          throw new Error(
+            "Cannot mark an AI-generated task complete without a signed-in staff email.",
+          );
+        }
+        patch.owner_email = email;
+      }
+    }
+
     const { error } = await sb
       .from("engine_tasks")
-      .update({ status: data.status })
+      .update(patch)
       .eq("id", data.id);
     if (error) throwGeneric(error, "Operation failed");
     return { ok: true as const };
