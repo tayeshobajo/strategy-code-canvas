@@ -112,7 +112,7 @@ export const getIntelligentNextAction = createServerFn({ method: "POST" })
     const { data: projRows } = await sb
       .from("engine_projects")
       .select(
-        "name, client_company, status, current_phase, current_step, health_score, next_action, open_decisions, agent_status, source_count",
+        "name, engine_clients(company), status, current_phase, current_step, health_score, next_action, open_decisions, agent_status, source_count",
       )
       .eq("id", data.projectId);
     const proj =

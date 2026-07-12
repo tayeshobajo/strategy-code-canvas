@@ -6,13 +6,19 @@
  * requiring the client to formally confirm they have reviewed the roadmap.
  * When acknowledged: shows a quiet confirmation badge.
  *
- * Prevents the portal from showing "Phases Begin" status until
- * acknowledgedAt is set on the portal roadmap record.
+ * The acknowledgment write goes through `recordPortalRoadmapEvent` — an
+ * authenticated createServerFn that verifies the caller can see the roadmap
+ * and uses the admin client to persist the ack (bypasses the client-scoped
+ * RLS SELECT-only policy) while confirming the row actually updated. The
+ * prior implementation constructed a fresh anon Supabase client, which was
+ * silently rejected by RLS and returned a false-positive success — see
+ * project monitoring finding 5349d5ea.
  */
 
 import { useState } from 'react';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { acknowledgeRoadmap } from '@/lib/engine-roadmap-acknowledgment.functions';
+import { useServerFn } from '@tanstack/react-start';
+import { recordPortalRoadmapEvent } from '@/lib/portal.functions';
 
 interface RoadmapAcknowledgmentBannerProps {
   portalRoadmapId: string;
@@ -21,7 +27,8 @@ interface RoadmapAcknowledgmentBannerProps {
   /** If already acknowledged, pass the timestamp */
   acknowledgedAt?: string | null;
   acknowledgedByEmail?: string | null;
-  /** Optional linked delivery item id to co-stamp */
+  /** Optional linked delivery item id (informational only — the server
+   *  function looks up delivery items via client_portal_roadmap_id). */
   deliveryItemId?: string | null;
   /** Called after successful acknowledgment so parent can refetch/update */
   onAcknowledged?: (acknowledgedAt: string) => void;
@@ -29,13 +36,12 @@ interface RoadmapAcknowledgmentBannerProps {
 
 export function RoadmapAcknowledgmentBanner({
   portalRoadmapId,
-  projectId,
   clientEmail,
   acknowledgedAt,
   acknowledgedByEmail,
-  deliveryItemId,
   onAcknowledged,
 }: RoadmapAcknowledgmentBannerProps) {
+  const recordEvent = useServerFn(recordPortalRoadmapEvent);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [localAcknowledgedAt, setLocalAcknowledgedAt] = useState<string | null>(
@@ -49,20 +55,19 @@ export function RoadmapAcknowledgmentBanner({
     setError(null);
 
     try {
-      const result = await acknowledgeRoadmap({
-        portalRoadmapId,
-        projectId,
-        acknowledgedByEmail: clientEmail,
-        deliveryItemId,
+      const result = await recordEvent({
+        data: { roadmapId: portalRoadmapId, event: 'acknowledged' },
       });
 
-      if (result.success) {
-        setLocalAcknowledgedAt(result.acknowledgedAt);
-        onAcknowledged?.(result.acknowledgedAt);
-      } else {
-        setError(result.error ?? 'Something went wrong. Please try again.');
+      if (result && typeof result === 'object' && 'error' in result && result.error) {
+        setError(String(result.error));
+        return;
       }
-    } catch (err) {
+
+      const stampedAt = new Date().toISOString();
+      setLocalAcknowledgedAt(stampedAt);
+      onAcknowledged?.(stampedAt);
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
