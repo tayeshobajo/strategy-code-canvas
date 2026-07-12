@@ -43,6 +43,8 @@ const FILTERS: Array<{ key: QueueFilter; label: string }> = [
 
 function ApprovalsQueue() {
   const queueFn = useServerFn(listReviewQueue);
+  const decideFn = useServerFn(decideReviewItem);
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["engine", "global-approvals-queue"],
     queryFn: () => queueFn(),
@@ -50,13 +52,32 @@ function ApprovalsQueue() {
   const [filter, setFilter] = useState<QueueFilter>("all");
   const [groupByProject, setGroupByProject] = useState(true);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
-  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
+
+  const decideMutation = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: DecisionAction }) =>
+      decideFn({ data: { id, action } }),
+    onMutate: ({ id }) => {
+      setPendingActionId(id);
+    },
+    onSuccess: (_res, { action }) => {
+      const label =
+        action === "approved" ? "Approved" : action === "rejected" ? "Rejected" : "Revision requested";
+      toast.success(label);
+      queryClient.invalidateQueries({ queryKey: ["engine", "global-approvals-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["engine"] });
+      setExpandedItemId(null);
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to record decision");
+    },
+    onSettled: () => {
+      setPendingActionId(null);
+    },
+  });
 
   const items = data?.items ?? [];
-  const visibleItems = useMemo(
-    () => items.filter((item) => !dismissedIds.includes(item.id)),
-    [dismissedIds, items],
-  );
+  const visibleItems = items;
   const filteredItems = useMemo(
     () => visibleItems.filter((item) => matchesFilter(item, filter)),
     [filter, visibleItems],
