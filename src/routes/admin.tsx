@@ -14,6 +14,7 @@ import {
   Menu,
   BarChart3,
   ArrowRightLeft,
+  History,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
