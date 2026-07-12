@@ -203,17 +203,16 @@ export const getDecisionLogStats = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<{ stats: { kind: string; kind_label: string; count: number }[] }> => {
     await assertOperatorOrAdmin(context as never);
 
-    const supabase = (context as { supabase: {
-      from: (t: string) => {
-        select: (cols: string, opts?: Record<string, unknown>) => {
-          in: (c: string, v: readonly string[]) => Promise<{ data: { kind: string; count?: number }[] | null; error: unknown }>;
-        };
-      };
-    } }).supabase;
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.from("engine_activity").select("kind") as any)
-      .in("kind", DECISION_KINDS as readonly string[]) as Promise<{ data: { kind: string }[] | null; error: unknown }>;
+    const sb: any = (context as { supabase: unknown }).supabase;
+
+    const { data, error } = (await sb
+      .from("engine_activity")
+      .select("kind")
+      .in("kind", DECISION_KINDS as readonly string[])) as {
+        data: { kind: string }[] | null;
+        error: unknown;
+      };
 
     if (error) throw new Error(`Stats query failed: ${JSON.stringify(error)}`);
 
