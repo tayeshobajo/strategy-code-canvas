@@ -121,3 +121,27 @@ Artifacts:
 - `.orchestrator/phase-2-smoke/db-cases.sql` — the runnable suite
 - `.orchestrator/phase-2-smoke/results.json` — machine-readable per-case results
 - `.orchestrator/phase-2-smoke/run-output.txt` — raw psql transcript
+
+---
+
+## Phase 2 Closeout — WorkspaceStepper Ceremony Badge (SHIPPED)
+
+Added a ceremony state badge to the `WorkspaceStepper` under Point A (step 4) and Point B (step 5).
+
+**Server:** `getCeremonySummary` in `src/lib/engine-spine-ceremonies.functions.ts` — read-only, `requireSupabaseAuth` (no role assertion; badge visibility mirrors the stepper). Returns latest ceremony row per spine and a derived `badge` tone:
+
+| badge          | source                                                     |
+| -------------- | ---------------------------------------------------------- |
+| `none`         | no ceremony row for that spine                             |
+| `in_progress`  | latest row `in_progress`, not stale                        |
+| `stale`        | latest row `in_progress` with `stale_since` set            |
+| `completed`    | latest row `completed` and `re_review_required = false`    |
+| `re_review`    | latest row `completed` and `re_review_required = true`     |
+| `abandoned`    | latest row `abandoned`                                     |
+
+**Client:** `WorkspaceStepper` calls `getCeremonySummary` via `useQuery` keyed `["engine", "ceremony-summary", projectId]` (30s staleTime) and renders a compact pill under the step label. `CeremonyPanel.invalidate()` now also invalidates that key, so start/complete/abandon/reverse/invalidate/reopen mutations refresh the badge live.
+
+**Ports:**
+- `data-qa-ceremony-badge="point-a|point-b"` and `data-qa-ceremony-state="<badge>"` selectors for future Playwright smoke passes.
+
+**Not shipped:** Portal read-only summary (intentionally deferred per user direction — internal-only).
