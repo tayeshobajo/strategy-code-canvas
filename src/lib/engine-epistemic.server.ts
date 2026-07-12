@@ -87,6 +87,7 @@ export const sourceRefSchema: z.ZodType<SourceRef> = z.object({
   approval_kind: z.enum(["ceremony", "operator_override"]).optional(),
   ceremony_id: z.string().optional(),
   signal_id: z.string().optional(),
+  accepted_as_risk: z.boolean().optional(),
 });
 
 export type FieldStatusEntry = {
