@@ -9,6 +9,7 @@ import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 import { OperatorLockNotice } from "@/components/engine/OperatorLockNotice";
 import { useEngineRole } from "@/hooks/useEngineRole";
+import { DeliveryReadinessPanel } from "@/components/engine/DeliveryReadinessPanel";
 import {
   sendProjectDelivery,
   saveDeliveryChecklist,
@@ -111,6 +112,8 @@ function DeliveryPrep() {
       <StepStateBar projectId={projectId} step="delivery" current={project.step_states?.["delivery"]} />
       <SourceEvidence projectId={projectId} step="delivery" />
 
+      {/* Phase 6B — Delivery Completeness Gate */}
+      <DeliveryReadinessPanel projectId={projectId} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
@@ -491,7 +494,7 @@ function ClientFeedbackCard({
               onClick={() => canEdit && setRating(n)}
               disabled={!canEdit}
               className="p-0.5 disabled:cursor-not-allowed"
-              aria-label={`${n} star${n > 1 ? "s" : ""}`}
+              aria-label={`${n} star${n === 1 ? "" : "s"}`}
             >
               <Star
                 className={`w-5 h-5 ${
@@ -557,6 +560,3 @@ function ClientFeedbackCard({
     </SectionCard>
   );
 }
-
-
-
