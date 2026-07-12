@@ -353,3 +353,70 @@ migration is applied and the smoke tests run.
 - Phase 4: dedicated spine-evidence store; real FK on `verified` rows.
 - Phase 5: agent path that writes AI statuses with `updated_by_actor='ai'`.
 
+
+---
+
+## Phase 1 R3 verification — applied 2026-07-12
+
+**Migration applied** after preflight confirmed the expected empty shape:
+`epistemic_status` enum absent, `engine_spine_field_truth` absent, no
+status/source_ref/superseded_by columns on `engine_extracted_signals`,
+11 projects, 5 Point A object rows, 5 Point B object rows.
+
+First apply attempt failed on `has_role(auth.uid(), 'team')` — the
+`app_role` enum uses `team_member`, not `team`. Fixed in
+`PENDING_MIGRATIONS.md` and reapplied cleanly.
+
+Paired app-layer fix shipped in same turn:
+`src/lib/engine-epistemic.server.ts` `assertEvidenceForStatus` now
+accepts `stated` with `source_ref.kind='extracted_signal'` when either
+`id` or `signal_id` is present (plus `operator_confirmed_by` for the
+human override branch). `SourceRef` type + zod schema extended with
+optional `signal_id`. `promoteSignalToSpine` already stamps `id` from
+the signal row, so promotion satisfies the new branch.
+
+### Tests
+
+`bunx vitest run src/lib/__tests__/engine-epistemic.test.ts` →
+**40 passed, 0 failed** (1.51s).
+
+### Smoke — live DB against project f8019417-7ebf-4b56-a753-b24d734bf6f0
+
+| Check | Result |
+|---|---|
+| Backfilled `needs_confirmation` rows load | ✅ `point-a:diagnosis` row present with `kind='backfill'`, `status='needs_confirmation'`, `updated_by_actor='system'` |
+| Mark Point A field `stated` (INSERT path) | ✅ `smoke_stated_field` row with `kind='intake_answer'` + `operator_confirmed_by` |
+| Audit row on write | ✅ 4 rows in `engine_audit_log` with `action='spine_field_truth_created'`, `metadata.actor_kind='human'`, correct `field_changed='<spine>:<field_key>'` |
+| Mark Point B field `needs_confirmation` | ✅ `smoke_needs_conf` row inserted |
+| Promote extracted signal to spine | ✅ `smoke_promoted` row with `source_ref.kind='extracted_signal'`, `id=<signal id>` — validator accepts (paired fix confirmed) |
+| Contradiction path returns true | ✅ Inserted `smoke_contradicted` (`kind='conflict'`, `conflicting_source_ids` length 2). RPC-equivalent EXISTS query returns `t` |
+| Neutral UI fallback | ✅ `EpistemicStatusChip` renders "No status" when `getSpineFieldStatus` returns null — verified in component code path (fields with no row remain unstyled) |
+| Reject human write without email | ✅ CHECK `engine_spine_field_truth_human_needs_email` fires: `new row … violates check constraint` |
+| Reject unknown field keys | ✅ Covered in unit tests (`markSpineFieldStatus` throws before write via `assertSpineFieldExists`) |
+| Reject invalid evidence shape | ✅ Covered by 40-test suite (`assertEvidenceForStatus` throws for every status × malformed source_ref combination) |
+| Reject AI writing `verified` / `approved_truth` | ✅ Covered in tests (`assertStatusAllowedForActor` rejects both for `actorKind='ai'`) |
+
+### Notes
+
+- **UPDATE-branch audit** was not exercised via the sandbox because the
+  `sandbox_exec` role has only `SELECT` + `INSERT` on
+  `engine_spine_field_truth` (proof itself that FIX #1's grant-scoping
+  is enforced against non-service roles). The trigger fires
+  `BEFORE INSERT OR UPDATE`; the INSERT branch fired correctly, and the
+  UPDATE branch's logic is exercised by the app-layer upsert path
+  (`markSpineFieldStatus`) whenever a truth row already exists. Full
+  UPDATE-audit smoke will land when the ceremony surface (Phase 2)
+  first mutates an existing row via the authenticated app path.
+- **has_contradictions RPC gate** was not fully invoked (no
+  authenticated session in the sandbox). The gate short-circuits on
+  `is_engine_staff() OR portal_permission_exists` and returns the same
+  EXISTS query proven above. Gate coverage lands with the ceremony
+  surface.
+- 5 smoke rows remain on project f8019417 (they carry
+  `updated_by_email='smoke@trusttai.com'` and field keys prefixed
+  `smoke_*` / the diagnosis backfill row transitioned back to
+  `needs_confirmation` if desired). Sandbox role has no DELETE grant —
+  cleanup will be handled by service-role maintenance if Tai wants them
+  gone.
+
+Phase 1 R3 is **COMPLETE**. Phase 2 remains gated on Tai's go-ahead.
