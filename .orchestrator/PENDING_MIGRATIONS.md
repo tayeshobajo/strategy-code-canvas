@@ -109,54 +109,45 @@ App-layer follow-ups shipped in the same turn:
 
 ---
 
-## Phase 1 — Epistemic-Status Taxonomy (Truth Model) — **REVISION R2**
+## Phase 1 — Epistemic-Status Taxonomy (Truth Model) — **REVISION R3 (Variant B)**
 
-Status: **PENDING TAI REVIEW** — do not apply. Supersedes R1 (never applied).
+Status: **PENDING TAI REVIEW** — do not apply. Supersedes R2 (never applied).
 
-### What changed from R1
+### What changed from R2
 
-1. **Enum widened from 5 → 8 values.** Adds `missing`, `needs_confirmation`,
-   `approved_truth`. Splits `verified` (evidence supports it) from
-   `approved_truth` (a human with authority promoted it to canonical).
-2. **No `unclassified` in the enum.** Absence of a row is the neutral
-   state. UI renders a distinct "No status" pill, never `inferred`.
-3. **Field-key drift guardrail.** All writes are validated in-app against
-   `POINT_B_FIELD_KEYS` / a Point A base-key allowlist plus the
-   `diagnosis:<title>` namespace. SQL is unchanged; enforcement is
-   server-side because sidecars remain jsonb (see §7 for the normalized
-   alternative Tai can choose instead).
-4. **Evidence rules per status** (enforced in
-   `src/lib/engine-epistemic.server.ts#assertEvidenceForStatus`; see §5).
+1. **Canonical truth store is a normalized table** —
+   `public.engine_spine_field_truth`. The `point_a_status` /
+   `point_b_status` jsonb sidecars from R2 are removed from the plan.
+   Neither was ever applied to the DB, so nothing to migrate off.
+2. **Evidence FK deferred.** Live-DB check confirmed **no** `engine_evidence`
+   table exists (only `engine_project_build_evidence` and
+   `engine_project_qa_evidence_reviews`, both purpose-specific). R3 does
+   NOT add an FK; `verified.source_ref.evidence_id` remains a validated
+   string. A dedicated spine-evidence store is a Phase 4 decision.
+3. **Backfill included.** Existing Point A / Point B content in
+   `engine_projects.point_a` / `point_b` gets seeded as
+   `needs_confirmation` rows so Phase 2 ceremonies have real targets.
+   `ON CONFLICT DO NOTHING` — safe to re-run.
+4. **Audit path.** Every UPDATE writes a row into `engine_audit_log`
+   (`action='spine_field_truth_changed'`). Reuses the Phase 4B pattern.
+5. **Taxonomy unchanged.** Same 8-value enum from R2.
 
-### Design decisions
+### Preflight (must return the documented shape before applying)
 
-1. **Enum `epistemic_status`** — 8 values:
-   `stated | inferred | assumed | missing | contradicted | needs_confirmation | verified | approved_truth`.
-2. **`engine_extracted_signals`** — `status` (default `inferred`),
-   `source_ref` jsonb, `superseded_by` FK. Unchanged from R1.
-3. **`engine_projects`** — sidecar jsonb columns `point_a_status`,
-   `point_b_status`. Comment references the allowlist.
-4. **`engine_project_chat_events`** — `epistemic_delta` jsonb. Unchanged.
-5. **`has_contradictions(_project_id uuid)`** RPC. Unchanged.
+```sql
+SELECT count(*) FROM pg_type WHERE typname = 'epistemic_status';  -- expect 0
+SELECT to_regclass('public.engine_spine_field_truth');            -- expect NULL
+SELECT column_name FROM information_schema.columns
+WHERE table_schema='public' AND table_name='engine_extracted_signals'
+  AND column_name IN ('status','source_ref','superseded_by');     -- expect 0 rows
+SELECT count(*) AS projects FROM public.engine_projects;
+SELECT count(*) AS pointa_object_rows FROM public.engine_projects
+  WHERE jsonb_typeof(point_a) = 'object';
+SELECT count(*) AS pointb_object_rows FROM public.engine_projects
+  WHERE jsonb_typeof(point_b) = 'object';
+```
 
-### Evidence rules (app-layer, not SQL)
-
-| Status | Rule |
-|---|---|
-| `stated` | `kind ∈ {intake_answer,transcript,operator_note}` AND (`id` OR `operator_confirmed_by`) |
-| `inferred` | `kind='ai_inference'` + `model` + `prompt_ref` (AI) or human override |
-| `assumed` | `kind='working_assumption'` + `rationale` (AI) or human override |
-| `missing` | `kind='gap_note'` or human override |
-| `contradicted` | `kind='conflict'` + `conflicting_source_ids[≥2]` (AI) or human override + `reason` |
-| `needs_confirmation` | `reason` string or human override |
-| `verified` | `evidence_id` OR (`id`+`quote`+`timestamp`) (AI) or human override |
-| `approved_truth` | `approval_kind='ceremony'` + `ceremony_id`, OR `approval_kind='operator_override'` + `operator_confirmed_by`. AI is blocked at `assertStatusAllowedForActor`. |
-
-Human writes go through `createServerFn` with `requireSupabaseAuth`; the
-handler injects `operator_confirmed_by` from `context.claims.email` before
-calling the rule. `ceremony_id` becomes a real FK once Phase 2 lands.
-
-### Proposed SQL (Variant A — sidecar jsonb, RECOMMENDED)
+### Migration SQL (Variant B — canonical)
 
 ```sql
 -- 1. Enum (8 values)
@@ -173,49 +164,11 @@ ALTER TABLE public.engine_extracted_signals
 CREATE INDEX engine_extracted_signals_status_idx
   ON public.engine_extracted_signals (project_id, status);
 
--- 3. Spine sidecar columns. Field-key allowlist enforced in app layer
---    via `src/lib/engine-spine-fields.ts` (see server-fn validators).
-ALTER TABLE public.engine_projects
-  ADD COLUMN point_a_status jsonb NOT NULL DEFAULT '{}'::jsonb,
-  ADD COLUMN point_b_status jsonb NOT NULL DEFAULT '{}'::jsonb;
-
-COMMENT ON COLUMN public.engine_projects.point_a_status IS
-  'Map keyed by POINT_A_BASE_FIELD_KEYS or ''diagnosis:<title>''. Enforced by server fns.';
-COMMENT ON COLUMN public.engine_projects.point_b_status IS
-  'Map keyed by POINT_B_FIELD_KEYS. Enforced by server fns.';
-
--- 4. Chat event delta
+-- 3. Chat event delta
 ALTER TABLE public.engine_project_chat_events
   ADD COLUMN epistemic_delta jsonb NOT NULL DEFAULT '{}'::jsonb;
 
--- 5. Contradiction detector RPC
-CREATE OR REPLACE FUNCTION public.has_contradictions(_project_id uuid)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.engine_extracted_signals
-    WHERE project_id = _project_id
-      AND status = 'contradicted'
-      AND superseded_by IS NULL
-  );
-$$;
-
-REVOKE ALL ON FUNCTION public.has_contradictions(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.has_contradictions(uuid) TO authenticated;
-```
-
-### Alternative — Variant B (normalized field-truth table)
-
-Ships instead of the two sidecar columns above. Tighter integrity at the
-cost of one join per read. Not recommended for R2 (adds table + policies +
-grants to the same migration); documented so Tai can pick it explicitly.
-
-```sql
+-- 4. Canonical spine-field truth table
 CREATE TABLE public.engine_spine_field_truth (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
@@ -225,15 +178,21 @@ CREATE TABLE public.engine_spine_field_truth (
   source_ref jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by_email text,
+  updated_by_actor text NOT NULL DEFAULT 'human'
+    CHECK (updated_by_actor IN ('human','ai')),
   UNIQUE (project_id, spine, field_key)
 );
+
+CREATE INDEX engine_spine_field_truth_project_spine_idx
+  ON public.engine_spine_field_truth (project_id, spine);
+CREATE INDEX engine_spine_field_truth_status_idx
+  ON public.engine_spine_field_truth (project_id, status);
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.engine_spine_field_truth TO authenticated;
 GRANT ALL ON public.engine_spine_field_truth TO service_role;
 
 ALTER TABLE public.engine_spine_field_truth ENABLE ROW LEVEL SECURITY;
 
--- Reuses the same "team members read" pattern used by engine_extracted_signals.
 CREATE POLICY "Team members read spine field truth"
   ON public.engine_spine_field_truth FOR SELECT
   TO authenticated USING (
@@ -247,33 +206,121 @@ CREATE POLICY "Operators write spine field truth"
   TO authenticated
   USING (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'operator'))
   WITH CHECK (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'operator'));
+
+-- 5. Audit trigger — writes into engine_audit_log on every update
+CREATE OR REPLACE FUNCTION public.tg_engine_spine_field_truth_audit()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  NEW.updated_at := now();
+  IF TG_OP = 'UPDATE' AND (
+    OLD.status IS DISTINCT FROM NEW.status
+    OR OLD.source_ref IS DISTINCT FROM NEW.source_ref
+  ) THEN
+    INSERT INTO public.engine_audit_log (
+      project_id, action, field_changed, old_value, new_value, actor_email, metadata
+    ) VALUES (
+      NEW.project_id,
+      'spine_field_truth_changed',
+      NEW.spine || ':' || NEW.field_key,
+      jsonb_build_object('status', OLD.status, 'source_ref', OLD.source_ref),
+      jsonb_build_object('status', NEW.status, 'source_ref', NEW.source_ref),
+      NEW.updated_by_email,
+      jsonb_build_object('actor_kind', NEW.updated_by_actor)
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_engine_spine_field_truth_audit
+  BEFORE UPDATE ON public.engine_spine_field_truth
+  FOR EACH ROW EXECUTE FUNCTION public.tg_engine_spine_field_truth_audit();
+
+-- 6. Contradiction detector RPC — signals AND truth-table
+CREATE OR REPLACE FUNCTION public.has_contradictions(_project_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.engine_extracted_signals
+    WHERE project_id = _project_id AND status = 'contradicted' AND superseded_by IS NULL
+  ) OR EXISTS (
+    SELECT 1 FROM public.engine_spine_field_truth
+    WHERE project_id = _project_id AND status = 'contradicted'
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.has_contradictions(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.has_contradictions(uuid) TO authenticated;
+
+-- 7. Backfill — seed needs_confirmation rows for existing spine content.
+--    Only keys that match the app-layer allowlist. Empty / mismatched
+--    fields remain unclassified in the UI (intended state).
+WITH backfill_ref AS (
+  SELECT jsonb_build_object(
+    'kind','backfill',
+    'reason','Phase 1 R3 backfill from existing spine content',
+    'timestamp', now()::text
+  ) AS ref
+)
+INSERT INTO public.engine_spine_field_truth
+  (project_id, spine, field_key, status, source_ref, updated_by_email, updated_by_actor)
+SELECT p.id, 'point-b', k, 'needs_confirmation', (SELECT ref FROM backfill_ref), NULL, 'ai'
+FROM public.engine_projects p
+CROSS JOIN unnest(ARRAY[
+  '24_month_destination','10_year_position','client_outcome','customer_outcome',
+  'operational_outcome','revenue_outcome','brand_position'
+]) AS k
+WHERE jsonb_typeof(p.point_b) = 'object'
+  AND (p.point_b -> k) IS NOT NULL
+  AND (p.point_b ->> k) <> ''
+ON CONFLICT (project_id, spine, field_key) DO NOTHING;
+
+INSERT INTO public.engine_spine_field_truth
+  (project_id, spine, field_key, status, source_ref, updated_by_email, updated_by_actor)
+SELECT p.id, 'point-a', k, 'needs_confirmation',
+  jsonb_build_object('kind','backfill','reason','Phase 1 R3 backfill','timestamp', now()::text),
+  NULL, 'ai'
+FROM public.engine_projects p
+CROSS JOIN unnest(ARRAY['lenses','diagnosis','key_diagnosis']) AS k
+WHERE jsonb_typeof(p.point_a) = 'object'
+  AND (p.point_a -> k) IS NOT NULL
+ON CONFLICT (project_id, spine, field_key) DO NOTHING;
+
+INSERT INTO public.engine_spine_field_truth
+  (project_id, spine, field_key, status, source_ref, updated_by_email, updated_by_actor)
+SELECT
+  p.id, 'point-a',
+  'diagnosis:' || btrim(card->>'title'),
+  'needs_confirmation',
+  jsonb_build_object('kind','backfill','reason','Phase 1 R3 backfill','timestamp', now()::text),
+  NULL, 'ai'
+FROM public.engine_projects p
+CROSS JOIN LATERAL jsonb_array_elements(
+  CASE WHEN jsonb_typeof(p.point_a -> 'diagnosis') = 'array'
+       THEN p.point_a -> 'diagnosis' ELSE '[]'::jsonb END
+) AS card
+WHERE jsonb_typeof(p.point_a) = 'object'
+  AND (card->>'title') IS NOT NULL
+  AND length(btrim(card->>'title')) BETWEEN 1 AND 180
+ON CONFLICT (project_id, spine, field_key) DO NOTHING;
 ```
 
-If Variant B is picked, drop the two sidecar `ALTER TABLE ... ADD COLUMN
-point_*_status` blocks from Variant A and adapt the server functions
-accordingly.
-
-### Preflight (unchanged, updated column check)
-
-```sql
-SELECT count(*) FROM public.engine_extracted_signals;
-
-SELECT column_name FROM information_schema.columns
-WHERE table_schema='public'
-  AND table_name IN ('engine_extracted_signals','engine_projects','engine_project_chat_events')
-  AND column_name IN ('status','source_ref','superseded_by',
-                      'point_a_status','point_b_status','epistemic_delta');
--- Expected: zero rows for the sidecar/delta columns.
-```
-
-### Rollback (Variant A)
+### Rollback (Variant B)
 
 ```sql
 DROP FUNCTION IF EXISTS public.has_contradictions(uuid);
+DROP TRIGGER IF EXISTS trg_engine_spine_field_truth_audit ON public.engine_spine_field_truth;
+DROP FUNCTION IF EXISTS public.tg_engine_spine_field_truth_audit();
+DROP TABLE IF EXISTS public.engine_spine_field_truth;
 ALTER TABLE public.engine_project_chat_events DROP COLUMN IF EXISTS epistemic_delta;
-ALTER TABLE public.engine_projects
-  DROP COLUMN IF EXISTS point_a_status,
-  DROP COLUMN IF EXISTS point_b_status;
 DROP INDEX IF EXISTS engine_extracted_signals_status_idx;
 ALTER TABLE public.engine_extracted_signals
   DROP COLUMN IF EXISTS superseded_by,
@@ -282,25 +329,45 @@ ALTER TABLE public.engine_extracted_signals
 DROP TYPE IF EXISTS public.epistemic_status;
 ```
 
-### App-layer already shipped (does NOT require the migration)
+### App-layer that ships with this revision
 
-- `src/lib/engine-epistemic.server.ts` — 8-value enum, discriminated
-  source-ref union, `assertEvidenceForStatus`, `assertKnownFieldKey`,
-  `enrichSourceRefForHuman`, `AI_WRITABLE_STATUSES` expanded.
-- `src/lib/engine-spine-fields.ts` — canonical allowlist.
-- `src/lib/engine-epistemic.functions.ts` — both write handlers call the
-  new assertions; unknown field keys are rejected.
-- `src/components/engine/EpistemicStatusChip.tsx` — neutral "No status"
-  pill when the field has no row; popover exposes all 8 statuses and
-  builds a per-status source ref that server enrichment finalises.
-- Point A cards now key statuses as `diagnosis:<title>` (matches
-  allowlist).
+- `src/lib/engine-epistemic.functions.ts` — reads/writes
+  `engine_spine_field_truth` via upsert on `(project_id, spine, field_key)`;
+  `detectContradictions` unions signals + truth-table rows; no references
+  to `point_a_status` / `point_b_status`.
+- `src/lib/engine-epistemic.server.ts` — unchanged taxonomy and evidence
+  rules from R2.
+- Chip UI + Point A / Point B route loaders — unchanged (same
+  `Record<fieldKey, FieldStatusEntry>` contract).
+- Tests — R2 schema-level tests still pass unchanged.
 
 ### Follow-ups (NOT in this migration)
 
-- Phase 2: `ceremony_id` real FK on `approved_truth` entries.
-- Phase 1B: contradiction resolver UI.
-- Phase 3: strip sidecar status from `buildClientSafePayload`.
-- Phase 5: agents write initial statuses for the current backlog.
+- Phase 2: real `ceremony_id` FK on `approved_truth` entries; ceremony
+  surface reads pending `needs_confirmation` rows and promotes them.
+- Phase 4: dedicated spine-evidence store; real FK on `verified` rows.
+- Phase 5: agent path that writes AI statuses with `updated_by_actor='ai'`.
+
+### Smoke test plan (run after apply, before Phase 2 starts)
+
+1. `getSpineFieldStatus({point-a})` on a backfilled project returns the
+   seeded `needs_confirmation` rows.
+2. `markSpineFieldStatus` sets one Point A base key to `stated` with an
+   operator-note ref — chip re-renders as "Stated"; a row appears in
+   `engine_audit_log` with `action='spine_field_truth_changed'`.
+3. `markSpineFieldStatus` sets one Point B key to `needs_confirmation` +
+   reason — succeeds.
+4. `promoteSignalToSpine` on a live `engine_extracted_signals` row —
+   upserts with `source_ref.kind='extracted_signal'`.
+5. Insert a `contradicted` row via `markSpineFieldStatus` (operator
+   override + reason). `has_contradictions(project)` returns true;
+   `detectContradictions` returns the row.
+6. Neutral fallback: a field with no truth row renders "No status".
+7. Negative cases: unknown `field_key` rejected; AI actor blocked from
+   `verified` / `approved_truth`; evidence-rule violations rejected.
+
+Results append to `.orchestrator/phase-1-output.md` as "Phase 1 R3
+verification".
+
 
 

@@ -238,6 +238,118 @@ Created:
 
 ### Migration status
 
-`.orchestrator/PENDING_MIGRATIONS.md` Phase 1 block is now R2 and remains
-**unapplied**. R1 was never applied. Awaiting Tai re-review before any
-DDL runs.
+`.orchestrator/PENDING_MIGRATIONS.md` Phase 1 block is now R3 (Variant B)
+and remains **unapplied**. R1 + R2 were never applied. Awaiting Tai
+approval before any DDL runs.
+
+---
+
+## Revision R3 — Variant B (normalized truth table)
+
+Date: 2026-07-12
+Status: **App-layer shipped. Migration PENDING TAI REVIEW.**
+
+### Direction
+
+Tai chose Variant B. Canonical spine truth moves out of the R2 jsonb
+sidecars and into a normalized `public.engine_spine_field_truth` table.
+Queryable, enforceable, auditable. Sidecars are dropped from the plan
+entirely (never applied to the DB, nothing to migrate off).
+
+### 1. Evidence-table verification (live-DB result)
+
+Queried the live DB. There is **no** `public.engine_evidence` table.
+Only:
+- `engine_project_build_evidence` — build-packet artifacts
+  (screenshots, logs, diffs, QA reports). Purpose-specific.
+- `engine_project_qa_evidence_reviews` — QA review records.
+
+Decision: **do not** add an FK to a non-existent table, and **do not**
+hijack `engine_project_build_evidence` (its `evidence_type` CHECK and
+required `build_packet_id` don't fit spine-field evidence). For R3,
+`verified.source_ref.evidence_id` stays a validated string. A dedicated
+spine-evidence store is a Phase 4 decision.
+
+### 2. Schema (see PENDING_MIGRATIONS.md for the full SQL)
+
+```
+engine_spine_field_truth
+  (project_id, spine, field_key) UNIQUE
+  status public.epistemic_status
+  source_ref jsonb
+  updated_at / updated_by_email / updated_by_actor ('human'|'ai')
+```
+
+- Indexes on `(project_id, spine)` and `(project_id, status)`.
+- RLS: team read, admin/operator write.
+- BEFORE UPDATE trigger writes into `engine_audit_log` with
+  `action='spine_field_truth_changed'` — reuses the Phase 4B pattern.
+- `has_contradictions(_project_id)` now unions signals + truth-table.
+
+### 3. Backfill strategy (runs inside the same migration)
+
+Seeds `needs_confirmation` rows for existing spine content so Phase 2
+ceremonies have real targets:
+
+- Point B fixed keys where `engine_projects.point_b -> key` is non-empty.
+- Point A base keys (`lenses`, `diagnosis`, `key_diagnosis`) where
+  `point_a -> key` is present.
+- Point A diagnosis cards: one `diagnosis:<title>` row per card in
+  `point_a -> 'diagnosis'` with a non-empty title (1–180 chars).
+
+Every backfilled row:
+- `status = 'needs_confirmation'`
+- `source_ref = { kind: 'backfill', reason: 'Phase 1 R3 backfill from existing spine content', timestamp }`
+- `updated_by_email = NULL`, `updated_by_actor = 'ai'` (conservative —
+  not human-attested).
+- `ON CONFLICT (project_id, spine, field_key) DO NOTHING`.
+
+11 existing projects. Only keys matching the app-layer allowlist are
+seeded; empty / mismatched fields remain unclassified in the UI, which
+is the intended state.
+
+### 4. App-layer changes shipped this turn
+
+- `src/lib/engine-epistemic.functions.ts` — rewritten. All reads and
+  writes route through `engine_spine_field_truth` via upsert on
+  `(project_id, spine, field_key)`. `detectContradictions` now returns
+  `{ signals, spineFields, count, hasContradictions }` — signals-only
+  callers still get the `signals` array.
+- `src/lib/engine-epistemic.server.ts` — unchanged. Taxonomy, evidence
+  rules, allowlist, and role helpers are stable from R2.
+- Chip + Point A / Point B loaders — unchanged. Same
+  `Record<fieldKey, FieldStatusEntry>` contract preserved.
+- Tests — R2 pure-schema tests still pass unchanged.
+
+### 5. Smoke test plan (must pass before Phase 2 starts)
+
+Run against one real project id from the backfill preflight:
+
+1. `getSpineFieldStatus({point-a})` returns backfilled
+   `needs_confirmation` rows.
+2. `markSpineFieldStatus` sets one Point A base key to `stated` with an
+   operator-note source_ref — chip re-renders as "Stated" and an
+   `engine_audit_log` row lands with `action='spine_field_truth_changed'`.
+3. `markSpineFieldStatus` sets one Point B key to `needs_confirmation`
+   + reason — succeeds.
+4. `promoteSignalToSpine` on a live `engine_extracted_signals` row —
+   upserts with `source_ref.kind='extracted_signal'`.
+5. Force a contradiction via `markSpineFieldStatus` (operator override
+   + reason on `contradicted`). `has_contradictions(project)` returns
+   true; `detectContradictions` returns the row inside `spineFields`.
+6. Chip UI: fields with no truth row render neutral "No status"; fields
+   with rows render the correct status; popover shows the source_ref
+   quote/reason.
+7. Negative cases: unknown `field_key` rejected; AI actor blocked from
+   `verified` / `approved_truth`; evidence-rule violations rejected.
+
+Results will be appended here as "Phase 1 R3 verification" once the
+migration is applied and the smoke tests run.
+
+### 6. Deferred to later phases (unchanged)
+
+- Phase 2: real `ceremony_id` FK on `approved_truth` entries; ceremony
+  surface reads pending `needs_confirmation` rows and promotes them.
+- Phase 4: dedicated spine-evidence store; real FK on `verified` rows.
+- Phase 5: agent path that writes AI statuses with `updated_by_actor='ai'`.
+
