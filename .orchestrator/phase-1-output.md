@@ -420,3 +420,50 @@ the signal row, so promotion satisfies the new branch.
   gone.
 
 Phase 1 R3 is **COMPLETE**. Phase 2 remains gated on Tai's go-ahead.
+
+---
+
+## Phase 1 R3 cleanup — 2026-07-12
+
+Removed leftover smoke-test rows from project
+`f8019417-7ebf-4b56-a753-b24d734bf6f0` via a service-role migration
+(authenticated roles correctly lack DELETE on `engine_spine_field_truth`).
+
+### Rows deleted (4)
+
+| field_key           | updated_by_email     | status              |
+|---------------------|----------------------|---------------------|
+| smoke_contradicted  | smoke@trusttai.com   | contradicted        |
+| smoke_needs_conf    | smoke@trusttai.com   | needs_confirmation  |
+| smoke_promoted      | smoke@trusttai.com   | stated              |
+| smoke_stated_field  | smoke@trusttai.com   | stated              |
+
+### Post-delete confirmation
+
+```
+SELECT count(*)
+FROM public.engine_spine_field_truth
+WHERE project_id = 'f8019417-7ebf-4b56-a753-b24d734bf6f0'
+  AND (updated_by_email = 'smoke@trusttai.com'
+       OR field_key LIKE 'smoke_%');
+-- count = 0 ✅
+```
+
+### Future-hardening note (logged, not a Phase 2 blocker)
+
+Smoke testing proved the app-layer `assertSpineFieldExists` guard rejects
+unknown field_keys before any write reaches the DB. It also proved the DB
+itself will accept `smoke_*` field_keys from a caller with sufficient
+grants (the smoke rows were only creatable because the sandbox had direct
+INSERT). Future hardening options:
+
+1. **CHECK constraint** on `engine_spine_field_truth.field_key` enforcing
+   the same allowlist shape encoded in `src/lib/engine-spine-fields.ts`
+   (base keys for point-a/point-b + `diagnosis:<title>` namespace).
+2. **FK to a `spine_field_registry` table** — canonicalizes allowed keys
+   in the DB and lets the app layer read the registry instead of hardcoding.
+
+Deferred to a later hardening phase. Not required for Phase 2.
+
+Phase 1 fully closed. Phase 2 (Point A / Point B Approval Ceremonies) is
+now **GREENLIT**.
