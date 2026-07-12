@@ -435,7 +435,7 @@ function ProjectSpine() {
       </details>
 
       <SpineVersionHistory
-        auditCount={spine.audit.length}
+        projectId={projectId}
         currentVersionLabel={spine.version?.label ?? null}
       />
     </div>
