@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 export const Route = createFileRoute("/admin/plan-depth")({});
 
