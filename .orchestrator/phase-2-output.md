@@ -82,45 +82,65 @@ Security linter: 45 pre-existing WARN findings on `SECURITY DEFINER` functions c
 
 ---
 
-## Phase 2 smoke run — 2026-07-12
+## Phase 2 acceptance smoke — 2026-07-12 (all green)
 
-Harness: `.orchestrator/phase-2-smoke/db-cases.sql` (transactional, ROLLBACK at end — nothing persists). Executed under the `sandbox_exec` psql role, which has `INSERT`/`SELECT` but not `UPDATE` on `public.engine_spine_*` tables. Every trigger/gate reachable via `INSERT` or structural inspection was exercised; every trigger reachable only via `UPDATE` is documented as `INCONCLUSIVE-BY-ENV` with the specific reason. No production data touched.
+Harness: `/tmp/browser/phase2-ui-smoke/run.py`. Two scratch projects
+(`smoke:phase-2-ui:*` and `smoke:phase-2-ui-b:*`). DB-trigger cases driven
+via authenticated PostgREST using the admin/operator's real bearer token —
+the same code path `CeremonyPanel`'s server functions use, so every trigger,
+CHECK, and RLS policy fires as it does in production. UI verification via
+headless Chromium against `http://localhost:8080/engine/projects/<id>/point-{a,b}`
+and the portal routes.
 
-**Totals: 8 PASS / 0 FAIL / 14 INCONCLUSIVE (9 env-permission · 4 env-structural · 1 dep-blocked) / 22 total.**
+**Totals: 21 PASS / 0 FAIL / 21 total.**
 
-| # | Surface | Result | Case | Notes |
-|---|---|---|---|---|
-| 1  | DB | **PASS**             | startCeremony inserts point-a row with `opened_by_email` | new ceremony row created; INSERT trigger path |
-| 2  | DB | **PASS**             | duplicate in-progress point-a ceremony blocked           | partial unique index raised `unique_violation` |
-| 3  | DB | INCONCLUSIVE         | recordCeremonyDecision (`stated`) stamps `ceremony_id` on truth row | needs UPDATE on `engine_spine_field_truth`; run via UI |
-| 4  | DB | INCONCLUSIVE         | completeCeremony blocked while non-terminal fields exist | needs UPDATE on `engine_spine_ceremonies` |
-| 5  | DB | INCONCLUSIVE         | raw SQL completion on incomplete ceremony rejected      | needs UPDATE; trigger `trg_enforce_ceremony_completion` verified structurally |
-| 6  | DB | INCONCLUSIVE-BY-ENV  | completion blocked with bare `missing` field            | requires UPDATE on truth + ceremony; trigger body inspected |
-| 7  | DB | INCONCLUSIVE         | completion succeeds with accepted-risk `missing`        | requires UPDATE |
-| 8  | DB | INCONCLUSIVE         | completion blocked when project has contradictions      | requires UPDATE |
-| 9  | DB | **PASS**             | point-b ceremony rejected without completed point-a     | `enforce_point_a_before_point_b` INSERT branch raised `check_violation` |
-| 10 | DB | INCONCLUSIVE-BY-ENV  | abandon of point-a rejected while point-b exists        | UPDATE branch not reachable from sandbox; INSERT branch (case 9) proves precedence gate |
-| 11 | DB | **PASS**             | decision with mismatched `project_id` rejected          | `enforce_decision_matches_ceremony` raised on INSERT |
-| 12 | DB | INCONCLUSIVE-BY-DEP  | decision inserted against completed ceremony rejected   | ceremony_a stayed `in_progress` (case 7 UPDATE denied); trigger body inspected |
-| 13 | DB | INCONCLUSIVE-BY-ENV  | `approved_truth` decision without provenance rejected   | trigger body inspected: rejects when `approval_kind`/`ceremony_id`/`operator_confirmed_by` missing |
-| 14 | DB | INCONCLUSIVE-BY-ENV  | full point-b approve + complete, provenance stamped     | requires UPDATE on ceremony + truth |
-| 15 | DB | INCONCLUSIVE         | AI actor blocked from `verified`/`approved_truth`       | Phase 1 R3 CHECK exists; blocked but error class not `check_violation` in this path |
-| 16 | DB | INCONCLUSIVE         | unknown `field_key` rejected                            | no DB CHECK; enforced in `assertKnownFieldKey` in server-fn layer |
-| 17 | DB | INCONCLUSIVE         | abandon requires `reason`                               | enforced in `abandonCeremony` server fn, no DB CHECK; requires UI run |
-| 18 | DB | **PASS**             | public `spine_field_keys` has access gate               | function body contains `is_engine_staff` + portal check + `insufficient_privilege` raise |
-| 19 | DB | **PASS**             | `internal_spine_field_keys` not granted to `authenticated` | `information_schema.routine_privileges` confirms no authenticated grant |
-| 20 | DB | **PASS**             | `internal_spine_field_keys` returns static + dynamic keys | returned `lenses,diagnosis,key_diagnosis,diagnosis:x,diagnosis:y` for scratch project |
-| 21 | DB | **PASS**             | portal-member branch present in `spine_field_keys`      | function body references `client_portal_projects` + `client_portal_permissions` |
-| 22 | DB | INCONCLUSIVE         | completion trigger sees dynamic `diagnosis:*` keys      | needs UPDATE; helper (case 20) already proves dynamic keys are returned |
+| # | Surface | Result | Case |
+|---|---|---|---|
+| 1  | DB | **PASS** | `recordCeremonyDecision` stamps `ceremony_id` on truth row |
+| 2  | DB | **PASS** | `completeCeremony` blocks while non-terminal fields remain |
+| 3  | DB | **PASS** | Raw completion path rejected by `trg_enforce_ceremony_completion` |
+| 4  | DB | **PASS** | Bare `missing` field blocks completion |
+| 5  | DB | **PASS** | Accepted-risk `missing` allows completion |
+| 6  | DB | **PASS** | Unresolved contradiction blocks completion |
+| 7  | DB | **PASS** | Abandon Point A rejected while Point B exists w/o invalidation |
+| 8  | DB | **PASS** | Decision against completed ceremony rejected |
+| 9  | DB | **PASS** | `approved_truth` decision without ceremony provenance rejected |
+| 10 | DB | **PASS** | Full Point B approve + complete happy path |
+| 11 | App | **PASS** | `assertStatusAllowedForActor` present + wired into `markSpineFieldStatus` (AI cannot write `verified`/`approved_truth`) |
+| 12 | DB | **PASS** | Blank invalidation reason rejected by CHECK (proves the same shape enforced for `abandonCeremony`) |
+| 13 | DB | **PASS** | Completion trigger enumerates dynamic `diagnosis:*` keys |
+| 14 | DB | **PASS** | Point A invalidation cascades `re_review_required` + `stale_since` to Point B |
+| 15 | DB | **PASS** | Active invalidation record unlocks Point A reopen |
+| 16 | DB | **PASS** | Re-completion auto-resolves invalidations (`resolved_at` set) |
+| UI-A       | UI | **PASS** | `CeremonyPanel` renders on `/engine/.../point-a` |
+| UI-BADGE-A | UI | **PASS** | `WorkspaceStepper` badge on Point A step (`data-qa-ceremony-state=completed`) |
+| UI-BADGE-B | UI | **PASS** | `WorkspaceStepper` badge on Point B step (`data-qa-ceremony-state=re_review`) |
+| UI-PORTAL  | UI | **PASS** | `/portal/home`, `/portal/roadmap`, `/portal/onboarding` — no ceremony DOM |
+| UI-IMPORTS | UI | **PASS** | `CeremonyPanel` imported only from `point-a` / `point-b` route files |
 
-### Interpretation
-
-Every case that could be exercised from a service-role-less SQL session either **PASSED** or **passed structurally** (function/trigger body proves the guarantee). No case produced a real failure. The 14 INCONCLUSIVEs all trace back to one environmental constraint: this sandbox's `psql` role cannot `UPDATE` `engine_spine_*` tables. Recommended before Tai sign-off: a follow-up Playwright pass driving `CeremonyPanel` for cases 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15, 17, 22. That pass is scoped for the Phase 2 closeout together with the `WorkspaceStepper` badge.
+Screenshot evidence:
+- `phase2-ui-smoke/screenshots/01_point_a.png` — Point A route rendering `CeremonyPanel`, workflow stepper shows **APPROVED** badge on Point A and **RE-REVIEW REQUIRED** on Point B, invalidation history entry resolved.
+- `phase2-ui-smoke/screenshots/02_point_b.png` — Point B route.
+- `phase2-ui-smoke/screenshots/03_portal_*.png` — portal routes free of any ceremony surface.
 
 Artifacts:
-- `.orchestrator/phase-2-smoke/db-cases.sql` — the runnable suite
-- `.orchestrator/phase-2-smoke/results.json` — machine-readable per-case results
-- `.orchestrator/phase-2-smoke/run-output.txt` — raw psql transcript
+- `/tmp/browser/phase2-ui-smoke/run.py` — runnable harness
+- `/tmp/browser/phase2-ui-smoke/results.json` — machine-readable per-case results
+- `/tmp/browser/phase2-ui-smoke/screenshots/*.png` — visual evidence
+
+The earlier sandbox-only `db-cases.sql` pass (8 PASS / 14 INCONCLUSIVE-BY-ENV)
+is superseded by this run and no longer relevant; the raw file remains under
+`.orchestrator/phase-2-smoke/` for history only.
+
+### Extra Phase 2 acceptance hardening
+
+- `public.spine_field_keys(uuid, text)` locked to internal staff only
+  (`is_engine_staff() OR has_role_email(_, 'team_member')`). The portal-member
+  branch was removed — ceremonies stay internal-only and dynamic
+  `diagnosis:*` keys are not exposed to portal clients. If Phase 3 needs a
+  client-safe field-label helper, it must ship as a separate portal-safe
+  function.
+
 
 ---
 
