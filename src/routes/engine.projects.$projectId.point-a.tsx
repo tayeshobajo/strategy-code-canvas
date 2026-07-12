@@ -74,6 +74,9 @@ function PointA() {
       <StepStateBar projectId={projectId} step="point-a" current={project.step_states?.["point-a"]} />
       <StepAiPanelFor step="point-a" data={project.point_a} />
       <SourceEvidence projectId={projectId} step="point-a" />
+      <CeremonyPanel projectId={projectId} spine="point-a" />
+
+
 
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
