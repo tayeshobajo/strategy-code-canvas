@@ -491,7 +491,17 @@ verification".
 
 ## Phase 2 — Point A / Point B Approval Ceremonies (data model)
 
-Status: **APPLIED (2026-07-12)** — R4 shipped. See `.orchestrator/phase-2-output.md`.
+Status: **ACCEPTED (2026-07-12)** — R4 + R4B + acceptance smoke pass complete.
+See `.orchestrator/phase-2-output.md` for the 21/21 acceptance run.
+
+Post-acceptance hardening applied:
+- `public.spine_field_keys(uuid, text)` locked to internal staff only
+  (`is_engine_staff() OR has_role_email(_, 'team_member')`). The prior
+  portal-member branch was removed; ceremonies stay internal-only and
+  dynamic `diagnosis:*` keys are not exposed to portal clients. If Phase 3
+  needs a client-safe field-label helper it must ship as a separate
+  portal-safe function.
+
 
 Notes on what changed vs the R4 plan text below:
 - Static Point A / Point B allowlists in `internal_spine_field_keys` now mirror

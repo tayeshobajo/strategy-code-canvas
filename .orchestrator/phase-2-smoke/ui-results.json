@@ -1,0 +1,170 @@
+[
+  {
+    "case": 1,
+    "label": "recordCeremonyDecision stamps ceremony_id on truth row",
+    "expected": "truth.ceremony_id matches",
+    "actual": "status=approved_truth ceremony_id=8e1d3f09-8829-438c-9cde-c8edbb74ec04",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 2,
+    "label": "completeCeremony blocks non-terminal fields",
+    "expected": "check_violation mentioning terminal/complete",
+    "actual": "400 {\"code\":\"23514\",\"details\":null,\"hint\":null,\"message\":\"Ceremony 8e1d3f09-8829-438c-9cde-c8edbb74ec04 cannot complete: fields not terminal: diagnosis (needs_confirmation), key_diagno",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 3,
+    "label": "raw completion path rejected by DB trigger",
+    "expected": "check_violation",
+    "actual": "400 {\"code\":\"23514\",\"details\":null,\"hint\":null,\"message\":\"Ceremony 8e1d3f09-8829-438c-9cde-c8edbb74ec04 cannot complete: fields not terminal: diagnosis:y (needs_confirmation)\"}",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 4,
+    "label": "bare `missing` blocks completion",
+    "expected": "check_violation",
+    "actual": "400 {\"code\":\"23514\",\"details\":null,\"hint\":null,\"message\":\"Ceremony 8e1d3f09-8829-438c-9cde-c8edbb74ec04 cannot complete: fields not terminal: diagnosis:y (missing)\"}",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 5,
+    "label": "accepted-risk `missing` allows completion",
+    "expected": "PATCH 200",
+    "actual": "200 [{\"id\":\"8e1d3f09-8829-438c-9cde-c8edbb74ec04\",\"project_id\":\"7134233e-c6c5-46b7-ba06-69da4f1cae8c\",\"spine\":\"point-a\",\"status\":\"completed\",\"opened_by_email\":\"tai@trust-tai.com\",\"open",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 13,
+    "label": "completion trigger sees dynamic `diagnosis:*` keys",
+    "expected": "case 4 blocked when diagnosis:y bare, case 5 unblocked with accepted-risk",
+    "actual": "cer_a.completed_at=2026-07-12T23:52:40.230576+00:00",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 10,
+    "label": "full Point B approve+complete works",
+    "expected": "PATCH 200",
+    "actual": "200 [{\"id\":\"b89d6996-b134-4cc1-a94f-836f03781d6d\",\"project_id\":\"7134233e-c6c5-46b7-ba06-69da4f1cae8c\",\"spine\":\"point-b\",\"status\":\"completed\",\"opened_by_email\":\"tai@trust-tai.com\",\"open",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 7,
+    "label": "abandon Point A rejected while Point B exists w/o invalidation",
+    "expected": "check_violation mentioning Point B/invalidation",
+    "actual": "400 {\"code\":\"23514\",\"details\":null,\"hint\":null,\"message\":\"Cannot reopen/abandon completed Point A ceremony 8e1d3f09-8829-438c-9cde-c8edbb74ec04 while Point B ceremonies exist without an active invalidatio",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 8,
+    "label": "decision against completed ceremony rejected",
+    "expected": "check_violation mentioning completed",
+    "actual": "400 {\"code\":\"23514\",\"details\":null,\"hint\":null,\"message\":\"Cannot record a decision on a completed ceremony\"}",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 12,
+    "label": "invalidation.reason blank rejected by CHECK (proves same guard shape for abandonCeremony)",
+    "expected": "check_violation",
+    "actual": "400 {\"code\":\"23514\",\"details\":null,\"hint\":null,\"message\":\"new row for relation \\\"engine_spine_ceremony_invalidations\\\" violates check constraint \\\"engine_spine_ceremony_invalidations_reason_check\\\"\"}",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 14,
+    "label": "Point A invalidation cascades stale/re-review to Point B",
+    "expected": "point-b.re_review_required=true and stale_since set",
+    "actual": "re_review=True stale_since=2026-07-12T23:52:45.573184+00:00",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 15,
+    "label": "invalidation record unlocks Point A reopen",
+    "expected": "PATCH 200",
+    "actual": "200 [{\"id\":\"8e1d3f09-8829-438c-9cde-c8edbb74ec04\",\"project_id\":\"7134233e-c6c5-46b7-ba06-69da4f1cae8c\",\"spine\":\"point-a\",\"status\":\"in_progress\",\"opened_by_email\":\"tai@trust-tai.com\",\"opened_at\":\"2026-07-12",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 9,
+    "label": "approved_truth without provenance rejected",
+    "expected": "check_violation about approved_truth decisions",
+    "actual": "400 {\"code\":\"23514\",\"details\":null,\"hint\":null,\"message\":\"approved_truth decisions require source_ref.approval_kind=ceremony, matching ceremony_id, and operator_confirmed_by\"}",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 16,
+    "label": "re-completion auto-resolves invalidations",
+    "expected": "invalidation.resolved_at set",
+    "actual": "200 resolved_at=2026-07-12T23:52:46.466249+00:00",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 11,
+    "label": "AI actor cannot write verified/approved_truth (app-layer guard)",
+    "expected": "assertStatusAllowedForActor present + wired into markSpineFieldStatus",
+    "actual": "guard=True wired=True",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": 6,
+    "label": "contradiction blocks completion",
+    "expected": "check_violation mentioning contradictions",
+    "actual": "400 {\"code\":\"23514\",\"details\":null,\"hint\":null,\"message\":\"Cannot complete ceremony 5df57188-6d0f-4214-8c83-f7f42baebc9b: project 00dcd3b3-6cea-4d55-8bb2-375de67e30aa has unresolved contradictions\"}",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": "UI-A",
+    "label": "CeremonyPanel present on /engine/.../point-a",
+    "expected": "CeremonyPanel DOM visible",
+    "actual": "panel_markers=True",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": "UI-BADGE-A",
+    "label": "WorkspaceStepper badge on Point A step",
+    "expected": "data-qa-ceremony-state populated (completed after case 16)",
+    "actual": "state=completed",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": "UI-BADGE-B",
+    "label": "WorkspaceStepper badge on Point B step",
+    "expected": "data-qa-ceremony-state populated",
+    "actual": "state=re_review",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": "UI-PORTAL",
+    "label": "No portal route renders CeremonyPanel",
+    "expected": "all portal paths free of ceremony DOM",
+    "actual": "{\"/portal/home\": false, \"/portal/roadmap\": false, \"/portal/onboarding\": false}",
+    "result": "PASS",
+    "detail": ""
+  },
+  {
+    "case": "UI-IMPORTS",
+    "label": "CeremonyPanel imported only from Point A / Point B routes",
+    "expected": "no stray importers",
+    "actual": "files=['/dev-server/src/routes/engine.projects.$projectId.point-b.tsx', '/dev-server/src/routes/engine.projects.$projectId.point-a.tsx', '/dev-server/src/components/engine/CeremonyPanel.tsx']",
+    "result": "PASS",
+    "detail": ""
+  }
+]

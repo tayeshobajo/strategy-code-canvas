@@ -1,66 +1,84 @@
-# Phase 2 Smoke Execution Plan (22 cases)
+## Phase 2 Acceptance — Two-part Closeout
 
-Goal: run all 22 smoke cases end-to-end against the live backend, capture per-case PASS/FAIL + evidence, and record results.
+### Part 1 — Lock `spine_field_keys` to internal staff
 
-## Execution strategy per case category
+**Migration (single file, requires approval):**
 
-The 22 cases split into three execution surfaces. Each needs a different harness — one script can't cover all of them.
+```sql
+CREATE OR REPLACE FUNCTION public.spine_field_keys(_project_id uuid, _spine text)
+RETURNS SETOF text
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE allowed boolean := false;
+BEGIN
+  SELECT
+    public.is_engine_staff()
+    OR public.has_role_email(coalesce(auth.email(), ''), 'team_member')
+  INTO allowed;
+  IF NOT allowed THEN
+    RAISE EXCEPTION 'Forbidden: spine_field_keys is staff-only'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN QUERY SELECT public.internal_spine_field_keys(_project_id, _spine);
+END;
+$$;
+-- grants unchanged: EXECUTE stays TO authenticated (gate is inside body)
+```
 
-### A. DB-layer trigger cases (5, 6, 8, 11, 12, 13, 22)
-Run via `supabase--read_query` (SELECT/DO blocks) and, where writes are needed, a **temporary smoke migration** that:
-- opens a transaction
-- seeds a throwaway project + ceremony
-- attempts the forbidden SQL
-- captures the raised `SQLSTATE` / message
-- **rolls back** so nothing persists
+Portal-member branch removed. Ceremonies stay internal-only. Phase 3 can add a separate portal-safe helper if it needs client-safe field labels.
 
-Nothing here needs `auth.email()` — triggers fire on service-role writes too.
+**No app code changes** — `listCeremonyFields` already asserts `admin/operator` before calling the RPC, and no portal route imports it. Test fixture at `src/lib/__tests__/spine-field-keys-drift.test.ts` still compares against `internal_spine_field_keys` so it stays green.
 
-### B. App-layer server-function cases (1, 2, 3, 4, 7, 9, 10, 14, 15, 16, 17)
-These exercise `startCeremony / recordCeremonyDecision / completeCeremony / abandonCeremony` which all use `requireSupabaseAuth`. Two options:
+### Part 2 — Operator UI smoke pass through `CeremonyPanel`
 
-- **Preferred:** Playwright script under `/tmp/browser/phase2-smoke/` that logs in as an operator via the injected Supabase session (`LOVABLE_BROWSER_AUTH_STATUS`), navigates to a scratch project's Point A / Point B routes, and drives `CeremonyPanel` UI. Screenshots + DB reads after each step.
-- **Fallback:** if `LOVABLE_BROWSER_AUTH_STATUS != injected`, invoke each server fn via `stack_modern--invoke-server-function` (bearer attached automatically) and verify with `supabase--read_query`.
+Playwright script under `/tmp/browser/phase2-ui-smoke/run.py` driving the injected admin/operator session against `http://localhost:8080/engine/projects/<scratch>/point-a` and `.../point-b`. Uses the same scratch project created in the earlier smoke run (or creates a fresh one via existing server fns if missing). Screenshots per case under `screenshots/`, machine-readable `results.json`.
 
-Case 15 (AI actor blocked) can't be reached through the UI or an authenticated server fn — verify by direct `insert` attempt on `engine_spine_field_truth` with `updated_by_actor='ai'` + `verified` and confirm the Phase 1 R3 CHECK rejects it. Documented as DB-verified.
+**Cases (all 16 UPDATE-path guarantees, driven end-to-end):**
 
-### C. R4 access-gate cases (18, 19, 20, 21)
-Require calling `spine_field_keys` / `internal_spine_field_keys` under different auth identities:
+| # | Case | How exercised via UI |
+|---|------|---------------------|
+| 1 | `recordCeremonyDecision` stamps `ceremony_id` on truth row | Open ceremony, approve a field, verify truth row via `supabase--read_query` |
+| 2 | `completeCeremony` blocks non-terminal fields | Click Complete with 1 field still `pending`, expect toast error |
+| 3 | Raw/incomplete completion path rejected by DB trigger | Force via authenticated fetch of `completeCeremony` with mid-state; expect trigger error |
+| 4 | Bare `missing` blocks completion | Set field to `missing` without accepted-risk, expect completion blocked |
+| 5 | `accepted-risk missing` allows completion | Set same field to `missing` + accepted-risk, expect completion succeeds |
+| 6 | Contradiction blocks completion | Seed one truth row `contradicted`, attempt complete, expect block |
+| 7 | Abandon Point A rejected while Point B exists (no unlock) | Complete A → Start B → Abandon A, expect rejection |
+| 8 | Decision against completed ceremony rejected | Complete A, then try `recordCeremonyDecision` on it, expect rejection |
+| 9 | `approved_truth` without ceremony provenance rejected | Direct authenticated write attempt, expect trigger error |
+| 10 | Full Point B approve + complete works | Happy path end-to-end, screenshot final green state |
+| 11 | AI actor cannot write verified/approved_truth | Server-fn call with `updated_by_actor='ai'`, expect CHECK violation |
+| 12 | `abandonCeremony` requires reason | Empty reason via panel, expect validation error |
+| 13 | Completion trigger sees dynamic `diagnosis:*` keys | Seed `diagnosis:x`/`y` as approved, complete succeeds |
+| 14 | Point A reversal cascades stale/re-review to Point B | After 10, reverse a Point A field, expect B ceremony `stale_since` + `re_review_required` |
+| 15 | Invalidation record unlocks Point A reopen | Call `invalidatePointACeremony`, then `reopenCeremony`, expect success |
+| 16 | Re-completion auto-resolves invalidations | After 15, re-complete Point A, expect invalidation row `resolved_at` set |
 
-- **18, 19:** authenticated non-staff, no portal permission — use `stack_modern--invoke-server-function` with a thin new smoke server fn that just RPCs the two helpers and returns error/rows. Alternatively use `supabase--read_query` with `SET LOCAL role authenticated; SET LOCAL request.jwt.claims = '{"sub":"…","email":"nonstaff@…"}'` inside a transaction.
-- **20:** staff caller — same technique with a staff claim, seed two `diagnosis:*` truth rows first.
-- **21:** portal member — requires an active `engine_client_portal_permissions` row; seed one for the smoke user, then call under their JWT.
+**Sanity checks (same script):**
 
-Because full JWT impersonation from the sandbox is fragile, I will use the `SET LOCAL request.jwt.claims` pattern inside a read-only transaction — it's how our other RLS smokes have been shown to run in this project. If a specific case can't be reliably impersonated, it will be marked `INCONCLUSIVE (impersonation)` rather than falsely PASS.
+- `CeremonyPanel` renders on `/engine/projects/*/point-a` and `/point-b` only — grep source (no import outside `engine.projects.$projectId.point-{a,b}.tsx`) + Playwright visit of `/portal/roadmap`, `/portal/home`, `/portal/onboarding` and assert no `[data-qa-ceremony-badge]` / `CeremonyPanel` DOM.
+- WorkspaceStepper badge: after case 10, assert `[data-qa-ceremony-badge="point-a"][data-qa-ceremony-state="completed"]` and same for point-b; after case 14, expect `re_review` / `stale`.
 
-## Fixture
+**Doc hygiene:**
 
-Single scratch project created at start:
-- `engine_projects` row with a distinct name (`smoke:phase-2:<timestamp>`)
-- 3 seeded truth rows on Point A (one `stated`, one `needs_confirmation`, one `contradicted` for case 8) plus `diagnosis:x`, `diagnosis:y` (for cases 20, 22)
-- operator email = current session email
+- Rewrite the "INCONCLUSIVE" table in `.orchestrator/phase-2-output.md` with the UI-driven results (each row → PASS or FAIL with evidence path).
+- Remove the "recommended follow-up: Playwright pass" and "WorkspaceStepper closeout" callouts — now closed.
+- Append a final "Phase 2 — ACCEPTED" section with sign-off checklist.
+- Mirror the acceptance line in `.orchestrator/PENDING_MIGRATIONS.md` under the Phase 2 block.
 
-Fixture is torn down at end (soft delete / status='archived' — no hard DELETE, matching design principle).
+**Stop conditions (ask before continuing):**
 
-## Deliverables
+- `LOVABLE_BROWSER_AUTH_STATUS` ≠ `injected`, OR the injected session's email is not in `user_roles` with `admin` or `operator` → stop, ask user to sign in as an operator.
+- Any case fails → stop, do not mark accepted, report the specific case + evidence.
 
-1. `.orchestrator/phase-2-smoke/` directory with:
-   - `run.py` (Playwright driver)
-   - `db-cases.sql` (transactional trigger tests)
-   - `screenshots/` per UI case
-   - `results.json` — machine-readable per-case PASS/FAIL/INCONCLUSIVE + evidence pointer
-2. Append **"Phase 2 smoke run — <date>"** section to `.orchestrator/phase-2-output.md` with a 22-row table (Case # · Surface · Result · Evidence).
-3. Append the same summary block to `.orchestrator/PENDING_MIGRATIONS.md` immediately after the existing smoke plan (line ~1188), and flip the "Known follow-ups" bullet in `phase-2-output.md` from "to be executed" to "executed <date> — N/22 PASS".
-4. Do **not** apply any permanent migration. The transactional smoke SQL rolls back.
+### Deliverables
 
-## Risks / calls I'll make during execution
+- 1 migration file (Part 1)
+- `/tmp/browser/phase2-ui-smoke/{run.py, results.json, screenshots/*.png}`
+- Updated `.orchestrator/phase-2-output.md` and `PENDING_MIGRATIONS.md`
+- No changes to `CeremonyPanel`, `WorkspaceStepper`, or any Phase 2 server fn (they're already correct — this pass proves it)
 
-- If `LOVABLE_BROWSER_AUTH_STATUS` is `signed_out`, I'll stop and ask you to sign in via the preview once before continuing — no credential prompts.
-- If a case fails, I'll capture the failure, continue the rest, and report the full 22-row result rather than halting.
-- Any case that requires JWT impersonation I can't cleanly reproduce will be marked INCONCLUSIVE with the exact reason, not silently PASSed.
+### Out of scope
 
-## Out of scope
-
-- WorkspaceStepper badge (separate Phase 2 closeout item).
-- Portal read-only summary (future phase).
-- Any schema change — this is verification only.
+- Portal-safe field-label helper (Phase 3)
+- Any schema change beyond the `spine_field_keys` gate rewrite
