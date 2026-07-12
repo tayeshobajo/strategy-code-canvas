@@ -147,7 +147,7 @@ SELECT count(*) AS pointb_object_rows FROM public.engine_projects
   WHERE jsonb_typeof(point_b) = 'object';
 ```
 
-### Migration SQL (Variant B — canonical)
+### Migration SQL (Variant B — canonical, R3-hardened)
 
 ```sql
 -- 1. Enum (8 values)
@@ -164,6 +164,23 @@ ALTER TABLE public.engine_extracted_signals
 CREATE INDEX engine_extracted_signals_status_idx
   ON public.engine_extracted_signals (project_id, status);
 
+-- 2b. FIX #5 — Legacy signal source_ref backfill.
+--     Every pre-existing signal defaulted to status='inferred' with an
+--     empty source_ref, which violates the new provenance rule for
+--     'inferred'. Populate source_ref from source_id / extraction_run_id
+--     when present, else mark 'legacy_extraction' with rationale.
+UPDATE public.engine_extracted_signals
+SET source_ref = jsonb_strip_nulls(jsonb_build_object(
+  'kind',              'legacy_extraction',
+  'model',             'pre-R3',
+  'prompt_ref',        'legacy:signal:' || id::text,
+  'source_id',         source_id,
+  'extraction_run_id', extraction_run_id,
+  'timestamp',         created_at::text,
+  'rationale',         'Backfilled by Phase 1 R3 migration; original run predates the R3 truth model.'
+))
+WHERE source_ref = '{}'::jsonb OR source_ref IS NULL;
+
 -- 3. Chat event delta
 ALTER TABLE public.engine_project_chat_events
   ADD COLUMN epistemic_delta jsonb NOT NULL DEFAULT '{}'::jsonb;
@@ -178,8 +195,15 @@ CREATE TABLE public.engine_spine_field_truth (
   source_ref jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by_email text,
+  -- FIX #3 — extend actor kinds; backfill/system-side writes are neither
+  -- interactive humans nor autonomous AI decisions.
   updated_by_actor text NOT NULL DEFAULT 'human'
-    CHECK (updated_by_actor IN ('human','ai')),
+    CHECK (updated_by_actor IN ('human','ai','system')),
+  -- FIX #4 — human writes must carry an email (audit accountability).
+  CONSTRAINT engine_spine_field_truth_human_needs_email CHECK (
+    updated_by_actor <> 'human'
+    OR (updated_by_email IS NOT NULL AND length(btrim(updated_by_email)) > 0)
+  ),
   UNIQUE (project_id, spine, field_key)
 );
 
@@ -188,11 +212,14 @@ CREATE INDEX engine_spine_field_truth_project_spine_idx
 CREATE INDEX engine_spine_field_truth_status_idx
   ON public.engine_spine_field_truth (project_id, status);
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.engine_spine_field_truth TO authenticated;
-GRANT ALL ON public.engine_spine_field_truth TO service_role;
+-- FIX #1 — grant INSERT/UPDATE only; DELETE stays with service_role.
+--          Truth rows are canonical state, not disposable UI cache.
+GRANT SELECT, INSERT, UPDATE ON public.engine_spine_field_truth TO authenticated;
+GRANT ALL                     ON public.engine_spine_field_truth TO service_role;
 
 ALTER TABLE public.engine_spine_field_truth ENABLE ROW LEVEL SECURITY;
 
+-- FIX #1 — split policies by verb; no DELETE policy is intentional.
 CREATE POLICY "Team members read spine field truth"
   ON public.engine_spine_field_truth FOR SELECT
   TO authenticated USING (
@@ -201,22 +228,45 @@ CREATE POLICY "Team members read spine field truth"
     OR public.has_role(auth.uid(), 'team')
   );
 
-CREATE POLICY "Operators write spine field truth"
-  ON public.engine_spine_field_truth FOR ALL
+CREATE POLICY "Operators insert spine field truth"
+  ON public.engine_spine_field_truth FOR INSERT
   TO authenticated
-  USING (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'operator'))
   WITH CHECK (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'operator'));
 
--- 5. Audit trigger — writes into engine_audit_log on every update
+CREATE POLICY "Operators update spine field truth"
+  ON public.engine_spine_field_truth FOR UPDATE
+  TO authenticated
+  USING      (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'operator'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'operator'));
+-- Intentionally NO delete policy.
+
+-- 5. Audit trigger — FIX #2: audit INSERT as well as UPDATE.
+--    Backfill rows (source_ref.kind = 'backfill') are exempted so we
+--    don't flood the audit log with 11 projects × N fields on migration.
 CREATE OR REPLACE FUNCTION public.tg_engine_spine_field_truth_audit()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  is_backfill boolean := (NEW.source_ref ->> 'kind') = 'backfill';
 BEGIN
   NEW.updated_at := now();
-  IF TG_OP = 'UPDATE' AND (
+
+  IF TG_OP = 'INSERT' AND NOT is_backfill THEN
+    INSERT INTO public.engine_audit_log (
+      project_id, action, field_changed, old_value, new_value, actor_email, metadata
+    ) VALUES (
+      NEW.project_id,
+      'spine_field_truth_created',
+      NEW.spine || ':' || NEW.field_key,
+      NULL,
+      jsonb_build_object('status', NEW.status, 'source_ref', NEW.source_ref),
+      NEW.updated_by_email,
+      jsonb_build_object('actor_kind', NEW.updated_by_actor)
+    );
+  ELSIF TG_OP = 'UPDATE' AND (
     OLD.status IS DISTINCT FROM NEW.status
     OR OLD.source_ref IS DISTINCT FROM NEW.source_ref
   ) THEN
@@ -237,42 +287,68 @@ END;
 $$;
 
 CREATE TRIGGER trg_engine_spine_field_truth_audit
-  BEFORE UPDATE ON public.engine_spine_field_truth
+  BEFORE INSERT OR UPDATE ON public.engine_spine_field_truth
   FOR EACH ROW EXECUTE FUNCTION public.tg_engine_spine_field_truth_audit();
 
--- 6. Contradiction detector RPC — signals AND truth-table
+-- 6. Contradiction detector RPC — FIX #6: keep SECURITY DEFINER (the
+--    underlying signals table's SELECT policy is scoped to 'team_member'
+--    only, which would silently return false for admin/operator callers
+--    under SECURITY INVOKER), but add an explicit access check so an
+--    authenticated stranger cannot probe arbitrary project ids.
 CREATE OR REPLACE FUNCTION public.has_contradictions(_project_id uuid)
 RETURNS boolean
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT EXISTS (
+DECLARE
+  allowed boolean := false;
+BEGIN
+  SELECT
+    public.is_engine_staff()
+    OR EXISTS (
+      SELECT 1 FROM public.client_portal_projects cpp
+      JOIN public.client_portal_permissions perm ON perm.project_id = cpp.id
+      JOIN public.engine_projects ep ON ep.client_portal_project_id = cpp.id
+      WHERE ep.id = _project_id
+        AND lower(perm.email) = lower(coalesce(auth.email(), ''))
+        AND perm.revoked_at IS NULL
+    )
+  INTO allowed;
+
+  IF NOT allowed THEN
+    RAISE EXCEPTION 'Forbidden: access to project % not permitted', _project_id
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  RETURN EXISTS (
     SELECT 1 FROM public.engine_extracted_signals
     WHERE project_id = _project_id AND status = 'contradicted' AND superseded_by IS NULL
   ) OR EXISTS (
     SELECT 1 FROM public.engine_spine_field_truth
     WHERE project_id = _project_id AND status = 'contradicted'
   );
+END;
 $$;
 
-REVOKE ALL ON FUNCTION public.has_contradictions(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.has_contradictions(uuid) TO authenticated;
+REVOKE ALL     ON FUNCTION public.has_contradictions(uuid) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.has_contradictions(uuid) TO authenticated;
 
 -- 7. Backfill — seed needs_confirmation rows for existing spine content.
---    Only keys that match the app-layer allowlist. Empty / mismatched
---    fields remain unclassified in the UI (intended state).
-WITH backfill_ref AS (
-  SELECT jsonb_build_object(
+--    FIX #3: use updated_by_actor='system' (backfill is neither an
+--    interactive human nor an autonomous AI decision).
+--    Rows carry source_ref.kind='backfill' so the audit trigger skips
+--    the INSERT audit row per FIX #2.
+INSERT INTO public.engine_spine_field_truth
+  (project_id, spine, field_key, status, source_ref, updated_by_email, updated_by_actor)
+SELECT p.id, 'point-b', k, 'needs_confirmation',
+  jsonb_build_object(
     'kind','backfill',
     'reason','Phase 1 R3 backfill from existing spine content',
     'timestamp', now()::text
-  ) AS ref
-)
-INSERT INTO public.engine_spine_field_truth
-  (project_id, spine, field_key, status, source_ref, updated_by_email, updated_by_actor)
-SELECT p.id, 'point-b', k, 'needs_confirmation', (SELECT ref FROM backfill_ref), NULL, 'ai'
+  ),
+  NULL, 'system'
 FROM public.engine_projects p
 CROSS JOIN unnest(ARRAY[
   '24_month_destination','10_year_position','client_outcome','customer_outcome',
@@ -287,7 +363,7 @@ INSERT INTO public.engine_spine_field_truth
   (project_id, spine, field_key, status, source_ref, updated_by_email, updated_by_actor)
 SELECT p.id, 'point-a', k, 'needs_confirmation',
   jsonb_build_object('kind','backfill','reason','Phase 1 R3 backfill','timestamp', now()::text),
-  NULL, 'ai'
+  NULL, 'system'
 FROM public.engine_projects p
 CROSS JOIN unnest(ARRAY['lenses','diagnosis','key_diagnosis']) AS k
 WHERE jsonb_typeof(p.point_a) = 'object'
@@ -301,7 +377,7 @@ SELECT
   'diagnosis:' || btrim(card->>'title'),
   'needs_confirmation',
   jsonb_build_object('kind','backfill','reason','Phase 1 R3 backfill','timestamp', now()::text),
-  NULL, 'ai'
+  NULL, 'system'
 FROM public.engine_projects p
 CROSS JOIN LATERAL jsonb_array_elements(
   CASE WHEN jsonb_typeof(p.point_a -> 'diagnosis') = 'array'
@@ -313,7 +389,7 @@ WHERE jsonb_typeof(p.point_a) = 'object'
 ON CONFLICT (project_id, spine, field_key) DO NOTHING;
 ```
 
-### Rollback (Variant B)
+### Rollback (Variant B, R3-hardened)
 
 ```sql
 DROP FUNCTION IF EXISTS public.has_contradictions(uuid);
@@ -328,6 +404,48 @@ ALTER TABLE public.engine_extracted_signals
   DROP COLUMN IF EXISTS status;
 DROP TYPE IF EXISTS public.epistemic_status;
 ```
+
+### Confirmation — all seven fixes
+
+1. **No DELETE.** `GRANT` drops DELETE; RLS policies are split by verb;
+   there is deliberately no DELETE policy. Only `service_role` retains
+   DELETE for maintenance.
+2. **INSERT is audited.** Trigger now fires `BEFORE INSERT OR UPDATE`.
+   INSERT writes `action='spine_field_truth_created'`; UPDATE keeps
+   `action='spine_field_truth_changed'`. Rows with
+   `source_ref.kind='backfill'` are exempted, so the 11-project seed
+   does not flood the audit log.
+3. **`system` actor added.** `updated_by_actor` CHECK now allows
+   `human | ai | system`. Backfill inserts use `system`.
+4. **Human writes require email.** Table-level CHECK
+   `engine_spine_field_truth_human_needs_email` rejects any row where
+   `updated_by_actor='human'` and `updated_by_email` is null or blank.
+   `markSpineFieldStatus` already injects the operator's email
+   server-side, so the app path always satisfies this.
+5. **Legacy signal source_ref backfilled.** New `UPDATE` runs
+   immediately after the `ADD COLUMN` and populates every pre-existing
+   row with `kind='legacy_extraction'`, `source_id`,
+   `extraction_run_id`, `timestamp`, and a rationale. Meets the
+   `inferred`-status provenance rule without lying about the model.
+6. **`has_contradictions` gated.** Rewritten in plpgsql. Still
+   `SECURITY DEFINER` (needed because `engine_extracted_signals` SELECT
+   is scoped to `team_member` only — SECURITY INVOKER would silently
+   return false for admin/operator callers), but now performs an
+   explicit access check: staff (`is_engine_staff()`) OR a live portal
+   permission linking the caller's email to the project. Otherwise
+   raises `insufficient_privilege`.
+7. **`extracted_signal` kind consistency.** Documented follow-up: the
+   R2 `assertEvidenceForStatus` for `stated` accepts only
+   `intake_answer | transcript | operator_note`. `promoteSignalToSpine`
+   sets `kind='extracted_signal'`, which today passes for `verified`
+   (via `id + quote + timestamp`) and for `needs_confirmation` (via
+   the human-operator override), but would fail for `stated`. Adding
+   `extracted_signal` to the `stated` accepted-kind set is an
+   app-layer change (in `src/lib/engine-epistemic.server.ts`) — no SQL
+   impact. Will ship in the same commit as this migration once
+   approved, before smoke tests run.
+
+
 
 ### App-layer that ships with this revision
 
