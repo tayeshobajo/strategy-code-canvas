@@ -62,10 +62,21 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as BuildMyRoadmapWriteRouteImport } from './routes/build-my-roadmap.write'
+import { Route as AdminStageTransitionsRouteImport } from './routes/admin.stage-transitions'
 import { Route as AdminRolesRouteImport } from './routes/admin.roles'
+import { Route as AdminRoadmapIntelligenceRouteImport } from './routes/admin.roadmap-intelligence'
 import { Route as AdminProjectIntegrityRouteImport } from './routes/admin.project-integrity'
+import { Route as AdminPostDeliveryLearningRouteImport } from './routes/admin.post-delivery-learning'
+import { Route as AdminPlatformConfigRouteImport } from './routes/admin.platform-config'
+import { Route as AdminPlanDepthRouteImport } from './routes/admin.plan-depth'
+import { Route as AdminOutcomeFeedbackRouteImport } from './routes/admin.outcome-feedback'
 import { Route as AdminMilestoneChangesRouteImport } from './routes/admin.milestone-changes'
 import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-alerts'
+import { Route as AdminExceptionManagementRouteImport } from './routes/admin.exception-management'
+import { Route as AdminEvidenceEnforcementRouteImport } from './routes/admin.evidence-enforcement'
+import { Route as AdminDriftDetectionRouteImport } from './routes/admin.drift-detection'
+import { Route as AdminDeliveryReadinessGateRouteImport } from './routes/admin.delivery-readiness-gate'
+import { Route as AdminDecisionLogRouteImport } from './routes/admin.decision-log'
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
 import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
@@ -115,6 +126,7 @@ import { Route as EngineProjectsProjectIdBuilderRouteImport } from './routes/eng
 import { Route as EngineProjectsProjectIdBuildExecutionRouteImport } from './routes/engine.projects.$projectId.build-execution'
 import { Route as EngineProjectsProjectIdBlueprintRouteImport } from './routes/engine.projects.$projectId.blueprint'
 import { Route as EngineProjectsProjectIdBackendBuilderRouteImport } from './routes/engine.projects.$projectId.backend-builder'
+import { Route as EngineProjectsProjectIdAiWorkspaceRouteImport } from './routes/engine.projects.$projectId.ai-workspace'
 import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engine.projects.$projectId.agent'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
@@ -388,14 +400,46 @@ const BuildMyRoadmapWriteRoute = BuildMyRoadmapWriteRouteImport.update({
   path: '/build-my-roadmap/write',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminStageTransitionsRoute = AdminStageTransitionsRouteImport.update({
+  id: '/stage-transitions',
+  path: '/stage-transitions',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRolesRoute = AdminRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminRoadmapIntelligenceRoute =
+  AdminRoadmapIntelligenceRouteImport.update({
+    id: '/roadmap-intelligence',
+    path: '/roadmap-intelligence',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminProjectIntegrityRoute = AdminProjectIntegrityRouteImport.update({
   id: '/project-integrity',
   path: '/project-integrity',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPostDeliveryLearningRoute =
+  AdminPostDeliveryLearningRouteImport.update({
+    id: '/post-delivery-learning',
+    path: '/post-delivery-learning',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminPlatformConfigRoute = AdminPlatformConfigRouteImport.update({
+  id: '/platform-config',
+  path: '/platform-config',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPlanDepthRoute = AdminPlanDepthRouteImport.update({
+  id: '/plan-depth',
+  path: '/plan-depth',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOutcomeFeedbackRoute = AdminOutcomeFeedbackRouteImport.update({
+  id: '/outcome-feedback',
+  path: '/outcome-feedback',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMilestoneChangesRoute = AdminMilestoneChangesRouteImport.update({
@@ -406,6 +450,34 @@ const AdminMilestoneChangesRoute = AdminMilestoneChangesRouteImport.update({
 const AdminIntakeAlertsRoute = AdminIntakeAlertsRouteImport.update({
   id: '/intake-alerts',
   path: '/intake-alerts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminExceptionManagementRoute =
+  AdminExceptionManagementRouteImport.update({
+    id: '/exception-management',
+    path: '/exception-management',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminEvidenceEnforcementRoute =
+  AdminEvidenceEnforcementRouteImport.update({
+    id: '/evidence-enforcement',
+    path: '/evidence-enforcement',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminDriftDetectionRoute = AdminDriftDetectionRouteImport.update({
+  id: '/drift-detection',
+  path: '/drift-detection',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDeliveryReadinessGateRoute =
+  AdminDeliveryReadinessGateRouteImport.update({
+    id: '/delivery-readiness-gate',
+    path: '/delivery-readiness-gate',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminDecisionLogRoute = AdminDecisionLogRouteImport.update({
+  id: '/decision-log',
+  path: '/decision-log',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminConfigRoute = AdminConfigRouteImport.update({
@@ -688,6 +760,12 @@ const EngineProjectsProjectIdBackendBuilderRoute =
     path: '/backend-builder',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdAiWorkspaceRoute =
+  EngineProjectsProjectIdAiWorkspaceRouteImport.update({
+    id: '/ai-workspace',
+    path: '/ai-workspace',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdAgentRoute =
   EngineProjectsProjectIdAgentRouteImport.update({
     id: '/agent',
@@ -758,10 +836,21 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/decision-log': typeof AdminDecisionLogRoute
+  '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
+  '/admin/drift-detection': typeof AdminDriftDetectionRoute
+  '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
+  '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
+  '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
+  '/admin/plan-depth': typeof AdminPlanDepthRoute
+  '/admin/platform-config': typeof AdminPlatformConfigRoute
+  '/admin/post-delivery-learning': typeof AdminPostDeliveryLearningRoute
   '/admin/project-integrity': typeof AdminProjectIntegrityRoute
+  '/admin/roadmap-intelligence': typeof AdminRoadmapIntelligenceRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/admin/stage-transitions': typeof AdminStageTransitionsRoute
   '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -811,6 +900,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
+  '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
   '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
@@ -869,10 +959,21 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalIndexRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/decision-log': typeof AdminDecisionLogRoute
+  '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
+  '/admin/drift-detection': typeof AdminDriftDetectionRoute
+  '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
+  '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
+  '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
+  '/admin/plan-depth': typeof AdminPlanDepthRoute
+  '/admin/platform-config': typeof AdminPlatformConfigRoute
+  '/admin/post-delivery-learning': typeof AdminPostDeliveryLearningRoute
   '/admin/project-integrity': typeof AdminProjectIntegrityRoute
+  '/admin/roadmap-intelligence': typeof AdminRoadmapIntelligenceRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/admin/stage-transitions': typeof AdminStageTransitionsRoute
   '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -921,6 +1022,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
+  '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
   '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
@@ -985,10 +1087,21 @@ export interface FileRoutesById {
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/decision-log': typeof AdminDecisionLogRoute
+  '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
+  '/admin/drift-detection': typeof AdminDriftDetectionRoute
+  '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
+  '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
+  '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
+  '/admin/plan-depth': typeof AdminPlanDepthRoute
+  '/admin/platform-config': typeof AdminPlatformConfigRoute
+  '/admin/post-delivery-learning': typeof AdminPostDeliveryLearningRoute
   '/admin/project-integrity': typeof AdminProjectIntegrityRoute
+  '/admin/roadmap-intelligence': typeof AdminRoadmapIntelligenceRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/admin/stage-transitions': typeof AdminStageTransitionsRoute
   '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
@@ -1038,6 +1151,7 @@ export interface FileRoutesById {
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
+  '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
   '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
@@ -1101,10 +1215,21 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/admin/client-portals'
     | '/admin/config'
+    | '/admin/decision-log'
+    | '/admin/delivery-readiness-gate'
+    | '/admin/drift-detection'
+    | '/admin/evidence-enforcement'
+    | '/admin/exception-management'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
+    | '/admin/outcome-feedback'
+    | '/admin/plan-depth'
+    | '/admin/platform-config'
+    | '/admin/post-delivery-learning'
     | '/admin/project-integrity'
+    | '/admin/roadmap-intelligence'
     | '/admin/roles'
+    | '/admin/stage-transitions'
     | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -1154,6 +1279,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
+    | '/engine/projects/$projectId/ai-workspace'
     | '/engine/projects/$projectId/backend-builder'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/build-execution'
@@ -1212,10 +1338,21 @@ export interface FileRouteTypes {
     | '/portal'
     | '/admin/client-portals'
     | '/admin/config'
+    | '/admin/decision-log'
+    | '/admin/delivery-readiness-gate'
+    | '/admin/drift-detection'
+    | '/admin/evidence-enforcement'
+    | '/admin/exception-management'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
+    | '/admin/outcome-feedback'
+    | '/admin/plan-depth'
+    | '/admin/platform-config'
+    | '/admin/post-delivery-learning'
     | '/admin/project-integrity'
+    | '/admin/roadmap-intelligence'
     | '/admin/roles'
+    | '/admin/stage-transitions'
     | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -1264,6 +1401,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
+    | '/engine/projects/$projectId/ai-workspace'
     | '/engine/projects/$projectId/backend-builder'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/build-execution'
@@ -1327,10 +1465,21 @@ export interface FileRouteTypes {
     | '/_authenticated/portal'
     | '/admin/client-portals'
     | '/admin/config'
+    | '/admin/decision-log'
+    | '/admin/delivery-readiness-gate'
+    | '/admin/drift-detection'
+    | '/admin/evidence-enforcement'
+    | '/admin/exception-management'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
+    | '/admin/outcome-feedback'
+    | '/admin/plan-depth'
+    | '/admin/platform-config'
+    | '/admin/post-delivery-learning'
     | '/admin/project-integrity'
+    | '/admin/roadmap-intelligence'
     | '/admin/roles'
+    | '/admin/stage-transitions'
     | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
@@ -1380,6 +1529,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
+    | '/engine/projects/$projectId/ai-workspace'
     | '/engine/projects/$projectId/backend-builder'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/build-execution'
@@ -1835,6 +1985,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuildMyRoadmapWriteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/stage-transitions': {
+      id: '/admin/stage-transitions'
+      path: '/stage-transitions'
+      fullPath: '/admin/stage-transitions'
+      preLoaderRoute: typeof AdminStageTransitionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/roles': {
       id: '/admin/roles'
       path: '/roles'
@@ -1842,11 +1999,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRolesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/roadmap-intelligence': {
+      id: '/admin/roadmap-intelligence'
+      path: '/roadmap-intelligence'
+      fullPath: '/admin/roadmap-intelligence'
+      preLoaderRoute: typeof AdminRoadmapIntelligenceRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/project-integrity': {
       id: '/admin/project-integrity'
       path: '/project-integrity'
       fullPath: '/admin/project-integrity'
       preLoaderRoute: typeof AdminProjectIntegrityRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/post-delivery-learning': {
+      id: '/admin/post-delivery-learning'
+      path: '/post-delivery-learning'
+      fullPath: '/admin/post-delivery-learning'
+      preLoaderRoute: typeof AdminPostDeliveryLearningRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/platform-config': {
+      id: '/admin/platform-config'
+      path: '/platform-config'
+      fullPath: '/admin/platform-config'
+      preLoaderRoute: typeof AdminPlatformConfigRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/plan-depth': {
+      id: '/admin/plan-depth'
+      path: '/plan-depth'
+      fullPath: '/admin/plan-depth'
+      preLoaderRoute: typeof AdminPlanDepthRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/outcome-feedback': {
+      id: '/admin/outcome-feedback'
+      path: '/outcome-feedback'
+      fullPath: '/admin/outcome-feedback'
+      preLoaderRoute: typeof AdminOutcomeFeedbackRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/milestone-changes': {
@@ -1861,6 +2053,41 @@ declare module '@tanstack/react-router' {
       path: '/intake-alerts'
       fullPath: '/admin/intake-alerts'
       preLoaderRoute: typeof AdminIntakeAlertsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/exception-management': {
+      id: '/admin/exception-management'
+      path: '/exception-management'
+      fullPath: '/admin/exception-management'
+      preLoaderRoute: typeof AdminExceptionManagementRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/evidence-enforcement': {
+      id: '/admin/evidence-enforcement'
+      path: '/evidence-enforcement'
+      fullPath: '/admin/evidence-enforcement'
+      preLoaderRoute: typeof AdminEvidenceEnforcementRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/drift-detection': {
+      id: '/admin/drift-detection'
+      path: '/drift-detection'
+      fullPath: '/admin/drift-detection'
+      preLoaderRoute: typeof AdminDriftDetectionRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/delivery-readiness-gate': {
+      id: '/admin/delivery-readiness-gate'
+      path: '/delivery-readiness-gate'
+      fullPath: '/admin/delivery-readiness-gate'
+      preLoaderRoute: typeof AdminDeliveryReadinessGateRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/decision-log': {
+      id: '/admin/decision-log'
+      path: '/decision-log'
+      fullPath: '/admin/decision-log'
+      preLoaderRoute: typeof AdminDecisionLogRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/config': {
@@ -2206,6 +2433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdBackendBuilderRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/ai-workspace': {
+      id: '/engine/projects/$projectId/ai-workspace'
+      path: '/ai-workspace'
+      fullPath: '/engine/projects/$projectId/ai-workspace'
+      preLoaderRoute: typeof EngineProjectsProjectIdAiWorkspaceRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/agent': {
       id: '/engine/projects/$projectId/agent'
       path: '/agent'
@@ -2309,20 +2543,42 @@ const OpsRouteRouteWithChildren = OpsRouteRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminClientPortalsRoute: typeof AdminClientPortalsRoute
   AdminConfigRoute: typeof AdminConfigRoute
+  AdminDecisionLogRoute: typeof AdminDecisionLogRoute
+  AdminDeliveryReadinessGateRoute: typeof AdminDeliveryReadinessGateRoute
+  AdminDriftDetectionRoute: typeof AdminDriftDetectionRoute
+  AdminEvidenceEnforcementRoute: typeof AdminEvidenceEnforcementRoute
+  AdminExceptionManagementRoute: typeof AdminExceptionManagementRoute
   AdminIntakeAlertsRoute: typeof AdminIntakeAlertsRoute
   AdminMilestoneChangesRoute: typeof AdminMilestoneChangesRoute
+  AdminOutcomeFeedbackRoute: typeof AdminOutcomeFeedbackRoute
+  AdminPlanDepthRoute: typeof AdminPlanDepthRoute
+  AdminPlatformConfigRoute: typeof AdminPlatformConfigRoute
+  AdminPostDeliveryLearningRoute: typeof AdminPostDeliveryLearningRoute
   AdminProjectIntegrityRoute: typeof AdminProjectIntegrityRoute
+  AdminRoadmapIntelligenceRoute: typeof AdminRoadmapIntelligenceRoute
   AdminRolesRoute: typeof AdminRolesRoute
+  AdminStageTransitionsRoute: typeof AdminStageTransitionsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminClientPortalsRoute: AdminClientPortalsRoute,
   AdminConfigRoute: AdminConfigRoute,
+  AdminDecisionLogRoute: AdminDecisionLogRoute,
+  AdminDeliveryReadinessGateRoute: AdminDeliveryReadinessGateRoute,
+  AdminDriftDetectionRoute: AdminDriftDetectionRoute,
+  AdminEvidenceEnforcementRoute: AdminEvidenceEnforcementRoute,
+  AdminExceptionManagementRoute: AdminExceptionManagementRoute,
   AdminIntakeAlertsRoute: AdminIntakeAlertsRoute,
   AdminMilestoneChangesRoute: AdminMilestoneChangesRoute,
+  AdminOutcomeFeedbackRoute: AdminOutcomeFeedbackRoute,
+  AdminPlanDepthRoute: AdminPlanDepthRoute,
+  AdminPlatformConfigRoute: AdminPlatformConfigRoute,
+  AdminPostDeliveryLearningRoute: AdminPostDeliveryLearningRoute,
   AdminProjectIntegrityRoute: AdminProjectIntegrityRoute,
+  AdminRoadmapIntelligenceRoute: AdminRoadmapIntelligenceRoute,
   AdminRolesRoute: AdminRolesRoute,
+  AdminStageTransitionsRoute: AdminStageTransitionsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -2351,6 +2607,7 @@ const EngineProjectsProjectIdAgentRouteWithChildren =
 
 interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdAgentRoute: typeof EngineProjectsProjectIdAgentRouteWithChildren
+  EngineProjectsProjectIdAiWorkspaceRoute: typeof EngineProjectsProjectIdAiWorkspaceRoute
   EngineProjectsProjectIdBackendBuilderRoute: typeof EngineProjectsProjectIdBackendBuilderRoute
   EngineProjectsProjectIdBlueprintRoute: typeof EngineProjectsProjectIdBlueprintRoute
   EngineProjectsProjectIdBuildExecutionRoute: typeof EngineProjectsProjectIdBuildExecutionRoute
@@ -2388,6 +2645,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
   {
     EngineProjectsProjectIdAgentRoute:
       EngineProjectsProjectIdAgentRouteWithChildren,
+    EngineProjectsProjectIdAiWorkspaceRoute:
+      EngineProjectsProjectIdAiWorkspaceRoute,
     EngineProjectsProjectIdBackendBuilderRoute:
       EngineProjectsProjectIdBackendBuilderRoute,
     EngineProjectsProjectIdBlueprintRoute:

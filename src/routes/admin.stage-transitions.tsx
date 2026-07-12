@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/admin/stage-transitions" as never)({
+export const Route = createFileRoute("/admin/stage-transitions")({
   component: AdminStageTransitionsPage,
 });
 
