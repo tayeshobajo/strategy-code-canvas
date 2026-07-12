@@ -347,24 +347,26 @@ function ActionButton({
   icon,
   tone,
   onClick,
+  disabled,
 }: {
   label: string;
   icon: ReactNode;
-  tone: "approve" | "revision" | "reject" | "question";
+  tone: "approve" | "revision" | "reject";
   onClick: () => void;
+  disabled?: boolean;
 }) {
   const styles = {
     approve: { backgroundColor: NAVY, borderColor: NAVY, color: CREAM },
     revision: { backgroundColor: "#FFF4DE", borderColor: "#F2D39A", color: "#8A5A00" },
     reject: { backgroundColor: "#FDEBEC", borderColor: "#F3C4C8", color: "#A33A45" },
-    question: { backgroundColor: "#EAF1FB", borderColor: "#B7CAE7", color: BLUE },
   } as const;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-transform hover:-translate-y-0.5"
+      disabled={disabled}
+      className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
       style={styles[tone]}
     >
       {icon}
