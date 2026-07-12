@@ -174,6 +174,24 @@ Execution packets, human assignments, agent assignments, model routing, costs, h
 ### Phase 8B — Execution Packet Completeness 🔸 Not fully built
 Every packet must have: goal, scope, exclusions, approved inputs, dependencies, owner, executor, do-not-touch boundaries, output contract, acceptance criteria, evidence requirements, cost limit, fallback behavior.
 
+### Phase 8E — Context Inheritance 🔸 Not built
+Every execution packet carries the full decision chain from intake to specification.
+- Packet includes: client's original intake words (verbatim quotes), Captain's Understanding brief (Known/Inferred/Missing), the Spine decisions that caused this feature, the approved mockup path, the PM's reasoning
+- Developer agent opens a packet and has complete context — never needs to ask why something is built a certain way
+- Every decision is traceable to a client statement
+- Context chain is read-only inside packets — can be referenced but not modified
+- Audit trail links packet → spine entry → intake record → client identity
+
+### Phase 8F — Stage Transition Engine 🔸 Not built
+Automated handoffs between pipeline stages with the right actor notified at the right moment.
+- When QA passes: system automatically advances milestone to Delivery, notifies delivery owner
+- When evidence is uploaded: system checks against requirements, auto-advances if complete
+- When Captain detects drift: system flags project, notifies operator, surfaces in Command Center exceptions
+- When intake is submitted: system triggers Understanding extraction automatically
+- When Spine is approved: system generates roadmap phases and notifies PM
+- Human touch points: Spine review, mockup approval, exception decisions, final delivery sign-off
+- Everything else is engine-driven — no manual stage advancement required
+
 ### Phase 8C — Agent Capability Routing 🔸 Not built
 Platform requests capabilities rather than hardcoding providers.
 
@@ -237,6 +255,15 @@ Founding engines: Content Authority, Lead Follow-Up, Reputation, Client Success,
 ### Phase 12D — Agent Performance and Outcome Learning 🔸 Not built
 ### Phase 12E — Ongoing Roadmap Regeneration 🔸 Not built
 
+### Phase 12F — Outcome Feedback Loop 🔸 Not built
+Delivery outcomes flow back into Captain's understanding, making the platform smarter over time.
+- At delivery: Captain generates 30/60/90 day check-in schedule automatically
+- Check-ins ask: Did Point B get achieved? What worked? What didn't? What would you do differently?
+- Responses feed back into industry memory (Phase 12C) and agent performance learning (Phase 12D)
+- Captain uses outcome data to improve: intake questions for this industry, evidence requirements for this milestone type, timeline estimates for this project type
+- Operator sees outcome scores per client, per project type, per phase
+- Closed loop: intake assumption → roadmap → delivery → outcome → refined assumption next time
+
 ---
 
 ## LAYER 13 — CLIENT PORTAL (FULL)
@@ -272,11 +299,11 @@ Founding engines: Content Authority, Lead Follow-Up, Reputation, Client Success,
 | Roadmap | 5, 5B, 5C | ✅ / 🔸 / 🔸 |
 | Client Delivery | 6, 6B, 6C | 🔶 / 🔸 / 🔸 |
 | Plans & Specs | 7, 7B, 7C | ✅ / 🔸 / 🔸 |
-| Orchestration | 8, 8B, 8C, 8D | 🔶 / 🔸 / 🔸 / 🔸 |
+| Orchestration | 8, 8B, 8C, 8D, 8E, 8F | 🔶 / 🔸 / 🔸 / 🔸 / 🔸 / 🔸 |
 | Evidence & QA | 9, 9B, 9C | ✅ / 🔸 / 🔸 |
 | Delivery | 10, 10B, 10C | 🔸 / 🔸 / 🔸 |
 | Command Center | 11, 11B, 11C, 11D | ✅ / 🔸 / 🔸 / 🔸 |
-| Business Engines | 12A–12E | 🔸 all |
+| Business Engines | 12A–12E, 12F | 🔸 all |
 | Client Portal | 13, 13B, 13C, 13D | 🔶 / 🔸 / 🔸 / 🔸 |
 | Commercial | 14, 14B | 🔸 / 🔸 |
 | Observability | 15 | 🔸 |

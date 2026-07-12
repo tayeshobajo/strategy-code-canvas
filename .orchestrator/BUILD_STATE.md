@@ -25,6 +25,9 @@
 | 14 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 🔴 NOT STARTED | phase-7b-output.md |
 | 15 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | 🔴 NOT STARTED | phase-10c-output.md |
 | 16 | 9C | AI Self-Assessment Prevention — DB constraint (MIGRATION ONLY — write to PENDING_MIGRATIONS.md) | 🔴 NOT STARTED | phase-9c-output.md |
+| 17 | 8E | Context Inheritance — every execution packet carries the full chain: intake → understanding → mockup → spine → spec | 🔴 NOT STARTED | phase-8e-output.md |
+| 18 | 8F | Stage Transition Engine — automated handoffs between stages, right actor notified, no manual advancement | 🔴 NOT STARTED | phase-8f-output.md |
+| 19 | 12F | Outcome Feedback Loop — delivery outcomes flow back into Captain understanding, 30/60/90 day check-ins | 🔴 NOT STARTED | phase-12f-output.md |
 
 ---
 
@@ -82,3 +85,4 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 2026-07-11 18:42 CDT | 6B | HALTED — CREDITS OUT | Lovable workspace returned 402. Phase 6B build prompt ready but could not be sent. Top up credits to resume. |
 | 2026-07-11 20:43 CDT | 4C | QUEUED | Decision Log — Tai approved. Cross-project feed of every approved spine change with author, reason, and downstream impact. |
 | 2026-07-11 20:54 CDT | 1C | QUEUED | Platform Configuration — settings layer, project type templates, configurable governance gates. Enables generative platform behaviour. |
+| 2026-07-11 21:16 CDT | 8E, 8F, 12F | QUEUED | Nervous system phases — context inheritance, stage transitions, outcome feedback. Tai approved. |
