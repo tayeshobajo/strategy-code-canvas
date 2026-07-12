@@ -127,7 +127,7 @@ export function DecisionResponseModal({ open, onOpenChange, projectId, milestone
             Response sent. Tai will pick this up in the review queue.
             <div className="mt-3">
               <Button asChild variant="outline" size="sm" className="border-ink/20">
-                <Link to="/portal/messages">Open Messages</Link>
+                <Link to="/portal/messages" search={{ milestone: undefined, prefill: undefined }}>Open Messages</Link>
               </Button>
             </div>
           </div>
