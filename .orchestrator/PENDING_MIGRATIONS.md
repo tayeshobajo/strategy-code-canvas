@@ -106,3 +106,146 @@ App-layer follow-ups shipped in the same turn:
   email when an AI-generated task transitions to terminal status.
 - `approveMilestone` already set `approved_by_email` from the staff session —
   confirmed unchanged.
+
+---
+
+## Phase 1 — Epistemic-Status Taxonomy (Truth Model)
+
+Status: **PENDING TAI REVIEW** — do not apply until reviewed.
+
+Purpose. Introduce a first-class epistemic-status label + source provenance
+on every extracted signal and every Point A / Point B field. Downstream
+phases (ceremonies, portal transitions, evidence gate, specialist agents)
+all depend on this contract.
+
+### Design decisions
+
+1. **New enum `epistemic_status`** with five values: `stated`, `inferred`,
+   `assumed`, `contradicted`, `verified`.
+   - `stated` — the client (or an operator on their behalf) said it.
+   - `inferred` — AI derived it from other stated facts; explainable.
+   - `assumed` — AI guessed with no direct source; must be resolved.
+   - `contradicted` — a newer signal conflicts with a prior `stated`/`verified` value.
+   - `verified` — an operator or admin has personally confirmed it.
+
+2. **`engine_extracted_signals` gains columns.** `status` (enum, default
+   `inferred`), `source_ref` (jsonb `{kind, id, quote?, timestamp?}`),
+   `superseded_by` (uuid FK to the same table, `ON DELETE SET NULL`).
+   All existing rows backfill to `inferred` with `source_ref='{}'::jsonb`.
+
+3. **Sidecar status columns on `engine_projects`.** Rather than mutating the
+   existing `point_a`/`point_b` jsonb shape (which the whole UI reads), we
+   add two new jsonb columns: `point_a_status` and `point_b_status`. Each is
+   an object keyed by the same top-level keys as the payload, with values of
+   `{status: epistemic_status, source_ref: jsonb, updated_at: timestamptz,
+   updated_by_email: text}`. Default `'{}'::jsonb`. Same-shape sidecar keeps
+   the fix reversible and never breaks existing readers.
+
+4. **`engine_project_chat_events` gains `epistemic_delta` jsonb.** Default
+   `'{}'::jsonb`. Populated when a chat event promotes / demotes / flags a
+   field so the chat feed shows "Tai marked customer_segment as stated."
+
+5. **New RPC `has_contradictions(_project_id uuid)`** — SECURITY DEFINER,
+   returns boolean, used by ceremony gate (Phase 2) to block approval when
+   any `contradicted` signal is unresolved.
+
+### Non-goals for the migration
+
+- No change to RLS policies. Existing `Team members read extracted signals`
+  policy continues to apply; new columns inherit.
+- No change to portal-facing tables — the `buildClientSafePayload` allowlist
+  in code decides what leaks; sidecar columns are internal-only by default.
+- No data migration to *label* existing signals — everything defaults to
+  `inferred`. Reclassification happens through the new server functions.
+
+### Proposed SQL
+
+```sql
+-- 1. Enum
+CREATE TYPE public.epistemic_status AS ENUM (
+  'stated', 'inferred', 'assumed', 'contradicted', 'verified'
+);
+
+-- 2. Signal columns
+ALTER TABLE public.engine_extracted_signals
+  ADD COLUMN status public.epistemic_status NOT NULL DEFAULT 'inferred',
+  ADD COLUMN source_ref jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN superseded_by uuid REFERENCES public.engine_extracted_signals(id) ON DELETE SET NULL;
+
+CREATE INDEX engine_extracted_signals_status_idx
+  ON public.engine_extracted_signals (project_id, status);
+
+-- 3. Spine sidecar columns
+ALTER TABLE public.engine_projects
+  ADD COLUMN point_a_status jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN point_b_status jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+-- 4. Chat event delta
+ALTER TABLE public.engine_project_chat_events
+  ADD COLUMN epistemic_delta jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+-- 5. Contradiction detector RPC
+CREATE OR REPLACE FUNCTION public.has_contradictions(_project_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.engine_extracted_signals
+    WHERE project_id = _project_id
+      AND status = 'contradicted'
+      AND superseded_by IS NULL
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.has_contradictions(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.has_contradictions(uuid) TO authenticated;
+```
+
+### Preflight checks Tai should run before applying
+
+```sql
+-- 1. Count of signals that would default to 'inferred'
+SELECT count(*) FROM public.engine_extracted_signals;
+
+-- 2. Confirm no existing column name collision
+SELECT column_name FROM information_schema.columns
+WHERE table_schema='public'
+  AND table_name IN ('engine_extracted_signals','engine_projects','engine_project_chat_events')
+  AND column_name IN ('status','source_ref','superseded_by',
+                      'point_a_status','point_b_status','epistemic_delta');
+```
+
+Expected result of query 2: **zero rows**. Any hit means an in-flight
+migration already claimed the name — resolve before applying.
+
+### App-layer code shipped in the same turn (does NOT require migration)
+
+- `src/lib/engine-epistemic.functions.ts` — server-function stubs
+  (`markSpineFieldStatus`, `promoteSignalToSpine`, `detectContradictions`,
+  `getSpineFieldStatus`). All admin-gated. They target the columns above
+  and will surface a clear `column "..." does not exist` error until the
+  migration is applied — this is intentional so the failure is loud, not
+  silent.
+- `src/components/engine/EpistemicStatusChip.tsx` — presentation-only
+  chip. Renders `inferred` (default) when sidecar is empty, so it works
+  before and after the migration.
+- Chip wired into `engine.projects.$projectId.point-a.tsx` diagnosis cards
+  and `engine.projects.$projectId.point-b.tsx` section cards.
+
+### Risk if applied without review
+
+Low. All columns are additive with safe defaults. Rollback = drop the four
+columns, the enum, and the RPC — all reversible in a single migration.
+
+### Follow-ups (NOT in this migration)
+
+- Ceremony tables (Phase 2) reference `epistemic_status` in their acceptance
+  criteria; do not add them here.
+- Portal payload allowlist audit — confirm sidecar status is stripped from
+  `buildClientSafePayload`. Ships in Phase 3 (portal transitions).
+- Contradiction UI (list view + resolver) — Phase 1B, tracked in phase output.
+
