@@ -25,6 +25,7 @@ function PointB() {
   const { projectId } = Route.useParams();
   const { project } = useWorkspace(projectId);
   const data = (project.point_b ?? {}) as Record<string, string | undefined>;
+  const statusMap = ((project as unknown as { point_b_status?: Record<string, { status: EpistemicStatus; source_ref?: SourceRef }> }).point_b_status) ?? {};
 
   return (
     <div className="space-y-4">
@@ -38,11 +39,18 @@ function PointB() {
       <SourceEvidence projectId={projectId} step="point-b" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {SECTIONS.map((s) => (
-          <SectionCard key={s.key} title={s.label}>
-            <p className="text-sm text-ink/80">{data[s.key] ?? <span className="text-ink/40">Not defined yet.</span>}</p>
-          </SectionCard>
-        ))}
+        {SECTIONS.map((s) => {
+          const st = statusMap[s.key];
+          return (
+            <SectionCard
+              key={s.key}
+              title={s.label}
+              actions={<EpistemicStatusChip status={st?.status} sourceRef={st?.source_ref} />}
+            >
+              <p className="text-sm text-ink/80">{data[s.key] ?? <span className="text-ink/40">Not defined yet.</span>}</p>
+            </SectionCard>
+          );
+        })}
       </div>
       <SectionCard title="Edit Point B">
         <StepEditor projectId={projectId} step="point-b" data={project.point_b} expectedUpdatedAt={project.updated_at} />
