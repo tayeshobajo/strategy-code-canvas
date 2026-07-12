@@ -80,6 +80,12 @@ const NAV: AdminNav[] = [
     match: "/admin/stage-transitions",
   },
   {
+    to: "/admin/decision-log",
+    label: "Decision log",
+    icon: History,
+    match: "/admin/decision-log",
+  },
+  {
     to: "/admin/project-integrity",
     label: "Project integrity",
     icon: Wrench,
