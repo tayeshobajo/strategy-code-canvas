@@ -1780,11 +1780,11 @@ export type SpineFieldHistoryEntry = {
   created_at: string;
   actor_email: string | null;
   field_changed: string | null;
-  old_value: unknown;
-  new_value: unknown;
+  old_value: unknown | null;
+  new_value: unknown | null;
   reason: string | null;
   summary: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata: unknown | null;
 };
 
 export const getSpineFieldHistory = createServerFn({ method: "GET" })
