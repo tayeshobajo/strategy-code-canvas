@@ -1811,7 +1811,18 @@ export const getSpineFieldHistory = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(data.limit);
     if (error) throw new Error((error as { message?: string }).message ?? "history read failed");
-    return { entries: (rows ?? []) as SpineFieldHistoryEntry[] };
+    const entries: SpineFieldHistoryEntry[] = (rows ?? []).map((r: Record<string, unknown>) => ({
+      id: String(r.id),
+      created_at: String(r.created_at),
+      actor_email: (r.actor_email as string | null) ?? null,
+      field_changed: (r.field_changed as string | null) ?? null,
+      old_value_json: r.old_value == null ? null : JSON.stringify(r.old_value),
+      new_value_json: r.new_value == null ? null : JSON.stringify(r.new_value),
+      reason: (r.reason as string | null) ?? null,
+      summary: (r.summary as string | null) ?? null,
+      metadata_json: r.metadata == null ? null : JSON.stringify(r.metadata),
+    }));
+    return { entries };
   });
 
 export const getProjectSpine = createServerFn({ method: "GET" })
