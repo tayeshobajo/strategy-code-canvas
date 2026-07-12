@@ -246,7 +246,7 @@ BEGIN
   -- Reopen: we already completed above. Add a new project to isolate case 8
   DECLARE v_p2 uuid;
   BEGIN
-    INSERT INTO public.engine_projects(name,status) VALUES('smoke:phase-2:c8', 'active') RETURNING id INTO v_p2;
+    INSERT INTO public.engine_projects(name,status,client_id) VALUES('smoke:phase-2:c8', 'active','6cced335-64ac-4084-9824-89f2bfe5a52f') RETURNING id INTO v_p2;
     INSERT INTO public.engine_spine_field_truth(project_id,spine,field_key,status,source_ref,updated_by_email,updated_by_actor)
     VALUES
       (v_p2,'point-a','lenses','contradicted',jsonb_build_object('kind','operator_override','reason','conflict'),v_op,'human'),
