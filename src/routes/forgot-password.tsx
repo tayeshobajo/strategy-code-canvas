@@ -88,7 +88,7 @@ function ForgotPasswordPage() {
           )}
 
           <div className="text-sm text-ink/60">
-            <Link to="/auth" className="underline underline-offset-2">Back to sign in</Link>
+            <Link to="/auth" search={{ email: undefined, redirect: "/portal" }} className="underline underline-offset-2">Back to sign in</Link>
           </div>
         </div>
       </main>
