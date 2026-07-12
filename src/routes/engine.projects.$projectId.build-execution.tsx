@@ -849,6 +849,47 @@ function PacketDrawer({
           ) : null}
         </Section>
 
+        <Section title="Context inheritance">
+          {p?.context_inheritance?.handoff_summary ? (
+            <p className="text-xs text-ink/70">{p.context_inheritance.handoff_summary}</p>
+          ) : null}
+          <LabeledList
+            label="Required context"
+            items={p?.context_inheritance?.required_context ?? []}
+          />
+          <LabeledList
+            label="Missing context"
+            items={p?.context_inheritance?.missing_context ?? []}
+            tone="warn"
+          />
+          <div>
+            <div className="font-mono text-[9px] uppercase tracking-widest text-ink/50">
+              Inherited chain
+            </div>
+            <div className="space-y-2 mt-1">
+              {(p?.context_inheritance?.chain ?? []).map((item, i) => (
+                <div
+                  key={`${item.layer}-${item.source_id ?? i}`}
+                  className="rounded border border-border bg-white/60 px-3 py-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium capitalize">{item.layer}</span>
+                    <span className="text-[10px] text-ink/50">
+                      {item.status ?? "—"}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-ink/70 mt-0.5">
+                    {item.title}
+                  </div>
+                  <div className="text-[11px] text-ink/60 mt-1">
+                    {item.summary}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Section>
+
         <Section title="Acceptance & QA">
           <LabeledList
             label="Acceptance criteria"

@@ -4,8 +4,9 @@
 // as supporting context) and produces controlled BUILD PACKETS that can be
 // handed to Lovable, OpenClaw, or a developer. Each packet packages the
 // handoff prompt, scope, do-not-touch list, acceptance criteria, QA
-// requirements, evidence requirements, rollback notes, dependencies, and
-// risks.
+// requirements, evidence requirements, rollback notes, dependencies, risks,
+// and a context inheritance chain from intake -> understanding -> mockup/frame
+// -> spine -> backend/QA -> implementation spec.
 //
 // It DOES NOT run any prompt, deploy code, apply migrations, execute
 // OpenClaw, mark QA tests passed, or mark the project delivered.
@@ -108,6 +109,7 @@ Rules:
   block written FOR the target builder. It must:
     * open with the packet_goal
     * cite the source implementation steps and files/surfaces
+    * cite the inherited context chain at a high level
     * list acceptance criteria explicitly
     * end with a "SAFETY" block that includes verbatim lines:
         "DO NOT deploy code."
@@ -158,7 +160,22 @@ const BUILD_EXECUTION_JSON_SCHEMA_HINT = `Schema:
       "dependencies": string[],
       "blocking_conditions": string[],
       "post_execution_checks": string[],
-      "open_decisions": string[]
+      "open_decisions": string[],
+      "context_inheritance": {
+        "generated_at": string,
+        "handoff_summary": string,
+        "required_context": string[],
+        "missing_context": string[],
+        "chain": [{
+          "layer": "intake" | "understanding" | "mockup" | "spine" | "backend" | "qa" | "implementation",
+          "source_id": string | null,
+          "title": string,
+          "status": string | null,
+          "summary": string,
+          "evidence": string[],
+          "approved_at": string | null
+        }]
+      }
     }
   }]
 }`;
@@ -244,7 +261,9 @@ ${JSON.stringify(compact, null, 2)}
 
 Produce the ordered build packets now. Return JSON only. Do NOT include
 real SQL, code, or shell commands — the handoff_prompt is natural
-language for the target builder. Do NOT claim any step has run.`;
+language for the target builder. Every packet must carry the context
+inheritance chain, but the server will also attach the authoritative
+read-only chain from the approved artifacts. Do NOT claim any step has run.`;
 
   return { system: BUILD_EXECUTION_SYSTEM_PROMPT, user };
 }

@@ -1,7 +1,7 @@
 # BUILD_STATE.md — Autonomous Build Loop Tracker
 
 > Captain reads and updates this file every build cycle.
-> Last updated: 2026-07-12 12:19 CDT
+> Last updated: 2026-07-12 12:33 CDT
 
 ---
 
@@ -33,7 +33,7 @@
 | 14 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | ✅ COMPLETE | phase-7b-output.md |
 | 15 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | ✅ COMPLETE | phase-10c-output.md |
 | 16 | 9C | AI Self-Assessment Prevention — DB constraint (MIGRATION ONLY — write to PENDING_MIGRATIONS.md) | 🟡 PENDING_TAI | phase-9c-output.md |
-| 17 | 8E | Context Inheritance — every execution packet carries the full chain: intake → understanding → mockup → spine → spec | 🔴 NOT STARTED | phase-8e-output.md |
+| 17 | 8E | Context Inheritance — every execution packet carries the full chain: intake → understanding → mockup → spine → spec | ✅ COMPLETE | phase-8e-output.md |
 | 18 | 8F | Stage Transition Engine — automated handoffs between stages, right actor notified, no manual advancement | 🔴 NOT STARTED | phase-8f-output.md |
 | 19 | 12F | Outcome Feedback Loop — delivery outcomes flow back into Captain understanding, 30/60/90 day check-ins | 🔴 NOT STARTED | phase-12f-output.md |
 
@@ -78,6 +78,7 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 5B | Roadmap Intelligence Layer — milestone self-explanation cross-project admin view | 2026-07-12 | Direct commit bc0b5ac4. 2 files: admin.roadmap-intelligence.tsx (full rewrite with WHY/WHERE/WHAT/RISKS/WHO expand cards, workspace summary bar, low-intelligence filter), admin.tsx (Brain icon + nav entry). No migrations. Lazy getMilestoneIntelligence drill-down. |
 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 2026-07-12 | Files already existed: engine-plan-depth.functions.ts + admin.plan-depth.tsx + nav (Layers icon). BUILD_STATE was not updated in the build cycle that wrote them. 7 depth dimensions, 0-100 score, shallow/partial/sufficient levels. No migrations. |
 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90-day check-ins | 2026-07-12 | Direct commit dd625438. 3 files: engine-post-delivery-learning.functions.ts, admin.post-delivery-learning.tsx, admin.tsx (TrendingUp + nav entry). No migrations. 4 server fns: getPostDeliveryLearningReport, getProjectDeliverySurveys, recordOutcomeSurvey, skipCheckIn. Stores outcomes in engine_activity. |
+| 8E | Context Inheritance — execution packets carry full upstream chain | 2026-07-12 | Direct commit. BuildPacketPayload now includes context_inheritance with intake, understanding, mockup/frame, Spine, backend, QA, and implementation layers. Drawer renders the chain. No migrations. |
 | 9C | AI Self-Assessment Prevention — DB constraint spec | 2026-07-12 | Pending migration spec committed in eff8522. No schema changes applied. Adds proposed constraints for AI-created milestones/tasks requiring human approver/owner before approved/complete terminal states. Status: PENDING_TAI. |
 
 ---

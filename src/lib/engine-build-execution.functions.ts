@@ -66,6 +66,33 @@ export type BuildEvidenceType =
   | "note"
   | "artifact";
 
+export type BuildContextInheritanceLayer =
+  | "intake"
+  | "understanding"
+  | "mockup"
+  | "spine"
+  | "backend"
+  | "qa"
+  | "implementation";
+
+export type BuildContextInheritanceItem = {
+  layer: BuildContextInheritanceLayer;
+  source_id: string | null;
+  title: string;
+  status: string | null;
+  summary: string;
+  evidence: string[];
+  approved_at: string | null;
+};
+
+export type BuildContextInheritance = {
+  generated_at: string;
+  handoff_summary: string;
+  required_context: string[];
+  missing_context: string[];
+  chain: BuildContextInheritanceItem[];
+};
+
 export type BuildPacketPayload = {
   packet_goal: string;
   source_implementation_steps: string[];
@@ -88,6 +115,7 @@ export type BuildPacketPayload = {
   blocking_conditions: string[];
   post_execution_checks: string[];
   open_decisions: string[];
+  context_inheritance: BuildContextInheritance;
 };
 
 export type BuildPacketRow = {
@@ -206,7 +234,7 @@ async function loadProject(sb: Sb, projectId: string) {
   const { data, error } = await sb
     .from("engine_projects")
     .select(
-      "id,name,status,current_step,current_step_num,point_b,roadmap,approved_version, engine_clients(company)",
+      "id,name,status,current_step,current_step_num,point_a,point_b,blueprint,roadmap,approved_version,approved_snapshot, engine_clients(company)",
     )
     .eq("id", projectId)
     .maybeSingle();
@@ -218,9 +246,12 @@ async function loadProject(sb: Sb, projectId: string) {
     status: string;
     current_step: string;
     current_step_num: number;
+    point_a: unknown;
     point_b: unknown;
+    blueprint: unknown;
     roadmap: unknown;
     approved_version: string | null;
+    approved_snapshot: unknown;
     engine_clients: { company: string } | null;
   };
 }
@@ -526,6 +557,203 @@ function strList(v: unknown): string[] {
   return Array.isArray(v) ? v.map((x) => String(x ?? "")).filter(Boolean) : [];
 }
 
+function compactText(value: unknown, fallback = "Not captured", max = 320): string {
+  if (value === null || value === undefined || value === "") return fallback;
+  const raw =
+    typeof value === "string"
+      ? value
+      : JSON.stringify(value, null, 0) ?? fallback;
+  const oneLine = raw.replace(/\s+/g, " ").trim();
+  if (!oneLine) return fallback;
+  return oneLine.length > max ? `${oneLine.slice(0, max - 1)}…` : oneLine;
+}
+
+function normalizeContextInheritance(raw: unknown): BuildContextInheritance {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const chainRaw = Array.isArray(r.chain) ? r.chain : [];
+  const chain = chainRaw.map((item): BuildContextInheritanceItem => {
+    const x = (item ?? {}) as Record<string, unknown>;
+    const layer = [
+      "intake",
+      "understanding",
+      "mockup",
+      "spine",
+      "backend",
+      "qa",
+      "implementation",
+    ].includes(String(x.layer))
+      ? (String(x.layer) as BuildContextInheritanceLayer)
+      : "implementation";
+    return {
+      layer,
+      source_id: x.source_id ? String(x.source_id) : null,
+      title: String(x.title ?? layer),
+      status: x.status ? String(x.status) : null,
+      summary: compactText(x.summary, "No summary captured", 500),
+      evidence: strList(x.evidence),
+      approved_at: x.approved_at ? String(x.approved_at) : null,
+    };
+  });
+  return {
+    generated_at: String(r.generated_at ?? new Date().toISOString()),
+    handoff_summary: compactText(
+      r.handoff_summary,
+      "This packet inherits context from the approved implementation chain.",
+      700,
+    ),
+    required_context: strList(r.required_context),
+    missing_context: strList(r.missing_context),
+    chain,
+  };
+}
+
+function buildContextInheritance(
+  project: Awaited<ReturnType<typeof loadProject>>,
+  bundle: BuildExecutionInputBundle,
+  spine: ProjectSpinePayload | null,
+): BuildContextInheritance {
+  const impl = bundle.approved_implementation_plan;
+  const backend = bundle.approved_backend_plan;
+  const qa = bundle.approved_qa_plan;
+  const mockup = bundle.approved_mockup;
+  const frame = bundle.approved_frame;
+  const artifactTitles = bundle.artifacts.map((a) => a.title).filter(Boolean).slice(0, 8);
+  const milestoneNames = bundle.milestones.map((m) => m.name).filter(Boolean).slice(0, 8);
+
+  const requiredContext = [
+    `Approved implementation plan: ${impl.title} (${impl.id})`,
+    backend ? `Approved backend plan: ${backend.title} (${backend.id})` : null,
+    qa ? `Approved QA plan: ${qa.title} (${qa.id})` : null,
+    mockup ? `Approved mockup: ${mockup.title} (${mockup.id})` : null,
+    frame ? `Approved frame: ${frame.id}` : null,
+    project.approved_version ? `Approved roadmap version: ${project.approved_version}` : null,
+  ].filter((x): x is string => !!x);
+
+  const missingContext = [
+    backend ? null : "No approved backend plan row was linked to the implementation plan.",
+    qa ? null : "No approved QA plan row was linked to the implementation plan.",
+    mockup ? null : "No approved mockup was linked to the implementation plan.",
+    frame ? null : "No approved frame was linked to the implementation plan.",
+    project.approved_version ? null : "Project has no approved roadmap version recorded.",
+  ].filter((x): x is string => !!x);
+
+  const chain: BuildContextInheritanceItem[] = [
+    {
+      layer: "intake",
+      source_id: null,
+      title: "Intake and source artifacts",
+      status: artifactTitles.length ? "captured" : "thin",
+      summary: artifactTitles.length
+        ? `Recent artifacts: ${artifactTitles.join(", ")}.`
+        : "No recent project artifacts were available in the build bundle.",
+      evidence: artifactTitles,
+      approved_at: null,
+    },
+    {
+      layer: "understanding",
+      source_id: project.id,
+      title: "Project understanding",
+      status: project.status,
+      summary: `Current step: ${project.current_step || "unknown"}. Goal: ${compactText((project.roadmap as Record<string, unknown> | null)?.goal ?? project.point_b, "not captured")}.`,
+      evidence: [
+        `Project current step: ${project.current_step || "unknown"}`,
+        `Client: ${project.engine_clients?.company ?? "unknown"}`,
+      ],
+      approved_at: null,
+    },
+    {
+      layer: "mockup",
+      source_id: mockup?.id ?? frame?.id ?? null,
+      title: mockup?.title ?? "Mockup and frame",
+      status: mockup || frame ? "approved" : "missing",
+      summary: mockup
+        ? compactText((mockup.payload as { pages?: unknown })?.pages, "Approved mockup present.")
+        : frame
+          ? compactText(frame.payload, "Approved frame present.")
+          : "No approved mockup or frame was linked.",
+      evidence: [
+        mockup ? `Mockup: ${mockup.title}` : null,
+        frame ? `Frame: ${frame.id}` : null,
+      ].filter((x): x is string => !!x),
+      approved_at: mockup?.approved_at ?? frame?.approved_at ?? null,
+    },
+    {
+      layer: "spine",
+      source_id: project.id,
+      title: "Approved Spine",
+      status: project.approved_version ? "approved" : "unversioned",
+      summary: spine
+        ? `Frame: ${compactText(spine.project?.frame, "not captured", 180)}. Goal: ${compactText(spine.project?.goal, "not captured", 260)}.`
+        : `Point A: ${compactText(project.point_a, "not captured", 180)}. Point B: ${compactText(project.point_b, "not captured", 260)}.`,
+      evidence: [
+        project.approved_version ? `Approved version: ${project.approved_version}` : null,
+        milestoneNames.length ? `Milestones: ${milestoneNames.join(", ")}` : null,
+      ].filter((x): x is string => !!x),
+      approved_at: null,
+    },
+    {
+      layer: "backend",
+      source_id: backend?.id ?? null,
+      title: backend?.title ?? "Backend plan",
+      status: backend ? "approved" : "missing",
+      summary: backend
+        ? compactText(
+            {
+              goal: backend.payload?.backend_goal,
+              data_model: backend.payload?.data_model,
+              server_functions: backend.payload?.server_functions,
+            },
+            "Approved backend plan present.",
+          )
+        : "No backend plan was available for inheritance.",
+      evidence: backend ? [`Backend plan: ${backend.id}`] : [],
+      approved_at: backend?.approved_at ?? null,
+    },
+    {
+      layer: "qa",
+      source_id: qa?.id ?? null,
+      title: qa?.title ?? "QA plan",
+      status: qa ? "approved" : "missing",
+      summary: qa
+        ? compactText(
+            {
+              goal: qa.payload?.qa_goal,
+              tests: qa.payload?.test_matrix,
+              evidence: qa.payload?.evidence_plan,
+            },
+            "Approved QA plan present.",
+          )
+        : "No QA plan was available for inheritance.",
+      evidence: qa ? [`QA plan: ${qa.id}`] : [],
+      approved_at: qa?.approved_at ?? null,
+    },
+    {
+      layer: "implementation",
+      source_id: impl.id,
+      title: impl.title,
+      status: impl.status,
+      summary: compactText(
+        {
+          summary: impl.summary,
+          phases: impl.payload?.phases,
+          build_steps: impl.payload?.build_steps,
+        },
+        "Approved implementation plan present.",
+      ),
+      evidence: [`Implementation plan approved at ${impl.approved_at ?? "unknown"}`],
+      approved_at: impl.approved_at ?? null,
+    },
+  ];
+
+  return {
+    generated_at: new Date().toISOString(),
+    handoff_summary: `This packet inherits the full approved chain for ${project.name ?? "this project"}: intake artifacts, project understanding, mockup/frame, Spine, backend plan, QA plan, and approved implementation plan. Builders must treat upstream artifacts as read-only context and execute only this packet's scoped work.`,
+    required_context: requiredContext,
+    missing_context: missingContext,
+    chain,
+  };
+}
+
 const REQUIRED_DO_NOT_TOUCH: string[] = [
   "approved implementation plan payload",
   "approved backend plan payload",
@@ -545,7 +773,10 @@ SAFETY:
 - DO NOT mark the project delivered.
 - DO NOT modify approved upstream payloads.`;
 
-function normalizePacketPayload(raw: unknown): BuildPacketPayload {
+function normalizePacketPayload(
+  raw: unknown,
+  inheritedContext?: BuildContextInheritance | null,
+): BuildPacketPayload {
   const r = (raw ?? {}) as Record<string, unknown>;
   const scopeRaw = (r.execution_scope ?? {}) as Record<string, unknown>;
   const target = TARGET_BUILDERS.has(r.target_builder as BuildTargetBuilder)
@@ -583,6 +814,9 @@ function normalizePacketPayload(raw: unknown): BuildPacketPayload {
     blocking_conditions: strList(r.blocking_conditions),
     post_execution_checks: strList(r.post_execution_checks),
     open_decisions: strList(r.open_decisions),
+    context_inheritance: inheritedContext
+      ? normalizeContextInheritance(inheritedContext)
+      : normalizeContextInheritance(r.context_inheritance),
   };
 }
 
@@ -595,7 +829,10 @@ type NormalizedPacket = {
   payload: BuildPacketPayload;
 };
 
-function normalizeAiPackets(raw: unknown): NormalizedPacket[] {
+function normalizeAiPackets(
+  raw: unknown,
+  inheritedContext?: BuildContextInheritance | null,
+): NormalizedPacket[] {
   const list = Array.isArray((raw as { packets?: unknown })?.packets)
     ? ((raw as { packets: unknown[] }).packets as unknown[])
     : Array.isArray(raw)
@@ -617,7 +854,7 @@ function normalizeAiPackets(raw: unknown): NormalizedPacket[] {
       packet_type,
       sequence_number: seq,
       priority,
-      payload: normalizePacketPayload(pp.payload),
+      payload: normalizePacketPayload(pp.payload, inheritedContext),
     };
   });
 }
@@ -694,7 +931,8 @@ export const generateBuildPackets = createServerFn({ method: "POST" })
         throw new Error("AI returned invalid JSON for the build packets.");
       }
 
-      const packets = normalizeAiPackets(parsed);
+      const contextInheritance = buildContextInheritance(project, bundle, spine);
+      const packets = normalizeAiPackets(parsed, contextInheritance);
       if (packets.length === 0) {
         await insertAuditEvent(sb, {
           projectId: data.projectId,
@@ -826,7 +1064,10 @@ export const saveBuildPacketDraft = createServerFn({ method: "POST" })
         `Cannot edit packet in status ${existing.status}; only draft/ready/returned are editable`,
       );
     }
-    const sanitized = normalizePacketPayload(data.payload);
+    const sanitized = normalizePacketPayload(
+      data.payload,
+      existing.payload?.context_inheritance ?? null,
+    );
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: upd, error } = await supabaseAdmin
       .from("engine_project_build_packets")
