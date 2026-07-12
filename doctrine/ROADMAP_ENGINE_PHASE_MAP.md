@@ -83,6 +83,15 @@ Point A, Point B, constraints, risks, decisions, success metrics, versioning, ap
 ### Phase 4B — Spine Governance 🔸 Not built
 Spine version history with diff view. Every change to an approved Spine entry requires a reason, an approver, and an audit entry. Client acknowledgment of Point B before roadmap generation begins.
 
+### Phase 4C — Decision Log 🔸 Not built
+A cross-project, cross-spine feed of every approved change decision made in the platform.
+- Surfaces every instance where a spine field was changed, why, and who approved it
+- Filterable by project, field type, date range, approver, and decision type
+- Each entry shows: what changed, old value, new value, reason given, approved by, downstream impact (milestones affected, packets unblocked/blocked)
+- Operator can see the full decision history of a client relationship at a glance
+- Turns audit trail into institutional memory — every decision is explainable
+- No migration needed if engine_spine_versions table exists; feeds from that table
+
 ---
 
 ## LAYER 5 — THE ROADMAP
@@ -230,7 +239,7 @@ Founding engines: Content Authority, Lead Follow-Up, Reputation, Client Success,
 | Foundation | 1, 1B | ✅ / 🔸 |
 | Intake | 2, 2B, 2C | ✅ / 🔸 / 🔸 |
 | Understanding | 3, 3B, 3C, 3D | ✅ / 🔸 / 🔸 / 🔸 |
-| Diagnosis | 4, 4B | ✅ / 🔸 |
+| Diagnosis | 4, 4B, 4C | ✅ / 🔸 / 🔸 |
 | Roadmap | 5, 5B, 5C | ✅ / 🔸 / 🔸 |
 | Client Delivery | 6, 6B, 6C | 🔶 / 🔸 / 🔸 |
 | Plans & Specs | 7, 7B, 7C | ✅ / 🔸 / 🔸 |

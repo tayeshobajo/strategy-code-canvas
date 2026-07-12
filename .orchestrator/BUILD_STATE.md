@@ -1,7 +1,7 @@
 # BUILD_STATE.md — Autonomous Build Loop Tracker
 
 > Captain reads and updates this file every build cycle.
-> Last updated: 2026-07-11 18:42 CDT
+> Last updated: 2026-07-11 20:43 CDT
 
 ---
 
@@ -14,15 +14,16 @@
 | 3 | 13B | Portal as downstream-only — enforce approval boundary at data layer | ✅ COMPLETE | phase-13b-output.md |
 | 4 | 3D | Project AI Workspace — attach ChatGPT conversation + Claude project per project, surface in engine UI | 🔴 NOT STARTED | phase-3d-output.md |
 | 5 | 4B | Spine Governance — version history, diff view, change audit trail | 🟠 BLOCKED | phase-4b-output.md |
-| 6 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | 🟡 IN PROGRESS | phase-6b-output.md |
-| 7 | 9B | Evidence Requirements Enforcement — block milestone completion without evidence | 🔴 NOT STARTED | phase-9b-output.md |
-| 8 | 10B | Delivery Readiness Gate — all milestones complete before delivery offered | 🔴 NOT STARTED | phase-10b-output.md |
-| 9 | 11B | Exception-Based Management — surface only what needs human attention at scale | 🔴 NOT STARTED | phase-11b-output.md |
-| 10 | 11C | Drift Detection — compare project state to approved Spine continuously | 🔴 NOT STARTED | phase-11c-output.md |
-| 11 | 5B | Roadmap Intelligence Layer — milestones explain themselves | 🔴 NOT STARTED | phase-5b-output.md |
-| 12 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 🔴 NOT STARTED | phase-7b-output.md |
-| 13 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | 🔴 NOT STARTED | phase-10c-output.md |
-| 14 | 9C | AI Self-Assessment Prevention — DB constraint (MIGRATION ONLY — write to PENDING_MIGRATIONS.md) | 🔴 NOT STARTED | phase-9c-output.md |
+| 6 | 4C | Decision Log — cross-project feed of every approved spine change, with author, reason, and impact | 🔴 NOT STARTED | phase-4c-output.md |
+| 7 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | 🟡 IN PROGRESS | phase-6b-output.md |
+| 8 | 9B | Evidence Requirements Enforcement — block milestone completion without evidence | 🔴 NOT STARTED | phase-9b-output.md |
+| 9 | 10B | Delivery Readiness Gate — all milestones complete before delivery offered | 🔴 NOT STARTED | phase-10b-output.md |
+| 10 | 11B | Exception-Based Management — surface only what needs human attention at scale | 🔴 NOT STARTED | phase-11b-output.md |
+| 11 | 11C | Drift Detection — compare project state to approved Spine continuously | 🔴 NOT STARTED | phase-11c-output.md |
+| 12 | 5B | Roadmap Intelligence Layer — milestones explain themselves | 🔴 NOT STARTED | phase-5b-output.md |
+| 13 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 🔴 NOT STARTED | phase-7b-output.md |
+| 14 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | 🔴 NOT STARTED | phase-10c-output.md |
+| 15 | 9C | AI Self-Assessment Prevention — DB constraint (MIGRATION ONLY — write to PENDING_MIGRATIONS.md) | 🔴 NOT STARTED | phase-9c-output.md |
 
 ---
 
@@ -78,3 +79,4 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 2026-07-11 17:23 CDT | 13B | Starting | Portal as downstream-only — enforce approval boundary at data layer. |
 | 2026-07-11 18:12 CDT | 4B | BLOCKED | No `engine_spine_versions` table exists. Approved spine edits still write directly to `engine_projects`. Stubbed Spine Version History panel, wrote pending migration, and moved 6B into progress. |
 | 2026-07-11 18:42 CDT | 6B | HALTED — CREDITS OUT | Lovable workspace returned 402. Phase 6B build prompt ready but could not be sent. Top up credits to resume. |
+| 2026-07-11 20:43 CDT | 4C | QUEUED | Decision Log — Tai approved. Cross-project feed of every approved spine change with author, reason, and downstream impact. |
