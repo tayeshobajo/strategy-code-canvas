@@ -12,16 +12,17 @@
 | 1 | 2C | Proposed Change Flow — wire ProposalCard into chat route, add approve/reject mutations | ✅ COMPLETE | phase-2c-output.md |
 | 2 | 6C | Client Acknowledgment Flow — client formally acks roadmap before phases begin | ✅ COMPLETE | phase-6c-output.md |
 | 3 | 13B | Portal as downstream-only — enforce approval boundary at data layer | ✅ COMPLETE | phase-13b-output.md |
-| 4 | 4B | Spine Governance — version history, diff view, change audit trail | 🟠 BLOCKED | phase-4b-output.md |
-| 5 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | 🟡 IN PROGRESS | phase-6b-output.md |
-| 6 | 9B | Evidence Requirements Enforcement — block milestone completion without evidence | 🔴 NOT STARTED | phase-9b-output.md |
-| 7 | 10B | Delivery Readiness Gate — all milestones complete before delivery offered | 🔴 NOT STARTED | phase-10b-output.md |
-| 8 | 11B | Exception-Based Management — surface only what needs human attention at scale | 🔴 NOT STARTED | phase-11b-output.md |
-| 9 | 11C | Drift Detection — compare project state to approved Spine continuously | 🔴 NOT STARTED | phase-11c-output.md |
-| 10 | 5B | Roadmap Intelligence Layer — milestones explain themselves | 🔴 NOT STARTED | phase-5b-output.md |
-| 11 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 🔴 NOT STARTED | phase-7b-output.md |
-| 12 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | 🔴 NOT STARTED | phase-10c-output.md |
-| 13 | 9C | AI Self-Assessment Prevention — DB constraint (MIGRATION ONLY — write to PENDING_MIGRATIONS.md) | 🔴 NOT STARTED | phase-9c-output.md |
+| 4 | 3D | Project AI Workspace — attach ChatGPT conversation + Claude project per project, surface in engine UI | 🔴 NOT STARTED | phase-3d-output.md |
+| 5 | 4B | Spine Governance — version history, diff view, change audit trail | 🟠 BLOCKED | phase-4b-output.md |
+| 6 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | 🟡 IN PROGRESS | phase-6b-output.md |
+| 7 | 9B | Evidence Requirements Enforcement — block milestone completion without evidence | 🔴 NOT STARTED | phase-9b-output.md |
+| 8 | 10B | Delivery Readiness Gate — all milestones complete before delivery offered | 🔴 NOT STARTED | phase-10b-output.md |
+| 9 | 11B | Exception-Based Management — surface only what needs human attention at scale | 🔴 NOT STARTED | phase-11b-output.md |
+| 10 | 11C | Drift Detection — compare project state to approved Spine continuously | 🔴 NOT STARTED | phase-11c-output.md |
+| 11 | 5B | Roadmap Intelligence Layer — milestones explain themselves | 🔴 NOT STARTED | phase-5b-output.md |
+| 12 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 🔴 NOT STARTED | phase-7b-output.md |
+| 13 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | 🔴 NOT STARTED | phase-10c-output.md |
+| 14 | 9C | AI Self-Assessment Prevention — DB constraint (MIGRATION ONLY — write to PENDING_MIGRATIONS.md) | 🔴 NOT STARTED | phase-9c-output.md |
 
 ---
 

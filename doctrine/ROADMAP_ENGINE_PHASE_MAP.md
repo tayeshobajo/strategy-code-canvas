@@ -57,6 +57,16 @@ Captain autonomously researches: existing website audit, Google presence, social
 ### Phase 3C — Understanding Confidence Gate 🔸 Not built
 Platform cannot advance to Point A until understanding confidence clears a defined threshold.
 
+### Phase 3D — Project AI Workspace 🔸 Not built
+Every project gets a dedicated ChatGPT conversation and Claude project as its persistent AI brain.
+- `engine_projects` gets two new fields: `chatgpt_conversation_url`, `claude_project_url`
+- Project creation flow prompts for these (or they can be set later in project settings)
+- Engine UI shows an "AI Workspace" tab per project with links + last mockup + last decision logged
+- Captain reads the ChatGPT conversation before generating mockups for that project
+- Captain reads the Claude project for architectural context before building phases
+- Before any build phase: Captain navigates to project ChatGPT, generates mockup, waits for approval
+- DB: migration needed to add columns to engine_projects (write to PENDING_MIGRATIONS.md — do NOT apply)
+
 **Understanding Room classification system:**
 Known / Inferred / Missing / Contradictory / Needs confirmation / Accepted assumption / Approved truth
 
@@ -219,7 +229,7 @@ Founding engines: Content Authority, Lead Follow-Up, Reputation, Client Success,
 |---|---|---|
 | Foundation | 1, 1B | ✅ / 🔸 |
 | Intake | 2, 2B, 2C | ✅ / 🔸 / 🔸 |
-| Understanding | 3, 3B, 3C | ✅ / 🔸 / 🔸 |
+| Understanding | 3, 3B, 3C, 3D | ✅ / 🔸 / 🔸 / 🔸 |
 | Diagnosis | 4, 4B | ✅ / 🔸 |
 | Roadmap | 5, 5B, 5C | ✅ / 🔸 / 🔸 |
 | Client Delivery | 6, 6B, 6C | 🔶 / 🔸 / 🔸 |
