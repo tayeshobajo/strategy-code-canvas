@@ -152,6 +152,10 @@ BEGIN
   EXCEPTION WHEN check_violation THEN
     PERFORM pg_temp.record(5, 'DB', 'raw SQL completion on incomplete ceremony rejected',
       'check_violation', SQLERRM, 'PASS');
+  WHEN insufficient_privilege THEN
+    PERFORM pg_temp.record(5,'DB','raw SQL completion on incomplete ceremony rejected','check_violation',SQLERRM,'INCONCLUSIVE','sandbox_exec lacks UPDATE; run via Playwright');
+  WHEN OTHERS THEN
+    PERFORM pg_temp.record(5,'DB','raw SQL completion on incomplete ceremony rejected','check_violation',SQLSTATE || ' ' || SQLERRM,'INCONCLUSIVE','unexpected error class');
   END;
 END $$;
 
@@ -200,6 +204,10 @@ BEGIN
   EXCEPTION WHEN check_violation THEN
     PERFORM pg_temp.record(6, 'DB', 'complete blocked with bare missing field',
       'check_violation', SQLERRM, 'PASS');
+  WHEN insufficient_privilege THEN
+    PERFORM pg_temp.record(6,'DB','complete blocked with bare missing field','check_violation',SQLERRM,'INCONCLUSIVE','sandbox_exec lacks UPDATE; run via Playwright');
+  WHEN OTHERS THEN
+    PERFORM pg_temp.record(6,'DB','complete blocked with bare missing field','check_violation',SQLSTATE || ' ' || SQLERRM,'INCONCLUSIVE','unexpected error class');
   END;
 END $$;
 
@@ -278,7 +286,11 @@ BEGIN
       PERFORM pg_temp.record(8,'DB','completion blocked by contradiction','check_violation','update succeeded','FAIL');
     EXCEPTION WHEN check_violation THEN
       PERFORM pg_temp.record(8,'DB','completion blocked by contradiction','check_violation',SQLERRM,'PASS');
-    END;
+    WHEN insufficient_privilege THEN
+    PERFORM pg_temp.record(8,'DB','completion blocked by contradiction','check_violation',SQLERRM,'INCONCLUSIVE','sandbox_exec lacks UPDATE; run via Playwright');
+  WHEN OTHERS THEN
+    PERFORM pg_temp.record(8,'DB','completion blocked by contradiction','check_violation',SQLSTATE || ' ' || SQLERRM,'INCONCLUSIVE','unexpected error class');
+  END;
   END;
 EXCEPTION WHEN OTHERS THEN
   PERFORM pg_temp.record(8,'DB','completion blocked by contradiction','check_violation', SQLSTATE || ' ' || SQLERRM, 'FAIL');
@@ -299,6 +311,10 @@ BEGIN
     PERFORM pg_temp.record(9,'DB','point-b blocked without completed point-a','check_violation','insert succeeded','FAIL');
   EXCEPTION WHEN check_violation THEN
     PERFORM pg_temp.record(9,'DB','point-b blocked without completed point-a','check_violation',SQLERRM,'PASS');
+  WHEN insufficient_privilege THEN
+    PERFORM pg_temp.record(9,'DB','point-b blocked without completed point-a','check_violation',SQLERRM,'INCONCLUSIVE','sandbox_exec lacks UPDATE; run via Playwright');
+  WHEN OTHERS THEN
+    PERFORM pg_temp.record(9,'DB','point-b blocked without completed point-a','check_violation',SQLSTATE || ' ' || SQLERRM,'INCONCLUSIVE','unexpected error class');
   END;
 END $$;
 
@@ -324,6 +340,10 @@ BEGIN
     PERFORM pg_temp.record(10,'DB','abandon point-a rejected while point-b exists','check_violation','update succeeded','FAIL');
   EXCEPTION WHEN check_violation THEN
     PERFORM pg_temp.record(10,'DB','abandon point-a rejected while point-b exists','check_violation',SQLERRM,'PASS');
+  WHEN insufficient_privilege THEN
+    PERFORM pg_temp.record(10,'DB','abandon point-a rejected while point-b exists','check_violation',SQLERRM,'INCONCLUSIVE','sandbox_exec lacks UPDATE; run via Playwright');
+  WHEN OTHERS THEN
+    PERFORM pg_temp.record(10,'DB','abandon point-a rejected while point-b exists','check_violation',SQLSTATE || ' ' || SQLERRM,'INCONCLUSIVE','unexpected error class');
   END;
 END $$;
 
@@ -384,6 +404,10 @@ BEGIN
     PERFORM pg_temp.record(13,'DB','approved_truth without provenance rejected','check_violation','insert succeeded','FAIL');
   EXCEPTION WHEN check_violation THEN
     PERFORM pg_temp.record(13,'DB','approved_truth without provenance rejected','check_violation',SQLERRM,'PASS');
+  WHEN insufficient_privilege THEN
+    PERFORM pg_temp.record(13,'DB','approved_truth without provenance rejected','check_violation',SQLERRM,'INCONCLUSIVE','sandbox_exec lacks UPDATE; run via Playwright');
+  WHEN OTHERS THEN
+    PERFORM pg_temp.record(13,'DB','approved_truth without provenance rejected','check_violation',SQLSTATE || ' ' || SQLERRM,'INCONCLUSIVE','unexpected error class');
   END;
 END $$;
 
@@ -494,6 +518,10 @@ BEGIN
       'No CHECK on abandon_reason at DB layer; enforced in abandonCeremony server fn');
   EXCEPTION WHEN check_violation THEN
     PERFORM pg_temp.record(17,'DB','abandon requires reason','check_violation',SQLERRM,'PASS');
+  WHEN insufficient_privilege THEN
+    PERFORM pg_temp.record(17,'DB','abandon requires reason','check_violation',SQLERRM,'INCONCLUSIVE','sandbox_exec lacks UPDATE; run via Playwright');
+  WHEN OTHERS THEN
+    PERFORM pg_temp.record(17,'DB','abandon requires reason','check_violation',SQLSTATE || ' ' || SQLERRM,'INCONCLUSIVE','unexpected error class');
   END;
 END $$;
 
@@ -593,6 +621,10 @@ BEGIN
   EXCEPTION WHEN check_violation THEN
     PERFORM pg_temp.record(22,'DB','completion trigger sees dynamic diagnosis:* keys',
       'check_violation',SQLERRM,'PASS');
+  WHEN insufficient_privilege THEN
+    PERFORM pg_temp.record(22,'DB','completion trigger sees dynamic diagnosis:* keys','check_violation',SQLERRM,'INCONCLUSIVE','sandbox_exec lacks UPDATE; run via Playwright');
+  WHEN OTHERS THEN
+    PERFORM pg_temp.record(22,'DB','completion trigger sees dynamic diagnosis:* keys','check_violation',SQLSTATE || ' ' || SQLERRM,'INCONCLUSIVE','unexpected error class');
   END;
 END $$;
 
