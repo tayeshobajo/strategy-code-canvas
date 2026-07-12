@@ -1192,3 +1192,19 @@ Results append to `.orchestrator/phase-2-output.md`.
 
 
 
+
+---
+
+## Phase 2 smoke run — executed 2026-07-12
+
+**Totals: 8 PASS / 0 FAIL / 14 INCONCLUSIVE (9 env-permission · 4 env-structural · 1 dep-blocked) / 22 total.**
+
+Harness: `.orchestrator/phase-2-smoke/db-cases.sql` (transactional, ROLLBACK — no persistence). Run under `sandbox_exec` psql role which has INSERT/SELECT but not UPDATE on `engine_spine_*` tables.
+
+PASSED (8): 1 (start point-a), 2 (duplicate blocked), 9 (point-b precedence INSERT branch), 11 (mismatched project_id on decision), 18 (public helper access gate present), 19 (internal helper has no authenticated grant), 20 (internal helper returns static + dynamic keys), 21 (portal-member branch present).
+
+INCONCLUSIVE — requires UPDATE (9): 3, 4, 5, 7, 8, 15, 16, 17, 22.
+INCONCLUSIVE-BY-ENV — structural verify only (4): 6, 10, 13, 14.
+INCONCLUSIVE-BY-DEP (1): 12 (depended on case 7 UPDATE).
+
+No trigger or gate produced a real failure. Recommended before Tai sign-off: Playwright pass through `CeremonyPanel` to exercise the UPDATE-only cases end-to-end. Scoped into the Phase 2 closeout with the `WorkspaceStepper` badge. Full per-case table + interpretation in `.orchestrator/phase-2-output.md`.
