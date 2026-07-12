@@ -126,7 +126,7 @@ export function BookCallModal({
             </p>
             <div className="mt-3">
               <Button asChild variant="outline" className="border-ink/20" size="sm">
-                <Link to="/portal/messages">Open Messages</Link>
+                <Link to="/portal/messages" search={{ milestone: undefined, prefill: undefined }}>Open Messages</Link>
               </Button>
             </div>
           </div>

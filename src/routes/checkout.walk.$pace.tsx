@@ -86,8 +86,9 @@ export const Route = createFileRoute("/checkout/walk/$pace")({
       ],
     };
   },
-  beforeLoad: ({ params }) => {
+  loader: ({ params }) => {
     if (!(params.pace in PACES)) throw notFound();
+    return null;
   },
   component: CheckoutWalk,
 });

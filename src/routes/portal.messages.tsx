@@ -624,7 +624,7 @@ function MessagesPage() {
                 </Button>
                 <span className="text-[11px] text-ink/50">
                   or reference existing in{" "}
-                  <Link to="/portal/files" className="underline hover:text-ink">
+                  <Link to="/portal/files" search={{ q: undefined }} className="underline hover:text-ink">
                     Files
                   </Link>
                 </span>

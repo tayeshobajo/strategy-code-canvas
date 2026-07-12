@@ -285,7 +285,8 @@ function MilestoneDetailPanel({
       {/* Footer: intelligence layer link */}
       <div className="pt-1 flex items-center gap-3">
         <Link
-          to={`/engine/projects/${projectId}/intelligence-layer`}
+          to="/engine/projects/$projectId/intelligence-layer"
+          params={{ projectId }}
           className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors"
         >
           <Link2 className="w-3.5 h-3.5" />
@@ -367,7 +368,8 @@ function ProjectMilestoneIntelligenceCard({
             </div>
           </div>
           <Link
-            to={`/engine/projects/${projectId}/intelligence-layer`}
+            to="/engine/projects/$projectId/intelligence-layer"
+            params={{ projectId }}
             className="inline-flex items-center gap-1 text-xs text-white/40 hover:text-amber-400 transition-colors border border-white/10 rounded px-2 py-1"
             title="Open intelligence layer"
           >

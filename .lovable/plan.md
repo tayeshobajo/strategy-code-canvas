@@ -1,67 +1,57 @@
-## Goal
+# Get the project fully green
 
-Get the build green on the three flagged files and lock in the two recent behavioral fixes (Approvals mutations + Plans navigation) with automated tests.
+Items 2, 3, and 4 from your list are already fixed in the previous turn (the four targeted errors — `JSX.Element`, Lucide `title` props, and `spine.sources` filter/length/some — no longer appear in `bunx tsgo --noEmit`).
 
-## Changes
+Running the full typecheck now surfaces **27 pre-existing TypeScript errors across 16 files**, all in the same family: TanStack Router link/navigate/redirect calls that don't match the generated route tree's typed search params. Test run is blocked until typecheck passes cleanly (item 1 can't be satisfied without addressing these).
 
-### 1. `src/lib/engine-chat-proposal-approve.functions.ts`
-The errors come from strongly-typed `supabaseAdmin` rejecting our loose payloads (`string | null` where `string` expected, `unknown[]` where `Json` expected, and `never`-typed update fields).
+## What's actually broken
 
-- Cast the three write payloads with `as never` (mirrors the pattern already used elsewhere in this repo, e.g. `engine-decision-log.functions.ts`):
-  - `.insert({...} as never)` on `engine_tasks`
-  - `.update({...} as never)` on `engine_review_items`
-  - `.update({...} as never)` on `engine_milestones`
-- Cast the `acceptance_criteria: ac` shape by giving `ac` an explicit `unknown[] → any[]` before insert, or fold it into the same `as never` cast.
+All 27 errors fall into 4 buckets:
 
-Only the payload objects change — logic, validation, and audit calls stay identical.
+**Bucket A — `redirect({ search: { redirect: "..." } })` missing `email`** (5 errors)
+The `/auth` route's `validateSearch` requires `{ email: string | undefined; redirect: string }`. Callers only pass `redirect`.
+- `src/routes/_authenticated/route.tsx:11`
+- `src/routes/engine.projects.$projectId.chat.tsx:45`
+- `src/routes/engine.tsx:38`
+- `src/routes/engine.tsx:102` (`navigate({ to: "/auth" })` missing `search` entirely)
+- `src/routes/ops/route.tsx:27`
 
-### 2. `src/lib/engine-decision-log.functions.ts`
-Errors 133/164/192/220/262: excessive type instantiation from casting the real `SupabaseClient` to hand-rolled shapes.
+Fix: `search: { redirect: "...", email: undefined }` (and add `search` to the bare `navigate({ to: "/auth" })`).
 
-- Delete the three ad-hoc `supabase` re-typings at lines 133, 164, 192, 262.
-- Use a single `// eslint-disable-next-line @typescript-eslint/no-explicit-any` + `const sb: any = context.supabase;` at the top of each handler.
-- Type `q: any` for the chained filter builder (already partly done) and annotate the awaited result explicitly:
-  ```ts
-  const { data: rows, error, count } = (await q) as { data: RawRow[] | null; error: unknown; count: number | null };
-  ```
-- In `getDecisionLogStats`, do the same `any` escape hatch for the single `from().select().in()` chain.
+**Bucket B — `<Link to="/auth" | "/portal/messages" | "/portal/roadmap">` missing required `search`** (6 errors)
+Same root cause on the JSX side.
+- `src/components/portal/roadmap/BookCallModal.tsx:129`
+- `src/components/portal/roadmap/ClarificationModal.tsx:115`
+- `src/components/portal/roadmap/DecisionResponseModal.tsx:130`
+- `src/routes/forgot-password.tsx:91`
+- `src/routes/portal.home.tsx:102`
+- `src/routes/portal.messages.tsx` / `portal.roadmap.tsx` (same pattern)
 
-Runtime behavior is unchanged; only the type shell around Supabase calls is simplified.
+Fix: add `search={{ email: undefined, redirect: "..." }}` or the minimal required search per target route.
 
-### 3. `src/routes/admin.decision-log.tsx`
-- Import `keepPreviousData` from `@tanstack/react-query`.
-- Replace `keepPreviousData: true` with `placeholderData: keepPreviousData` on the `useQuery` at line 78 (the TanStack v5 equivalent).
-- No other changes.
+**Bucket C — template-literal `to` on `<Link>` not assignable to route-tree union** (5 errors)
+`` to={`/engine/projects/${projectId}/foo`} `` is inferred as a plain string, not one of the generated route paths.
+- `src/components/engine/WorkspaceHeader.tsx:297, 333, 415`
+- `src/routes/admin.plan-depth.tsx:195`
+- `src/routes/admin.roadmap-intelligence.tsx:288, 370`
 
-### 4. New test — Approvals queue persistence
-File: `src/routes/__tests__/engine-approvals-persistence.test.ts` (source-scan style, matching the existing guard tests in `src/lib/__tests__/`).
+Fix: use `to="/engine/projects/$projectId/overview"` (etc.) with `params={{ projectId }}` — the typed-params pattern the router expects — instead of interpolating into the string.
 
-Assert against `src/routes/engine.approvals.tsx`:
-- Imports `useMutation` and `useServerFn` and `decideReviewItem` from `@/lib/engine-ops.functions`.
-- Approve / Reject / Request Revision buttons each call the mutation (not a local `setDismissedIds` handler).
-- No `window.alert` or purely-local dismiss state remains.
+**Bucket D — search-updater functions on `ops/insights` and stray `beforeLoad` return** (4 errors)
+- `src/routes/ops/insights.tsx:81, 83, 85` — `navigate({ search: (prev) => ({...}) })` without `from`/`to`, so `prev` widens to `Record<string, unknown>` and the returned shape misses required fields. Fix per `tanstack-type-safety`: use `Route.useNavigate()` + `to: "."` so the updater's type resolves.
+- `src/routes/checkout.walk.$pace.tsx:89` — `beforeLoad` typed as returning `never` but current body returns `void`. Fix: `throw redirect(...)` on the redirect path, otherwise return nothing (no early `return;` that widens the type).
 
-Then a behavioral test against `decideReviewItem` in `src/lib/engine-ops.functions.ts` (source-scan, matches `review-item-and-publish-gates.test.ts`):
-- Its handler writes to `engine_review_items` (`.update({ status: ... })`).
-- Its handler writes an `engine_audit_log` row.
-- Its handler writes an `engine_activity` row.
+## Plan
 
-This mirrors the audit-guard test style already in the repo and doesn't require a live Supabase.
-
-### 5. New test — Plans "Start planning" navigation
-File: `src/routes/__tests__/plans-start-planning-nav.test.ts`.
-
-Source-scan against `src/routes/engine.projects.$projectId.plans.tsx`:
-- No `window.alert` remains.
-- The Start-planning / Prepare-this controls are `<Link>` (from `@tanstack/react-router`) with `to="/engine/projects/$projectId/milestones/$milestoneId/brief"` and `params` containing `projectId` and `milestoneId`.
-- The target route file `src/routes/engine.projects.$projectId.milestones.$milestoneId.brief.tsx` exists.
+1. Fix Bucket A (5 sites): add `email: undefined` to every `redirect({ to: "/auth", search: { ... } })` and add the missing `search` on the bare `navigate({ to: "/auth" })` in `engine.tsx`.
+2. Fix Bucket B (6 sites): add the required `search` prop to `<Link to="/auth" | "/portal/messages" | "/portal/roadmap">`.
+3. Fix Bucket C (6 sites): rewrite `` to={`/engine/projects/${id}/x`} `` as `to="/engine/projects/$projectId/x"` with `params={{ projectId: id }}`.
+4. Fix Bucket D (4 sites): scope the `ops/insights` navigates through `Route.useNavigate()` with `to: "."`; correct the `checkout.walk.$pace.tsx` `beforeLoad` return type.
+5. Re-run `bunx tsgo --noEmit` — expect 0 errors.
+6. Run `bunx vitest run` — report pass/fail. Fix any test regressions caused by the router changes (unlikely; the tests I added earlier are source-scan only).
 
 ## Out of scope
 
-- The other TS errors visible in the earlier build output (`WorkspaceHeader`, portal `BookCallModal` / `ClarificationModal` / `DecisionResponseModal` `to="/portal/messages"` missing `search`, admin `outcome-feedback` / `stage-transitions`, etc.) are not in this request; flag them but don't touch them.
-- No DB migrations. No behavior changes beyond what's needed to compile.
-
-## Verification
-
-- `bunx tsgo --noEmit` clean for the three targeted files.
-- `bunx vitest run src/routes/__tests__/engine-approvals-persistence.test.ts src/routes/__tests__/plans-start-planning-nav.test.ts` passes.
+- No behaviour changes, no route restructuring, no new routes.
+- No DB migrations.
+- No changes to auto-generated files (`routeTree.gen.ts`, Supabase client).

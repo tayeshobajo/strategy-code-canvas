@@ -42,7 +42,7 @@ export const Route = createFileRoute("/engine/projects/$projectId/chat")({
     const { supabase } = await import("@/integrations/supabase/client");
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
-      throw redirect({ to: "/auth", search: { redirect: location.href } });
+      throw redirect({ to: "/auth", search: { email: undefined, redirect: location.href } });
     }
     return { user: data.user };
   },

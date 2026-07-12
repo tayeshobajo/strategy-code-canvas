@@ -35,7 +35,7 @@ export const Route = createFileRoute("/engine")({
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
-      throw redirect({ to: "/auth", search: { redirect: location.href } });
+      throw redirect({ to: "/auth", search: { email: undefined, redirect: location.href } });
     }
     const email = (data.user.email ?? "").toLowerCase();
     let allowed = isAdminEmail(email);
@@ -99,7 +99,7 @@ function EngineLayout() {
 
   async function signOut() {
     await supabase.auth.signOut();
-    navigate({ to: "/auth" });
+    navigate({ to: "/auth", search: { email: undefined, redirect: "/" } });
   }
 
   const crumbs = buildCrumbs(pathname);

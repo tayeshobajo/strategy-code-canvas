@@ -197,7 +197,7 @@ function FailedToLoad({
           Refresh
         </Button>
         <Button asChild variant="outline" className="border-ink/20">
-          <Link to="/portal/messages">Contact Trust Tai</Link>
+          <Link to="/portal/messages" search={{ milestone: undefined, prefill: undefined }}>Contact Trust Tai</Link>
         </Button>
       </div>
     </div>
@@ -223,7 +223,7 @@ function RoadmapView() {
           Reach out to Tai to reinstate access to your Roadmap.
         </p>
         <Button asChild className="mt-6 bg-ink hover:bg-ink/90 text-white">
-          <Link to="/portal/messages">Contact Tai</Link>
+          <Link to="/portal/messages" search={{ milestone: undefined, prefill: undefined }}>Contact Tai</Link>
         </Button>
       </div>
     );
@@ -243,7 +243,7 @@ function RoadmapView() {
           journey from current state to future state.
         </p>
         <Button asChild className="mt-6 bg-ink hover:bg-ink/90 text-white">
-          <Link to="/portal/messages">Contact Trust Tai</Link>
+          <Link to="/portal/messages" search={{ milestone: undefined, prefill: undefined }}>Contact Trust Tai</Link>
         </Button>
       </div>
     );
@@ -285,7 +285,7 @@ function RoadmapJourneyView({
       search.m !== requestedSlug
     ) {
       navigate({
-        search: () => ({ m: requestedSlug }),
+        search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, m: requestedSlug ?? undefined }),
         replace: true,
       });
     }
@@ -303,7 +303,7 @@ function RoadmapJourneyView({
   useEffect(() => {
     if (requestedSlug && !selectedMilestone) {
       toast.info("The selected item couldn't be found on this roadmap.");
-      navigate({ search: () => ({}), replace: true });
+      navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, m: undefined, item: undefined, decision: undefined, deliverable: undefined }), replace: true });
     }
   }, [requestedSlug, selectedMilestone, navigate]);
 
@@ -320,7 +320,7 @@ function RoadmapJourneyView({
 
   const setSelected = (slug: string | null) => {
     navigate({
-      search: () => (slug ? { m: slug } : {}),
+      search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, m: slug ?? undefined }),
       replace: true,
     });
   };

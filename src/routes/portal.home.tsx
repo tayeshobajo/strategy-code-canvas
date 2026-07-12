@@ -99,7 +99,7 @@ function StaffAccountPanel({ email }: { email?: string | null }) {
               variant="outline"
               className="rounded-md border-rule-soft bg-card text-ink hover:border-ink/30"
             >
-              <Link to="/portal/roadmap">Preview client roadmap</Link>
+              <Link to="/portal/roadmap" search={{ m: undefined, item: undefined, decision: undefined, deliverable: undefined, view: undefined, phase: undefined, __visual: undefined }}>Preview client roadmap</Link>
             </Button>
           </div>
           <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-ink/40 sm:text-right">
