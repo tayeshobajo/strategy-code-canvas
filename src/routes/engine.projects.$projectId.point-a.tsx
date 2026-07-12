@@ -4,6 +4,8 @@ import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
+import { EpistemicStatusChip } from "@/components/engine/EpistemicStatusChip";
+import type { EpistemicStatus, SourceRef } from "@/lib/engine-epistemic.functions";
 import { cn } from "@/lib/utils";
 import { Share2, StickyNote, MoreHorizontal, Quote, AlertTriangle, Shield } from "lucide-react";
 
