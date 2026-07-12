@@ -21,7 +21,7 @@
 | 2 | 1C | Platform Configuration — workspace settings, project type templates, per-project overrides, generative governance rules | ✅ COMPLETE | phase-1c-output.md |
 | 3 | 6C | Client Acknowledgment Flow — client formally acks roadmap before phases begin | ✅ COMPLETE | phase-6c-output.md |
 | 4 | 13B | Portal as downstream-only — enforce approval boundary at data layer | ✅ COMPLETE | phase-13b-output.md |
-| 5 | 3D | Project AI Workspace — attach ChatGPT conversation + Claude project per project, surface in engine UI | 🔴 NOT STARTED | phase-3d-output.md |
+| 5 | 3D | Project AI Workspace — attach ChatGPT conversation + Claude project per project, surface in engine UI | ✅ COMPLETE | phase-3d-output.md |
 | 6 | 4B | Spine Governance — version history, diff view, change audit trail | 🟠 BLOCKED | phase-4b-output.md |
 | 7 | 4C | Decision Log — cross-project feed of every approved spine change, with author, reason, and impact | 🔴 NOT STARTED | phase-4c-output.md |
 | 8 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | ✅ COMPLETE | phase-6b-output.md |
@@ -69,6 +69,7 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 13B | Portal as downstream-only — enforce approval boundary at data layer | 2026-07-11 | published_at IS NOT NULL enforced in portal queries. /portal/roadmap loader redirect added. |
 | 6B | Delivery Completeness Gate — DeliveryReadinessPanel wired into delivery route | 2026-07-12 | Direct commit 6f74c2bf. No migrations. Panel renders above recipient grid, shows live readiness + client-facing checklist + publish CTA gate. |
 | 1C | Platform Configuration — workspace settings, project type templates, governance gates | 2026-07-12 | Direct commit 5c4e127d. No migrations. 4 server fns, full admin UI at /admin/platform-config, nav wired. |
+| 3D | Project AI Workspace — AI tool links + context note per project | 2026-07-12 | Direct commit 10da2466. Route + server fns already existed. Nav wired into WorkspaceHeader MORE_SECTIONS under Tools. No migrations. |
 
 ---
 
@@ -91,3 +92,4 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 2026-07-12 CDT | — | BUILD METHOD CHANGE | All future builds via direct GitHub commits. Lovable AI permanently removed from loop. Cron payload updated. |
 | 2026-07-12 CDT | 6B | COMPLETE | DeliveryReadinessPanel wired into delivery route. Commit 6f74c2bf. No migrations. Next: 1C (Platform Configuration). |
 | 2026-07-12 04:28 CDT | 1C | COMPLETE | Platform Configuration layer committed. Commit 5c4e127d. 3 files: engine-platform-config.functions.ts, admin.platform-config.tsx, admin.tsx (nav updated). No migrations. Next: 3D (Project AI Workspace). |
+| 2026-07-12 00:20 CDT | 3D | COMPLETE | AI Workspace nav wired into WorkspaceHeader MORE_SECTIONS. Commit 10da2466. Route + server fns verified already built. No migrations. Next: 4C (Decision Log). |
