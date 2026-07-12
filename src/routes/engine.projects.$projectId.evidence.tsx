@@ -50,7 +50,7 @@ function EvidenceAndQA() {
   });
 
   const spine = spineQ.data;
-  const sources = spine?.sources ?? [];
+  const sources: any[] = Array.isArray((spine as any)?.sources) ? (spine as any).sources : [];
   const reviews = spine?.reviews ?? [];
   const milestones = spine?.milestones ?? [];
   const project = spine?.project;
