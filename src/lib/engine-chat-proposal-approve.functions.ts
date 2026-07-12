@@ -84,7 +84,7 @@ export const approveChatProposal = createServerFn({ method: "POST" })
         name: proposal.title.slice(0, 300), description: description || proposal.summary || null,
         source: "proposal_approved", priority: (payload.priority as string) ?? "P2",
         status: "approved", acceptance_criteria: ac, created_by: "proposal_approval",
-      }).select("id").single();
+      } as never).select("id").single();
       if (tErr) throw new Error(tErr.message ?? "Failed to create approved task");
       result.taskId = (taskRow as { id: string }).id;
 
