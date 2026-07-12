@@ -1,7 +1,7 @@
 # BUILD_STATE.md — Autonomous Build Loop Tracker
 
 > Captain reads and updates this file every build cycle.
-> Last updated: 2026-07-12 13:10 CDT
+> Last updated: 2026-07-12 14:36 CDT
 
 ---
 
@@ -22,7 +22,7 @@
 | 3 | 6C | Client Acknowledgment Flow — client formally acks roadmap before phases begin | ✅ COMPLETE | phase-6c-output.md |
 | 4 | 13B | Portal as downstream-only — enforce approval boundary at data layer | ✅ COMPLETE | phase-13b-output.md |
 | 5 | 3D | Project AI Workspace — attach ChatGPT conversation + Claude project per project, surface in engine UI | ✅ COMPLETE | phase-3d-output.md |
-| 6 | 4B | Spine Governance — version history, diff view, change audit trail | 🟠 BLOCKED | phase-4b-output.md |
+| 6 | 4B | Spine Governance — version history, diff view, change audit trail | ✅ COMPLETE | phase-4b-output.md |
 | 7 | 4C | Decision Log — cross-project feed of every approved spine change, with author, reason, and impact | ✅ COMPLETE | phase-4c-output.md |
 | 8 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | ✅ COMPLETE | phase-6b-output.md |
 | 9 | 9B | Evidence Requirements Enforcement — block milestone completion without evidence | ✅ COMPLETE | phase-9b-output.md |
@@ -32,7 +32,7 @@
 | 13 | 5B | Roadmap Intelligence Layer — milestones explain themselves | ✅ COMPLETE | phase-5b-output.md |
 | 14 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | ✅ COMPLETE | phase-7b-output.md |
 | 15 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | ✅ COMPLETE | phase-10c-output.md |
-| 16 | 9C | AI Self-Assessment Prevention — DB constraint (MIGRATION ONLY — write to PENDING_MIGRATIONS.md) | 🟡 PENDING_TAI | phase-9c-output.md |
+| 16 | 9C | AI Self-Assessment Prevention — DB constraint (MIGRATION ONLY — write to PENDING_MIGRATIONS.md) | ✅ COMPLETE | phase-9c-output.md |
 | 17 | 8E | Context Inheritance — every execution packet carries the full chain: intake → understanding → mockup → spine → spec | ✅ COMPLETE | phase-8e-output.md |
 | 18 | 8F | Stage Transition Engine — automated handoffs between stages, right actor notified, no manual advancement | ✅ COMPLETE | phase-8f-output.md |
 | 19 | 12F | Outcome Feedback Loop — delivery outcomes flow back into Captain understanding, 30/60/90 day check-ins | ✅ COMPLETE | phase-12f-output.md |
@@ -70,6 +70,7 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 6B | Delivery Completeness Gate — DeliveryReadinessPanel wired into delivery route | 2026-07-12 | Direct commit 6f74c2bf. No migrations. Panel renders above recipient grid, shows live readiness + client-facing checklist + publish CTA gate. |
 | 1C | Platform Configuration — workspace settings, project type templates, governance gates | 2026-07-12 | Direct commit 5c4e127d. No migrations. 4 server fns, full admin UI at /admin/platform-config, nav wired. |
 | 3D | Project AI Workspace — AI tool links + context note per project | 2026-07-12 | Direct commit 10da2466. Route + server fns already existed. Nav wired into WorkspaceHeader MORE_SECTIONS under Tools. No migrations. |
+| 4B | Spine Governance — version history + diff | 2026-07-12 | Resolved without new table. `engine_spine_versions` migration rejected; `engine_audit_log` reused. `updateProjectStep` writes `spine_field_changed` audit rows for point_a / point_b edits; `getSpineFieldHistory` reads diffs; `SpineVersionHistory` renders real diff/reason/actor/timestamp. |
 | 4C | Decision Log — cross-project approved spine change feed | 2026-07-12 | Direct commit d314bfc1. engine-decision-log.functions.ts + admin.decision-log.tsx + nav wired. No migrations. Reads engine_activity + engine_projects join. |
 | 9B | Evidence Requirements Enforcement — cross-project admin dashboard | 2026-07-12 | Direct commit 58c69cb9. getWorkspaceEvidenceReport() server fn + admin.evidence-enforcement.tsx + nav wired. No migrations. Batched 3-query cross-project report. |
 | 10B | Delivery Readiness Gate — cross-project build packet acceptance gate | 2026-07-12 | Direct commit d4154373. 3 files: engine-delivery-readiness-gate.functions.ts, admin.delivery-readiness-gate.tsx, admin.tsx (nav updated). No migrations. 3 batched queries. |
@@ -78,7 +79,7 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 5B | Roadmap Intelligence Layer — milestone self-explanation cross-project admin view | 2026-07-12 | Direct commit bc0b5ac4. 2 files: admin.roadmap-intelligence.tsx (full rewrite with WHY/WHERE/WHAT/RISKS/WHO expand cards, workspace summary bar, low-intelligence filter), admin.tsx (Brain icon + nav entry). No migrations. Lazy getMilestoneIntelligence drill-down. |
 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 2026-07-12 | Files already existed: engine-plan-depth.functions.ts + admin.plan-depth.tsx + nav (Layers icon). BUILD_STATE was not updated in the build cycle that wrote them. Marking complete now. 7 depth dimensions, 0-100 score. No migrations. |
 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90-day check-ins | 2026-07-12 | Direct commit dd625438. 3 files: engine-post-delivery-learning.functions.ts, admin.post-delivery-learning.tsx, admin.tsx (TrendingUp icon + nav entry). No migrations. 4 server fns. Outcomes stored in engine_activity as outcome_survey_submitted / outcome_check_in_skipped. 30/60/90-day check-in schedule derived from published_at. Next: 9C (MIGRATION ONLY — write SQL to PENDING_MIGRATIONS.md). |
-| 9C | AI Self-Assessment Prevention — DB constraint spec | 2026-07-12 | Pending migration spec committed in eff8522. No DB migration applied. Adds proposed constraints for AI-created milestones/tasks requiring human approver/owner before approved/complete terminal states. Status: PENDING_TAI. |
+| 9C | AI Self-Assessment Prevention — DB constraints applied | 2026-07-12 | Preflight returned 0/0/0 violations. Idempotent constraints applied for AI-created milestone approval/completion and AI-generated task terminal status. `updateMilestone` and `updateTaskStatus` now backfill acting admin email on AI-sourced rows. |
 | 8E | Context Inheritance — execution packets carry full upstream chain | 2026-07-12 | Direct commit. BuildPacketPayload now includes context_inheritance with intake, understanding, mockup/frame, Spine, backend, QA, and implementation layers. Drawer renders the chain. No migrations. |
 | 8F | Stage Transition Engine — workspace-wide transition visibility + blocker surfacing | 2026-07-12 | Retroactive: engine-stage-transitions.functions.ts + admin.stage-transitions.tsx + ArrowRightLeft nav entry already committed in prior cycles. BUILD_STATE not updated at the time. 8 stages tracked, blockers surfaced per project, readyToAdvance/blocked/completed counts, full mini progress bar. No migrations. |
 | 12F | Outcome Feedback Loop — delivery outcomes flow back into understanding layer | 2026-07-12 | Retroactive: engine-outcome-feedback.functions.ts + admin.outcome-feedback.tsx + BarChart3 nav entry already committed in prior cycles. BUILD_STATE not updated at the time. 6 signal kinds (timeline_accuracy, budget_accuracy, scope_drift, client_satisfaction, delivery_completeness, evidence_quality), pattern synthesis, cross-project table. No migrations. |
@@ -126,4 +127,6 @@ Every phase in the queue is either COMPLETE, BLOCKED (4B — pending Tai migrati
 | 2026-07-12 12:19 CDT | 9C | PENDING_TAI | Migration spec committed to `.orchestrator/PENDING_MIGRATIONS.md` in eff8522. No DB migration applied. Next: 8E (Context Inheritance). |
 | 2026-07-12 13:10 CDT | 8F | COMPLETE (retroactive) | engine-stage-transitions.functions.ts + admin.stage-transitions.tsx + ArrowRightLeft nav entry confirmed fully committed in prior cycles. BUILD_STATE was NOT STARTED. Marked COMPLETE now. 8 stages, 2 server fns (getProjectStageTransitions + getWorkspaceStageTransitions), blockers surfaced per project. No migrations. |
 | 2026-07-12 13:10 CDT | 12F | COMPLETE (retroactive) | engine-outcome-feedback.functions.ts + admin.outcome-feedback.tsx + BarChart3 nav entry confirmed fully committed in prior cycles. BUILD_STATE was NOT STARTED. Marked COMPLETE now. 6 signal kinds, pattern synthesis, 2 server fns. No migrations. |
+| 2026-07-12 14:36 CDT | 9C | COMPLETE | AI self-assessment constraints applied after 0/0/0 preflight. App mutation paths updated to backfill acting admin email on AI-sourced milestone/task terminal writes. |
+| 2026-07-12 14:36 CDT | 4B | COMPLETE | `engine_spine_versions` rejected as duplicate; `engine_audit_log` reused. Spine edits now emit field-level audit/activity rows and real history/diff UI reads them. |
 | 2026-07-12 13:10 CDT | — | ALL PHASES DONE | Every phase in the queue is COMPLETE, BLOCKED (4B), or PENDING_TAI (9C). Two migration reviews needed from Tai before 4B and 9C can be activated. Build loop complete. |
