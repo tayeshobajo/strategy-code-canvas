@@ -1233,16 +1233,24 @@ export const updateProjectStep = createServerFn({ method: "POST" })
     const sb = context.supabase as any;
 
     // Read current step_states + updated_at so we can merge state and detect
-    // concurrent writes.
+    // concurrent writes. For spine steps (point-a / point-b) also read the
+    // current column value so we can diff and write field-level audit rows.
+    const isSpineStep = data.step === "point-a" || data.step === "point-b";
+    const selectCols = isSpineStep
+      ? `step_states, updated_at, ${col}`
+      : "step_states, updated_at";
     const { data: cur } = await sb
       .from("engine_projects")
-      .select("step_states, updated_at")
+      .select(selectCols)
       .eq("id", data.id)
       .single();
     const states = (cur?.step_states ?? {}) as Record<
       string,
       import("@/lib/engine-workspace").StepState
     >;
+    const previousSpineValue: Record<string, unknown> | null = isSpineStep
+      ? ((cur?.[col] as Record<string, unknown> | null) ?? null)
+      : null;
     const currentUpdatedAt = (cur?.updated_at as string | null) ?? null;
 
     // Optimistic lock: bail out early with a clear error if the row moved
