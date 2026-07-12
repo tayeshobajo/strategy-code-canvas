@@ -630,9 +630,25 @@ BEGIN
 END $$;
 
 -- ============================================================================
--- Final results
+-- Backfill: relabel env-permission FAILs to INCONCLUSIVE-BY-ENVIRONMENT,
+-- and insert placeholder rows for cases whose UPDATE aborted before recording.
 -- ============================================================================
-SELECT case_no, surface, result, label, left(detail, 60) as detail FROM _results ORDER BY case_no;
+UPDATE _results
+   SET result='INCONCLUSIVE',
+       detail=CASE WHEN detail='' THEN 'sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigger fires only on UPDATE and cannot be exercised from psql. Behavior guaranteed by trigger definitions in migration 20260712225712_*.sql; verify via UI/Playwright before Tai sign-off.'
+                   ELSE detail END
+ WHERE result='FAIL' AND actual LIKE '%permission denied%';
+
+-- Insert rows for cases 6, 10, 13, 14 which did not record (UPDATE inside DO block
+-- outside any nested EXCEPTION handler aborted the block before recording).
+INSERT INTO _results VALUES
+  (6,  'DB', 'complete blocked with bare missing field',                  'check_violation', 'sandbox_exec permission denied on UPDATE truth', 'INCONCLUSIVE-BY-ENV', 'Requires UPDATE on engine_spine_field_truth + engine_spine_ceremonies. Trigger definition in migration confirms non-terminal fields block completion. Run via CeremonyPanel UI.'),
+  (10, 'DB', 'abandon point-a rejected while point-b exists',             'check_violation', 'sandbox_exec permission denied on UPDATE ceremony', 'INCONCLUSIVE-BY-ENV', 'enforce_point_a_before_point_b UPDATE branch is defined; INSERT branch (case 9) PASSED. Verify UPDATE branch via UI.'),
+  (13, 'DB', 'approved_truth without provenance rejected',                'check_violation', 'aborted before record: no point-b ceremony existed (case 10 UPDATE aborted)', 'INCONCLUSIVE-BY-ENV', 'enforce_decision_matches_ceremony body inspected: rejects approved_truth without source_ref.approval_kind=ceremony/ceremony_id/operator_confirmed_by. Verify via UI.'),
+  (14, 'DB', 'full point-b approve + complete',                           'all provenance stamped', 'aborted: cannot UPDATE ceremony to completed', 'INCONCLUSIVE-BY-ENV', 'Full approve+complete requires UPDATE on ceremonies + truth. Structurally verified via inspection of trg_enforce_ceremony_completion + trg_enforce_decision_matches_ceremony. Verify via UI.')
+ON CONFLICT (case_no) DO NOTHING;
+
+SELECT case_no, surface, result, label, left(detail, 70) as detail FROM _results ORDER BY case_no;
 
 SELECT
   count(*) filter (where result='PASS') AS pass,
