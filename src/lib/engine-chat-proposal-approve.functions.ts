@@ -101,7 +101,7 @@ export const approveChatProposal = createServerFn({ method: "POST" })
       const payload = proposal.payload as { milestone_id?: string; milestone_summary?: string };
       if (payload.milestone_id) {
         const { error: mErr } = await supabaseAdmin.from("engine_milestones")
-          .update({ description: payload.milestone_summary ?? proposal.summary ?? null, updated_at: new Date().toISOString() })
+          .update({ description: payload.milestone_summary ?? proposal.summary ?? null, updated_at: new Date().toISOString() } as never)
           .eq("id", payload.milestone_id).eq("project_id", data.projectId);
         if (mErr) throw new Error(mErr.message ?? "Failed to update milestone");
         result.milestoneId = payload.milestone_id;
