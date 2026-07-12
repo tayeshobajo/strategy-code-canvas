@@ -368,7 +368,8 @@ function ProjectMilestoneIntelligenceCard({
             </div>
           </div>
           <Link
-            to={`/engine/projects/${projectId}/intelligence-layer`}
+            to="/engine/projects/$projectId/intelligence-layer"
+            params={{ projectId }}
             className="inline-flex items-center gap-1 text-xs text-white/40 hover:text-amber-400 transition-colors border border-white/10 rounded px-2 py-1"
             title="Open intelligence layer"
           >
