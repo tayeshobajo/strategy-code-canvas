@@ -2,19 +2,32 @@
 
 ## Phase 6C — Roadmap Acknowledgment Columns
 
-Add to engine_projects table:
+Status: REJECTED (2026-07-12) — superseded by existing columns on `public.client_portal_roadmaps`.
 
+Reason: the proposed `engine_projects.acknowledged_roadmap_version` / `acknowledged_at` /
+`acknowledged_by` columns duplicate data that already lives on
+`client_portal_roadmaps.approved_roadmap_version_id` / `acknowledged_at` /
+`acknowledged_by_email`. Every current reader (`portal.roadmap.tsx`, `portal.home.tsx`,
+`engine-execution.functions.ts`, `engine-chat-context.server.ts`) already uses that
+surface. Adding a second copy on `engine_projects` would drift with no writer and no
+reader.
+
+If an engine-side joined read is needed later, add a read-only view
+`public.engine_project_acknowledgments` that joins `engine_projects` to
+`client_portal_roadmaps` on `client_portal_project_id`, instead of duplicating columns.
+
+Original proposal (kept for reference):
 - acknowledged_roadmap_version TEXT NULL
 - acknowledged_at TIMESTAMPTZ NULL
 - acknowledged_by TEXT NULL
 
-SQL:
+```sql
 ALTER TABLE engine_projects
 ADD COLUMN IF NOT EXISTS acknowledged_roadmap_version TEXT,
 ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS acknowledged_by TEXT;
+```
 
-Status: PENDING_TAI — do not apply until Tai reviews
 
 ## Phase 4B — Spine Governance Version History
 
