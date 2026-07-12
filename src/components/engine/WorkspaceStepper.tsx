@@ -1,7 +1,74 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Check, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Check, Sparkles, Loader2, ShieldAlert, ShieldCheck, XCircle, RefreshCcw } from "lucide-react";
 import { WORKSPACE_STEPS } from "@/lib/engine-workspace";
+import {
+  getCeremonySummary,
+  type CeremonyBadgeState,
+  type CeremonySpineSummary,
+} from "@/lib/engine-spine-ceremonies.functions";
 import { cn } from "@/lib/utils";
+
+type BadgeStyle = {
+  label: string;
+  className: string;
+  Icon: React.ComponentType<{ className?: string }>;
+};
+
+const BADGE_STYLES: Record<Exclude<CeremonyBadgeState, "none">, BadgeStyle> = {
+  in_progress: {
+    label: "Ceremony open",
+    className: "border-royal/40 bg-royal/10 text-royal",
+    Icon: Loader2,
+  },
+  stale: {
+    label: "Ceremony stale",
+    className: "border-[#f1e3b9] bg-[#fbf3e0] text-[#8a6713]",
+    Icon: ShieldAlert,
+  },
+  completed: {
+    label: "Approved",
+    className: "border-[#c9e6d3] bg-[#e9f5ee] text-[#1f6b3b]",
+    Icon: ShieldCheck,
+  },
+  re_review: {
+    label: "Re-review required",
+    className: "border-[#f3ced5] bg-[#fbe9ec] text-[#a4283c]",
+    Icon: RefreshCcw,
+  },
+  abandoned: {
+    label: "Abandoned",
+    className: "border-border bg-white text-ink/60",
+    Icon: XCircle,
+  },
+};
+
+function CeremonyBadge({ summary }: { summary: CeremonySpineSummary }) {
+  if (summary.badge === "none") return null;
+  const s = BADGE_STYLES[summary.badge];
+  if (!s) return null;
+  const title =
+    summary.badge === "stale" && summary.stale_reason
+      ? `${s.label} — ${summary.stale_reason}`
+      : s.label;
+  return (
+    <div
+      title={title}
+      data-qa-ceremony-badge={summary.spine}
+      data-qa-ceremony-state={summary.badge}
+      className={cn(
+        "mt-1 inline-flex items-center gap-1 rounded-full border px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-wider",
+        s.className,
+      )}
+    >
+      <s.Icon
+        className={cn("w-2.5 h-2.5", summary.badge === "in_progress" && "animate-spin")}
+      />
+      <span className="leading-none">{s.label}</span>
+    </div>
+  );
+}
 
 export function WorkspaceStepper({
   projectId,
@@ -12,6 +79,24 @@ export function WorkspaceStepper({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const spineActive = pathname.endsWith("/spine");
+
+  const fetchSummary = useServerFn(getCeremonySummary);
+  const { data: summaryData } = useQuery({
+    queryKey: ["engine", "ceremony-summary", projectId],
+    queryFn: async () => {
+      const res = await fetchSummary({ data: { projectId } });
+      return (res as { summary: Record<"point-a" | "point-b", CeremonySpineSummary> }).summary;
+    },
+    staleTime: 30_000,
+  });
+
+  const badgeFor = (key: string): CeremonySpineSummary | null => {
+    if (!summaryData) return null;
+    if (key === "point-a") return summaryData["point-a"];
+    if (key === "point-b") return summaryData["point-b"];
+    return null;
+  };
+
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm scroll-strip">
       <div className="px-4 sm:px-5 py-5 sm:py-6 flex items-center gap-2 min-w-max">
@@ -39,6 +124,7 @@ export function WorkspaceStepper({
           const isActive = pathname.endsWith(`/${s.key}`);
           const isDone = s.num < currentStepNum;
           const isCurrent = s.num === currentStepNum;
+          const summary = badgeFor(s.key);
           return (
             <div key={s.key} className="flex items-center snap-start">
               <Link
@@ -70,6 +156,7 @@ export function WorkspaceStepper({
                 >
                   {s.label}
                 </div>
+                {summary ? <CeremonyBadge summary={summary} /> : null}
               </Link>
               {i < WORKSPACE_STEPS.length - 1 ? (
                 <div

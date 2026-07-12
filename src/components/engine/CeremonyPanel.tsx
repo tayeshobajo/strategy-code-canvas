@@ -132,6 +132,7 @@ export function CeremonyPanel({
     qc.invalidateQueries({ queryKey: ["engine", "ceremony", projectId, spine] });
     qc.invalidateQueries({ queryKey: ["engine", "spine-status", projectId, spine] });
     qc.invalidateQueries({ queryKey: ["engine", "invalidations", projectId] });
+    qc.invalidateQueries({ queryKey: ["engine", "ceremony-summary", projectId] });
   };
 
   const startMut = useMutation({

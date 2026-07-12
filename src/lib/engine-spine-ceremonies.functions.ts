@@ -339,3 +339,95 @@ export const abandonCeremony = createServerFn({ method: "POST" })
     }
     return { ok: true, ceremony: updated };
   });
+
+// ---------- getCeremonySummary ----------
+//
+// Lightweight per-project summary powering the WorkspaceStepper badge on
+// Point A / Point B steps. Returns the latest ceremony row per spine plus a
+// derived badge tone so callers do not have to reimplement the label logic.
+
+const ceremonySummaryInput = z.object({ projectId: uuidSchema });
+
+export type CeremonyBadgeState =
+  | "none"
+  | "in_progress"
+  | "stale"
+  | "completed"
+  | "abandoned"
+  | "re_review";
+
+export type CeremonySpineSummary = {
+  spine: "point-a" | "point-b";
+  status: "none" | "in_progress" | "completed" | "abandoned";
+  badge: CeremonyBadgeState;
+  stale_since: string | null;
+  stale_reason: string | null;
+  re_review_required: boolean;
+  opened_at: string | null;
+  completed_at: string | null;
+  ceremony_id: string | null;
+};
+
+function deriveBadge(row: {
+  status: string;
+  stale_since: string | null;
+  re_review_required: boolean;
+} | null): CeremonyBadgeState {
+  if (!row) return "none";
+  if (row.status === "completed") {
+    return row.re_review_required ? "re_review" : "completed";
+  }
+  if (row.status === "abandoned") return "abandoned";
+  if (row.status === "in_progress") {
+    return row.stale_since ? "stale" : "in_progress";
+  }
+  return "none";
+}
+
+export const getCeremonySummary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ceremonySummaryInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as AuthCtx;
+    // No role assertion: read-only summary consumed by the internal
+    // WorkspaceStepper for any authenticated internal viewer.
+    const { data: rows, error } = await (ctx.supabase as any)
+      .from(CEREMONIES)
+      .select(
+        "id, spine, status, stale_since, stale_reason, re_review_required, opened_at, completed_at, updated_at",
+      )
+      .eq("project_id", data.projectId)
+      .order("updated_at", { ascending: false });
+    if (error) {
+      console.error("getCeremonySummary", error);
+      throw new Error("Failed to load ceremony summary");
+    }
+
+    const bySpine = new Map<string, any>();
+    for (const r of (rows ?? []) as any[]) {
+      if (!bySpine.has(r.spine)) bySpine.set(r.spine, r);
+    }
+
+    const build = (spine: "point-a" | "point-b"): CeremonySpineSummary => {
+      const r = bySpine.get(spine) ?? null;
+      return {
+        spine,
+        status: (r?.status as CeremonySpineSummary["status"]) ?? "none",
+        badge: deriveBadge(r),
+        stale_since: r?.stale_since ?? null,
+        stale_reason: r?.stale_reason ?? null,
+        re_review_required: Boolean(r?.re_review_required),
+        opened_at: r?.opened_at ?? null,
+        completed_at: r?.completed_at ?? null,
+        ceremony_id: r?.id ?? null,
+      };
+    };
+
+    return {
+      ok: true as const,
+      summary: {
+        "point-a": build("point-a"),
+        "point-b": build("point-b"),
+      } satisfies Record<"point-a" | "point-b", CeremonySpineSummary>,
+    };
+  });
