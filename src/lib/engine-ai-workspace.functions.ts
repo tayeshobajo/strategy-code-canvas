@@ -94,7 +94,8 @@ export const getAiWorkspace = createServerFn({ method: "GET" })
     z.object({ projectId: z.string().uuid() }).parse(raw),
   )
   .handler(async ({ data }): Promise<{ workspace: AiWorkspace }> => {
-    const { supabaseAdmin: supabase } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabase = supabaseAdmin as unknown as any;
     const { data: row, error } = await supabase
       .from("engine_projects")
       .select("id, metadata")
@@ -123,7 +124,8 @@ export const saveAiWorkspace = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => SaveAiWorkspaceSchema.parse(raw))
   .handler(async ({ data }): Promise<{ ok: true; workspace: AiWorkspace }> => {
-    const { supabaseAdmin: supabase } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabase = supabaseAdmin as unknown as any;
 
     // Read current metadata first (to merge, not clobber)
     const { data: row } = await supabase
