@@ -18,7 +18,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createServiceClient } from "@/integrations/supabase/service-client";
+
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,7 +94,7 @@ export const getAiWorkspace = createServerFn({ method: "GET" })
     z.object({ projectId: z.string().uuid() }).parse(raw),
   )
   .handler(async ({ data }): Promise<{ workspace: AiWorkspace }> => {
-    const supabase = createServiceClient();
+    const { supabaseAdmin: supabase } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabase
       .from("engine_projects")
       .select("id, metadata")
@@ -123,7 +123,7 @@ export const saveAiWorkspace = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => SaveAiWorkspaceSchema.parse(raw))
   .handler(async ({ data }): Promise<{ ok: true; workspace: AiWorkspace }> => {
-    const supabase = createServiceClient();
+    const { supabaseAdmin: supabase } = await import("@/integrations/supabase/client.server");
 
     // Read current metadata first (to merge, not clobber)
     const { data: row } = await supabase
