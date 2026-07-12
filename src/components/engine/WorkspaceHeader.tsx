@@ -326,7 +326,7 @@ export function WorkspaceToolbar({
           {primary.slice(0, 4).map((item) => {
             const active = isSuffixActive(pathname, item.suffix);
             const Icon = item.icon;
-            const to = `/engine/projects/$projectId/${item.suffix}` as const;
+            const to = `/engine/projects/$projectId/${item.suffix}` as unknown as "/engine/projects/$projectId/overview";
             return (
               <li key={item.key}>
                 <Link
