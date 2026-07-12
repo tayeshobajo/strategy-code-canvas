@@ -7,6 +7,7 @@ import { SectionCard, EmptyState } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 import { EpistemicStatusChip } from "@/components/engine/EpistemicStatusChip";
+import { CeremonyPanel } from "@/components/engine/CeremonyPanel";
 import {
   getSpineFieldStatus,
   type FieldStatusEntry,
