@@ -1,115 +1,60 @@
-# Phase 9C Apply + Phase 4B Implementation
 
-## Phase 9C — Apply AI Self-Assessment Constraints
+# QA Pass Plan — Roadmap Engine Post-Build Loop
 
-Preflight already returned 0/0/0. Constraints will validate instantly.
+This is a read-only QA pass. Executing it requires shell + browser + DB tools (psql, Playwright, tsgo, supabase read_query), which are only available after approval switches me to build mode. On approval I will run the checks below and return the report in the exact format you specified — no code changes, no migrations, no mutations to real client data.
 
-### Migration (table-qualified idempotency via `conrelid`)
+## Scope
 
-```sql
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'no_ai_self_approval'
-      AND conrelid = 'public.engine_milestones'::regclass
-  ) THEN
-    ALTER TABLE public.engine_milestones
-      ADD CONSTRAINT no_ai_self_approval CHECK (
-        NOT (
-          created_by_kind IN ('ai','captain','agent','system_agent','pipeline')
-          AND approval_status = 'approved'
-          AND (approved_by_email IS NULL OR approved_by_email = '')
-        )
-      );
-  END IF;
+16 capabilities + 5 cross-cutting checks (typecheck, browser smoke desk/mobile, console/network scan, RLS sanity, DB integrity). Read-only throughout.
 
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'no_ai_self_complete'
-      AND conrelid = 'public.engine_milestones'::regclass
-  ) THEN
-    ALTER TABLE public.engine_milestones
-      ADD CONSTRAINT no_ai_self_complete CHECK (
-        NOT (
-          created_by_kind IN ('ai','captain','agent','system_agent','pipeline')
-          AND status IN ('complete','completed','done')
-          AND (approved_by_email IS NULL OR approved_by_email = '')
-        )
-      );
-  END IF;
+## Execution approach
 
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'no_ai_self_completion'
-      AND conrelid = 'public.engine_tasks'::regclass
-  ) THEN
-    ALTER TABLE public.engine_tasks
-      ADD CONSTRAINT no_ai_self_completion CHECK (
-        NOT (
-          ai_generated = true
-          AND status IN ('done','accepted','verified','complete','completed')
-          AND (owner_email IS NULL OR owner_email = '')
-        )
-      );
-  END IF;
-END $$;
-```
+**Phase 1 — Static / codebase audit (fast, no browser)**
+- `tsgo` typecheck.
+- Grep for rejected surfaces: `engine_projects.acknowledged_`, `engine_spine_versions`, duplicate/deprecated routes.
+- Confirm acknowledgment source of truth is `client_portal_roadmaps.acknowledged_at / acknowledged_by_email` at every read site.
+- Trace approval / self-approval guards in `approveChatProposal`, `updateMilestone`, `updateTaskStatus`, spine mutation path.
+- Confirm `SpineVersionHistory` reads `engine_audit_log`, not the rejected table.
 
-### Post-apply audit (same turn)
+**Phase 2 — DB / RLS sanity (psql + supabase read_query)**
+- Verify 3 CHECK constraints exist with correct `conrelid` (milestones × 2, tasks × 1).
+- Confirm no `engine_spine_versions` table.
+- Confirm no `engine_projects.acknowledged_*` columns.
+- Spot-check RLS on: `client_portal_roadmaps`, `client_portal_permissions`, `engine_*`, `user_roles`, `engine_audit_log`.
+- Scan for public tables missing GRANTs.
+- Look for duplicate/deprecated columns from recent migrations.
 
-Grep and review mutation paths that could now surface CHECK violations to users:
-- `approveChatProposal` — already requires staff email; confirm it flows into `approved_by_email` on milestone approval paths.
-- Any milestone status transition (`status = 'complete'/'completed'/'done'`) — ensure `approved_by_email` is set when the source row is AI-created.
-- Any task acceptance / verification path — ensure `owner_email` is set when `ai_generated = true`.
+**Phase 3 — Live browser smoke (Playwright headless, injected admin session)**
+- Desktop (1280×1800) + mobile (390×844) passes.
+- Routes exercised: `/engine`, `/engine/projects/:id/overview`, `/spine`, `/chat`, `/roadmap`, `/delivery`, `/intelligence`, `/exceptions`, `/drift`, `/plan-depth`, `/roadmap-intelligence`, `/ops/insights`, `/portal/home`, `/portal/roadmap`, `/portal/messages`.
+- Capture console errors + failed network requests per route.
+- Screenshot each surface for evidence.
+- Verify admin-only routes reject unauth (session-cleared context).
 
-Where a mutation could hit the constraint, either (a) ensure the human actor's email is passed in, or (b) raise a clear pre-check error before the DB write so the user sees a helpful message instead of a raw constraint error.
+**Phase 4 — Capability-by-capability functional checks**
+For each of the 16 capabilities, map: expected → observed → status → evidence (route/file/query/screenshot path). Read-only proposal/approval walkthroughs on the existing test project only; no writes to real client data. Any test needing a write is documented as "would test X" instead.
 
-Update `.orchestrator/PENDING_MIGRATIONS.md` to mark Phase 9C **APPLIED** with the preflight results (0/0/0) and the applied SQL.
+## Report format (as requested)
 
----
+1. Verdict (PASS / PASS WITH ISSUES / FAIL)
+2. Launch risk (Low / Medium / High)
+3. P0 blockers
+4. P1 issues
+5. P2 polish/regression notes
+6. Capability matrix (16 rows)
+7. Security/RLS findings
+8. DB/migration findings
+9. Prioritized next actions
 
-## Phase 4B — Reuse `engine_audit_log` (no new table)
+## Guardrails
 
-### Schema inspection result
+- No code edits, no migrations, no `supabase--migration` calls.
+- No writes to real client projects; test project only, and only if strictly needed.
+- No secrets echoed; use `LOVABLE_BROWSER_*` session injection per browser-use rules.
+- Findings-only output — no autonomous fixes.
 
-`public.engine_audit_log` columns:
+## Deliverable
 
-`id, project_id, actor_email, action, summary, affected_modules[], version_id, target_id, metadata (jsonb, NOT NULL), created_at, field_changed, old_value, new_value, reason`
+Single QA report posted in chat. Evidence artifacts (screenshots, query outputs) saved under `/tmp/browser/qa-<timestamp>/` and referenced by path in the matrix.
 
-Verdict: **no migration needed**. The table already has everything required:
-- `field_changed / old_value / new_value / reason` — spine field diffs
-- `actor_email` — the human who made and approved the change (the spine mutation flow requires an authenticated staff user; that email is both actor and approver)
-- `metadata` (jsonb) — captures anything extra (e.g. `{"approver_email": "...", "role": "admin", "spine_field": "point_a.summary"}`) if the actor/approver split ever needs to be distinct
-- `action` — set to `spine_field_changed` for filtering
-- `affected_modules` — set to `['spine']`
-
-### Implementation steps
-
-1. **Server function** — add `updateApprovedSpineField` in `src/lib/engine.functions.ts` (or a new `engine-spine.functions.ts` if cleaner). Signature:
-   - `projectId`, `field` (enum: `point_a` | `point_b` | nested sub-key), `newValue`, `reason` (required, non-empty), `expectedUpdatedAt`.
-   - Guards: staff role required (`requireSupabaseAuth` + `hasRoleForEmail`); reason must be present; optimistic concurrency via `expectedUpdatedAt`.
-   - Writes: (a) update `engine_projects.point_a` / `point_b`; (b) insert `engine_audit_log` row with `action='spine_field_changed'`, `field_changed`, `old_value`, `new_value`, `reason`, `actor_email`, `affected_modules=['spine']`, `metadata` including the sub-field path and role; (c) insert `engine_activity` row with `kind='spine_field_changed'` for the project feed.
-
-2. **Wire into Spine UI** — swap the existing "protected overwrite" edit path on `engine.projects.$projectId.spine.tsx` to use `updateApprovedSpineField` when the current spine content is in the approved state, so every approved change flows through the reason-required mutation.
-
-3. **Replace placeholder reader** — rewrite `src/components/engine/SpineVersionHistory.tsx` to:
-   - Load `engine_audit_log` rows for the project where `action = 'spine_field_changed'`, ordered by `created_at DESC`, limited (e.g. 25) with "show more".
-   - Render field name, old → new diff (JSON diff or side-by-side text for string fields), reason, actor, timestamp.
-   - Keep the collapsible summary card shape; drop the "pending migration" banner.
-
-4. **Docs** — update `.orchestrator/PENDING_MIGRATIONS.md`: mark Phase 4B **REJECTED (no new table needed)** with a pointer to `engine_audit_log` reuse. Update `.orchestrator/phase-4b-output.md` to note the resolution and the newly built pieces.
-
-### Out of scope
-
-- Any change to `engine_audit_log` schema (none needed).
-- Field-level history for non-spine content (existing `engine_roadmap_versions` and `engine_audit_log` already cover those).
-- Adding an approver-distinct-from-actor column — only needed if a real dual-approval workflow is introduced; not required for Phase 4B.
-
----
-
-## Order of execution
-
-1. Submit Phase 9C migration (table-qualified idempotency SQL above) for approval → apply → audit mutation paths.
-2. Implement Phase 4B reuse: `updateApprovedSpineField` server function → wire Spine UI → replace `SpineVersionHistory` reader → update orchestrator docs.
-3. Typecheck + targeted tests after each phase; commit per phase (`feat(phase-9c): ...`, `feat(phase-4b): ...`).
+Approve to run.
