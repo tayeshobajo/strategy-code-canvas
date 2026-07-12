@@ -197,7 +197,7 @@ function FailedToLoad({
           Refresh
         </Button>
         <Button asChild variant="outline" className="border-ink/20">
-          <Link to="/portal/messages">Contact Trust Tai</Link>
+          <Link to="/portal/messages" search={{ milestone: undefined, prefill: undefined }}>Contact Trust Tai</Link>
         </Button>
       </div>
     </div>
