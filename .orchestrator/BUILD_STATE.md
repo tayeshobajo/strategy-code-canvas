@@ -1,7 +1,7 @@
 # BUILD_STATE.md — Autonomous Build Loop Tracker
 
 > Captain reads and updates this file every build cycle.
-> Last updated: 2026-07-12 07:50 CDT
+> Last updated: 2026-07-12 08:43 CDT
 
 ---
 
@@ -28,7 +28,7 @@
 | 9 | 9B | Evidence Requirements Enforcement — block milestone completion without evidence | ✅ COMPLETE | phase-9b-output.md |
 | 10 | 10B | Delivery Readiness Gate — all build packets accepted before delivery offered | ✅ COMPLETE | phase-10b-output.md |
 | 11 | 11B | Exception-Based Management — surface only what needs human attention at scale | ✅ COMPLETE | phase-11b-output.md |
-| 12 | 11C | Drift Detection — compare project state to approved Spine continuously | 🔴 NOT STARTED | phase-11c-output.md |
+| 12 | 11C | Drift Detection — compare project state to approved Spine continuously | ✅ COMPLETE | phase-11c-output.md |
 | 13 | 5B | Roadmap Intelligence Layer — milestones explain themselves | 🔴 NOT STARTED | phase-5b-output.md |
 | 14 | 7B | Plan Depth and Completeness — user journeys, sitemaps, data models required | 🔴 NOT STARTED | phase-7b-output.md |
 | 15 | 10C | Post-Delivery Learning Loop — outcome surveys, 30/60/90 day check-ins | 🔴 NOT STARTED | phase-10c-output.md |
@@ -73,7 +73,8 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 4C | Decision Log — cross-project approved spine change feed | 2026-07-12 | Direct commit d314bfc1. engine-decision-log.functions.ts + admin.decision-log.tsx + nav wired. No migrations. Reads engine_activity + engine_projects join. |
 | 9B | Evidence Requirements Enforcement — cross-project admin dashboard | 2026-07-12 | Direct commit 58c69cb9. getWorkspaceEvidenceReport() server fn + admin.evidence-enforcement.tsx + nav wired. No migrations. Batched 3-query cross-project report. |
 | 10B | Delivery Readiness Gate — cross-project build packet acceptance gate | 2026-07-12 | Direct commit d4154373. 3 files: engine-delivery-readiness-gate.functions.ts, admin.delivery-readiness-gate.tsx, admin.tsx (nav updated). No migrations. 3 batched queries. |
-| 11B | Exception-Based Management — cross-project exception board | 2026-07-12 | Direct commit 21d242fb. 3 files: engine-exception-management.functions.ts, admin.exception-management.tsx, admin.tsx (nav updated). No migrations. 8 exception categories, sorted by severity. Exception board placed first in admin nav. Next: 11C (Drift Detection). |
+| 11B | Exception-Based Management — cross-project exception board | 2026-07-12 | Direct commit 21d242fb. 3 files: engine-exception-management.functions.ts, admin.exception-management.tsx, admin.tsx (nav updated). No migrations. 8 exception categories, 4 batched queries, sorted by severity. Exception board placed first in admin nav. Next: 11C (Drift Detection). |
+| 11C | Drift Detection — continuous spine vs project state comparison | 2026-07-12 | Direct commit 3ea3f6e5. 3 files: engine-drift-detection.functions.ts, admin.drift-detection.tsx, admin.tsx (nav updated). No migrations. 6 drift signal categories, drift score per project, read-only diagnostic surface. Next: 5B (Roadmap Intelligence). |
 
 ---
 
@@ -101,3 +102,4 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 2026-07-12 04:38 CDT | 9B | COMPLETE | Evidence Enforcement committed. Commit 58c69cb9. 3 files: engine-evidence-gate.functions.ts (getWorkspaceEvidenceReport added), admin.evidence-enforcement.tsx, admin.tsx (nav updated). No migrations. Cross-project report in 3 batched queries. Next: 10B (Delivery Readiness Gate). |
 | 2026-07-12 06:44 CDT | 10B | COMPLETE | Delivery Readiness Gate committed. Commit d4154373. 3 files: engine-delivery-readiness-gate.functions.ts, admin.delivery-readiness-gate.tsx, admin.tsx (nav updated). No migrations. Cross-project packet acceptance gate. getWorkspaceDeliveryReadinessReport() + getProjectDeliveryReadinessGate() server fns. Next: 11B (Exception-Based Management). |
 | 2026-07-12 07:50 CDT | 11B | COMPLETE | Exception Management committed. Commit 21d242fb. 3 files: engine-exception-management.functions.ts, admin.exception-management.tsx, admin.tsx (nav updated). No migrations. 8 exception categories, 4 batched queries, sorted by severity. Exception board is now first in admin nav. Next: 11C (Drift Detection). |
+| 2026-07-12 08:43 CDT | 11C | COMPLETE | Drift Detection committed. Commit 3ea3f6e5. 3 files: engine-drift-detection.functions.ts, admin.drift-detection.tsx, admin.tsx (nav updated). No migrations. 6 drift signal categories (deliverable_orphaned, milestone_count_exceeded, spine_changed_post_proposal, scope_ahead_of_spine, undecided_spine, spine_stale), drift score 0-100 per project. Read-only diagnostic, never auto-corrects. Next: 5B (Roadmap Intelligence Layer). |
