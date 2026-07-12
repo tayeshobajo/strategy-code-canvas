@@ -68,7 +68,9 @@ export const approveChatProposal = createServerFn({ method: "POST" })
       throw new Error(`Cannot approve proposal with status "${proposal.status}"`);
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin: rawAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabaseAdmin = rawAdmin as any;
     const result: ApproveChatProposalResult = { proposal };
 
     if (proposal.proposal_type === "suggested_task") {
@@ -81,9 +83,9 @@ export const approveChatProposal = createServerFn({ method: "POST" })
       ].filter(Boolean).join("\n\n");
       const { data: taskRow, error: tErr } = await supabaseAdmin.from("engine_tasks").insert({
         project_id: data.projectId, milestone_id: payload.milestone_id ?? null,
-        name: proposal.title.slice(0, 300), description: description || proposal.summary || null,
+        name: proposal.title.slice(0, 300), description: description || proposal.summary || "",
         source: "proposal_approved", priority: (payload.priority as string) ?? "P2",
-        status: "approved", acceptance_criteria: ac, created_by: "proposal_approval",
+        status: "approved", acceptance_criteria: ac as unknown as never, created_by: "proposal_approval",
       }).select("id").single();
       if (tErr) throw new Error(tErr.message ?? "Failed to create approved task");
       result.taskId = (taskRow as { id: string }).id;
@@ -101,7 +103,7 @@ export const approveChatProposal = createServerFn({ method: "POST" })
       const payload = proposal.payload as { milestone_id?: string; milestone_summary?: string };
       if (payload.milestone_id) {
         const { error: mErr } = await supabaseAdmin.from("engine_milestones")
-          .update({ description: payload.milestone_summary ?? proposal.summary ?? null, updated_at: new Date().toISOString() })
+          .update({ description: payload.milestone_summary ?? proposal.summary ?? "", updated_at: new Date().toISOString() })
           .eq("id", payload.milestone_id).eq("project_id", data.projectId);
         if (mErr) throw new Error(mErr.message ?? "Failed to update milestone");
         result.milestoneId = payload.milestone_id;
