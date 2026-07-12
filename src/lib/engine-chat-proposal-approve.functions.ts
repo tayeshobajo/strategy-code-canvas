@@ -92,7 +92,7 @@ export const approveChatProposal = createServerFn({ method: "POST" })
       const convertedRef = proposal.converted_ref as { table?: string; id?: string } | null;
       if (convertedRef?.table === "engine_review_items" && convertedRef.id) {
         const { error: rErr } = await supabaseAdmin.from("engine_review_items")
-          .update({ status: "approved", reviewed_by: email, reviewed_at: new Date().toISOString() }).eq("id", convertedRef.id);
+          .update({ status: "approved", reviewed_by: email, reviewed_at: new Date().toISOString() } as never).eq("id", convertedRef.id);
         if (rErr) throw new Error(rErr.message ?? "Failed to update review item");
         result.reviewItemId = convertedRef.id;
       }
