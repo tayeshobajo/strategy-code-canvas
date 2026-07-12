@@ -50,10 +50,7 @@ function EvidenceAndQA() {
   });
 
   const spine = spineQ.data;
-  // spine.sources may be typed as either a stats object or a raw source list;
-  // downstream we treat it as an array of source rows.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sources: any[] = Array.isArray((spine as any)?.sources) ? ((spine as any).sources as any[]) : [];
+  const sources = spine?.sources ?? [];
   const reviews = spine?.reviews ?? [];
   const milestones = spine?.milestones ?? [];
   const project = spine?.project;

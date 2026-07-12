@@ -8,8 +8,6 @@ import {
   DECISION_KINDS,
   DECISION_KIND_LABELS,
   type DecisionKind,
-  type DecisionLogEntry,
-  type DecisionLogResult,
 } from "@/lib/engine-decision-log.functions";
 import {
   GitCommit,
@@ -77,7 +75,7 @@ function DecisionLogPage() {
     staleTime: 60_000,
   });
 
-  const logQuery = useQuery<DecisionLogResult>({
+  const logQuery = useQuery({
     queryKey: ["admin", "decision-log", "feed", page, kindFilter],
     queryFn: () =>
       loadLog({
@@ -86,7 +84,7 @@ function DecisionLogPage() {
           offset: page * PAGE_SIZE,
           kinds: kindFilter === "all" ? undefined : [kindFilter],
         },
-      }) as Promise<DecisionLogResult>,
+      }),
     placeholderData: keepPreviousData,
   });
 
@@ -95,7 +93,7 @@ function DecisionLogPage() {
     setPage(0);
   }
 
-  const entries: DecisionLogEntry[] = logQuery.data?.entries ?? [];
+  const entries = logQuery.data?.entries ?? [];
   const total   = logQuery.data?.total ?? 0;
   const hasMore = logQuery.data?.has_more ?? false;
 

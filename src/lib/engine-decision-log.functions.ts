@@ -131,7 +131,7 @@ export const listDecisionLog = createServerFn({ method: "GET" })
     await assertOperatorOrAdmin(context as never);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = (context as any).supabase;
+    const sb: any = (context as { supabase: unknown }).supabase;
 
     const kindsFilter = (data.kinds && data.kinds.length > 0 ? data.kinds : DECISION_KINDS) as readonly string[];
 
@@ -157,12 +157,15 @@ export const listDecisionLog = createServerFn({ method: "GET" })
     q = q.order("created_at", { ascending: false });
     q = q.range(data.offset, data.offset + data.limit - 1);
 
-    const res = (await q) as { data: RawRow[] | null; error: unknown; count: number | null };
-    const { data: rows, error, count } = res;
+    const { data: rows, error, count } = (await q) as {
+      data: RawRow[] | null;
+      error: unknown;
+      count: number | null;
+    };
 
     if (error) throw new Error(`Decision log query failed: ${JSON.stringify(error)}`);
 
-    const entries: DecisionLogEntry[] = (rows ?? []).map((r: RawRow) => {
+    const entries: DecisionLogEntry[] = (rows ?? []).map((r) => {
       const projectName =
         r.engine_projects
           ? Array.isArray(r.engine_projects)
@@ -201,13 +204,15 @@ export const getDecisionLogStats = createServerFn({ method: "GET" })
     await assertOperatorOrAdmin(context as never);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = (context as any).supabase;
+    const sb: any = (context as { supabase: unknown }).supabase;
 
-    const res = (await sb
+    const { data, error } = (await sb
       .from("engine_activity")
       .select("kind")
-      .in("kind", DECISION_KINDS as readonly string[])) as { data: { kind: string }[] | null; error: unknown };
-    const { data, error } = res;
+      .in("kind", DECISION_KINDS as readonly string[])) as {
+        data: { kind: string }[] | null;
+        error: unknown;
+      };
 
     if (error) throw new Error(`Stats query failed: ${JSON.stringify(error)}`);
 

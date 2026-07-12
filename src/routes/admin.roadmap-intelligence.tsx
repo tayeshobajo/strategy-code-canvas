@@ -420,20 +420,20 @@ function ProjectMilestoneIntelligenceCard({
                   {/* Signal icons */}
                   <div className="flex items-center gap-1 shrink-0">
                     {!ms.hasEvidence && (
-                      <span title="No evidence" className="inline-flex">
-                        <FileSearch className="w-3.5 h-3.5 text-red-400" />
-                      </span>
+                      <FileSearch
+                        className="w-3.5 h-3.5 text-red-400"
+                        title="No evidence"
+                      />
                     )}
                     {ms.worstRiskLevel !== "none" && (
-                      <span title={`Risk: ${ms.worstRiskLevel}`} className="inline-flex">
-                        <AlertTriangle
-                          className={`w-3.5 h-3.5 ${
-                            ms.worstRiskLevel === "critical" ? "text-red-400" :
-                            ms.worstRiskLevel === "high" ? "text-orange-400" :
-                            "text-yellow-400"
-                          }`}
-                        />
-                      </span>
+                      <AlertTriangle
+                        className={`w-3.5 h-3.5 ${
+                          ms.worstRiskLevel === "critical" ? "text-red-400" :
+                          ms.worstRiskLevel === "high" ? "text-orange-400" :
+                          "text-yellow-400"
+                        }`}
+                        title={`Risk: ${ms.worstRiskLevel}`}
+                      />
                     )}
                   </div>
                 </button>
