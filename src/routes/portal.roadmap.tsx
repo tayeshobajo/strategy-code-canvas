@@ -243,7 +243,7 @@ function RoadmapView() {
           journey from current state to future state.
         </p>
         <Button asChild className="mt-6 bg-ink hover:bg-ink/90 text-white">
-          <Link to="/portal/messages">Contact Trust Tai</Link>
+          <Link to="/portal/messages" search={{ milestone: undefined, prefill: undefined }}>Contact Trust Tai</Link>
         </Button>
       </div>
     );
