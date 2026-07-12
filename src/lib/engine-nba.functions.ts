@@ -112,7 +112,7 @@ export const getIntelligentNextAction = createServerFn({ method: "POST" })
     const { data: projRows } = await sb
       .from("engine_projects")
       .select(
-        "name, client_company, status, current_phase, current_step, health_score, next_action, open_decisions, agent_status, source_count",
+        "name, engine_clients(company), status, current_phase, current_step, health_score, next_action, open_decisions, agent_status, source_count",
       )
       .eq("id", data.projectId);
     const proj =
@@ -163,7 +163,8 @@ export const getIntelligentNextAction = createServerFn({ method: "POST" })
 
     const prompt = buildNBAPrompt({
       projectName: (proj.name as string) ?? "Unknown",
-      clientCompany: (proj.client_company as string) ?? "Unknown",
+      clientCompany:
+        ((proj.engine_clients as { company?: string } | null)?.company as string) ?? "Unknown",
       status: (proj.status as string) ?? "unknown",
       currentPhase: proj.current_phase as string | null,
       currentStep: (proj.current_step as number) ?? 1,

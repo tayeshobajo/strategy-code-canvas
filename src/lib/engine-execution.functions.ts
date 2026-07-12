@@ -552,7 +552,7 @@ export const exportAgentCostsCsv = createServerFn({ method: "GET" })
     const sb = context.supabase as any;
     const { data: proj } = await sb
       .from("engine_projects")
-      .select("name,client_company")
+      .select("name, engine_clients(company)")
       .eq("id", data.projectId)
       .single();
     const { data: rows } = await sb
