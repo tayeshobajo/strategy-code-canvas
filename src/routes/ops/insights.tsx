@@ -34,8 +34,8 @@ const searchSchema = z.object({
     z.enum(["all", "approved", "rejected", "archived"]),
     "all",
   ).default("all"),
-  from: fallback(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), undefined),
-  to: fallback(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), undefined),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/ops/insights")({
