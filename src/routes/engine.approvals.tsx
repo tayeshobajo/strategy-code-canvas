@@ -218,14 +218,14 @@ function ApprovalsQueue() {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  {projectItems.map((item) => renderItemCard(item, expandedItemId, setExpandedItemId, onDismiss))}
+                  {projectItems.map((item) => renderItemCard(item, expandedItemId, setExpandedItemId, onDecide, pendingActionId, decideMutation.isPending))}
                 </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredItems.map((item) => renderItemCard(item, expandedItemId, setExpandedItemId, onDismiss))}
+            {filteredItems.map((item) => renderItemCard(item, expandedItemId, setExpandedItemId, onDecide, pendingActionId, decideMutation.isPending))}
           </div>
         )}
       </SectionCard>
@@ -237,8 +237,11 @@ function renderItemCard(
   item: ReviewItem,
   expandedItemId: string | null,
   setExpandedItemId: (id: string | null) => void,
-  onDismiss: (id: string) => void,
+  onDecide: (id: string, action: DecisionAction) => void,
+  pendingActionId: string | null,
+  isPending: boolean,
 ) {
+  const busy = isPending && pendingActionId === item.id;
   const expanded = expandedItemId === item.id;
   const borderColor = impactBorder(item.impact);
   const requestedAt = new Date(item.created_at).toLocaleString(undefined, {
@@ -297,20 +300,27 @@ function renderItemCard(
             <Detail label="Source" value={item.source ?? "Not provided"} />
           </dl>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <ActionButton label="Approve" icon={<Check className="h-3.5 w-3.5" />} tone="approve" onClick={() => onDismiss(item.id)} />
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <ActionButton
+              label="Approve"
+              icon={busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              tone="approve"
+              disabled={busy}
+              onClick={() => onDecide(item.id, "approved")}
+            />
             <ActionButton
               label="Request Revision"
-              icon={<RotateCcw className="h-3.5 w-3.5" />}
+              icon={busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
               tone="revision"
-              onClick={() => onDismiss(item.id)}
+              disabled={busy}
+              onClick={() => onDecide(item.id, "sent_back")}
             />
-            <ActionButton label="Reject" icon={<XCircle className="h-3.5 w-3.5" />} tone="reject" onClick={() => onDismiss(item.id)} />
             <ActionButton
-              label="Ask Question"
-              icon={<MessageSquareMore className="h-3.5 w-3.5" />}
-              tone="question"
-              onClick={() => onDismiss(item.id)}
+              label="Reject"
+              icon={busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+              tone="reject"
+              disabled={busy}
+              onClick={() => onDecide(item.id, "rejected")}
             />
           </div>
         </div>
