@@ -1216,6 +1216,9 @@ const UpdateStepInput = z.object({
   // has changed the project since the caller loaded it. Client passes the
   // `updated_at` seen at edit time.
   expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
+  // Phase 4B: optional reason string for spine field changes (point-a / point-b).
+  // When present, it's recorded on each engine_audit_log row written for the change.
+  reason: z.string().trim().max(500).optional(),
 });
 
 export const updateProjectStep = createServerFn({ method: "POST" })
