@@ -24,7 +24,7 @@ export const Route = createFileRoute("/ops")({
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
-      throw redirect({ to: "/auth", search: { redirect: location.href } });
+      throw redirect({ to: "/auth", search: { email: undefined, redirect: location.href } });
     }
     const email = data.user.email?.toLowerCase() ?? "";
     let allowed = isOperatorEmail(email);
