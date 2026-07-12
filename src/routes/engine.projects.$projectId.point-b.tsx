@@ -7,6 +7,7 @@ import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
 import { EpistemicStatusChip } from "@/components/engine/EpistemicStatusChip";
+import { CeremonyPanel } from "@/components/engine/CeremonyPanel";
 import {
   getSpineFieldStatus,
   type FieldStatusEntry,
@@ -48,8 +49,10 @@ function PointB() {
       <StepStateBar projectId={projectId} step="point-b" current={project.step_states?.["point-b"]} />
       <StepAiPanelFor step="point-b" data={project.point_b} />
       <SourceEvidence projectId={projectId} step="point-b" />
+      <CeremonyPanel projectId={projectId} spine="point-b" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
         {SECTIONS.map((s) => {
           const st = statusMap[s.key];
           return (

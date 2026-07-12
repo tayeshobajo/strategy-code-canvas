@@ -3961,7 +3961,10 @@ export type Database = {
           opened_at: string
           opened_by_email: string
           project_id: string
+          re_review_required: boolean
           spine: string
+          stale_reason: string | null
+          stale_since: string | null
           status: string
           updated_at: string
         }
@@ -3977,7 +3980,10 @@ export type Database = {
           opened_at?: string
           opened_by_email: string
           project_id: string
+          re_review_required?: boolean
           spine: string
+          stale_reason?: string | null
+          stale_since?: string | null
           status?: string
           updated_at?: string
         }
@@ -3993,7 +3999,10 @@ export type Database = {
           opened_at?: string
           opened_by_email?: string
           project_id?: string
+          re_review_required?: boolean
           spine?: string
+          stale_reason?: string | null
+          stale_since?: string | null
           status?: string
           updated_at?: string
         }
@@ -4064,6 +4073,54 @@ export type Database = {
           },
         ]
       }
+      engine_spine_ceremony_invalidations: {
+        Row: {
+          ceremony_id: string
+          created_at: string
+          created_by_email: string
+          id: string
+          project_id: string
+          reason: string
+          resolved_at: string | null
+          reversed_field_keys: string[]
+        }
+        Insert: {
+          ceremony_id: string
+          created_at?: string
+          created_by_email: string
+          id?: string
+          project_id: string
+          reason: string
+          resolved_at?: string | null
+          reversed_field_keys?: string[]
+        }
+        Update: {
+          ceremony_id?: string
+          created_at?: string
+          created_by_email?: string
+          id?: string
+          project_id?: string
+          reason?: string
+          resolved_at?: string | null
+          reversed_field_keys?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_spine_ceremony_invalidations_ceremony_id_fkey"
+            columns: ["ceremony_id"]
+            isOneToOne: false
+            referencedRelation: "engine_spine_ceremonies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_spine_ceremony_invalidations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_spine_field_truth: {
         Row: {
           ceremony_id: string | null
@@ -4072,6 +4129,8 @@ export type Database = {
           project_id: string
           source_ref: Json
           spine: string
+          stale_reason: string | null
+          stale_since: string | null
           status: Database["public"]["Enums"]["epistemic_status"]
           updated_at: string
           updated_by_actor: string
@@ -4084,6 +4143,8 @@ export type Database = {
           project_id: string
           source_ref?: Json
           spine: string
+          stale_reason?: string | null
+          stale_since?: string | null
           status: Database["public"]["Enums"]["epistemic_status"]
           updated_at?: string
           updated_by_actor?: string
@@ -4096,6 +4157,8 @@ export type Database = {
           project_id?: string
           source_ref?: Json
           spine?: string
+          stale_reason?: string | null
+          stale_since?: string | null
           status?: Database["public"]["Enums"]["epistemic_status"]
           updated_at?: string
           updated_by_actor?: string
@@ -5150,6 +5213,10 @@ export type Database = {
       log_portal_file_event: {
         Args: { _event: string; _file_id: string }
         Returns: string
+      }
+      mark_point_b_stale: {
+        Args: { _project_id: string; _reason: string }
+        Returns: undefined
       }
       mark_portal_follow_up_needed: {
         Args: { _project_id: string; _reason: string }
