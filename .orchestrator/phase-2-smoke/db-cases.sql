@@ -3,6 +3,7 @@
 -- Each case is a PL/pgSQL block with EXCEPTION capture and appends to _results.
 
 \set ON_ERROR_STOP off
+\set ON_ERROR_ROLLBACK on
 \pset pager off
 \pset border 2
 
