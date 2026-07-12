@@ -18,7 +18,7 @@
 | # | Phase ID | Description | Status | Output File |
 |---|---|---|---|---|
 | 1 | 2C | Proposed Change Flow — wire ProposalCard into chat route, add approve/reject mutations | ✅ COMPLETE | phase-2c-output.md |
-| 2 | 1C | Platform Configuration — workspace settings, project type templates, per-project overrides, generative governance rules | 🔴 NOT STARTED | phase-1c-output.md |
+| 2 | 1C | Platform Configuration — workspace settings, project type templates, per-project overrides, generative governance rules | ✅ COMPLETE | phase-1c-output.md |
 | 3 | 6C | Client Acknowledgment Flow — client formally acks roadmap before phases begin | ✅ COMPLETE | phase-6c-output.md |
 | 4 | 13B | Portal as downstream-only — enforce approval boundary at data layer | ✅ COMPLETE | phase-13b-output.md |
 | 5 | 3D | Project AI Workspace — attach ChatGPT conversation + Claude project per project, surface in engine UI | 🔴 NOT STARTED | phase-3d-output.md |
@@ -68,6 +68,7 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 6C | Client Acknowledgment Flow — server fn + portal gate component | 2026-07-11 | Version-locked acknowledgment stored in engine_activity, execution gate updated, engine_projects migration queued for Tai review. |
 | 13B | Portal as downstream-only — enforce approval boundary at data layer | 2026-07-11 | published_at IS NOT NULL enforced in portal queries. /portal/roadmap loader redirect added. |
 | 6B | Delivery Completeness Gate — DeliveryReadinessPanel wired into delivery route | 2026-07-12 | Direct commit 6f74c2bf. No migrations. Panel renders above recipient grid, shows live readiness + client-facing checklist + publish CTA gate. |
+| 1C | Platform Configuration — workspace settings, project type templates, governance gates | 2026-07-12 | Direct commit 5c4e127d. No migrations. 4 server fns, full admin UI at /admin/platform-config, nav wired. |
 
 ---
 
@@ -89,3 +90,4 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 2026-07-11 22:03 CDT | 6B | HALTED — CREDITS OUT (6th cycle) | Build prompt sent to Lovable (umsg_01kxa4fskq399jdtx8cccz8afx) but AI response never created (Firestore 404). Mockup committed to repo (70534ad6). available_balance still 0. |
 | 2026-07-12 CDT | — | BUILD METHOD CHANGE | All future builds via direct GitHub commits. Lovable AI permanently removed from loop. Cron payload updated. |
 | 2026-07-12 CDT | 6B | COMPLETE | DeliveryReadinessPanel wired into delivery route. Commit 6f74c2bf. No migrations. Next: 1C (Platform Configuration). |
+| 2026-07-12 04:28 CDT | 1C | COMPLETE | Platform Configuration layer committed. Commit 5c4e127d. 3 files: engine-platform-config.functions.ts, admin.platform-config.tsx, admin.tsx (nav updated). No migrations. Next: 3D (Project AI Workspace). |
