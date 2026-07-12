@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
 import { isAdminEmail } from "@/lib/ops/access";
-import { ClipboardList, Users, Settings, ShieldCheck, MailCheck, GitBranch, Wrench, Menu, SlidersHorizontal, GitCommit, ShieldAlert, PackageCheck, Zap } from "lucide-react";
+import { ClipboardList, Users, Settings, ShieldCheck, MailCheck, GitBranch, Wrench, Menu, SlidersHorizontal, GitCommit, ShieldAlert, PackageCheck, Zap, GitMerge } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -40,6 +40,7 @@ type AdminNav = { to: string; label: string; icon: typeof Users; match: string }
 
 const NAV: AdminNav[] = [
   { to: "/admin/exception-management", label: "Exception board", icon: Zap, match: "/admin/exception-management" },
+  { to: "/admin/drift-detection", label: "Drift detection", icon: GitMerge, match: "/admin/drift-detection" },
   { to: "/admin/client-portals", label: "Client portals", icon: Users, match: "/admin/client-portals" },
   { to: "/admin/config", label: "Runtime config", icon: Settings, match: "/admin/config" },
   { to: "/admin/platform-config", label: "Platform config", icon: SlidersHorizontal, match: "/admin/platform-config" },
