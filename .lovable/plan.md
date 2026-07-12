@@ -1,48 +1,66 @@
-## Fix: progress_pct still 0 when pipeline auto-produces artifacts
+## Scope
 
-Read-only computation change in `src/lib/engine.functions.ts` (`getProjectWorkspace` handler), around lines 684-688. No DB, migration, or business-logic changes.
+Fix the failing TypeScript build and finish the Understanding Room UI. All items are scoped to frontend/route files and the three server-fn files already in the tree — no schema migrations.
 
-### Change
+## 1. Understanding Room route (tasks 1–4)
 
-Replace the "count only touched step_states" fallback with an artifact-aware count over all 14 workspace steps. A step is counted as active when either:
+File: `src/routes/engine.projects.$projectId.understanding-room.tsx` (already exists but currently breaks the build).
 
-- `step_states[stepKey]?.state` is set (draft/review/approved), OR
-- The corresponding project artifact has data.
+- Repair the route so it compiles: fix imports from `@/lib/engine.functions` (verify the exported types/fn names, add missing ones or inline local types if the server fn returns a looser shape).
+- Wire data with `useQuery` calling `useServerFn(getUnderstandingRoom)` keyed by `projectId`. Render loading skeletons and an error `EmptyState`.
+- Render a responsive 4×3 grid (`grid-cols-1 md:grid-cols-2 lg:grid-cols-4`, exactly 12 slots) of Area Cards. Each card shows: area title, state badge (using existing `STATE_STYLES`), 1–3 line summary (line-clamped), and a confidence indicator (dot + numeric %).
+- Add a click-through drawer (shadcn `Sheet`) per card showing full understanding text, open questions, recommendations, and validation notes. Local `useState` for open card id.
+- If the server fn returns fewer than 12 areas, pad with `missing`-state placeholders so the grid is always 12.
 
-Artifact map (using existing row columns already in the select):
+## 2. Metadata / engine_projects typing (task 5)
 
-| Step # | Key            | Artifact "has activity" when                                             |
-|--------|----------------|--------------------------------------------------------------------------|
-| 1      | intelligence   | `signal_count > 0`                                                       |
-| 2      | signal-room    | `signal_count > 0` (or `hasKeys(row.signal_room)`)                        |
-| 3      | extraction     | `signal_count > 0` (or `hasKeys(row.extraction)`)                         |
-| 4      | point-a        | `hasKeys(row.point_a)`                                                   |
-| 5      | point-b        | `hasKeys(row.point_b)`                                                   |
-| 6      | hidden-assets  | `hasKeys(row.hidden_assets)`                                             |
-| 7      | gap-map        | `hasKeys(row.gap_map)`                                                   |
-| 8      | blueprint      | `hasKeys(row.blueprint)`                                                 |
-| 9      | builder        | `!!row.roadmap_version` or `hasKeys(row.roadmap)`                        |
-| 10     | sequencing     | `hasKeys(row.sequencing)` or `!!row.approved_version`                    |
-| 11     | deadlines      | `hasKeys(row.deadlines)` or `!!row.approved_version`                     |
-| 12     | investment     | `hasKeys(row.investment)` or `!!row.approved_version`                    |
-| 13     | preview        | `hasKeys(row.client_preview)` or `!!row.approved_version`                |
-| 14     | delivery       | `hasKeys(row.delivery)`                                                  |
+`engine_projects` has no `metadata` column. In `src/lib/engine-ai-workspace.functions.ts` (and any sibling touched here), stop selecting/reading `metadata`. Either drop the field entirely or replace with an in-memory default `{}`. Keep the `supabaseAdmin as any` cast off if possible once metadata refs are gone.
 
-Then:
+## 3. Chat proposal approve (tasks 6, 11)
 
-```ts
-const stepsActive = WORKSPACE_STEPS.filter(({ key }) => {
-  if (step_states[key]?.state) return true;
-  return artifactHasData(key);
-}).length;
-const computedProgress = Math.round((stepsActive / 14) * 100);
-const progress_pct = storedProgress > 0 ? storedProgress : computedProgress;
-```
+File: `src/lib/engine-chat-proposal-approve.functions.ts`.
 
-`WORKSPACE_STEPS` is already exported from `@/lib/engine-workspace` (imported elsewhere in the file — reuse the import).
+- Coerce nullable text fields with `?? ""` / `?? null` before insert.
+- Cast JSON payload fields through `as unknown as Json` using the generated `Json` type from `@/integrations/supabase/types`.
+- Narrow `proposal.payload` with a Zod parse (or `as` cast + runtime guards) so downstream field access typechecks.
 
-### Out of scope
+## 4. Decision log server fns (tasks 7, 12)
 
-- No changes to how `engine_projects.progress_pct` is written elsewhere.
-- No schema, migration, or server-fn business logic changes.
-- Health score fallback stays as-is (already working).
+File: `src/lib/engine-decision-log.functions.ts`.
+
+- Break the deep generic instantiation by typing the Supabase query builder as `any` at the boundary, then re-annotating the result as `{ data: ActivityRow[] | null; error: PostgrestError | null; count: number | null }` via a local `ActivityRow` type derived from `Database["public"]["Tables"]["engine_activity"]["Row"]`.
+- Ensure the returned shape matches `DecisionLogResult`.
+
+## 5. Admin decision log route (tasks 8, 13)
+
+File: `src/routes/admin.decision-log.tsx`.
+
+- Remove `keepPreviousData` (react-query v5 uses `placeholderData: keepPreviousData` from `@tanstack/react-query`). Import `keepPreviousData` and pass via `placeholderData`, or drop entirely.
+- Annotate `useQuery<DecisionLogResult>` so `entries`, `total`, `has_more` typecheck. Add null-safe fallbacks (`data?.entries ?? []`).
+
+## 6. Admin plan-depth JSX namespace (task 10)
+
+File: `src/routes/admin.plan-depth.tsx`.
+
+- Replace `JSX.Element` with `ReactNode` imported from `react` (project tsconfig doesn't include the JSX global namespace).
+
+## 7. Roadmap intelligence icons (task 14)
+
+File: `src/routes/admin.roadmap-intelligence.tsx` line ~425 area.
+
+- Remove invalid `title` prop from Lucide icons; wrap the icon in a `<span title="...">` where a tooltip is needed. Fix any related type mismatches surfaced by the compiler after that change.
+
+## 8. Evidence route stats shape (task 15)
+
+File: `src/routes/engine.projects.$projectId.evidence.tsx`.
+
+- The server fn returns `stats` as an object, but code calls `.filter` on it. Correct to the actual array field (e.g. `stats.items` / `evidence` array) or destructure from the result. Adjust the render to iterate the right collection.
+
+## Verification
+
+After edits, run `bun run build:dev` and confirm zero TS errors. Spot-check the Understanding Room route in the preview.
+
+## Notes
+
+- Task 9 was omitted by the user; skipping.
+- No DB migrations; if any surface truly needs `metadata`, it will be logged to `.orchestrator/PENDING_MIGRATIONS.md` instead of applied.
