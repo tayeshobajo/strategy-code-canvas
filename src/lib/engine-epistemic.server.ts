@@ -63,6 +63,7 @@ export type SourceRef = {
   operator_confirmed_by?: string;
   approval_kind?: "ceremony" | "operator_override";
   ceremony_id?: string;
+  signal_id?: string;
 };
 
 export const sourceRefSchema: z.ZodType<SourceRef> = z.object({
