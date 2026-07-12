@@ -1,25 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { type ReactNode, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   Check,
   ChevronDown,
   ChevronUp,
   ClipboardCheck,
   FolderKanban,
-  MessageSquareMore,
+  Loader2,
   RotateCcw,
   Sparkles,
   XCircle,
 } from "lucide-react";
 import { EmptyState, MetricCard, SectionCard } from "@/components/engine/primitives";
-import { listReviewQueue, type ReviewItem } from "@/lib/engine-ops.functions";
+import { decideReviewItem, listReviewQueue, type ReviewItem } from "@/lib/engine-ops.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/engine/approvals")({
   component: ApprovalsQueue,
 });
+
+type DecisionAction = "approved" | "sent_back" | "rejected";
 
 type QueueFilter = "all" | "high" | "medium" | "low" | "roadmap" | "mockup" | "plan";
 
