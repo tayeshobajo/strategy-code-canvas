@@ -45,7 +45,7 @@ function PointB() {
             <SectionCard
               key={s.key}
               title={s.label}
-              actions={<EpistemicStatusChip status={st?.status} sourceRef={st?.source_ref} />}
+              right={<EpistemicStatusChip status={st?.status} sourceRef={st?.source_ref} />}
             >
               <p className="text-sm text-ink/80">{data[s.key] ?? <span className="text-ink/40">Not defined yet.</span>}</p>
             </SectionCard>
