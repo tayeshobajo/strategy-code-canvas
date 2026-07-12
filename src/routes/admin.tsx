@@ -14,6 +14,7 @@ import {
   Menu,
   BarChart3,
   ArrowRightLeft,
+  History,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -77,6 +78,12 @@ const NAV: AdminNav[] = [
     label: "Stage Transitions",
     icon: ArrowRightLeft,
     match: "/admin/stage-transitions",
+  },
+  {
+    to: "/admin/decision-log",
+    label: "Decision log",
+    icon: History,
+    match: "/admin/decision-log",
   },
   {
     to: "/admin/project-integrity",
