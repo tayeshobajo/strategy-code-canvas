@@ -223,7 +223,7 @@ function RoadmapView() {
           Reach out to Tai to reinstate access to your Roadmap.
         </p>
         <Button asChild className="mt-6 bg-ink hover:bg-ink/90 text-white">
-          <Link to="/portal/messages">Contact Tai</Link>
+          <Link to="/portal/messages" search={{ milestone: undefined, prefill: undefined }}>Contact Tai</Link>
         </Button>
       </div>
     );
