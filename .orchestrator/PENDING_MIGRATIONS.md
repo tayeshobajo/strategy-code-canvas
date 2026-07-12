@@ -491,7 +491,16 @@ verification".
 
 ## Phase 2 — Point A / Point B Approval Ceremonies (data model)
 
-Status: PROPOSED — R4 (2026-07-12). Awaiting Tai approval to apply.
+Status: **APPLIED (2026-07-12)** — R4 shipped. See `.orchestrator/phase-2-output.md`.
+
+Notes on what changed vs the R4 plan text below:
+- Static Point A / Point B allowlists in `internal_spine_field_keys` now mirror
+  the real TS registry (`POINT_A_BASE_FIELD_KEYS` = `lenses, diagnosis, key_diagnosis`;
+  `POINT_B_FIELD_KEYS` = destination/position/outcome keys) instead of the placeholder
+  `current_state:*` / `target_state:*` keys.
+- Preflight assumed `public.update_updated_at_column()` exists; it does not on this
+  project. Ceremony `updated_at` trigger uses `public.tg_touch_updated_at()` instead.
+
 
 Adds the ceremony spine so an operator can formally walk every allowlisted
 Point A / Point B field, decide its epistemic status with evidence, and

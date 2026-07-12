@@ -64,6 +64,12 @@ export type SourceRef = {
   approval_kind?: "ceremony" | "operator_override";
   ceremony_id?: string;
   signal_id?: string;
+  /**
+   * Phase 2: for ceremony-scoped `missing` decisions with operator override,
+   * marks the operator's explicit acceptance of the gap as a project risk.
+   * Required by the DB `enforce_ceremony_completion` trigger.
+   */
+  accepted_as_risk?: boolean;
 };
 
 export const sourceRefSchema: z.ZodType<SourceRef> = z.object({
@@ -81,6 +87,7 @@ export const sourceRefSchema: z.ZodType<SourceRef> = z.object({
   approval_kind: z.enum(["ceremony", "operator_override"]).optional(),
   ceremony_id: z.string().optional(),
   signal_id: z.string().optional(),
+  accepted_as_risk: z.boolean().optional(),
 });
 
 export type FieldStatusEntry = {
