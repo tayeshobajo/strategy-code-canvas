@@ -171,10 +171,13 @@ export function assertEvidenceForStatus(
 
   switch (status) {
     case "stated": {
+      // `extracted_signal` is accepted so promoteSignalToSpine can stamp a
+      // spine-field row from an existing extracted signal without a separate
+      // intake/transcript/note. Promotion is human-triggered server-side.
       const strict =
-        ["intake_answer", "transcript", "operator_note"].includes(ref.kind) &&
-        (typeof ref.id === "string" || humanOverride);
-      if (!strict) throw evidenceError("stated", "kind ∈ {intake_answer,transcript,operator_note} + (id | operator_confirmed_by)");
+        ["intake_answer", "transcript", "operator_note", "extracted_signal"].includes(ref.kind) &&
+        (typeof ref.id === "string" || typeof ref.signal_id === "string" || humanOverride);
+      if (!strict) throw evidenceError("stated", "kind ∈ {intake_answer,transcript,operator_note,extracted_signal} + (id | signal_id | operator_confirmed_by)");
       return;
     }
     case "inferred": {
