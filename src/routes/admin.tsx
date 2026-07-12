@@ -3,13 +3,19 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
 import { isAdminEmail } from "@/lib/ops/access";
-import { ClipboardList, Users, Settings, ShieldCheck, MailCheck, GitBranch, Wrench, Menu, SlidersHorizontal, GitCommit, ShieldAlert, PackageCheck, Zap, GitMerge, Brain, Layers, TrendingUp } from "lucide-react";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  ClipboardList,
+  Users,
+  Settings,
+  ShieldCheck,
+  MailCheck,
+  GitBranch,
+  Wrench,
+  Menu,
+  BarChart3,
+  ArrowRightLeft,
+} from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export const Route = createFileRoute("/admin")({
@@ -17,7 +23,7 @@ export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
-      throw redirect({ to: "/auth", search: { redirect: location.href } });
+      throw redirect({ to: "/auth", search: { email: undefined, redirect: location.href } });
     }
     const email = data.user.email?.toLowerCase() ?? "";
     let allowed = isOperatorEmail(email) || isAdminEmail(email) || email === "hello@trusttai.com";
@@ -39,22 +45,45 @@ export const Route = createFileRoute("/admin")({
 type AdminNav = { to: string; label: string; icon: typeof Users; match: string };
 
 const NAV: AdminNav[] = [
-  { to: "/admin/exception-management", label: "Exception board", icon: Zap, match: "/admin/exception-management" },
-  { to: "/admin/drift-detection", label: "Drift detection", icon: GitMerge, match: "/admin/drift-detection" },
-  { to: "/admin/roadmap-intelligence", label: "Roadmap intelligence", icon: Brain, match: "/admin/roadmap-intelligence" },
-  { to: "/admin/plan-depth", label: "Plan depth", icon: Layers, match: "/admin/plan-depth" },
-  { to: "/admin/post-delivery-learning", label: "Post-delivery learning", icon: TrendingUp, match: "/admin/post-delivery-learning" },
-  { to: "/admin/client-portals", label: "Client portals", icon: Users, match: "/admin/client-portals" },
+  {
+    to: "/admin/client-portals",
+    label: "Client portals",
+    icon: Users,
+    match: "/admin/client-portals",
+  },
   { to: "/admin/config", label: "Runtime config", icon: Settings, match: "/admin/config" },
-  { to: "/admin/platform-config", label: "Platform config", icon: SlidersHorizontal, match: "/admin/platform-config" },
-  { to: "/admin/decision-log", label: "Decision log", icon: GitCommit, match: "/admin/decision-log" },
-  { to: "/admin/evidence-enforcement", label: "Evidence enforcement", icon: ShieldAlert, match: "/admin/evidence-enforcement" },
-  { to: "/admin/delivery-readiness-gate", label: "Delivery readiness gate", icon: PackageCheck, match: "/admin/delivery-readiness-gate" },
   { to: "/admin/roles", label: "User roles", icon: ShieldCheck, match: "/admin/roles" },
   { to: "/ops/queue", label: "Roadmap intake queue", icon: ClipboardList, match: "/ops/queue" },
-  { to: "/admin/intake-alerts", label: "Intake alerts", icon: MailCheck, match: "/admin/intake-alerts" },
-  { to: "/admin/milestone-changes", label: "Milestone changes", icon: GitBranch, match: "/admin/milestone-changes" },
-  { to: "/admin/project-integrity", label: "Project integrity", icon: Wrench, match: "/admin/project-integrity" },
+  {
+    to: "/admin/intake-alerts",
+    label: "Intake alerts",
+    icon: MailCheck,
+    match: "/admin/intake-alerts",
+  },
+  {
+    to: "/admin/milestone-changes",
+    label: "Milestone changes",
+    icon: GitBranch,
+    match: "/admin/milestone-changes",
+  },
+  {
+    to: "/admin/outcome-feedback",
+    label: "Outcome Feedback",
+    icon: BarChart3,
+    match: "/admin/outcome-feedback",
+  },
+  {
+    to: "/admin/stage-transitions",
+    label: "Stage Transitions",
+    icon: ArrowRightLeft,
+    match: "/admin/stage-transitions",
+  },
+  {
+    to: "/admin/project-integrity",
+    label: "Project integrity",
+    icon: Wrench,
+    match: "/admin/project-integrity",
+  },
 ];
 
 function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
@@ -68,9 +97,7 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
             key={n.to}
             to={n.to}
             onClick={onNavigate}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${
-              active ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${active ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5"}`}
           >
             <Icon className="w-4 h-4 shrink-0" />
             <span className="truncate">{n.label}</span>
