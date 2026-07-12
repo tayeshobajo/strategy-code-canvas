@@ -4,6 +4,8 @@ import { StepAiPanelFor } from "@/components/engine/StepAiPanelFor";
 import { SectionCard } from "@/components/engine/primitives";
 import { StepEditor } from "@/components/engine/StepEditor";
 import { StepStateBar, SourceEvidence } from "@/components/engine/StepState";
+import { EpistemicStatusChip } from "@/components/engine/EpistemicStatusChip";
+import type { EpistemicStatus, SourceRef } from "@/lib/engine-epistemic.functions";
 
 export const Route = createFileRoute("/engine/projects/$projectId/point-b")({
   component: PointB,
