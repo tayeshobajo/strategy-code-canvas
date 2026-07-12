@@ -1775,16 +1775,18 @@ export type ProjectSpinePayload = {
 // Phase 4B: field-level history reader for approved spine changes.
 // Reads from engine_audit_log filtered to action='spine_field_changed',
 // which is what updateProjectStep now writes when the step is point-a/point-b.
+// Values are jsonb and passed through as JSON strings so the server-fn
+// serializer accepts them; the reader parses them client-side.
 export type SpineFieldHistoryEntry = {
   id: string;
   created_at: string;
   actor_email: string | null;
   field_changed: string | null;
-  old_value: unknown | null;
-  new_value: unknown | null;
+  old_value_json: string | null;
+  new_value_json: string | null;
   reason: string | null;
   summary: string | null;
-  metadata: unknown | null;
+  metadata_json: string | null;
 };
 
 export const getSpineFieldHistory = createServerFn({ method: "GET" })
