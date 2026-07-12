@@ -35,6 +35,8 @@ function PointA() {
   };
   const lenses = data.lenses ?? [];
   const diagnosis = data.diagnosis ?? [];
+  const statusMap = ((project as unknown as { point_a_status?: Record<string, { status: EpistemicStatus; source_ref?: SourceRef }> }).point_a_status) ?? {};
+  const statusFor = (key: string) => statusMap[key];
 
   return (
     <div className="space-y-6">
