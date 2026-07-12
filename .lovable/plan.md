@@ -1,114 +1,66 @@
-## Phase 2 R4 — Split spine_field_keys (do not apply)
+# Phase 2 Smoke Execution Plan (22 cases)
 
-Update the Phase 2 block in `.orchestrator/PENDING_MIGRATIONS.md`. R4 mirrors the contradictions split: an internal SECURITY DEFINER helper for triggers, and a public access-gated helper for UI/API callers.
+Goal: run all 22 smoke cases end-to-end against the live backend, capture per-case PASS/FAIL + evidence, and record results.
 
-### SQL revisions
+## Execution strategy per case category
 
-Replace the single R3 `spine_field_keys` with two functions.
+The 22 cases split into three execution surfaces. Each needs a different harness — one script can't cover all of them.
 
-```sql
--- 1. Internal helper — trigger use only. No public grant, no access check.
-CREATE OR REPLACE FUNCTION public.internal_spine_field_keys(
-  _project_id uuid,
-  _spine text
-)
-RETURNS SETOF text
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-BEGIN
-  IF _spine = 'point-a' THEN
-    RETURN QUERY SELECT unnest(ARRAY[
-      'current_state:summary',
-      'current_state:pain_points',
-      'current_state:constraints',
-      'current_state:stakeholders'
-      -- ... full Point A static list mirrored from TS registry
-    ]::text[]);
+### A. DB-layer trigger cases (5, 6, 8, 11, 12, 13, 22)
+Run via `supabase--read_query` (SELECT/DO blocks) and, where writes are needed, a **temporary smoke migration** that:
+- opens a transaction
+- seeds a throwaway project + ceremony
+- attempts the forbidden SQL
+- captures the raised `SQLSTATE` / message
+- **rolls back** so nothing persists
 
-    RETURN QUERY
-      SELECT DISTINCT field_key
-      FROM public.engine_spine_field_truth
-      WHERE project_id = _project_id
-        AND spine = 'point-a'
-        AND field_key LIKE 'diagnosis:%';
+Nothing here needs `auth.email()` — triggers fire on service-role writes too.
 
-  ELSIF _spine = 'point-b' THEN
-    RETURN QUERY SELECT unnest(ARRAY[
-      'target_state:summary',
-      'target_state:success_metrics'
-      -- ... full Point B static list
-    ]::text[]);
-  END IF;
-END;
-$$;
+### B. App-layer server-function cases (1, 2, 3, 4, 7, 9, 10, 14, 15, 16, 17)
+These exercise `startCeremony / recordCeremonyDecision / completeCeremony / abandonCeremony` which all use `requireSupabaseAuth`. Two options:
 
-REVOKE ALL ON FUNCTION public.internal_spine_field_keys(uuid, text) FROM PUBLIC;
--- No grant to anon/authenticated. Callable only by SECURITY DEFINER code
--- in this schema (the completion trigger and the public wrapper below).
-GRANT EXECUTE ON FUNCTION public.internal_spine_field_keys(uuid, text) TO service_role;
+- **Preferred:** Playwright script under `/tmp/browser/phase2-smoke/` that logs in as an operator via the injected Supabase session (`LOVABLE_BROWSER_AUTH_STATUS`), navigates to a scratch project's Point A / Point B routes, and drives `CeremonyPanel` UI. Screenshots + DB reads after each step.
+- **Fallback:** if `LOVABLE_BROWSER_AUTH_STATUS != injected`, invoke each server fn via `stack_modern--invoke-server-function` (bearer attached automatically) and verify with `supabase--read_query`.
 
+Case 15 (AI actor blocked) can't be reached through the UI or an authenticated server fn — verify by direct `insert` attempt on `engine_spine_field_truth` with `updated_by_actor='ai'` + `verified` and confirm the Phase 1 R3 CHECK rejects it. Documented as DB-verified.
 
--- 2. Public wrapper — access-gated. Same access model as has_contradictions.
-CREATE OR REPLACE FUNCTION public.spine_field_keys(
-  _project_id uuid,
-  _spine text
-)
-RETURNS SETOF text
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-DECLARE
-  allowed boolean := false;
-BEGIN
-  SELECT
-    public.is_engine_staff()
-    OR public.has_role_email(coalesce(auth.email(), ''), 'team_member')
-    OR EXISTS (
-      SELECT 1
-      FROM public.client_portal_projects cpp
-      JOIN public.client_portal_permissions perm ON perm.project_id = cpp.id
-      JOIN public.engine_projects ep ON ep.client_portal_project_id = cpp.id
-      WHERE ep.id = _project_id
-        AND lower(perm.email) = lower(coalesce(auth.email(), ''))
-        AND perm.revoked_at IS NULL
-    )
-  INTO allowed;
+### C. R4 access-gate cases (18, 19, 20, 21)
+Require calling `spine_field_keys` / `internal_spine_field_keys` under different auth identities:
 
-  IF NOT allowed THEN
-    RAISE EXCEPTION 'Forbidden: access to project % not permitted', _project_id
-      USING ERRCODE = 'insufficient_privilege';
-  END IF;
+- **18, 19:** authenticated non-staff, no portal permission — use `stack_modern--invoke-server-function` with a thin new smoke server fn that just RPCs the two helpers and returns error/rows. Alternatively use `supabase--read_query` with `SET LOCAL role authenticated; SET LOCAL request.jwt.claims = '{"sub":"…","email":"nonstaff@…"}'` inside a transaction.
+- **20:** staff caller — same technique with a staff claim, seed two `diagnosis:*` truth rows first.
+- **21:** portal member — requires an active `engine_client_portal_permissions` row; seed one for the smoke user, then call under their JWT.
 
-  RETURN QUERY SELECT public.internal_spine_field_keys(_project_id, _spine);
-END;
-$$;
+Because full JWT impersonation from the sandbox is fragile, I will use the `SET LOCAL request.jwt.claims` pattern inside a read-only transaction — it's how our other RLS smokes have been shown to run in this project. If a specific case can't be reliably impersonated, it will be marked `INCONCLUSIVE (impersonation)` rather than falsely PASS.
 
-REVOKE ALL ON FUNCTION public.spine_field_keys(uuid, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.spine_field_keys(uuid, text) TO authenticated, service_role;
-```
+## Fixture
 
-Notes:
-- The gate lives *inside* the function, so `GRANT EXECUTE ... TO authenticated` is safe — non-staff / non-portal callers are rejected by the raise before any rows are returned.
-- Public wrapper delegates to the internal helper — one source of truth for the field universe.
-- `team_member` is included in the gate to match the ceremony RLS SELECT model (Phase 2 R1 policy: staff + team_member read).
+Single scratch project created at start:
+- `engine_projects` row with a distinct name (`smoke:phase-2:<timestamp>`)
+- 3 seeded truth rows on Point A (one `stated`, one `needs_confirmation`, one `contradicted` for case 8) plus `diagnosis:x`, `diagnosis:y` (for cases 20, 22)
+- operator email = current session email
 
-### Downstream updates
+Fixture is torn down at end (soft delete / status='archived' — no hard DELETE, matching design principle).
 
-- `enforce_ceremony_completion()` trigger — call `public.internal_spine_field_keys(NEW.project_id, NEW.spine)` (bypasses the access gate; runs inside SECURITY DEFINER, no `auth.email()` dependency).
-- `src/lib/engine-spine-ceremonies.functions.ts`:
-  - `listCeremonyFields` calls the public `spine_field_keys(project_id, spine)` via `ctx.supabase.rpc('spine_field_keys', { _project_id, _spine })` after `assertAdminOrOperator` — the DB gate is defense-in-depth.
-  - `completeCeremony` continues calling public `has_contradictions` for user-facing error surfacing; the DB trigger uses `internal_project_has_contradictions` + `internal_spine_field_keys`.
-- Cross-check vitest updated to compare the static list inside `internal_spine_field_keys` against `SPINE_FIELD_REGISTRY` in `src/lib/engine-spine-fields.ts`.
+## Deliverables
 
-### Smoke plan additions (on top of R3's 20)
+1. `.orchestrator/phase-2-smoke/` directory with:
+   - `run.py` (Playwright driver)
+   - `db-cases.sql` (transactional trigger tests)
+   - `screenshots/` per UI case
+   - `results.json` — machine-readable per-case PASS/FAIL/INCONCLUSIVE + evidence pointer
+2. Append **"Phase 2 smoke run — <date>"** section to `.orchestrator/phase-2-output.md` with a 22-row table (Case # · Surface · Result · Evidence).
+3. Append the same summary block to `.orchestrator/PENDING_MIGRATIONS.md` immediately after the existing smoke plan (line ~1188), and flip the "Known follow-ups" bullet in `phase-2-output.md` from "to be executed" to "executed <date> — N/22 PASS".
+4. Do **not** apply any permanent migration. The transactional smoke SQL rolls back.
 
-21. Authenticated caller with no staff role and no portal permission calling `spine_field_keys(other_project_id, 'point-a')` → raises `insufficient_privilege`.
-22. Same caller cannot call `internal_spine_field_keys` at all → `permission denied for function internal_spine_field_keys`.
-23. Staff caller on a project with `diagnosis:x` and `diagnosis:y` truth rows: `spine_field_keys(project, 'point-a')` returns full static set + both dynamic keys.
-24. Client-portal member (non-staff) with active permission on the project can read `spine_field_keys` for that project (same access model as `has_contradictions`).
-25. DB completion trigger: with a fresh Point A ceremony where every static field is `approved_truth` but a `diagnosis:x` truth row is still `needs_confirmation`, a direct SQL `UPDATE ... SET status='completed'` is rejected — proves the trigger sees dynamic keys through `internal_spine_field_keys` even with no `auth.email()`.
+## Risks / calls I'll make during execution
 
-### Files to edit once approved
+- If `LOVABLE_BROWSER_AUTH_STATUS` is `signed_out`, I'll stop and ask you to sign in via the preview once before continuing — no credential prompts.
+- If a case fails, I'll capture the failure, continue the rest, and report the full 22-row result rather than halting.
+- Any case that requires JWT impersonation I can't cleanly reproduce will be marked INCONCLUSIVE with the exact reason, not silently PASSed.
 
-- `.orchestrator/PENDING_MIGRATIONS.md` — replace the Phase 2 R3 block with R4 (revised SQL + notes + expanded smoke plan).
+## Out of scope
 
-No migration file, no app code, no test files created in this turn.
+- WorkspaceStepper badge (separate Phase 2 closeout item).
+- Portal read-only summary (future phase).
+- Any schema change — this is verification only.
