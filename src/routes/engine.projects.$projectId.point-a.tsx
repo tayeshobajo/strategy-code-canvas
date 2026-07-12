@@ -11,6 +11,7 @@ import {
   getSpineFieldStatus,
   type FieldStatusEntry,
 } from "@/lib/engine-epistemic.functions";
+import { pointADiagnosisKey } from "@/lib/engine-spine-fields";
 import { cn } from "@/lib/utils";
 import { Share2, StickyNote, MoreHorizontal, Quote, AlertTriangle, Shield } from "lucide-react";
 
@@ -47,7 +48,7 @@ function PointA() {
     staleTime: 30_000,
   });
   const statusMap = (statusData?.statuses ?? {}) as Record<string, FieldStatusEntry>;
-  const statusFor = (key: string) => statusMap[key];
+  const statusFor = (key: string): FieldStatusEntry | undefined => statusMap[key];
 
   return (
     <div className="space-y-6">
@@ -96,34 +97,38 @@ function PointA() {
               <SectionCard title="Diagnosis"><EmptyState title="No diagnosis captured yet" /></SectionCard>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {diagnosis.map((d) => (
-                  <div key={d.title} className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="font-medium text-ink">{d.title}</div>
-                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                        <EpistemicStatusChip
-                          status={statusFor(d.title)?.status}
-                          sourceRef={statusFor(d.title)?.source_ref}
-                          projectId={projectId}
-                          spine="point-a"
-                          fieldKey={d.title}
-                          fieldLabel={d.title}
-                        />
-                        <span
-                          className={cn(
-                            "text-[10px] font-mono uppercase tracking-wider border rounded px-1.5 py-0.5",
-                            TAG_TONE[d.tag] ?? TAG_TONE.DEFAULT,
-                          )}
-                        >
-                          {d.tag}
-                        </span>
+                {diagnosis.map((d) => {
+                  const key = pointADiagnosisKey(d.title);
+                  const entry = statusFor(key);
+                  return (
+                    <div key={d.title} className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="font-medium text-ink">{d.title}</div>
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          <EpistemicStatusChip
+                            status={entry?.status}
+                            sourceRef={entry?.source_ref}
+                            projectId={projectId}
+                            spine="point-a"
+                            fieldKey={key}
+                            fieldLabel={d.title}
+                          />
+                          <span
+                            className={cn(
+                              "text-[10px] font-mono uppercase tracking-wider border rounded px-1.5 py-0.5",
+                              TAG_TONE[d.tag] ?? TAG_TONE.DEFAULT,
+                            )}
+                          >
+                            {d.tag}
+                          </span>
+                        </div>
                       </div>
+                      <ul className="text-xs text-ink/75 space-y-1 list-disc list-inside">
+                        {d.bullets.map((b, i) => <li key={i}>{b}</li>)}
+                      </ul>
                     </div>
-                    <ul className="text-xs text-ink/75 space-y-1 list-disc list-inside">
-                      {d.bullets.map((b, i) => <li key={i}>{b}</li>)}
-                    </ul>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

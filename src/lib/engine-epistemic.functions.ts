@@ -1,29 +1,33 @@
 /**
- * Phase 1 — Epistemic-Status Taxonomy server functions.
+ * Phase 1 (Revision R2) — Epistemic-Status server functions.
  *
- * Thin `createServerFn` wrappers only. All validators, auth helpers, and
- * the taxonomy live in `./engine-epistemic.server.ts` so the TanStack
- * server-fn split transform never strips a module-scope reference the
- * handler needs (see `tanstack-serverfn-splitting`).
+ * Thin `createServerFn` wrappers. All validators, evidence rules, field
+ * allowlists, and role helpers live in `./engine-epistemic.server.ts` so
+ * the TanStack server-fn split transform never strips a module-scope
+ * reference the handler needs.
  *
  * Requires the pending migration in `.orchestrator/PENDING_MIGRATIONS.md`
- * (Phase 1). Until applied, calls that touch the new columns
- * (`point_a_status`, `point_b_status`, `status`, `source_ref`) will fail
- * with a `column ... does not exist` Postgres error — intentional loud
- * failure. `getSpineFieldStatus` degrades to an empty map so the UI
- * remains stable pre-migration.
+ * (Phase 1). Until applied, calls that touch `point_a_status`,
+ * `point_b_status`, `status`, or `source_ref` fail with a
+ * `column ... does not exist` Postgres error — intentional loud failure.
+ * `getSpineFieldStatus` degrades to an empty map so the UI stays alive.
  */
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   assertAdminOrOperator,
+  assertEvidenceForStatus,
+  assertKnownFieldKey,
+  assertStatusAllowedForActor,
   detectContradictionsInput,
+  enrichSourceRefForHuman,
   getSpineFieldStatusInput,
   markSpineFieldStatusInput,
   promoteSignalToSpineInput,
   type AuthCtx,
   type FieldStatusEntry,
+  type SourceRef,
 } from "@/lib/engine-epistemic.server";
 
 // Re-export the taxonomy so existing imports from this module keep working.
@@ -43,6 +47,17 @@ export const markSpineFieldStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const ctx = context as unknown as AuthCtx;
     const actor = await assertAdminOrOperator(ctx);
+
+    // Reject unknown field keys — sidecar-drift guardrail.
+    assertKnownFieldKey(data.spine, data.fieldKey);
+
+    // Human operator via server-fn. AI writes go through a different path.
+    assertStatusAllowedForActor(data.status, "human");
+
+    // Enrich then validate evidence rule.
+    const enriched: SourceRef = enrichSourceRefForHuman(data.sourceRef, actor);
+    assertEvidenceForStatus(data.status, enriched, "human");
+
     const column = data.spine === "point-a" ? "point_a_status" : "point_b_status";
 
     const { data: row, error: readErr } = await (ctx.supabase as any)
@@ -64,7 +79,7 @@ export const markSpineFieldStatus = createServerFn({ method: "POST" })
       ...current,
       [data.fieldKey]: {
         status: data.status,
-        source_ref: data.sourceRef,
+        source_ref: enriched,
         updated_at: new Date().toISOString(),
         updated_by_email: actor,
       },
@@ -90,6 +105,9 @@ export const promoteSignalToSpine = createServerFn({ method: "POST" })
     const ctx = context as unknown as AuthCtx;
     const actor = await assertAdminOrOperator(ctx);
 
+    assertKnownFieldKey(data.spine, data.fieldKey);
+    assertStatusAllowedForActor(data.status, "human");
+
     const { data: sig, error: sigErr } = await (ctx.supabase as any)
       .from("engine_extracted_signals")
       .select("id, project_id, label, detail, source_id, created_at, status")
@@ -103,6 +121,17 @@ export const promoteSignalToSpine = createServerFn({ method: "POST" })
     if ((sig as { project_id: string }).project_id !== data.projectId) {
       throw new Error("Signal does not belong to this project");
     }
+
+    const built: SourceRef = enrichSourceRefForHuman(
+      {
+        kind: "extracted_signal",
+        id: (sig as { id: string }).id,
+        quote: (sig as { detail: string | null }).detail ?? undefined,
+        timestamp: (sig as { created_at: string }).created_at,
+      },
+      actor,
+    );
+    assertEvidenceForStatus(data.status, built, "human");
 
     const column = data.spine === "point-a" ? "point_a_status" : "point_b_status";
     const { data: row, error: readErr } = await (ctx.supabase as any)
@@ -121,12 +150,7 @@ export const promoteSignalToSpine = createServerFn({ method: "POST" })
     >;
     const entry: FieldStatusEntry = {
       status: data.status,
-      source_ref: {
-        kind: "extracted_signal",
-        id: (sig as { id: string }).id,
-        quote: (sig as { detail: string | null }).detail ?? undefined,
-        timestamp: (sig as { created_at: string }).created_at,
-      },
+      source_ref: built,
       updated_at: new Date().toISOString(),
       updated_by_email: actor,
     };
@@ -185,7 +209,7 @@ export const getSpineFieldStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) {
       // Pre-migration: column doesn't exist — degrade gracefully so the UI
-      // continues to render "inferred" placeholders.
+      // continues to render neutral "unclassified" pills.
       console.warn("getSpineFieldStatus (pre-migration?)", error);
       return { statuses: {} as Record<string, FieldStatusEntry> };
     }

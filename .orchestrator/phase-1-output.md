@@ -168,3 +168,76 @@ No files deleted. No dependencies added.
 - Live smoke test: chips render on `/engine/projects/*/point-a` and
   `/point-b` with default `inferred` tone. Confirmed against DB shape
   where sidecar columns do not yet exist.
+
+---
+
+## Revision R2 — Truth model rework (2026-07-12)
+
+Status: **App-layer revised. Migration RE-PENDING TAI REVIEW** (superseded R1).
+
+### Why R2
+
+Tai audit flagged four Phase 1 gaps: taxonomy too narrow, `inferred` used as
+default fallback, `source_ref.kind` alone was not real evidence, and no
+guard against sidecar field-key drift.
+
+### Changes shipped
+
+1. **Enum widened 5 → 8**: `stated | inferred | assumed | missing |
+   contradicted | needs_confirmation | verified | approved_truth`.
+   `verified` (evidence exists) and `approved_truth` (a human promoted it)
+   are now distinct.
+2. **Neutral default.** Chip renders a `unclassified` "No status" pill when
+   no entry exists — no more silent `inferred`. `unclassified` is a UI-only
+   sentinel, never written to the DB.
+3. **AI_WRITABLE_STATUSES** expanded to `inferred, assumed, missing,
+   needs_confirmation`. AI is DB-agnostic blocked from `stated`,
+   `verified`, `contradicted`, `approved_truth`.
+4. **Per-status evidence rules** enforced in
+   `assertEvidenceForStatus(status, sourceRef, actorKind)` on every write.
+   Human operator writes qualify via `operator_confirmed_by` (server-
+   injected from `context.claims.email`) — the operator's authenticated
+   action IS the confirmation. AI writes must satisfy the strict shape.
+5. **Field-key allowlist** in `src/lib/engine-spine-fields.ts` used by both
+   write handlers. Point B has a fixed section list. Point A allows base
+   keys plus a `diagnosis:<title>` namespace. Point A route updated to
+   emit those namespaced keys.
+6. **Popover chip** now shows all 8 statuses and builds a per-status
+   `sourceRef` shape (`working_assumption` + rationale, `gap_note`,
+   `conflict` + reason, `operator_override` for approved_truth, etc.).
+7. **Migration variant B** documented alongside Variant A in
+   `PENDING_MIGRATIONS.md` — Tai can pick sidecar jsonb (recommended)
+   or the normalized `engine_spine_field_truth` table.
+8. **Tests** expanded to 40+ cases covering evidence rules per status,
+   AI-writable rejection for the four privileged statuses, unclassified
+   never appearing in the enum, field-key allowlist behavior, and
+   `enrichSourceRefForHuman`.
+
+### Files touched
+
+Modified:
+- `src/lib/engine-epistemic.server.ts` — full rewrite for R2.
+- `src/lib/engine-epistemic.functions.ts` — calls new assertions.
+- `src/components/engine/EpistemicStatusChip.tsx` — neutral state + 8-status
+  popover + per-status source-ref builder.
+- `src/lib/__tests__/engine-epistemic.test.ts` — expanded.
+- `src/routes/engine.projects.$projectId.point-a.tsx` — uses
+  `pointADiagnosisKey`.
+- `.orchestrator/PENDING_MIGRATIONS.md` — Phase 1 block replaced with R2 +
+  Variant B option.
+
+Created:
+- `src/lib/engine-spine-fields.ts` — field-key allowlist.
+
+### Not in R2 (still deferred)
+
+- Real `ceremony_id` FK on `approved_truth` entries → Phase 2.
+- Contradiction resolver UI → Phase 1B.
+- Portal payload strip of sidecars → Phase 3.
+- Agent path that writes AI statuses → Phase 5.
+
+### Migration status
+
+`.orchestrator/PENDING_MIGRATIONS.md` Phase 1 block is now R2 and remains
+**unapplied**. R1 was never applied. Awaiting Tai re-review before any
+DDL runs.
