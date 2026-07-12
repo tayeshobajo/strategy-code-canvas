@@ -225,7 +225,7 @@ CREATE POLICY "Team members read spine field truth"
   TO authenticated USING (
     public.has_role(auth.uid(), 'admin')
     OR public.has_role(auth.uid(), 'operator')
-    OR public.has_role(auth.uid(), 'team')
+    OR public.has_role(auth.uid(), 'team_member')
   );
 
 CREATE POLICY "Operators insert spine field truth"
