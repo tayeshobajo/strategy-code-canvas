@@ -128,10 +128,10 @@ export const markSpineFieldStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => markSpineFieldStatusInput.parse(data))
   .handler(async ({ data, context }) => {
-    const actor = await assertAdminOrOperator(context as AuthCtx);
+    const actor = await assertAdminOrOperator(context as unknown as AuthCtx);
     const column = data.spine === "point-a" ? "point_a_status" : "point_b_status";
 
-    const { data: row, error: readErr } = await (context as AuthCtx).supabase
+    const { data: row, error: readErr } = await (context as unknown as AuthCtx).supabase
       .from("engine_projects")
       .select(`id, ${column}`)
       .eq("id", data.projectId)
@@ -156,7 +156,7 @@ export const markSpineFieldStatus = createServerFn({ method: "POST" })
       },
     };
 
-    const { error: writeErr } = await (context as AuthCtx).supabase
+    const { error: writeErr } = await (context as unknown as AuthCtx).supabase
       .from("engine_projects")
       .update({ [column]: next })
       .eq("id", data.projectId);
@@ -185,7 +185,7 @@ export const promoteSignalToSpine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => promoteSignalToSpineInput.parse(data))
   .handler(async ({ data, context }) => {
-    const ctx = context as AuthCtx;
+    const ctx = context as unknown as AuthCtx;
     const actor = await assertAdminOrOperator(ctx);
 
     // Load the signal to build a source_ref pointer.
@@ -253,7 +253,7 @@ export const detectContradictions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => detectContradictionsInput.parse(data))
   .handler(async ({ data, context }) => {
-    const ctx = context as AuthCtx;
+    const ctx = context as unknown as AuthCtx;
     await assertAdminOrOperator(ctx);
     const { data: rows, error } = await ctx.supabase
       .from("engine_extracted_signals")
@@ -290,7 +290,7 @@ export const getSpineFieldStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => getSpineFieldStatusInput.parse(data))
   .handler(async ({ data, context }) => {
-    const ctx = context as AuthCtx;
+    const ctx = context as unknown as AuthCtx;
     const column = data.spine === "point-a" ? "point_a_status" : "point_b_status";
     const { data: row, error } = await ctx.supabase
       .from("engine_projects")
