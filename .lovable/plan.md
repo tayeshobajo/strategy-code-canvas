@@ -1,56 +1,114 @@
-## Plan: Smoke-row cleanup + Phase 2 kickoff plan
+## Phase 2 R4 — Split spine_field_keys (do not apply)
 
-### Part A — Cleanup (must run first, gates Phase 2)
+Update the Phase 2 block in `.orchestrator/PENDING_MIGRATIONS.md`. R4 mirrors the contradictions split: an internal SECURITY DEFINER helper for triggers, and a public access-gated helper for UI/API callers.
 
-1. **Delete smoke rows via service-role SQL** (a migration is the only sanctioned service-role write path per CLAUDE.md; authenticated roles correctly lack DELETE).
+### SQL revisions
 
-   ```sql
-   DELETE FROM public.engine_spine_field_truth
-   WHERE project_id = 'f8019417-7ebf-4b56-a753-b24d734bf6f0'
-     AND (updated_by_email = 'smoke@trusttai.com'
-          OR field_key LIKE 'smoke_%');
-   ```
+Replace the single R3 `spine_field_keys` with two functions.
 
-   Wrapped in a migration file so it runs under service role and is auditable. No schema change.
+```sql
+-- 1. Internal helper — trigger use only. No public grant, no access check.
+CREATE OR REPLACE FUNCTION public.internal_spine_field_keys(
+  _project_id uuid,
+  _spine text
+)
+RETURNS SETOF text
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF _spine = 'point-a' THEN
+    RETURN QUERY SELECT unnest(ARRAY[
+      'current_state:summary',
+      'current_state:pain_points',
+      'current_state:constraints',
+      'current_state:stakeholders'
+      -- ... full Point A static list mirrored from TS registry
+    ]::text[]);
 
-2. **Confirm zero remaining rows** with the exact SELECT from your message. Expected: `0`. If non-zero, stop and report.
+    RETURN QUERY
+      SELECT DISTINCT field_key
+      FROM public.engine_spine_field_truth
+      WHERE project_id = _project_id
+        AND spine = 'point-a'
+        AND field_key LIKE 'diagnosis:%';
 
-3. **Append `Phase 1 R3 cleanup` section to `.orchestrator/phase-1-output.md`** with:
-   - rows deleted (count + field_key list captured pre-delete)
-   - post-delete count = 0 confirmation
-   - note logging your future-hardening item: *DB-level field-key validation (CHECK against allowlist or FK to a `spine_field_registry` table) so direct-DB writers cannot bypass the app-layer `assertSpineFieldExists` guard*. Filed for a later hardening phase, not a Phase 2 blocker.
+  ELSIF _spine = 'point-b' THEN
+    RETURN QUERY SELECT unnest(ARRAY[
+      'target_state:summary',
+      'target_state:success_metrics'
+      -- ... full Point B static list
+    ]::text[]);
+  END IF;
+END;
+$$;
 
-### Part B — Phase 2 plan: Point A / Point B Approval Ceremonies
+REVOKE ALL ON FUNCTION public.internal_spine_field_keys(uuid, text) FROM PUBLIC;
+-- No grant to anon/authenticated. Callable only by SECURITY DEFINER code
+-- in this schema (the completion trigger and the public wrapper below).
+GRANT EXECUTE ON FUNCTION public.internal_spine_field_keys(uuid, text) TO service_role;
 
-Ceremony = a structured walk through every spine field on a project where an operator (with Tai) confirms status, attaches evidence/source_ref, and promotes rows out of `needs_confirmation` toward `stated` / `verified` / `approved_truth`. This is where the R3 truth store starts earning its keep.
 
-**Scope for Phase 2 (single shippable slice):**
+-- 2. Public wrapper — access-gated. Same access model as has_contradictions.
+CREATE OR REPLACE FUNCTION public.spine_field_keys(
+  _project_id uuid,
+  _spine text
+)
+RETURNS SETOF text
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  allowed boolean := false;
+BEGIN
+  SELECT
+    public.is_engine_staff()
+    OR public.has_role_email(coalesce(auth.email(), ''), 'team_member')
+    OR EXISTS (
+      SELECT 1
+      FROM public.client_portal_projects cpp
+      JOIN public.client_portal_permissions perm ON perm.project_id = cpp.id
+      JOIN public.engine_projects ep ON ep.client_portal_project_id = cpp.id
+      WHERE ep.id = _project_id
+        AND lower(perm.email) = lower(coalesce(auth.email(), ''))
+        AND perm.revoked_at IS NULL
+    )
+  INTO allowed;
 
-1. **Ceremony data model** (migration → PENDING_MIGRATIONS, not applied):
-   - `engine_spine_ceremonies` (project_id, spine `'point_a'|'point_b'`, status `'in_progress'|'completed'|'abandoned'`, opened_by_email, opened_at, completed_at, notes)
-   - `engine_spine_ceremony_decisions` (ceremony_id FK, field_key, prior_status, new_status, source_ref jsonb, decided_by_email, decided_at)
-   - Add nullable `ceremony_id` FK column on `engine_spine_field_truth` so `approved_truth` writes can point at the ceremony that produced them (satisfies R2/R3 deferred item).
-   - GRANTs: SELECT/INSERT/UPDATE to authenticated (admin/operator gated in RLS); no DELETE; service_role ALL.
-   - Audit trigger mirroring the Phase 1 pattern.
+  IF NOT allowed THEN
+    RAISE EXCEPTION 'Forbidden: access to project % not permitted', _project_id
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
 
-2. **Server functions** (`src/lib/engine-spine-ceremonies.functions.ts`):
-   - `startCeremony({ projectId, spine })` — opens or returns existing in-progress ceremony
-   - `listCeremonyFields({ ceremonyId })` — returns every allowlisted field for that spine with current truth status + suggested action
-   - `recordCeremonyDecision({ ceremonyId, fieldKey, newStatus, sourceRef })` — writes the decision row AND upserts `engine_spine_field_truth` in one transaction, stamping `ceremony_id`
-   - `completeCeremony({ ceremonyId })` — requires every allowlisted field to have a truth row not in `needs_confirmation` OR an explicit `missing` decision; flips ceremony to `completed`
-   - All admin/operator gated; all writes route through the existing `assertEvidenceForStatus` + `assertStatusAllowedForActor` guards (actor is `human`).
+  RETURN QUERY SELECT public.internal_spine_field_keys(_project_id, _spine);
+END;
+$$;
 
-3. **UI**:
-   - New `CeremonyPanel` component surfaced on Point A and Point B routes: header shows overall completion count, list shows every field with its current `EpistemicStatusChip`, popover to set new status + source_ref, running audit tail.
-   - `WorkspaceStepper` gets a small badge on Point A / Point B tabs when a ceremony is in-progress OR when `needs_confirmation` count > 0 (also delivers the deferred Phase 1B item cheaply).
-   - Neutral fallback ("No status") from Phase 1 remains — ceremony surfaces a "Classify" affordance for unclassified fields.
+REVOKE ALL ON FUNCTION public.spine_field_keys(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.spine_field_keys(uuid, text) TO authenticated, service_role;
+```
 
-4. **Contradictions integration**: ceremony completion is blocked if `has_contradictions(project_id)` returns true — forces resolution first. Resolver UI stays deferred; ceremony surfaces the contradictions list read-only and links to Phase 1B when it lands.
+Notes:
+- The gate lives *inside* the function, so `GRANT EXECUTE ... TO authenticated` is safe — non-staff / non-portal callers are rejected by the raise before any rows are returned.
+- Public wrapper delegates to the internal helper — one source of truth for the field universe.
+- `team_member` is included in the gate to match the ceremony RLS SELECT model (Phase 2 R1 policy: staff + team_member read).
 
-5. **Tests**:
-   - Unit: transitions (needs_confirmation → stated / verified / missing / approved_truth), rejects AI actor, rejects unknown field_key, completion gate math.
-   - Live smoke against a real project: open ceremony, decide 3 fields (one `stated`, one `missing`, one `approved_truth`), verify truth-store rows, audit rows, `ceremony_id` stamped, completion blocked while `needs_confirmation` remain, unblocked once resolved.
+### Downstream updates
 
-6. **Output**: `.orchestrator/phase-2-output.md` following the Phase 1 format (scope, shipped, deferred, acceptance, risk, smoke).
+- `enforce_ceremony_completion()` trigger — call `public.internal_spine_field_keys(NEW.project_id, NEW.spine)` (bypasses the access gate; runs inside SECURITY DEFINER, no `auth.email()` dependency).
+- `src/lib/engine-spine-ceremonies.functions.ts`:
+  - `listCeremonyFields` calls the public `spine_field_keys(project_id, spine)` via `ctx.supabase.rpc('spine_field_keys', { _project_id, _spine })` after `assertAdminOrOperator` — the DB gate is defense-in-depth.
+  - `completeCeremony` continues calling public `has_contradictions` for user-facing error surfacing; the DB trigger uses `internal_project_has_contradictions` + `internal_spine_field_keys`.
+- Cross-check vitest updated to compare the static list inside `internal_spine_field_keys` against `SPINE_FIELD_REGISTRY` in `src/lib/engine-spine-fields.ts`.
 
-**Gate**: Part A cleanup must confirm `count = 0` before any Phase 2 work begins. Phase 2 migration will be written to `PENDING_MIGRATIONS.md` for your review before it's applied — same discipline as Phase 1.
+### Smoke plan additions (on top of R3's 20)
+
+21. Authenticated caller with no staff role and no portal permission calling `spine_field_keys(other_project_id, 'point-a')` → raises `insufficient_privilege`.
+22. Same caller cannot call `internal_spine_field_keys` at all → `permission denied for function internal_spine_field_keys`.
+23. Staff caller on a project with `diagnosis:x` and `diagnosis:y` truth rows: `spine_field_keys(project, 'point-a')` returns full static set + both dynamic keys.
+24. Client-portal member (non-staff) with active permission on the project can read `spine_field_keys` for that project (same access model as `has_contradictions`).
+25. DB completion trigger: with a fresh Point A ceremony where every static field is `approved_truth` but a `diagnosis:x` truth row is still `needs_confirmation`, a direct SQL `UPDATE ... SET status='completed'` is rejected — proves the trigger sees dynamic keys through `internal_spine_field_keys` even with no `auth.email()`.
+
+### Files to edit once approved
+
+- `.orchestrator/PENDING_MIGRATIONS.md` — replace the Phase 2 R3 block with R4 (revised SQL + notes + expanded smoke plan).
+
+No migration file, no app code, no test files created in this turn.
