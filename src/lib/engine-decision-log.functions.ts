@@ -130,26 +130,11 @@ export const listDecisionLog = createServerFn({ method: "GET" })
   .handler(async ({ context, data }): Promise<DecisionLogResult> => {
     await assertOperatorOrAdmin(context as never);
 
-    const sb = (context as { supabase: ReturnType<typeof import("@/integrations/supabase/client")["supabase"]["from"]> & { from: (t: string) => unknown } }).supabase as {
-      from: (table: string) => {
-        select: (cols: string) => {
-          in: (col: string, vals: readonly string[]) => {
-            eq: (col: string, val: string) => unknown;
-            gte: (col: string, val: string) => unknown;
-            order: (col: string, opts: Record<string, unknown>) => {
-              range: (from: number, to: number) => Promise<{ data: unknown[]; error: unknown; count: number | null }>;
-            };
-          };
-          order: (col: string, opts: Record<string, unknown>) => {
-            range: (from: number, to: number) => Promise<{ data: unknown[]; error: unknown; count: number | null }>;
-          };
-        };
-      };
-    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb: any = (context as { supabase: unknown }).supabase;
 
     const kindsFilter = (data.kinds && data.kinds.length > 0 ? data.kinds : DECISION_KINDS) as readonly string[];
 
-    // Build the query step by step to keep TS happy
     type RawRow = {
       id: string;
       project_id: string;
@@ -161,63 +146,22 @@ export const listDecisionLog = createServerFn({ method: "GET" })
       engine_projects?: { name: string } | { name: string }[] | null;
     };
 
-    const supabase = (context as { supabase: {
-      from: (t: string) => {
-        select: (cols: string, opts?: Record<string, unknown>) => {
-          in: (c: string, v: readonly string[]) => {
-            eq: (c: string, v: string) => {
-              gte: (c: string, v: string) => {
-                order: (c: string, o: Record<string, unknown>) => {
-                  range: (a: number, b: number) => Promise<{ data: RawRow[] | null; error: unknown; count: number | null }>;
-                };
-              };
-              order: (c: string, o: Record<string, unknown>) => {
-                range: (a: number, b: number) => Promise<{ data: RawRow[] | null; error: unknown; count: number | null }>;
-              };
-            };
-            gte: (c: string, v: string) => {
-              order: (c: string, o: Record<string, unknown>) => {
-                range: (a: number, b: number) => Promise<{ data: RawRow[] | null; error: unknown; count: number | null }>;
-              };
-            };
-            order: (c: string, o: Record<string, unknown>) => {
-              range: (a: number, b: number) => Promise<{ data: RawRow[] | null; error: unknown; count: number | null }>;
-            };
-          };
-        };
-      };
-    } }).supabase;
-
-    // Use raw SQL via rpc to keep the join simple
-    const rawSb = supabase as {
-      rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
-      from: (t: string) => {
-        select: (cols: string, opts?: Record<string, unknown>) => {
-          in: (c: string, v: readonly string[]) => {
-            order: (c: string, o: Record<string, unknown>) => {
-              range: (a: number, b: number) => Promise<{ data: RawRow[] | null; error: unknown; count: number | null }>;
-            };
-          };
-        };
-      };
-    };
-
-    // Simpler approach: fetch activity rows + project names in one embedded join
-    const q0 = rawSb
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q: any = sb
       .from("engine_activity")
-      .select("id, project_id, kind, title, body, severity, created_at, engine_projects(name)", { count: "exact" } as Record<string, unknown>)
+      .select("id, project_id, kind, title, body, severity, created_at, engine_projects(name)", { count: "exact" })
       .in("kind", kindsFilter);
 
-    // We need to apply optional filters manually since the chaining types vary
-    // Use the any escape hatch just for the filter chain, not the final result
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let q: any = q0;
     if (data.projectId) q = q.eq("project_id", data.projectId);
     if (data.since) q = q.gte("created_at", data.since);
     q = q.order("created_at", { ascending: false });
     q = q.range(data.offset, data.offset + data.limit - 1);
 
-    const { data: rows, error, count } = await q as Promise<{ data: RawRow[] | null; error: unknown; count: number | null }>;
+    const { data: rows, error, count } = (await q) as {
+      data: RawRow[] | null;
+      error: unknown;
+      count: number | null;
+    };
 
     if (error) throw new Error(`Decision log query failed: ${JSON.stringify(error)}`);
 
