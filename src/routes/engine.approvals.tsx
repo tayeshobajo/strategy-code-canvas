@@ -98,9 +98,9 @@ function ApprovalsQueue() {
   const projectCount = new Set(visibleItems.map((item) => item.project)).size;
   const filteredCount = filteredItems.length;
 
-  const onDismiss = (id: string) => {
-    setDismissedIds((current) => (current.includes(id) ? current : [...current, id]));
-    setExpandedItemId((current) => (current === id ? null : current));
+  const onDecide = (id: string, action: DecisionAction) => {
+    if (decideMutation.isPending) return;
+    decideMutation.mutate({ id, action });
   };
 
   return (
