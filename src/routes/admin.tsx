@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
 import { isAdminEmail } from "@/lib/ops/access";
-import { ClipboardList, Users, Settings, ShieldCheck, MailCheck, GitBranch, Wrench, Menu, SlidersHorizontal, GitCommit, ShieldAlert, PackageCheck, Zap, GitMerge } from "lucide-react";
+import { ClipboardList, Users, Settings, ShieldCheck, MailCheck, GitBranch, Wrench, Menu, SlidersHorizontal, GitCommit, ShieldAlert, PackageCheck, Zap, GitMerge, Brain } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -41,6 +41,7 @@ type AdminNav = { to: string; label: string; icon: typeof Users; match: string }
 const NAV: AdminNav[] = [
   { to: "/admin/exception-management", label: "Exception board", icon: Zap, match: "/admin/exception-management" },
   { to: "/admin/drift-detection", label: "Drift detection", icon: GitMerge, match: "/admin/drift-detection" },
+  { to: "/admin/roadmap-intelligence", label: "Roadmap intelligence", icon: Brain, match: "/admin/roadmap-intelligence" },
   { to: "/admin/client-portals", label: "Client portals", icon: Users, match: "/admin/client-portals" },
   { to: "/admin/config", label: "Runtime config", icon: Settings, match: "/admin/config" },
   { to: "/admin/platform-config", label: "Platform config", icon: SlidersHorizontal, match: "/admin/platform-config" },
@@ -65,7 +66,9 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
             key={n.to}
             to={n.to}
             onClick={onNavigate}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${active ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5"}`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded ${
+              active ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5"
+            }`}
           >
             <Icon className="w-4 h-4 shrink-0" />
             <span className="truncate">{n.label}</span>
