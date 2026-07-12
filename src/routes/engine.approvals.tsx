@@ -1,25 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { type ReactNode, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   Check,
   ChevronDown,
   ChevronUp,
   ClipboardCheck,
   FolderKanban,
-  MessageSquareMore,
+  Loader2,
   RotateCcw,
   Sparkles,
   XCircle,
 } from "lucide-react";
 import { EmptyState, MetricCard, SectionCard } from "@/components/engine/primitives";
-import { listReviewQueue, type ReviewItem } from "@/lib/engine-ops.functions";
+import { decideReviewItem, listReviewQueue, type ReviewItem } from "@/lib/engine-ops.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/engine/approvals")({
   component: ApprovalsQueue,
 });
+
+type DecisionAction = "approved" | "sent_back" | "rejected";
 
 type QueueFilter = "all" | "high" | "medium" | "low" | "roadmap" | "mockup" | "plan";
 
@@ -40,6 +43,8 @@ const FILTERS: Array<{ key: QueueFilter; label: string }> = [
 
 function ApprovalsQueue() {
   const queueFn = useServerFn(listReviewQueue);
+  const decideFn = useServerFn(decideReviewItem);
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["engine", "global-approvals-queue"],
     queryFn: () => queueFn(),
@@ -47,13 +52,32 @@ function ApprovalsQueue() {
   const [filter, setFilter] = useState<QueueFilter>("all");
   const [groupByProject, setGroupByProject] = useState(true);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
-  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
+
+  const decideMutation = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: DecisionAction }) =>
+      decideFn({ data: { id, action } }),
+    onMutate: ({ id }) => {
+      setPendingActionId(id);
+    },
+    onSuccess: (_res, { action }) => {
+      const label =
+        action === "approved" ? "Approved" : action === "rejected" ? "Rejected" : "Revision requested";
+      toast.success(label);
+      queryClient.invalidateQueries({ queryKey: ["engine", "global-approvals-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["engine"] });
+      setExpandedItemId(null);
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to record decision");
+    },
+    onSettled: () => {
+      setPendingActionId(null);
+    },
+  });
 
   const items = data?.items ?? [];
-  const visibleItems = useMemo(
-    () => items.filter((item) => !dismissedIds.includes(item.id)),
-    [dismissedIds, items],
-  );
+  const visibleItems = items;
   const filteredItems = useMemo(
     () => visibleItems.filter((item) => matchesFilter(item, filter)),
     [filter, visibleItems],
@@ -74,9 +98,9 @@ function ApprovalsQueue() {
   const projectCount = new Set(visibleItems.map((item) => item.project)).size;
   const filteredCount = filteredItems.length;
 
-  const onDismiss = (id: string) => {
-    setDismissedIds((current) => (current.includes(id) ? current : [...current, id]));
-    setExpandedItemId((current) => (current === id ? null : current));
+  const onDecide = (id: string, action: DecisionAction) => {
+    if (decideMutation.isPending) return;
+    decideMutation.mutate({ id, action });
   };
 
   return (
@@ -194,14 +218,14 @@ function ApprovalsQueue() {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  {projectItems.map((item) => renderItemCard(item, expandedItemId, setExpandedItemId, onDismiss))}
+                  {projectItems.map((item) => renderItemCard(item, expandedItemId, setExpandedItemId, onDecide, pendingActionId, decideMutation.isPending))}
                 </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredItems.map((item) => renderItemCard(item, expandedItemId, setExpandedItemId, onDismiss))}
+            {filteredItems.map((item) => renderItemCard(item, expandedItemId, setExpandedItemId, onDecide, pendingActionId, decideMutation.isPending))}
           </div>
         )}
       </SectionCard>
@@ -213,8 +237,11 @@ function renderItemCard(
   item: ReviewItem,
   expandedItemId: string | null,
   setExpandedItemId: (id: string | null) => void,
-  onDismiss: (id: string) => void,
+  onDecide: (id: string, action: DecisionAction) => void,
+  pendingActionId: string | null,
+  isPending: boolean,
 ) {
+  const busy = isPending && pendingActionId === item.id;
   const expanded = expandedItemId === item.id;
   const borderColor = impactBorder(item.impact);
   const requestedAt = new Date(item.created_at).toLocaleString(undefined, {
@@ -273,20 +300,27 @@ function renderItemCard(
             <Detail label="Source" value={item.source ?? "Not provided"} />
           </dl>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <ActionButton label="Approve" icon={<Check className="h-3.5 w-3.5" />} tone="approve" onClick={() => onDismiss(item.id)} />
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <ActionButton
+              label="Approve"
+              icon={busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              tone="approve"
+              disabled={busy}
+              onClick={() => onDecide(item.id, "approved")}
+            />
             <ActionButton
               label="Request Revision"
-              icon={<RotateCcw className="h-3.5 w-3.5" />}
+              icon={busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
               tone="revision"
-              onClick={() => onDismiss(item.id)}
+              disabled={busy}
+              onClick={() => onDecide(item.id, "sent_back")}
             />
-            <ActionButton label="Reject" icon={<XCircle className="h-3.5 w-3.5" />} tone="reject" onClick={() => onDismiss(item.id)} />
             <ActionButton
-              label="Ask Question"
-              icon={<MessageSquareMore className="h-3.5 w-3.5" />}
-              tone="question"
-              onClick={() => onDismiss(item.id)}
+              label="Reject"
+              icon={busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+              tone="reject"
+              disabled={busy}
+              onClick={() => onDecide(item.id, "rejected")}
             />
           </div>
         </div>
@@ -313,24 +347,26 @@ function ActionButton({
   icon,
   tone,
   onClick,
+  disabled,
 }: {
   label: string;
   icon: ReactNode;
-  tone: "approve" | "revision" | "reject" | "question";
+  tone: "approve" | "revision" | "reject";
   onClick: () => void;
+  disabled?: boolean;
 }) {
   const styles = {
     approve: { backgroundColor: NAVY, borderColor: NAVY, color: CREAM },
     revision: { backgroundColor: "#FFF4DE", borderColor: "#F2D39A", color: "#8A5A00" },
     reject: { backgroundColor: "#FDEBEC", borderColor: "#F3C4C8", color: "#A33A45" },
-    question: { backgroundColor: "#EAF1FB", borderColor: "#B7CAE7", color: BLUE },
   } as const;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-transform hover:-translate-y-0.5"
+      disabled={disabled}
+      className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
       style={styles[tone]}
     >
       {icon}
