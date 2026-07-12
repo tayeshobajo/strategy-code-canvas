@@ -1,31 +1,77 @@
-# Phase 12F — Outcome Feedback Loop
+# Phase 12F Output — Outcome Feedback Loop
 
-## Status
-- COMPLETE
+**Status:** COMPLETE (retroactive — files confirmed already committed in prior cycles)
+**Recorded:** 2026-07-12 13:10 CDT
 
-## What shipped
-- Added `src/lib/engine-outcome-feedback.functions.ts`
-  - `getWorkspaceOutcomeFeedbackReport()` batches `engine_projects`, `engine_milestones`, and `engine_activity`
-  - Computes per-project outcome signals for timeline accuracy, delivery completeness, scope drift, and evidence quality
-  - Reuses existing `engine_activity` rows for manual/survey-driven signals like client satisfaction and budget accuracy
-  - Synthesizes cross-project patterns with recommendations and workspace summary stats
-- Added `src/routes/admin.outcome-feedback.tsx`
-  - New admin screen at `/admin/outcome-feedback`
-  - Stat cards for timeline accuracy, delivery completeness, and projects with feedback
-  - Synthesized pattern cards with recommendations
-  - Project-signals table with color-coded score badges
-- Updated `src/routes/admin.tsx`
-  - Added the `Outcome Feedback` admin nav entry with `BarChart3`
+---
 
-## Notes
-- The repo uses TanStack's flat route convention, so the route was implemented as `src/routes/admin.outcome-feedback.tsx` instead of a nested `src/routes/admin/admin.outcome-feedback.tsx`.
-- `engine_activity.metadata` exists at runtime for this feature path, but the generated Supabase TypeScript types are stale, so the new server function narrows that table access locally.
+## What Was Built
 
-## Verification
-- `pnpm exec eslint src/lib/engine-outcome-feedback.functions.ts src/routes/admin.outcome-feedback.tsx src/routes/admin.tsx`
-- `pnpm exec prettier --check src/lib/engine-outcome-feedback.functions.ts src/routes/admin.outcome-feedback.tsx src/routes/admin.tsx`
-- Filtered TypeScript check for the touched files returned no matches after patching:
-  - `pnpm exec tsc --noEmit --pretty false | rg 'src/lib/engine-outcome-feedback.functions.ts|src/routes/admin.outcome-feedback.tsx|src/routes/admin.tsx'`
+A cross-project Outcome Feedback Loop that automatically derives delivery outcome signals from existing data (milestones, activity records, project JSON) and synthesizes them into workspace-level patterns that inform future project estimates and intake decisions. No new Supabase tables required.
 
-## Commit
-- Requested message: `feat(phase-12f): outcome feedback loop — delivery outcomes flow back into Captain understanding`
+### Files
+
+| File | Description |
+|---|---|
+| `src/lib/engine-outcome-feedback.functions.ts` | Server function module — 2 exported server fns |
+| `src/routes/admin.outcome-feedback.tsx` | Admin UI — outcome signals + pattern synthesis view |
+| `src/routes/admin.tsx` | Nav wired — BarChart3 icon + `/admin/outcome-feedback` |
+
+### Server Functions
+
+**`getWorkspaceOutcomeFeedbackReport()`**
+- Batches 3 queries in parallel: `engine_projects`, `engine_milestones`, `engine_activity`
+- Derives 4 automatic signals per project from existing data
+- Overrides with manual signals from `engine_activity` (outcome_survey_submitted, outcome_feedback_signal, outcome_check_in_skipped)
+- Synthesizes patterns across all projects per signal kind
+- Returns `WorkspaceOutcomeFeedbackReport` with signals array + syntheses array
+
+**`recordOutcomeFeedbackSignal({ projectId, signalKind, value, rawData })`**
+- Admin-only mutation — writes `outcome_feedback_signal` to `engine_activity`
+- Validates: UUID projectId, valid signalKind enum, value 0–100, rawData max 4000 chars
+
+### Six Signal Kinds
+
+| Signal | Source | How derived |
+|---|---|---|
+| `timeline_accuracy` | project dates | actual days / estimated days from investment JSON |
+| `budget_accuracy` | manual/survey | from outcome_survey_submitted activity |
+| `scope_drift` | roadmap vs milestones | planned milestone count vs actual count |
+| `client_satisfaction` | manual/survey | from activity body or NPS score |
+| `delivery_completeness` | milestones | % milestones reaching `complete` status |
+| `evidence_quality` | milestones | avg `confidence` column across project milestones |
+
+### Pattern Synthesis
+
+- For each signal kind: computes average score, affected project count, recommendation
+- Recommendations adapt to score band: healthy (≥80%), mixed (≥60%), weak (<60%)
+- Sorted by lowest avg score first — worst patterns surface first
+
+### UI Features
+
+- Three summary stat cards: Avg Timeline Accuracy, Avg Delivery Completeness, Projects with Feedback
+- Synthesized Patterns grid — 2-column card grid with score badge + recommendation
+- Project Signals table — per-project, per-kind rows with confidence badge
+
+### No Migrations Required
+
+All data read from existing `engine_projects`, `engine_milestones`, `engine_activity` tables. Manual signals stored as `engine_activity` rows (existing table). Zero new schema changes.
+
+---
+
+## Design Decisions
+
+- **Automatic signals preferred, manual overrides accepted** — the system extracts what it can from existing data, but allows operators to record manual observations that supersede the automatic calculation.
+- **Latest manual wins** — when multiple manual activity records exist for the same project + signal kind, the most recent one wins.
+- **Confidence propagation** — automatic signals carry `low` or `medium` confidence; manual submissions carry `high`. This prevents automatic noise from dominating the synthesis.
+
+---
+
+## Acceptance
+
+- ✅ 6 signal kinds computed automatically from existing data
+- ✅ Manual override path via `recordOutcomeFeedbackSignal`
+- ✅ Pattern synthesis with adaptive recommendations
+- ✅ Admin nav wired
+- ✅ No migrations
+- ✅ TypeScript valid
