@@ -3948,8 +3948,125 @@ export type Database = {
           },
         ]
       }
+      engine_spine_ceremonies: {
+        Row: {
+          abandon_reason: string | null
+          abandoned_at: string | null
+          abandoned_by_email: string | null
+          completed_at: string | null
+          completed_by_email: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by_email: string
+          project_id: string
+          spine: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          abandon_reason?: string | null
+          abandoned_at?: string | null
+          abandoned_by_email?: string | null
+          completed_at?: string | null
+          completed_by_email?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by_email: string
+          project_id: string
+          spine: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          abandon_reason?: string | null
+          abandoned_at?: string | null
+          abandoned_by_email?: string | null
+          completed_at?: string | null
+          completed_by_email?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by_email?: string
+          project_id?: string
+          spine?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_spine_ceremonies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_spine_ceremony_decisions: {
+        Row: {
+          ceremony_id: string
+          created_at: string
+          decided_at: string
+          decided_by_email: string
+          field_key: string
+          id: string
+          new_status: Database["public"]["Enums"]["epistemic_status"]
+          prior_status: Database["public"]["Enums"]["epistemic_status"] | null
+          project_id: string
+          source_ref: Json
+          spine: string
+        }
+        Insert: {
+          ceremony_id: string
+          created_at?: string
+          decided_at?: string
+          decided_by_email: string
+          field_key: string
+          id?: string
+          new_status: Database["public"]["Enums"]["epistemic_status"]
+          prior_status?: Database["public"]["Enums"]["epistemic_status"] | null
+          project_id: string
+          source_ref?: Json
+          spine: string
+        }
+        Update: {
+          ceremony_id?: string
+          created_at?: string
+          decided_at?: string
+          decided_by_email?: string
+          field_key?: string
+          id?: string
+          new_status?: Database["public"]["Enums"]["epistemic_status"]
+          prior_status?: Database["public"]["Enums"]["epistemic_status"] | null
+          project_id?: string
+          source_ref?: Json
+          spine?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_spine_ceremony_decisions_ceremony_id_fkey"
+            columns: ["ceremony_id"]
+            isOneToOne: false
+            referencedRelation: "engine_spine_ceremonies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_spine_ceremony_decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_spine_field_truth: {
         Row: {
+          ceremony_id: string | null
           field_key: string
           id: string
           project_id: string
@@ -3961,6 +4078,7 @@ export type Database = {
           updated_by_email: string | null
         }
         Insert: {
+          ceremony_id?: string | null
           field_key: string
           id?: string
           project_id: string
@@ -3972,6 +4090,7 @@ export type Database = {
           updated_by_email?: string | null
         }
         Update: {
+          ceremony_id?: string | null
           field_key?: string
           id?: string
           project_id?: string
@@ -3983,6 +4102,13 @@ export type Database = {
           updated_by_email?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_spine_field_truth_ceremony_id_fkey"
+            columns: ["ceremony_id"]
+            isOneToOne: false
+            referencedRelation: "engine_spine_ceremonies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "engine_spine_field_truth_project_id_fkey"
             columns: ["project_id"]
@@ -5000,6 +5126,14 @@ export type Database = {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
+      internal_project_has_contradictions: {
+        Args: { _project_id: string }
+        Returns: boolean
+      }
+      internal_spine_field_keys: {
+        Args: { _project_id: string; _spine: string }
+        Returns: string[]
+      }
       is_engine_staff: { Args: never; Returns: boolean }
       log_client_portal_activity: {
         Args: {
@@ -5045,6 +5179,10 @@ export type Database = {
       resolve_portal_follow_up: {
         Args: { _message_id: string }
         Returns: boolean
+      }
+      spine_field_keys: {
+        Args: { _project_id: string; _spine: string }
+        Returns: string[]
       }
       sync_client_access_user: { Args: never; Returns: undefined }
     }
