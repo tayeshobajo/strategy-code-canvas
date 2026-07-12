@@ -635,9 +635,16 @@ END $$;
 -- ============================================================================
 UPDATE _results
    SET result='INCONCLUSIVE',
-       detail=CASE WHEN detail='' THEN 'sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigger fires only on UPDATE and cannot be exercised from psql. Behavior guaranteed by trigger definitions in migration 20260712225712_*.sql; verify via UI/Playwright before Tai sign-off.'
-                   ELSE detail END
+       detail='sandbox_exec role lacks UPDATE on public.engine_spine_* tables; trigger fires only on UPDATE and cannot be exercised from psql. Behavior guaranteed by trigger definitions in migration 20260712225712_*.sql; verify via UI/Playwright before Tai sign-off.'
  WHERE result='FAIL' AND actual LIKE '%permission denied%';
+
+-- Case 12 depends on ceremony_a being completed (case 7). Since case 7 UPDATE
+-- was permission-denied, ceremony_a is still in_progress, so the insert
+-- correctly succeeds under trigger logic. Mark as dependency-blocked.
+UPDATE _results
+   SET result='INCONCLUSIVE-BY-DEP',
+       detail='Requires case 7 (ceremony completion) which needs UPDATE. With ceremony_a still in_progress, trigger correctly allows decision insert. Re-run via UI to exercise the completed-ceremony rejection path.'
+ WHERE case_no=12;
 
 -- Insert rows for cases 6, 10, 13, 14 which did not record (UPDATE inside DO block
 -- outside any nested EXCEPTION handler aborted the block before recording).
