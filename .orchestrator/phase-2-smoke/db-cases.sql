@@ -24,8 +24,8 @@ DECLARE
   v_project uuid;
   v_operator text := 'henry@trusttai.com';
 BEGIN
-  INSERT INTO public.engine_projects (name, status)
-  VALUES ('smoke:phase-2:' || to_char(now(),'YYYYMMDD_HH24MISS'), 'active')
+  INSERT INTO public.engine_projects (name, status, client_id)
+  VALUES ('smoke:phase-2:' || to_char(now(),'YYYYMMDD_HH24MISS'), 'active', '6cced335-64ac-4084-9824-89f2bfe5a52f')
   RETURNING id INTO v_project;
 
   PERFORM set_config('smoke.project', v_project::text, false);
