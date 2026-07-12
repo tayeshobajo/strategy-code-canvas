@@ -320,7 +320,7 @@ function RoadmapJourneyView({
 
   const setSelected = (slug: string | null) => {
     navigate({
-      search: () => (slug ? { m: slug } : {}),
+      search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, m: slug ?? undefined }),
       replace: true,
     });
   };
