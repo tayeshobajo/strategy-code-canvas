@@ -85,7 +85,7 @@ function DecisionLogPage() {
           kinds: kindFilter === "all" ? undefined : [kindFilter],
         },
       }),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   function handleKindChange(k: DecisionKind | "all") {
