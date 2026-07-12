@@ -1,70 +1,52 @@
 ## Scope
-Narrow post-publish hotfix. No migrations, no unrelated refactors.
+Full evidence-backed audit of the target-state confirmation checklist (sections A–Q, ~200 items + Ultimate Confirmation). Read-only. No code changes, no migrations, no data mutations. Deliverable is a single written report.
 
----
+## Deliverable
+`/mnt/documents/roadmap-engine-capability-audit.md` — also mirrored to `.orchestrator/roadmap-engine-capability-audit.md` for the build history.
 
-### 1. Fix P1-A — `/ops/insights` bare navigation
+Report structure per section (A–Q):
+- Overall section verdict: **Confirmed / Partial / Not Built**
+- Per-item table:
+  | # | Confirmation | Status | Evidence |
+  |---|---|---|---|
+  | A1 | Intake is conversational… | Confirmed | `src/routes/intake/…`, `src/lib/intake-*.functions.ts:LN`, table `intake_submissions` |
+- Statuses:
+  - **Confirmed** — code + DB + (where relevant) tests support it.
+  - **Partial** — mechanism exists but has a real gap (e.g. missing UI wiring, ungated, no evidence trail).
+  - **Not Built** — no supporting artifact found.
+  - **N/A / Out of scope** — item does not map to current architecture; explained.
+- Evidence style: `path/to/file.tsx:LN`, table name, migration ID, or query result. No hand-waving.
+- Final section: **Ultimate Confirmation** — synthesized verdict with the top 5–10 gaps that block a true "yes".
 
-**File:** `src/routes/ops/insights.tsx` (lines 28-39)
+## Method
+Parallelized codebase + DB exploration via 6 `spawn_agent` explore tasks, one per cluster. Each returns a structured cluster report I merge into the final document.
 
-Under Zod v4, `fallback(z.string().regex(...).optional(), undefined)` in `zodValidator` isn't behaving as truly optional on bare URL navigation, throwing `SearchParamError`.
+Clusters:
+1. **Intake & Understanding** (A + B) — `src/routes/intake/*`, `intake_submissions`, `intake_drafts`, `engine_extraction_runs`, `engine_extracted_signals`, `engine_intelligence_*`, upload flows, transcript handling, source/timestamp tracking, inference vs fact classification.
+2. **Captain, Agents, Readiness, Spine** (C + D + K) — `engine_project_agents`, `engine_agent_tasks`, `engine_agent_costs`, `engine_agent_permissions`, self-approval CHECK constraints, Point A/B promotion, `engine_projects.point_a/point_b`, `engine_audit_log` spine history, drift detection.
+3. **Roadmap, Decomposition, Mockups & Plans** (E + F + G) — `engine_milestones`, `engine_roadmap_versions`, `engine_project_frames`, `engine_project_mockups`, `engine_project_backend_plans`, `engine_project_qa_plans`, `engine_project_implementation_plans`, parent/child project support, milestone approval states.
+4. **Execution, QA, Governance** (H + I + J) — `engine_tasks`, `engine_project_build_packets`, `engine_project_build_evidence`, `engine_project_qa_evidence_reviews`, `engine_review_items`, `roadmap_approvals`, gate enforcement, scope-drift protection, cost overrun controls, `engine_review_audit`.
+5. **Portal, Engines, Delivery, Outcome** (L + M + N + O) — `client_portal_*` tables + RLS, portal activity tracking, publication gates, recurring "engines" (Content Authority / Lead Follow-Up / etc.) — this is likely a big gap area, `engine_delivery_items`, `engine_delivery_history`, `engine_project_delivery_readiness_reviews`, 30/60/90 outcome check-ins.
+6. **Portfolio, Reliability, Security** (P + Q) — Command Center / NBA surfaces, `/admin/decision-log`, exception ranking, model-agnostic gateway, fallbacks, `engine_audit_log` universality, RLS coverage across all `engine_*` and `client_portal_*` tables, role model in `user_roles` + `has_role`.
 
-**Change:** Drop `fallback()` wrapping for `from`/`to` and use plain optional Zod:
+Cross-cutting checks run once, results referenced from every cluster:
+- `supabase--read_query` to enumerate CHECK constraints (self-approval guards), RLS policies on every `engine_*` / `client_portal_*` table, and confirm `engine_audit_log` action vocabulary.
+- Grep for `needsApproval`, `stopWhen`, `Output.object`, cost/latency logging, model fallback patterns.
+- Verify no items in the checklist are silently marked Confirmed based on the mere existence of a table — the item must have both DB and code paths that actually use it.
 
-```ts
-const searchSchema = z.object({
-  preset: fallback(z.enum([...]), "30").default("30"),
-  outcome: fallback(z.enum([...]), "all").default("all"),
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
-  to:   z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
-});
-```
+## Guardrails
+- Read-only. No `supabase--migration`, no `supabase--insert`, no edits.
+- `supabase--read_query` (SELECTs only) allowed for constraint/policy/schema evidence.
+- No writes to a real project. If a live test is needed to confirm a UI behavior (e.g. "readiness explains what is blocking"), record it as "code path present, live behavior not exercised in this pass" rather than mutating data.
+- Do not mark Confirmed based on file names or comments alone — require executable code or enforced DB constraint.
 
-`.catch(undefined)` on an optional field normalizes bad values to `undefined` without forcing presence. Component already handles `search.from ?? default` (lines 67-68), so no other change needed.
+## Expected output
+- One long markdown report at `/mnt/documents/roadmap-engine-capability-audit.md` (expect ~40–80KB).
+- Chat reply: the section verdict summary (17 lines), the Ultimate Confirmation verdict, and the top 5–10 gaps. Full detail lives in the artifact.
+- Artifact tag emitted so you can open/download.
 
----
+## Non-goals
+- No fixes proposed inline. Follow-up hotfix planning is a separate turn.
+- No security scan re-run; RLS coverage is inspected from schema, not re-scanned.
 
-### 2. Fix P1-B — duplicate `approveChatProposal` export
-
-**Files audited:**
-- `src/lib/engine-chat-proposal-approve.functions.ts` (130 lines, standalone)
-- `src/lib/engine-chat-proposals.functions.ts` (747 lines, canonical — used by `ProposalCard.tsx:22`)
-
-**Diff outcome:** Standalone handles `suggested_task`, `review_item`, `milestone_brief`. Canonical (per prior QA) is the richer version already wired to ProposalCard. Standalone has zero importers (only its own file references `approveChatProposal` name-wise besides ProposalCard's canonical import).
-
-**Action:** Delete `src/lib/engine-chat-proposal-approve.functions.ts`.
-After delete, re-run `rg -n "approveChatProposal" src/` and report all references (expected: canonical + ProposalCard only).
-
-If unexpected divergence appears in the diff at execution time (e.g., a code path present only in the standalone), stop and merge into canonical instead of deleting.
-
----
-
-### 3. Decision Log status — clarify against Phase 4C
-
-**Findings from exploration:**
-- `src/routes/admin.decision-log.tsx` exists.
-- `src/lib/engine-decision-log.functions.ts` provides `listDecisionLog` (paginated **cross-project** feed) and `getDecisionLogStats`.
-- Route is registered in `routeTree.gen.ts` at `/admin/decision-log`.
-- **Gap:** Not present in `src/routes/admin.tsx` `NAV` array (lines 47-87). No link anywhere in admin UI.
-- Need to verify the loader reads `engine_audit_log` (post-4B) — will inspect `engine-decision-log.functions.ts` handler during execution.
-
-**Action:**
-- Add a `NAV` entry in `src/routes/admin.tsx` for `/admin/decision-log` (label: "Decision log", icon: `History` from lucide, match: `/admin/decision-log`).
-- Verify `listDecisionLog` reads from `engine_audit_log` with `action='spine_field_changed'` (or equivalent). If it reads a stale source (e.g., hypothetical `engine_spine_versions`), report as gap — do NOT modify (out of scope).
-
-**Verdict framing:** Route + cross-project aggregator both exist. The real gap vs Phase 4C is **navigation wiring only**, which this hotfix closes. Source-of-truth correctness will be confirmed and reported.
-
----
-
-### Verification
-- `tsgo` typecheck.
-- Playwright smoke: bare `/ops/insights` renders, and `/ops/insights?from=2026-01-01&to=2026-02-01` still works.
-- `rg -n "approveChatProposal" src/` — expect canonical file + ProposalCard only.
-- Confirm ProposalCard still imports from `engine-chat-proposals.functions.ts` (unchanged).
-- Visit `/admin` and confirm Decision Log link appears in nav.
-
-### Report back
-- Changed files.
-- Typecheck + smoke results.
-- Post-fix `approveChatProposal` reference list.
-- Decision Log verdict: whether source is `engine_audit_log` (complete) or stale (real Phase 4C gap).
+Time expectation: this is a multi-step exploration. If you'd rather narrow the scope after seeing the plan (e.g. drop clusters 5–6, or run only sections you're least sure about), say so and I'll reissue.
