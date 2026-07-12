@@ -163,7 +163,8 @@ export const getIntelligentNextAction = createServerFn({ method: "POST" })
 
     const prompt = buildNBAPrompt({
       projectName: (proj.name as string) ?? "Unknown",
-      clientCompany: (proj.client_company as string) ?? "Unknown",
+      clientCompany:
+        ((proj.engine_clients as { company?: string } | null)?.company as string) ?? "Unknown",
       status: (proj.status as string) ?? "unknown",
       currentPhase: proj.current_phase as string | null,
       currentStep: (proj.current_step as number) ?? 1,
