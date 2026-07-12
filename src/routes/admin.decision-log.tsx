@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import {
@@ -8,6 +8,8 @@ import {
   DECISION_KINDS,
   DECISION_KIND_LABELS,
   type DecisionKind,
+  type DecisionLogEntry,
+  type DecisionLogResult,
 } from "@/lib/engine-decision-log.functions";
 import {
   GitCommit,
@@ -75,7 +77,7 @@ function DecisionLogPage() {
     staleTime: 60_000,
   });
 
-  const logQuery = useQuery({
+  const logQuery = useQuery<DecisionLogResult>({
     queryKey: ["admin", "decision-log", "feed", page, kindFilter],
     queryFn: () =>
       loadLog({
@@ -84,8 +86,8 @@ function DecisionLogPage() {
           offset: page * PAGE_SIZE,
           kinds: kindFilter === "all" ? undefined : [kindFilter],
         },
-      }),
-    keepPreviousData: true,
+      }) as Promise<DecisionLogResult>,
+    placeholderData: keepPreviousData,
   });
 
   function handleKindChange(k: DecisionKind | "all") {
@@ -93,7 +95,7 @@ function DecisionLogPage() {
     setPage(0);
   }
 
-  const entries = logQuery.data?.entries ?? [];
+  const entries: DecisionLogEntry[] = logQuery.data?.entries ?? [];
   const total   = logQuery.data?.total ?? 0;
   const hasMore = logQuery.data?.has_more ?? false;
 
