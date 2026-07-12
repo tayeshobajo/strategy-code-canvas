@@ -329,14 +329,14 @@ function PlansAndSpecs() {
                               </div>
                             </div>
                             {stage.status === "missing" ? (
-                              <button
-                                type="button"
-                                onClick={() => window.alert("Captain will draft this planning stage.")}
+                              <Link
+                                to="/engine/projects/$projectId/milestones/$milestoneId/brief"
+                                params={{ projectId, milestoneId: plan.milestone.id }}
                                 className="inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-sm font-medium transition hover:bg-white"
                                 style={{ borderColor: COLORS.blue, color: COLORS.blue }}
                               >
                                 Prepare this
-                              </button>
+                              </Link>
                             ) : null}
                           </div>
                         </div>
