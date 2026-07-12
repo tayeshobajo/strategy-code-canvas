@@ -26,6 +26,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
+import { isOperatorEmail, isAdminEmail } from "@/lib/ops/access";
 
 const uuid = z
   .string()
@@ -51,6 +52,13 @@ async function assertAdmin(ctx: StaffCtx) {
   const staff = await assertStaff(ctx);
   if (!staff.isAdmin) throw new Error("Forbidden: admin role required");
   return staff;
+}
+
+async function assertOperatorOrAdmin(ctx: StaffCtx) {
+  const email = ((ctx.claims?.email as string | undefined) ?? "").toLowerCase();
+  if (isOperatorEmail(email) || isAdminEmail(email)) return;
+  const ok = await hasRoleForEmail(ctx.supabase, email, "admin");
+  if (!ok) throw new Error("Forbidden: operator or admin role required");
 }
 
 async function logActivity(
@@ -391,6 +399,193 @@ export const getProjectEvidenceGateSummary = createServerFn({ method: "GET" })
       milestones: milestoneGates,
       globalSourceCount: allSources.length,
       globalProcessedSourceCount: processedGlobal.length,
+    };
+  });
+
+// -------------------------------------------------------
+// getWorkspaceEvidenceReport — cross-project admin report
+// Phase 9B: surfaces every project with evidence gaps
+// -------------------------------------------------------
+
+export type ProjectEvidenceRow = {
+  projectId: string;
+  projectName: string;
+  projectStatus: string | null;
+  totalMilestones: number;
+  completedMilestones: number;
+  milestonesPendingEvidence: number;
+  milestonesGateOpen: number;
+  globalSourceCount: number;
+  globalProcessedSourceCount: number;
+  overallGateOpen: boolean;
+  /** Whether any milestone is incomplete due to missing evidence */
+  hasGaps: boolean;
+};
+
+export type WorkspaceEvidenceReport = {
+  /** Projects that have at least one milestone needing evidence */
+  projectsWithGaps: ProjectEvidenceRow[];
+  /** Projects where all milestones are either complete or evidence-ready */
+  projectsClear: ProjectEvidenceRow[];
+  /** Projects with no milestones at all */
+  projectsEmpty: ProjectEvidenceRow[];
+  totalProjects: number;
+  totalMilestones: number;
+  totalMilestonesWithGaps: number;
+  totalSources: number;
+  totalProcessedSources: number;
+  generatedAt: string;
+};
+
+export const getWorkspaceEvidenceReport = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<WorkspaceEvidenceReport> => {
+    await assertOperatorOrAdmin(context as unknown as StaffCtx);
+    const sb = (context as unknown as StaffCtx).supabase;
+
+    // 1. Load all projects
+    const { data: projects, error: pErr } = await sb
+      .from("engine_projects")
+      .select("id,name,status")
+      .order("created_at", { ascending: false });
+    if (pErr) throw new Error(pErr.message ?? "Failed to load projects");
+
+    const projectRows = (projects ?? []) as Array<{
+      id: string;
+      name: string | null;
+      status: string | null;
+    }>;
+
+    if (projectRows.length === 0) {
+      return {
+        projectsWithGaps: [],
+        projectsClear: [],
+        projectsEmpty: [],
+        totalProjects: 0,
+        totalMilestones: 0,
+        totalMilestonesWithGaps: 0,
+        totalSources: 0,
+        totalProcessedSources: 0,
+        generatedAt: new Date().toISOString(),
+      };
+    }
+
+    const projectIds = projectRows.map((p) => p.id);
+
+    // 2. Load all milestones across projects in one query
+    const { data: allMilestones, error: mErr } = await sb
+      .from("engine_review_items")
+      .select("id,project_id,title,status,approval_status,metadata")
+      .in("project_id", projectIds);
+    if (mErr) throw new Error(mErr.message ?? "Failed to load milestones");
+
+    const milestoneRows = (allMilestones ?? []) as Array<{
+      id: string;
+      project_id: string;
+      title: string | null;
+      status: string | null;
+      approval_status: string | null;
+      metadata: Record<string, any> | null;
+    }>;
+
+    // 3. Load all sources across projects in one query
+    const { data: allSources, error: sErr } = await sb
+      .from("engine_sources")
+      .select("id,project_id,status,metadata")
+      .in("project_id", projectIds);
+    if (sErr) throw new Error(sErr.message ?? "Failed to load sources");
+
+    const sourceRows = (allSources ?? []) as Array<{
+      id: string;
+      project_id: string;
+      status: string | null;
+      metadata: Record<string, any> | null;
+    }>;
+
+    // 4. Build per-project maps
+    const milestonesByProject = new Map<string, typeof milestoneRows>();
+    for (const m of milestoneRows) {
+      if (!milestonesByProject.has(m.project_id)) {
+        milestonesByProject.set(m.project_id, []);
+      }
+      milestonesByProject.get(m.project_id)!.push(m);
+    }
+
+    const sourcesByProject = new Map<string, typeof sourceRows>();
+    for (const s of sourceRows) {
+      if (!sourcesByProject.has(s.project_id)) {
+        sourcesByProject.set(s.project_id, []);
+      }
+      sourcesByProject.get(s.project_id)!.push(s);
+    }
+
+    // 5. Evaluate each project
+    const evaluated: ProjectEvidenceRow[] = projectRows.map((proj) => {
+      const milestones = milestonesByProject.get(proj.id) ?? [];
+      const sources = sourcesByProject.get(proj.id) ?? [];
+      const processedSources = sources.filter((s) => s.status === "processed");
+
+      let pendingEvidenceCount = 0;
+      let gateOpenCount = 0;
+      let completedCount = 0;
+
+      for (const m of milestones) {
+        const isComplete = m.status === "complete" || m.status === "completed";
+        if (isComplete) {
+          completedCount++;
+          continue;
+        }
+
+        // Check milestone-scoped sources first
+        const scoped = sources.filter((s) => s.metadata?.milestone_id === m.id);
+        const effectiveSources = scoped.length > 0 ? scoped : sources;
+        const effectiveProcessed = effectiveSources.filter((s) => s.status === "processed");
+
+        const gateOpen =
+          effectiveSources.length > 0 && effectiveProcessed.length > 0;
+
+        if (gateOpen) {
+          gateOpenCount++;
+        } else {
+          pendingEvidenceCount++;
+        }
+      }
+
+      return {
+        projectId: proj.id,
+        projectName: proj.name ?? "Untitled project",
+        projectStatus: proj.status,
+        totalMilestones: milestones.length,
+        completedMilestones: completedCount,
+        milestonesPendingEvidence: pendingEvidenceCount,
+        milestonesGateOpen: gateOpenCount,
+        globalSourceCount: sources.length,
+        globalProcessedSourceCount: processedSources.length,
+        overallGateOpen: pendingEvidenceCount === 0,
+        hasGaps: pendingEvidenceCount > 0,
+      };
+    });
+
+    const projectsWithGaps = evaluated.filter((p) => p.hasGaps);
+    const projectsClear = evaluated.filter(
+      (p) => !p.hasGaps && p.totalMilestones > 0,
+    );
+    const projectsEmpty = evaluated.filter((p) => p.totalMilestones === 0);
+
+    return {
+      projectsWithGaps,
+      projectsClear,
+      projectsEmpty,
+      totalProjects: projectRows.length,
+      totalMilestones: milestoneRows.length,
+      totalMilestonesWithGaps: evaluated.reduce(
+        (sum, p) => sum + p.milestonesPendingEvidence,
+        0,
+      ),
+      totalSources: sourceRows.length,
+      totalProcessedSources: sourceRows.filter((s) => s.status === "processed")
+        .length,
+      generatedAt: new Date().toISOString(),
     };
   });
 

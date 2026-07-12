@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isOperatorEmail } from "@/lib/ops/access";
 import { isAdminEmail } from "@/lib/ops/access";
-import { ClipboardList, Users, Settings, ShieldCheck, MailCheck, GitBranch, Wrench, Menu, SlidersHorizontal, GitCommit } from "lucide-react";
+import { ClipboardList, Users, Settings, ShieldCheck, MailCheck, GitBranch, Wrench, Menu, SlidersHorizontal, GitCommit, ShieldAlert } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -43,6 +43,7 @@ const NAV: AdminNav[] = [
   { to: "/admin/config", label: "Runtime config", icon: Settings, match: "/admin/config" },
   { to: "/admin/platform-config", label: "Platform config", icon: SlidersHorizontal, match: "/admin/platform-config" },
   { to: "/admin/decision-log", label: "Decision log", icon: GitCommit, match: "/admin/decision-log" },
+  { to: "/admin/evidence-enforcement", label: "Evidence enforcement", icon: ShieldAlert, match: "/admin/evidence-enforcement" },
   { to: "/admin/roles", label: "User roles", icon: ShieldCheck, match: "/admin/roles" },
   { to: "/ops/queue", label: "Roadmap intake queue", icon: ClipboardList, match: "/ops/queue" },
   { to: "/admin/intake-alerts", label: "Intake alerts", icon: MailCheck, match: "/admin/intake-alerts" },
