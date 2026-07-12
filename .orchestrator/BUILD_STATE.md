@@ -1,7 +1,15 @@
 # BUILD_STATE.md — Autonomous Build Loop Tracker
 
 > Captain reads and updates this file every build cycle.
-> Last updated: 2026-07-11 22:03 CDT
+> Last updated: 2026-07-12 CDT
+
+---
+
+## ⚙️ BUILD METHOD CHANGE (2026-07-12)
+**All builds now use direct GitHub commits. Lovable AI agent NEVER used.**
+- ❌ `lovable__lovable_send_chat_message` is permanently banned from build cycles
+- ✅ All code written by Captain, committed via `lovable__github_commit_files`
+- This change was made after the build loop exhausted Lovable credits on 2026-07-11
 
 ---
 
@@ -16,7 +24,7 @@
 | 5 | 3D | Project AI Workspace — attach ChatGPT conversation + Claude project per project, surface in engine UI | 🔴 NOT STARTED | phase-3d-output.md |
 | 6 | 4B | Spine Governance — version history, diff view, change audit trail | 🟠 BLOCKED | phase-4b-output.md |
 | 7 | 4C | Decision Log — cross-project feed of every approved spine change, with author, reason, and impact | 🔴 NOT STARTED | phase-4c-output.md |
-| 8 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | 🟡 IN PROGRESS | phase-6b-output.md |
+| 8 | 6B | Delivery Completeness Gate — checklist before roadmap publishes to portal | ✅ COMPLETE | phase-6b-output.md |
 | 9 | 9B | Evidence Requirements Enforcement — block milestone completion without evidence | 🔴 NOT STARTED | phase-9b-output.md |
 | 10 | 10B | Delivery Readiness Gate — all milestones complete before delivery offered | 🔴 NOT STARTED | phase-10b-output.md |
 | 11 | 11B | Exception-Based Management — surface only what needs human attention at scale | 🔴 NOT STARTED | phase-11b-output.md |
@@ -31,20 +39,9 @@
 
 ---
 
-## ⚠️ LOOP HALTED — CREDITS EXHAUSTED
-
-**Halted at:** 2026-07-11 22:03 CDT (6th consecutive blocked cycle)
-**Reason:** Lovable workspace `available_balance: 0`. Only 5 daily free credits remain — insufficient for a build phase.
-**Phase attempted:** 6B (Delivery Completeness Gate) — build prompt was fully prepared and sent to Lovable, but Lovable AI response never materialized (Firestore document 404). No code was committed by Lovable. No guardrails crossed.
-**Mockup committed:** `mockups/strategy-code-canvas/6b-delivery-completeness-gate/REVIEW_STATUS.md` — commit 70534ad6
-**Build prompt:** Fully written and ready. Will be resent on next cycle when credits are available.
-**Action required:** Tai must top up Lovable credits at lovable.dev.
-**Resume:** Once credits are restored, the next cron cycle will re-send the Phase 6B build prompt. Loop will continue from there.
-
----
-
 ## Guardrails (HARD — never cross)
 
+- ❌ Do NOT call lovable__lovable_send_chat_message. Ever.
 - ❌ Do NOT apply Supabase migrations. Write to `PENDING_MIGRATIONS.md` and stop.
 - ❌ Do NOT commit broken TypeScript. Fix first, commit after.
 - ❌ Do NOT publish to client portal without human gate in place.
@@ -70,6 +67,7 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 2C | Proposed Change Flow — ProposalCard wired, approveChatProposal built | 2026-07-11 | approveChatProposal server fn + ChatMessageProposals committed |
 | 6C | Client Acknowledgment Flow — server fn + portal gate component | 2026-07-11 | Version-locked acknowledgment stored in engine_activity, execution gate updated, engine_projects migration queued for Tai review. |
 | 13B | Portal as downstream-only — enforce approval boundary at data layer | 2026-07-11 | published_at IS NOT NULL enforced in portal queries. /portal/roadmap loader redirect added. |
+| 6B | Delivery Completeness Gate — DeliveryReadinessPanel wired into delivery route | 2026-07-12 | Direct commit 6f74c2bf. No migrations. Panel renders above recipient grid, shows live readiness + client-facing checklist + publish CTA gate. |
 
 ---
 
@@ -89,3 +87,5 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 2026-07-11 20:54 CDT | 1C | QUEUED | Platform Configuration — settings layer, project type templates, configurable governance gates. Enables generative platform behaviour. |
 | 2026-07-11 21:16 CDT | 8E, 8F, 12F | QUEUED | Nervous system phases — context inheritance, stage transitions, outcome feedback. Tai approved. |
 | 2026-07-11 22:03 CDT | 6B | HALTED — CREDITS OUT (6th cycle) | Build prompt sent to Lovable (umsg_01kxa4fskq399jdtx8cccz8afx) but AI response never created (Firestore 404). Mockup committed to repo (70534ad6). available_balance still 0. |
+| 2026-07-12 CDT | — | BUILD METHOD CHANGE | All future builds via direct GitHub commits. Lovable AI permanently removed from loop. Cron payload updated. |
+| 2026-07-12 CDT | 6B | COMPLETE | DeliveryReadinessPanel wired into delivery route. Commit 6f74c2bf. No migrations. Next: 1C (Platform Configuration). |
