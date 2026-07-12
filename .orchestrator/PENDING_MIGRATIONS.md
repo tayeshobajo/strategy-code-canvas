@@ -491,32 +491,74 @@ verification".
 
 ## Phase 2 — Point A / Point B Approval Ceremonies (data model)
 
-Status: PROPOSED (2026-07-12) — awaiting Tai review. Do not apply.
+Status: PROPOSED — R4 (2026-07-12). Awaiting Tai approval to apply.
 
 Adds the ceremony spine so an operator can formally walk every allowlisted
 Point A / Point B field, decide its epistemic status with evidence, and
 promote the spine toward `approved_truth`. This is the write path that
 finally consumes the R3 truth store built in Phase 1.
 
-### Design principles honored
+Revision history:
+- R1: initial ceremony header + decisions tables, app-layer only completion.
+- R2: 7 hardening fixes (enum on decisions, DB completion trigger, Point A
+  gate before Point B, abandoned metadata, decision consistency trigger,
+  completion rule redefined around `approved_truth`, downstream invalidation
+  deferred to Phase 2B with explicit blocker).
+- R3: project-aware field helper (`spine_field_keys(project_id, spine)`),
+  internal contradiction check for the trigger, approved_truth provenance
+  stamped in `source_ref` (approval_kind='ceremony' + ceremony_id +
+  operator_confirmed_by), DB-side enforcement of that stamp.
+- R4: split `spine_field_keys` into `internal_spine_field_keys` (trigger-only,
+  no public grant) and public `spine_field_keys` (access-gated), mirroring
+  the R3 contradictions split.
+
+### Design principles
 
 - No DELETE on ceremony state. Ceremonies are `abandoned`, not deleted.
-- Decisions and ceremonies both audit INSERT and UPDATE (Phase 1 R3 pattern).
+- Ceremonies and decisions audit INSERT and UPDATE (Phase 1 R3 pattern).
 - All writes on `engine_spine_field_truth` still go through the existing
   app-layer guards (`assertKnownFieldKey`, `assertStatusAllowedForActor`,
   `assertEvidenceForStatus`, `enrichSourceRefForHuman`).
 - `ceremony_id` on the truth row is nullable so pre-ceremony history stays
   intact and non-ceremony operator writes remain legal.
-- RLS gates writes to admin / operator via `has_role_email`. `team_member`
+- RLS gates writes to admin/operator via `has_role_email`. `team_member`
   reads only, matching Phase 1 R3.
-- Completion gate requires every allowlisted field to have a truth row
-  whose status is not `needs_confirmation` (or is explicitly `missing`).
-  Contradiction gate reuses `has_contradictions(project_id)` from Phase 1.
+- Completion is defined by `approved_truth`, not by absence of
+  `needs_confirmation`. Explicit accepted-risk path exists for `assumed` /
+  `missing`, requiring `approval_kind='operator_override'`, a `reason`, and
+  (for `missing`) `accepted_as_risk=true`.
+- DB triggers enforce completion, decision consistency, Point A precedence,
+  and approved_truth provenance so direct SQL cannot bypass app-layer checks.
+- Field universe is project-aware (static allowlist + dynamic `diagnosis:*`
+  keys derived from truth rows for that project).
+- Access-gated helpers are split into internal (SECURITY DEFINER, no public
+  grant, called by triggers) and public (access-gated, called by UI/API).
+
+### Completion rule (canonical)
+
+A ceremony flips to `completed` only when, for its spine:
+
+1. Every allowlisted field key (static + dynamic diagnosis:* for the project)
+   has a truth row whose status is either:
+   - `approved_truth`, OR
+   - `assumed` with `source_ref.approval_kind='operator_override'`,
+     non-empty `reason`, and `operator_confirmed_by`, OR
+   - `missing` with `source_ref.approval_kind='operator_override'`,
+     non-empty `reason`, `accepted_as_risk=true`, and
+     `operator_confirmed_by`.
+2. `internal_project_has_contradictions(project_id)` returns false.
+
+Anything else (`needs_confirmation`, `stated`, `inferred`, `verified`,
+`contradicted`, missing row, or `assumed`/`missing` without the accepted-risk
+shape) blocks completion. Enforced in both the DB trigger and the app-layer
+`completeCeremony`.
 
 ### Proposed SQL
 
 ```sql
+-- ============================================================
 -- 1. Ceremony header
+-- ============================================================
 CREATE TABLE IF NOT EXISTS public.engine_spine_ceremonies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
@@ -527,16 +569,25 @@ CREATE TABLE IF NOT EXISTS public.engine_spine_ceremonies (
   opened_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   completed_at TIMESTAMPTZ,
   completed_by_email TEXT,
+  abandoned_at TIMESTAMPTZ,
+  abandoned_by_email TEXT,
+  abandon_reason TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (
-    (status = 'completed' AND completed_at IS NOT NULL AND completed_by_email IS NOT NULL)
-    OR (status <> 'completed' AND completed_at IS NULL AND completed_by_email IS NULL)
+    (status = 'completed'
+      AND completed_at IS NOT NULL AND completed_by_email IS NOT NULL
+      AND abandoned_at IS NULL AND abandoned_by_email IS NULL AND abandon_reason IS NULL)
+    OR (status = 'abandoned'
+      AND abandoned_at IS NOT NULL AND abandoned_by_email IS NOT NULL AND abandon_reason IS NOT NULL
+      AND completed_at IS NULL AND completed_by_email IS NULL)
+    OR (status = 'in_progress'
+      AND completed_at IS NULL AND completed_by_email IS NULL
+      AND abandoned_at IS NULL AND abandoned_by_email IS NULL AND abandon_reason IS NULL)
   )
 );
 
--- At most one in-progress ceremony per (project, spine).
 CREATE UNIQUE INDEX IF NOT EXISTS engine_spine_ceremonies_one_active
   ON public.engine_spine_ceremonies (project_id, spine)
   WHERE status = 'in_progress';
@@ -576,15 +627,17 @@ CREATE POLICY "ceremonies_update_admin_op" ON public.engine_spine_ceremonies
   );
 -- No DELETE policy: use status='abandoned' instead.
 
--- 2. Per-field decisions
+-- ============================================================
+-- 2. Per-field decisions (enum-typed statuses)
+-- ============================================================
 CREATE TABLE IF NOT EXISTS public.engine_spine_ceremony_decisions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ceremony_id UUID NOT NULL REFERENCES public.engine_spine_ceremonies(id) ON DELETE CASCADE,
   project_id UUID NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
   spine TEXT NOT NULL CHECK (spine IN ('point-a','point-b')),
   field_key TEXT NOT NULL,
-  prior_status TEXT,
-  new_status TEXT NOT NULL,
+  prior_status public.epistemic_status,
+  new_status public.epistemic_status NOT NULL,
   source_ref JSONB NOT NULL DEFAULT '{}'::jsonb,
   decided_by_email TEXT NOT NULL,
   decided_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -617,7 +670,9 @@ CREATE POLICY "ceremony_decisions_insert_admin_op" ON public.engine_spine_ceremo
   );
 -- No UPDATE/DELETE: decisions are append-only audit facts.
 
--- 3. Stamp ceremony provenance on the truth row.
+-- ============================================================
+-- 3. Stamp ceremony provenance on the truth row
+-- ============================================================
 ALTER TABLE public.engine_spine_field_truth
   ADD COLUMN IF NOT EXISTS ceremony_id UUID
     REFERENCES public.engine_spine_ceremonies(id) ON DELETE SET NULL;
@@ -626,12 +681,16 @@ CREATE INDEX IF NOT EXISTS engine_spine_field_truth_ceremony_idx
   ON public.engine_spine_field_truth (ceremony_id)
   WHERE ceremony_id IS NOT NULL;
 
+-- ============================================================
 -- 4. updated_at trigger for ceremonies (decisions are append-only)
+-- ============================================================
 CREATE TRIGGER trg_engine_spine_ceremonies_updated
   BEFORE UPDATE ON public.engine_spine_ceremonies
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- 5. Audit (INSERT + UPDATE) via engine_audit_log, mirroring Phase 1 R3.
+-- ============================================================
+-- 5. Audit (INSERT + UPDATE) via engine_audit_log
+-- ============================================================
 CREATE OR REPLACE FUNCTION public.audit_spine_ceremony_change()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -643,7 +702,7 @@ BEGIN
     'ceremony_status',
     CASE TG_OP WHEN 'UPDATE' THEN to_jsonb(OLD.status) ELSE NULL END,
     to_jsonb(NEW.status),
-    COALESCE(NEW.completed_by_email, NEW.opened_by_email),
+    COALESCE(NEW.completed_by_email, NEW.abandoned_by_email, NEW.opened_by_email),
     jsonb_build_object('ceremony_id', NEW.id, 'spine', NEW.spine)
   );
   RETURN NEW;
@@ -682,74 +741,444 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 CREATE TRIGGER trg_audit_spine_ceremony_decision_ins
   AFTER INSERT ON public.engine_spine_ceremony_decisions
   FOR EACH ROW EXECUTE FUNCTION public.audit_spine_ceremony_decision();
+
+-- ============================================================
+-- 6. Field-universe helpers (R4 split: internal + public)
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.internal_spine_field_keys(
+  _project_id uuid,
+  _spine text
+)
+RETURNS SETOF text
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF _spine = 'point-a' THEN
+    -- Static allowlist mirrored from src/lib/engine-spine-fields.ts.
+    -- Vitest diff-fails if this drifts from the TS registry.
+    RETURN QUERY SELECT unnest(ARRAY[
+      'current_state:summary',
+      'current_state:pain_points',
+      'current_state:constraints',
+      'current_state:stakeholders'
+      -- ... full Point A static list mirrored from TS registry
+    ]::text[]);
+
+    -- Dynamic Point A: diagnosis:<title> keys derived per-project from
+    -- existing truth rows. A diagnosis field only counts once it has
+    -- been classified at least once.
+    RETURN QUERY
+      SELECT DISTINCT field_key
+      FROM public.engine_spine_field_truth
+      WHERE project_id = _project_id
+        AND spine = 'point-a'
+        AND field_key LIKE 'diagnosis:%';
+
+  ELSIF _spine = 'point-b' THEN
+    RETURN QUERY SELECT unnest(ARRAY[
+      'target_state:summary',
+      'target_state:success_metrics'
+      -- ... full Point B static list
+    ]::text[]);
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.internal_spine_field_keys(uuid, text) FROM PUBLIC;
+-- No grant to anon/authenticated. Callable only by SECURITY DEFINER code
+-- in this schema (the completion trigger and the public wrapper below).
+GRANT EXECUTE ON FUNCTION public.internal_spine_field_keys(uuid, text) TO service_role;
+
+
+CREATE OR REPLACE FUNCTION public.spine_field_keys(
+  _project_id uuid,
+  _spine text
+)
+RETURNS SETOF text
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  allowed boolean := false;
+BEGIN
+  SELECT
+    public.is_engine_staff()
+    OR public.has_role_email(coalesce(auth.email(), ''), 'team_member')
+    OR EXISTS (
+      SELECT 1
+      FROM public.client_portal_projects cpp
+      JOIN public.client_portal_permissions perm ON perm.project_id = cpp.id
+      JOIN public.engine_projects ep ON ep.client_portal_project_id = cpp.id
+      WHERE ep.id = _project_id
+        AND lower(perm.email) = lower(coalesce(auth.email(), ''))
+        AND perm.revoked_at IS NULL
+    )
+  INTO allowed;
+
+  IF NOT allowed THEN
+    RAISE EXCEPTION 'Forbidden: access to project % not permitted', _project_id
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  RETURN QUERY SELECT public.internal_spine_field_keys(_project_id, _spine);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.spine_field_keys(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.spine_field_keys(uuid, text) TO authenticated, service_role;
+
+-- ============================================================
+-- 7. Internal contradictions helper (trigger use only)
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.internal_project_has_contradictions(_project_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.engine_extracted_signals
+    WHERE project_id = _project_id
+      AND status = 'contradicted'
+      AND superseded_by IS NULL
+  ) OR EXISTS (
+    SELECT 1 FROM public.engine_spine_field_truth
+    WHERE project_id = _project_id
+      AND status = 'contradicted'
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.internal_project_has_contradictions(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.internal_project_has_contradictions(uuid) TO service_role;
+
+-- ============================================================
+-- 8. Decision consistency + approved_truth provenance trigger
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.enforce_decision_matches_ceremony()
+RETURNS TRIGGER AS $$
+DECLARE
+  cer RECORD;
+BEGIN
+  SELECT project_id, spine, status
+    INTO cer
+    FROM public.engine_spine_ceremonies
+   WHERE id = NEW.ceremony_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Decision references unknown ceremony %', NEW.ceremony_id
+      USING ERRCODE = 'foreign_key_violation';
+  END IF;
+
+  IF cer.project_id <> NEW.project_id OR cer.spine <> NEW.spine THEN
+    RAISE EXCEPTION 'Decision project_id/spine (%/%) does not match ceremony (%/%)',
+      NEW.project_id, NEW.spine, cer.project_id, cer.spine
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF cer.status <> 'in_progress' THEN
+    RAISE EXCEPTION 'Cannot record a decision on a % ceremony', cer.status
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  -- approved_truth provenance: source_ref must carry ceremony stamp.
+  IF NEW.new_status = 'approved_truth' THEN
+    IF COALESCE(NEW.source_ref ->> 'approval_kind', '') <> 'ceremony'
+       OR COALESCE(NEW.source_ref ->> 'ceremony_id', '') <> NEW.ceremony_id::text
+       OR COALESCE(NEW.source_ref ->> 'operator_confirmed_by', '') = '' THEN
+      RAISE EXCEPTION
+        'approved_truth decisions require source_ref.approval_kind=''ceremony'', matching ceremony_id, and operator_confirmed_by'
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_enforce_decision_matches_ceremony
+  BEFORE INSERT ON public.engine_spine_ceremony_decisions
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_decision_matches_ceremony();
+
+-- ============================================================
+-- 9. Point A precedence trigger (Point B cannot open before Point A completed)
+--    Also blocks reopen/abandon of a completed Point A when Point B exists
+--    (forces Phase 2B invalidation flow to be built before that path opens).
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.enforce_point_a_before_point_b()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' AND NEW.spine = 'point-b' THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.engine_spine_ceremonies
+      WHERE project_id = NEW.project_id
+        AND spine = 'point-a'
+        AND status = 'completed'
+    ) THEN
+      RAISE EXCEPTION 'Point B ceremony cannot open before a Point A ceremony is completed for project %', NEW.project_id
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+
+  IF TG_OP = 'UPDATE'
+     AND OLD.spine = 'point-a'
+     AND OLD.status = 'completed'
+     AND NEW.status <> 'completed' THEN
+    IF EXISTS (
+      SELECT 1 FROM public.engine_spine_ceremonies
+      WHERE project_id = OLD.project_id
+        AND spine = 'point-b'
+    ) THEN
+      RAISE EXCEPTION
+        'Cannot reopen/abandon a completed Point A while Point B ceremonies exist for project % (Phase 2B invalidation required)',
+        OLD.project_id
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_enforce_point_a_before_point_b_ins
+  BEFORE INSERT ON public.engine_spine_ceremonies
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_point_a_before_point_b();
+CREATE TRIGGER trg_enforce_point_a_before_point_b_upd
+  BEFORE UPDATE ON public.engine_spine_ceremonies
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_point_a_before_point_b();
+
+-- ============================================================
+-- 10. DB-level completion protection
+--     Enforces the canonical completion rule. Direct SQL updates
+--     cannot bypass this — the app-layer completeCeremony mirrors it
+--     only for user-facing error surfacing.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.enforce_ceremony_completion()
+RETURNS TRIGGER AS $$
+DECLARE
+  field_key text;
+  row_status public.epistemic_status;
+  row_ref jsonb;
+  missing_required text[] := ARRAY[]::text[];
+BEGIN
+  IF NOT (NEW.status = 'completed' AND OLD.status <> 'completed') THEN
+    RETURN NEW;
+  END IF;
+
+  -- Contradictions gate — use internal helper (no auth context dependency).
+  IF public.internal_project_has_contradictions(NEW.project_id) THEN
+    RAISE EXCEPTION 'Cannot complete ceremony %: project % has unresolved contradictions', NEW.id, NEW.project_id
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  -- Every allowlisted field (static + dynamic) must be terminal.
+  FOR field_key IN
+    SELECT public.internal_spine_field_keys(NEW.project_id, NEW.spine)
+  LOOP
+    SELECT status, source_ref
+      INTO row_status, row_ref
+      FROM public.engine_spine_field_truth
+     WHERE project_id = NEW.project_id
+       AND spine = NEW.spine
+       AND field_key = enforce_ceremony_completion.field_key;
+
+    IF NOT FOUND THEN
+      missing_required := array_append(missing_required, field_key || ' (no truth row)');
+      CONTINUE;
+    END IF;
+
+    IF row_status = 'approved_truth' THEN
+      CONTINUE;
+    END IF;
+
+    IF row_status = 'assumed'
+       AND row_ref ->> 'approval_kind' = 'operator_override'
+       AND COALESCE(row_ref ->> 'reason', '') <> ''
+       AND COALESCE(row_ref ->> 'operator_confirmed_by', '') <> '' THEN
+      CONTINUE;
+    END IF;
+
+    IF row_status = 'missing'
+       AND row_ref ->> 'approval_kind' = 'operator_override'
+       AND COALESCE(row_ref ->> 'reason', '') <> ''
+       AND COALESCE(row_ref ->> 'operator_confirmed_by', '') <> ''
+       AND (row_ref ->> 'accepted_as_risk')::boolean IS TRUE THEN
+      CONTINUE;
+    END IF;
+
+    missing_required := array_append(missing_required, field_key || ' (' || row_status::text || ')');
+  END LOOP;
+
+  IF array_length(missing_required, 1) > 0 THEN
+    RAISE EXCEPTION 'Ceremony % cannot complete: fields not terminal: %', NEW.id, array_to_string(missing_required, ', ')
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_enforce_ceremony_completion
+  BEFORE UPDATE ON public.engine_spine_ceremonies
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_ceremony_completion();
 ```
 
 ### App-layer changes (shipped WITH the migration, once approved)
 
 New file `src/lib/engine-spine-ceremonies.functions.ts` exposing:
 
-- `startCeremony({ projectId, spine })` — opens or returns the current
-  in-progress ceremony (upsert on the partial unique index).
-- `listCeremonyFields({ ceremonyId })` — returns every allowlisted key for
-  the ceremony's spine with its current truth-row status and a suggested
-  next action. Point A includes the current `diagnosis:*` set derived from
-  existing sidecar keys plus any truth rows.
+- `startCeremony({ projectId, spine })` — opens or returns the in-progress
+  ceremony. For `spine='point-b'`, verifies a completed Point A ceremony
+  exists first; returns a clear operator-facing error if not (defense in
+  depth alongside the trigger).
+- `listCeremonyFields({ ceremonyId })` — calls public `spine_field_keys`
+  RPC (access-gated at DB level) after `assertAdminOrOperator`. Joins the
+  returned key list against `engine_spine_field_truth` to compose the panel.
 - `recordCeremonyDecision({ ceremonyId, fieldKey, newStatus, sourceRef })` —
-  in one server-function handler: (a) validates field key + evidence via
-  the Phase 1 helpers, (b) inserts the decision row, (c) upserts
-  `engine_spine_field_truth` stamped with `ceremony_id`.
-- `completeCeremony({ ceremonyId })` — verifies every allowlisted field
-  either has a non-`needs_confirmation` truth row OR was explicitly
-  decided `missing` in this ceremony; verifies `has_contradictions` is
-  false; then updates the ceremony row.
+  when `newStatus === 'approved_truth'`, server enriches sourceRef with
+  `approval_kind='ceremony'`, `ceremony_id=ceremonyId`, and
+  `operator_confirmed_by=actorEmail`. Runs Phase 1 evidence guards, inserts
+  the decision row (DB trigger re-verifies stamp), and upserts
+  `engine_spine_field_truth` with `ceremony_id` set and the same enriched
+  source_ref.
+- `completeCeremony({ ceremonyId })` — mirrors the DB rule for user-facing
+  error surfacing: iterates via `spine_field_keys` RPC, checks each field's
+  truth row, calls public `has_contradictions`, then flips the ceremony.
+  The DB trigger is the source of truth; the app call surfaces friendly
+  messages.
+- `abandonCeremony({ ceremonyId, reason })` — sets
+  `status='abandoned'` + `abandoned_at` + `abandoned_by_email` + `abandon_reason`.
+  Attempts to abandon a completed Point A while Point B ceremonies exist
+  are rejected by the trigger.
 
-All four are gated by `assertAdminOrOperator`.
+All admin/operator gated.
+
+Additional app-layer change:
+
+- `src/lib/engine-epistemic.server.ts` — extend `SourceRef` with optional
+  `accepted_as_risk: boolean` and document the accepted-risk shape for
+  ceremony-scoped `assumed` / `missing` decisions.
+
+Cross-check vitest:
+
+- New test compares the static array literal inside
+  `internal_spine_field_keys` against `SPINE_FIELD_REGISTRY` in
+  `src/lib/engine-spine-fields.ts`. Fails on drift.
 
 ### UI changes
 
-- New `CeremonyPanel` on the Point A and Point B routes (list every field,
-  current chip, popover to set new status + source_ref, running audit tail).
+- New `CeremonyPanel` on the Point A and Point B routes (list every field
+  from `spine_field_keys`, current chip, popover to set new status +
+  source_ref, running audit tail of decisions).
 - `WorkspaceStepper` grows a badge on Point A / Point B when a ceremony is
-  in-progress OR the project has `needs_confirmation` rows (covers the
-  deferred Phase 1B item cheaply).
+  in-progress OR the project has `needs_confirmation` rows.
 - Neutral fallback ("No status") from Phase 1 remains for unclassified
   fields; the panel exposes a "Classify" affordance for those.
+
+### Phase 2B blockers (documented, NOT in this migration)
+
+The Phase 2 R4 trigger rejects reopen/abandon of a completed Point A when
+Point B ceremonies exist. Phase 2B must ship before that path unlocks:
+
+- Downstream invalidation columns on Point B ceremonies (e.g.
+  `stale_reason`, `stale_since`, `re_review_required`).
+- Re-review workflow for downstream roadmap frames, milestones, and
+  delivery packets when Point A truth changes.
+- UI surface to warn operators before they trigger a downstream cascade.
 
 ### Backfill / migration risk
 
 - All new columns/tables are additive; no data rewrite.
-- `ceremony_id` on truth rows is nullable — historical rows stay untouched.
-- `has_contradictions` and truth-row helpers already exist from Phase 1.
+- `ceremony_id` on truth rows is nullable — historical rows untouched.
+- `has_contradictions` (public) preserved as-is for existing UI/API callers.
 
 ### Preflight (to run before applying)
 
 1. Confirm no orphaned in-progress ceremony rows would violate the partial
-   unique index (table doesn't exist yet, so should be trivial).
-2. Confirm `engine_audit_log` accepts the new actions
+   unique index (table doesn't exist yet, so trivially true).
+2. Confirm `engine_audit_log.action` accepts the new values
    (`spine_ceremony_opened`, `spine_ceremony_changed`,
-   `spine_ceremony_decision`) — the column is free-text today.
-3. Confirm `public.update_updated_at_column()` exists (Phase 1 R3 shipped it).
-4. Confirm `public.has_role_email(text,text)` exists (used by Phase 1 R3 RLS).
+   `spine_ceremony_decision`) — column is free-text today.
+3. Confirm `public.update_updated_at_column()` exists.
+4. Confirm `public.has_role_email(text, app_role)` exists.
+5. Confirm `public.is_engine_staff()` exists.
+6. Confirm `public.epistemic_status` enum exists (Phase 1 R3 shipped it).
 
 ### Smoke plan (post-apply)
 
-1. `startCeremony(point-b)` → row created, `opened_by_email` = operator.
-2. Attempting a second start returns the same ceremony id (partial unique
-   index does its job).
+Ceremony lifecycle:
+
+1. `startCeremony(point-a)` → row created, `opened_by_email` = operator.
+2. Second `startCeremony(point-a)` returns the same id (partial unique
+   index).
 3. `recordCeremonyDecision` for one field with `new_status='stated'` →
    truth row upserted, `ceremony_id` stamped, decision row present, two
    audit rows written.
+
+Completion gate:
+
 4. `completeCeremony` blocked while any allowlisted field is still
-   `needs_confirmation` and no `missing` decision exists.
-5. Resolve remaining fields; `completeCeremony` succeeds; status flips to
-   `completed`, `completed_at` + `completed_by_email` populated.
-6. Contradiction path: seed one `contradicted` row, then attempt
+   `needs_confirmation` (or non-terminal).
+5. Direct SQL `UPDATE engine_spine_ceremonies SET status='completed'` on
+   an incomplete ceremony → rejected by trigger.
+6. `completeCeremony` with one field left as bare `missing` (no
+   accepted-risk source_ref) → rejected.
+7. Same field re-decided as `missing` with `approval_kind='operator_override'`
+   + `reason` + `accepted_as_risk=true` + `operator_confirmed_by` →
+   `completeCeremony` succeeds.
+8. Contradiction path: seed one `contradicted` row, then attempt
    `completeCeremony` → rejected with contradiction reason.
-7. AI actor attempting `recordCeremonyDecision` with `verified` /
-   `approved_truth` → rejected by `assertStatusAllowedForActor`.
-8. Unknown `field_key` → rejected by `assertKnownFieldKey`.
+
+Point A precedence:
+
+9. `startCeremony(point-b)` with no completed Point A → rejected app-side
+   AND by trigger.
+10. `abandonCeremony(point-a)` after any Point B ceremony exists → rejected.
+
+Decision consistency + approved_truth provenance:
+
+11. Insert a decision with mismatched `project_id`/`spine` vs its ceremony
+    → rejected by trigger.
+12. Insert a decision against a `completed` ceremony → rejected.
+13. Direct SQL insert of a decision with `new_status='approved_truth'`
+    and missing `approval_kind`/`ceremony_id`/`operator_confirmed_by` in
+    `source_ref` → rejected by trigger.
+14. Full success: every allowlisted field (static + dynamic) reaches
+    `approved_truth` via `recordCeremonyDecision`; every promoted truth
+    row shows `source_ref.approval_kind='ceremony'`, matching `ceremony_id`,
+    and `operator_confirmed_by`. `completeCeremony` succeeds; `completed_at`
+    + `completed_by_email` populated.
+
+AI actor + unknown key:
+
+15. AI actor attempting `recordCeremonyDecision` with `verified` /
+    `approved_truth` → rejected by `assertStatusAllowedForActor`.
+16. Unknown `field_key` → rejected by `assertKnownFieldKey`.
+
+Abandon metadata:
+
+17. `abandonCeremony` requires `reason`; row shows `abandoned_at`,
+    `abandoned_by_email`, `abandon_reason`. Completed / in-progress
+    columns remain null (CHECK enforced).
+
+R4 field-universe split:
+
+18. Authenticated caller with no staff role and no portal permission
+    calling `spine_field_keys(other_project_id, 'point-a')` → raises
+    `insufficient_privilege`.
+19. Same caller cannot call `internal_spine_field_keys` at all →
+    `permission denied for function internal_spine_field_keys`.
+20. Staff caller on a project with `diagnosis:x` and `diagnosis:y` truth
+    rows: `spine_field_keys(project, 'point-a')` returns full static set
+    + both dynamic keys.
+21. Client-portal member (non-staff) with active permission on the
+    project can read `spine_field_keys` for that project.
+22. DB completion trigger: with a fresh Point A ceremony where every
+    static field is `approved_truth` but a `diagnosis:x` truth row is
+    still `needs_confirmation`, a direct SQL
+    `UPDATE ... SET status='completed'` is rejected — proves the trigger
+    sees dynamic keys through `internal_spine_field_keys` even with no
+    `auth.email()`.
 
 Results append to `.orchestrator/phase-2-output.md`.
+
+
 
 
 
