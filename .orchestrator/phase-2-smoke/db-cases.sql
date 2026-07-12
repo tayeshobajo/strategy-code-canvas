@@ -609,13 +609,15 @@ SELECT
 FROM _results;
 
 -- Machine-readable JSON summary
-SELECT jsonb_agg(jsonb_build_object(
+\pset tuples_only on
+\pset format unaligned
+\echo === RESULTS_JSON_BEGIN ===
+SELECT jsonb_pretty(jsonb_agg(jsonb_build_object(
   'case', case_no, 'surface', surface, 'label', label,
   'expected', expected, 'actual', actual, 'result', result, 'detail', detail
-) ORDER BY case_no) AS results_json FROM _results \gset
-
-\echo === RESULTS_JSON_BEGIN ===
-SELECT :'results_json';
+) ORDER BY case_no)) FROM _results;
 \echo === RESULTS_JSON_END ===
+\pset tuples_only off
+\pset format aligned
 
 ROLLBACK;
