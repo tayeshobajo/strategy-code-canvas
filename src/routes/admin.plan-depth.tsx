@@ -192,7 +192,8 @@ function ProjectDepthCard({ projectId, filterShallow }: { projectId: string; fil
 
         {/* External link */}
         <Link
-          to={`/engine/projects/${projectId}`}
+          to="/engine/projects/$projectId"
+          params={{ projectId }}
           onClick={(e) => e.stopPropagation()}
           className="shrink-0 text-white/30 hover:text-amber-400 transition-colors border border-white/10 rounded p-1"
           title="Open project"
