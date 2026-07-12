@@ -104,6 +104,10 @@ function PointA() {
                         <EpistemicStatusChip
                           status={statusFor(d.title)?.status}
                           sourceRef={statusFor(d.title)?.source_ref}
+                          projectId={projectId}
+                          spine="point-a"
+                          fieldKey={d.title}
+                          fieldLabel={d.title}
                         />
                         <span
                           className={cn(
