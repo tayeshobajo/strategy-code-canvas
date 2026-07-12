@@ -21,6 +21,35 @@ Authentication, organizations, roles, clients, projects, permissions, audit trai
 ### Phase 1B — Platform Governance 🔸 Partial
 Rate limiting, cost controls, agent budgets, abuse prevention, data retention policy, backup strategy, GDPR/data deletion flows, terms enforcement, support escalation path
 
+### Phase 1C — Platform Configuration 🔸 Not built
+The settings and template layer that makes the platform configurable and generative rather than prescriptive.
+
+**Workspace-level settings:**
+- Intake question templates (which questions, what order, by project type)
+- Roadmap phase templates by project type (Web Build, Ongoing Growth, Product Launch, Consulting)
+- Evidence requirement rule sets per milestone type (Design milestone requires X, Build milestone requires Y)
+- Delivery completeness checklist templates
+- Captain recommendation tone and verbosity settings
+- Status threshold definitions (what qualifies as At Risk, Needs Attention, etc.)
+
+**Project-level overrides:**
+- Which governance gates are active (full governance vs lightweight for small projects)
+- Approval authority per project (who can approve scope changes)
+- Client-facing labels (Phase 2 vs Discovery and Direction)
+- Notification preferences per stakeholder
+
+**Project Type Templates (the generative layer):**
+- Selecting a project type at creation auto-populates: roadmap phases, milestone types, evidence requirements, delivery checklist
+- Templates are editable per project after generation
+- Operator can save custom templates from completed projects
+- Templates evolve — Captain suggests template updates based on outcomes
+
+**Client Portal configuration:**
+- Which sections are visible to the client
+- Read-only vs comment-enabled per section
+- Custom branding per client (logo, accent color)
+- Client-facing milestone labels
+
 ---
 
 ## LAYER 2 — INTAKE
@@ -236,7 +265,7 @@ Founding engines: Content Authority, Lead Follow-Up, Reputation, Client Success,
 
 | Layer | Phase(s) | Status |
 |---|---|---|
-| Foundation | 1, 1B | ✅ / 🔸 |
+| Foundation | 1, 1B, 1C | ✅ / 🔸 / 🔸 |
 | Intake | 2, 2B, 2C | ✅ / 🔸 / 🔸 |
 | Understanding | 3, 3B, 3C, 3D | ✅ / 🔸 / 🔸 / 🔸 |
 | Diagnosis | 4, 4B, 4C | ✅ / 🔸 / 🔸 |
