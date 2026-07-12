@@ -285,8 +285,7 @@ function RoadmapJourneyView({
       search.m !== requestedSlug
     ) {
       navigate({
-        to: ".",
-        search: (prev) => ({ ...prev, m: requestedSlug ?? undefined }),
+        search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, m: requestedSlug ?? undefined }),
         replace: true,
       });
     }
