@@ -1,6 +1,6 @@
 # Phase 2 — Point A / Point B Approval Ceremonies
 
-Status: **APPLIED (2026-07-12)** — R4 shipped.
+Status: **ACCEPTED (2026-07-12)** — R4 + R4B shipped, acceptance smoke pass all green (21/21).
 
 ## What shipped
 
