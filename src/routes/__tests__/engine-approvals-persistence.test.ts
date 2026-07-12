@@ -49,9 +49,10 @@ describe("engine.approvals — buttons call the server mutation", () => {
 describe("decideReviewItem — persists to review, audit, and activity", () => {
   const src = read("src/lib/engine-ops.functions.ts");
   const start = src.indexOf("export const decideReviewItem");
+  const end = src.indexOf("export const ", start + 1);
   expect(start).toBeGreaterThan(-1);
-  // Bounded window covers the whole handler.
-  const body = src.slice(start, start + 12000);
+  expect(end).toBeGreaterThan(start);
+  const body = src.slice(start, end);
 
   it("updates engine_review_items", () => {
     expect(body).toMatch(/from\("engine_review_items"\)[\s\S]*?\.update\(/);
