@@ -2466,3 +2466,402 @@ SELECT policyname, cmd FROM pg_policies
   superseded, or retracted rows).
 
 Status: **PENDING TAI REVIEW — apply-ready.**
+
+---
+
+## Phase 4 — Multi-Solution Decomposition + Business Engines + Command Center
+
+**Status:** DRAFT — apply-ready spec, awaiting Tai review.
+**Scope:** Five interlocking systems requested 2026-07-13. Grouped into ONE migration file because the FK graph is tightly connected (engines depend on candidate solutions; run history depends on engines; command center reads across both).
+
+### 1. Multi-Solution Decomposition
+
+**Intent.** Every roadmap milestone can decompose into 1..N candidate solutions. Each solution carries its own scope, assumptions, dependencies, and evidence links. One solution is `selected`; the rest stay `candidate` / `deferred` / `rejected` for audit.
+
+```sql
+-- Enum for solution status
+CREATE TYPE public.milestone_solution_status AS ENUM (
+  'candidate','selected','deferred','rejected','superseded'
+);
+
+CREATE TABLE public.engine_milestone_solutions (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  milestone_id    uuid NOT NULL REFERENCES public.engine_milestones(id) ON DELETE CASCADE,
+  project_id      uuid NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
+  title           text NOT NULL,
+  summary         text,
+  rationale       text,
+  status          public.milestone_solution_status NOT NULL DEFAULT 'candidate',
+  effort_estimate text,             -- 'S' | 'M' | 'L' | 'XL' or free-form
+  investment_estimate_cents integer,
+  assumptions     jsonb NOT NULL DEFAULT '[]'::jsonb,   -- [{text, confidence, source_id?}]
+  depends_on_solution_ids uuid[] NOT NULL DEFAULT '{}',  -- other solutions this one requires
+  depends_on_milestone_ids uuid[] NOT NULL DEFAULT '{}',
+  evidence_source_ids uuid[] NOT NULL DEFAULT '{}',      -- FK-style ref to engine_sources
+  created_by      text,
+  approved_by     text,
+  approved_at     timestamptz,
+  metadata        jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+GRANT SELECT, INSERT, UPDATE ON public.engine_milestone_solutions TO authenticated;
+GRANT ALL ON public.engine_milestone_solutions TO service_role;
+
+ALTER TABLE public.engine_milestone_solutions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Staff read solutions"
+  ON public.engine_milestone_solutions FOR SELECT TO authenticated
+  USING (public.is_engine_staff());
+CREATE POLICY "Staff write solutions"
+  ON public.engine_milestone_solutions FOR ALL TO authenticated
+  USING (public.is_engine_staff()) WITH CHECK (public.is_engine_staff());
+
+CREATE INDEX idx_solutions_milestone ON public.engine_milestone_solutions(milestone_id);
+CREATE INDEX idx_solutions_project ON public.engine_milestone_solutions(project_id);
+CREATE INDEX idx_solutions_status ON public.engine_milestone_solutions(status);
+
+CREATE TRIGGER touch_engine_milestone_solutions
+  BEFORE UPDATE ON public.engine_milestone_solutions
+  FOR EACH ROW EXECUTE FUNCTION public.tg_touch_updated_at();
+```
+
+**Governance trigger:** exactly one `selected` solution per milestone at any time.
+
+```sql
+CREATE OR REPLACE FUNCTION public.tg_engine_solutions_single_selected()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.status = 'selected' THEN
+    UPDATE public.engine_milestone_solutions
+      SET status = 'superseded', updated_at = now()
+      WHERE milestone_id = NEW.milestone_id
+        AND id <> NEW.id
+        AND status = 'selected';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER engine_solutions_single_selected
+  BEFORE INSERT OR UPDATE OF status ON public.engine_milestone_solutions
+  FOR EACH ROW WHEN (NEW.status = 'selected')
+  EXECUTE FUNCTION public.tg_engine_solutions_single_selected();
+```
+
+### 2. Business Engines Framework
+
+**Intent.** A first-class recurring engine (Content Authority, Lead Follow-Up, Review & Reputation, Client Success, Founder Rhythm, custom). Each engine has cadence, owner, triggers, approvals, metrics, exception rules. Engines live under a project but produce cycles independent of milestones.
+
+```sql
+CREATE TYPE public.business_engine_kind AS ENUM (
+  'content_authority','lead_followup','review_reputation','client_success',
+  'founder_rhythm','custom'
+);
+CREATE TYPE public.business_engine_status AS ENUM (
+  'draft','proposed','approved','active','paused','archived'
+);
+CREATE TYPE public.business_engine_cadence AS ENUM (
+  'daily','weekly','biweekly','monthly','quarterly','ad_hoc'
+);
+
+CREATE TABLE public.engine_business_engines (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id      uuid NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
+  milestone_id    uuid REFERENCES public.engine_milestones(id) ON DELETE SET NULL,
+  kind            public.business_engine_kind NOT NULL,
+  name            text NOT NULL,
+  outcome         text NOT NULL,       -- what "good" looks like
+  workflow        jsonb NOT NULL DEFAULT '[]'::jsonb,   -- ordered steps
+  cadence         public.business_engine_cadence NOT NULL DEFAULT 'weekly',
+  cron_expression text,                -- optional advanced schedule
+  owner_email     text,
+  triggers        jsonb NOT NULL DEFAULT '{}'::jsonb,   -- {on_event, on_metric, on_time}
+  approval_rules  jsonb NOT NULL DEFAULT '{}'::jsonb,   -- {requires_human, roles, gate_fields}
+  metrics         jsonb NOT NULL DEFAULT '[]'::jsonb,   -- [{name, target, unit, source}]
+  exception_rules jsonb NOT NULL DEFAULT '[]'::jsonb,   -- [{when, severity, action}]
+  status          public.business_engine_status NOT NULL DEFAULT 'draft',
+  last_run_at     timestamptz,
+  next_run_at     timestamptz,
+  missed_cycles   integer NOT NULL DEFAULT 0,
+  approved_by     text,
+  approved_at     timestamptz,
+  metadata        jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_by      text,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+GRANT SELECT, INSERT, UPDATE ON public.engine_business_engines TO authenticated;
+GRANT ALL ON public.engine_business_engines TO service_role;
+
+ALTER TABLE public.engine_business_engines ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Staff read engines"
+  ON public.engine_business_engines FOR SELECT TO authenticated
+  USING (public.is_engine_staff());
+CREATE POLICY "Staff write engines"
+  ON public.engine_business_engines FOR ALL TO authenticated
+  USING (public.is_engine_staff()) WITH CHECK (public.is_engine_staff());
+
+CREATE INDEX idx_engines_project ON public.engine_business_engines(project_id);
+CREATE INDEX idx_engines_status ON public.engine_business_engines(status);
+CREATE INDEX idx_engines_next_run ON public.engine_business_engines(next_run_at) WHERE status='active';
+
+CREATE TRIGGER touch_engine_business_engines
+  BEFORE UPDATE ON public.engine_business_engines
+  FOR EACH ROW EXECUTE FUNCTION public.tg_touch_updated_at();
+```
+
+### 3. Per-Engine Run History (Immutable)
+
+**Intent.** Every engine cycle records inputs, model/task outputs, decisions, approvals, cost, latency, evidence. UPDATE forbidden after `completed_at`.
+
+```sql
+CREATE TYPE public.engine_run_status AS ENUM (
+  'scheduled','running','awaiting_approval','completed','failed','skipped'
+);
+
+CREATE TABLE public.engine_business_engine_runs (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  engine_id       uuid NOT NULL REFERENCES public.engine_business_engines(id) ON DELETE CASCADE,
+  project_id      uuid NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
+  cycle_key       text NOT NULL,         -- e.g. '2026-W29' for weekly; enforced-unique per engine
+  status          public.engine_run_status NOT NULL DEFAULT 'scheduled',
+  scheduled_for   timestamptz NOT NULL,
+  started_at      timestamptz,
+  completed_at    timestamptz,
+  inputs          jsonb NOT NULL DEFAULT '{}'::jsonb,
+  outputs         jsonb NOT NULL DEFAULT '{}'::jsonb,
+  decisions       jsonb NOT NULL DEFAULT '[]'::jsonb,
+  model           text,
+  tokens_input    integer,
+  tokens_output   integer,
+  cost_cents      integer,
+  latency_ms      integer,
+  evidence_ids    uuid[] NOT NULL DEFAULT '{}',
+  approval_ids    uuid[] NOT NULL DEFAULT '{}',   -- FK-style ref to engine_review_items
+  proposal_ids    uuid[] NOT NULL DEFAULT '{}',   -- FK-style ref to engine_project_chat_proposals
+  error           text,
+  actor_email     text,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (engine_id, cycle_key)
+);
+
+GRANT SELECT, INSERT, UPDATE ON public.engine_business_engine_runs TO authenticated;
+GRANT ALL ON public.engine_business_engine_runs TO service_role;
+
+ALTER TABLE public.engine_business_engine_runs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Staff read engine runs"
+  ON public.engine_business_engine_runs FOR SELECT TO authenticated
+  USING (public.is_engine_staff());
+CREATE POLICY "Staff write engine runs"
+  ON public.engine_business_engine_runs FOR ALL TO authenticated
+  USING (public.is_engine_staff()) WITH CHECK (public.is_engine_staff());
+
+CREATE INDEX idx_runs_engine ON public.engine_business_engine_runs(engine_id);
+CREATE INDEX idx_runs_project ON public.engine_business_engine_runs(project_id);
+CREATE INDEX idx_runs_status ON public.engine_business_engine_runs(status);
+CREATE INDEX idx_runs_scheduled ON public.engine_business_engine_runs(scheduled_for);
+```
+
+**Immutability trigger** — same shape as `engine_project_build_evidence`:
+
+```sql
+CREATE OR REPLACE FUNCTION public.tg_engine_business_engine_runs_seal()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF OLD.completed_at IS NOT NULL AND OLD.status IN ('completed','failed','skipped') THEN
+    RAISE EXCEPTION 'Engine run % is sealed and cannot be modified', OLD.id
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER engine_business_engine_runs_seal
+  BEFORE UPDATE ON public.engine_business_engine_runs
+  FOR EACH ROW EXECUTE FUNCTION public.tg_engine_business_engine_runs_seal();
+```
+
+### 4. Engine Exceptions (feeds Command Center)
+
+**Intent.** Explicit exception rows so the Command Center reads a single ranked list. Auto-generated by engine runs when a rule fires; also creatable by triggers on missed cycles.
+
+```sql
+CREATE TYPE public.engine_exception_severity AS ENUM ('low','medium','high','critical');
+CREATE TYPE public.engine_exception_status AS ENUM ('open','acknowledged','resolved','dismissed');
+
+CREATE TABLE public.engine_business_engine_exceptions (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  engine_id     uuid REFERENCES public.engine_business_engines(id) ON DELETE CASCADE,
+  run_id        uuid REFERENCES public.engine_business_engine_runs(id) ON DELETE SET NULL,
+  project_id    uuid NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
+  kind          text NOT NULL,                -- 'missed_cycle','metric_breach','approval_stuck','blocked','budget_drift','client_risk'
+  severity      public.engine_exception_severity NOT NULL DEFAULT 'medium',
+  summary       text NOT NULL,
+  detail        jsonb NOT NULL DEFAULT '{}'::jsonb,
+  urgency_score integer NOT NULL DEFAULT 50,   -- 0..100
+  impact_score  integer NOT NULL DEFAULT 50,
+  deadline_at   timestamptz,
+  client_risk   boolean NOT NULL DEFAULT false,
+  next_action   text,                          -- human-readable "do this"
+  next_action_owner text,
+  status        public.engine_exception_status NOT NULL DEFAULT 'open',
+  resolved_by   text,
+  resolved_at   timestamptz,
+  resolution_note text,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+
+GRANT SELECT, INSERT, UPDATE ON public.engine_business_engine_exceptions TO authenticated;
+GRANT ALL ON public.engine_business_engine_exceptions TO service_role;
+
+ALTER TABLE public.engine_business_engine_exceptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Staff read engine exceptions"
+  ON public.engine_business_engine_exceptions FOR SELECT TO authenticated
+  USING (public.is_engine_staff());
+CREATE POLICY "Staff write engine exceptions"
+  ON public.engine_business_engine_exceptions FOR ALL TO authenticated
+  USING (public.is_engine_staff()) WITH CHECK (public.is_engine_staff());
+
+CREATE INDEX idx_exceptions_status ON public.engine_business_engine_exceptions(status);
+CREATE INDEX idx_exceptions_severity ON public.engine_business_engine_exceptions(severity);
+CREATE INDEX idx_exceptions_project ON public.engine_business_engine_exceptions(project_id);
+CREATE INDEX idx_exceptions_deadline ON public.engine_business_engine_exceptions(deadline_at);
+
+CREATE TRIGGER touch_engine_business_engine_exceptions
+  BEFORE UPDATE ON public.engine_business_engine_exceptions
+  FOR EACH ROW EXECUTE FUNCTION public.tg_touch_updated_at();
+```
+
+### 5. Governance gates on engines
+
+**Rules.**
+- Engine transitioning `draft → proposed` allowed by any staff.
+- `proposed → approved` requires the project's Point A **and** Point B to be `approved_truth` (reuses Phase 2 gate).
+- `approved → active` requires an `approved_at` timestamp and non-null `owner_email`.
+- Engine runs never publish to portal directly. Publish path stays through `publish_portal_roadmap` RPC. Engines produce **proposals** (rows in `engine_project_chat_proposals`) that must pass the existing approval flow before affecting portal state.
+- Scope changes to selected `engine_milestone_solutions` (touching `investment_estimate_cents`, `depends_on_*`, or promoting a new `selected`) require a chat proposal or a `spine_field_changed` audit row.
+
+```sql
+CREATE OR REPLACE FUNCTION public.tg_engine_business_engines_gate()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  point_a_ok boolean;
+  point_b_ok boolean;
+BEGIN
+  IF NEW.status = 'approved' AND (OLD.status IS DISTINCT FROM 'approved') THEN
+    -- Reuse Phase 2 truth model
+    SELECT EXISTS (
+      SELECT 1 FROM public.engine_spine_field_truth
+       WHERE project_id = NEW.project_id
+         AND field_key = 'point_a'
+         AND epistemic_status = 'approved_truth'
+    ) INTO point_a_ok;
+    SELECT EXISTS (
+      SELECT 1 FROM public.engine_spine_field_truth
+       WHERE project_id = NEW.project_id
+         AND field_key = 'point_b'
+         AND epistemic_status = 'approved_truth'
+    ) INTO point_b_ok;
+    IF NOT (point_a_ok AND point_b_ok) THEN
+      RAISE EXCEPTION 'Cannot approve business engine %: project % missing approved Point A / Point B',
+        NEW.id, NEW.project_id USING ERRCODE = 'check_violation';
+    END IF;
+    IF NEW.approved_at IS NULL THEN NEW.approved_at := now(); END IF;
+    IF NEW.approved_by IS NULL THEN
+      RAISE EXCEPTION 'approved_by required when approving engine %', NEW.id
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+
+  IF NEW.status = 'active' AND (OLD.status IS DISTINCT FROM 'active') THEN
+    IF NEW.approved_at IS NULL OR COALESCE(TRIM(NEW.owner_email),'') = '' THEN
+      RAISE EXCEPTION 'Engine % cannot activate without approved_at and owner_email', NEW.id
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER engine_business_engines_gate
+  BEFORE INSERT OR UPDATE OF status ON public.engine_business_engines
+  FOR EACH ROW EXECUTE FUNCTION public.tg_engine_business_engines_gate();
+```
+
+**AI-self-approval prevention (reuses Phase 9C pattern).**
+
+```sql
+CREATE OR REPLACE FUNCTION public.tg_engine_business_engines_no_self_approve()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.approved_by IS NOT NULL
+     AND NEW.created_by IS NOT NULL
+     AND NEW.approved_by = NEW.created_by
+     AND NEW.created_by ILIKE 'agent:%' THEN
+    RAISE EXCEPTION 'AI-created engine % cannot self-approve (created_by=%, approved_by=%)',
+      NEW.id, NEW.created_by, NEW.approved_by USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER engine_business_engines_no_self_approve
+  BEFORE INSERT OR UPDATE OF approved_by ON public.engine_business_engines
+  FOR EACH ROW EXECUTE FUNCTION public.tg_engine_business_engines_no_self_approve();
+```
+
+Same trigger applied to `engine_milestone_solutions.approved_by`.
+
+### 6. RPC surface (SECURITY DEFINER)
+
+Written after tables land, in a follow-on migration if you want them phased. Included here for review:
+
+- `propose_milestone_solution(_milestone_id, _payload)` → returns solution id.
+- `select_milestone_solution(_solution_id, _reason)` → flips status, supersedes siblings, writes `engine_audit_log`.
+- `activate_business_engine(_engine_id, _owner_email)` → runs the gate, sets `next_run_at` from cadence.
+- `record_engine_run(_engine_id, _cycle_key, _inputs, _outputs, _decisions, _model, _cost_cents, _latency_ms, _evidence_ids)` → inserts a run, updates `last_run_at` / `next_run_at`, generates exceptions per rules.
+- `open_engine_exception(_engine_id, _kind, _summary, _severity, _detail, _deadline_at, _client_risk)`.
+- `resolve_engine_exception(_exception_id, _resolution_note)`.
+- `get_command_center_exceptions(_limit)` → ranked list joining project + engine.
+
+### 7. Application layer (built after migration lands)
+
+- `src/lib/engine-solutions.functions.ts` — proposeMilestoneSolution / selectMilestoneSolution / listSolutionsForMilestone.
+- `src/lib/engine-business-engines.functions.ts` — create/update/activate/pause/archive; list per project.
+- `src/lib/engine-business-engine-runs.functions.ts` — recordRun (thin wrapper), listRunsForEngine, getRun.
+- `src/lib/engine-command-center.functions.ts` — getCommandCenterFeed (calls RPC).
+- `src/routes/engine.projects.$projectId.solutions.tsx` — solutions board per milestone (drill-in via milestone brief).
+- `src/routes/engine.projects.$projectId.engines.tsx` — per-project engine list, add engine, run history drawer.
+- `src/routes/admin.command-center.tsx` — global exception feed sorted by (severity, urgency, deadline, client_risk).
+- Nav wired in `admin.tsx` (top-slot: Command Center) and `WorkspaceHeader` (engines + solutions under existing MORE_SECTIONS).
+
+### 8. Scheduler
+
+- `src/routes/api/public/hooks/engine-tick.ts` — POST endpoint; iterates `engine_business_engines` where `status='active' AND next_run_at <= now()`; for each, either enqueues an openclaw run (if fully automated) or opens a `awaiting_approval` run and a `medium`/`high` exception. Uses `apikey` header pattern per `schedule-jobs-modern`.
+- pg_cron job (installed via `supabase--insert`, not migration): every 5 minutes → hits engine-tick.
+
+### 9. Smoke coverage after apply
+
+- **S1** (solutions): create three candidate solutions on one milestone; promote #2 to `selected`. Expect #1 and #3 unchanged status `candidate`; no prior `selected` existed so no supersede. Then promote #3 → expect #2 flips to `superseded`, #3 becomes `selected`. Unique-selected invariant holds.
+- **S2** (engine gate): try to `UPDATE engine_business_engines SET status='approved'` on a project whose Point B is not approved → expect raise with ERRCODE check_violation.
+- **S3** (engine self-approve): insert with `created_by='agent:captain'` and `approved_by='agent:captain'` → expect raise.
+- **S4** (run seal): insert a run with `status='completed'` + `completed_at=now()`; then UPDATE its `outputs` → expect raise.
+- **S5** (exception feed): open a `critical` exception with `client_risk=true`, another `low`; `get_command_center_exceptions(10)` returns critical first.
+- **S6** (scheduler idempotency): call engine-tick twice within one minute → second call is a no-op (no duplicate cycle_key rows).
+
+### 10. Not in this migration (explicit)
+
+- No portal-visible surface for engines yet. Client sees engine *outputs* only after they land in an approved roadmap version.
+- No cross-project engine sharing. Each engine is scoped to one project.
+- No auto-conversion of existing milestones into engines. Manual promotion via `select_milestone_solution` + operator flag.
+- No parent/child project decomposition — a separate Phase 5 draft.
+
+Status: **PENDING TAI REVIEW — apply-ready.**
