@@ -193,7 +193,10 @@ export const completeProject = createServerFn({ method: "POST" })
   });
 
 // ============================================================
-// prepareDeliveryPackage — v7 publish-only (no client notification)
+// prepareDeliveryPackage — v7 stage-only (staff-side; NOT client-visible)
+// Writes client_portal_roadmaps.status='approved'. Portal SELECT is scoped to
+// status='published', so this row becomes visible only after
+// sendProjectDelivery / publishVersionToPortal flips it via publish_portal_roadmap.
 // ============================================================
 
 export const prepareDeliveryPackage = createServerFn({ method: "POST" })
