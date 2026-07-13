@@ -234,7 +234,7 @@ function EnginesPage() {
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
-  const [openRunId, setOpenRunId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   const { data: enginesData, isLoading } = useQuery({
     queryKey: ["business-engines", projectId],
