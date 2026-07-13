@@ -111,7 +111,7 @@ function CreateEngineForm({ projectId, onCreated }: { projectId: string; onCreat
 }
 
 
-function EngineRow({ engine, readiness, onChange, onOpenRun }: { engine: BusinessEngine; readiness: SpineReadiness | null; onChange: () => void; onOpenRun: (id: string) => void }) {
+function EngineRow({ engine, readiness, onChange, projectId }: { engine: BusinessEngine; readiness: SpineReadiness | null; onChange: () => void; projectId: string }) {
   const [ownerEmail, setOwnerEmail] = useState(engine.owner_email ?? "");
   const [expanded, setExpanded] = useState(false);
   const activateFn = useServerFn(activateBusinessEngine);
