@@ -252,7 +252,18 @@ function EnginesPage() {
 
   const engines = enginesData?.engines ?? [];
   const filtered = useMemo(() => {
-    const f = statusFilter === "all" ? engines : engines.filter(e => e.status === statusFilter);
+    const q = query.trim().toLowerCase();
+    let f = statusFilter === "all" ? engines : engines.filter(e => e.status === statusFilter);
+    if (q) {
+      f = f.filter(e =>
+        (e.name ?? "").toLowerCase().includes(q) ||
+        (e.outcome ?? "").toLowerCase().includes(q) ||
+        (e.kind ?? "").toLowerCase().includes(q) ||
+        (e.status ?? "").toLowerCase().includes(q) ||
+        (e.owner_email ?? "").toLowerCase().includes(q) ||
+        e.project_id.toLowerCase().includes(q),
+      );
+    }
     const sorted = [...f].sort((a, b) => {
       const av = (a[sortKey] ?? "") as string;
       const bv = (b[sortKey] ?? "") as string;
@@ -260,7 +271,7 @@ function EnginesPage() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [engines, statusFilter, sortKey, sortDir]);
+  }, [engines, statusFilter, sortKey, sortDir, query]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
