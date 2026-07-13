@@ -120,6 +120,7 @@ import { Route as EngineProjectsProjectIdImplementationPlanRouteImport } from '.
 import { Route as EngineProjectsProjectIdHiddenAssetsRouteImport } from './routes/engine.projects.$projectId.hidden-assets'
 import { Route as EngineProjectsProjectIdGapMapRouteImport } from './routes/engine.projects.$projectId.gap-map'
 import { Route as EngineProjectsProjectIdFrameBuilderRouteImport } from './routes/engine.projects.$projectId.frame-builder'
+import { Route as EngineProjectsProjectIdFamilyRouteImport } from './routes/engine.projects.$projectId.family'
 import { Route as EngineProjectsProjectIdExtractionRouteImport } from './routes/engine.projects.$projectId.extraction'
 import { Route as EngineProjectsProjectIdEvidenceRouteImport } from './routes/engine.projects.$projectId.evidence'
 import { Route as EngineProjectsProjectIdEnginesRouteImport } from './routes/engine.projects.$projectId.engines'
@@ -729,6 +730,12 @@ const EngineProjectsProjectIdFrameBuilderRoute =
     path: '/frame-builder',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdFamilyRoute =
+  EngineProjectsProjectIdFamilyRouteImport.update({
+    id: '/family',
+    path: '/family',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdExtractionRoute =
   EngineProjectsProjectIdExtractionRouteImport.update({
     id: '/extraction',
@@ -954,6 +961,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
+  '/engine/projects/$projectId/family': typeof EngineProjectsProjectIdFamilyRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
   '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
   '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
@@ -1082,6 +1090,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
+  '/engine/projects/$projectId/family': typeof EngineProjectsProjectIdFamilyRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
   '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
   '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
@@ -1217,6 +1226,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
+  '/engine/projects/$projectId/family': typeof EngineProjectsProjectIdFamilyRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
   '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
   '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
@@ -1351,6 +1361,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/extraction'
+    | '/engine/projects/$projectId/family'
     | '/engine/projects/$projectId/frame-builder'
     | '/engine/projects/$projectId/gap-map'
     | '/engine/projects/$projectId/hidden-assets'
@@ -1479,6 +1490,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/extraction'
+    | '/engine/projects/$projectId/family'
     | '/engine/projects/$projectId/frame-builder'
     | '/engine/projects/$projectId/gap-map'
     | '/engine/projects/$projectId/hidden-assets'
@@ -1613,6 +1625,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/extraction'
+    | '/engine/projects/$projectId/family'
     | '/engine/projects/$projectId/frame-builder'
     | '/engine/projects/$projectId/gap-map'
     | '/engine/projects/$projectId/hidden-assets'
@@ -2469,6 +2482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdFrameBuilderRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/family': {
+      id: '/engine/projects/$projectId/family'
+      path: '/family'
+      fullPath: '/engine/projects/$projectId/family'
+      preLoaderRoute: typeof EngineProjectsProjectIdFamilyRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/extraction': {
       id: '/engine/projects/$projectId/extraction'
       path: '/extraction'
@@ -2755,6 +2775,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdEnginesRoute: typeof EngineProjectsProjectIdEnginesRouteWithChildren
   EngineProjectsProjectIdEvidenceRoute: typeof EngineProjectsProjectIdEvidenceRoute
   EngineProjectsProjectIdExtractionRoute: typeof EngineProjectsProjectIdExtractionRoute
+  EngineProjectsProjectIdFamilyRoute: typeof EngineProjectsProjectIdFamilyRoute
   EngineProjectsProjectIdFrameBuilderRoute: typeof EngineProjectsProjectIdFrameBuilderRoute
   EngineProjectsProjectIdGapMapRoute: typeof EngineProjectsProjectIdGapMapRoute
   EngineProjectsProjectIdHiddenAssetsRoute: typeof EngineProjectsProjectIdHiddenAssetsRoute
@@ -2803,6 +2824,7 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdEvidenceRoute: EngineProjectsProjectIdEvidenceRoute,
     EngineProjectsProjectIdExtractionRoute:
       EngineProjectsProjectIdExtractionRoute,
+    EngineProjectsProjectIdFamilyRoute: EngineProjectsProjectIdFamilyRoute,
     EngineProjectsProjectIdFrameBuilderRoute:
       EngineProjectsProjectIdFrameBuilderRoute,
     EngineProjectsProjectIdGapMapRoute: EngineProjectsProjectIdGapMapRoute,
