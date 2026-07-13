@@ -60,11 +60,11 @@ export const createChildProject = createServerFn({ method: "POST" })
       throw new Error("Child project must share the parent's client_id");
     }
 
-    const insertPayload: Record<string, unknown> = {
+    const insertPayload: any = {
       name: data.name,
       client_id: clientId,
       parent_project_id: data.parentProjectId,
-      status: "planning" as const,
+      status: "planning",
     };
     if (data.projectKind) insertPayload.project_kind = data.projectKind;
     if (data.deliveryMode) insertPayload.delivery_mode = data.deliveryMode;

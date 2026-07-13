@@ -141,15 +141,15 @@ export async function fetchAncestryChain(sb: Sb, projectId: string): Promise<Arr
   const chain: Array<{ id: string; name: string; status: string }> = [];
   let currentId: string | null = projectId;
   for (let i = 0; i < 32 && currentId; i++) {
-    const { data, error } = await sb
+    const res: { data: any; error: any } = await sb
       .from("engine_projects")
       .select("id,name,status,parent_project_id")
       .eq("id", currentId)
       .maybeSingle();
-    if (error) throw new Error(`ancestry chain failed: ${error.message}`);
-    if (!data) break;
-    chain.unshift({ id: data.id, name: data.name, status: data.status });
-    currentId = (data.parent_project_id as string | null) ?? null;
+    if (res.error) throw new Error(`ancestry chain failed: ${res.error.message}`);
+    if (!res.data) break;
+    chain.unshift({ id: res.data.id, name: res.data.name, status: res.data.status });
+    currentId = (res.data.parent_project_id as string | null) ?? null;
   }
   return chain;
 }
@@ -164,13 +164,13 @@ export async function wouldCreateCycle(
   if (projectId === candidateAncestorId) return true;
   let currentId: string | null = candidateAncestorId;
   for (let i = 0; i < 32 && currentId; i++) {
-    const { data } = await sb
+    const res: { data: any } = await sb
       .from("engine_projects")
       .select("parent_project_id")
       .eq("id", currentId)
       .maybeSingle();
-    if (!data) return false;
-    const parent = (data.parent_project_id as string | null) ?? null;
+    if (!res.data) return false;
+    const parent = (res.data.parent_project_id as string | null) ?? null;
     if (parent === projectId) return true;
     currentId = parent;
   }
