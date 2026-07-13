@@ -337,7 +337,7 @@ function EnginesPage() {
             engine={e}
             readiness={readinessData?.readiness ?? null}
             onChange={refresh}
-            onOpenRun={setOpenRunId}
+            projectId={projectId}
           />
         ))}
         {!isLoading && pageItems.length === 0 && (
