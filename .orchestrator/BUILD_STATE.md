@@ -89,11 +89,9 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 
 ## 🎉 ALL PHASES COMPLETE
 
-Every phase in the queue is either COMPLETE, BLOCKED (4B — pending Tai migration review), or PENDING_TAI (9C — migration spec written, awaiting Tai approval before DB change).
+Every phase in the queue is COMPLETE. Governance Hardening Phase 4 (G1 provenance trigger + fail-closed guard + portal-safe helpers + expanded approval gates) applied and smoke-verified on 2026-07-13.
 
-**Remaining human gates:**
-1. **Phase 4B** — `engine_spine_versions` migration in `.orchestrator/PENDING_MIGRATIONS.md` — needs Tai review + apply before Spine Governance UI activates.
-2. **Phase 9C** — AI Self-Assessment DB constraint migration in `.orchestrator/PENDING_MIGRATIONS.md` — needs Tai review + apply.
+**No remaining human gates.** Pending migration items in `.orchestrator/PENDING_MIGRATIONS.md` for 4B/9C were resolved in-line (4B without new table; 9C constraints applied 2026-07-12).
 
 ---
 
