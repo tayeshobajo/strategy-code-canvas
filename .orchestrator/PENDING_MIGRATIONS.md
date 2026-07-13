@@ -1732,6 +1732,10 @@ DROP FUNCTION IF EXISTS public.tg_client_portal_roadmaps_status_transition();
 DROP FUNCTION IF EXISTS public.tg_client_portal_roadmaps_validate_lineage();
 DROP FUNCTION IF EXISTS public.jsonb_contains_banned_key(jsonb, text[]);
 
+DROP TRIGGER IF EXISTS tg_client_portal_publish_events_validate_refs
+  ON public.client_portal_publish_events;
+DROP FUNCTION IF EXISTS public.tg_client_portal_publish_events_validate_refs();
+
 DROP TABLE IF EXISTS public.client_portal_publish_events;
 DROP INDEX IF EXISTS public.client_portal_roadmaps_one_published_per_project;
 
