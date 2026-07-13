@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getProjectWorkspace } from "@/lib/engine.functions";
@@ -72,7 +72,16 @@ function WorkspaceLayout() {
           clientName={workspace.project.client_company}
           stepLabel={currentStep}
         />
-        <WorkspaceToolbar projectId={projectId} project={workspace.project} />
+        <div className="flex items-center gap-2">
+          <Link
+            to="/engine/projects/$projectId/family"
+            params={{ projectId }}
+            className="rounded-md border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs text-[#0A0F1F] hover:bg-[#FBF9F4]"
+          >
+            Family
+          </Link>
+          <WorkspaceToolbar projectId={projectId} project={workspace.project} />
+        </div>
       </div>
       <ProjectHeaderStrip project={workspace.project} />
       <WorkspaceStepper
