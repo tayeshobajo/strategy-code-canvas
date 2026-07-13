@@ -591,6 +591,91 @@ export type Database = {
         }
         Relationships: []
       }
+      client_portal_publish_events: {
+        Row: {
+          actor_email: string
+          created_at: string
+          diff: Json
+          engine_project_id: string
+          engine_version_id: string | null
+          event_type: string
+          id: string
+          portal_project_id: string
+          portal_roadmap_id: string
+          previous_portal_roadmap_id: string | null
+          summary: string | null
+        }
+        Insert: {
+          actor_email: string
+          created_at?: string
+          diff?: Json
+          engine_project_id: string
+          engine_version_id?: string | null
+          event_type: string
+          id?: string
+          portal_project_id: string
+          portal_roadmap_id: string
+          previous_portal_roadmap_id?: string | null
+          summary?: string | null
+        }
+        Update: {
+          actor_email?: string
+          created_at?: string
+          diff?: Json
+          engine_project_id?: string
+          engine_version_id?: string | null
+          event_type?: string
+          id?: string
+          portal_project_id?: string
+          portal_roadmap_id?: string
+          previous_portal_roadmap_id?: string | null
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_publish_events_portal_project_id_fkey"
+            columns: ["portal_project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_publish_events_portal_project_id_fkey"
+            columns: ["portal_project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_publish_events_portal_roadmap_id_fkey"
+            columns: ["portal_roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_roadmaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_publish_events_portal_roadmap_id_fkey"
+            columns: ["portal_roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "portal_roadmaps_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_publish_events_previous_portal_roadmap_id_fkey"
+            columns: ["previous_portal_roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_roadmaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_publish_events_previous_portal_roadmap_id_fkey"
+            columns: ["previous_portal_roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "portal_roadmaps_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_portal_roadmaps: {
         Row: {
           acknowledged_at: string | null
@@ -609,10 +694,15 @@ export type Database = {
           one_pager_file_id: string | null
           owner_name: string | null
           pdf_file_id: string | null
+          previous_publication_id: string | null
           project_id: string
+          publish_diff: Json
           published_at: string | null
           published_by: string | null
           recommended_next_move: string | null
+          retracted_at: string | null
+          retracted_by: string | null
+          retraction_reason: string | null
           risks_dependencies: Json
           roadmap_document_id: string | null
           sequence_30_60_90: Json
@@ -644,10 +734,15 @@ export type Database = {
           one_pager_file_id?: string | null
           owner_name?: string | null
           pdf_file_id?: string | null
+          previous_publication_id?: string | null
           project_id: string
+          publish_diff?: Json
           published_at?: string | null
           published_by?: string | null
           recommended_next_move?: string | null
+          retracted_at?: string | null
+          retracted_by?: string | null
+          retraction_reason?: string | null
           risks_dependencies?: Json
           roadmap_document_id?: string | null
           sequence_30_60_90?: Json
@@ -679,10 +774,15 @@ export type Database = {
           one_pager_file_id?: string | null
           owner_name?: string | null
           pdf_file_id?: string | null
+          previous_publication_id?: string | null
           project_id?: string
+          publish_diff?: Json
           published_at?: string | null
           published_by?: string | null
           recommended_next_move?: string | null
+          retracted_at?: string | null
+          retracted_by?: string | null
+          retraction_reason?: string | null
           risks_dependencies?: Json
           roadmap_document_id?: string | null
           sequence_30_60_90?: Json
@@ -724,6 +824,20 @@ export type Database = {
             columns: ["pdf_file_id"]
             isOneToOne: false
             referencedRelation: "portal_files_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_previous_publication_id_fkey"
+            columns: ["previous_publication_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_roadmaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_roadmaps_previous_publication_id_fkey"
+            columns: ["previous_publication_id"]
+            isOneToOne: false
+            referencedRelation: "portal_roadmaps_v"
             referencedColumns: ["id"]
           },
           {
@@ -5198,6 +5312,10 @@ export type Database = {
         Returns: string[]
       }
       is_engine_staff: { Args: never; Returns: boolean }
+      jsonb_contains_banned_key: {
+        Args: { banned: string[]; doc: Json }
+        Returns: string
+      }
       log_client_portal_activity: {
         Args: {
           _actor_email: string
