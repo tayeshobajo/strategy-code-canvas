@@ -1273,6 +1273,283 @@ export type Database = {
           },
         ]
       }
+      engine_business_engine_exceptions: {
+        Row: {
+          client_risk: boolean
+          created_at: string
+          deadline_at: string | null
+          detail: Json
+          engine_id: string | null
+          id: string
+          impact_score: number
+          kind: string
+          next_action: string | null
+          next_action_owner: string | null
+          project_id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          run_id: string | null
+          severity: Database["public"]["Enums"]["engine_exception_severity"]
+          status: Database["public"]["Enums"]["engine_exception_status"]
+          summary: string
+          updated_at: string
+          urgency_score: number
+        }
+        Insert: {
+          client_risk?: boolean
+          created_at?: string
+          deadline_at?: string | null
+          detail?: Json
+          engine_id?: string | null
+          id?: string
+          impact_score?: number
+          kind: string
+          next_action?: string | null
+          next_action_owner?: string | null
+          project_id: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_id?: string | null
+          severity?: Database["public"]["Enums"]["engine_exception_severity"]
+          status?: Database["public"]["Enums"]["engine_exception_status"]
+          summary: string
+          updated_at?: string
+          urgency_score?: number
+        }
+        Update: {
+          client_risk?: boolean
+          created_at?: string
+          deadline_at?: string | null
+          detail?: Json
+          engine_id?: string | null
+          id?: string
+          impact_score?: number
+          kind?: string
+          next_action?: string | null
+          next_action_owner?: string | null
+          project_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_id?: string | null
+          severity?: Database["public"]["Enums"]["engine_exception_severity"]
+          status?: Database["public"]["Enums"]["engine_exception_status"]
+          summary?: string
+          updated_at?: string
+          urgency_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_business_engine_exceptions_engine_id_fkey"
+            columns: ["engine_id"]
+            isOneToOne: false
+            referencedRelation: "engine_business_engines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_business_engine_exceptions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_business_engine_exceptions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "engine_business_engine_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_business_engine_runs: {
+        Row: {
+          actor_email: string | null
+          approval_ids: string[]
+          completed_at: string | null
+          cost_cents: number | null
+          created_at: string
+          cycle_key: string
+          decisions: Json
+          engine_id: string
+          error: string | null
+          evidence_ids: string[]
+          id: string
+          inputs: Json
+          latency_ms: number | null
+          model: string | null
+          outputs: Json
+          project_id: string
+          proposal_ids: string[]
+          scheduled_for: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["engine_run_status"]
+          tokens_input: number | null
+          tokens_output: number | null
+        }
+        Insert: {
+          actor_email?: string | null
+          approval_ids?: string[]
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string
+          cycle_key: string
+          decisions?: Json
+          engine_id: string
+          error?: string | null
+          evidence_ids?: string[]
+          id?: string
+          inputs?: Json
+          latency_ms?: number | null
+          model?: string | null
+          outputs?: Json
+          project_id: string
+          proposal_ids?: string[]
+          scheduled_for: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["engine_run_status"]
+          tokens_input?: number | null
+          tokens_output?: number | null
+        }
+        Update: {
+          actor_email?: string | null
+          approval_ids?: string[]
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string
+          cycle_key?: string
+          decisions?: Json
+          engine_id?: string
+          error?: string | null
+          evidence_ids?: string[]
+          id?: string
+          inputs?: Json
+          latency_ms?: number | null
+          model?: string | null
+          outputs?: Json
+          project_id?: string
+          proposal_ids?: string[]
+          scheduled_for?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["engine_run_status"]
+          tokens_input?: number | null
+          tokens_output?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_business_engine_runs_engine_id_fkey"
+            columns: ["engine_id"]
+            isOneToOne: false
+            referencedRelation: "engine_business_engines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_business_engine_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_business_engines: {
+        Row: {
+          approval_rules: Json
+          approved_at: string | null
+          approved_by: string | null
+          cadence: Database["public"]["Enums"]["business_engine_cadence"]
+          created_at: string
+          created_by: string | null
+          cron_expression: string | null
+          exception_rules: Json
+          id: string
+          kind: Database["public"]["Enums"]["business_engine_kind"]
+          last_run_at: string | null
+          metadata: Json
+          metrics: Json
+          milestone_id: string | null
+          missed_cycles: number
+          name: string
+          next_run_at: string | null
+          outcome: string
+          owner_email: string | null
+          project_id: string
+          status: Database["public"]["Enums"]["business_engine_status"]
+          triggers: Json
+          updated_at: string
+          workflow: Json
+        }
+        Insert: {
+          approval_rules?: Json
+          approved_at?: string | null
+          approved_by?: string | null
+          cadence?: Database["public"]["Enums"]["business_engine_cadence"]
+          created_at?: string
+          created_by?: string | null
+          cron_expression?: string | null
+          exception_rules?: Json
+          id?: string
+          kind: Database["public"]["Enums"]["business_engine_kind"]
+          last_run_at?: string | null
+          metadata?: Json
+          metrics?: Json
+          milestone_id?: string | null
+          missed_cycles?: number
+          name: string
+          next_run_at?: string | null
+          outcome: string
+          owner_email?: string | null
+          project_id: string
+          status?: Database["public"]["Enums"]["business_engine_status"]
+          triggers?: Json
+          updated_at?: string
+          workflow?: Json
+        }
+        Update: {
+          approval_rules?: Json
+          approved_at?: string | null
+          approved_by?: string | null
+          cadence?: Database["public"]["Enums"]["business_engine_cadence"]
+          created_at?: string
+          created_by?: string | null
+          cron_expression?: string | null
+          exception_rules?: Json
+          id?: string
+          kind?: Database["public"]["Enums"]["business_engine_kind"]
+          last_run_at?: string | null
+          metadata?: Json
+          metrics?: Json
+          milestone_id?: string | null
+          missed_cycles?: number
+          name?: string
+          next_run_at?: string | null
+          outcome?: string
+          owner_email?: string | null
+          project_id?: string
+          status?: Database["public"]["Enums"]["business_engine_status"]
+          triggers?: Json
+          updated_at?: string
+          workflow?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_business_engines_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "engine_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_business_engines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_change_events: {
         Row: {
           affected_module: string | null
@@ -1828,6 +2105,87 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "engine_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_milestone_solutions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          assumptions: Json
+          created_at: string
+          created_by: string | null
+          depends_on_milestone_ids: string[]
+          depends_on_solution_ids: string[]
+          effort_estimate: string | null
+          evidence_source_ids: string[]
+          id: string
+          investment_estimate_cents: number | null
+          metadata: Json
+          milestone_id: string
+          project_id: string
+          rationale: string | null
+          status: Database["public"]["Enums"]["milestone_solution_status"]
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assumptions?: Json
+          created_at?: string
+          created_by?: string | null
+          depends_on_milestone_ids?: string[]
+          depends_on_solution_ids?: string[]
+          effort_estimate?: string | null
+          evidence_source_ids?: string[]
+          id?: string
+          investment_estimate_cents?: number | null
+          metadata?: Json
+          milestone_id: string
+          project_id: string
+          rationale?: string | null
+          status?: Database["public"]["Enums"]["milestone_solution_status"]
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assumptions?: Json
+          created_at?: string
+          created_by?: string | null
+          depends_on_milestone_ids?: string[]
+          depends_on_solution_ids?: string[]
+          effort_estimate?: string | null
+          evidence_source_ids?: string[]
+          id?: string
+          investment_estimate_cents?: number | null
+          metadata?: Json
+          milestone_id?: string
+          project_id?: string
+          rationale?: string | null
+          status?: Database["public"]["Enums"]["milestone_solution_status"]
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_milestone_solutions_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "engine_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_milestone_solutions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -5429,10 +5787,32 @@ export type Database = {
         Args: { _project_id: string; _spine: string }
         Returns: string[]
       }
+      spine_points_approved: { Args: { _project_id: string }; Returns: Json }
       sync_client_access_user: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "operator" | "user" | "team_member"
+      business_engine_cadence:
+        | "daily"
+        | "weekly"
+        | "biweekly"
+        | "monthly"
+        | "quarterly"
+        | "ad_hoc"
+      business_engine_kind:
+        | "content_authority"
+        | "lead_followup"
+        | "review_reputation"
+        | "client_success"
+        | "founder_rhythm"
+        | "custom"
+      business_engine_status:
+        | "draft"
+        | "proposed"
+        | "approved"
+        | "active"
+        | "paused"
+        | "archived"
       engine_agent_permission:
         | "draft_only"
         | "propose_updates"
@@ -5463,6 +5843,12 @@ export type Database = {
         | "investment_impact"
         | "client_copy_affected"
       engine_delivery_mode: "internal_only" | "client_portal_required"
+      engine_exception_severity: "low" | "medium" | "high" | "critical"
+      engine_exception_status:
+        | "open"
+        | "acknowledged"
+        | "resolved"
+        | "dismissed"
       engine_extraction_run_status:
         | "pending"
         | "running"
@@ -5480,6 +5866,13 @@ export type Database = {
         | "blocked"
         | "archived"
         | "completed"
+      engine_run_status:
+        | "scheduled"
+        | "running"
+        | "awaiting_approval"
+        | "completed"
+        | "failed"
+        | "skipped"
       engine_signal_category:
         | "goal"
         | "pain"
@@ -5527,6 +5920,12 @@ export type Database = {
         | "needs_confirmation"
         | "verified"
         | "approved_truth"
+      milestone_solution_status:
+        | "candidate"
+        | "selected"
+        | "deferred"
+        | "rejected"
+        | "superseded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5655,6 +6054,30 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "operator", "user", "team_member"],
+      business_engine_cadence: [
+        "daily",
+        "weekly",
+        "biweekly",
+        "monthly",
+        "quarterly",
+        "ad_hoc",
+      ],
+      business_engine_kind: [
+        "content_authority",
+        "lead_followup",
+        "review_reputation",
+        "client_success",
+        "founder_rhythm",
+        "custom",
+      ],
+      business_engine_status: [
+        "draft",
+        "proposed",
+        "approved",
+        "active",
+        "paused",
+        "archived",
+      ],
       engine_agent_permission: [
         "draft_only",
         "propose_updates",
@@ -5689,6 +6112,13 @@ export const Constants = {
         "client_copy_affected",
       ],
       engine_delivery_mode: ["internal_only", "client_portal_required"],
+      engine_exception_severity: ["low", "medium", "high", "critical"],
+      engine_exception_status: [
+        "open",
+        "acknowledged",
+        "resolved",
+        "dismissed",
+      ],
       engine_extraction_run_status: [
         "pending",
         "running",
@@ -5707,6 +6137,14 @@ export const Constants = {
         "blocked",
         "archived",
         "completed",
+      ],
+      engine_run_status: [
+        "scheduled",
+        "running",
+        "awaiting_approval",
+        "completed",
+        "failed",
+        "skipped",
       ],
       engine_signal_category: [
         "goal",
@@ -5759,6 +6197,13 @@ export const Constants = {
         "needs_confirmation",
         "verified",
         "approved_truth",
+      ],
+      milestone_solution_status: [
+        "candidate",
+        "selected",
+        "deferred",
+        "rejected",
+        "superseded",
       ],
     },
   },
