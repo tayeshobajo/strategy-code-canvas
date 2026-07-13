@@ -3137,38 +3137,56 @@ BEFORE INSERT OR UPDATE ON public.engine_spine_field_truth
 FOR EACH ROW EXECUTE FUNCTION public.tg_engine_spine_field_truth_provenance();
 ```
 
+**Executable migration order (Revision 2.1).** The SQL blocks in this document are grouped by concern for readability, but the actual migration file MUST execute in this order inside a single transaction:
+
+1. **Enumerate** legacy `approved_truth` rows (Step 1 query below) — run out-of-band, review results with Tai.
+2. **Remediate** each offending row (Step 2) — attach a real ceremony+decision, re-stamp as compliant `operator_override`, or demote to `verified`.
+3. **Fail-closed guard** (Step 3 `DO $guard$` block) — aborts the transaction if any invalid row remains.
+4. `CREATE OR REPLACE FUNCTION public.tg_engine_spine_field_truth_provenance()` (function body shown above).
+5. `DROP TRIGGER IF EXISTS ...` then `CREATE TRIGGER trg_engine_spine_field_truth_provenance ...`.
+
+Do **not** place the `CREATE TRIGGER` before the guard in the migration file — the guard must be the last statement before trigger install so no window exists where the trigger is armed against legacy bad rows.
+
 **Pre-install backfill (mandatory).** Run BEFORE creating the trigger.
 
-Step 1 — enumerate offending rows for human review and remediation:
+Step 1 — enumerate offending rows for human review and remediation. The ceremony branch mirrors the trigger predicate exactly (ceremony exists, same `project_id`, same `spine`, `status='completed'`, and a matching `engine_spine_ceremony_decisions` row for `(ceremony_id, project_id, spine, field_key, new_status='approved_truth')`):
 
 ```sql
-SELECT id, project_id, spine, field_key, updated_by_actor, updated_by_email,
-       ceremony_id, source_ref
-  FROM public.engine_spine_field_truth
- WHERE status = 'approved_truth'
+SELECT t.id, t.project_id, t.spine, t.field_key, t.updated_by_actor, t.updated_by_email,
+       t.ceremony_id, t.source_ref
+  FROM public.engine_spine_field_truth t
+ WHERE t.status = 'approved_truth'
    AND (
-        updated_by_actor IS DISTINCT FROM 'human'
-     OR (ceremony_id IS NULL AND COALESCE(source_ref->>'kind','') <> 'operator_override')
-     OR (ceremony_id IS NOT NULL AND NOT EXISTS (
-           SELECT 1 FROM public.engine_spine_ceremony_decisions d
-            WHERE d.ceremony_id = engine_spine_field_truth.ceremony_id
-              AND d.field_key   = engine_spine_field_truth.field_key
+        t.updated_by_actor IS DISTINCT FROM 'human'
+     OR (t.ceremony_id IS NULL AND COALESCE(t.source_ref->>'kind','') <> 'operator_override')
+     OR (t.ceremony_id IS NOT NULL AND NOT EXISTS (
+           SELECT 1
+             FROM public.engine_spine_ceremonies c
+             JOIN public.engine_spine_ceremony_decisions d
+               ON d.ceremony_id = c.id
+            WHERE c.id          = t.ceremony_id
+              AND c.project_id  = t.project_id
+              AND c.spine       = t.spine
+              AND c.status      = 'completed'
+              AND d.project_id  = t.project_id
+              AND d.spine       = t.spine
+              AND d.field_key   = t.field_key
               AND d.new_status  = 'approved_truth'))
-     OR (ceremony_id IS NULL
-         AND COALESCE(source_ref->>'kind','') = 'operator_override'
+     OR (t.ceremony_id IS NULL
+         AND COALESCE(t.source_ref->>'kind','') = 'operator_override'
          AND (
-              COALESCE(lower(source_ref->>'operator_email'),'') <> COALESCE(lower(updated_by_email),'')
-           OR COALESCE(btrim(source_ref->>'reason'),'') = ''
+              COALESCE(lower(t.source_ref->>'operator_email'),'') <> COALESCE(lower(t.updated_by_email),'')
+           OR COALESCE(btrim(t.source_ref->>'reason'),'') = ''
            OR NOT (
-                public.has_role_email(source_ref->>'operator_email', 'admin'::app_role)
-             OR public.has_role_email(source_ref->>'operator_email', 'operator'::app_role))
+                public.has_role_email(t.source_ref->>'operator_email', 'admin'::app_role)
+             OR public.has_role_email(t.source_ref->>'operator_email', 'operator'::app_role))
          ))
    );
 ```
 
-Step 2 — remediate each offending row (attach a completed ceremony with a matching decision, re-stamp as a compliant `operator_override`, or demote to `verified`). Do **not** ship a bypass.
+Step 2 — remediate each offending row (attach a completed ceremony with a matching decision for the exact `field_key`, re-stamp as a compliant `operator_override`, or demote to `verified`). Do **not** ship a bypass.
 
-Step 3 — **fail-closed guard.** Run this immediately before the `CREATE TRIGGER` statement, in the same migration transaction. If any invalid `approved_truth` row remains, the migration aborts and the trigger is never installed — legacy bad rows can no longer sit quietly behind the new gate:
+Step 3 — **fail-closed guard.** Run this immediately before the `CREATE TRIGGER` statement, in the same migration transaction. Uses the **exact same predicate** as the Step 1 audit query and the runtime trigger (ceremony existence + matching project/spine/status + matching decision, or compliant operator_override with staff role). If any invalid `approved_truth` row remains, the migration aborts and the trigger is never installed:
 
 ```sql
 DO $guard$
@@ -3182,8 +3200,16 @@ BEGIN
           t.updated_by_actor IS DISTINCT FROM 'human'
        OR (t.ceremony_id IS NULL AND COALESCE(t.source_ref->>'kind','') <> 'operator_override')
        OR (t.ceremony_id IS NOT NULL AND NOT EXISTS (
-             SELECT 1 FROM public.engine_spine_ceremony_decisions d
-              WHERE d.ceremony_id = t.ceremony_id
+             SELECT 1
+               FROM public.engine_spine_ceremonies c
+               JOIN public.engine_spine_ceremony_decisions d
+                 ON d.ceremony_id = c.id
+              WHERE c.id          = t.ceremony_id
+                AND c.project_id  = t.project_id
+                AND c.spine       = t.spine
+                AND c.status      = 'completed'
+                AND d.project_id  = t.project_id
+                AND d.spine       = t.spine
                 AND d.field_key   = t.field_key
                 AND d.new_status  = 'approved_truth'))
        OR (t.ceremony_id IS NULL
@@ -3199,7 +3225,7 @@ BEGIN
 
   IF bad_count > 0 THEN
     RAISE EXCEPTION
-      'Phase 4 provenance guard: % legacy approved_truth row(s) fail the trigger predicate. Remediate via Step 1/2 (attach a real ceremony decision, re-stamp as compliant operator_override, or demote to verified) before installing trg_engine_spine_field_truth_provenance.',
+      'Phase 4 provenance guard: % legacy approved_truth row(s) fail the trigger predicate. Remediate via Step 1/2 (attach a real ceremony+decision for the exact field_key, re-stamp as compliant operator_override, or demote to verified) before installing trg_engine_spine_field_truth_provenance.',
       bad_count
       USING ERRCODE = 'check_violation';
   END IF;
@@ -3207,7 +3233,8 @@ END
 $guard$;
 ```
 
-The guard uses the **exact same predicate** as the trigger (human actor + ceremony-with-matching-decision OR operator_override with matching email, non-empty reason, and staff role). No `backfill` exemption.
+The guard's ceremony branch now mirrors the trigger in full: existence, matching `project_id`, matching `spine`, `status='completed'`, and a matching decision row keyed on `(ceremony_id, project_id, spine, field_key, new_status)`. A legacy row pointing at a stale, wrong-project, wrong-spine, non-completed, or decision-less ceremony fails the guard and aborts the migration — it can no longer sit quietly behind the new trigger.
+
 
 ### G1b — Portal caller swap (ship in same release as G1)
 
