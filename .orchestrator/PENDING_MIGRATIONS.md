@@ -2741,38 +2741,168 @@ CREATE TRIGGER touch_engine_business_engine_exceptions
 
 ### 5. Governance gates on engines
 
-**Rules.**
+**Rules (confirmed 2026-07-13).**
 - Engine transitioning `draft → proposed` allowed by any staff.
-- `proposed → approved` requires the project's Point A **and** Point B to be `approved_truth` (reuses Phase 2 gate).
-- `approved → active` requires an `approved_at` timestamp and non-null `owner_email`.
+- `proposed → approved` requires **all** canonical minimum spine fields in `approved_truth`, for **both** Point A and Point B, on this project. No reduced "core subset" — the full canonical minimums (mirroring `POINT_A_BASE_FIELD_KEYS` + dynamic `diagnosis:*` set, and every key in `POINT_B_FIELD_KEYS`).
+- `proposed → approved` also **hard-blocks** when the project has any unresolved contradictions (`engine_extracted_signals.status='contradicted' AND superseded_by IS NULL`, or any `engine_spine_field_truth.status='contradicted'`). Historical/resolved contradictions do not block.
+- `approved → active` requires `approved_at` and non-null `owner_email`.
 - Engine runs never publish to portal directly. Publish path stays through `publish_portal_roadmap` RPC. Engines produce **proposals** (rows in `engine_project_chat_proposals`) that must pass the existing approval flow before affecting portal state.
 - Scope changes to selected `engine_milestone_solutions` (touching `investment_estimate_cents`, `depends_on_*`, or promoting a new `selected`) require a chat proposal or a `spine_field_changed` audit row.
+
+#### 5A. `spine_points_approved(_project_id)` — project-aware readiness helper
+
+The gate MUST resolve required keys the same way ceremony completion does (`internal_spine_field_keys` for point-a + point-b, which enumerates dynamic `diagnosis:*` keys per project). Never hardcode a UI-side list. UI and DB read the exact same field universe from this helper.
+
+```sql
+-- Detailed, project-aware readiness. Returns per-spine status + missing key
+-- lists so the app can tell the user exactly what to close. `ready` is the
+-- single boolean the gate checks; `has_active_contradictions` breaks it out
+-- so the UI can show a distinct "resolve contradictions first" message.
+CREATE OR REPLACE FUNCTION public.spine_points_approved(_project_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  point_a_required text[];
+  point_b_required text[];
+  point_a_missing  text[];
+  point_b_missing  text[];
+  contradictions   boolean;
+  allowed          boolean;
+BEGIN
+  -- Access gate: staff, or a portal member on this project.
+  SELECT public.is_engine_staff()
+      OR EXISTS (
+        SELECT 1
+          FROM public.client_portal_projects cpp
+          JOIN public.client_portal_permissions perm ON perm.project_id = cpp.id
+          JOIN public.engine_projects ep ON ep.client_portal_project_id = cpp.id
+         WHERE ep.id = _project_id
+           AND lower(perm.email) = lower(coalesce(auth.email(), ''))
+           AND perm.revoked_at IS NULL
+      )
+    INTO allowed;
+  IF NOT allowed THEN
+    RAISE EXCEPTION 'Forbidden: access to project % not permitted', _project_id
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  -- Canonical required key sets, project-aware (includes dynamic diagnosis:*).
+  SELECT COALESCE(array_agg(field_key), '{}')
+    INTO point_a_required
+    FROM public.internal_spine_field_keys(_project_id, 'point-a');
+  SELECT COALESCE(array_agg(field_key), '{}')
+    INTO point_b_required
+    FROM public.internal_spine_field_keys(_project_id, 'point-b');
+
+  -- Missing = required minus keys currently at approved_truth.
+  SELECT COALESCE(array_agg(k), '{}')
+    INTO point_a_missing
+    FROM unnest(point_a_required) k
+   WHERE NOT EXISTS (
+     SELECT 1 FROM public.engine_spine_field_truth t
+      WHERE t.project_id = _project_id
+        AND t.spine      = 'point-a'
+        AND t.field_key  = k
+        AND t.status     = 'approved_truth'
+   );
+
+  SELECT COALESCE(array_agg(k), '{}')
+    INTO point_b_missing
+    FROM unnest(point_b_required) k
+   WHERE NOT EXISTS (
+     SELECT 1 FROM public.engine_spine_field_truth t
+      WHERE t.project_id = _project_id
+        AND t.spine      = 'point-b'
+        AND t.field_key  = k
+        AND t.status     = 'approved_truth'
+   );
+
+  -- Active contradictions only (reuses trigger-only internal helper — does
+  -- not check historical/resolved rows, does not bypass access gate above).
+  contradictions := public.internal_project_has_contradictions(_project_id);
+
+  RETURN jsonb_build_object(
+    'ready', (
+      array_length(point_a_missing, 1) IS NULL
+      AND array_length(point_b_missing, 1) IS NULL
+      AND NOT contradictions
+    ),
+    'point_a', jsonb_build_object(
+      'required', to_jsonb(point_a_required),
+      'missing',  to_jsonb(point_a_missing),
+      'approved', array_length(point_a_missing, 1) IS NULL
+    ),
+    'point_b', jsonb_build_object(
+      'required', to_jsonb(point_b_required),
+      'missing',  to_jsonb(point_b_missing),
+      'approved', array_length(point_b_missing, 1) IS NULL
+    ),
+    'has_active_contradictions', contradictions
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.spine_points_approved(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.spine_points_approved(uuid) TO authenticated, service_role;
+```
+
+#### 5B. Approval trigger — uses the helper
 
 ```sql
 CREATE OR REPLACE FUNCTION public.tg_engine_business_engines_gate()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
-  point_a_ok boolean;
-  point_b_ok boolean;
+  readiness jsonb;
 BEGIN
   IF NEW.status = 'approved' AND (OLD.status IS DISTINCT FROM 'approved') THEN
-    -- Reuse Phase 2 truth model
-    SELECT EXISTS (
-      SELECT 1 FROM public.engine_spine_field_truth
-       WHERE project_id = NEW.project_id
-         AND field_key = 'point_a'
-         AND epistemic_status = 'approved_truth'
-    ) INTO point_a_ok;
-    SELECT EXISTS (
-      SELECT 1 FROM public.engine_spine_field_truth
-       WHERE project_id = NEW.project_id
-         AND field_key = 'point_b'
-         AND epistemic_status = 'approved_truth'
-    ) INTO point_b_ok;
-    IF NOT (point_a_ok AND point_b_ok) THEN
-      RAISE EXCEPTION 'Cannot approve business engine %: project % missing approved Point A / Point B',
+    -- Same field universe the UI reads. Uses internal_* helpers so trigger
+    -- context does not need the caller's access grants.
+    readiness := jsonb_build_object(
+      'point_a_missing', (
+        SELECT COALESCE(jsonb_agg(k), '[]'::jsonb)
+          FROM (
+            SELECT field_key AS k
+              FROM public.internal_spine_field_keys(NEW.project_id, 'point-a')
+             WHERE NOT EXISTS (
+               SELECT 1 FROM public.engine_spine_field_truth t
+                WHERE t.project_id = NEW.project_id
+                  AND t.spine      = 'point-a'
+                  AND t.field_key  = field_key
+                  AND t.status     = 'approved_truth'
+             )
+          ) x
+      ),
+      'point_b_missing', (
+        SELECT COALESCE(jsonb_agg(k), '[]'::jsonb)
+          FROM (
+            SELECT field_key AS k
+              FROM public.internal_spine_field_keys(NEW.project_id, 'point-b')
+             WHERE NOT EXISTS (
+               SELECT 1 FROM public.engine_spine_field_truth t
+                WHERE t.project_id = NEW.project_id
+                  AND t.spine      = 'point-b'
+                  AND t.field_key  = field_key
+                  AND t.status     = 'approved_truth'
+             )
+          ) x
+      ),
+      'contradictions', public.internal_project_has_contradictions(NEW.project_id)
+    );
+
+    IF (readiness->>'contradictions')::boolean THEN
+      RAISE EXCEPTION 'Cannot approve engine %: project % has unresolved contradictions',
         NEW.id, NEW.project_id USING ERRCODE = 'check_violation';
     END IF;
+
+    IF jsonb_array_length(readiness->'point_a_missing') > 0
+       OR jsonb_array_length(readiness->'point_b_missing') > 0 THEN
+      RAISE EXCEPTION 'Cannot approve engine %: spine not fully approved. Missing %',
+        NEW.id, readiness USING ERRCODE = 'check_violation';
+    END IF;
+
     IF NEW.approved_at IS NULL THEN NEW.approved_at := now(); END IF;
     IF NEW.approved_by IS NULL THEN
       RAISE EXCEPTION 'approved_by required when approving engine %', NEW.id
@@ -2819,6 +2949,15 @@ CREATE TRIGGER engine_business_engines_no_self_approve
 ```
 
 Same trigger applied to `engine_milestone_solutions.approved_by`.
+
+#### 5C. App-layer contract for the readiness helper
+
+- `src/lib/engine-spine-readiness.functions.ts` — thin `createServerFn` wrapper around `spine_points_approved`. Returns the raw jsonb shape unchanged.
+- Engines UI ("Approve engine" button) calls this before submitting, disables the action when `ready=false`, and renders the exact missing keys per spine plus an active-contradictions banner. The DB trigger is the enforcement backstop.
+- Smoke test S2 is rewritten to assert:
+  - S2a — Missing one canonical Point B key ⇒ approval raises with the missing key list in the message.
+  - S2b — All canonical keys approved but one contradicted signal ⇒ approval raises with "unresolved contradictions".
+  - S2c — All canonical keys approved and no contradictions ⇒ approval succeeds.
 
 ### 6. RPC surface (SECURITY DEFINER)
 
