@@ -990,6 +990,20 @@ export type Database = {
             foreignKeyName: "engine_activity_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -1059,6 +1073,20 @@ export type Database = {
             foreignKeyName: "engine_agent_costs_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_agent_costs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_agent_costs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -1112,6 +1140,20 @@ export type Database = {
           warning_threshold_pct?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_agent_permissions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_agent_permissions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_agent_permissions_project_id_fkey"
             columns: ["project_id"]
@@ -1202,6 +1244,20 @@ export type Database = {
             foreignKeyName: "engine_agent_tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_agent_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_agent_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -1264,6 +1320,20 @@ export type Database = {
           version_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_audit_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_audit_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_audit_log_project_id_fkey"
             columns: ["project_id"]
@@ -1347,6 +1417,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_business_engines"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_business_engine_exceptions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_business_engine_exceptions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_business_engine_exceptions_project_id_fkey"
@@ -1449,6 +1533,20 @@ export type Database = {
             foreignKeyName: "engine_business_engine_runs_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_business_engine_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_business_engine_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -1545,6 +1643,20 @@ export type Database = {
             foreignKeyName: "engine_business_engines_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_business_engines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_business_engines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -1594,6 +1706,20 @@ export type Database = {
           version_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_change_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_change_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_change_events_project_id_fkey"
             columns: ["project_id"]
@@ -1777,6 +1903,20 @@ export type Database = {
             foreignKeyName: "engine_delivery_items_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_delivery_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_delivery_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -1844,6 +1984,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_extraction_runs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_extracted_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_extracted_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_extracted_signals_project_id_fkey"
@@ -1948,6 +2102,20 @@ export type Database = {
             foreignKeyName: "engine_extraction_runs_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_extraction_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_extraction_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -2004,6 +2172,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_intelligence_memory"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_intelligence_decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_intelligence_decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_intelligence_decisions_project_id_fkey"
@@ -2085,6 +2267,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_milestones"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_intelligence_memory_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_intelligence_memory_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_intelligence_memory_project_id_fkey"
@@ -2180,6 +2376,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_milestones"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_milestone_solutions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_milestone_solutions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_milestone_solutions_project_id_fkey"
@@ -2298,6 +2508,20 @@ export type Database = {
             foreignKeyName: "engine_milestones_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -2367,6 +2591,20 @@ export type Database = {
             foreignKeyName: "engine_project_agents_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_agents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_agents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -2419,6 +2657,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_project_artifacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_artifacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_project_artifacts_project_id_fkey"
             columns: ["project_id"]
@@ -2509,6 +2761,20 @@ export type Database = {
             foreignKeyName: "engine_project_backend_plans_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_backend_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_backend_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -2558,6 +2824,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_project_build_packets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_build_evidence_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_build_evidence_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_project_build_evidence_project_id_fkey"
@@ -2650,6 +2930,20 @@ export type Database = {
             foreignKeyName: "engine_project_build_packets_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_build_packets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_build_packets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -2721,6 +3015,20 @@ export type Database = {
             foreignKeyName: "engine_project_chat_events_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_chat_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_chat_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -2755,6 +3063,20 @@ export type Database = {
           thread_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_project_chat_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_chat_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_project_chat_messages_project_id_fkey"
             columns: ["project_id"]
@@ -2825,6 +3147,20 @@ export type Database = {
             foreignKeyName: "engine_project_chat_proposals_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_chat_proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_chat_proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -2874,6 +3210,20 @@ export type Database = {
             foreignKeyName: "engine_project_chat_threads_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_chat_threads_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_chat_threads_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -2905,6 +3255,20 @@ export type Database = {
           project_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_project_dates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_dates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_project_dates_project_id_fkey"
             columns: ["project_id"]
@@ -2993,6 +3357,20 @@ export type Database = {
             foreignKeyName: "engine_project_delivery_readiness_reviews_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_delivery_readiness_reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_delivery_readiness_reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -3061,6 +3439,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_project_frames_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_frames_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_project_frames_project_id_fkey"
             columns: ["project_id"]
@@ -3166,6 +3558,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_project_mockups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_implementation_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_implementation_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_project_implementation_plans_project_id_fkey"
@@ -3283,6 +3689,20 @@ export type Database = {
             foreignKeyName: "engine_project_mockups_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_mockups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_mockups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -3342,6 +3762,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_project_openclaw_runs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_artifacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_artifacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_project_openclaw_artifacts_project_id_fkey"
@@ -3423,6 +3857,20 @@ export type Database = {
             foreignKeyName: "engine_project_openclaw_monitor_events_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_monitor_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_monitor_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -3489,6 +3937,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_project_openclaw_monitor_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_monitor_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_project_openclaw_monitor_settings_project_id_fkey"
             columns: ["project_id"]
@@ -3569,6 +4031,20 @@ export type Database = {
             foreignKeyName: "engine_project_openclaw_queue_items_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_queue_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_queue_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -3637,6 +4113,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_project_openclaw_queues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_queues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_project_openclaw_queues_project_id_fkey"
             columns: ["project_id"]
@@ -3726,6 +4216,20 @@ export type Database = {
             foreignKeyName: "engine_project_openclaw_runs_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_openclaw_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -3806,6 +4310,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_project_openclaw_runs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_qa_evidence_reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_qa_evidence_reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_project_qa_evidence_reviews_project_id_fkey"
@@ -3900,6 +4418,20 @@ export type Database = {
             foreignKeyName: "engine_project_qa_plans_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_qa_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_qa_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -3944,9 +4476,11 @@ export type Database = {
           name: string
           next_action: string | null
           open_decisions: number
+          parent_project_id: string | null
           point_a: Json
           point_b: Json
           progress_pct: number
+          project_kind: Database["public"]["Enums"]["engine_project_kind"]
           roadmap: Json
           roadmap_version: string | null
           sequencing: Json
@@ -3994,9 +4528,11 @@ export type Database = {
           name: string
           next_action?: string | null
           open_decisions?: number
+          parent_project_id?: string | null
           point_a?: Json
           point_b?: Json
           progress_pct?: number
+          project_kind?: Database["public"]["Enums"]["engine_project_kind"]
           roadmap?: Json
           roadmap_version?: string | null
           sequencing?: Json
@@ -4044,9 +4580,11 @@ export type Database = {
           name?: string
           next_action?: string | null
           open_decisions?: number
+          parent_project_id?: string | null
           point_a?: Json
           point_b?: Json
           progress_pct?: number
+          project_kind?: Database["public"]["Enums"]["engine_project_kind"]
           roadmap?: Json
           roadmap_version?: string | null
           sequencing?: Json
@@ -4076,6 +4614,27 @@ export type Database = {
             columns: ["client_portal_project_id"]
             isOneToOne: false
             referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_projects_parent_project_id_fkey"
+            columns: ["parent_project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_projects_parent_project_id_fkey"
+            columns: ["parent_project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_projects_parent_project_id_fkey"
+            columns: ["parent_project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -4192,6 +4751,20 @@ export type Database = {
             foreignKeyName: "engine_review_items_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_review_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_review_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -4283,6 +4856,20 @@ export type Database = {
             foreignKeyName: "engine_roadmap_versions_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_roadmap_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_roadmap_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -4331,6 +4918,20 @@ export type Database = {
           triaged?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_signals_project_id_fkey"
             columns: ["project_id"]
@@ -4415,6 +5016,20 @@ export type Database = {
             foreignKeyName: "engine_sources_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_sources_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_sources_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -4483,6 +5098,20 @@ export type Database = {
             foreignKeyName: "engine_spine_ceremonies_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_spine_ceremonies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_spine_ceremonies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -4540,6 +5169,20 @@ export type Database = {
             foreignKeyName: "engine_spine_ceremony_decisions_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_spine_ceremony_decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_spine_ceremony_decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -4583,6 +5226,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_spine_ceremonies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_spine_ceremony_invalidations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_spine_ceremony_invalidations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_spine_ceremony_invalidations_project_id_fkey"
@@ -4643,6 +5300,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_spine_ceremonies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_spine_field_truth_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_spine_field_truth_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
           },
           {
             foreignKeyName: "engine_spine_field_truth_project_id_fkey"
@@ -4757,6 +5428,20 @@ export type Database = {
             foreignKeyName: "engine_tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -4804,6 +5489,20 @@ export type Database = {
           version_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_version_change_decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_version_change_decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
           {
             foreignKeyName: "engine_version_change_decisions_project_id_fkey"
             columns: ["project_id"]
@@ -5131,6 +5830,20 @@ export type Database = {
             foreignKeyName: "roadmap_approvals_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "roadmap_approvals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "roadmap_approvals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
@@ -5293,6 +6006,41 @@ export type Database = {
       }
     }
     Views: {
+      engine_project_family_summary: {
+        Row: {
+          approved_at: string | null
+          child_id: string | null
+          child_name: string | null
+          child_status:
+            | Database["public"]["Enums"]["engine_project_status"]
+            | null
+          client_portal_project_id: string | null
+          completed_at: string | null
+          current_step: string | null
+          parent_id: string | null
+          parent_name: string | null
+          parent_status:
+            | Database["public"]["Enums"]["engine_project_status"]
+            | null
+          progress_pct: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_projects_client_portal_project_id_fkey"
+            columns: ["client_portal_project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_projects_client_portal_project_id_fkey"
+            columns: ["client_portal_project_id"]
+            isOneToOne: false
+            referencedRelation: "portal_project_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portal_activity_v: {
         Row: {
           actor_type: string | null
@@ -5710,6 +6458,14 @@ export type Database = {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
+      internal_all_children_approved: {
+        Args: { _parent_id: string }
+        Returns: boolean
+      }
+      internal_all_children_completed: {
+        Args: { _parent_id: string }
+        Returns: boolean
+      }
       internal_caller_email: { Args: never; Returns: string }
       internal_engine_next_run: {
         Args: {
@@ -5940,6 +6696,7 @@ export type Database = {
         | "running"
         | "succeeded"
         | "failed"
+      engine_project_kind: "standalone" | "parent" | "child"
       engine_project_status:
         | "intake"
         | "active"
@@ -6211,6 +6968,7 @@ export const Constants = {
         "succeeded",
         "failed",
       ],
+      engine_project_kind: ["standalone", "parent", "child"],
       engine_project_status: [
         "intake",
         "active",
