@@ -196,21 +196,23 @@ function EngineRow({ engine, readiness, onChange, projectId }: { engine: Busines
           ) : (
             <div className="space-y-2">
               {(runsData?.runs ?? []).map(r => (
-                <button
+                <Link
                   key={r.id}
-                  type="button"
-                  onClick={() => onOpenRun(r.id)}
-                  className="w-full text-left text-sm border border-white/5 hover:border-white/20 rounded p-2 bg-black/30"
+                  to="/engine/projects/$projectId/engines/runs/$runId"
+                  params={{ projectId, runId: r.id }}
+                  className="block w-full text-left text-sm border border-white/5 hover:border-white/20 rounded p-2 bg-black/30"
                 >
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70">{r.status}</span>
                     <span className="text-white/60 text-xs">cycle {r.cycle_key}</span>
-                    <span className="text-white/40 text-xs ml-auto">{fmt(r.completed_at ?? r.started_at ?? r.created_at)}</span>
+                    <span className="text-white/40 text-xs ml-auto inline-flex items-center gap-1">
+                      {fmt(r.completed_at ?? r.started_at ?? r.created_at)} <ExternalLink className="w-3 h-3" />
+                    </span>
                   </div>
                   {r.model && <div className="text-white/50 text-xs mt-1">model: {r.model} · cost: {r.cost_cents ?? 0}¢ · latency: {r.latency_ms ?? 0}ms</div>}
                   {r.error && <div className="text-rose-300 text-xs mt-1">{r.error}</div>}
-                  <div className="text-white/40 text-[10px] mt-1">Click for full inputs / outputs</div>
-                </button>
+                  <div className="text-white/40 text-[10px] mt-1">Open detail page →</div>
+                </Link>
               ))}
             </div>
           )}
