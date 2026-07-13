@@ -48,6 +48,12 @@ type AdminNav = { to: string; label: string; icon: typeof Users; match: string }
 
 const NAV: AdminNav[] = [
   {
+    to: "/admin/command-center",
+    label: "Command Center",
+    icon: Zap,
+    match: "/admin/command-center",
+  },
+  {
     to: "/admin/client-portals",
     label: "Client portals",
     icon: Users,
