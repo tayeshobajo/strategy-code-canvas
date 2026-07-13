@@ -53,6 +53,14 @@ function CommandCenterPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "command-center"] }),
   });
 
+  const tickMut = useMutation({
+    mutationFn: () => tickFn({ data: {} }),
+    onSuccess: (r) => {
+      setLastTick(r);
+      qc.invalidateQueries({ queryKey: ["admin", "command-center"] });
+    },
+  });
+
   const exceptions = (data?.exceptions ?? []) as CommandCenterException[];
 
   return (
