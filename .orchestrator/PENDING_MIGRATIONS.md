@@ -1223,7 +1223,18 @@ No trigger or gate produced a real failure. Recommended before Tai sign-off: Pla
 
 ## Phase 3 — Governed Portal Publication (v4 — tightened)
 
-Status: PENDING TAI REVIEW (2026-07-13, revised v4). NOT APPLIED.
+Status: **APPLIED 2026-07-13** (Tai approved v4). Preflight passed:
+7 portal projects × 1 publish candidate each, 0 orphan approved/delivered
+without published_at. Backfill result: 7 rows → `published`, 0 → `superseded`
+(no dual-published projects existed). All 4 new roadmap triggers and the
+publish-event ref-validation trigger are installed. DB smoke suite lives at
+`.orchestrator/phase-3-smoke/db-cases.sql`.
+
+**App follow-on: IN PROGRESS.** Next: publish primitive rewrite, rollback/
+retract/restore/history/ack server functions, `sendProjectDelivery` reroute,
+portal reads narrowed to `status='published'`, Publish History + Rollback/
+Retract/Restore UI, guard tests, A1/A2 transactional pairing tests. Not
+marking Phase 3 accepted until DB smoke + app smoke + portal leak tests pass.
 
 v4 changes over v3:
 1. **Bug fix.** Removed `metadata.transition_reason` from the state-transition
