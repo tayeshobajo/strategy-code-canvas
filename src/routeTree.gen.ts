@@ -78,6 +78,7 @@ import { Route as AdminDriftDetectionRouteImport } from './routes/admin.drift-de
 import { Route as AdminDeliveryReadinessGateRouteImport } from './routes/admin.delivery-readiness-gate'
 import { Route as AdminDecisionLogRouteImport } from './routes/admin.decision-log'
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
+import { Route as AdminCommandCenterRouteImport } from './routes/admin.command-center'
 import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
@@ -100,6 +101,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as EngineProjectsProjectIdUnderstandingRoomRouteImport } from './routes/engine.projects.$projectId.understanding-room'
 import { Route as EngineProjectsProjectIdSpiritFirstRouteImport } from './routes/engine.projects.$projectId.spirit-first'
 import { Route as EngineProjectsProjectIdSpineRouteImport } from './routes/engine.projects.$projectId.spine'
+import { Route as EngineProjectsProjectIdSolutionsRouteImport } from './routes/engine.projects.$projectId.solutions'
 import { Route as EngineProjectsProjectIdSignalRoomRouteImport } from './routes/engine.projects.$projectId.signal-room'
 import { Route as EngineProjectsProjectIdSequencingRouteImport } from './routes/engine.projects.$projectId.sequencing'
 import { Route as EngineProjectsProjectIdQaFactoryRouteImport } from './routes/engine.projects.$projectId.qa-factory'
@@ -120,6 +122,7 @@ import { Route as EngineProjectsProjectIdGapMapRouteImport } from './routes/engi
 import { Route as EngineProjectsProjectIdFrameBuilderRouteImport } from './routes/engine.projects.$projectId.frame-builder'
 import { Route as EngineProjectsProjectIdExtractionRouteImport } from './routes/engine.projects.$projectId.extraction'
 import { Route as EngineProjectsProjectIdEvidenceRouteImport } from './routes/engine.projects.$projectId.evidence'
+import { Route as EngineProjectsProjectIdEnginesRouteImport } from './routes/engine.projects.$projectId.engines'
 import { Route as EngineProjectsProjectIdDeliveryRouteImport } from './routes/engine.projects.$projectId.delivery'
 import { Route as EngineProjectsProjectIdDeadlinesRouteImport } from './routes/engine.projects.$projectId.deadlines'
 import { Route as EngineProjectsProjectIdChatRouteImport } from './routes/engine.projects.$projectId.chat'
@@ -130,6 +133,7 @@ import { Route as EngineProjectsProjectIdBackendBuilderRouteImport } from './rou
 import { Route as EngineProjectsProjectIdAiWorkspaceRouteImport } from './routes/engine.projects.$projectId.ai-workspace'
 import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engine.projects.$projectId.agent'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicHooksEngineTickRouteImport } from './routes/api/public/hooks/engine-tick'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
 import { Route as EngineProjectsProjectIdVersionsCompareRouteImport } from './routes/engine.projects.$projectId.versions.compare'
 import { Route as EngineProjectsProjectIdAgentTasksRouteImport } from './routes/engine.projects.$projectId.agent.tasks'
@@ -486,6 +490,11 @@ const AdminConfigRoute = AdminConfigRouteImport.update({
   path: '/config',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCommandCenterRoute = AdminCommandCenterRouteImport.update({
+  id: '/command-center',
+  path: '/command-center',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminClientPortalsRoute = AdminClientPortalsRouteImport.update({
   id: '/client-portals',
   path: '/client-portals',
@@ -603,6 +612,12 @@ const EngineProjectsProjectIdSpineRoute =
   EngineProjectsProjectIdSpineRouteImport.update({
     id: '/spine',
     path: '/spine',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdSolutionsRoute =
+  EngineProjectsProjectIdSolutionsRouteImport.update({
+    id: '/solutions',
+    path: '/solutions',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
 const EngineProjectsProjectIdSignalRoomRoute =
@@ -725,6 +740,12 @@ const EngineProjectsProjectIdEvidenceRoute =
     path: '/evidence',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdEnginesRoute =
+  EngineProjectsProjectIdEnginesRouteImport.update({
+    id: '/engines',
+    path: '/engines',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdDeliveryRoute =
   EngineProjectsProjectIdDeliveryRouteImport.update({
     id: '/delivery',
@@ -785,6 +806,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksEngineTickRoute =
+  ApiPublicHooksEngineTickRouteImport.update({
+    id: '/api/public/hooks/engine-tick',
+    path: '/api/public/hooks/engine-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksBuildRoadmapContactRoute =
   ApiPublicHooksBuildRoadmapContactRouteImport.update({
     id: '/api/public/hooks/build-roadmap-contact',
@@ -842,6 +869,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
+  '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
@@ -905,6 +933,7 @@ export interface FileRoutesByFullPath {
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
+  '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -915,6 +944,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRoute
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -935,6 +965,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
+  '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
@@ -966,6 +997,7 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/portal': typeof PortalIndexRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
+  '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
@@ -1028,6 +1060,7 @@ export interface FileRoutesByTo {
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
+  '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -1038,6 +1071,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRoute
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -1058,6 +1092,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
+  '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
@@ -1095,6 +1130,7 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
+  '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
@@ -1158,6 +1194,7 @@ export interface FileRoutesById {
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
+  '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -1168,6 +1205,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRoute
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -1188,6 +1226,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
+  '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
@@ -1224,6 +1263,7 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/client-portals'
+    | '/admin/command-center'
     | '/admin/config'
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
@@ -1287,6 +1327,7 @@ export interface FileRouteTypes {
     | '/ops/submissions/$id'
     | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
+    | '/api/public/hooks/engine-tick'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
@@ -1297,6 +1338,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/chat'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/extraction'
     | '/engine/projects/$projectId/frame-builder'
@@ -1317,6 +1359,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/qa-factory'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
+    | '/engine/projects/$projectId/solutions'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
     | '/engine/projects/$projectId/understanding-room'
@@ -1348,6 +1391,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/portal'
     | '/admin/client-portals'
+    | '/admin/command-center'
     | '/admin/config'
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
@@ -1410,6 +1454,7 @@ export interface FileRouteTypes {
     | '/ops/submissions/$id'
     | '/engine/projects'
     | '/api/public/hooks/build-roadmap-contact'
+    | '/api/public/hooks/engine-tick'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
@@ -1420,6 +1465,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/chat'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/extraction'
     | '/engine/projects/$projectId/frame-builder'
@@ -1440,6 +1486,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/qa-factory'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
+    | '/engine/projects/$projectId/solutions'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
     | '/engine/projects/$projectId/understanding-room'
@@ -1476,6 +1523,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/_authenticated/portal'
     | '/admin/client-portals'
+    | '/admin/command-center'
     | '/admin/config'
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
@@ -1539,6 +1587,7 @@ export interface FileRouteTypes {
     | '/ops/submissions/$id'
     | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
+    | '/api/public/hooks/engine-tick'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
@@ -1549,6 +1598,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/chat'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/extraction'
     | '/engine/projects/$projectId/frame-builder'
@@ -1569,6 +1619,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/qa-factory'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
+    | '/engine/projects/$projectId/solutions'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
     | '/engine/projects/$projectId/understanding-room'
@@ -1617,6 +1668,7 @@ export interface RootRouteChildren {
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
+  ApiPublicHooksEngineTickRoute: typeof ApiPublicHooksEngineTickRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -2110,6 +2162,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfigRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/command-center': {
+      id: '/admin/command-center'
+      path: '/command-center'
+      fullPath: '/admin/command-center'
+      preLoaderRoute: typeof AdminCommandCenterRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/client-portals': {
       id: '/admin/client-portals'
       path: '/client-portals'
@@ -2264,6 +2323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdSpineRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/solutions': {
+      id: '/engine/projects/$projectId/solutions'
+      path: '/solutions'
+      fullPath: '/engine/projects/$projectId/solutions'
+      preLoaderRoute: typeof EngineProjectsProjectIdSolutionsRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/signal-room': {
       id: '/engine/projects/$projectId/signal-room'
       path: '/signal-room'
@@ -2404,6 +2470,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdEvidenceRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/engines': {
+      id: '/engine/projects/$projectId/engines'
+      path: '/engines'
+      fullPath: '/engine/projects/$projectId/engines'
+      preLoaderRoute: typeof EngineProjectsProjectIdEnginesRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/delivery': {
       id: '/engine/projects/$projectId/delivery'
       path: '/delivery'
@@ -2472,6 +2545,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/payments/webhook'
       fullPath: '/api/public/payments/webhook'
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/engine-tick': {
+      id: '/api/public/hooks/engine-tick'
+      path: '/api/public/hooks/engine-tick'
+      fullPath: '/api/public/hooks/engine-tick'
+      preLoaderRoute: typeof ApiPublicHooksEngineTickRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/build-roadmap-contact': {
@@ -2562,6 +2642,7 @@ const OpsRouteRouteWithChildren = OpsRouteRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminClientPortalsRoute: typeof AdminClientPortalsRoute
+  AdminCommandCenterRoute: typeof AdminCommandCenterRoute
   AdminConfigRoute: typeof AdminConfigRoute
   AdminDecisionLogRoute: typeof AdminDecisionLogRoute
   AdminDeliveryReadinessGateRoute: typeof AdminDeliveryReadinessGateRoute
@@ -2583,6 +2664,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminClientPortalsRoute: AdminClientPortalsRoute,
+  AdminCommandCenterRoute: AdminCommandCenterRoute,
   AdminConfigRoute: AdminConfigRoute,
   AdminDecisionLogRoute: AdminDecisionLogRoute,
   AdminDeliveryReadinessGateRoute: AdminDeliveryReadinessGateRoute,
@@ -2635,6 +2717,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdChatRoute: typeof EngineProjectsProjectIdChatRoute
   EngineProjectsProjectIdDeadlinesRoute: typeof EngineProjectsProjectIdDeadlinesRoute
   EngineProjectsProjectIdDeliveryRoute: typeof EngineProjectsProjectIdDeliveryRoute
+  EngineProjectsProjectIdEnginesRoute: typeof EngineProjectsProjectIdEnginesRoute
   EngineProjectsProjectIdEvidenceRoute: typeof EngineProjectsProjectIdEvidenceRoute
   EngineProjectsProjectIdExtractionRoute: typeof EngineProjectsProjectIdExtractionRoute
   EngineProjectsProjectIdFrameBuilderRoute: typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -2655,6 +2738,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdQaFactoryRoute: typeof EngineProjectsProjectIdQaFactoryRoute
   EngineProjectsProjectIdSequencingRoute: typeof EngineProjectsProjectIdSequencingRoute
   EngineProjectsProjectIdSignalRoomRoute: typeof EngineProjectsProjectIdSignalRoomRoute
+  EngineProjectsProjectIdSolutionsRoute: typeof EngineProjectsProjectIdSolutionsRoute
   EngineProjectsProjectIdSpineRoute: typeof EngineProjectsProjectIdSpineRoute
   EngineProjectsProjectIdSpiritFirstRoute: typeof EngineProjectsProjectIdSpiritFirstRoute
   EngineProjectsProjectIdUnderstandingRoomRoute: typeof EngineProjectsProjectIdUnderstandingRoomRoute
@@ -2679,6 +2763,7 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdDeadlinesRoute:
       EngineProjectsProjectIdDeadlinesRoute,
     EngineProjectsProjectIdDeliveryRoute: EngineProjectsProjectIdDeliveryRoute,
+    EngineProjectsProjectIdEnginesRoute: EngineProjectsProjectIdEnginesRoute,
     EngineProjectsProjectIdEvidenceRoute: EngineProjectsProjectIdEvidenceRoute,
     EngineProjectsProjectIdExtractionRoute:
       EngineProjectsProjectIdExtractionRoute,
@@ -2711,6 +2796,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
       EngineProjectsProjectIdSequencingRoute,
     EngineProjectsProjectIdSignalRoomRoute:
       EngineProjectsProjectIdSignalRoomRoute,
+    EngineProjectsProjectIdSolutionsRoute:
+      EngineProjectsProjectIdSolutionsRoute,
     EngineProjectsProjectIdSpineRoute: EngineProjectsProjectIdSpineRoute,
     EngineProjectsProjectIdSpiritFirstRoute:
       EngineProjectsProjectIdSpiritFirstRoute,
@@ -2826,6 +2913,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksBuildRoadmapContactRoute:
     ApiPublicHooksBuildRoadmapContactRoute,
+  ApiPublicHooksEngineTickRoute: ApiPublicHooksEngineTickRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
@@ -2836,13 +2924,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
