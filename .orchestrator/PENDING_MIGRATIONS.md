@@ -1473,39 +1473,28 @@ CREATE TRIGGER tg_client_portal_roadmaps_validate_lineage
   FOR EACH ROW EXECUTE FUNCTION
   public.tg_client_portal_roadmaps_validate_lineage();
 
--- 8. Explicit state-transition whitelist trigger (FIX #2).
+-- 8. Explicit state-transition whitelist trigger.
 --    Same-status writes always allowed (subject to immutability trigger).
 --    Acknowledgment fields may change under any current status without a
 --    transition. All other transitions must be on the whitelist.
+--    NOTE (v4): rollback/restore are NOT authorized via metadata — metadata
+--    is frozen post-publish. Reason + actor for those transitions live in
+--    client_portal_publish_events (rolled_back / restored). The app-side
+--    contract requires the matching event row in the same transaction;
+--    smoke asserts pairing.
 CREATE OR REPLACE FUNCTION public.tg_client_portal_roadmaps_status_transition()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
-DECLARE
-  reason text;
 BEGIN
   IF NEW.status = OLD.status THEN RETURN NEW; END IF;
-
-  reason := coalesce(NEW.metadata->>'transition_reason', '');
 
   IF (OLD.status = 'in_progress' AND NEW.status = 'approved')
   OR (OLD.status = 'approved'    AND NEW.status = 'published')
   OR (OLD.status = 'delivered'   AND NEW.status = 'published')
   OR (OLD.status = 'published'   AND NEW.status = 'superseded')
   OR (OLD.status = 'published'   AND NEW.status = 'retracted')
+  OR (OLD.status = 'superseded'  AND NEW.status = 'published')  -- rollback
+  OR (OLD.status = 'retracted'   AND NEW.status = 'published')  -- restore
   THEN
-    RETURN NEW;
-  END IF;
-
-  IF OLD.status = 'superseded' AND NEW.status = 'published' THEN
-    IF reason <> 'rollback' THEN
-      RAISE EXCEPTION 'invalid_status_transition: superseded→published requires metadata.transition_reason=''rollback''';
-    END IF;
-    RETURN NEW;
-  END IF;
-
-  IF OLD.status = 'retracted' AND NEW.status = 'published' THEN
-    IF reason <> 'restore' THEN
-      RAISE EXCEPTION 'invalid_status_transition: retracted→published requires metadata.transition_reason=''restore''';
-    END IF;
     RETURN NEW;
   END IF;
 
