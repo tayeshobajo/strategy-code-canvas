@@ -1221,14 +1221,45 @@ No trigger or gate produced a real failure. Recommended before Tai sign-off: Pla
 
 ---
 
-## Phase 3 — Governed Portal Publication (v2 — tightened)
+## Phase 3 — Governed Portal Publication (v3 — tightened)
 
-Status: PENDING TAI REVIEW (2026-07-13, revised). NOT APPLIED.
+Status: PENDING TAI REVIEW (2026-07-13, revised v3). NOT APPLIED.
 
-Turns portal publish into a governed state machine with immutable snapshots,
-diff-aware republish, rollback/retract primitives, immutability + lineage
-triggers, extended scrub across all client-facing jsonb, and status-consistency
-CHECKs. Reuses existing ack columns per Phase 3 hard constraints.
+v3 changes over v2:
+1. Recursive JSONB scrub (banned keys blocked at any depth, not just top level).
+2. Explicit state-transition whitelist trigger.
+3. Full live-schema audit of `client_portal_roadmaps`; the immutability trigger
+   now names every frozen client-facing column instead of a partial list.
+
+### Full column audit (live schema, 2026-07-13)
+
+`client_portal_roadmaps` columns today:
+
+```text
+id, project_id, source_submission_id, source_review_id, roadmap_document_id,
+title, version_label, status, approved_at,
+executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90,
+risks_dependencies, recommended_next_move, supporting_notes,
+current_focus, owner_name, next_milestone, next_meeting_at,
+pdf_file_id, one_pager_file_id, share_url,
+acknowledged_at, acknowledged_by_email,
+metadata, created_at, updated_at,
+approved_roadmap_version_id, visible_modules,
+published_by, published_at, client_safe_canvas
+```
+
+Plus columns added by this migration:
+`previous_publication_id, publish_diff, retracted_at, retracted_by, retraction_reason`.
+
+Classification:
+
+| Class | Columns | Rule when status ∈ (published, superseded, retracted) |
+|---|---|---|
+| **Frozen client-facing snapshot** | `title, version_label, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, current_focus, owner_name, next_milestone, next_meeting_at, pdf_file_id, one_pager_file_id, share_url, visible_modules, client_safe_canvas, approved_roadmap_version_id, source_submission_id, source_review_id, roadmap_document_id, publish_diff, previous_publication_id, published_by, published_at, approved_at` | Immutable; UPDATE raises. |
+| **JSONB snapshot (frozen + recursively scrubbed)** | `strategic_priorities, sequence_30_60_90, risks_dependencies, visible_modules, client_safe_canvas, metadata, publish_diff` | Recursively scrubbed on every INSERT/UPDATE; frozen after publish. |
+| **Internal-only text (never portal-visible)** | `supporting_notes` | Kept out of every portal read path and out of `publish_diff`; app-layer guard tests enforce. |
+| **Mutable post-publish (governed)** | `status, updated_at, acknowledged_at, acknowledged_by_email, retracted_at, retracted_by, retraction_reason` | Governed by transition trigger + retraction CHECK. |
+| **System** | `id, project_id, created_at` | Never mutable after insert. |
 
 ### Preflight (run BEFORE applying)
 
@@ -1236,16 +1267,44 @@ CHECKs. Reuses existing ack columns per Phase 3 hard constraints.
 -- P1. Status distribution
 SELECT status, count(*) FROM public.client_portal_roadmaps GROUP BY status;
 
--- P2. Banned internal keys in any client-facing jsonb column
-SELECT id, 'metadata' AS col FROM public.client_portal_roadmaps
- WHERE metadata ?| ARRAY['ceremony_id','epistemic','operator_override',
-                         'contradiction','provenance','agent_costs',
-                         'internal_notes','supporting_notes','agent_confidence']
+-- P2. Banned internal keys at ANY depth in any client-facing jsonb column.
+--     Uses the recursive helper installed by the migration; run this AFTER
+--     step 0 of the migration (helper creation) but BEFORE COMMIT if you
+--     want to preflight in one shot. Or install helper standalone first.
+SELECT id, 'metadata' AS col,
+       public.jsonb_contains_banned_key(metadata, ARRAY[
+         'ceremony_id','ceremony_state','epistemic','epistemic_status',
+         'operator_override','operator_lock','contradiction','contradictions',
+         'provenance','source_ids','agent_costs','ai_confidence','confidence',
+         'internal_notes','supporting_notes_internal','review_state',
+         'intelligence_memory'
+       ]) AS hit
+  FROM public.client_portal_roadmaps
+ WHERE public.jsonb_contains_banned_key(metadata, ARRAY[
+         'ceremony_id','ceremony_state','epistemic','epistemic_status',
+         'operator_override','operator_lock','contradiction','contradictions',
+         'provenance','source_ids','agent_costs','ai_confidence','confidence',
+         'internal_notes','supporting_notes_internal','review_state',
+         'intelligence_memory'
+       ]) IS NOT NULL
 UNION ALL
-SELECT id, 'client_safe_canvas' FROM public.client_portal_roadmaps
- WHERE client_safe_canvas ?| ARRAY['ceremony_id','epistemic','operator_override',
-                                    'contradiction','provenance','agent_costs',
-                                    'internal_notes','supporting_notes','agent_confidence'];
+SELECT id, 'client_safe_canvas',
+       public.jsonb_contains_banned_key(client_safe_canvas, ARRAY[
+         'ceremony_id','ceremony_state','epistemic','epistemic_status',
+         'operator_override','operator_lock','contradiction','contradictions',
+         'provenance','source_ids','agent_costs','ai_confidence','confidence',
+         'internal_notes','supporting_notes_internal','review_state',
+         'intelligence_memory'
+       ])
+  FROM public.client_portal_roadmaps
+ WHERE public.jsonb_contains_banned_key(client_safe_canvas, ARRAY[
+         'ceremony_id','ceremony_state','epistemic','epistemic_status',
+         'operator_override','operator_lock','contradiction','contradictions',
+         'provenance','source_ids','agent_costs','ai_confidence','confidence',
+         'internal_notes','supporting_notes_internal','review_state',
+         'intelligence_memory'
+       ]) IS NOT NULL;
+-- MUST return zero rows before proceeding.
 
 -- P3. Simulate backfill: exactly one 'to_publish' per project
 WITH candidates AS (
@@ -1268,6 +1327,37 @@ SELECT project_id,
 ```sql
 BEGIN;
 
+-- 0. Recursive JSONB scrub helper (FIX #1). Walks objects + arrays; returns
+--    the first banned key encountered at any depth, or NULL.
+CREATE OR REPLACE FUNCTION public.jsonb_contains_banned_key(
+  doc jsonb,
+  banned text[]
+) RETURNS text
+LANGUAGE plpgsql IMMUTABLE AS $$
+DECLARE
+  k text;
+  v jsonb;
+  hit text;
+BEGIN
+  IF doc IS NULL THEN RETURN NULL; END IF;
+  CASE jsonb_typeof(doc)
+    WHEN 'object' THEN
+      FOR k, v IN SELECT * FROM jsonb_each(doc) LOOP
+        IF k = ANY(banned) THEN RETURN k; END IF;
+        hit := public.jsonb_contains_banned_key(v, banned);
+        IF hit IS NOT NULL THEN RETURN hit; END IF;
+      END LOOP;
+    WHEN 'array' THEN
+      FOR v IN SELECT jsonb_array_elements(doc) LOOP
+        hit := public.jsonb_contains_banned_key(v, banned);
+        IF hit IS NOT NULL THEN RETURN hit; END IF;
+      END LOOP;
+    ELSE
+      RETURN NULL;
+  END CASE;
+  RETURN NULL;
+END $$;
+
 -- 1. Extend status set
 ALTER TABLE public.client_portal_roadmaps
   DROP CONSTRAINT IF EXISTS client_portal_roadmaps_status_check;
@@ -1285,7 +1375,7 @@ ALTER TABLE public.client_portal_roadmaps
   ADD COLUMN IF NOT EXISTS retracted_by text,
   ADD COLUMN IF NOT EXISTS retraction_reason text;
 
--- 3. Correct backfill (FIX #1): latest published_at per project across
+-- 3. Correct backfill: latest published_at per project across
 --    (approved,delivered,published) → 'published'; older ones → 'superseded';
 --    rows without published_at stay put.
 WITH ranked AS (
@@ -1302,7 +1392,7 @@ UPDATE public.client_portal_roadmaps r
   FROM ranked
  WHERE r.id = ranked.id;
 
--- 4. Post-backfill invariant preflight (FIX #2)
+-- 4. Post-backfill invariant preflight
 DO $$
 DECLARE bad int;
 BEGIN
@@ -1319,7 +1409,7 @@ END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS client_portal_roadmaps_one_published_per_project
   ON public.client_portal_roadmaps(project_id) WHERE status = 'published';
 
--- 6. Status consistency CHECKs (FIX #5)
+-- 6. Status consistency CHECKs
 ALTER TABLE public.client_portal_roadmaps
   ADD CONSTRAINT client_portal_roadmaps_published_at_required
   CHECK (status NOT IN ('published','superseded','retracted')
@@ -1338,7 +1428,7 @@ ALTER TABLE public.client_portal_roadmaps
                             AND retraction_reason IS NULL)
   );
 
--- 7. Lineage validation trigger (FIX #7 — cross-row, so not a CHECK)
+-- 7. Lineage validation trigger (cross-row, so not a CHECK)
 CREATE OR REPLACE FUNCTION public.tg_client_portal_roadmaps_validate_lineage()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
 DECLARE parent_project uuid;
@@ -1367,22 +1457,90 @@ CREATE TRIGGER tg_client_portal_roadmaps_validate_lineage
   FOR EACH ROW EXECUTE FUNCTION
   public.tg_client_portal_roadmaps_validate_lineage();
 
--- 8. Immutability trigger (FIX #3): freeze client-facing snapshot fields
---    once status IN (published, superseded, retracted). Legal mutations:
---    status transitions, acknowledgment fields, retraction fields.
+-- 8. Explicit state-transition whitelist trigger (FIX #2).
+--    Same-status writes always allowed (subject to immutability trigger).
+--    Acknowledgment fields may change under any current status without a
+--    transition. All other transitions must be on the whitelist.
+CREATE OR REPLACE FUNCTION public.tg_client_portal_roadmaps_status_transition()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+DECLARE
+  reason text;
+BEGIN
+  IF NEW.status = OLD.status THEN RETURN NEW; END IF;
+
+  reason := coalesce(NEW.metadata->>'transition_reason', '');
+
+  IF (OLD.status = 'in_progress' AND NEW.status = 'approved')
+  OR (OLD.status = 'approved'    AND NEW.status = 'published')
+  OR (OLD.status = 'delivered'   AND NEW.status = 'published')
+  OR (OLD.status = 'published'   AND NEW.status = 'superseded')
+  OR (OLD.status = 'published'   AND NEW.status = 'retracted')
+  THEN
+    RETURN NEW;
+  END IF;
+
+  IF OLD.status = 'superseded' AND NEW.status = 'published' THEN
+    IF reason <> 'rollback' THEN
+      RAISE EXCEPTION 'invalid_status_transition: superseded→published requires metadata.transition_reason=''rollback''';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  IF OLD.status = 'retracted' AND NEW.status = 'published' THEN
+    IF reason <> 'restore' THEN
+      RAISE EXCEPTION 'invalid_status_transition: retracted→published requires metadata.transition_reason=''restore''';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  RAISE EXCEPTION 'invalid_status_transition: % → % not permitted', OLD.status, NEW.status;
+END $$;
+
+DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_status_transition
+  ON public.client_portal_roadmaps;
+CREATE TRIGGER tg_client_portal_roadmaps_status_transition
+  BEFORE UPDATE OF status
+  ON public.client_portal_roadmaps
+  FOR EACH ROW EXECUTE FUNCTION
+  public.tg_client_portal_roadmaps_status_transition();
+
+-- 9. Immutability trigger (FIX #3): freeze the full "frozen client-facing
+--    snapshot" column set from the audit above once status IN
+--    (published, superseded, retracted). Only the "mutable post-publish"
+--    columns may change.
 CREATE OR REPLACE FUNCTION public.tg_client_portal_roadmaps_immutable_after_publish()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   IF OLD.status NOT IN ('published','superseded','retracted') THEN
     RETURN NEW;
   END IF;
-  IF NEW.approved_roadmap_version_id IS DISTINCT FROM OLD.approved_roadmap_version_id
-  OR NEW.published_at                IS DISTINCT FROM OLD.published_at
-  OR NEW.published_by                IS DISTINCT FROM OLD.published_by
-  OR NEW.client_safe_canvas          IS DISTINCT FROM OLD.client_safe_canvas
+  IF NEW.title                       IS DISTINCT FROM OLD.title
+  OR NEW.version_label               IS DISTINCT FROM OLD.version_label
+  OR NEW.executive_summary           IS DISTINCT FROM OLD.executive_summary
+  OR NEW.current_diagnosis           IS DISTINCT FROM OLD.current_diagnosis
+  OR NEW.strategic_priorities        IS DISTINCT FROM OLD.strategic_priorities
+  OR NEW.sequence_30_60_90           IS DISTINCT FROM OLD.sequence_30_60_90
+  OR NEW.risks_dependencies          IS DISTINCT FROM OLD.risks_dependencies
+  OR NEW.recommended_next_move       IS DISTINCT FROM OLD.recommended_next_move
+  OR NEW.current_focus               IS DISTINCT FROM OLD.current_focus
+  OR NEW.owner_name                  IS DISTINCT FROM OLD.owner_name
+  OR NEW.next_milestone              IS DISTINCT FROM OLD.next_milestone
+  OR NEW.next_meeting_at             IS DISTINCT FROM OLD.next_meeting_at
+  OR NEW.pdf_file_id                 IS DISTINCT FROM OLD.pdf_file_id
+  OR NEW.one_pager_file_id           IS DISTINCT FROM OLD.one_pager_file_id
+  OR NEW.share_url                   IS DISTINCT FROM OLD.share_url
   OR NEW.visible_modules             IS DISTINCT FROM OLD.visible_modules
-  OR NEW.metadata                    IS DISTINCT FROM OLD.metadata
+  OR NEW.client_safe_canvas          IS DISTINCT FROM OLD.client_safe_canvas
+  OR NEW.approved_roadmap_version_id IS DISTINCT FROM OLD.approved_roadmap_version_id
+  OR NEW.source_submission_id        IS DISTINCT FROM OLD.source_submission_id
+  OR NEW.source_review_id            IS DISTINCT FROM OLD.source_review_id
+  OR NEW.roadmap_document_id         IS DISTINCT FROM OLD.roadmap_document_id
   OR NEW.publish_diff                IS DISTINCT FROM OLD.publish_diff
+  OR NEW.previous_publication_id     IS DISTINCT FROM OLD.previous_publication_id
+  OR NEW.published_by                IS DISTINCT FROM OLD.published_by
+  OR NEW.published_at                IS DISTINCT FROM OLD.published_at
+  OR NEW.approved_at                 IS DISTINCT FROM OLD.approved_at
+  OR NEW.metadata                    IS DISTINCT FROM OLD.metadata
   THEN
     RAISE EXCEPTION 'client_portal_roadmaps: snapshot fields immutable once %',
                     OLD.status;
@@ -1390,8 +1548,10 @@ BEGIN
   RETURN NEW;
 END $$;
 
--- NOTE: reconcile this DISTINCT list against live schema at apply time;
--- ack columns intentionally omitted so they remain writeable post-publish.
+-- NOTE: acknowledgment, status, retraction, updated_at intentionally omitted
+-- so they remain writeable. Any new client-facing column added to
+-- client_portal_roadmaps in the future MUST be added to this trigger AND to
+-- the audit table above in the same migration.
 
 DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_immutable_after_publish
   ON public.client_portal_roadmaps;
@@ -1400,26 +1560,47 @@ CREATE TRIGGER tg_client_portal_roadmaps_immutable_after_publish
   FOR EACH ROW EXECUTE FUNCTION
   public.tg_client_portal_roadmaps_immutable_after_publish();
 
--- 9. Scrub trigger — extended (FIX #4): metadata + publish_diff +
---    client_safe_canvas + visible_modules
+-- 10. Scrub trigger — recursive (FIX #1). Rejects banned keys at ANY depth
+--     in every jsonb snapshot column.
 CREATE OR REPLACE FUNCTION public.tg_client_portal_roadmaps_scrub_internal()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
 DECLARE
-  banned text[] := ARRAY['ceremony_id','epistemic','operator_override',
-                         'contradiction','provenance','agent_costs',
-                         'internal_notes','supporting_notes','agent_confidence'];
+  banned text[] := ARRAY[
+    'ceremony_id','ceremony_state','epistemic','epistemic_status',
+    'operator_override','operator_lock','contradiction','contradictions',
+    'provenance','source_ids','agent_costs','ai_confidence','confidence',
+    'internal_notes','supporting_notes_internal','review_state',
+    'intelligence_memory'
+  ];
+  hit text;
 BEGIN
-  IF NEW.metadata           IS NOT NULL AND NEW.metadata           ?| banned THEN
-    RAISE EXCEPTION 'client_portal_roadmaps.metadata carries internal key(s)';
+  hit := public.jsonb_contains_banned_key(NEW.metadata, banned);
+  IF hit IS NOT NULL THEN
+    RAISE EXCEPTION 'client_portal_roadmaps.metadata carries internal key: %', hit;
   END IF;
-  IF NEW.publish_diff       IS NOT NULL AND NEW.publish_diff       ?| banned THEN
-    RAISE EXCEPTION 'client_portal_roadmaps.publish_diff carries internal key(s)';
+  hit := public.jsonb_contains_banned_key(NEW.publish_diff, banned);
+  IF hit IS NOT NULL THEN
+    RAISE EXCEPTION 'client_portal_roadmaps.publish_diff carries internal key: %', hit;
   END IF;
-  IF NEW.client_safe_canvas IS NOT NULL AND NEW.client_safe_canvas ?| banned THEN
-    RAISE EXCEPTION 'client_portal_roadmaps.client_safe_canvas carries internal key(s)';
+  hit := public.jsonb_contains_banned_key(NEW.client_safe_canvas, banned);
+  IF hit IS NOT NULL THEN
+    RAISE EXCEPTION 'client_portal_roadmaps.client_safe_canvas carries internal key: %', hit;
   END IF;
-  IF NEW.visible_modules    IS NOT NULL AND NEW.visible_modules    ?| banned THEN
-    RAISE EXCEPTION 'client_portal_roadmaps.visible_modules carries internal key(s)';
+  hit := public.jsonb_contains_banned_key(NEW.visible_modules, banned);
+  IF hit IS NOT NULL THEN
+    RAISE EXCEPTION 'client_portal_roadmaps.visible_modules carries internal key: %', hit;
+  END IF;
+  hit := public.jsonb_contains_banned_key(NEW.strategic_priorities, banned);
+  IF hit IS NOT NULL THEN
+    RAISE EXCEPTION 'client_portal_roadmaps.strategic_priorities carries internal key: %', hit;
+  END IF;
+  hit := public.jsonb_contains_banned_key(NEW.sequence_30_60_90, banned);
+  IF hit IS NOT NULL THEN
+    RAISE EXCEPTION 'client_portal_roadmaps.sequence_30_60_90 carries internal key: %', hit;
+  END IF;
+  hit := public.jsonb_contains_banned_key(NEW.risks_dependencies, banned);
+  IF hit IS NOT NULL THEN
+    RAISE EXCEPTION 'client_portal_roadmaps.risks_dependencies carries internal key: %', hit;
   END IF;
   RETURN NEW;
 END $$;
@@ -1427,12 +1608,14 @@ END $$;
 DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_scrub_internal
   ON public.client_portal_roadmaps;
 CREATE TRIGGER tg_client_portal_roadmaps_scrub_internal
-  BEFORE INSERT OR UPDATE OF metadata, publish_diff, client_safe_canvas, visible_modules
+  BEFORE INSERT OR UPDATE OF metadata, publish_diff, client_safe_canvas,
+                             visible_modules, strategic_priorities,
+                             sequence_30_60_90, risks_dependencies
   ON public.client_portal_roadmaps
   FOR EACH ROW EXECUTE FUNCTION
   public.tg_client_portal_roadmaps_scrub_internal();
 
--- 10. Event audit table (FIX #6 — ON DELETE RESTRICT; FIX #8 — ack event)
+-- 11. Event audit table (ON DELETE RESTRICT; ack is first-class event)
 CREATE TABLE IF NOT EXISTS public.client_portal_publish_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   portal_project_id uuid NOT NULL
@@ -1470,12 +1653,12 @@ CREATE INDEX IF NOT EXISTS client_portal_publish_events_roadmap_idx
 COMMIT;
 ```
 
-**FIX #8 — Acknowledgment audit:** ack is tracked in TWO places, both
-required. `client_portal_activity` remains the user activity feed (existing).
-`client_portal_publish_events.event_type='acknowledged'` (added to the CHECK
-above) makes ack a first-class publication transition attributable to a
-specific `portal_roadmap_id`. The app-side `acknowledgePortalRoadmap` server
-function will write the ack columns AND insert one `acknowledged` event.
+**Acknowledgment audit:** ack is tracked in TWO places, both required.
+`client_portal_activity` remains the user activity feed (existing).
+`client_portal_publish_events.event_type='acknowledged'` makes ack a
+first-class publication transition attributable to a specific
+`portal_roadmap_id`. The app-side `acknowledgePortalRoadmap` server function
+will write the ack columns AND insert one `acknowledged` event.
 
 ### Rollback SQL
 
@@ -1486,11 +1669,15 @@ DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_scrub_internal
   ON public.client_portal_roadmaps;
 DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_immutable_after_publish
   ON public.client_portal_roadmaps;
+DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_status_transition
+  ON public.client_portal_roadmaps;
 DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_validate_lineage
   ON public.client_portal_roadmaps;
 DROP FUNCTION IF EXISTS public.tg_client_portal_roadmaps_scrub_internal();
 DROP FUNCTION IF EXISTS public.tg_client_portal_roadmaps_immutable_after_publish();
+DROP FUNCTION IF EXISTS public.tg_client_portal_roadmaps_status_transition();
 DROP FUNCTION IF EXISTS public.tg_client_portal_roadmaps_validate_lineage();
+DROP FUNCTION IF EXISTS public.jsonb_contains_banned_key(jsonb, text[]);
 
 DROP TABLE IF EXISTS public.client_portal_publish_events;
 DROP INDEX IF EXISTS public.client_portal_roadmaps_one_published_per_project;
@@ -1528,7 +1715,7 @@ ALTER TABLE public.client_portal_roadmaps
 COMMIT;
 ```
 
-### Smoke cases (24 — DB-level, `.orchestrator/phase-3-smoke/db-cases.sql`)
+### Smoke cases (28 — DB-level, `.orchestrator/phase-3-smoke/db-cases.sql`)
 
 1. Backfill: latest published_at per project → `published`; older → `superseded`; unpublished rows unchanged.
 2. Post-backfill preflight aborts a synthesized dual-`published` scenario.
@@ -1541,11 +1728,11 @@ COMMIT;
 9. UPDATE `publish_diff` on `superseded` row → error.
 10. UPDATE `approved_roadmap_version_id` on `retracted` row → error.
 11. UPDATE `acknowledged_at`/`acknowledged_by_email` on `published` → ALLOWED.
-12. Status transitions published→superseded, published→retracted, superseded→published → ALLOWED.
+12. Status transitions published→superseded, published→retracted → ALLOWED.
 13. Concurrent status→retracted with retraction fields set → ALLOWED.
-14. Scrub: `metadata` with `ceremony_id` → rejected.
-15. Scrub: `publish_diff` with `epistemic` → rejected.
-16. Scrub: `client_safe_canvas` with `provenance` at top level → rejected.
+14. Scrub: `metadata` with top-level `ceremony_id` → rejected, error names the key.
+15. Scrub: `publish_diff` with top-level `epistemic` → rejected.
+16. Scrub: `client_safe_canvas` with top-level `provenance` → rejected.
 17. Scrub: `visible_modules` with `agent_costs` → rejected.
 18. Lineage: `previous_publication_id = id` → trigger error.
 19. Lineage: `previous_publication_id` from a different project → error.
@@ -1554,6 +1741,10 @@ COMMIT;
 22. Events RLS: non-staff `authenticated` sees zero rows.
 23. Events RLS: staff sees all rows.
 24. Acknowledgment event: `event_type='acknowledged'` insert succeeds and is history-filterable.
+25. **[v3]** Scrub: banned key nested 3 levels deep in `client_safe_canvas.phases[0].items[0].provenance` → rejected, error names `provenance`.
+26. **[v3]** Scrub: banned key nested inside `metadata.publish.debug.agent_costs` → rejected, error names `agent_costs`.
+27. **[v3]** Transition: UPDATE `published` → `approved` → rejected (`invalid_status_transition`); same for `superseded` → `in_progress`, `retracted` → `delivered`, `published` → `in_progress`.
+28. **[v3]** Transition: `superseded` → `published` without `metadata.transition_reason='rollback'` → rejected; with the flag → ALLOWED. `retracted` → `published` without `metadata.transition_reason='restore'` → rejected; with the flag → ALLOWED.
 
 UI/app-level smoke deferred to the app-layer PR after migration lands
 (publish → republish idempotent, rollback, retract, ack, history panel).
@@ -1562,23 +1753,27 @@ UI/app-level smoke deferred to the app-layer PR after migration lands
 
 - `publishVersionToPortal` reworked (diff-aware, idempotent, writes lineage
   + `published`/`superseded` events).
-- New `rollbackPortalPublication`, `retractPortalPublication`,
-  `getPortalPublicationHistory`, and `acknowledgePortalRoadmap` (which
-  writes an `acknowledged` event) server functions.
+- New `rollbackPortalPublication` (sets `metadata.transition_reason='rollback'`
+  before flipping `superseded`→`published`), `retractPortalPublication`,
+  `restorePortalPublication` (sets `transition_reason='restore'` for
+  `retracted`→`published`), `getPortalPublicationHistory`, and
+  `acknowledgePortalRoadmap` (writes an `acknowledged` event) server
+  functions.
 - `sendProjectDelivery` re-routed through the same publish primitive.
 - Portal read filters narrow from `IN('approved','delivered')` to
   `= 'published'`.
 - Internal UI: Publish diff preview, Publish History panel, Rollback +
-  Retract controls (admin-only).
+  Retract + Restore controls (admin-only).
 - Guard tests extending `publish-column-integrity.test.ts` and
-  `portal-context-leaks.test.ts`; 24-case smoke harness under
+  `portal-context-leaks.test.ts`; 28-case smoke harness under
   `.orchestrator/phase-3-smoke/`.
 
 ### Capabilities moved to CONFIRMED (post-apply)
 
-- Portal publication is a governed state machine, one authoritative current row per project.
-- Every published version is immutable in its client-facing snapshot; changes only via new supersede/retract transitions.
+- Portal publication is a governed state machine with an explicit transition whitelist enforced at the DB layer; illegal downgrades cannot happen even from admin code.
+- One authoritative current row per project.
+- Every published version is immutable across the full audited snapshot column set; changes only via new supersede/retract transitions.
 - Republish is diff-aware and idempotent.
-- Rollback and retract are first-class, audited primitives.
-- Internal state cannot leak into any client-facing jsonb column (metadata, publish_diff, client_safe_canvas, visible_modules) at the DB layer.
+- Rollback, retract, and restore are first-class, audited primitives.
+- Internal state cannot leak into any client-facing jsonb column at any nesting depth (`metadata`, `publish_diff`, `client_safe_canvas`, `visible_modules`, `strategic_priorities`, `sequence_30_60_90`, `risks_dependencies`) at the DB layer.
 - Client acknowledgment is captured as a first-class publication transition attributable to a specific historical row.
