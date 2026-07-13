@@ -3190,7 +3190,49 @@ BEFORE INSERT OR UPDATE OF approved_by ON public.engine_roadmap_versions
 FOR EACH ROW EXECUTE FUNCTION public.tg_engine_roadmap_versions_no_self_approve();
 ```
 
-`engine_projects.status` is intentionally NOT gated in this pass — the project lifecycle uses `current_step`/`current_step_num` for staging and does not have a canonical proposed→approved transition. If Tai wants that gated, add a follow-up spec identifying which target statuses require the check.
+`engine_projects.status` includes an `'approved'` value in the `engine_project_status` enum. Install the same gate on that transition too:
+
+```sql
+CREATE OR REPLACE FUNCTION public.tg_engine_projects_gate()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  a_missing jsonb;
+  b_missing jsonb;
+  has_contra boolean;
+BEGIN
+  IF NEW.status = 'approved' AND (OLD.status IS DISTINCT FROM 'approved') THEN
+    has_contra := public.internal_project_has_contradictions(NEW.id);
+    IF has_contra THEN
+      RAISE EXCEPTION 'Cannot approve project %: unresolved contradictions', NEW.id
+        USING ERRCODE = 'check_violation';
+    END IF;
+    SELECT COALESCE(jsonb_agg(k),'[]'::jsonb) INTO a_missing FROM (
+      SELECT field_key AS k FROM public.internal_spine_field_keys(NEW.id,'point-a') s
+       WHERE NOT EXISTS (SELECT 1 FROM public.engine_spine_field_truth t
+         WHERE t.project_id=NEW.id AND t.spine='point-a' AND t.field_key=s.field_key AND t.status='approved_truth')
+    ) x;
+    SELECT COALESCE(jsonb_agg(k),'[]'::jsonb) INTO b_missing FROM (
+      SELECT field_key AS k FROM public.internal_spine_field_keys(NEW.id,'point-b') s
+       WHERE NOT EXISTS (SELECT 1 FROM public.engine_spine_field_truth t
+         WHERE t.project_id=NEW.id AND t.spine='point-b' AND t.field_key=s.field_key AND t.status='approved_truth')
+    ) x;
+    IF jsonb_array_length(a_missing) > 0 OR jsonb_array_length(b_missing) > 0 THEN
+      RAISE EXCEPTION 'Cannot approve project %: spine not fully approved. point_a_missing=%, point_b_missing=%',
+        NEW.id, a_missing, b_missing USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER engine_projects_gate
+BEFORE UPDATE OF status ON public.engine_projects
+FOR EACH ROW EXECUTE FUNCTION public.tg_engine_projects_gate();
+```
 
 ### G3 — SQL smoke harness (ships as `.sql` fixture, not a migration)
 
