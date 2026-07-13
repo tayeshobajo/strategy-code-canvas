@@ -1,0 +1,2 @@
+ALTER FUNCTION public.internal_engine_next_run(business_engine_cadence, timestamp with time zone) SET search_path = public;
+ALTER FUNCTION public.jsonb_contains_banned_key(jsonb, text[]) SET search_path = public;
