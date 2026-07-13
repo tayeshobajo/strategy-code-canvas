@@ -140,6 +140,7 @@ import { Route as EngineProjectsProjectIdAgentTasksRouteImport } from './routes/
 import { Route as EngineProjectsProjectIdAgentPermissionsRouteImport } from './routes/engine.projects.$projectId.agent.permissions'
 import { Route as EngineProjectsProjectIdAgentCostsRouteImport } from './routes/engine.projects.$projectId.agent.costs'
 import { Route as EngineProjectsProjectIdMilestonesMilestoneIdBriefRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.brief'
+import { Route as EngineProjectsProjectIdEnginesRunsRunIdRouteImport } from './routes/engine.projects.$projectId.engines.runs.$runId'
 
 const WhatWeBuildRoute = WhatWeBuildRouteImport.update({
   id: '/what-we-build',
@@ -848,6 +849,12 @@ const EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute =
     path: '/milestones/$milestoneId/brief',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdEnginesRunsRunIdRoute =
+  EngineProjectsProjectIdEnginesRunsRunIdRouteImport.update({
+    id: '/runs/$runId',
+    path: '/runs/$runId',
+    getParentRoute: () => EngineProjectsProjectIdEnginesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -944,7 +951,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
-  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRoute
+  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -978,6 +985,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
   '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
+  '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
   '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
 }
 export interface FileRoutesByTo {
@@ -1071,7 +1079,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
-  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRoute
+  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -1105,6 +1113,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
   '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
+  '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
   '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
 }
 export interface FileRoutesById {
@@ -1205,7 +1214,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
-  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRoute
+  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -1239,6 +1248,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
   '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
+  '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
   '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
 }
 export interface FileRouteTypes {
@@ -1372,6 +1382,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/agent/permissions'
     | '/engine/projects/$projectId/agent/tasks'
     | '/engine/projects/$projectId/versions/compare'
+    | '/engine/projects/$projectId/engines/runs/$runId'
     | '/engine/projects/$projectId/milestones/$milestoneId/brief'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1499,6 +1510,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/agent/permissions'
     | '/engine/projects/$projectId/agent/tasks'
     | '/engine/projects/$projectId/versions/compare'
+    | '/engine/projects/$projectId/engines/runs/$runId'
     | '/engine/projects/$projectId/milestones/$milestoneId/brief'
   id:
     | '__root__'
@@ -1632,6 +1644,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/agent/permissions'
     | '/engine/projects/$projectId/agent/tasks'
     | '/engine/projects/$projectId/versions/compare'
+    | '/engine/projects/$projectId/engines/runs/$runId'
     | '/engine/projects/$projectId/milestones/$milestoneId/brief'
   fileRoutesById: FileRoutesById
 }
@@ -2596,6 +2609,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/engines/runs/$runId': {
+      id: '/engine/projects/$projectId/engines/runs/$runId'
+      path: '/runs/$runId'
+      fullPath: '/engine/projects/$projectId/engines/runs/$runId'
+      preLoaderRoute: typeof EngineProjectsProjectIdEnginesRunsRunIdRouteImport
+      parentRoute: typeof EngineProjectsProjectIdEnginesRoute
+    }
   }
 }
 
@@ -2707,6 +2727,21 @@ const EngineProjectsProjectIdAgentRouteWithChildren =
     EngineProjectsProjectIdAgentRouteChildren,
   )
 
+interface EngineProjectsProjectIdEnginesRouteChildren {
+  EngineProjectsProjectIdEnginesRunsRunIdRoute: typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
+}
+
+const EngineProjectsProjectIdEnginesRouteChildren: EngineProjectsProjectIdEnginesRouteChildren =
+  {
+    EngineProjectsProjectIdEnginesRunsRunIdRoute:
+      EngineProjectsProjectIdEnginesRunsRunIdRoute,
+  }
+
+const EngineProjectsProjectIdEnginesRouteWithChildren =
+  EngineProjectsProjectIdEnginesRoute._addFileChildren(
+    EngineProjectsProjectIdEnginesRouteChildren,
+  )
+
 interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdAgentRoute: typeof EngineProjectsProjectIdAgentRouteWithChildren
   EngineProjectsProjectIdAiWorkspaceRoute: typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -2717,7 +2752,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdChatRoute: typeof EngineProjectsProjectIdChatRoute
   EngineProjectsProjectIdDeadlinesRoute: typeof EngineProjectsProjectIdDeadlinesRoute
   EngineProjectsProjectIdDeliveryRoute: typeof EngineProjectsProjectIdDeliveryRoute
-  EngineProjectsProjectIdEnginesRoute: typeof EngineProjectsProjectIdEnginesRoute
+  EngineProjectsProjectIdEnginesRoute: typeof EngineProjectsProjectIdEnginesRouteWithChildren
   EngineProjectsProjectIdEvidenceRoute: typeof EngineProjectsProjectIdEvidenceRoute
   EngineProjectsProjectIdExtractionRoute: typeof EngineProjectsProjectIdExtractionRoute
   EngineProjectsProjectIdFrameBuilderRoute: typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -2763,7 +2798,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdDeadlinesRoute:
       EngineProjectsProjectIdDeadlinesRoute,
     EngineProjectsProjectIdDeliveryRoute: EngineProjectsProjectIdDeliveryRoute,
-    EngineProjectsProjectIdEnginesRoute: EngineProjectsProjectIdEnginesRoute,
+    EngineProjectsProjectIdEnginesRoute:
+      EngineProjectsProjectIdEnginesRouteWithChildren,
     EngineProjectsProjectIdEvidenceRoute: EngineProjectsProjectIdEvidenceRoute,
     EngineProjectsProjectIdExtractionRoute:
       EngineProjectsProjectIdExtractionRoute,
