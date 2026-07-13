@@ -40,8 +40,8 @@ BEGIN
   INSERT INTO public.engine_clients (id, company)
     VALUES (v_client_id, 'Smoke Client');
 
-  INSERT INTO public.client_portal_projects (id, name)
-    VALUES (v_portal_proj_id, 'Smoke Portal');
+  INSERT INTO public.client_portal_projects (id, primary_email, company_name)
+    VALUES (v_portal_proj_id, 'smoke-portal@example.com', 'Smoke Portal');
 
   INSERT INTO public.engine_projects (id, name, client_id, client_portal_project_id, status)
     VALUES (v_project_id, 'Spine Gate Smoke', v_client_id, v_portal_proj_id, 'active');
@@ -50,9 +50,9 @@ BEGIN
     VALUES (v_engine_id, v_project_id, 'Smoke Engine', 'weekly', 'proposed', v_actor);
 
   -- Two completed ceremonies (one per spine) for provenance-satisfying writes.
-  INSERT INTO public.engine_spine_ceremonies (id, project_id, spine, status, created_by_email)
-    VALUES (v_ceremony_a_id, v_project_id, 'point-a', 'completed', v_human_email),
-           (v_ceremony_b_id, v_project_id, 'point-b', 'completed', v_human_email);
+  INSERT INTO public.engine_spine_ceremonies (id, project_id, spine, status, opened_by_email, opened_at, completed_at, completed_by_email)
+    VALUES (v_ceremony_a_id, v_project_id, 'point-a', 'completed', v_human_email, now(), now(), v_human_email),
+           (v_ceremony_b_id, v_project_id, 'point-b', 'completed', v_human_email, now(), now(), v_human_email);
 
   -- Full approved truth for all canonical keys via the ceremony path.
   FOREACH v_k IN ARRAY v_point_a_keys LOOP
@@ -210,8 +210,8 @@ BEGIN
   ------------------------------------------------------------------
   -- CASE H — active unresolved extracted-signal contradiction => blocked
   ------------------------------------------------------------------
-  INSERT INTO public.engine_extracted_signals (id, project_id, status, superseded_by)
-    VALUES (v_signal_id, v_project_id, 'contradicted', NULL);
+  INSERT INTO public.engine_extracted_signals (id, project_id, status, superseded_by, category, label, confidence, client_safe, source_ref)
+    VALUES (v_signal_id, v_project_id, 'contradicted', NULL, 'smoke', 'smoke-signal', 0.5, false, '{}'::jsonb);
   BEGIN
     UPDATE public.engine_business_engines SET status='approved', approved_by='smoke:reviewer', approved_at=now() WHERE id=v_engine_id;
     v_state := 'ALLOWED';
