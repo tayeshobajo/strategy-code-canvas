@@ -135,6 +135,22 @@ Every milestone includes: what was found, evidence, confidence, why it matters, 
 ### Phase 5C — Roadmap Scenarios 🔸 Not built
 Aggressive / Conservative / Core paths. Client selects pace and investment level.
 
+### Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) 🔸 Not built
+
+Some engagements are one distinct product; others fan into several workstreams that each need their own Point A/B, Spine, roadmap, and delivery, but roll up to a single client-visible engagement. Today `engine_projects` is flat, so multi-workstream engagements are either over-stuffed single projects or unrelated siblings — neither preserves aggregation.
+
+**Model.** Every project is exactly one of: `standalone` (default), `parent`, or `child`. A child MUST have `parent_project_id`; parent/standalone MUST NOT. Parent and children share the same `client_id`. Max depth = 1 (no grandchildren). Enforced by trigger.
+
+**Governance parity.** Children carry their own Spine, ceremonies, roadmap, approval gates, and portal boundary. Every Phase 4 governance gate (G1 provenance, ceremony completion, no-self-approve, readiness rollups) applies to children unchanged. Parents have NO Spine of their own (`point_a`/`point_b` locked empty by trigger); parent status/readiness/publication is derived from children.
+
+**Rollups.** Parent approval requires all children approved. Parent completion requires all children complete. Enforced by extending the existing `engine_projects` approval and completion gates.
+
+**Portal boundary.** Children publish independently to their own portal rows. Parents publish a family rollup that references child portal rows and never bypasses child gates. Deleting a parent is blocked while children exist; children may be reparented to standalone by admin only, audited to `engine_activity`.
+
+**Out of scope for 5D.** Milestone-level parent/child (would be 5E), solution-variant modeling on `engine_milestone_solutions` (would be 5F), cross-child sequencing/dependency graphs (future), depth > 1 hierarchies, AI-driven child creation without admin CTA.
+
+
+
 ---
 
 ## LAYER 6 — ROADMAP REVIEW AND CLIENT DELIVERY
