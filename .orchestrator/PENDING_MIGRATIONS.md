@@ -3543,4 +3543,4 @@ Update pending in same commit as this migration section. Companion `.sql` file, 
 - Swap portal-side callers from `spine_points_approved` → `spine_points_ready_summary`.
 - Confirm any admin server functions calling `spine_points_approved` run with a staff JWT (they already do via `hasRoleForEmail`).
 
-Status: **PENDING TAI REVIEW — apply-ready after Revision 2. Run the G1 backfill audit query BEFORE installing the G1 trigger; there is no bypass.**
+Status: **PENDING TAI REVIEW — apply-ready after Revision 2.1. Executable migration order: (1) enumerate legacy rows, (2) remediate, (3) fail-closed guard, (4) create/replace provenance function, (5) drop/create trigger. Guard's ceremony branch mirrors the trigger predicate exactly.**
