@@ -3547,27 +3547,33 @@ Status: **PENDING TAI REVIEW — apply-ready after Revision 2.1. Executable migr
 
 ---
 
-## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects)
+## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 2
 
-Status: **PENDING TAI REVIEW.** Do not apply until reviewed. See doctrine `Phase 5D` for governance rules and invariants.
+Status: **PENDING TAI REVIEW (Revision 2).** Do not apply until reviewed. See doctrine `Phase 5D` for governance rules and invariants.
 
-Purpose: introduce parent/child project hierarchy with **full Phase-4 governance parity** for children, and rollup-only status for parents. No new Spine surface. Additive to `engine_projects`; existing rows all become `standalone` with no behavior change.
+Revision 2 addresses two blockers from Revision 1:
+- **Stale parent rollup** — child-side guard now blocks any child mutation that would invalidate an already-approved/completed parent's rollup (attach, detach, status regression, `completed_at` clear). Parent must be demoted (approved→earlier status / `completed_at` cleared) before the child can move.
+- **Portal exposure** — `engine_project_family_summary` is **staff-only** in this phase. Portal-facing family surface is deferred to a follow-up migration that filters by published/client-safe state and portal permissions. No portal read path added here.
+
+Also folded in:
+- `IS DISTINCT FROM` for `client_id` comparison.
+- Parent gate also blocks direct `status='completed'` transitions, not just `completed_at`.
+- `engine_projects_gate` trigger is DROPped and re-CREATEd explicitly rather than assumed.
+- Cross-project dependencies / cross-child sequencing / impact analysis are **out of scope for 5D** (Section F closure deferred).
 
 ### Invariants enforced by DB
 
 1. `project_kind` ∈ {`standalone`, `parent`, `child`}. Default `standalone`.
 2. `parent_project_id IS NOT NULL` iff `project_kind='child'`.
 3. Parent and child share the same `client_id`.
-4. Max depth = 1 (a child's parent must itself be `parent` or `standalone` being promoted; a parent cannot itself have a parent).
-5. Parent's Spine is locked empty: `point_a='{}'::jsonb AND point_b='{}'::jsonb`. UPDATE that would set non-empty on a parent is rejected.
-6. Parent approval requires all children `approved`. Parent completion requires all children `completed`/`complete`.
-7. Deleting a parent while children exist is blocked (`ON DELETE RESTRICT` on the self-FK).
-8. `project_kind` transitions:
-   - `standalone → parent`: allowed (no children yet or all children were reparented in the same tx via separate updates).
-   - `standalone → child`: allowed only if `parent_project_id` set in same statement, and target parent is `parent` (or being promoted).
-   - `parent → standalone`: allowed only if the parent has zero children.
-   - `child → standalone`: allowed; clears `parent_project_id`. Audited by app layer (reparent server fn).
-   - `parent ↔ child`: BLOCKED. Requires demotion to standalone first.
+4. Max depth = 1.
+5. Parent's Spine is locked empty (`point_a='{}' AND point_b='{}'`).
+6. Parent approval requires all children `approved`. Parent completion (`status='completed'` OR `completed_at IS NOT NULL`) requires all children completed.
+7. **Rollup cannot go stale.** Once a parent is `approved`, no child under it may be attached, detached, or regressed from `approved` until the parent is demoted. Once a parent is `completed`, no child may have its `completed_at` cleared or be attached/detached until the parent is demoted.
+8. Deleting a parent while children exist is blocked (`ON DELETE RESTRICT`).
+9. `project_kind` transitions:
+   - `standalone → parent`, `standalone → child` (with valid parent), `parent → standalone` (zero children), `child → standalone`: allowed.
+   - `parent ↔ child`: BLOCKED. Demote to standalone first.
 
 ### Migration SQL (apply as one migration)
 
@@ -3579,7 +3585,7 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- 2) Columns
+-- 2) Columns + index
 ALTER TABLE public.engine_projects
   ADD COLUMN IF NOT EXISTS project_kind public.engine_project_kind NOT NULL DEFAULT 'standalone',
   ADD COLUMN IF NOT EXISTS parent_project_id uuid NULL
@@ -3588,12 +3594,12 @@ ALTER TABLE public.engine_projects
 CREATE INDEX IF NOT EXISTS engine_projects_parent_idx
   ON public.engine_projects(parent_project_id);
 
--- 3) Backfill (safety; DEFAULT already handles new rows)
+-- 3) Backfill
 UPDATE public.engine_projects
    SET project_kind='standalone'
  WHERE project_kind IS NULL;
 
--- 4) Shape trigger: kind ↔ parent_id, client_id match, depth, parent Spine lock, kind transitions
+-- 4) Shape trigger: kind/parent consistency, same-client, depth, Spine lock, transitions
 CREATE OR REPLACE FUNCTION public.tg_engine_projects_kind_shape()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -3621,13 +3627,13 @@ BEGIN
     END IF;
   END IF;
 
-  -- 4c) Child rules: parent exists, same client, parent is not itself a child (depth ≤ 1)
+  -- 4c) Child rules: parent exists, same client, depth ≤ 1, parent is actually a parent
   IF NEW.project_kind = 'child' THEN
     SELECT * INTO parent_row FROM public.engine_projects WHERE id = NEW.parent_project_id;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'parent_project_id % not found', NEW.parent_project_id USING ERRCODE = 'foreign_key_violation';
     END IF;
-    IF parent_row.client_id <> NEW.client_id THEN
+    IF parent_row.client_id IS DISTINCT FROM NEW.client_id THEN
       RAISE EXCEPTION 'Child client_id % must match parent client_id %', NEW.client_id, parent_row.client_id
         USING ERRCODE = 'check_violation';
     END IF;
@@ -3667,7 +3673,9 @@ CREATE TRIGGER engine_projects_kind_shape
 BEFORE INSERT OR UPDATE ON public.engine_projects
 FOR EACH ROW EXECUTE FUNCTION public.tg_engine_projects_kind_shape();
 
--- 5) Rollup helpers (service-only; RLS bypassed via SECURITY DEFINER + role check at edges)
+-- 5) Rollup helpers
+--    approved: child counts as satisfying rollup iff status='approved' OR status='completed'
+--    (completed implies previously approved in this system; treated as acceptable).
 CREATE OR REPLACE FUNCTION public.internal_all_children_approved(_parent_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -3675,12 +3683,12 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT NOT EXISTS (
-    SELECT 1 FROM public.engine_projects
-    WHERE parent_project_id = _parent_id
-      AND status <> 'approved'
-  ) AND EXISTS (
+  SELECT EXISTS (
     SELECT 1 FROM public.engine_projects WHERE parent_project_id = _parent_id
+  ) AND NOT EXISTS (
+    SELECT 1 FROM public.engine_projects
+     WHERE parent_project_id = _parent_id
+       AND status NOT IN ('approved','completed')
   );
 $$;
 
@@ -3691,16 +3699,98 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT NOT EXISTS (
-    SELECT 1 FROM public.engine_projects
-    WHERE parent_project_id = _parent_id
-      AND completed_at IS NULL
-  ) AND EXISTS (
+  SELECT EXISTS (
     SELECT 1 FROM public.engine_projects WHERE parent_project_id = _parent_id
+  ) AND NOT EXISTS (
+    SELECT 1 FROM public.engine_projects
+     WHERE parent_project_id = _parent_id
+       AND (completed_at IS NULL AND status <> 'completed')
   );
 $$;
 
--- 6) Extend existing engine_projects gate: parents skip Spine check, require child rollup
+-- 6) Child-side stale-rollup guard
+--    A child may not attach to / detach from / regress under a parent whose
+--    rollup would silently become false. Parent must be demoted first.
+CREATE OR REPLACE FUNCTION public.tg_engine_projects_child_rollup_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  old_parent public.engine_projects%ROWTYPE;
+  new_parent public.engine_projects%ROWTYPE;
+BEGIN
+  -- Load candidate parents (OLD side on UPDATE/DELETE; NEW side on INSERT/UPDATE)
+  IF TG_OP IN ('UPDATE','DELETE') AND OLD.parent_project_id IS NOT NULL THEN
+    SELECT * INTO old_parent FROM public.engine_projects WHERE id = OLD.parent_project_id;
+  END IF;
+  IF TG_OP IN ('INSERT','UPDATE') AND NEW.parent_project_id IS NOT NULL THEN
+    SELECT * INTO new_parent FROM public.engine_projects WHERE id = NEW.parent_project_id;
+  END IF;
+
+  -- INSERT: attaching a new child to an approved/completed parent
+  IF TG_OP = 'INSERT' AND NEW.parent_project_id IS NOT NULL THEN
+    IF new_parent.status IN ('approved','completed') OR new_parent.completed_at IS NOT NULL THEN
+      IF NEW.status NOT IN ('approved','completed') THEN
+        RAISE EXCEPTION 'Cannot attach unapproved child to approved/completed parent %; demote parent first', new_parent.id
+          USING ERRCODE = 'check_violation';
+      END IF;
+      IF (new_parent.status = 'completed' OR new_parent.completed_at IS NOT NULL)
+         AND NEW.completed_at IS NULL AND NEW.status <> 'completed' THEN
+        RAISE EXCEPTION 'Cannot attach non-completed child to completed parent %; demote parent first', new_parent.id
+          USING ERRCODE = 'check_violation';
+      END IF;
+    END IF;
+  END IF;
+
+  -- UPDATE: detach or reparent
+  IF TG_OP = 'UPDATE'
+     AND OLD.parent_project_id IS DISTINCT FROM NEW.parent_project_id THEN
+    IF OLD.parent_project_id IS NOT NULL
+       AND (old_parent.status IN ('approved','completed') OR old_parent.completed_at IS NOT NULL) THEN
+      RAISE EXCEPTION 'Cannot detach child from approved/completed parent %; demote parent first', old_parent.id
+        USING ERRCODE = 'check_violation';
+    END IF;
+    IF NEW.parent_project_id IS NOT NULL
+       AND (new_parent.status IN ('approved','completed') OR new_parent.completed_at IS NOT NULL) THEN
+      IF NEW.status NOT IN ('approved','completed') THEN
+        RAISE EXCEPTION 'Cannot attach unapproved child to approved/completed parent %; demote parent first', new_parent.id
+          USING ERRCODE = 'check_violation';
+      END IF;
+    END IF;
+  END IF;
+
+  -- UPDATE: child status regression under an approved parent
+  IF TG_OP = 'UPDATE' AND NEW.parent_project_id IS NOT NULL THEN
+    -- Status regression from approved/completed → anything else
+    IF OLD.status IN ('approved','completed')
+       AND NEW.status NOT IN ('approved','completed')
+       AND new_parent.status IN ('approved','completed') THEN
+      RAISE EXCEPTION 'Cannot regress child % from % under approved/completed parent %; demote parent first',
+        NEW.id, OLD.status, new_parent.id USING ERRCODE = 'check_violation';
+    END IF;
+    -- completed_at cleared under a completed parent
+    IF OLD.completed_at IS NOT NULL AND NEW.completed_at IS NULL
+       AND (new_parent.status = 'completed' OR new_parent.completed_at IS NOT NULL) THEN
+      RAISE EXCEPTION 'Cannot clear completed_at on child % under completed parent %; demote parent first',
+        NEW.id, new_parent.id USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS engine_projects_child_rollup_guard ON public.engine_projects;
+CREATE TRIGGER engine_projects_child_rollup_guard
+BEFORE INSERT OR UPDATE OR DELETE ON public.engine_projects
+FOR EACH ROW EXECUTE FUNCTION public.tg_engine_projects_child_rollup_guard();
+
+-- 7) Extend engine_projects gate: parents skip Spine; require child rollup on approval + completion
 CREATE OR REPLACE FUNCTION public.tg_engine_projects_gate()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -3712,6 +3802,7 @@ DECLARE
   b_missing jsonb;
   has_contra boolean;
 BEGIN
+  -- Approval gate
   IF NEW.status = 'approved'
      AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'approved') THEN
 
@@ -3721,7 +3812,6 @@ BEGIN
           USING ERRCODE = 'check_violation';
       END IF;
     ELSE
-      -- standalone or child: existing Spine gate
       has_contra := public.internal_project_has_contradictions(NEW.id);
       IF has_contra THEN
         RAISE EXCEPTION 'Cannot approve project %: unresolved contradictions', NEW.id
@@ -3744,22 +3834,34 @@ BEGIN
     END IF;
   END IF;
 
-  -- Parent completion rollup: block completed_at set unless all children complete
-  IF NEW.project_kind = 'parent'
-     AND NEW.completed_at IS NOT NULL
-     AND (TG_OP = 'INSERT' OR OLD.completed_at IS NULL) THEN
-    IF NOT public.internal_all_children_completed(NEW.id) THEN
-      RAISE EXCEPTION 'Cannot complete parent project %: not all children completed', NEW.id
-        USING ERRCODE = 'check_violation';
+  -- Completion gate for parent — gate BOTH status='completed' AND completed_at
+  IF NEW.project_kind = 'parent' THEN
+    IF (NEW.status = 'completed'
+        AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed'))
+       OR (NEW.completed_at IS NOT NULL
+        AND (TG_OP = 'INSERT' OR OLD.completed_at IS NULL)) THEN
+      IF NOT public.internal_all_children_completed(NEW.id) THEN
+        RAISE EXCEPTION 'Cannot complete parent project %: not all children completed', NEW.id
+          USING ERRCODE = 'check_violation';
+      END IF;
     END IF;
   END IF;
 
   RETURN NEW;
 END;
 $$;
--- Trigger already exists (engine_projects_gate) — CREATE OR REPLACE FUNCTION swaps it in place.
 
--- 7) Portal-safe family summary view (no Spine truth, no PII beyond project name+status)
+-- Recreate trigger explicitly (do not assume Phase 4's trigger name/state is intact)
+DROP TRIGGER IF EXISTS engine_projects_gate ON public.engine_projects;
+CREATE TRIGGER engine_projects_gate
+BEFORE INSERT OR UPDATE ON public.engine_projects
+FOR EACH ROW EXECUTE FUNCTION public.tg_engine_projects_gate();
+
+-- 8) Staff-only family summary view.
+--    Portal exposure is DEFERRED to a follow-up migration that applies portal
+--    permission + published/client-safe filtering. This view is NOT granted to
+--    `authenticated`; only service_role reads it, and staff server functions
+--    invoke it via the service client (or under staff-only RLS at call sites).
 CREATE OR REPLACE VIEW public.engine_project_family_summary
 WITH (security_invoker = true)
 AS
@@ -3779,27 +3881,49 @@ FROM public.engine_projects p
 LEFT JOIN public.engine_projects c ON c.parent_project_id = p.id
 WHERE p.project_kind = 'parent';
 
-GRANT SELECT ON public.engine_project_family_summary TO authenticated;
+-- Explicitly revoke broad access; grant only to service_role for this phase.
+REVOKE ALL ON public.engine_project_family_summary FROM PUBLIC;
+REVOKE ALL ON public.engine_project_family_summary FROM authenticated;
 GRANT SELECT ON public.engine_project_family_summary TO service_role;
 ```
 
 ### Smoke harness additions (`supabase/tests/spine-gate-smoke.sql`)
 
-Add cases N–R (run under service_role; scratch data cleaned in a final rollback block, same pattern as A–M):
+Run under service_role; scratch data cleaned in final rollback block.
 
 - **Case N** — Create parent P, child C1 (kind=child, parent=P, same client). Approve C1 with full Spine truth → ALLOWED.
-- **Case O** — Attempt to approve parent P while C1 approved and C2 pending → BLOCKED with `not all children approved`.
-- **Case P** — Approve C2 fully, then approve P → ALLOWED.
-- **Case Q** — Attempt kind transitions: `parent → child` BLOCKED; `child → parent` BLOCKED; `parent → standalone` while children exist BLOCKED; `parent → standalone` after reparenting children BLOCKED unless zero children.
-- **Case R** — `DELETE FROM engine_projects WHERE id = P` while C1/C2 attached → BLOCKED (`foreign_key_violation`, ON DELETE RESTRICT). `DELETE` a child → ALLOWED. Additionally: INSERT `child` under a `standalone` project → BLOCKED (`Cannot attach child to standalone`); INSERT `child` with mismatched `client_id` → BLOCKED. INSERT `parent` with non-empty `point_a` → BLOCKED (Spine lock).
+- **Case O** — Attempt to approve parent P while C1 approved and C2 pending → BLOCKED (`not all children approved`).
+- **Case P** — Approve C2 fully, then approve P → ALLOWED. Then set `completed_at`/`status='completed'` on both children, then complete P → ALLOWED. Attempt to complete P before both children complete → BLOCKED.
+- **Case Q** — Kind transitions: `parent → child` BLOCKED; `child → parent` BLOCKED; `parent → standalone` while children exist BLOCKED; after reparenting all children, `parent → standalone` ALLOWED.
+- **Case R** — `DELETE parent` while children attached → BLOCKED (`foreign_key_violation`). `DELETE child` → ALLOWED. INSERT child under standalone → BLOCKED. INSERT child with mismatched `client_id` → BLOCKED. INSERT parent with non-empty `point_a` → BLOCKED.
+- **Case S — Stale-rollup guards (new).** With P approved and C1/C2 approved:
+  - S1: INSERT a new unapproved C3 under P → BLOCKED (`Cannot attach unapproved child to approved/completed parent`).
+  - S2: UPDATE C1 to detach (`parent_project_id=NULL`, `project_kind=standalone`) → BLOCKED.
+  - S3: UPDATE C1 `status='in_progress'` (regress from approved) → BLOCKED.
+  - S4: Demote P (`status` back to `in_progress`), then S1/S2/S3 → ALLOWED.
+- **Case T — Completed-parent guards (new).** With P completed and both children completed:
+  - T1: UPDATE C1 `completed_at = NULL` → BLOCKED.
+  - T2: INSERT a new non-completed child under P → BLOCKED.
+  - T3: Demote P (clear `completed_at`, `status` back to `approved`), then T1/T2 → ALLOWED.
 
-Acceptance: `SMOKE PASS` line printed after N–R all behave as specified.
+Acceptance: `SMOKE PASS` line printed after N–T all behave as specified.
 
 ### Post-migration app follow-ups (tracked, not part of this SQL)
 
-- Server functions: `createChildProject`, `reparentProject` (admin/operator; audit to `engine_activity`), `getProjectFamily`, extend `getWorkspaceProjectList` to include kind + parent_id.
-- UI: workspace list grouping, `WorkspaceHeader` chip, `src/routes/engine/$projectId/family.tsx`, create-child CTA, hide Spine nav on parents.
-- Chat context: extend `engine-chat-context.server.ts` to prepend parent summary for children / child summaries for parents, using `engine_project_family_summary` only.
+- Server fns: `createChildProject`, `reparentProject` (admin/operator only; auto-demote parent as needed with explicit audit; audit to `engine_activity`), `getProjectFamily`, extend `getWorkspaceProjectList` to include kind + parent_id.
+- UI: workspace list grouping, `WorkspaceHeader` chip, `src/routes/engine/$projectId/family.tsx` (staff-only), create-child CTA, hide Spine nav on parents.
+- Chat context: extend `engine-chat-context.server.ts` — staff-only surface; no portal chat surface exposes `engine_project_family_summary` yet.
+- **Portal follow-up (separate migration):** design portal-safe family surface with published/client-safe filtering and portal permission checks; add portal-user smoke case then.
 
-Status: **PENDING TAI REVIEW.**
+### Explicitly OUT OF SCOPE for Phase 5D
+
+- Cross-project (cross-child) dependencies, sequencing constraints, and impact analysis. **Section F is not closed by this phase.**
+- Milestone-level parent/child decomposition (future Phase 5E).
+- `engine_milestone_solutions` variant modeling (future Phase 5F).
+- Depth > 1 hierarchies.
+- Automatic child creation by AI (chat may propose; only admin CTA commits).
+- Portal exposure of family rollup (deferred to a follow-up migration as above).
+
+Status: **PENDING TAI REVIEW (Revision 2).**
+
 
