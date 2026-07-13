@@ -1468,7 +1468,7 @@ END $$;
 DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_validate_lineage
   ON public.client_portal_roadmaps;
 CREATE TRIGGER tg_client_portal_roadmaps_validate_lineage
-  BEFORE INSERT OR UPDATE OF previous_publication_id
+  BEFORE INSERT OR UPDATE OF previous_publication_id, project_id
   ON public.client_portal_roadmaps
   FOR EACH ROW EXECUTE FUNCTION
   public.tg_client_portal_roadmaps_validate_lineage();
