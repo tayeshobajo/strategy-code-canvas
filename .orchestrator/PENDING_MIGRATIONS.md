@@ -1656,6 +1656,53 @@ CREATE INDEX IF NOT EXISTS client_portal_publish_events_project_idx
 CREATE INDEX IF NOT EXISTS client_portal_publish_events_roadmap_idx
   ON public.client_portal_publish_events(portal_roadmap_id, created_at DESC);
 
+-- 12. Publish-event reference validation (v4). Every event row must
+--     reference roadmap ids that belong to portal_project_id, and
+--     previous_portal_roadmap_id (when present) must be a distinct row in
+--     the same project.
+CREATE OR REPLACE FUNCTION public.tg_client_portal_publish_events_validate_refs()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+DECLARE
+  cur_project uuid;
+  prev_project uuid;
+BEGIN
+  SELECT project_id INTO cur_project
+    FROM public.client_portal_roadmaps
+   WHERE id = NEW.portal_roadmap_id;
+  IF cur_project IS NULL THEN
+    RAISE EXCEPTION 'publish_events: portal_roadmap_id % not found', NEW.portal_roadmap_id;
+  END IF;
+  IF cur_project <> NEW.portal_project_id THEN
+    RAISE EXCEPTION 'publish_events: portal_roadmap_id belongs to different portal project';
+  END IF;
+
+  IF NEW.previous_portal_roadmap_id IS NOT NULL THEN
+    IF NEW.previous_portal_roadmap_id = NEW.portal_roadmap_id THEN
+      RAISE EXCEPTION 'publish_events: previous_portal_roadmap_id cannot equal portal_roadmap_id';
+    END IF;
+    SELECT project_id INTO prev_project
+      FROM public.client_portal_roadmaps
+     WHERE id = NEW.previous_portal_roadmap_id;
+    IF prev_project IS NULL THEN
+      RAISE EXCEPTION 'publish_events: previous_portal_roadmap_id % not found', NEW.previous_portal_roadmap_id;
+    END IF;
+    IF prev_project <> NEW.portal_project_id THEN
+      RAISE EXCEPTION 'publish_events: previous_portal_roadmap_id belongs to different portal project';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS tg_client_portal_publish_events_validate_refs
+  ON public.client_portal_publish_events;
+CREATE TRIGGER tg_client_portal_publish_events_validate_refs
+  BEFORE INSERT OR UPDATE OF portal_project_id, portal_roadmap_id,
+                             previous_portal_roadmap_id
+  ON public.client_portal_publish_events
+  FOR EACH ROW EXECUTE FUNCTION
+  public.tg_client_portal_publish_events_validate_refs();
+
 COMMIT;
 ```
 
