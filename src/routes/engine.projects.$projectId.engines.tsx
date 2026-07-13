@@ -357,7 +357,6 @@ function EnginesPage() {
         </div>
       )}
 
-      {openRunId && <RunDetailModal runId={openRunId} onClose={() => setOpenRunId(null)} />}
     </div>
   );
 }
