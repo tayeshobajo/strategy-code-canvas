@@ -1221,11 +1221,27 @@ No trigger or gate produced a real failure. Recommended before Tai sign-off: Pla
 
 ---
 
-## Phase 3 — Governed Portal Publication (v3 — tightened)
+## Phase 3 — Governed Portal Publication (v4 — tightened)
 
-Status: PENDING TAI REVIEW (2026-07-13, revised v3). NOT APPLIED.
+Status: PENDING TAI REVIEW (2026-07-13, revised v4). NOT APPLIED.
 
-v3 changes over v2:
+v4 changes over v3:
+1. **Bug fix.** Removed `metadata.transition_reason` from the state-transition
+   trigger. `metadata` is frozen post-publish, so v3's rollback/restore path
+   was unreachable. Reason + actor for rollback/restore now lives entirely in
+   `client_portal_publish_events` (`rolled_back`, `restored`); the DB trigger
+   allows `superseded → published` and `retracted → published` unconditionally
+   within the whitelist; the app-side contract (enforced by smoke) requires
+   the matching event row in the same transaction.
+2. Added `project_id` to the immutability trigger — a published/superseded/
+   retracted row cannot be moved between portal projects.
+3. Lineage trigger fire clause extended to `UPDATE OF previous_publication_id,
+   project_id` so a `project_id` change re-validates lineage.
+4. New trigger `tg_client_portal_publish_events_validate_refs` — every event
+   row must reference roadmap ids that belong to `portal_project_id`, and
+   `previous_portal_roadmap_id` cannot equal `portal_roadmap_id`.
+
+v3 changes over v2 (kept for context):
 1. Recursive JSONB scrub (banned keys blocked at any depth, not just top level).
 2. Explicit state-transition whitelist trigger.
 3. Full live-schema audit of `client_portal_roadmaps`; the immutability trigger
