@@ -283,7 +283,8 @@ BEGIN
   -- CASE H — active unresolved extracted-signal contradiction => blocked
   ------------------------------------------------------------------
   INSERT INTO public.engine_extracted_signals (id, project_id, status, superseded_by, category, label, confidence, client_safe, source_ref)
-    VALUES (v_signal_id, v_project_id, 'contradicted', NULL, 'smoke', 'smoke-signal', 0.5, false, '{}'::jsonb);
+    VALUES (v_signal_id, v_project_id, 'contradicted', NULL, 'risk', 'smoke-signal', 0.5, false, '{}'::jsonb);
+
   BEGIN
     UPDATE public.engine_business_engines SET status='approved', approved_by='smoke:reviewer', approved_at=now() WHERE id=v_engine_id;
     v_state := 'ALLOWED';
