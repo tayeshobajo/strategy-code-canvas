@@ -74,8 +74,8 @@ export const Route = createFileRoute("/api/public/hooks/engine-tick")({
               _deadline_at: null,
               _client_risk: false,
               _next_action: `Review pending cycle for "${eng.name}"`,
-              _next_action_owner: eng.owner_email ?? null,
-              _run_id: (runId as string) ?? null,
+              _next_action_owner: eng.owner_email ?? undefined,
+              _run_id: (runId as string) ?? undefined,
             });
             if (!excErr) opened_exceptions += 1;
           }
