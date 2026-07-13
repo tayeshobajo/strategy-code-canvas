@@ -1545,6 +1545,7 @@ BEGIN
   OR NEW.published_by                IS DISTINCT FROM OLD.published_by
   OR NEW.published_at                IS DISTINCT FROM OLD.published_at
   OR NEW.approved_at                 IS DISTINCT FROM OLD.approved_at
+  OR NEW.project_id                  IS DISTINCT FROM OLD.project_id
   OR NEW.metadata                    IS DISTINCT FROM OLD.metadata
   THEN
     RAISE EXCEPTION 'client_portal_roadmaps: snapshot fields immutable once %',
