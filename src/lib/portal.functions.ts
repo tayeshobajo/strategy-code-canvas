@@ -515,10 +515,9 @@ export const getPortalContext = createServerFn({ method: "GET" })
           subtitle: null as string | null,
           roadmap_data: roadmapRow.roadmap_data ?? null,
           published_at: roadmapRow.published_at,
-          delivered_at:
-            roadmapRow.status === "delivered"
-              ? (roadmapRow.published_at ?? roadmapRow.approved_at)
-              : null,
+          // Post-Phase 3, all live rows are 'published'. Retain the
+          // delivered_at surface for UI back-compat, sourced from published_at.
+          delivered_at: roadmapRow.published_at ?? roadmapRow.approved_at,
           version_label: roadmapRow.version_label,
           client_acknowledged: Boolean(roadmapRow.acknowledged_at),
           acknowledged_at: roadmapRow.acknowledged_at,
