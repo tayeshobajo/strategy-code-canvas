@@ -3824,7 +3824,10 @@ BEGIN
        NEW.project_kind <> 'parent'
        AND NEW.status = 'completed'
        AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed')
-       AND NEW.approved_at IS NULL
+       -- Use PRIOR state, not NEW.approved_at. Otherwise a caller can set
+       -- status='completed' and approved_at=now() in the same UPDATE and skip
+       -- the Spine gate. INSERT always runs the gate regardless of approved_at.
+       AND (TG_OP = 'INSERT' OR OLD.approved_at IS NULL)
      ) THEN
 
     IF NEW.project_kind = 'parent' THEN
