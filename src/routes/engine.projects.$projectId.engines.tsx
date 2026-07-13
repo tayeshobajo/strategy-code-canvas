@@ -300,6 +300,16 @@ function EnginesPage() {
             {ENGINE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </label>
+        <label className="text-xs text-white/60 inline-flex items-center gap-1">
+          <Search className="w-3.5 h-3.5" />
+          <input
+            type="search"
+            placeholder="Search name, kind, owner, status…"
+            className="rounded bg-black/40 border border-white/10 px-2 py-1 text-white text-xs w-56"
+            value={query}
+            onChange={e => { setQuery(e.target.value); setPage(1); }}
+          />
+        </label>
         <label className="text-xs text-white/60">Sort by
           <select
             className="ml-2 rounded bg-black/40 border border-white/10 px-2 py-1 text-white text-xs"
