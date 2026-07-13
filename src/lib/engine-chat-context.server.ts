@@ -91,11 +91,62 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
   const { data: projRow } = await sb
     .from("engine_projects")
     .select(
-      "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,point_a,point_b,roadmap,blueprint,roadmap_version,approved_version, engine_clients(company)",
+      "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,point_a,point_b,roadmap,blueprint,roadmap_version,approved_version,parent_project_id, engine_clients(company)",
     )
     .eq("id", projectId)
     .maybeSingle();
   if (!projRow) throw new Error(`Project not found: ${projectId}`);
+
+  // Family block (staff-only chat context; safe to include here because the
+  // caller of buildProjectChatContext is already a staff-side surface).
+  let familyBlock: ProjectChatContext["json"]["family"] = null;
+  try {
+    const { findFamilyRootId, fetchFamilySubtree } = await import(
+      "@/lib/engine-project-family.server"
+    );
+    const rootId = await findFamilyRootId(sb, projectId);
+    const nodes = await fetchFamilySubtree(sb, rootId);
+    const self = nodes.find((n) => n.id === projectId);
+    if (self) {
+      const parent = self.parent_project_id
+        ? nodes.find((n) => n.id === self.parent_project_id) ?? null
+        : null;
+      const siblings = parent
+        ? nodes
+            .filter((n) => n.parent_project_id === parent.id && n.id !== projectId)
+            .slice(0, 10)
+            .map((n) => ({ id: n.id, name: n.name, status: n.status }))
+        : [];
+      const children = nodes
+        .filter((n) => n.parent_project_id === projectId)
+        .slice(0, 20)
+        .map((n) => ({
+          id: n.id,
+          name: n.name,
+          status: n.status,
+          approved_at: n.approved_at,
+          completed_at: n.completed_at,
+        }));
+      const totalChildren = nodes.filter((n) => n.parent_project_id === projectId).length;
+      familyBlock = {
+        root_id: rootId,
+        is_root: !self.parent_project_id,
+        parent: parent ? { id: parent.id, name: parent.name, status: parent.status } : null,
+        siblings,
+        children,
+        total_children: totalChildren,
+        approved_children: nodes.filter(
+          (n) => n.parent_project_id === projectId && !!n.approved_at,
+        ).length,
+        completed_children: nodes.filter(
+          (n) => n.parent_project_id === projectId && !!n.completed_at,
+        ).length,
+      };
+    }
+  } catch {
+    /* family view/table unreadable — omit */
+  }
+
 
   const roadmap = (projRow.roadmap ?? {}) as Record<string, unknown>;
   const blueprint = (projRow.blueprint ?? {}) as Record<string, unknown>;
