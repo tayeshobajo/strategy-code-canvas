@@ -1221,11 +1221,27 @@ No trigger or gate produced a real failure. Recommended before Tai sign-off: Pla
 
 ---
 
-## Phase 3 — Governed Portal Publication (v3 — tightened)
+## Phase 3 — Governed Portal Publication (v4 — tightened)
 
-Status: PENDING TAI REVIEW (2026-07-13, revised v3). NOT APPLIED.
+Status: PENDING TAI REVIEW (2026-07-13, revised v4). NOT APPLIED.
 
-v3 changes over v2:
+v4 changes over v3:
+1. **Bug fix.** Removed `metadata.transition_reason` from the state-transition
+   trigger. `metadata` is frozen post-publish, so v3's rollback/restore path
+   was unreachable. Reason + actor for rollback/restore now lives entirely in
+   `client_portal_publish_events` (`rolled_back`, `restored`); the DB trigger
+   allows `superseded → published` and `retracted → published` unconditionally
+   within the whitelist; the app-side contract (enforced by smoke) requires
+   the matching event row in the same transaction.
+2. Added `project_id` to the immutability trigger — a published/superseded/
+   retracted row cannot be moved between portal projects.
+3. Lineage trigger fire clause extended to `UPDATE OF previous_publication_id,
+   project_id` so a `project_id` change re-validates lineage.
+4. New trigger `tg_client_portal_publish_events_validate_refs` — every event
+   row must reference roadmap ids that belong to `portal_project_id`, and
+   `previous_portal_roadmap_id` cannot equal `portal_roadmap_id`.
+
+v3 changes over v2 (kept for context):
 1. Recursive JSONB scrub (banned keys blocked at any depth, not just top level).
 2. Explicit state-transition whitelist trigger.
 3. Full live-schema audit of `client_portal_roadmaps`; the immutability trigger
@@ -1452,44 +1468,33 @@ END $$;
 DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_validate_lineage
   ON public.client_portal_roadmaps;
 CREATE TRIGGER tg_client_portal_roadmaps_validate_lineage
-  BEFORE INSERT OR UPDATE OF previous_publication_id
+  BEFORE INSERT OR UPDATE OF previous_publication_id, project_id
   ON public.client_portal_roadmaps
   FOR EACH ROW EXECUTE FUNCTION
   public.tg_client_portal_roadmaps_validate_lineage();
 
--- 8. Explicit state-transition whitelist trigger (FIX #2).
+-- 8. Explicit state-transition whitelist trigger.
 --    Same-status writes always allowed (subject to immutability trigger).
 --    Acknowledgment fields may change under any current status without a
 --    transition. All other transitions must be on the whitelist.
+--    NOTE (v4): rollback/restore are NOT authorized via metadata — metadata
+--    is frozen post-publish. Reason + actor for those transitions live in
+--    client_portal_publish_events (rolled_back / restored). The app-side
+--    contract requires the matching event row in the same transaction;
+--    smoke asserts pairing.
 CREATE OR REPLACE FUNCTION public.tg_client_portal_roadmaps_status_transition()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
-DECLARE
-  reason text;
 BEGIN
   IF NEW.status = OLD.status THEN RETURN NEW; END IF;
-
-  reason := coalesce(NEW.metadata->>'transition_reason', '');
 
   IF (OLD.status = 'in_progress' AND NEW.status = 'approved')
   OR (OLD.status = 'approved'    AND NEW.status = 'published')
   OR (OLD.status = 'delivered'   AND NEW.status = 'published')
   OR (OLD.status = 'published'   AND NEW.status = 'superseded')
   OR (OLD.status = 'published'   AND NEW.status = 'retracted')
+  OR (OLD.status = 'superseded'  AND NEW.status = 'published')  -- rollback
+  OR (OLD.status = 'retracted'   AND NEW.status = 'published')  -- restore
   THEN
-    RETURN NEW;
-  END IF;
-
-  IF OLD.status = 'superseded' AND NEW.status = 'published' THEN
-    IF reason <> 'rollback' THEN
-      RAISE EXCEPTION 'invalid_status_transition: superseded→published requires metadata.transition_reason=''rollback''';
-    END IF;
-    RETURN NEW;
-  END IF;
-
-  IF OLD.status = 'retracted' AND NEW.status = 'published' THEN
-    IF reason <> 'restore' THEN
-      RAISE EXCEPTION 'invalid_status_transition: retracted→published requires metadata.transition_reason=''restore''';
-    END IF;
     RETURN NEW;
   END IF;
 
@@ -1540,6 +1545,7 @@ BEGIN
   OR NEW.published_by                IS DISTINCT FROM OLD.published_by
   OR NEW.published_at                IS DISTINCT FROM OLD.published_at
   OR NEW.approved_at                 IS DISTINCT FROM OLD.approved_at
+  OR NEW.project_id                  IS DISTINCT FROM OLD.project_id
   OR NEW.metadata                    IS DISTINCT FROM OLD.metadata
   THEN
     RAISE EXCEPTION 'client_portal_roadmaps: snapshot fields immutable once %',
@@ -1650,6 +1656,53 @@ CREATE INDEX IF NOT EXISTS client_portal_publish_events_project_idx
 CREATE INDEX IF NOT EXISTS client_portal_publish_events_roadmap_idx
   ON public.client_portal_publish_events(portal_roadmap_id, created_at DESC);
 
+-- 12. Publish-event reference validation (v4). Every event row must
+--     reference roadmap ids that belong to portal_project_id, and
+--     previous_portal_roadmap_id (when present) must be a distinct row in
+--     the same project.
+CREATE OR REPLACE FUNCTION public.tg_client_portal_publish_events_validate_refs()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+DECLARE
+  cur_project uuid;
+  prev_project uuid;
+BEGIN
+  SELECT project_id INTO cur_project
+    FROM public.client_portal_roadmaps
+   WHERE id = NEW.portal_roadmap_id;
+  IF cur_project IS NULL THEN
+    RAISE EXCEPTION 'publish_events: portal_roadmap_id % not found', NEW.portal_roadmap_id;
+  END IF;
+  IF cur_project <> NEW.portal_project_id THEN
+    RAISE EXCEPTION 'publish_events: portal_roadmap_id belongs to different portal project';
+  END IF;
+
+  IF NEW.previous_portal_roadmap_id IS NOT NULL THEN
+    IF NEW.previous_portal_roadmap_id = NEW.portal_roadmap_id THEN
+      RAISE EXCEPTION 'publish_events: previous_portal_roadmap_id cannot equal portal_roadmap_id';
+    END IF;
+    SELECT project_id INTO prev_project
+      FROM public.client_portal_roadmaps
+     WHERE id = NEW.previous_portal_roadmap_id;
+    IF prev_project IS NULL THEN
+      RAISE EXCEPTION 'publish_events: previous_portal_roadmap_id % not found', NEW.previous_portal_roadmap_id;
+    END IF;
+    IF prev_project <> NEW.portal_project_id THEN
+      RAISE EXCEPTION 'publish_events: previous_portal_roadmap_id belongs to different portal project';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS tg_client_portal_publish_events_validate_refs
+  ON public.client_portal_publish_events;
+CREATE TRIGGER tg_client_portal_publish_events_validate_refs
+  BEFORE INSERT OR UPDATE OF portal_project_id, portal_roadmap_id,
+                             previous_portal_roadmap_id
+  ON public.client_portal_publish_events
+  FOR EACH ROW EXECUTE FUNCTION
+  public.tg_client_portal_publish_events_validate_refs();
+
 COMMIT;
 ```
 
@@ -1678,6 +1731,10 @@ DROP FUNCTION IF EXISTS public.tg_client_portal_roadmaps_immutable_after_publish
 DROP FUNCTION IF EXISTS public.tg_client_portal_roadmaps_status_transition();
 DROP FUNCTION IF EXISTS public.tg_client_portal_roadmaps_validate_lineage();
 DROP FUNCTION IF EXISTS public.jsonb_contains_banned_key(jsonb, text[]);
+
+DROP TRIGGER IF EXISTS tg_client_portal_publish_events_validate_refs
+  ON public.client_portal_publish_events;
+DROP FUNCTION IF EXISTS public.tg_client_portal_publish_events_validate_refs();
 
 DROP TABLE IF EXISTS public.client_portal_publish_events;
 DROP INDEX IF EXISTS public.client_portal_roadmaps_one_published_per_project;
@@ -1715,7 +1772,7 @@ ALTER TABLE public.client_portal_roadmaps
 COMMIT;
 ```
 
-### Smoke cases (28 — DB-level, `.orchestrator/phase-3-smoke/db-cases.sql`)
+### Smoke cases (30 — DB-level, `.orchestrator/phase-3-smoke/db-cases.sql`)
 
 1. Backfill: latest published_at per project → `published`; older → `superseded`; unpublished rows unchanged.
 2. Post-backfill preflight aborts a synthesized dual-`published` scenario.
@@ -1740,32 +1797,44 @@ COMMIT;
 21. ON DELETE RESTRICT: deleting a roadmap referenced by an event → FK violation.
 22. Events RLS: non-staff `authenticated` sees zero rows.
 23. Events RLS: staff sees all rows.
-24. Acknowledgment event: `event_type='acknowledged'` insert succeeds and is history-filterable.
+24. Acknowledgment event: `event_type='acknowledged'` insert succeeds, is history-filterable, and passes the ref-validation trigger (same-project roadmap).
 25. **[v3]** Scrub: banned key nested 3 levels deep in `client_safe_canvas.phases[0].items[0].provenance` → rejected, error names `provenance`.
 26. **[v3]** Scrub: banned key nested inside `metadata.publish.debug.agent_costs` → rejected, error names `agent_costs`.
-27. **[v3]** Transition: UPDATE `published` → `approved` → rejected (`invalid_status_transition`); same for `superseded` → `in_progress`, `retracted` → `delivered`, `published` → `in_progress`.
-28. **[v3]** Transition: `superseded` → `published` without `metadata.transition_reason='rollback'` → rejected; with the flag → ALLOWED. `retracted` → `published` without `metadata.transition_reason='restore'` → rejected; with the flag → ALLOWED.
+27. **[v4]** Transition: UPDATE `published` → `approved`, `superseded` → `in_progress`, `retracted` → `delivered`, `published` → `in_progress` → all rejected (`invalid_status_transition`).
+28. **[v4]** Transition: `superseded` → `published` ALLOWED at the DB layer (no `transition_reason` involved); `retracted` → `published` ALLOWED at the DB layer. App-level smoke A1/A2 covers the paired event-row requirement.
+29. **[v4]** Immutability: UPDATE `project_id` on a `published` / `superseded` / `retracted` row → immutability trigger error naming `project_id`. Pre-publish row (`in_progress`, `approved`) may still change `project_id` but re-runs the lineage validation trigger.
+30. **[v4]** Publish-event ref validation:
+    a. Insert event with `portal_roadmap_id` whose `project_id` ≠ `portal_project_id` → rejected.
+    b. Insert event with `previous_portal_roadmap_id` from a different project → rejected.
+    c. Insert event with `previous_portal_roadmap_id = portal_roadmap_id` → rejected.
+    d. UPDATE an existing event to swap `portal_roadmap_id` to a foreign-project row → rejected.
+    e. Valid `rolled_back` event with same-project previous ref → ALLOWED.
 
 UI/app-level smoke deferred to the app-layer PR after migration lands
 (publish → republish idempotent, rollback, retract, ack, history panel).
+Additional app-level cases already scoped:
+
+- **A1** — `rollbackPortalPublication` writes exactly one `event_type='rolled_back'` row referencing the target roadmap, in the same transaction as the `superseded → published` UPDATE; if the event insert fails, the status flip is rolled back.
+- **A2** — same shape for `restorePortalPublication` / `event_type='restored'`.
 
 ### What ships on the app side after Tai applies this
 
 - `publishVersionToPortal` reworked (diff-aware, idempotent, writes lineage
   + `published`/`superseded` events).
-- New `rollbackPortalPublication` (sets `metadata.transition_reason='rollback'`
-  before flipping `superseded`→`published`), `retractPortalPublication`,
-  `restorePortalPublication` (sets `transition_reason='restore'` for
-  `retracted`→`published`), `getPortalPublicationHistory`, and
-  `acknowledgePortalRoadmap` (writes an `acknowledged` event) server
-  functions.
+- New `rollbackPortalPublication` (flips `superseded → published` and writes
+  a paired `rolled_back` event with reason/actor in the same transaction),
+  `retractPortalPublication`, `restorePortalPublication` (flips
+  `retracted → published` and writes a paired `restored` event),
+  `getPortalPublicationHistory`, and `acknowledgePortalRoadmap` (writes an
+  `acknowledged` event) server functions. None of these mutate `metadata` on
+  post-publish rows — reason lives on the event row, not the snapshot.
 - `sendProjectDelivery` re-routed through the same publish primitive.
 - Portal read filters narrow from `IN('approved','delivered')` to
   `= 'published'`.
 - Internal UI: Publish diff preview, Publish History panel, Rollback +
   Retract + Restore controls (admin-only).
 - Guard tests extending `publish-column-integrity.test.ts` and
-  `portal-context-leaks.test.ts`; 28-case smoke harness under
+  `portal-context-leaks.test.ts`; 30-case DB smoke + A1/A2 app smoke under
   `.orchestrator/phase-3-smoke/`.
 
 ### Capabilities moved to CONFIRMED (post-apply)
