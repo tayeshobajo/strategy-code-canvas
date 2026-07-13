@@ -3547,16 +3547,17 @@ Status: **PENDING TAI REVIEW — apply-ready after Revision 2.1. Executable migr
 
 ---
 
-## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 3
+## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 4
 
-Status: **PENDING TAI REVIEW (Revision 3).** Do not apply until reviewed. See doctrine `Phase 5D` for governance rules and invariants.
+Status: **PENDING TAI REVIEW (Revision 4) — apply-ready pending final sign-off.** Do not apply until reviewed. See doctrine `Phase 5D` for governance rules and invariants.
 
-Revision 3 closes the remaining stale-rollup blockers from Revision 2:
-- **DELETE child under approved/completed parent** is now blocked in the child-side guard.
-- **Attaching an already-approved (or already-completed) child** into an approved/completed parent is blocked. Parent approval covers a fixed child set; changing that set requires parent demotion and re-approval.
-- **Direct child completion cannot bypass Point A/B.** Non-parent `status='completed'` transitions run the same Spine + contradiction gate as `status='approved'` unless the row already carries `approved_at IS NOT NULL` from a prior approved state.
-- **Completed-parent stale guard uses a `completed` predicate** (`status='completed' OR completed_at IS NOT NULL`), so any transition where `old_child_completed=true` becomes `new_child_completed=false` under a completed parent is blocked — not just `completed_at` clearing.
-- **Portal exposure** — `engine_project_family_summary` remains **staff-only** in this phase. Portal-facing family surface is deferred to a follow-up migration that filters by published/client-safe state and portal permissions.
+Revision 4 closes the two remaining bypasses found in Revision 3:
+- **Back-door completion via `NEW.approved_at`.** The non-parent completion gate now keys off `OLD.approved_at IS NULL` (prior state), not `NEW.approved_at IS NULL`. A caller can no longer set `status='completed'` and `approved_at=now()` in the same UPDATE to skip the Spine gate. INSERT always runs the gate regardless of supplied `approved_at`.
+- **Parent completion must require approved AND completed children.** Parent completion gate now requires `internal_all_children_approved(NEW.id) AND internal_all_children_completed(NEW.id)`. Prevents a child that has `completed_at` set without ever passing the approval gate from satisfying parent completion.
+
+Revision 3 (retained) closed: DELETE of a child under a locked parent; attach of an already-approved/completed child into a locked parent; predicate-based completion regression under a completed parent.
+
+Revision 2 (retained) closed: staleness on attach/detach/regression once parent is locked; portal exposure held to a staff-only surface pending a follow-up portal-safe migration.
 
 Also folded in:
 - `IS DISTINCT FROM` for `client_id` comparison.
