@@ -477,7 +477,10 @@ export const getPortalContext = createServerFn({ method: "GET" })
           "id, project_id, status, title, version_label, published_at, approved_at, acknowledged_at, roadmap_data:client_safe_canvas",
         )
         .eq("project_id", project.id)
-        .in("status", ["approved", "delivered"])
+        // Phase 3 v4: portal only sees the single live 'published' snapshot.
+        // Legacy 'approved'/'delivered' rows were backfilled to
+        // 'published' or 'superseded'; superseded/retracted never render.
+        .eq("status", "published")
         .not("published_at", "is", null)
         .order("published_at", { ascending: false })
         .limit(1),
