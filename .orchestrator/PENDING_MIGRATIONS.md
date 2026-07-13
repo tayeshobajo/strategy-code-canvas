@@ -3056,12 +3056,30 @@ BEGIN
           USING ERRCODE = 'check_violation';
       END IF;
     ELSIF (NEW.source_ref ->> 'kind') = 'operator_override' THEN
+      -- Explicit operator override path: human actor, matching email,
+      -- non-empty reason, and an audit row emitted for every write.
       IF COALESCE(NEW.source_ref ->> 'operator_email','') = ''
          OR lower(NEW.source_ref ->> 'operator_email') <> lower(COALESCE(NEW.updated_by_email,'')) THEN
         RAISE EXCEPTION 'approved_truth operator_override requires source_ref.operator_email matching updated_by_email (field %:%)',
           NEW.spine, NEW.field_key
           USING ERRCODE = 'check_violation';
       END IF;
+      IF COALESCE(btrim(NEW.source_ref ->> 'reason'),'') = '' THEN
+        RAISE EXCEPTION 'approved_truth operator_override requires source_ref.reason (field %:%)',
+          NEW.spine, NEW.field_key
+          USING ERRCODE = 'check_violation';
+      END IF;
+      INSERT INTO public.engine_audit_log (
+        project_id, action, field_changed, old_value, new_value, actor_email, metadata
+      ) VALUES (
+        NEW.project_id,
+        'spine_field_truth_operator_override',
+        NEW.spine || ':' || NEW.field_key,
+        NULL,
+        jsonb_build_object('status','approved_truth','source_ref',NEW.source_ref),
+        NEW.updated_by_email,
+        jsonb_build_object('actor_kind','human','reason', NEW.source_ref ->> 'reason')
+      );
     ELSE
       RAISE EXCEPTION 'approved_truth requires ceremony_id or source_ref.kind=operator_override (field %:%)',
         NEW.spine, NEW.field_key
