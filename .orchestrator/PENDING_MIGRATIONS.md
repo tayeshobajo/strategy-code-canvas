@@ -3955,3 +3955,46 @@ Acceptance: `SMOKE PASS` line printed after N–U all behave as specified.
 Status: **PENDING TAI REVIEW (Revision 2).**
 
 
+## Runtime Schema Drift Fix — engine_projects.current_phase + client_portal_roadmaps grants
+
+Status: **PENDING TAI REVIEW.** Do not apply until reviewed.
+
+Origin: Project monitoring 2026-07-13 — two high-severity runtime errors in production.
+
+### Finding 1 — `column engine_projects.current_phase does not exist` (64 occurrences over ~26h)
+
+Verified against live DB: `current_phase` is missing from `public.engine_projects`. App references (all treat it as `text | null`):
+- `src/lib/engine-nba.functions.ts:115` — SELECT
+- `src/lib/engine-execution.functions.ts:817,1144` — UPDATE (`"Roadmap delivered"`, `"Engagement in progress"`)
+- `src/lib/engine-completion.functions.ts:289` — UPDATE (`"Roadmap delivered"`)
+
+Sibling errors in the same window (`client_company`, `project_name`, `p.title`, `update_updated_at_column`) resolve to: `update_updated_at_column` exists; `name` exists; `client_company`/`project_name` are derived in `engine.functions.ts` from joins (`engine_clients.company`, `engine_projects.name`) — only `current_phase` is a true missing column on `engine_projects`. Other error rows are from unrelated legacy call sites and are not addressed here.
+
+### Finding 2 — `permission denied for table client_portal_roadmaps`
+
+Verified against live DB: `client_portal_roadmaps` has **no** grants for `anon`, `authenticated`, or `service_role`. RLS is a no-op behind the missing GRANTs; publishing, portal reads, and acknowledgement all fail. `anon` needs SELECT because portal magic-link reads run under `anon` with token-scoped RLS.
+
+### Migration SQL (apply as one migration)
+
+```sql
+-- 1) Add current_phase column matching generated types (text, nullable, no default)
+ALTER TABLE public.engine_projects
+  ADD COLUMN IF NOT EXISTS current_phase text NULL;
+
+-- 2) Restore Data API grants on client_portal_roadmaps.
+--    Portal reads run as anon under token-scoped RLS; staff writes run as authenticated;
+--    server functions using supabaseAdmin need service_role.
+GRANT SELECT ON public.client_portal_roadmaps TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.client_portal_roadmaps TO authenticated;
+GRANT ALL ON public.client_portal_roadmaps TO service_role;
+```
+
+### Post-apply verification
+
+- `\d public.engine_projects` shows `current_phase text NULL`.
+- `SELECT current_phase FROM public.engine_projects LIMIT 1` succeeds.
+- `SELECT grantee, privilege_type FROM information_schema.role_table_grants WHERE table_name='client_portal_roadmaps'` returns rows for `anon` (SELECT), `authenticated` (SELECT/INSERT/UPDATE/DELETE), `service_role` (ALL).
+- Portal magic-link roadmap fetch returns rows again; Next-Best-Action panel loads without error.
+
+Status: **PENDING TAI REVIEW.**
+
