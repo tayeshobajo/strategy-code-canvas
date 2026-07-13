@@ -3864,8 +3864,13 @@ BEGIN
         AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed'))
        OR (NEW.completed_at IS NOT NULL
         AND (TG_OP = 'INSERT' OR OLD.completed_at IS NULL)) THEN
-      IF NOT public.internal_all_children_completed(NEW.id) THEN
-        RAISE EXCEPTION 'Cannot complete parent project %: not all children completed', NEW.id
+      -- Require BOTH: every child approved AND every child completed.
+      -- internal_all_children_completed treats completed_at IS NOT NULL as
+      -- completed, so without the approved check a child could satisfy
+      -- completion without ever passing the approval gate.
+      IF NOT public.internal_all_children_approved(NEW.id)
+         OR NOT public.internal_all_children_completed(NEW.id) THEN
+        RAISE EXCEPTION 'Cannot complete parent project %: children must be both approved and completed', NEW.id
           USING ERRCODE = 'check_violation';
       END IF;
     END IF;
