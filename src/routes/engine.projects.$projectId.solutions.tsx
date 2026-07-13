@@ -1,18 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   listSolutionsForProject,
   proposeMilestoneSolution,
   selectMilestoneSolution,
   type MilestoneSolution,
 } from "@/lib/engine-solutions.functions";
-import { Loader2, CheckCircle2, Plus } from "lucide-react";
+import { Loader2, CheckCircle2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 export const Route = createFileRoute("/engine/projects/$projectId/solutions")({
   component: SolutionsPage,
 });
+
+const SOLUTION_STATUSES = ["candidate", "selected", "deferred", "rejected", "superseded"] as const;
+const SOL_PAGE_SIZE = 6;
+type SolSortKey = "created_at" | "title" | "status" | "investment_estimate_cents";
 
 const STATUS_CLS: Record<string, string> = {
   candidate:   "bg-sky-500/10 text-sky-300 border-sky-500/30",
