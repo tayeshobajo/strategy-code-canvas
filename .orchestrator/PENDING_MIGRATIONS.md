@@ -3572,11 +3572,12 @@ Also folded in:
 4. Max depth = 1.
 5. Parent's Spine is locked empty (`point_a='{}' AND point_b='{}'`).
 6. Parent approval requires all children `approved`. Parent completion (`status='completed'` OR `completed_at IS NOT NULL`) requires all children completed.
-7. **Rollup cannot go stale.** Once a parent is `approved`, no child under it may be attached, detached, or regressed from `approved` until the parent is demoted. Once a parent is `completed`, no child may have its `completed_at` cleared or be attached/detached until the parent is demoted.
-8. Deleting a parent while children exist is blocked (`ON DELETE RESTRICT`).
-9. `project_kind` transitions:
-   - `standalone → parent`, `standalone → child` (with valid parent), `parent → standalone` (zero children), `child → standalone`: allowed.
-   - `parent ↔ child`: BLOCKED. Demote to standalone first.
+7. **Rollup cannot go stale.** Once a parent is `approved` or `completed`, no child under it may be attached (even if already approved/completed), detached, deleted, or regressed until the parent is demoted.
+8. **No back-door completion.** For non-parent projects, moving to `status='completed'` runs the same Point A/B + contradiction gate as `status='approved'`, unless the row already has `approved_at IS NOT NULL` (i.e. it was legitimately approved earlier).
+9. Deleting a parent while children exist is blocked (`ON DELETE RESTRICT`).
+10. `project_kind` transitions:
+    - `standalone → parent`, `standalone → child` (with valid parent), `parent → standalone` (zero children), `child → standalone`: allowed.
+    - `parent ↔ child`: BLOCKED. Demote to standalone first.
 
 ### Migration SQL (apply as one migration)
 
