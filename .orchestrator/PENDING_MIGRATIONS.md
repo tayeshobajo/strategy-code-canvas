@@ -1878,101 +1878,591 @@ public`, authorize the caller against `is_engine_staff()` (client-facing
 `acknowledge_portal_roadmap` authorizes against
 `client_portal_permissions`), and raise on invalid state.
 
-```sql
--- 1. publish_portal_roadmap: supersedes prior 'published' row + inserts new
--- 'published' row + writes 'published' event (and 'superseded' event for
--- prior row when present). All in one txn.
-CREATE OR REPLACE FUNCTION public.publish_portal_roadmap(
-  _portal_project_id uuid,
-  _engine_project_id uuid,
-  _engine_version_id uuid,
-  _title text,
-  _version_label text,
-  _executive_summary text,
-  _current_diagnosis text,
-  _strategic_priorities jsonb,
-  _sequence_30_60_90 jsonb,
-  _risks_dependencies jsonb,
-  _recommended_next_move text,
-  _client_safe_canvas jsonb,
-  _publish_diff jsonb DEFAULT '{}'::jsonb,
-  _summary text DEFAULT NULL
-) RETURNS uuid ...;
+### Apply-ready SQL
 
--- 2. rollback_portal_publication: current 'published' → 'retracted' (with
--- reason), then target superseded row → 'published', then insert
--- 'rolled_back' event referencing the restored row + previous_portal_roadmap_id.
+Wrap the whole block in a single migration file, `BEGIN; ... COMMIT;`.
+Also included: RLS refresh on `client_portal_roadmaps` (the existing
+`Clients read approved roadmaps` policy still filters
+`status IN ('approved','delivered')`, which is stale after Phase 3 v4 —
+clients would see zero rows without this).
+
+```sql
+BEGIN;
+
+-- ---------------------------------------------------------------------------
+-- 0. RLS refresh: clients read PUBLISHED (not approved/delivered) roadmaps.
+-- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Clients read approved roadmaps"
+  ON public.client_portal_roadmaps;
+
+CREATE POLICY "Clients read published roadmaps"
+  ON public.client_portal_roadmaps
+  FOR SELECT TO authenticated
+  USING (
+    status = 'published'
+    AND project_id IN (
+      SELECT p.project_id
+        FROM public.client_portal_permissions p
+       WHERE lower(p.email) = lower(auth.email())
+         AND p.revoked_at IS NULL
+    )
+  );
+
+-- Staff read-all policy remains (defined in earlier migration); no change.
+
+-- ---------------------------------------------------------------------------
+-- 1. publish_portal_roadmap
+--    Supersede any existing 'published' row for the project, insert the new
+--    'published' snapshot, write a 'published' event, and (if a prior row
+--    was superseded) a paired 'superseded' event. Returns the 'published'
+--    event id.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.publish_portal_roadmap(
+  _portal_project_id     uuid,
+  _engine_project_id     uuid,
+  _engine_version_id     uuid,
+  _title                 text,
+  _version_label         text,
+  _executive_summary     text,
+  _current_diagnosis     text,
+  _strategic_priorities  jsonb,
+  _sequence_30_60_90     jsonb,
+  _risks_dependencies    jsonb,
+  _recommended_next_move text,
+  _client_safe_canvas    jsonb,
+  _visible_modules       jsonb DEFAULT '{}'::jsonb,
+  _publish_diff          jsonb DEFAULT '{}'::jsonb,
+  _summary               text  DEFAULT NULL
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor          text := auth.email();
+  v_prior_id       uuid;
+  v_new_id         uuid;
+  v_published_evt  uuid;
+BEGIN
+  IF NOT public.is_engine_staff() THEN
+    RAISE EXCEPTION 'publish_portal_roadmap: not authorized';
+  END IF;
+  IF v_actor IS NULL OR length(btrim(v_actor)) = 0 THEN
+    RAISE EXCEPTION 'publish_portal_roadmap: caller email required';
+  END IF;
+  IF _portal_project_id IS NULL OR _engine_project_id IS NULL THEN
+    RAISE EXCEPTION 'publish_portal_roadmap: project ids required';
+  END IF;
+
+  -- Lock any current 'published' row for this project.
+  SELECT id INTO v_prior_id
+    FROM public.client_portal_roadmaps
+   WHERE project_id = _portal_project_id
+     AND status     = 'published'
+   FOR UPDATE;
+
+  IF v_prior_id IS NOT NULL THEN
+    UPDATE public.client_portal_roadmaps
+       SET status = 'superseded'
+     WHERE id = v_prior_id;
+  END IF;
+
+  INSERT INTO public.client_portal_roadmaps (
+    project_id, approved_roadmap_version_id, title, version_label,
+    executive_summary, current_diagnosis, strategic_priorities,
+    sequence_30_60_90, risks_dependencies, recommended_next_move,
+    client_safe_canvas, visible_modules, publish_diff,
+    previous_publication_id, status, published_at, published_by
+  ) VALUES (
+    _portal_project_id, _engine_version_id, _title, _version_label,
+    _executive_summary, _current_diagnosis,
+    COALESCE(_strategic_priorities, '[]'::jsonb),
+    COALESCE(_sequence_30_60_90, '{}'::jsonb),
+    COALESCE(_risks_dependencies, '[]'::jsonb),
+    _recommended_next_move,
+    COALESCE(_client_safe_canvas, '{}'::jsonb),
+    COALESCE(_visible_modules, '{}'::jsonb),
+    COALESCE(_publish_diff, '{}'::jsonb),
+    v_prior_id, 'published', now(), v_actor
+  ) RETURNING id INTO v_new_id;
+
+  IF v_prior_id IS NOT NULL THEN
+    INSERT INTO public.client_portal_publish_events (
+      portal_project_id, portal_roadmap_id, previous_portal_roadmap_id,
+      engine_project_id, engine_version_id, event_type, actor_email,
+      summary, diff
+    ) VALUES (
+      _portal_project_id, v_prior_id, NULL,
+      _engine_project_id, _engine_version_id, 'superseded', v_actor,
+      _summary, '{}'::jsonb
+    );
+  END IF;
+
+  INSERT INTO public.client_portal_publish_events (
+    portal_project_id, portal_roadmap_id, previous_portal_roadmap_id,
+    engine_project_id, engine_version_id, event_type, actor_email,
+    summary, diff
+  ) VALUES (
+    _portal_project_id, v_new_id, v_prior_id,
+    _engine_project_id, _engine_version_id, 'published', v_actor,
+    _summary, COALESCE(_publish_diff, '{}'::jsonb)
+  ) RETURNING id INTO v_published_evt;
+
+  RETURN v_published_evt;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- 2. rollback_portal_publication
+--    Current 'published' → 'retracted' with reason, then chosen superseded
+--    row → 'published'. Writes a single 'rolled_back' event referencing the
+--    restored row with previous = the just-retracted row. Reason must be
+--    non-empty; target must be superseded AND in this project.
+-- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.rollback_portal_publication(
   _portal_project_id uuid,
-  _target_roadmap_id uuid,   -- the superseded row to promote back
-  _reason text
-) RETURNS uuid ...;
+  _target_roadmap_id uuid,
+  _reason            text
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor        text := auth.email();
+  v_current_id   uuid;
+  v_engine_proj  uuid;
+  v_engine_ver   uuid;
+  v_target_stat  text;
+  v_target_proj  uuid;
+  v_event_id     uuid;
+BEGIN
+  IF NOT public.is_engine_staff() THEN
+    RAISE EXCEPTION 'rollback_portal_publication: not authorized';
+  END IF;
+  IF v_actor IS NULL OR length(btrim(v_actor)) = 0 THEN
+    RAISE EXCEPTION 'rollback_portal_publication: caller email required';
+  END IF;
+  IF _reason IS NULL OR length(btrim(_reason)) = 0 THEN
+    RAISE EXCEPTION 'rollback_portal_publication: reason required';
+  END IF;
 
--- 3. retract_portal_publication: current 'published' → 'retracted', writes
--- retraction fields, inserts 'retracted' event. No successor row.
+  SELECT project_id, status
+    INTO v_target_proj, v_target_stat
+    FROM public.client_portal_roadmaps
+   WHERE id = _target_roadmap_id
+   FOR UPDATE;
+
+  IF v_target_proj IS NULL THEN
+    RAISE EXCEPTION 'rollback_portal_publication: target not found';
+  END IF;
+  IF v_target_proj <> _portal_project_id THEN
+    RAISE EXCEPTION 'rollback_portal_publication: target belongs to different project';
+  END IF;
+  IF v_target_stat <> 'superseded' THEN
+    RAISE EXCEPTION 'rollback_portal_publication: target must be superseded (got %)', v_target_stat;
+  END IF;
+
+  SELECT id, engine_project_id, engine_version_id
+    INTO v_current_id, v_engine_proj, v_engine_ver
+    FROM public.client_portal_roadmaps r
+    LEFT JOIN public.engine_roadmap_versions v
+      ON v.id = r.approved_roadmap_version_id
+   WHERE r.project_id = _portal_project_id
+     AND r.status     = 'published'
+   FOR UPDATE;
+
+  IF v_current_id IS NULL THEN
+    RAISE EXCEPTION 'rollback_portal_publication: no live published row to retract';
+  END IF;
+
+  -- Retract the currently-published row (fields required by CHECK).
+  UPDATE public.client_portal_roadmaps
+     SET status            = 'retracted',
+         retracted_at      = now(),
+         retracted_by      = v_actor,
+         retraction_reason = _reason
+   WHERE id = v_current_id;
+
+  -- Promote the target back to published.
+  UPDATE public.client_portal_roadmaps
+     SET status = 'published'
+   WHERE id = _target_roadmap_id;
+
+  INSERT INTO public.client_portal_publish_events (
+    portal_project_id, portal_roadmap_id, previous_portal_roadmap_id,
+    engine_project_id, engine_version_id, event_type, actor_email,
+    summary, diff
+  ) VALUES (
+    _portal_project_id, _target_roadmap_id, v_current_id,
+    COALESCE(v_engine_proj, gen_random_uuid()), v_engine_ver,
+    'rolled_back', v_actor, _reason, '{}'::jsonb
+  ) RETURNING id INTO v_event_id;
+
+  RETURN v_event_id;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- 3. retract_portal_publication
+--    'published' → 'retracted' with reason. No successor. Writes 'retracted'.
+-- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.retract_portal_publication(
   _portal_roadmap_id uuid,
-  _reason text
-) RETURNS uuid ...;
+  _reason            text
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor       text := auth.email();
+  v_project     uuid;
+  v_status      text;
+  v_engine_proj uuid;
+  v_engine_ver  uuid;
+  v_event_id    uuid;
+BEGIN
+  IF NOT public.is_engine_staff() THEN
+    RAISE EXCEPTION 'retract_portal_publication: not authorized';
+  END IF;
+  IF v_actor IS NULL OR length(btrim(v_actor)) = 0 THEN
+    RAISE EXCEPTION 'retract_portal_publication: caller email required';
+  END IF;
+  IF _reason IS NULL OR length(btrim(_reason)) = 0 THEN
+    RAISE EXCEPTION 'retract_portal_publication: reason required';
+  END IF;
 
--- 4. restore_portal_publication: 'retracted' → 'published', clears retraction
--- fields (mutable — not in immutability set), inserts 'restored' event.
+  SELECT r.project_id, r.status,
+         v.engine_project_id, r.approved_roadmap_version_id
+    INTO v_project, v_status, v_engine_proj, v_engine_ver
+    FROM public.client_portal_roadmaps r
+    LEFT JOIN public.engine_roadmap_versions v
+      ON v.id = r.approved_roadmap_version_id
+   WHERE r.id = _portal_roadmap_id
+   FOR UPDATE;
+
+  IF v_project IS NULL THEN
+    RAISE EXCEPTION 'retract_portal_publication: roadmap not found';
+  END IF;
+  IF v_status <> 'published' THEN
+    RAISE EXCEPTION 'retract_portal_publication: roadmap must be published (got %)', v_status;
+  END IF;
+
+  UPDATE public.client_portal_roadmaps
+     SET status            = 'retracted',
+         retracted_at      = now(),
+         retracted_by      = v_actor,
+         retraction_reason = _reason
+   WHERE id = _portal_roadmap_id;
+
+  INSERT INTO public.client_portal_publish_events (
+    portal_project_id, portal_roadmap_id, previous_portal_roadmap_id,
+    engine_project_id, engine_version_id, event_type, actor_email,
+    summary, diff
+  ) VALUES (
+    v_project, _portal_roadmap_id, NULL,
+    COALESCE(v_engine_proj, gen_random_uuid()), v_engine_ver,
+    'retracted', v_actor, _reason, '{}'::jsonb
+  ) RETURNING id INTO v_event_id;
+
+  RETURN v_event_id;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- 4. restore_portal_publication
+--    'retracted' → 'published'. Clears retraction fields (mutable — not on
+--    the immutability allowlist; the retraction_fields_consistent CHECK
+--    forces them NULL when status <> 'retracted', so they must clear in
+--    the same statement). Writes 'restored'. Reason required (audit).
+-- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.restore_portal_publication(
   _portal_roadmap_id uuid,
-  _reason text
-) RETURNS uuid ...;
+  _reason            text
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor       text := auth.email();
+  v_project     uuid;
+  v_status      text;
+  v_engine_proj uuid;
+  v_engine_ver  uuid;
+  v_conflict    uuid;
+  v_event_id    uuid;
+BEGIN
+  IF NOT public.is_engine_staff() THEN
+    RAISE EXCEPTION 'restore_portal_publication: not authorized';
+  END IF;
+  IF v_actor IS NULL OR length(btrim(v_actor)) = 0 THEN
+    RAISE EXCEPTION 'restore_portal_publication: caller email required';
+  END IF;
+  IF _reason IS NULL OR length(btrim(_reason)) = 0 THEN
+    RAISE EXCEPTION 'restore_portal_publication: reason required';
+  END IF;
 
--- 5. acknowledge_portal_roadmap: sets acknowledged_at / acknowledged_by_email
--- on the live 'published' row (only mutable post-publish fields on the
--- immutability trigger's allowlist), inserts 'acknowledged' event. Caller
--- authorized against client_portal_permissions.
+  SELECT r.project_id, r.status,
+         v.engine_project_id, r.approved_roadmap_version_id
+    INTO v_project, v_status, v_engine_proj, v_engine_ver
+    FROM public.client_portal_roadmaps r
+    LEFT JOIN public.engine_roadmap_versions v
+      ON v.id = r.approved_roadmap_version_id
+   WHERE r.id = _portal_roadmap_id
+   FOR UPDATE;
+
+  IF v_project IS NULL THEN
+    RAISE EXCEPTION 'restore_portal_publication: roadmap not found';
+  END IF;
+  IF v_status <> 'retracted' THEN
+    RAISE EXCEPTION 'restore_portal_publication: roadmap must be retracted (got %)', v_status;
+  END IF;
+
+  -- Refuse if a different row is already published in this project.
+  SELECT id INTO v_conflict
+    FROM public.client_portal_roadmaps
+   WHERE project_id = v_project
+     AND status     = 'published'
+   FOR UPDATE;
+  IF v_conflict IS NOT NULL THEN
+    RAISE EXCEPTION 'restore_portal_publication: another roadmap is currently published in this project';
+  END IF;
+
+  UPDATE public.client_portal_roadmaps
+     SET status            = 'published',
+         retracted_at      = NULL,
+         retracted_by      = NULL,
+         retraction_reason = NULL
+   WHERE id = _portal_roadmap_id;
+
+  INSERT INTO public.client_portal_publish_events (
+    portal_project_id, portal_roadmap_id, previous_portal_roadmap_id,
+    engine_project_id, engine_version_id, event_type, actor_email,
+    summary, diff
+  ) VALUES (
+    v_project, _portal_roadmap_id, NULL,
+    COALESCE(v_engine_proj, gen_random_uuid()), v_engine_ver,
+    'restored', v_actor, _reason, '{}'::jsonb
+  ) RETURNING id INTO v_event_id;
+
+  RETURN v_event_id;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- 5. acknowledge_portal_roadmap
+--    Client-facing. Sets acknowledged_at + acknowledged_by_email on the
+--    live 'published' row (both mutable — absent from the immutability
+--    allowlist). Writes 'acknowledged' event. Idempotent: repeated calls
+--    are no-ops (no re-ack, no duplicate event).
+-- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.acknowledge_portal_roadmap(
   _portal_roadmap_id uuid
-) RETURNS uuid ...;
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_email       text := lower(coalesce(auth.email(), ''));
+  v_project     uuid;
+  v_status      text;
+  v_already_ack timestamptz;
+  v_engine_proj uuid;
+  v_engine_ver  uuid;
+  v_event_id    uuid;
+BEGIN
+  IF v_email = '' THEN
+    RAISE EXCEPTION 'acknowledge_portal_roadmap: caller email required';
+  END IF;
 
--- 6. get_portal_publication_history: staff-only ordered timeline of events
--- + roadmap snapshots for one portal project. Read-only.
+  SELECT r.project_id, r.status, r.acknowledged_at,
+         v.engine_project_id, r.approved_roadmap_version_id
+    INTO v_project, v_status, v_already_ack, v_engine_proj, v_engine_ver
+    FROM public.client_portal_roadmaps r
+    LEFT JOIN public.engine_roadmap_versions v
+      ON v.id = r.approved_roadmap_version_id
+   WHERE r.id = _portal_roadmap_id
+   FOR UPDATE;
+
+  IF v_project IS NULL THEN
+    RAISE EXCEPTION 'acknowledge_portal_roadmap: roadmap not found';
+  END IF;
+  IF v_status <> 'published' THEN
+    RAISE EXCEPTION 'acknowledge_portal_roadmap: roadmap must be published (got %)', v_status;
+  END IF;
+
+  -- Portal permission check.
+  IF NOT EXISTS (
+    SELECT 1 FROM public.client_portal_permissions p
+     WHERE p.project_id = v_project
+       AND lower(p.email) = v_email
+       AND p.revoked_at IS NULL
+  ) THEN
+    RAISE EXCEPTION 'acknowledge_portal_roadmap: not authorized for this project';
+  END IF;
+
+  IF v_already_ack IS NOT NULL THEN
+    RETURN NULL; -- idempotent no-op
+  END IF;
+
+  UPDATE public.client_portal_roadmaps
+     SET acknowledged_at       = now(),
+         acknowledged_by_email = v_email
+   WHERE id = _portal_roadmap_id;
+
+  INSERT INTO public.client_portal_publish_events (
+    portal_project_id, portal_roadmap_id, previous_portal_roadmap_id,
+    engine_project_id, engine_version_id, event_type, actor_email,
+    summary, diff
+  ) VALUES (
+    v_project, _portal_roadmap_id, NULL,
+    COALESCE(v_engine_proj, gen_random_uuid()), v_engine_ver,
+    'acknowledged', v_email, NULL, '{}'::jsonb
+  ) RETURNING id INTO v_event_id;
+
+  RETURN v_event_id;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- 6. get_portal_publication_history
+--    Staff-only ordered timeline: event + minimal roadmap snapshot columns.
+-- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.get_portal_publication_history(
   _portal_project_id uuid
-) RETURNS TABLE(...) ...;
+) RETURNS TABLE (
+  event_id          uuid,
+  event_type        text,
+  actor_email       text,
+  summary           text,
+  created_at        timestamptz,
+  portal_roadmap_id uuid,
+  previous_portal_roadmap_id uuid,
+  engine_project_id uuid,
+  engine_version_id uuid,
+  roadmap_title     text,
+  roadmap_version_label text,
+  roadmap_status    text,
+  roadmap_published_at timestamptz,
+  roadmap_retracted_at timestamptz,
+  roadmap_retraction_reason text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT public.is_engine_staff() THEN
+    RAISE EXCEPTION 'get_portal_publication_history: not authorized';
+  END IF;
+
+  RETURN QUERY
+  SELECT e.id, e.event_type, e.actor_email, e.summary, e.created_at,
+         e.portal_roadmap_id, e.previous_portal_roadmap_id,
+         e.engine_project_id, e.engine_version_id,
+         r.title, r.version_label, r.status, r.published_at,
+         r.retracted_at, r.retraction_reason
+    FROM public.client_portal_publish_events e
+    LEFT JOIN public.client_portal_roadmaps r
+      ON r.id = e.portal_roadmap_id
+   WHERE e.portal_project_id = _portal_project_id
+   ORDER BY e.created_at DESC, e.id DESC;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- Grants. All six functions callable by authenticated (RPCs enforce their
+-- own authorization). Revoke from PUBLIC as defense-in-depth.
+-- ---------------------------------------------------------------------------
+REVOKE ALL ON FUNCTION public.publish_portal_roadmap(uuid,uuid,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,jsonb,jsonb,jsonb,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.rollback_portal_publication(uuid,uuid,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.retract_portal_publication(uuid,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.restore_portal_publication(uuid,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.acknowledge_portal_roadmap(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_portal_publication_history(uuid) FROM PUBLIC;
+
+GRANT EXECUTE ON FUNCTION public.publish_portal_roadmap(uuid,uuid,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,jsonb,jsonb,jsonb,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.rollback_portal_publication(uuid,uuid,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.retract_portal_publication(uuid,text)  TO authenticated;
+GRANT EXECUTE ON FUNCTION public.restore_portal_publication(uuid,text)  TO authenticated;
+GRANT EXECUTE ON FUNCTION public.acknowledge_portal_roadmap(uuid)       TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_portal_publication_history(uuid)   TO authenticated;
+
+COMMIT;
 ```
 
-**Grants.**
+### Behavioural contract (enforced in-function)
+
+- Every state flip + event insert runs in one PL/pgSQL body = one PostgREST
+  txn. Any RAISE aborts the whole block (no orphan events, no orphan flips).
+- `is_engine_staff()` gate on 1–4 and 6; `client_portal_permissions` gate
+  on 5. All check the caller email is present.
+- `_reason` required (non-empty) for rollback / retract / restore.
+- `rollback` locks the target row `FOR UPDATE`, verifies it is `superseded`
+  AND lives in the passed project.
+- `restore` refuses if any other row in the project is already `published`
+  (defensive — the partial unique index would also reject it).
+- `acknowledge` is idempotent: a second call on an already-acked row
+  returns NULL and writes no event.
+- All mutating RPCs return the primary event id so app callers can log /
+  smoke-test the paired write.
+
+### Preflight before apply
+
 ```sql
-GRANT EXECUTE ON FUNCTION public.publish_portal_roadmap(...)      TO authenticated;
-GRANT EXECUTE ON FUNCTION public.rollback_portal_publication(...) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.retract_portal_publication(...)  TO authenticated;
-GRANT EXECUTE ON FUNCTION public.restore_portal_publication(...)  TO authenticated;
-GRANT EXECUTE ON FUNCTION public.acknowledge_portal_roadmap(...)  TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_portal_publication_history(...) TO authenticated;
+-- Confirm the six function names are unused / safe to replace.
+SELECT proname FROM pg_proc WHERE proname IN (
+  'publish_portal_roadmap','rollback_portal_publication',
+  'retract_portal_publication','restore_portal_publication',
+  'acknowledge_portal_roadmap','get_portal_publication_history'
+);
+
+-- Confirm current RLS policy name matches what we DROP.
+SELECT policyname FROM pg_policies
+ WHERE schemaname='public' AND tablename='client_portal_roadmaps';
 ```
 
-**Behavioural contract enforced inside each RPC.**
-- Every state flip and event insert runs in a single implicit BEGIN/COMMIT
-  (a single PL/pgSQL function is one txn from PostgREST's perspective).
-- Authorization is checked first (`is_engine_staff()` for 1–4, 6; portal
-  permission for 5) — no unauthenticated writes possible.
-- `_reason` for rollback/retract must be non-empty; enforced in-function
-  before any mutation.
-- `rollback_portal_publication` verifies `_target_roadmap_id` is
-  `superseded` AND belongs to `_portal_project_id`; raises otherwise.
-- `restore_portal_publication` verifies row is `retracted`; raises otherwise.
-- `acknowledge_portal_roadmap` verifies row is `published`; raises otherwise.
-- Each RPC returns the primary event id so callers can log/verify.
+### Post-apply verification
 
-**Follow-on server functions** (built after this migration lands):
-- `publishVersionToPortal` — rewritten to call `publish_portal_roadmap` RPC.
-- `rollbackPortalPublication`, `retractPortalPublication`,
-  `restorePortalPublication`, `acknowledgePortalRoadmap`,
-  `getPortalPublicationHistory` — thin `createServerFn` wrappers over each
-  RPC with Zod input validation and existing `assertOps`/portal-membership
-  guards duplicated as belt-and-suspenders.
+```sql
+-- 6 functions present, all SECURITY DEFINER.
+SELECT proname, prosecdef FROM pg_proc
+ WHERE proname IN (
+   'publish_portal_roadmap','rollback_portal_publication',
+   'retract_portal_publication','restore_portal_publication',
+   'acknowledge_portal_roadmap','get_portal_publication_history')
+ ORDER BY proname;
 
-**Smoke coverage** (A1/A2 tests to be added post-apply):
-- A1: force the event insert to fail (invalid actor email) → row remains
-  `superseded`, no event written.
-- A2: force the status flip to fail (already `published`) → no event written.
-- Both use SAVEPOINT + rollback verification against the live row.
+-- Only the new policy on client_portal_roadmaps for clients.
+SELECT policyname, cmd FROM pg_policies
+ WHERE schemaname='public' AND tablename='client_portal_roadmaps'
+ ORDER BY policyname;
+```
 
-Return: revised SQL body (currently drafted signatures + contract only).
-Full body next revision — request approval to expand into apply-ready SQL.
+### Follow-on server functions (built after this migration lands)
+
+- `publishVersionToPortal` — rewritten to call `publish_portal_roadmap` RPC
+  (drops all in-app sequential writes + orphan-guard fallbacks).
+- Thin `createServerFn` wrappers with Zod validation + `assertOps` /
+  portal-permission guards duplicated for defense-in-depth:
+  - `rollbackPortalPublication`
+  - `retractPortalPublication`
+  - `restorePortalPublication`
+  - `acknowledgePortalRoadmap`
+  - `getPortalPublicationHistory`
+
+### Smoke coverage added after apply
+
+- **A1 (rollback pairing):** Call `rollback_portal_publication` with a
+  bogus `_target_roadmap_id` (different project). Expect raise;
+  post-check: no new event rows, no status changes.
+- **A2 (publish pairing):** Force event insert failure by temporarily
+  seeding an invalid actor path (simulated via constraint) and re-running
+  publish. Expect the whole txn to roll back — no superseded row, no new
+  published row.
+- **A3 (ack idempotency):** Call `acknowledge_portal_roadmap` twice on
+  the same published row. Expect one event row and the first
+  `acknowledged_at` unchanged.
+- **A4 (RLS refresh):** As a client user, `select id, status from
+  client_portal_roadmaps where project_id=$1` returns exactly the
+  currently-`published` row and nothing else (no approved, delivered,
+  superseded, or retracted rows).
+
+Status: **PENDING TAI REVIEW — apply-ready.**
