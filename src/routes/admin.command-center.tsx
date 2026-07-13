@@ -5,9 +5,11 @@ import { useState } from "react";
 import {
   getCommandCenterExceptions,
   resolveEngineException,
+  triggerEngineTick,
   type CommandCenterException,
+  type EngineTickResult,
 } from "@/lib/engine-command-center.functions";
-import { AlertOctagon, AlertTriangle, Info, Zap, Loader2, CheckCircle2, Clock } from "lucide-react";
+import { AlertOctagon, AlertTriangle, Info, Zap, Loader2, CheckCircle2, Clock, PlayCircle } from "lucide-react";
 
 export const Route = createFileRoute("/admin/command-center")({
   head: () => ({
