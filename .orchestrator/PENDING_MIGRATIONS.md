@@ -3814,9 +3814,18 @@ DECLARE
   b_missing jsonb;
   has_contra boolean;
 BEGIN
-  -- Approval gate
-  IF NEW.status = 'approved'
-     AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'approved') THEN
+  -- Approval gate (status→approved) and back-door completion gate (status→completed
+  -- for non-parents that were never approved). Both paths must satisfy Point A/B +
+  -- contradictions for non-parents so a child cannot bypass Spine by jumping
+  -- straight to 'completed' and then satisfying the parent rollup.
+  IF (NEW.status = 'approved'
+       AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'approved'))
+     OR (
+       NEW.project_kind <> 'parent'
+       AND NEW.status = 'completed'
+       AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed')
+       AND NEW.approved_at IS NULL
+     ) THEN
 
     IF NEW.project_kind = 'parent' THEN
       IF NOT public.internal_all_children_approved(NEW.id) THEN
@@ -3826,7 +3835,7 @@ BEGIN
     ELSE
       has_contra := public.internal_project_has_contradictions(NEW.id);
       IF has_contra THEN
-        RAISE EXCEPTION 'Cannot approve project %: unresolved contradictions', NEW.id
+        RAISE EXCEPTION 'Cannot approve/complete project %: unresolved contradictions', NEW.id
           USING ERRCODE = 'check_violation';
       END IF;
       SELECT COALESCE(jsonb_agg(s.field_key),'[]'::jsonb) INTO a_missing
@@ -3840,7 +3849,7 @@ BEGIN
          WHERE t.project_id=NEW.id AND t.spine='point-b'
            AND t.field_key=s.field_key AND t.status='approved_truth');
       IF jsonb_array_length(a_missing) > 0 OR jsonb_array_length(b_missing) > 0 THEN
-        RAISE EXCEPTION 'Cannot approve project %: spine not fully approved. point_a_missing=%, point_b_missing=%',
+        RAISE EXCEPTION 'Cannot approve/complete project %: spine not fully approved. point_a_missing=%, point_b_missing=%',
           NEW.id, a_missing, b_missing USING ERRCODE = 'check_violation';
       END IF;
     END IF;
