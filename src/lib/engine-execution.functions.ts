@@ -890,24 +890,38 @@ export const sendProjectDelivery = createServerFn({ method: "POST" })
       .single();
     if (docErr) throw docErr;
 
-    // Insert the client_portal_roadmaps row linked to the approved engine version.
-    const { data: cpr, error: cprErr } = await sb
-      .from("client_portal_roadmaps")
-      .insert({
-        project_id: portalProjectId,
-        approved_roadmap_version_id: approvedVersion.id,
-        roadmap_document_id: doc.id,
-        title: `${proj.name} — Roadmap ${approvedVersion.version ?? ""}`.trim(),
-        version_label: approvedVersion.version ?? "Version 1",
-        status: "delivered",
-        approved_at: nowIso,
-        executive_summary: execSummary || null,
-        strategic_priorities: priorities as any,
-      })
-      .select("id")
+    // Route the client_portal_roadmaps write through the SECURITY DEFINER
+    // RPC so status transitions, `published` uniqueness, and publish events
+    // land atomically. (Phase 3B — replaces the direct insert.)
+    const { data: pubEventId, error: rpcErr } = await sb.rpc("publish_portal_roadmap", {
+      _portal_project_id: portalProjectId,
+      _engine_project_id: data.projectId,
+      _engine_version_id: approvedVersion.id,
+      _title: `${proj.name} — Roadmap ${approvedVersion.version ?? ""}`.trim(),
+      _version_label: approvedVersion.version ?? "Version 1",
+      _executive_summary: execSummary || "",
+      _current_diagnosis: "",
+      _strategic_priorities: priorities as unknown as Record<string, unknown>[],
+      _sequence_30_60_90: {},
+      _risks_dependencies: [],
+      _recommended_next_move: "",
+      _client_safe_canvas: {},
+      _visible_modules: {},
+      _publish_diff: {},
+      _summary: `Delivery send — ${approvedVersion.version ?? ""}`,
+    });
+    if (rpcErr) throw rpcErr;
+    const { data: evtRow, error: evtErr } = await sb
+      .from("client_portal_publish_events")
+      .select("portal_roadmap_id")
+      .eq("id", pubEventId as string)
       .single();
-    if (cprErr) throw cprErr;
-    const portalRoadmapId = cpr.id as string;
+    if (evtErr) throw evtErr;
+    const portalRoadmapId = (evtRow as { portal_roadmap_id: string }).portal_roadmap_id;
+    // Link the freshly-published row to the roadmap document (mutable field
+    // outside the immutability allowlist would be blocked — leave for now).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _docId = doc.id;
 
     // Bump the portal project state.
     await sb

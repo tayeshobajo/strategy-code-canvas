@@ -1105,41 +1105,47 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
     });
 
     const nowIso = new Date().toISOString();
-    // Mark prior publications superseded (status → approved, not delivered)
-    await (context.supabase as never as {
-      from: (t: string) => {
-        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => Promise<{ error: unknown }> } };
-      };
-    })
-      .from("client_portal_roadmaps")
-      .update({ status: "approved" })
-      .eq("project_id", portalProjectId)
-      .eq("status", "delivered");
 
-    const { data: published, error: insErr } = await sb.from("client_portal_roadmaps").insert({
-      project_id: portalProjectId,
-      approved_roadmap_version_id: ver.id,
-      title: safe.title,
-      version_label: safe.version_label,
-      status: "delivered",
-      approved_at: nowIso,
-      published_at: nowIso,
-      published_by: actor,
-      executive_summary: safe.executive_summary,
-      current_diagnosis: safe.current_diagnosis,
-      strategic_priorities: safe.strategic_priorities,
-      sequence_30_60_90: safe.sequence_30_60_90,
-      risks_dependencies: safe.risks_dependencies,
-      recommended_next_move: safe.recommended_next_move,
-      client_safe_canvas: safe.client_safe_canvas,
-      metadata: { published_by: actor, engine_project_id: project.id },
-    }).select("id").single();
-    if (insErr) throwGeneric(insErr, "Operation failed");
-    const pub = published as { id: string };
+    // Route the atomic write through the SECURITY DEFINER RPC. The RPC:
+    //   • supersedes any current published row for this portal project
+    //   • inserts the new published row + client_portal_roadmaps `insert`
+    //     with approved_roadmap_version_id: <ver.id>
+    //   • emits `published` (and `superseded`, when applicable) events
+    // all in a single transaction. Returns the `published` event id.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sbRpc = context.supabase as any;
+    const { data: eventId, error: rpcErr } = await sbRpc.rpc("publish_portal_roadmap", {
+      _portal_project_id: portalProjectId,
+      _engine_project_id: project.id,
+      _engine_version_id: ver.id,
+      _title: safe.title,
+      _version_label: safe.version_label,
+      _executive_summary: safe.executive_summary ?? "",
+      _current_diagnosis: safe.current_diagnosis ?? "",
+      _strategic_priorities: safe.strategic_priorities,
+      _sequence_30_60_90: safe.sequence_30_60_90,
+      _risks_dependencies: safe.risks_dependencies,
+      _recommended_next_move: safe.recommended_next_move ?? "",
+      _client_safe_canvas: safe.client_safe_canvas,
+      _visible_modules: {},
+      _publish_diff: {},
+      _summary: `Published ${ver.version} to client portal.`,
+    });
+    if (rpcErr) throwGeneric(rpcErr, "Operation failed");
+
+    // Resolve the new roadmap id via the returned publish event so we can
+    // stamp engine_roadmap_versions and audit-log with the right pointer.
+    const { data: evt, error: evtErr } = await sbRpc
+      .from("client_portal_publish_events")
+      .select("portal_roadmap_id")
+      .eq("id", eventId as string)
+      .single();
+    if (evtErr) throwGeneric(evtErr, "Operation failed");
+    const portalRoadmapId = (evt as { portal_roadmap_id: string }).portal_roadmap_id;
 
     await sb.from("engine_roadmap_versions").update({
       published_to_portal_at: nowIso,
-      published_portal_roadmap_id: pub.id,
+      published_portal_roadmap_id: portalRoadmapId,
     }).eq("id", ver.id);
 
     await sb.from("engine_audit_log").insert({
@@ -1148,10 +1154,14 @@ export const publishVersionToPortal = createServerFn({ method: "POST" })
       action: "version_published_to_portal",
       summary: `Published ${ver.version} to client portal.`,
       version_id: ver.id,
-      metadata: { portal_roadmap_id: pub.id, portal_project_id: portalProjectId },
+      metadata: {
+        portal_roadmap_id: portalRoadmapId,
+        portal_project_id: portalProjectId,
+        publish_event_id: eventId,
+      },
     });
 
-    return { ok: true, portal_roadmap_id: pub.id };
+    return { ok: true, portal_roadmap_id: portalRoadmapId, publish_event_id: eventId };
   });
 
 // ─── Portal Link Management (P1-5 manual override) ──────────────────────
