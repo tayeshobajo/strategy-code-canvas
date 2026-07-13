@@ -3547,13 +3547,16 @@ Status: **PENDING TAI REVIEW — apply-ready after Revision 2.1. Executable migr
 
 ---
 
-## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 2
+## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 3
 
-Status: **PENDING TAI REVIEW (Revision 2).** Do not apply until reviewed. See doctrine `Phase 5D` for governance rules and invariants.
+Status: **PENDING TAI REVIEW (Revision 3).** Do not apply until reviewed. See doctrine `Phase 5D` for governance rules and invariants.
 
-Revision 2 addresses two blockers from Revision 1:
-- **Stale parent rollup** — child-side guard now blocks any child mutation that would invalidate an already-approved/completed parent's rollup (attach, detach, status regression, `completed_at` clear). Parent must be demoted (approved→earlier status / `completed_at` cleared) before the child can move.
-- **Portal exposure** — `engine_project_family_summary` is **staff-only** in this phase. Portal-facing family surface is deferred to a follow-up migration that filters by published/client-safe state and portal permissions. No portal read path added here.
+Revision 3 closes the remaining stale-rollup blockers from Revision 2:
+- **DELETE child under approved/completed parent** is now blocked in the child-side guard.
+- **Attaching an already-approved (or already-completed) child** into an approved/completed parent is blocked. Parent approval covers a fixed child set; changing that set requires parent demotion and re-approval.
+- **Direct child completion cannot bypass Point A/B.** Non-parent `status='completed'` transitions run the same Spine + contradiction gate as `status='approved'` unless the row already carries `approved_at IS NOT NULL` from a prior approved state.
+- **Completed-parent stale guard uses a `completed` predicate** (`status='completed' OR completed_at IS NOT NULL`), so any transition where `old_child_completed=true` becomes `new_child_completed=false` under a completed parent is blocked — not just `completed_at` clearing.
+- **Portal exposure** — `engine_project_family_summary` remains **staff-only** in this phase. Portal-facing family surface is deferred to a follow-up migration that filters by published/client-safe state and portal permissions.
 
 Also folded in:
 - `IS DISTINCT FROM` for `client_id` comparison.
