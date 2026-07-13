@@ -71,7 +71,7 @@ export const Route = createFileRoute("/api/public/hooks/engine-tick")({
               _detail: { cycle_key: cycleKey, owner_email: eng.owner_email },
               _urgency_score: 60,
               _impact_score: 50,
-              _deadline_at: null,
+              _deadline_at: undefined,
               _client_risk: false,
               _next_action: `Review pending cycle for "${eng.name}"`,
               _next_action_owner: eng.owner_email ?? undefined,
