@@ -700,7 +700,8 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
         "id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, current_focus, owner_name, next_milestone, next_meeting_at, share_url, approved_at, published_at, updated_at, version_label, client_safe_canvas",
       )
       .in("project_id", projectIds)
-      .in("status", ["approved", "delivered"])
+      // Phase 3 v4: only the live 'published' row is portal-visible.
+      .eq("status", "published")
       .not("published_at", "is", null)
       .order("published_at", { ascending: false });
     if (error) throw error;
