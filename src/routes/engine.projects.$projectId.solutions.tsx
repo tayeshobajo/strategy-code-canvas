@@ -126,6 +126,7 @@ function SolutionsPage() {
   const [sortKey, setSortKey] = useState<SolSortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [milestonePage, setMilestonePage] = useState(1);
+  const [query, setQuery] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["solutions", projectId],
@@ -140,7 +141,18 @@ function SolutionsPage() {
   const solutions = (data?.solutions ?? []) as MilestoneSolution[];
 
   const filtered = useMemo(() => {
-    const f = statusFilter === "all" ? solutions : solutions.filter(s => s.status === statusFilter);
+    const q = query.trim().toLowerCase();
+    let f = statusFilter === "all" ? solutions : solutions.filter(s => s.status === statusFilter);
+    if (q) {
+      f = f.filter(s =>
+        (s.title ?? "").toLowerCase().includes(q) ||
+        (s.summary ?? "").toLowerCase().includes(q) ||
+        (s.rationale ?? "").toLowerCase().includes(q) ||
+        (s.status ?? "").toLowerCase().includes(q) ||
+        s.milestone_id.toLowerCase().includes(q) ||
+        s.project_id.toLowerCase().includes(q),
+      );
+    }
     const sorted = [...f].sort((a, b) => {
       const av = (a[sortKey] ?? "") as string | number;
       const bv = (b[sortKey] ?? "") as string | number;
@@ -148,7 +160,7 @@ function SolutionsPage() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [solutions, statusFilter, sortKey, sortDir]);
+  }, [solutions, statusFilter, sortKey, sortDir, query]);
 
   const byMilestone = useMemo(() => {
     const m = new Map<string, MilestoneSolution[]>();
