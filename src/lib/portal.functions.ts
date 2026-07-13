@@ -477,7 +477,10 @@ export const getPortalContext = createServerFn({ method: "GET" })
           "id, project_id, status, title, version_label, published_at, approved_at, acknowledged_at, roadmap_data:client_safe_canvas",
         )
         .eq("project_id", project.id)
-        .in("status", ["approved", "delivered"])
+        // Phase 3 v4: portal only sees the single live 'published' snapshot.
+        // Legacy 'approved'/'delivered' rows were backfilled to
+        // 'published' or 'superseded'; superseded/retracted never render.
+        .eq("status", "published")
         .not("published_at", "is", null)
         .order("published_at", { ascending: false })
         .limit(1),
@@ -512,10 +515,9 @@ export const getPortalContext = createServerFn({ method: "GET" })
           subtitle: null as string | null,
           roadmap_data: roadmapRow.roadmap_data ?? null,
           published_at: roadmapRow.published_at,
-          delivered_at:
-            roadmapRow.status === "delivered"
-              ? (roadmapRow.published_at ?? roadmapRow.approved_at)
-              : null,
+          // Post-Phase 3, all live rows are 'published'. Retain the
+          // delivered_at surface for UI back-compat, sourced from published_at.
+          delivered_at: roadmapRow.published_at ?? roadmapRow.approved_at,
           version_label: roadmapRow.version_label,
           client_acknowledged: Boolean(roadmapRow.acknowledged_at),
           acknowledged_at: roadmapRow.acknowledged_at,
@@ -698,7 +700,8 @@ export const getPortalRoadmapDocs = createServerFn({ method: "GET" })
         "id, title, executive_summary, current_diagnosis, strategic_priorities, sequence_30_60_90, risks_dependencies, recommended_next_move, current_focus, owner_name, next_milestone, next_meeting_at, share_url, approved_at, published_at, updated_at, version_label, client_safe_canvas",
       )
       .in("project_id", projectIds)
-      .in("status", ["approved", "delivered"])
+      // Phase 3 v4: only the live 'published' row is portal-visible.
+      .eq("status", "published")
       .not("published_at", "is", null)
       .order("published_at", { ascending: false });
     if (error) throw error;
@@ -1713,7 +1716,8 @@ export const getPortalRoadmapContextOptions = createServerFn({ method: "POST" })
       .from("client_portal_roadmaps")
       .select("client_safe_canvas")
       .eq("project_id", data.portalProjectId)
-      .in("status", ["approved", "delivered"])
+      // Phase 3 v4: portal composer only sees the live published snapshot.
+      .eq("status", "published")
       .not("published_at", "is", null)
       .order("published_at", { ascending: false })
       .limit(1)

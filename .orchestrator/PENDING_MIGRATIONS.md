@@ -1857,3 +1857,122 @@ Additional app-level cases already scoped:
 - Rollback, retract, and restore are first-class, audited primitives.
 - Internal state cannot leak into any client-facing jsonb column at any nesting depth (`metadata`, `publish_diff`, `client_safe_canvas`, `visible_modules`, `strategic_priorities`, `sequence_30_60_90`, `risks_dependencies`) at the DB layer.
 - Client acknowledgment is captured as a first-class publication transition attributable to a specific historical row.
+
+---
+
+## Phase 3B — Portal Publication Atomic RPCs
+
+Status: **PENDING TAI REVIEW** — do not apply.
+
+**Why this is needed.** Phase 3 v4 requires paired writes:
+`superseded → published` MUST insert a `rolled_back` event; `retracted →
+published` MUST insert a `restored` event; both in the SAME transaction.
+Supabase-js has no client-side transaction API — the only way to guarantee
+atomicity (event insert fails → status flip rolls back, status flip fails →
+no orphan event) is a `SECURITY DEFINER` PL/pgSQL function invoked via
+`rpc()`. Same pattern applies to publish, retract, and acknowledge, which
+each currently do 2–3 sequential writes with no rollback path.
+
+**Six RPCs, one migration.** All are `SECURITY DEFINER`, `SET search_path =
+public`, authorize the caller against `is_engine_staff()` (client-facing
+`acknowledge_portal_roadmap` authorizes against
+`client_portal_permissions`), and raise on invalid state.
+
+```sql
+-- 1. publish_portal_roadmap: supersedes prior 'published' row + inserts new
+-- 'published' row + writes 'published' event (and 'superseded' event for
+-- prior row when present). All in one txn.
+CREATE OR REPLACE FUNCTION public.publish_portal_roadmap(
+  _portal_project_id uuid,
+  _engine_project_id uuid,
+  _engine_version_id uuid,
+  _title text,
+  _version_label text,
+  _executive_summary text,
+  _current_diagnosis text,
+  _strategic_priorities jsonb,
+  _sequence_30_60_90 jsonb,
+  _risks_dependencies jsonb,
+  _recommended_next_move text,
+  _client_safe_canvas jsonb,
+  _publish_diff jsonb DEFAULT '{}'::jsonb,
+  _summary text DEFAULT NULL
+) RETURNS uuid ...;
+
+-- 2. rollback_portal_publication: current 'published' → 'retracted' (with
+-- reason), then target superseded row → 'published', then insert
+-- 'rolled_back' event referencing the restored row + previous_portal_roadmap_id.
+CREATE OR REPLACE FUNCTION public.rollback_portal_publication(
+  _portal_project_id uuid,
+  _target_roadmap_id uuid,   -- the superseded row to promote back
+  _reason text
+) RETURNS uuid ...;
+
+-- 3. retract_portal_publication: current 'published' → 'retracted', writes
+-- retraction fields, inserts 'retracted' event. No successor row.
+CREATE OR REPLACE FUNCTION public.retract_portal_publication(
+  _portal_roadmap_id uuid,
+  _reason text
+) RETURNS uuid ...;
+
+-- 4. restore_portal_publication: 'retracted' → 'published', clears retraction
+-- fields (mutable — not in immutability set), inserts 'restored' event.
+CREATE OR REPLACE FUNCTION public.restore_portal_publication(
+  _portal_roadmap_id uuid,
+  _reason text
+) RETURNS uuid ...;
+
+-- 5. acknowledge_portal_roadmap: sets acknowledged_at / acknowledged_by_email
+-- on the live 'published' row (only mutable post-publish fields on the
+-- immutability trigger's allowlist), inserts 'acknowledged' event. Caller
+-- authorized against client_portal_permissions.
+CREATE OR REPLACE FUNCTION public.acknowledge_portal_roadmap(
+  _portal_roadmap_id uuid
+) RETURNS uuid ...;
+
+-- 6. get_portal_publication_history: staff-only ordered timeline of events
+-- + roadmap snapshots for one portal project. Read-only.
+CREATE OR REPLACE FUNCTION public.get_portal_publication_history(
+  _portal_project_id uuid
+) RETURNS TABLE(...) ...;
+```
+
+**Grants.**
+```sql
+GRANT EXECUTE ON FUNCTION public.publish_portal_roadmap(...)      TO authenticated;
+GRANT EXECUTE ON FUNCTION public.rollback_portal_publication(...) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.retract_portal_publication(...)  TO authenticated;
+GRANT EXECUTE ON FUNCTION public.restore_portal_publication(...)  TO authenticated;
+GRANT EXECUTE ON FUNCTION public.acknowledge_portal_roadmap(...)  TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_portal_publication_history(...) TO authenticated;
+```
+
+**Behavioural contract enforced inside each RPC.**
+- Every state flip and event insert runs in a single implicit BEGIN/COMMIT
+  (a single PL/pgSQL function is one txn from PostgREST's perspective).
+- Authorization is checked first (`is_engine_staff()` for 1–4, 6; portal
+  permission for 5) — no unauthenticated writes possible.
+- `_reason` for rollback/retract must be non-empty; enforced in-function
+  before any mutation.
+- `rollback_portal_publication` verifies `_target_roadmap_id` is
+  `superseded` AND belongs to `_portal_project_id`; raises otherwise.
+- `restore_portal_publication` verifies row is `retracted`; raises otherwise.
+- `acknowledge_portal_roadmap` verifies row is `published`; raises otherwise.
+- Each RPC returns the primary event id so callers can log/verify.
+
+**Follow-on server functions** (built after this migration lands):
+- `publishVersionToPortal` — rewritten to call `publish_portal_roadmap` RPC.
+- `rollbackPortalPublication`, `retractPortalPublication`,
+  `restorePortalPublication`, `acknowledgePortalRoadmap`,
+  `getPortalPublicationHistory` — thin `createServerFn` wrappers over each
+  RPC with Zod input validation and existing `assertOps`/portal-membership
+  guards duplicated as belt-and-suspenders.
+
+**Smoke coverage** (A1/A2 tests to be added post-apply):
+- A1: force the event insert to fail (invalid actor email) → row remains
+  `superseded`, no event written.
+- A2: force the status flip to fail (already `published`) → no event written.
+- Both use SAVEPOINT + rollback verification against the live row.
+
+Return: revised SQL body (currently drafted signatures + contract only).
+Full body next revision — request approval to expand into apply-ready SQL.
