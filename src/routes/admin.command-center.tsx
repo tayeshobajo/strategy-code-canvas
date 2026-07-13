@@ -65,12 +65,33 @@ function CommandCenterPage() {
 
   return (
     <div className="px-6 py-8 max-w-6xl">
-      <header className="mb-6">
-        <div className="text-xs uppercase tracking-widest text-amber-400">Admin</div>
-        <h1 className="text-2xl font-semibold text-white mt-1">Command Center</h1>
-        <p className="text-white/60 text-sm mt-1">
-          Live exception feed across every business engine. Only open items requiring a decision or action.
-        </p>
+      <header className="mb-6 flex items-start justify-between gap-6">
+        <div>
+          <div className="text-xs uppercase tracking-widest text-amber-400">Admin</div>
+          <h1 className="text-2xl font-semibold text-white mt-1">Command Center</h1>
+          <p className="text-white/60 text-sm mt-1">
+            Live exception feed across every business engine. Only open items requiring a decision or action.
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={() => tickMut.mutate()}
+            disabled={tickMut.isPending}
+            className="inline-flex items-center gap-2 rounded bg-sky-500/20 border border-sky-500/30 text-sky-100 text-sm px-3 py-1.5 hover:bg-sky-500/30 disabled:opacity-50"
+          >
+            {tickMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
+            Run engine-tick now
+          </button>
+          {tickMut.isError && (
+            <div className="text-rose-300 text-xs">{(tickMut.error as Error).message}</div>
+          )}
+          {lastTick && (
+            <div className="text-[11px] text-white/60 text-right">
+              Last run {new Date(lastTick.at).toLocaleTimeString()} · processed {lastTick.processed} · opened {lastTick.opened_exceptions}
+            </div>
+          )}
+        </div>
       </header>
 
       {isLoading && (
