@@ -3713,8 +3713,10 @@ AS $$
 $$;
 
 -- 6) Child-side stale-rollup guard
---    A child may not attach to / detach from / regress under a parent whose
---    rollup would silently become false. Parent must be demoted first.
+--    Parent approval covers a FIXED child set. Once a parent is approved or
+--    completed, its child set is frozen: no attach (even of already-approved
+--    children), no detach, no delete, no status/completed regression. Parent
+--    must be demoted first.
 CREATE OR REPLACE FUNCTION public.tg_engine_projects_child_rollup_guard()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -3724,62 +3726,68 @@ AS $$
 DECLARE
   old_parent public.engine_projects%ROWTYPE;
   new_parent public.engine_projects%ROWTYPE;
+  old_parent_locked boolean := false;
+  new_parent_locked boolean := false;
+  old_parent_completed boolean := false;
+  new_parent_completed boolean := false;
+  old_child_completed boolean := false;
+  new_child_completed boolean := false;
 BEGIN
   -- Load candidate parents (OLD side on UPDATE/DELETE; NEW side on INSERT/UPDATE)
   IF TG_OP IN ('UPDATE','DELETE') AND OLD.parent_project_id IS NOT NULL THEN
     SELECT * INTO old_parent FROM public.engine_projects WHERE id = OLD.parent_project_id;
+    old_parent_locked    := old_parent.status IN ('approved','completed') OR old_parent.completed_at IS NOT NULL;
+    old_parent_completed := old_parent.status = 'completed' OR old_parent.completed_at IS NOT NULL;
   END IF;
   IF TG_OP IN ('INSERT','UPDATE') AND NEW.parent_project_id IS NOT NULL THEN
     SELECT * INTO new_parent FROM public.engine_projects WHERE id = NEW.parent_project_id;
+    new_parent_locked    := new_parent.status IN ('approved','completed') OR new_parent.completed_at IS NOT NULL;
+    new_parent_completed := new_parent.status = 'completed' OR new_parent.completed_at IS NOT NULL;
   END IF;
 
-  -- INSERT: attaching a new child to an approved/completed parent
-  IF TG_OP = 'INSERT' AND NEW.parent_project_id IS NOT NULL THEN
-    IF new_parent.status IN ('approved','completed') OR new_parent.completed_at IS NOT NULL THEN
-      IF NEW.status NOT IN ('approved','completed') THEN
-        RAISE EXCEPTION 'Cannot attach unapproved child to approved/completed parent %; demote parent first', new_parent.id
-          USING ERRCODE = 'check_violation';
-      END IF;
-      IF (new_parent.status = 'completed' OR new_parent.completed_at IS NOT NULL)
-         AND NEW.completed_at IS NULL AND NEW.status <> 'completed' THEN
-        RAISE EXCEPTION 'Cannot attach non-completed child to completed parent %; demote parent first', new_parent.id
-          USING ERRCODE = 'check_violation';
-      END IF;
-    END IF;
+  -- INSERT: any attach into a locked parent is BLOCKED, even for already-approved/completed children.
+  IF TG_OP = 'INSERT' AND NEW.parent_project_id IS NOT NULL AND new_parent_locked THEN
+    RAISE EXCEPTION 'Cannot attach child to approved/completed parent %; demote parent first', new_parent.id
+      USING ERRCODE = 'check_violation';
   END IF;
 
-  -- UPDATE: detach or reparent
+  -- UPDATE: reparent (detach or attach elsewhere)
   IF TG_OP = 'UPDATE'
      AND OLD.parent_project_id IS DISTINCT FROM NEW.parent_project_id THEN
-    IF OLD.parent_project_id IS NOT NULL
-       AND (old_parent.status IN ('approved','completed') OR old_parent.completed_at IS NOT NULL) THEN
+    IF OLD.parent_project_id IS NOT NULL AND old_parent_locked THEN
       RAISE EXCEPTION 'Cannot detach child from approved/completed parent %; demote parent first', old_parent.id
         USING ERRCODE = 'check_violation';
     END IF;
-    IF NEW.parent_project_id IS NOT NULL
-       AND (new_parent.status IN ('approved','completed') OR new_parent.completed_at IS NOT NULL) THEN
-      IF NEW.status NOT IN ('approved','completed') THEN
-        RAISE EXCEPTION 'Cannot attach unapproved child to approved/completed parent %; demote parent first', new_parent.id
-          USING ERRCODE = 'check_violation';
-      END IF;
+    IF NEW.parent_project_id IS NOT NULL AND new_parent_locked THEN
+      RAISE EXCEPTION 'Cannot attach child to approved/completed parent %; demote parent first', new_parent.id
+        USING ERRCODE = 'check_violation';
     END IF;
   END IF;
 
-  -- UPDATE: child status regression under an approved parent
+  -- UPDATE: status/completed regression under a locked parent
   IF TG_OP = 'UPDATE' AND NEW.parent_project_id IS NOT NULL THEN
-    -- Status regression from approved/completed → anything else
+    old_child_completed := OLD.status = 'completed' OR OLD.completed_at IS NOT NULL;
+    new_child_completed := NEW.status = 'completed' OR NEW.completed_at IS NOT NULL;
+
+    -- Approval regression under an approved parent
     IF OLD.status IN ('approved','completed')
        AND NEW.status NOT IN ('approved','completed')
-       AND new_parent.status IN ('approved','completed') THEN
+       AND new_parent_locked THEN
       RAISE EXCEPTION 'Cannot regress child % from % under approved/completed parent %; demote parent first',
         NEW.id, OLD.status, new_parent.id USING ERRCODE = 'check_violation';
     END IF;
-    -- completed_at cleared under a completed parent
-    IF OLD.completed_at IS NOT NULL AND NEW.completed_at IS NULL
-       AND (new_parent.status = 'completed' OR new_parent.completed_at IS NOT NULL) THEN
-      RAISE EXCEPTION 'Cannot clear completed_at on child % under completed parent %; demote parent first',
+
+    -- Completion regression under a completed parent (predicate-based, not just completed_at)
+    IF new_parent_completed AND old_child_completed AND NOT new_child_completed THEN
+      RAISE EXCEPTION 'Cannot un-complete child % under completed parent %; demote parent first',
         NEW.id, new_parent.id USING ERRCODE = 'check_violation';
     END IF;
+  END IF;
+
+  -- DELETE: removing a child is effectively detaching. Block under a locked parent.
+  IF TG_OP = 'DELETE' AND OLD.parent_project_id IS NOT NULL AND old_parent_locked THEN
+    RAISE EXCEPTION 'Cannot delete child % under approved/completed parent %; demote parent first',
+      OLD.id, old_parent.id USING ERRCODE = 'check_violation';
   END IF;
 
   IF TG_OP = 'DELETE' THEN
