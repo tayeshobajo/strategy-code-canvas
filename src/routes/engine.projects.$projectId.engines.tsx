@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   listBusinessEngines,
   createBusinessEngine,
@@ -10,12 +10,16 @@ import {
   listEngineRuns,
   type BusinessEngine,
 } from "@/lib/engine-business-engines.functions";
+import { getEngineRunDetail } from "@/lib/engine-command-center.functions";
 import { getSpineReadiness, type SpineReadiness } from "@/lib/engine-spine-readiness.functions";
-import { Loader2, PlayCircle, PauseCircle, Plus, ChevronDown, ChevronRight, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { Loader2, PlayCircle, PauseCircle, Plus, ChevronDown, ChevronRight, ShieldAlert, CheckCircle2, X, ChevronLeft, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 export const Route = createFileRoute("/engine/projects/$projectId/engines")({
   component: EnginesPage,
 });
+
+const ENGINE_STATUSES = ["draft", "proposed", "approved", "active", "paused", "retired"] as const;
+const PAGE_SIZE = 10;
 
 function fmt(d: string | null) {
   if (!d) return "—";
@@ -107,13 +111,83 @@ function CreateEngineForm({ projectId, onCreated }: { projectId: string; onCreat
   );
 }
 
-function EngineRow({ engine, readiness, onChange }: { engine: BusinessEngine; readiness: SpineReadiness | null; onChange: () => void }) {
+function RunDetailModal({ runId, onClose }: { runId: string; onClose: () => void }) {
+  const getRun = useServerFn(getEngineRunDetail);
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["engine-run-detail", runId],
+    queryFn: () => getRun({ data: { runId } }),
+  });
+  const r = data?.run;
+  return (
+    <div className="fixed inset-0 z-50 flex items-stretch justify-end bg-black/60" onClick={onClose}>
+      <div className="w-full max-w-2xl bg-neutral-950 border-l border-white/10 h-full overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-white/50">Engine run</div>
+            <div className="text-white font-medium mt-1 font-mono text-sm">{runId.slice(0, 12)}…</div>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-4">
+          {isLoading && <div className="text-white/60 text-sm flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading…</div>}
+          {isError && <div className="text-rose-300 text-sm">{(error as Error)?.message}</div>}
+          {r && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Status" value={r.status} />
+                <Field label="Cycle key" value={r.cycle_key} mono />
+                <Field label="Scheduled" value={fmt(r.scheduled_for)} />
+                <Field label="Started" value={fmt(r.started_at)} />
+                <Field label="Completed" value={fmt(r.completed_at)} />
+                <Field label="Actor" value={r.actor_email ?? "—"} />
+                <Field label="Model" value={r.model ?? "—"} />
+                <Field label="Cost" value={r.cost_cents != null ? `${r.cost_cents}¢` : "—"} />
+                <Field label="Latency" value={r.latency_ms != null ? `${r.latency_ms}ms` : "—"} />
+                <Field label="Tokens" value={`${r.tokens_input ?? 0} in / ${r.tokens_output ?? 0} out`} />
+              </div>
+              {r.error && (
+                <div className="border border-rose-500/30 bg-rose-500/10 text-rose-200 text-sm p-3 rounded">{r.error}</div>
+              )}
+              <Section title="Inputs" json={r.inputs} />
+              <Section title="Outputs" json={r.outputs} />
+              <Section title="Decisions" json={r.decisions} />
+              {(r.evidence_ids.length + r.proposal_ids.length + r.approval_ids.length) > 0 && (
+                <div className="text-xs text-white/60">
+                  Evidence {r.evidence_ids.length} · Proposals {r.proposal_ids.length} · Approvals {r.approval_ids.length}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-widest text-white/40">{label}</div>
+      <div className={`text-white/90 ${mono ? "font-mono text-xs" : ""}`}>{value}</div>
+    </div>
+  );
+}
+function Section({ title, json }: { title: string; json: unknown }) {
+  const s = JSON.stringify(json ?? {}, null, 2);
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-widest text-white/40 mb-1">{title}</div>
+      <pre className="text-[11px] text-white/80 bg-black/50 border border-white/10 rounded p-3 overflow-x-auto max-h-64">{s}</pre>
+    </div>
+  );
+}
+
+function EngineRow({ engine, readiness, onChange, onOpenRun }: { engine: BusinessEngine; readiness: SpineReadiness | null; onChange: () => void; onOpenRun: (id: string) => void }) {
   const [ownerEmail, setOwnerEmail] = useState(engine.owner_email ?? "");
   const [expanded, setExpanded] = useState(false);
   const activateFn = useServerFn(activateBusinessEngine);
   const pauseFn = useServerFn(pauseBusinessEngine);
   const listRuns = useServerFn(listEngineRuns);
-  const qc = useQueryClient();
 
   const activate = useMutation({
     mutationFn: () => activateFn({ data: { engineId: engine.id, ownerEmail } }),
@@ -193,7 +267,12 @@ function EngineRow({ engine, readiness, onChange }: { engine: BusinessEngine; re
           ) : (
             <div className="space-y-2">
               {(runsData?.runs ?? []).map(r => (
-                <div key={r.id} className="text-sm border border-white/5 rounded p-2 bg-black/30">
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => onOpenRun(r.id)}
+                  className="w-full text-left text-sm border border-white/5 hover:border-white/20 rounded p-2 bg-black/30"
+                >
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/70">{r.status}</span>
                     <span className="text-white/60 text-xs">cycle {r.cycle_key}</span>
@@ -201,7 +280,8 @@ function EngineRow({ engine, readiness, onChange }: { engine: BusinessEngine; re
                   </div>
                   {r.model && <div className="text-white/50 text-xs mt-1">model: {r.model} · cost: {r.cost_cents ?? 0}¢ · latency: {r.latency_ms ?? 0}ms</div>}
                   {r.error && <div className="text-rose-300 text-xs mt-1">{r.error}</div>}
-                </div>
+                  <div className="text-white/40 text-[10px] mt-1">Click for full inputs / outputs</div>
+                </button>
               ))}
             </div>
           )}
@@ -211,11 +291,19 @@ function EngineRow({ engine, readiness, onChange }: { engine: BusinessEngine; re
   );
 }
 
+type SortKey = "created_at" | "name" | "last_run_at" | "next_run_at" | "status";
+
 function EnginesPage() {
   const { projectId } = Route.useParams();
   const listFn = useServerFn(listBusinessEngines);
   const readinessFn = useServerFn(getSpineReadiness);
   const qc = useQueryClient();
+
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
+  const [openRunId, setOpenRunId] = useState<string | null>(null);
 
   const { data: enginesData, isLoading } = useQuery({
     queryKey: ["business-engines", projectId],
@@ -231,6 +319,22 @@ function EnginesPage() {
     qc.invalidateQueries({ queryKey: ["spine-readiness", projectId] });
   };
 
+  const engines = enginesData?.engines ?? [];
+  const filtered = useMemo(() => {
+    const f = statusFilter === "all" ? engines : engines.filter(e => e.status === statusFilter);
+    const sorted = [...f].sort((a, b) => {
+      const av = (a[sortKey] ?? "") as string;
+      const bv = (b[sortKey] ?? "") as string;
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [engines, statusFilter, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   return (
     <div className="space-y-4">
       <header>
@@ -243,9 +347,39 @@ function EnginesPage() {
 
       <ReadinessBanner r={readinessData?.readiness ?? null} />
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-white/60">
-          {(enginesData?.engines ?? []).length} engine(s)
+      <div className="flex flex-wrap items-center gap-3 border border-white/10 bg-black/20 rounded-lg p-3">
+        <label className="text-xs text-white/60">Status
+          <select
+            className="ml-2 rounded bg-black/40 border border-white/10 px-2 py-1 text-white text-xs"
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+          >
+            <option value="all">All</option>
+            {ENGINE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </label>
+        <label className="text-xs text-white/60">Sort by
+          <select
+            className="ml-2 rounded bg-black/40 border border-white/10 px-2 py-1 text-white text-xs"
+            value={sortKey}
+            onChange={e => setSortKey(e.target.value as SortKey)}
+          >
+            <option value="created_at">Created</option>
+            <option value="name">Name</option>
+            <option value="status">Status</option>
+            <option value="last_run_at">Last run</option>
+            <option value="next_run_at">Next run</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+          className="text-xs rounded bg-black/40 border border-white/10 px-2 py-1 text-white/80 hover:bg-white/5"
+        >
+          {sortDir === "asc" ? "↑ Asc" : "↓ Desc"}
+        </button>
+        <div className="ml-auto text-xs text-white/60">
+          {filtered.length} of {engines.length} · page {currentPage}/{totalPages}
         </div>
         <CreateEngineForm projectId={projectId} onCreated={refresh} />
       </div>
@@ -255,10 +389,46 @@ function EnginesPage() {
       )}
 
       <div className="space-y-3">
-        {(enginesData?.engines ?? []).map(e => (
-          <EngineRow key={e.id} engine={e} readiness={readinessData?.readiness ?? null} onChange={refresh} />
+        {pageItems.map(e => (
+          <EngineRow
+            key={e.id}
+            engine={e}
+            readiness={readinessData?.readiness ?? null}
+            onChange={refresh}
+            onOpenRun={setOpenRunId}
+          />
         ))}
+        {!isLoading && pageItems.length === 0 && (
+          <div className="text-white/50 text-sm border border-white/10 bg-white/5 rounded p-6 text-center">
+            No engines match this filter.
+          </div>
+        )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1 pt-2">
+          <PagerBtn onClick={() => setPage(1)} disabled={currentPage === 1}><ChevronsLeft className="w-4 h-4" /></PagerBtn>
+          <PagerBtn onClick={() => setPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ChevronLeft className="w-4 h-4" /></PagerBtn>
+          <span className="text-xs text-white/60 px-3">Page {currentPage} of {totalPages}</span>
+          <PagerBtn onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><ChevronRight className="w-4 h-4" /></PagerBtn>
+          <PagerBtn onClick={() => setPage(totalPages)} disabled={currentPage === totalPages}><ChevronsRight className="w-4 h-4" /></PagerBtn>
+        </div>
+      )}
+
+      {openRunId && <RunDetailModal runId={openRunId} onClose={() => setOpenRunId(null)} />}
     </div>
+  );
+}
+
+function PagerBtn({ onClick, disabled, children }: { onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="rounded border border-white/10 bg-black/30 text-white/80 p-1.5 hover:bg-white/10 disabled:opacity-40"
+    >
+      {children}
+    </button>
   );
 }
