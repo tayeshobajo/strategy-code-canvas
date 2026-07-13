@@ -3137,11 +3137,13 @@ BEFORE INSERT OR UPDATE ON public.engine_spine_field_truth
 FOR EACH ROW EXECUTE FUNCTION public.tg_engine_spine_field_truth_provenance();
 ```
 
-**Pre-install backfill (mandatory).** Run BEFORE creating the trigger:
+**Pre-install backfill (mandatory).** Run BEFORE creating the trigger.
+
+Step 1 — enumerate offending rows for human review and remediation:
 
 ```sql
--- 1. Enumerate offending rows.
-SELECT id, project_id, spine, field_key, updated_by_actor, ceremony_id, source_ref
+SELECT id, project_id, spine, field_key, updated_by_actor, updated_by_email,
+       ceremony_id, source_ref
   FROM public.engine_spine_field_truth
  WHERE status = 'approved_truth'
    AND (
@@ -3152,14 +3154,84 @@ SELECT id, project_id, spine, field_key, updated_by_actor, ceremony_id, source_r
             WHERE d.ceremony_id = engine_spine_field_truth.ceremony_id
               AND d.field_key   = engine_spine_field_truth.field_key
               AND d.new_status  = 'approved_truth'))
+     OR (ceremony_id IS NULL
+         AND COALESCE(source_ref->>'kind','') = 'operator_override'
+         AND (
+              COALESCE(lower(source_ref->>'operator_email'),'') <> COALESCE(lower(updated_by_email),'')
+           OR COALESCE(btrim(source_ref->>'reason'),'') = ''
+           OR NOT (
+                public.has_role_email(source_ref->>'operator_email', 'admin'::app_role)
+             OR public.has_role_email(source_ref->>'operator_email', 'operator'::app_role))
+         ))
    );
-
--- 2. For each row: either attach it to a real completed ceremony with a
---    matching decision, re-stamp as operator_override with a non-empty reason,
---    or demote to 'verified'. Do NOT ship a bypass.
 ```
 
-The trigger install fails-fast when any row cannot pass its own conditions on the next UPDATE, so backfill must complete before install.
+Step 2 — remediate each offending row (attach a completed ceremony with a matching decision, re-stamp as a compliant `operator_override`, or demote to `verified`). Do **not** ship a bypass.
+
+Step 3 — **fail-closed guard.** Run this immediately before the `CREATE TRIGGER` statement, in the same migration transaction. If any invalid `approved_truth` row remains, the migration aborts and the trigger is never installed — legacy bad rows can no longer sit quietly behind the new gate:
+
+```sql
+DO $guard$
+DECLARE
+  bad_count integer;
+BEGIN
+  SELECT count(*) INTO bad_count
+    FROM public.engine_spine_field_truth t
+   WHERE t.status = 'approved_truth'
+     AND (
+          t.updated_by_actor IS DISTINCT FROM 'human'
+       OR (t.ceremony_id IS NULL AND COALESCE(t.source_ref->>'kind','') <> 'operator_override')
+       OR (t.ceremony_id IS NOT NULL AND NOT EXISTS (
+             SELECT 1 FROM public.engine_spine_ceremony_decisions d
+              WHERE d.ceremony_id = t.ceremony_id
+                AND d.field_key   = t.field_key
+                AND d.new_status  = 'approved_truth'))
+       OR (t.ceremony_id IS NULL
+           AND COALESCE(t.source_ref->>'kind','') = 'operator_override'
+           AND (
+                COALESCE(lower(t.source_ref->>'operator_email'),'') <> COALESCE(lower(t.updated_by_email),'')
+             OR COALESCE(btrim(t.source_ref->>'reason'),'') = ''
+             OR NOT (
+                  public.has_role_email(t.source_ref->>'operator_email', 'admin'::app_role)
+               OR public.has_role_email(t.source_ref->>'operator_email', 'operator'::app_role))
+           ))
+     );
+
+  IF bad_count > 0 THEN
+    RAISE EXCEPTION
+      'Phase 4 provenance guard: % legacy approved_truth row(s) fail the trigger predicate. Remediate via Step 1/2 (attach a real ceremony decision, re-stamp as compliant operator_override, or demote to verified) before installing trg_engine_spine_field_truth_provenance.',
+      bad_count
+      USING ERRCODE = 'check_violation';
+  END IF;
+END
+$guard$;
+```
+
+The guard uses the **exact same predicate** as the trigger (human actor + ceremony-with-matching-decision OR operator_override with matching email, non-empty reason, and staff role). No `backfill` exemption.
+
+### G1b — Portal caller swap (ship in same release as G1)
+
+Before or in the same release as this migration, every portal-reachable caller of `spine_points_approved` must be swapped to `spine_points_ready_summary`. After G1a lands, `spine_points_approved` refuses non-staff / non-service callers, so any lingering portal call throws `insufficient_privilege` at runtime.
+
+Audit callers with:
+
+```bash
+rg -n "spine_points_approved" src supabase
+```
+
+For each hit, confirm it runs in a staff-only server function (protected by `requireSupabaseAuth` + `hasRoleForEmail(admin|operator)`) or is called via `supabaseAdmin` in a webhook/cron. Any portal, client, or unauthenticated route must use `spine_points_ready_summary` instead.
+
+### G1c — Smoke harness execution role
+
+`spine_points_approved` / `spine_points_ready_summary` are `SECURITY DEFINER`, so inside the function `current_user` is the function owner, not the caller. Role checks use `current_setting('request.jwt.claim.role', true)` and `is_engine_staff()` (which reads `auth.email()`) — neither is set by a plain `psql` session, so a direct connection would fail those gates.
+
+The harness in `supabase/tests/spine-gate-smoke.sql` only exercises trigger paths (INSERT/UPDATE on `engine_spine_field_truth`, `engine_business_engines`, `engine_roadmap_versions`, `engine_projects`) — it does **not** invoke the SECURITY DEFINER RPCs. Run it as one of:
+
+- `psql "$SUPABASE_DB_URL"` connected as **`postgres`** (superuser bypasses RLS and per-role grants), or
+- `psql` with `SET LOCAL role = service_role;` prepended, or
+- via the `supabase--migration` tool, which executes under `service_role`.
+
+If the harness is ever extended to call the RPCs directly, wrap those calls with `SET LOCAL role = service_role;` so the `current_user = 'service_role'` branch inside the function evaluates true.
 
 ### G1a — Split `spine_points_approved` for portal safety
 
