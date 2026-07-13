@@ -8,7 +8,7 @@ import {
   selectMilestoneSolution,
   type MilestoneSolution,
 } from "@/lib/engine-solutions.functions";
-import { Loader2, CheckCircle2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Loader2, CheckCircle2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search } from "lucide-react";
 
 export const Route = createFileRoute("/engine/projects/$projectId/solutions")({
   component: SolutionsPage,
