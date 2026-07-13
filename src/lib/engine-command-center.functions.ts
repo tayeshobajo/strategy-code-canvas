@@ -169,9 +169,9 @@ export type EngineRunDetail = {
   engine_id: string;
   cycle_key: string;
   status: string;
-  inputs: unknown;
-  outputs: unknown;
-  decisions: unknown;
+  inputs: any;
+  outputs: any;
+  decisions: any;
   model: string | null;
   tokens_input: number | null;
   tokens_output: number | null;
