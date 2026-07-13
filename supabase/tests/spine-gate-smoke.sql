@@ -47,7 +47,7 @@ BEGIN
     VALUES (v_project_id, 'Spine Gate Smoke', v_client_id, v_portal_proj_id, 'active');
 
   INSERT INTO public.engine_business_engines (id, project_id, name, kind, outcome, cadence, status, created_by)
-    VALUES (v_engine_id, v_project_id, 'Smoke Engine', 'smoke', 'smoke-outcome', 'weekly', 'proposed', v_actor);
+    VALUES (v_engine_id, v_project_id, 'Smoke Engine', 'custom', 'smoke-outcome', 'weekly', 'proposed', v_actor);
 
   -- Two completed ceremonies (one per spine) for provenance-satisfying writes.
   INSERT INTO public.engine_spine_ceremonies (id, project_id, spine, status, opened_by_email, opened_at, completed_at, completed_by_email)
