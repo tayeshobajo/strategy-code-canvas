@@ -28,21 +28,25 @@ import { resolve } from "node:path";
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
 describe("publish integrity — approved_roadmap_version_id is the canonical column", () => {
-  it("publishVersionToPortal inserts approved_roadmap_version_id, not source_version_id", () => {
+  it("publishVersionToPortal routes writes through publish_portal_roadmap RPC with the engine version id", () => {
     const src = read("src/lib/engine-ops.functions.ts");
     const start = src.indexOf("publishVersionToPortal");
     expect(start).toBeGreaterThan(-1);
     const window = src.slice(start, start + 8000);
-    expect(window).toMatch(/from\("client_portal_roadmaps"\)\s*\.insert\(\{[\s\S]*?approved_roadmap_version_id\s*:/);
-    expect(window).not.toMatch(/source_version_id\s*:/);
+    // Phase 3B — the atomic write lives in the SECURITY DEFINER RPC.
+    expect(window).toMatch(/rpc\(\s*["']publish_portal_roadmap["']/);
+    expect(window).toMatch(/_engine_version_id\s*:\s*ver\.id/);
+    // Legacy column name must never come back.
+    expect(window).not.toMatch(/\bsource_version_id\s*:/);
   });
 
-  it("sendProjectDelivery inserts approved_roadmap_version_id, not source_version_id", () => {
+  it("sendProjectDelivery routes writes through publish_portal_roadmap RPC", () => {
     const src = read("src/lib/engine-execution.functions.ts");
     const start = src.indexOf("sendProjectDelivery");
     expect(start).toBeGreaterThan(-1);
     const window = src.slice(start, start + 8000);
-    expect(window).toMatch(/approved_roadmap_version_id\s*:/);
+    expect(window).toMatch(/rpc\(\s*["']publish_portal_roadmap["']/);
+    expect(window).toMatch(/_engine_version_id\s*:\s*approvedVersion\.id/);
     expect(window).not.toMatch(/\bsource_version_id\s*:/);
   });
 
