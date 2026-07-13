@@ -36,8 +36,10 @@ function fmtDate(d: string | null) {
 function CommandCenterPage() {
   const fetchFeed = useServerFn(getCommandCenterExceptions);
   const resolveFn = useServerFn(resolveEngineException);
+  const tickFn = useServerFn(triggerEngineTick);
   const qc = useQueryClient();
   const [note, setNote] = useState<Record<string, string>>({});
+  const [lastTick, setLastTick] = useState<EngineTickResult | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin", "command-center"],
