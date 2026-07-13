@@ -257,7 +257,88 @@ BEGIN
     RAISE EXCEPTION 'SMOKE FAIL J: AI wrote approved_truth without ceremony (got %). G1 trigger missing?', v_state;
   END IF;
 
-  RAISE NOTICE 'SMOKE PASS: all cases A-J behaved as expected';
+  ------------------------------------------------------------------
+  -- CASE J2 — completed ceremony reused for a field it did NOT decide => blocked
+  -- (Revision 2 tightened provenance: ceremony must have a matching
+  --  engine_spine_ceremony_decisions row for the field.)
+  ------------------------------------------------------------------
+  BEGIN
+    INSERT INTO public.engine_spine_field_truth
+      (project_id, spine, field_key, status, source_ref,
+       updated_by_email, updated_by_actor, ceremony_id)
+    VALUES (v_project_id, 'point-a', 'diagnosis:unrelated_field', 'approved_truth',
+            jsonb_build_object('kind','ceremony'),
+            v_human_email, 'human', v_ceremony_a_id);
+    v_state := 'ALLOWED';
+  EXCEPTION WHEN check_violation THEN v_state := 'BLOCKED';
+           WHEN OTHERS THEN v_state := 'BLOCKED_OTHER:' || SQLSTATE || ':' || SQLERRM;
+  END;
+  IF v_state <> 'BLOCKED' THEN
+    RAISE EXCEPTION 'SMOKE FAIL J2: ceremony reused for undecided field (got %)', v_state;
+  END IF;
+
+  ------------------------------------------------------------------
+  -- CASE K — engine_roadmap_versions approval blocked when Point A missing
+  ------------------------------------------------------------------
+  DECLARE v_version_id uuid := gen_random_uuid();
+  BEGIN
+    INSERT INTO public.engine_roadmap_versions (id, project_id, version, status, created_by)
+      VALUES (v_version_id, v_project_id, 'smoke-v1', 'ai_generated', 'ai');
+    -- Demote one Point A key to break readiness.
+    UPDATE public.engine_spine_field_truth SET status='verified'
+     WHERE project_id=v_project_id AND spine='point-a' AND field_key='lenses';
+    BEGIN
+      UPDATE public.engine_roadmap_versions
+         SET status='approved', approved_by='smoke-operator@example.com'
+       WHERE id=v_version_id;
+      v_state := 'ALLOWED';
+    EXCEPTION WHEN check_violation THEN v_state := 'BLOCKED';
+             WHEN OTHERS THEN v_state := 'BLOCKED_OTHER:' || SQLSTATE || ':' || SQLERRM;
+    END;
+    IF v_state <> 'BLOCKED' THEN
+      RAISE EXCEPTION 'SMOKE FAIL K: roadmap version approved with missing Point A (got %)', v_state;
+    END IF;
+    -- Restore truth for later cases.
+    UPDATE public.engine_spine_field_truth SET status='approved_truth',
+           source_ref=jsonb_build_object('kind','ceremony'), ceremony_id=v_ceremony_a_id
+     WHERE project_id=v_project_id AND spine='point-a' AND field_key='lenses';
+
+    ----------------------------------------------------------------
+    -- CASE L — engine_projects approval blocked when Point B missing
+    ----------------------------------------------------------------
+    UPDATE public.engine_spine_field_truth SET status='verified'
+     WHERE project_id=v_project_id AND spine='point-b' AND field_key='brand_position';
+    BEGIN
+      UPDATE public.engine_projects SET status='approved' WHERE id=v_project_id;
+      v_state := 'ALLOWED';
+    EXCEPTION WHEN check_violation THEN v_state := 'BLOCKED';
+             WHEN OTHERS THEN v_state := 'BLOCKED_OTHER:' || SQLSTATE || ':' || SQLERRM;
+    END;
+    IF v_state <> 'BLOCKED' THEN
+      RAISE EXCEPTION 'SMOKE FAIL L: project approved with missing Point B (got %)', v_state;
+    END IF;
+    UPDATE public.engine_spine_field_truth SET status='approved_truth',
+           source_ref=jsonb_build_object('kind','ceremony'), ceremony_id=v_ceremony_b_id
+     WHERE project_id=v_project_id AND spine='point-b' AND field_key='brand_position';
+
+    ----------------------------------------------------------------
+    -- CASE M — with full truth restored, both approve paths succeed
+    ----------------------------------------------------------------
+    BEGIN
+      UPDATE public.engine_roadmap_versions
+         SET status='approved', approved_by='smoke-operator@example.com'
+       WHERE id=v_version_id;
+      UPDATE public.engine_projects SET status='approved' WHERE id=v_project_id;
+      v_state := 'ALLOWED';
+    EXCEPTION WHEN OTHERS THEN
+      v_state := 'BLOCKED:' || SQLSTATE || ':' || SQLERRM;
+    END;
+    IF v_state <> 'ALLOWED' THEN
+      RAISE EXCEPTION 'SMOKE FAIL M: full-truth approve rejected (got %)', v_state;
+    END IF;
+  END;
+
+  RAISE NOTICE 'SMOKE PASS: all cases A-M behaved as expected';
 END
 $harness$;
 
