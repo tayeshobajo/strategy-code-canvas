@@ -3547,13 +3547,16 @@ Status: **PENDING TAI REVIEW — apply-ready after Revision 2.1. Executable migr
 
 ---
 
-## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 2
+## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 3
 
-Status: **PENDING TAI REVIEW (Revision 2).** Do not apply until reviewed. See doctrine `Phase 5D` for governance rules and invariants.
+Status: **PENDING TAI REVIEW (Revision 3).** Do not apply until reviewed. See doctrine `Phase 5D` for governance rules and invariants.
 
-Revision 2 addresses two blockers from Revision 1:
-- **Stale parent rollup** — child-side guard now blocks any child mutation that would invalidate an already-approved/completed parent's rollup (attach, detach, status regression, `completed_at` clear). Parent must be demoted (approved→earlier status / `completed_at` cleared) before the child can move.
-- **Portal exposure** — `engine_project_family_summary` is **staff-only** in this phase. Portal-facing family surface is deferred to a follow-up migration that filters by published/client-safe state and portal permissions. No portal read path added here.
+Revision 3 closes the remaining stale-rollup blockers from Revision 2:
+- **DELETE child under approved/completed parent** is now blocked in the child-side guard.
+- **Attaching an already-approved (or already-completed) child** into an approved/completed parent is blocked. Parent approval covers a fixed child set; changing that set requires parent demotion and re-approval.
+- **Direct child completion cannot bypass Point A/B.** Non-parent `status='completed'` transitions run the same Spine + contradiction gate as `status='approved'` unless the row already carries `approved_at IS NOT NULL` from a prior approved state.
+- **Completed-parent stale guard uses a `completed` predicate** (`status='completed' OR completed_at IS NOT NULL`), so any transition where `old_child_completed=true` becomes `new_child_completed=false` under a completed parent is blocked — not just `completed_at` clearing.
+- **Portal exposure** — `engine_project_family_summary` remains **staff-only** in this phase. Portal-facing family surface is deferred to a follow-up migration that filters by published/client-safe state and portal permissions.
 
 Also folded in:
 - `IS DISTINCT FROM` for `client_id` comparison.
@@ -3569,11 +3572,12 @@ Also folded in:
 4. Max depth = 1.
 5. Parent's Spine is locked empty (`point_a='{}' AND point_b='{}'`).
 6. Parent approval requires all children `approved`. Parent completion (`status='completed'` OR `completed_at IS NOT NULL`) requires all children completed.
-7. **Rollup cannot go stale.** Once a parent is `approved`, no child under it may be attached, detached, or regressed from `approved` until the parent is demoted. Once a parent is `completed`, no child may have its `completed_at` cleared or be attached/detached until the parent is demoted.
-8. Deleting a parent while children exist is blocked (`ON DELETE RESTRICT`).
-9. `project_kind` transitions:
-   - `standalone → parent`, `standalone → child` (with valid parent), `parent → standalone` (zero children), `child → standalone`: allowed.
-   - `parent ↔ child`: BLOCKED. Demote to standalone first.
+7. **Rollup cannot go stale.** Once a parent is `approved` or `completed`, no child under it may be attached (even if already approved/completed), detached, deleted, or regressed until the parent is demoted.
+8. **No back-door completion.** For non-parent projects, moving to `status='completed'` runs the same Point A/B + contradiction gate as `status='approved'`, unless the row already has `approved_at IS NOT NULL` (i.e. it was legitimately approved earlier).
+9. Deleting a parent while children exist is blocked (`ON DELETE RESTRICT`).
+10. `project_kind` transitions:
+    - `standalone → parent`, `standalone → child` (with valid parent), `parent → standalone` (zero children), `child → standalone`: allowed.
+    - `parent ↔ child`: BLOCKED. Demote to standalone first.
 
 ### Migration SQL (apply as one migration)
 
@@ -3709,8 +3713,10 @@ AS $$
 $$;
 
 -- 6) Child-side stale-rollup guard
---    A child may not attach to / detach from / regress under a parent whose
---    rollup would silently become false. Parent must be demoted first.
+--    Parent approval covers a FIXED child set. Once a parent is approved or
+--    completed, its child set is frozen: no attach (even of already-approved
+--    children), no detach, no delete, no status/completed regression. Parent
+--    must be demoted first.
 CREATE OR REPLACE FUNCTION public.tg_engine_projects_child_rollup_guard()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -3720,62 +3726,68 @@ AS $$
 DECLARE
   old_parent public.engine_projects%ROWTYPE;
   new_parent public.engine_projects%ROWTYPE;
+  old_parent_locked boolean := false;
+  new_parent_locked boolean := false;
+  old_parent_completed boolean := false;
+  new_parent_completed boolean := false;
+  old_child_completed boolean := false;
+  new_child_completed boolean := false;
 BEGIN
   -- Load candidate parents (OLD side on UPDATE/DELETE; NEW side on INSERT/UPDATE)
   IF TG_OP IN ('UPDATE','DELETE') AND OLD.parent_project_id IS NOT NULL THEN
     SELECT * INTO old_parent FROM public.engine_projects WHERE id = OLD.parent_project_id;
+    old_parent_locked    := old_parent.status IN ('approved','completed') OR old_parent.completed_at IS NOT NULL;
+    old_parent_completed := old_parent.status = 'completed' OR old_parent.completed_at IS NOT NULL;
   END IF;
   IF TG_OP IN ('INSERT','UPDATE') AND NEW.parent_project_id IS NOT NULL THEN
     SELECT * INTO new_parent FROM public.engine_projects WHERE id = NEW.parent_project_id;
+    new_parent_locked    := new_parent.status IN ('approved','completed') OR new_parent.completed_at IS NOT NULL;
+    new_parent_completed := new_parent.status = 'completed' OR new_parent.completed_at IS NOT NULL;
   END IF;
 
-  -- INSERT: attaching a new child to an approved/completed parent
-  IF TG_OP = 'INSERT' AND NEW.parent_project_id IS NOT NULL THEN
-    IF new_parent.status IN ('approved','completed') OR new_parent.completed_at IS NOT NULL THEN
-      IF NEW.status NOT IN ('approved','completed') THEN
-        RAISE EXCEPTION 'Cannot attach unapproved child to approved/completed parent %; demote parent first', new_parent.id
-          USING ERRCODE = 'check_violation';
-      END IF;
-      IF (new_parent.status = 'completed' OR new_parent.completed_at IS NOT NULL)
-         AND NEW.completed_at IS NULL AND NEW.status <> 'completed' THEN
-        RAISE EXCEPTION 'Cannot attach non-completed child to completed parent %; demote parent first', new_parent.id
-          USING ERRCODE = 'check_violation';
-      END IF;
-    END IF;
+  -- INSERT: any attach into a locked parent is BLOCKED, even for already-approved/completed children.
+  IF TG_OP = 'INSERT' AND NEW.parent_project_id IS NOT NULL AND new_parent_locked THEN
+    RAISE EXCEPTION 'Cannot attach child to approved/completed parent %; demote parent first', new_parent.id
+      USING ERRCODE = 'check_violation';
   END IF;
 
-  -- UPDATE: detach or reparent
+  -- UPDATE: reparent (detach or attach elsewhere)
   IF TG_OP = 'UPDATE'
      AND OLD.parent_project_id IS DISTINCT FROM NEW.parent_project_id THEN
-    IF OLD.parent_project_id IS NOT NULL
-       AND (old_parent.status IN ('approved','completed') OR old_parent.completed_at IS NOT NULL) THEN
+    IF OLD.parent_project_id IS NOT NULL AND old_parent_locked THEN
       RAISE EXCEPTION 'Cannot detach child from approved/completed parent %; demote parent first', old_parent.id
         USING ERRCODE = 'check_violation';
     END IF;
-    IF NEW.parent_project_id IS NOT NULL
-       AND (new_parent.status IN ('approved','completed') OR new_parent.completed_at IS NOT NULL) THEN
-      IF NEW.status NOT IN ('approved','completed') THEN
-        RAISE EXCEPTION 'Cannot attach unapproved child to approved/completed parent %; demote parent first', new_parent.id
-          USING ERRCODE = 'check_violation';
-      END IF;
+    IF NEW.parent_project_id IS NOT NULL AND new_parent_locked THEN
+      RAISE EXCEPTION 'Cannot attach child to approved/completed parent %; demote parent first', new_parent.id
+        USING ERRCODE = 'check_violation';
     END IF;
   END IF;
 
-  -- UPDATE: child status regression under an approved parent
+  -- UPDATE: status/completed regression under a locked parent
   IF TG_OP = 'UPDATE' AND NEW.parent_project_id IS NOT NULL THEN
-    -- Status regression from approved/completed → anything else
+    old_child_completed := OLD.status = 'completed' OR OLD.completed_at IS NOT NULL;
+    new_child_completed := NEW.status = 'completed' OR NEW.completed_at IS NOT NULL;
+
+    -- Approval regression under an approved parent
     IF OLD.status IN ('approved','completed')
        AND NEW.status NOT IN ('approved','completed')
-       AND new_parent.status IN ('approved','completed') THEN
+       AND new_parent_locked THEN
       RAISE EXCEPTION 'Cannot regress child % from % under approved/completed parent %; demote parent first',
         NEW.id, OLD.status, new_parent.id USING ERRCODE = 'check_violation';
     END IF;
-    -- completed_at cleared under a completed parent
-    IF OLD.completed_at IS NOT NULL AND NEW.completed_at IS NULL
-       AND (new_parent.status = 'completed' OR new_parent.completed_at IS NOT NULL) THEN
-      RAISE EXCEPTION 'Cannot clear completed_at on child % under completed parent %; demote parent first',
+
+    -- Completion regression under a completed parent (predicate-based, not just completed_at)
+    IF new_parent_completed AND old_child_completed AND NOT new_child_completed THEN
+      RAISE EXCEPTION 'Cannot un-complete child % under completed parent %; demote parent first',
         NEW.id, new_parent.id USING ERRCODE = 'check_violation';
     END IF;
+  END IF;
+
+  -- DELETE: removing a child is effectively detaching. Block under a locked parent.
+  IF TG_OP = 'DELETE' AND OLD.parent_project_id IS NOT NULL AND old_parent_locked THEN
+    RAISE EXCEPTION 'Cannot delete child % under approved/completed parent %; demote parent first',
+      OLD.id, old_parent.id USING ERRCODE = 'check_violation';
   END IF;
 
   IF TG_OP = 'DELETE' THEN
@@ -3802,9 +3814,18 @@ DECLARE
   b_missing jsonb;
   has_contra boolean;
 BEGIN
-  -- Approval gate
-  IF NEW.status = 'approved'
-     AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'approved') THEN
+  -- Approval gate (status→approved) and back-door completion gate (status→completed
+  -- for non-parents that were never approved). Both paths must satisfy Point A/B +
+  -- contradictions for non-parents so a child cannot bypass Spine by jumping
+  -- straight to 'completed' and then satisfying the parent rollup.
+  IF (NEW.status = 'approved'
+       AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'approved'))
+     OR (
+       NEW.project_kind <> 'parent'
+       AND NEW.status = 'completed'
+       AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed')
+       AND NEW.approved_at IS NULL
+     ) THEN
 
     IF NEW.project_kind = 'parent' THEN
       IF NOT public.internal_all_children_approved(NEW.id) THEN
@@ -3814,7 +3835,7 @@ BEGIN
     ELSE
       has_contra := public.internal_project_has_contradictions(NEW.id);
       IF has_contra THEN
-        RAISE EXCEPTION 'Cannot approve project %: unresolved contradictions', NEW.id
+        RAISE EXCEPTION 'Cannot approve/complete project %: unresolved contradictions', NEW.id
           USING ERRCODE = 'check_violation';
       END IF;
       SELECT COALESCE(jsonb_agg(s.field_key),'[]'::jsonb) INTO a_missing
@@ -3828,7 +3849,7 @@ BEGIN
          WHERE t.project_id=NEW.id AND t.spine='point-b'
            AND t.field_key=s.field_key AND t.status='approved_truth');
       IF jsonb_array_length(a_missing) > 0 OR jsonb_array_length(b_missing) > 0 THEN
-        RAISE EXCEPTION 'Cannot approve project %: spine not fully approved. point_a_missing=%, point_b_missing=%',
+        RAISE EXCEPTION 'Cannot approve/complete project %: spine not fully approved. point_a_missing=%, point_b_missing=%',
           NEW.id, a_missing, b_missing USING ERRCODE = 'check_violation';
       END IF;
     END IF;
@@ -3895,18 +3916,25 @@ Run under service_role; scratch data cleaned in final rollback block.
 - **Case O** — Attempt to approve parent P while C1 approved and C2 pending → BLOCKED (`not all children approved`).
 - **Case P** — Approve C2 fully, then approve P → ALLOWED. Then set `completed_at`/`status='completed'` on both children, then complete P → ALLOWED. Attempt to complete P before both children complete → BLOCKED.
 - **Case Q** — Kind transitions: `parent → child` BLOCKED; `child → parent` BLOCKED; `parent → standalone` while children exist BLOCKED; after reparenting all children, `parent → standalone` ALLOWED.
-- **Case R** — `DELETE parent` while children attached → BLOCKED (`foreign_key_violation`). `DELETE child` → ALLOWED. INSERT child under standalone → BLOCKED. INSERT child with mismatched `client_id` → BLOCKED. INSERT parent with non-empty `point_a` → BLOCKED.
-- **Case S — Stale-rollup guards (new).** With P approved and C1/C2 approved:
-  - S1: INSERT a new unapproved C3 under P → BLOCKED (`Cannot attach unapproved child to approved/completed parent`).
+- **Case R** — `DELETE parent` while children attached → BLOCKED (`foreign_key_violation`). `DELETE child` under an unapproved parent → ALLOWED. INSERT child under standalone → BLOCKED. INSERT child with mismatched `client_id` → BLOCKED. INSERT parent with non-empty `point_a` → BLOCKED.
+- **Case S — Stale-rollup guards under an approved parent.** With P approved and C1/C2 approved:
+  - S1: INSERT a new unapproved C3 under P → BLOCKED.
   - S2: UPDATE C1 to detach (`parent_project_id=NULL`, `project_kind=standalone`) → BLOCKED.
   - S3: UPDATE C1 `status='in_progress'` (regress from approved) → BLOCKED.
   - S4: Demote P (`status` back to `in_progress`), then S1/S2/S3 → ALLOWED.
-- **Case T — Completed-parent guards (new).** With P completed and both children completed:
+  - S5: `DELETE` C1 while P is approved → BLOCKED (`Cannot delete child … under approved/completed parent`).
+  - S6: INSERT an already-approved (or already-completed) C3 under approved P → BLOCKED (parent approval covers a fixed child set).
+- **Case T — Completed-parent guards.** With P completed and both children completed:
   - T1: UPDATE C1 `completed_at = NULL` → BLOCKED.
   - T2: INSERT a new non-completed child under P → BLOCKED.
   - T3: Demote P (clear `completed_at`, `status` back to `approved`), then T1/T2 → ALLOWED.
+  - T4: INSERT an already-completed child under completed P → BLOCKED (set is frozen).
+  - T5: UPDATE C1 `status` from `completed` back to `approved` (or `in_progress`) with `completed_at` also cleared so `new_child_completed=false`, under completed P → BLOCKED.
+- **Case U — No back-door completion.** Create standalone child C4 with incomplete Point A/B truth:
+  - U1: UPDATE C4 `status='completed'` directly (never approved, `approved_at IS NULL`) → BLOCKED with the same Spine/contradiction message as approval.
+  - U2: Attach C4 (still uncompleted) under parent P2, jump C4 to `status='completed'` to satisfy `internal_all_children_approved`/`internal_all_children_completed`, then approve P2 → the C4 completion transition itself is BLOCKED, so P2 approval cannot be laundered through it.
 
-Acceptance: `SMOKE PASS` line printed after N–T all behave as specified.
+Acceptance: `SMOKE PASS` line printed after N–U all behave as specified.
 
 ### Post-migration app follow-ups (tracked, not part of this SQL)
 
