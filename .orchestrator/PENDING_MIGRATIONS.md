@@ -1218,3 +1218,207 @@ INCONCLUSIVE-BY-ENV — structural verify only (4): 6, 10, 13, 14.
 INCONCLUSIVE-BY-DEP (1): 12 (depended on case 7 UPDATE).
 
 No trigger or gate produced a real failure. Recommended before Tai sign-off: Playwright pass through `CeremonyPanel` to exercise the UPDATE-only cases end-to-end. Scoped into the Phase 2 closeout with the `WorkspaceStepper` badge. Full per-case table + interpretation in `.orchestrator/phase-2-output.md`.
+
+---
+
+## Phase 3 — Governed Portal Publication
+
+Status: PENDING TAI REVIEW (2026-07-13). NOT APPLIED.
+
+Turns portal publish into a governed state machine with immutable snapshots,
+diff-aware republish, rollback/retract primitives, and a defense-in-depth
+scrub trigger. Reuses existing `client_portal_roadmaps.published_at`,
+`acknowledged_at`, `acknowledged_by_email`, `approved_roadmap_version_id`
+per the Phase 3 hard constraints — no duplicate ack columns.
+
+Preflight to run before applying:
+
+```sql
+-- Confirm no existing status values fall outside the new CHECK set
+SELECT status, count(*) FROM public.client_portal_roadmaps GROUP BY status;
+
+-- Confirm no portal project already has >1 published row (would break the
+-- partial unique index). Currently should be zero since 'published' isn't in
+-- use yet — the backfill promotes 'delivered' rows to 'published'.
+SELECT project_id, count(*)
+  FROM public.client_portal_roadmaps
+  WHERE status = 'delivered' AND published_at IS NOT NULL
+  GROUP BY project_id
+  HAVING count(*) > 1;
+
+-- Confirm no existing metadata rows carry banned keys the scrub trigger will reject
+SELECT id FROM public.client_portal_roadmaps
+  WHERE metadata ?| ARRAY['ceremony_id','epistemic','operator_override','contradiction','provenance','agent_costs'];
+```
+
+### Proposed migration (single file)
+
+```sql
+BEGIN;
+
+-- 1. Extend status enum values
+ALTER TABLE public.client_portal_roadmaps
+  DROP CONSTRAINT IF EXISTS client_portal_roadmaps_status_check;
+ALTER TABLE public.client_portal_roadmaps
+  ADD CONSTRAINT client_portal_roadmaps_status_check
+  CHECK (status IN (
+    'in_progress','approved','delivered','published','superseded','retracted'
+  ));
+
+-- 2. Backfill (idempotent): 'delivered' → 'published' (current live surface);
+--    historical 'approved' rows that were previously live → 'superseded'.
+--    Legacy 'approved' rows without published_at stay put.
+UPDATE public.client_portal_roadmaps
+   SET status = 'published'
+ WHERE status = 'delivered' AND published_at IS NOT NULL;
+
+UPDATE public.client_portal_roadmaps r
+   SET status = 'superseded'
+ WHERE status = 'approved'
+   AND published_at IS NOT NULL
+   AND EXISTS (
+     SELECT 1 FROM public.client_portal_roadmaps r2
+      WHERE r2.project_id = r.project_id
+        AND r2.status = 'published'
+        AND r2.published_at > r.published_at
+   );
+
+-- 3. Enforce invariant: at most one 'published' row per portal project
+CREATE UNIQUE INDEX IF NOT EXISTS client_portal_roadmaps_one_published_per_project
+  ON public.client_portal_roadmaps(project_id) WHERE status = 'published';
+
+-- 4. Publish lineage + diff snapshot + retraction fields
+ALTER TABLE public.client_portal_roadmaps
+  ADD COLUMN IF NOT EXISTS previous_publication_id uuid
+    REFERENCES public.client_portal_roadmaps(id),
+  ADD COLUMN IF NOT EXISTS publish_diff jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS retracted_at timestamptz,
+  ADD COLUMN IF NOT EXISTS retracted_by text,
+  ADD COLUMN IF NOT EXISTS retraction_reason text;
+
+-- 5. Audit-of-record for every publish/rollback/retract event
+CREATE TABLE IF NOT EXISTS public.client_portal_publish_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  portal_project_id uuid NOT NULL
+    REFERENCES public.client_portal_projects(id) ON DELETE CASCADE,
+  portal_roadmap_id uuid NOT NULL
+    REFERENCES public.client_portal_roadmaps(id) ON DELETE CASCADE,
+  engine_project_id uuid NOT NULL,
+  engine_version_id uuid,
+  event_type text NOT NULL CHECK (event_type IN (
+    'published','superseded','rolled_back','retracted','restored'
+  )),
+  actor_email text NOT NULL,
+  summary text,
+  diff jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+GRANT SELECT ON public.client_portal_publish_events TO authenticated;
+GRANT ALL    ON public.client_portal_publish_events TO service_role;
+-- No anon grant — event log is internal only.
+
+ALTER TABLE public.client_portal_publish_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Staff read publish events"
+  ON public.client_portal_publish_events
+  FOR SELECT TO authenticated
+  USING (public.is_engine_staff());
+
+CREATE INDEX IF NOT EXISTS client_portal_publish_events_project_idx
+  ON public.client_portal_publish_events(engine_project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS client_portal_publish_events_roadmap_idx
+  ON public.client_portal_publish_events(portal_roadmap_id, created_at DESC);
+
+-- 6. Defense-in-depth: block internal keys from ever landing in the portal
+--    row's metadata. buildClientSafePayload already whitelists, this is the
+--    DB-level backstop.
+CREATE OR REPLACE FUNCTION public.tg_client_portal_roadmaps_scrub_internal()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.metadata IS NOT NULL AND NEW.metadata ?| ARRAY[
+    'ceremony_id','epistemic','operator_override','contradiction',
+    'provenance','agent_costs'
+  ] THEN
+    RAISE EXCEPTION 'client_portal_roadmaps.metadata carries internal-only key(s); publish blocked';
+  END IF;
+  RETURN NEW;
+END
+$$;
+
+DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_scrub_internal
+  ON public.client_portal_roadmaps;
+CREATE TRIGGER tg_client_portal_roadmaps_scrub_internal
+  BEFORE INSERT OR UPDATE OF metadata
+  ON public.client_portal_roadmaps
+  FOR EACH ROW EXECUTE FUNCTION public.tg_client_portal_roadmaps_scrub_internal();
+
+COMMIT;
+```
+
+### Rollback SQL
+
+```sql
+BEGIN;
+DROP TRIGGER IF EXISTS tg_client_portal_roadmaps_scrub_internal
+  ON public.client_portal_roadmaps;
+DROP FUNCTION IF EXISTS public.tg_client_portal_roadmaps_scrub_internal();
+DROP TABLE  IF EXISTS public.client_portal_publish_events;
+DROP INDEX  IF EXISTS public.client_portal_roadmaps_one_published_per_project;
+ALTER TABLE public.client_portal_roadmaps
+  DROP COLUMN IF EXISTS retraction_reason,
+  DROP COLUMN IF EXISTS retracted_by,
+  DROP COLUMN IF EXISTS retracted_at,
+  DROP COLUMN IF EXISTS publish_diff,
+  DROP COLUMN IF EXISTS previous_publication_id;
+UPDATE public.client_portal_roadmaps SET status='delivered' WHERE status='published';
+UPDATE public.client_portal_roadmaps SET status='approved'  WHERE status='superseded';
+-- Note: 'retracted' rows need manual triage before rollback — the pre-Phase-3
+-- CHECK constraint has no equivalent state; either promote back to 'approved'
+-- with a note or delete before running this block.
+ALTER TABLE public.client_portal_roadmaps
+  DROP CONSTRAINT IF EXISTS client_portal_roadmaps_status_check;
+ALTER TABLE public.client_portal_roadmaps
+  ADD CONSTRAINT client_portal_roadmaps_status_check
+  CHECK (status IN ('in_progress','approved','delivered'));
+COMMIT;
+```
+
+### What ships on the app side after Tai applies this
+
+- `publishVersionToPortal` reworked in `src/lib/engine-ops.functions.ts` —
+  diff-aware, idempotent, writes lineage + events.
+- New `rollbackPortalPublication`, `retractPortalPublication`,
+  `getPortalPublicationHistory` server functions.
+- `sendProjectDelivery` re-routed through the same publish primitive so there
+  is one write path.
+- Portal read filters (`getPortalContext`, `getPortalRoadmapDocs`) narrow
+  from `status IN ('approved','delivered')` to `status = 'published'`.
+- Internal UI: Publish diff preview, Publish History panel, Rollback + Retract
+  controls on the preview/publish surface (admin-only).
+- Guard tests in `src/lib/__tests__/`: new assertions on the tighter portal
+  filter, presence of the scrub trigger reference, and the one-publish
+  invariant. Extends `publish-column-integrity.test.ts` +
+  `portal-context-leaks.test.ts`.
+- Smoke harness under `.orchestrator/phase-3-smoke/` — 16 cases (see plan
+  §7). DB cases via psql; UI cases via injected admin Playwright session.
+
+All app-side code will be gated on the new CHECK values so preview stays
+green until the migration lands.
+
+### Capabilities this phase moves to CONFIRMED (post-apply)
+
+- Portal publication is a governed state machine with one authoritative
+  current row per portal project.
+- Every published version is immutable and inspectable via history +
+  `publish_diff`.
+- Republish is diff-aware and idempotent (identical payload → no-op).
+- Rollback and retract are first-class, audited primitives.
+- Internal state (ceremony, epistemic, operator overrides, contradictions,
+  provenance, agent costs) is blocked at the DB layer from reaching portal
+  rows — no longer relies on `buildClientSafePayload` alone.
+- Client acknowledgment survives supersede: ack becomes an attribute of a
+  specific historical publication, not a rolling flag on a mutated row.
