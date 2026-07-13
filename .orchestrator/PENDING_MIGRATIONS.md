@@ -3939,8 +3939,10 @@ Run under service_role; scratch data cleaned in final rollback block.
   - T4: INSERT an already-completed child under completed P → BLOCKED (set is frozen).
   - T5: UPDATE C1 `status` from `completed` back to `approved` (or `in_progress`) with `completed_at` also cleared so `new_child_completed=false`, under completed P → BLOCKED.
 - **Case U — No back-door completion.** Create standalone child C4 with incomplete Point A/B truth:
-  - U1: UPDATE C4 `status='completed'` directly (never approved, `approved_at IS NULL`) → BLOCKED with the same Spine/contradiction message as approval.
+  - U1: UPDATE C4 `status='completed'` directly (never approved, `OLD.approved_at IS NULL`) → BLOCKED with the same Spine/contradiction message as approval.
   - U2: Attach C4 (still uncompleted) under parent P2, jump C4 to `status='completed'` to satisfy `internal_all_children_approved`/`internal_all_children_completed`, then approve P2 → the C4 completion transition itself is BLOCKED, so P2 approval cannot be laundered through it.
+  - U3: Child C5 has `completed_at IS NOT NULL` but `status NOT IN ('approved','completed')`; attempt parent P3 `status='completed'` → BLOCKED (`children must be both approved and completed`).
+  - U4: UPDATE C6 in a single statement setting both `status='completed'` and `approved_at=now()` on a row with incomplete Spine (`OLD.approved_at IS NULL`) → BLOCKED. The `approved_at` supplied in the same UPDATE must not skip the Spine gate.
 
 Acceptance: `SMOKE PASS` line printed after N–U all behave as specified.
 
