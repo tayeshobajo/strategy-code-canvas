@@ -3007,21 +3007,36 @@ Status: **PENDING TAI REVIEW — apply-ready.**
 
 ---
 
-## Phase 4 QA Fixes — Governance Gate Hardening
+## Phase 4 QA Fixes — Governance Gate Hardening (Revision 2)
 
 **Origin:** QA audit 2026-07-13 against Phase 4 spine approval gate.
-**Verdict from audit:** FAIL — three gaps found. This migration closes G1 (provenance) and G2 (scope). G3 (SQL smoke harness) ships as a companion fixture, not a migration.
+**Revision 2 origin:** Tai review 2026-07-13 of Revision 1. Blockers addressed below; nothing else changed.
+
+### Revision 2 blockers addressed
+
+1. **Removed** the permanent `source_ref->>'kind'='backfill'` bypass. Backfill is now a **pre-install** operation (audit query + explicit ceremony/override remediation), not a trigger exemption.
+2. **Split** `spine_points_approved(project_id)` into two functions:
+   - `spine_points_approved(project_id)` — staff/service-only, returns full detail (`required[]`, `missing[]`, dynamic `diagnosis:*` keys). Retained for admin UI and RPC.
+   - `spine_points_ready_summary(project_id)` — portal-safe, returns only `{ready, point_a_approved, point_a_missing_count, point_b_approved, point_b_missing_count, has_active_contradictions}`. No field keys leak.
+3. **Aliased** every `internal_spine_field_keys(...)` result as `s(field_key)` so `t.field_key = s.field_key` cannot resolve tautologically against the outer subquery.
+4. **Guarded** `OLD.status` references with `TG_OP='INSERT' OR OLD.status IS DISTINCT FROM 'approved'` so triggers declared `BEFORE INSERT OR UPDATE` behave correctly on INSERT.
+5. **Strengthened** ceremony provenance: the ceremony must have a matching `engine_spine_ceremony_decisions` row with the same `field_key` and `new_status='approved_truth'`. Reusing a completed ceremony for an unrelated field is rejected.
+6. **Added** `DROP TRIGGER IF EXISTS` before every `CREATE TRIGGER` so re-apply is idempotent.
+7. **Extended** smoke coverage to `engine_roadmap_versions` (case K) and `engine_projects` (case L) approval gates, plus a positive-path re-approve (case M) after full truth.
+8. **Verified** `engine_roadmap_versions.created_by` exists (`text NOT NULL DEFAULT 'ai'`).
+9. **Added** service-role allowance to `spine_points_approved` so the smoke harness (which runs as service_role, `auth.email()` is NULL) can invoke it.
+10. **Tightened** operator override: `updated_by_email` must map to a user with `admin` or `operator` role (via `has_role_email`), not merely match `source_ref.operator_email`.
 
 ### G1 — Enforce ceremony provenance for `approved_truth` writes
 
-Add BEFORE INSERT/UPDATE trigger on `public.engine_spine_field_truth`. When `NEW.status='approved_truth'`:
+BEFORE INSERT/UPDATE trigger on `public.engine_spine_field_truth`. When `NEW.status='approved_truth'`:
 
-1. `NEW.updated_by_actor` MUST be `'human'` (AI/system actors cannot mint approved truth).
+1. `NEW.updated_by_actor='human'`.
 2. Either
-   - `NEW.ceremony_id IS NOT NULL` AND the referenced `engine_spine_ceremonies` row is `status='completed'` AND same `project_id` AND same `spine`, OR
-   - `NEW.source_ref->>'kind' = 'operator_override'` AND `NEW.source_ref->>'operator_email'` matches `NEW.updated_by_email`.
+   - `NEW.ceremony_id IS NOT NULL` **and** referenced `engine_spine_ceremonies` row is `status='completed'`, same `project_id`, same `spine`, **and** an `engine_spine_ceremony_decisions` row exists for `(ceremony_id, field_key, new_status='approved_truth')`, or
+   - `NEW.source_ref->>'kind'='operator_override'` with a non-empty `reason`, `operator_email` matching `updated_by_email` (case-insensitive), and that email carrying `admin` or `operator` role. Emits an `engine_audit_log` row for every override write.
 
-Any other combination raises `check_violation` with a specific message.
+No other combination is accepted. There is no backfill bypass.
 
 ```sql
 CREATE OR REPLACE FUNCTION public.tg_engine_spine_field_truth_provenance()
@@ -3031,86 +3046,257 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  is_backfill boolean := (NEW.source_ref ->> 'kind') = 'backfill';
-  ceremony public.engine_spine_ceremonies%ROWTYPE;
+  ceremony        public.engine_spine_ceremonies%ROWTYPE;
+  decision_exists boolean;
+  op_email        text;
+  op_reason       text;
+  is_op_staff     boolean;
 BEGIN
-  IF is_backfill THEN
+  IF NEW.status <> 'approved_truth' THEN
     RETURN NEW;
   END IF;
 
-  IF NEW.status = 'approved_truth' THEN
-    IF NEW.updated_by_actor <> 'human' THEN
-      RAISE EXCEPTION 'approved_truth requires human actor (got actor=%, field=%:%)',
-        NEW.updated_by_actor, NEW.spine, NEW.field_key
+  IF NEW.updated_by_actor IS DISTINCT FROM 'human' THEN
+    RAISE EXCEPTION 'approved_truth requires human actor (got actor=%, field=%:%)',
+      NEW.updated_by_actor, NEW.spine, NEW.field_key
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF NEW.ceremony_id IS NOT NULL THEN
+    SELECT * INTO ceremony FROM public.engine_spine_ceremonies WHERE id = NEW.ceremony_id;
+    IF ceremony.id IS NULL
+       OR ceremony.project_id <> NEW.project_id
+       OR ceremony.spine      <> NEW.spine
+       OR ceremony.status     <> 'completed' THEN
+      RAISE EXCEPTION 'approved_truth ceremony_id % invalid (project/spine mismatch or not completed) for field %:%',
+        NEW.ceremony_id, NEW.spine, NEW.field_key
         USING ERRCODE = 'check_violation';
     END IF;
 
-    IF NEW.ceremony_id IS NOT NULL THEN
-      SELECT * INTO ceremony FROM public.engine_spine_ceremonies WHERE id = NEW.ceremony_id;
-      IF ceremony.id IS NULL
-         OR ceremony.project_id <> NEW.project_id
-         OR ceremony.spine <> NEW.spine
-         OR ceremony.status <> 'completed' THEN
-        RAISE EXCEPTION 'approved_truth ceremony_id % invalid (project/spine mismatch or not completed) for field %:%',
-          NEW.ceremony_id, NEW.spine, NEW.field_key
-          USING ERRCODE = 'check_violation';
-      END IF;
-    ELSIF (NEW.source_ref ->> 'kind') = 'operator_override' THEN
-      -- Explicit operator override path: human actor, matching email,
-      -- non-empty reason, and an audit row emitted for every write.
-      IF COALESCE(NEW.source_ref ->> 'operator_email','') = ''
-         OR lower(NEW.source_ref ->> 'operator_email') <> lower(COALESCE(NEW.updated_by_email,'')) THEN
-        RAISE EXCEPTION 'approved_truth operator_override requires source_ref.operator_email matching updated_by_email (field %:%)',
-          NEW.spine, NEW.field_key
-          USING ERRCODE = 'check_violation';
-      END IF;
-      IF COALESCE(btrim(NEW.source_ref ->> 'reason'),'') = '' THEN
-        RAISE EXCEPTION 'approved_truth operator_override requires source_ref.reason (field %:%)',
-          NEW.spine, NEW.field_key
-          USING ERRCODE = 'check_violation';
-      END IF;
-      INSERT INTO public.engine_audit_log (
-        project_id, action, field_changed, old_value, new_value, actor_email, metadata
-      ) VALUES (
-        NEW.project_id,
-        'spine_field_truth_operator_override',
-        NEW.spine || ':' || NEW.field_key,
-        NULL,
-        jsonb_build_object('status','approved_truth','source_ref',NEW.source_ref),
-        NEW.updated_by_email,
-        jsonb_build_object('actor_kind','human','reason', NEW.source_ref ->> 'reason')
-      );
-    ELSE
-      RAISE EXCEPTION 'approved_truth requires ceremony_id or source_ref.kind=operator_override (field %:%)',
-        NEW.spine, NEW.field_key
+    -- Ceremony must have decided THIS field to approved_truth.
+    SELECT EXISTS (
+      SELECT 1
+        FROM public.engine_spine_ceremony_decisions d
+       WHERE d.ceremony_id = NEW.ceremony_id
+         AND d.project_id  = NEW.project_id
+         AND d.spine       = NEW.spine
+         AND d.field_key   = NEW.field_key
+         AND d.new_status  = 'approved_truth'
+    ) INTO decision_exists;
+    IF NOT decision_exists THEN
+      RAISE EXCEPTION 'approved_truth ceremony % has no matching decision for field %:%',
+        NEW.ceremony_id, NEW.spine, NEW.field_key
         USING ERRCODE = 'check_violation';
     END IF;
+
+  ELSIF (NEW.source_ref ->> 'kind') = 'operator_override' THEN
+    op_email  := lower(COALESCE(NEW.source_ref ->> 'operator_email', ''));
+    op_reason := btrim(COALESCE(NEW.source_ref ->> 'reason', ''));
+
+    IF op_email = '' OR op_email <> lower(COALESCE(NEW.updated_by_email, '')) THEN
+      RAISE EXCEPTION 'approved_truth operator_override requires source_ref.operator_email matching updated_by_email (field %:%)',
+        NEW.spine, NEW.field_key USING ERRCODE = 'check_violation';
+    END IF;
+    IF op_reason = '' THEN
+      RAISE EXCEPTION 'approved_truth operator_override requires source_ref.reason (field %:%)',
+        NEW.spine, NEW.field_key USING ERRCODE = 'check_violation';
+    END IF;
+
+    -- Operator email must actually hold admin or operator role.
+    SELECT public.has_role_email(op_email, 'admin'::app_role)
+        OR public.has_role_email(op_email, 'operator'::app_role)
+      INTO is_op_staff;
+    IF NOT COALESCE(is_op_staff, false) THEN
+      RAISE EXCEPTION 'approved_truth operator_override email % lacks admin/operator role (field %:%)',
+        op_email, NEW.spine, NEW.field_key USING ERRCODE = 'check_violation';
+    END IF;
+
+    INSERT INTO public.engine_audit_log (
+      project_id, action, field_changed, old_value, new_value, actor_email, metadata
+    ) VALUES (
+      NEW.project_id,
+      'spine_field_truth_operator_override',
+      NEW.spine || ':' || NEW.field_key,
+      NULL,
+      jsonb_build_object('status','approved_truth','source_ref',NEW.source_ref),
+      NEW.updated_by_email,
+      jsonb_build_object('actor_kind','human','reason', op_reason)
+    );
+  ELSE
+    RAISE EXCEPTION 'approved_truth requires ceremony_id or source_ref.kind=operator_override (field %:%)',
+      NEW.spine, NEW.field_key USING ERRCODE = 'check_violation';
   END IF;
 
   RETURN NEW;
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_engine_spine_field_truth_provenance ON public.engine_spine_field_truth;
 CREATE TRIGGER trg_engine_spine_field_truth_provenance
 BEFORE INSERT OR UPDATE ON public.engine_spine_field_truth
 FOR EACH ROW EXECUTE FUNCTION public.tg_engine_spine_field_truth_provenance();
 ```
 
-**Backfill note:** existing `approved_truth` rows written before this trigger MUST be audited before install. Query:
+**Pre-install backfill (mandatory).** Run BEFORE creating the trigger:
 
 ```sql
+-- 1. Enumerate offending rows.
 SELECT id, project_id, spine, field_key, updated_by_actor, ceremony_id, source_ref
   FROM public.engine_spine_field_truth
  WHERE status = 'approved_truth'
-   AND (updated_by_actor <> 'human'
-        OR (ceremony_id IS NULL AND COALESCE(source_ref->>'kind','') <> 'operator_override'));
+   AND (
+        updated_by_actor IS DISTINCT FROM 'human'
+     OR (ceremony_id IS NULL AND COALESCE(source_ref->>'kind','') <> 'operator_override')
+     OR (ceremony_id IS NOT NULL AND NOT EXISTS (
+           SELECT 1 FROM public.engine_spine_ceremony_decisions d
+            WHERE d.ceremony_id = engine_spine_field_truth.ceremony_id
+              AND d.field_key   = engine_spine_field_truth.field_key
+              AND d.new_status  = 'approved_truth'))
+   );
+
+-- 2. For each row: either attach it to a real completed ceremony with a
+--    matching decision, re-stamp as operator_override with a non-empty reason,
+--    or demote to 'verified'. Do NOT ship a bypass.
 ```
 
-Any row returned must be either (a) attached to a completed ceremony via ops UI, (b) re-stamped as `operator_override` with the acting operator's email, or (c) demoted back to `verified` before the trigger is installed. Otherwise the next UPDATE on that row will fail.
+The trigger install fails-fast when any row cannot pass its own conditions on the next UPDATE, so backfill must complete before install.
 
-### G2 — Extend gate to `engine_roadmap_versions`
+### G1a — Split `spine_points_approved` for portal safety
 
-Install the same missing-key + contradiction gate as a BEFORE UPDATE trigger on `engine_roadmap_versions` when `NEW.status` transitions to `'approved'`:
+Portal members must not read internal spine field-key names (`diagnosis:*` and other dynamic keys reveal internal taxonomy). The detailed function stays staff/service; portal callers get a summary-only helper.
+
+```sql
+-- Detailed function — restrict to staff or service_role.
+CREATE OR REPLACE FUNCTION public.spine_points_approved(_project_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  point_a_required text[];
+  point_b_required text[];
+  point_a_missing  text[];
+  point_b_missing  text[];
+  contradictions   boolean;
+  allowed          boolean;
+BEGIN
+  -- Staff OR service_role only. Portal members no longer get field names.
+  allowed := public.is_engine_staff()
+          OR current_setting('request.jwt.claim.role', true) = 'service_role'
+          OR current_user = 'service_role';
+  IF NOT allowed THEN
+    RAISE EXCEPTION 'Forbidden: spine_points_approved is staff/service-only'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  SELECT COALESCE(array_agg(s.field_key), '{}') INTO point_a_required
+    FROM public.internal_spine_field_keys(_project_id, 'point-a') AS s(field_key);
+  SELECT COALESCE(array_agg(s.field_key), '{}') INTO point_b_required
+    FROM public.internal_spine_field_keys(_project_id, 'point-b') AS s(field_key);
+
+  SELECT COALESCE(array_agg(k), '{}') INTO point_a_missing
+    FROM unnest(point_a_required) AS k
+   WHERE NOT EXISTS (
+     SELECT 1 FROM public.engine_spine_field_truth t
+      WHERE t.project_id = _project_id AND t.spine = 'point-a'
+        AND t.field_key = k AND t.status = 'approved_truth');
+
+  SELECT COALESCE(array_agg(k), '{}') INTO point_b_missing
+    FROM unnest(point_b_required) AS k
+   WHERE NOT EXISTS (
+     SELECT 1 FROM public.engine_spine_field_truth t
+      WHERE t.project_id = _project_id AND t.spine = 'point-b'
+        AND t.field_key = k AND t.status = 'approved_truth');
+
+  contradictions := public.internal_project_has_contradictions(_project_id);
+
+  RETURN jsonb_build_object(
+    'ready',
+      array_length(point_a_missing,1) IS NULL
+      AND array_length(point_b_missing,1) IS NULL
+      AND NOT contradictions,
+    'point_a', jsonb_build_object(
+      'required', to_jsonb(point_a_required),
+      'missing',  to_jsonb(point_a_missing),
+      'approved', array_length(point_a_missing,1) IS NULL),
+    'point_b', jsonb_build_object(
+      'required', to_jsonb(point_b_required),
+      'missing',  to_jsonb(point_b_missing),
+      'approved', array_length(point_b_missing,1) IS NULL),
+    'has_active_contradictions', contradictions
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.spine_points_approved(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.spine_points_approved(uuid) TO service_role;
+-- Staff routes call it through server functions running with the caller's JWT;
+-- is_engine_staff() gates access at the function body. No blanket GRANT to authenticated.
+GRANT EXECUTE ON FUNCTION public.spine_points_approved(uuid) TO authenticated;
+
+-- Portal-safe summary — counts only, no field names.
+CREATE OR REPLACE FUNCTION public.spine_points_ready_summary(_project_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  a_missing_ct int;
+  b_missing_ct int;
+  contradictions boolean;
+  allowed boolean;
+BEGIN
+  SELECT public.is_engine_staff()
+      OR current_setting('request.jwt.claim.role', true) = 'service_role'
+      OR current_user = 'service_role'
+      OR EXISTS (
+        SELECT 1
+          FROM public.client_portal_projects cpp
+          JOIN public.client_portal_permissions perm ON perm.project_id = cpp.id
+          JOIN public.engine_projects ep ON ep.client_portal_project_id = cpp.id
+         WHERE ep.id = _project_id
+           AND lower(perm.email) = lower(coalesce(auth.email(), ''))
+           AND perm.revoked_at IS NULL)
+    INTO allowed;
+  IF NOT allowed THEN
+    RAISE EXCEPTION 'Forbidden: access to project % not permitted', _project_id
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  SELECT count(*) INTO a_missing_ct
+    FROM public.internal_spine_field_keys(_project_id,'point-a') AS s(field_key)
+   WHERE NOT EXISTS (SELECT 1 FROM public.engine_spine_field_truth t
+     WHERE t.project_id=_project_id AND t.spine='point-a'
+       AND t.field_key=s.field_key AND t.status='approved_truth');
+
+  SELECT count(*) INTO b_missing_ct
+    FROM public.internal_spine_field_keys(_project_id,'point-b') AS s(field_key)
+   WHERE NOT EXISTS (SELECT 1 FROM public.engine_spine_field_truth t
+     WHERE t.project_id=_project_id AND t.spine='point-b'
+       AND t.field_key=s.field_key AND t.status='approved_truth');
+
+  contradictions := public.internal_project_has_contradictions(_project_id);
+
+  RETURN jsonb_build_object(
+    'ready', a_missing_ct=0 AND b_missing_ct=0 AND NOT contradictions,
+    'point_a_approved', a_missing_ct=0,
+    'point_a_missing_count', a_missing_ct,
+    'point_b_approved', b_missing_ct=0,
+    'point_b_missing_count', b_missing_ct,
+    'has_active_contradictions', contradictions);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.spine_points_ready_summary(uuid) TO authenticated, service_role;
+```
+
+App code follow-up (post-migration, not part of this SQL bundle): swap portal-side callers of `spine_points_approved` to `spine_points_ready_summary`.
+
+### G2 — Extend gate to `engine_roadmap_versions` and `engine_projects`
+
+Same missing-key + contradiction gate. Uses aliased helper results and TG_OP-safe OLD access.
 
 ```sql
 CREATE OR REPLACE FUNCTION public.tg_engine_roadmap_versions_gate()
@@ -3124,28 +3310,28 @@ DECLARE
   b_missing jsonb;
   has_contra boolean;
 BEGIN
-  IF NEW.status = 'approved' AND (OLD.status IS DISTINCT FROM 'approved') THEN
+  IF NEW.status = 'approved'
+     AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'approved') THEN
+
     has_contra := public.internal_project_has_contradictions(NEW.project_id);
     IF has_contra THEN
       RAISE EXCEPTION 'Cannot approve roadmap version %: project % has unresolved contradictions',
         NEW.id, NEW.project_id USING ERRCODE = 'check_violation';
     END IF;
 
-    SELECT COALESCE(jsonb_agg(k), '[]'::jsonb) INTO a_missing FROM (
-      SELECT field_key AS k FROM public.internal_spine_field_keys(NEW.project_id, 'point-a') s
-       WHERE NOT EXISTS (
-         SELECT 1 FROM public.engine_spine_field_truth t
-          WHERE t.project_id = NEW.project_id AND t.spine='point-a'
-            AND t.field_key = s.field_key AND t.status='approved_truth')
-    ) x;
+    SELECT COALESCE(jsonb_agg(s.field_key), '[]'::jsonb) INTO a_missing
+      FROM public.internal_spine_field_keys(NEW.project_id, 'point-a') AS s(field_key)
+     WHERE NOT EXISTS (
+       SELECT 1 FROM public.engine_spine_field_truth t
+        WHERE t.project_id = NEW.project_id AND t.spine = 'point-a'
+          AND t.field_key = s.field_key AND t.status = 'approved_truth');
 
-    SELECT COALESCE(jsonb_agg(k), '[]'::jsonb) INTO b_missing FROM (
-      SELECT field_key AS k FROM public.internal_spine_field_keys(NEW.project_id, 'point-b') s
-       WHERE NOT EXISTS (
-         SELECT 1 FROM public.engine_spine_field_truth t
-          WHERE t.project_id = NEW.project_id AND t.spine='point-b'
-            AND t.field_key = s.field_key AND t.status='approved_truth')
-    ) x;
+    SELECT COALESCE(jsonb_agg(s.field_key), '[]'::jsonb) INTO b_missing
+      FROM public.internal_spine_field_keys(NEW.project_id, 'point-b') AS s(field_key)
+     WHERE NOT EXISTS (
+       SELECT 1 FROM public.engine_spine_field_truth t
+        WHERE t.project_id = NEW.project_id AND t.spine = 'point-b'
+          AND t.field_key = s.field_key AND t.status = 'approved_truth');
 
     IF jsonb_array_length(a_missing) > 0 OR jsonb_array_length(b_missing) > 0 THEN
       RAISE EXCEPTION 'Cannot approve roadmap version %: spine not fully approved. point_a_missing=%, point_b_missing=%',
@@ -3162,11 +3348,12 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS engine_roadmap_versions_gate ON public.engine_roadmap_versions;
 CREATE TRIGGER engine_roadmap_versions_gate
-BEFORE UPDATE OF status ON public.engine_roadmap_versions
+BEFORE INSERT OR UPDATE OF status ON public.engine_roadmap_versions
 FOR EACH ROW EXECUTE FUNCTION public.tg_engine_roadmap_versions_gate();
 
--- Companion: same self-approve rule as business engines.
+-- No-self-approve for AI-created versions. created_by is NOT NULL default 'ai'.
 CREATE OR REPLACE FUNCTION public.tg_engine_roadmap_versions_no_self_approve()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -3177,7 +3364,7 @@ BEGIN
   IF NEW.approved_by IS NOT NULL
      AND NEW.created_by IS NOT NULL
      AND NEW.approved_by = NEW.created_by
-     AND NEW.created_by ILIKE 'agent:%' THEN
+     AND (NEW.created_by ILIKE 'agent:%' OR NEW.created_by = 'ai') THEN
     RAISE EXCEPTION 'AI-created roadmap version % cannot self-approve (created_by=%, approved_by=%)',
       NEW.id, NEW.created_by, NEW.approved_by USING ERRCODE = 'check_violation';
   END IF;
@@ -3185,12 +3372,13 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS engine_roadmap_versions_no_self_approve ON public.engine_roadmap_versions;
 CREATE TRIGGER engine_roadmap_versions_no_self_approve
 BEFORE INSERT OR UPDATE OF approved_by ON public.engine_roadmap_versions
 FOR EACH ROW EXECUTE FUNCTION public.tg_engine_roadmap_versions_no_self_approve();
 ```
 
-`engine_projects.status` includes an `'approved'` value in the `engine_project_status` enum. Install the same gate on that transition too:
+`engine_projects.status` includes `'approved'`. Same gate:
 
 ```sql
 CREATE OR REPLACE FUNCTION public.tg_engine_projects_gate()
@@ -3204,22 +3392,23 @@ DECLARE
   b_missing jsonb;
   has_contra boolean;
 BEGIN
-  IF NEW.status = 'approved' AND (OLD.status IS DISTINCT FROM 'approved') THEN
+  IF NEW.status = 'approved'
+     AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'approved') THEN
     has_contra := public.internal_project_has_contradictions(NEW.id);
     IF has_contra THEN
       RAISE EXCEPTION 'Cannot approve project %: unresolved contradictions', NEW.id
         USING ERRCODE = 'check_violation';
     END IF;
-    SELECT COALESCE(jsonb_agg(k),'[]'::jsonb) INTO a_missing FROM (
-      SELECT field_key AS k FROM public.internal_spine_field_keys(NEW.id,'point-a') s
-       WHERE NOT EXISTS (SELECT 1 FROM public.engine_spine_field_truth t
-         WHERE t.project_id=NEW.id AND t.spine='point-a' AND t.field_key=s.field_key AND t.status='approved_truth')
-    ) x;
-    SELECT COALESCE(jsonb_agg(k),'[]'::jsonb) INTO b_missing FROM (
-      SELECT field_key AS k FROM public.internal_spine_field_keys(NEW.id,'point-b') s
-       WHERE NOT EXISTS (SELECT 1 FROM public.engine_spine_field_truth t
-         WHERE t.project_id=NEW.id AND t.spine='point-b' AND t.field_key=s.field_key AND t.status='approved_truth')
-    ) x;
+    SELECT COALESCE(jsonb_agg(s.field_key),'[]'::jsonb) INTO a_missing
+      FROM public.internal_spine_field_keys(NEW.id,'point-a') AS s(field_key)
+     WHERE NOT EXISTS (SELECT 1 FROM public.engine_spine_field_truth t
+       WHERE t.project_id=NEW.id AND t.spine='point-a'
+         AND t.field_key=s.field_key AND t.status='approved_truth');
+    SELECT COALESCE(jsonb_agg(s.field_key),'[]'::jsonb) INTO b_missing
+      FROM public.internal_spine_field_keys(NEW.id,'point-b') AS s(field_key)
+     WHERE NOT EXISTS (SELECT 1 FROM public.engine_spine_field_truth t
+       WHERE t.project_id=NEW.id AND t.spine='point-b'
+         AND t.field_key=s.field_key AND t.status='approved_truth');
     IF jsonb_array_length(a_missing) > 0 OR jsonb_array_length(b_missing) > 0 THEN
       RAISE EXCEPTION 'Cannot approve project %: spine not fully approved. point_a_missing=%, point_b_missing=%',
         NEW.id, a_missing, b_missing USING ERRCODE = 'check_violation';
@@ -3229,34 +3418,30 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS engine_projects_gate ON public.engine_projects;
 CREATE TRIGGER engine_projects_gate
-BEFORE UPDATE OF status ON public.engine_projects
+BEFORE INSERT OR UPDATE OF status ON public.engine_projects
 FOR EACH ROW EXECUTE FUNCTION public.tg_engine_projects_gate();
 ```
 
-### G3 — SQL smoke harness (ships as `.sql` fixture, not a migration)
+### G3 — SQL smoke harness (`supabase/tests/spine-gate-smoke.sql`)
 
-`supabase/tests/spine-gate-smoke.sql` — service-role-executed script that:
+Existing cases A–J stay. Revision 2 adds:
 
-1. Seeds a scratch project (`engine_projects`) + minimal `client_portal_projects`/`engine_clients` rows.
-2. Walks cases A–J from the QA prompt, using `SAVEPOINT` + `ROLLBACK TO` per case to keep state clean.
-3. For each blocking case asserts `SQLSTATE = '23514'` (`check_violation`) and pattern-matches the exception message for the specific missing-key list.
-4. Tears down the scratch project.
+- **Case K** — `engine_roadmap_versions` UPDATE `status='approved'` with a missing Point A key → BLOCKED (`check_violation`).
+- **Case L** — `engine_projects` UPDATE `status='approved'` with a missing Point B key → BLOCKED.
+- **Case M** — restore full approved truth; K and L both succeed → ALLOWED.
+- **Case J revision** — verify a completed Point A ceremony cannot be reused to stamp an unrelated field: INSERT `approved_truth` with a valid `ceremony_id` but a `field_key` the ceremony did not decide → BLOCKED with "no matching decision".
 
-Cases:
-- A: full approve, no contradictions → UPDATE succeeds.
-- B/C: missing 1 Point A / Point B key → UPDATE raises with `point_a_missing`/`point_b_missing` naming the key.
-- D: only core subset approved → raises with full missing list.
-- E: `verified` (not `approved_truth`) → raises.
-- F/G: `contradicted` on point-a / point-b field truth → raises "unresolved contradictions".
-- H: contradicted extracted signal (not superseded) → raises.
-- I: reverse an approved_truth field, then attempt approve → raises.
-- J: attempt INSERT `approved_truth` with `updated_by_actor='ai'` and no ceremony → G1 trigger raises.
-
-To be added as new file — no schema impact, safe to ship without Tai approval, but flagged here so it lands in the same review.
+Update pending in same commit as this migration section. Companion `.sql` file, not a schema change.
 
 ### Companion app-layer fix (non-migration, already applied)
 
 `src/lib/engine-spine-readiness.functions.ts` — `SpineReadiness.point_a.approved` / `point_b.approved` retyped from `string[]` to `boolean` to match the RPC return shape. UI unaffected (only reads `.missing`).
 
-Status: **PENDING TAI REVIEW — apply-ready. Run the G1 backfill audit query BEFORE installing the G1 trigger.**
+### Post-migration app follow-ups (tracked, not part of this SQL)
+
+- Swap portal-side callers from `spine_points_approved` → `spine_points_ready_summary`.
+- Confirm any admin server functions calling `spine_points_approved` run with a staff JWT (they already do via `hasRoleForEmail`).
+
+Status: **PENDING TAI REVIEW — apply-ready after Revision 2. Run the G1 backfill audit query BEFORE installing the G1 trigger; there is no bypass.**
