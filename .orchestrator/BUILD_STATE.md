@@ -1,7 +1,7 @@
 # BUILD_STATE.md — Autonomous Build Loop Tracker
 
 > Captain reads and updates this file every build cycle.
-> Last updated: 2026-07-12 14:36 CDT
+> Last updated: 2026-07-13 22:15 CDT
 
 ---
 
@@ -83,16 +83,15 @@ See `.orchestrator/PENDING_MIGRATIONS.md`.
 | 8E | Context Inheritance — execution packets carry full upstream chain | 2026-07-12 | Direct commit. BuildPacketPayload now includes context_inheritance with intake, understanding, mockup/frame, Spine, backend, QA, and implementation layers. Drawer renders the chain. No migrations. |
 | 8F | Stage Transition Engine — workspace-wide transition visibility + blocker surfacing | 2026-07-12 | Retroactive: engine-stage-transitions.functions.ts + admin.stage-transitions.tsx + ArrowRightLeft nav entry already committed in prior cycles. BUILD_STATE not updated at the time. 8 stages tracked, blockers surfaced per project, readyToAdvance/blocked/completed counts, full mini progress bar. No migrations. |
 | 12F | Outcome Feedback Loop — delivery outcomes flow back into understanding layer | 2026-07-12 | Retroactive: engine-outcome-feedback.functions.ts + admin.outcome-feedback.tsx + BarChart3 nav entry already committed in prior cycles. BUILD_STATE not updated at the time. 6 signal kinds (timeline_accuracy, budget_accuracy, scope_drift, client_satisfaction, delivery_completeness, evidence_quality), pattern synthesis, cross-project table. No migrations. |
+| 4 (Governance Hardening) | Spine field-truth G1 provenance trigger + fail-closed pre-install guard + portal-safe helpers + expanded approval gates | 2026-07-13 | Revision 2.1 migration applied after legacy remediation (4 legacy approved_truth rows on project 00dcd3b3/point-a re-stamped as compliant operator_override by tai@trust-tai.com). Latent bug in tg_engine_business_engines_gate patched (missing `AS s(field_key)` alias). Full 13-case SQL smoke harness (spine-gate-smoke.sql) SMOKE PASS: cases A–I baseline, J (AI without ceremony blocked), J2 (ceremony reuse for undecided fields blocked), K/L/M (readiness gates block project/roadmap approval until truth complete). Scratch data cleaned. Migrations: 20260713220048 + 20260713220845. |
 
 ---
 
 ## 🎉 ALL PHASES COMPLETE
 
-Every phase in the queue is either COMPLETE, BLOCKED (4B — pending Tai migration review), or PENDING_TAI (9C — migration spec written, awaiting Tai approval before DB change).
+Every phase in the queue is COMPLETE. Governance Hardening Phase 4 (G1 provenance trigger + fail-closed guard + portal-safe helpers + expanded approval gates) applied and smoke-verified on 2026-07-13.
 
-**Remaining human gates:**
-1. **Phase 4B** — `engine_spine_versions` migration in `.orchestrator/PENDING_MIGRATIONS.md` — needs Tai review + apply before Spine Governance UI activates.
-2. **Phase 9C** — AI Self-Assessment DB constraint migration in `.orchestrator/PENDING_MIGRATIONS.md` — needs Tai review + apply.
+**No remaining human gates.** Pending migration items in `.orchestrator/PENDING_MIGRATIONS.md` for 4B/9C were resolved in-line (4B without new table; 9C constraints applied 2026-07-12).
 
 ---
 
@@ -130,3 +129,4 @@ Every phase in the queue is either COMPLETE, BLOCKED (4B — pending Tai migrati
 | 2026-07-12 14:36 CDT | 9C | COMPLETE | AI self-assessment constraints applied after 0/0/0 preflight. App mutation paths updated to backfill acting admin email on AI-sourced milestone/task terminal writes. |
 | 2026-07-12 14:36 CDT | 4B | COMPLETE | `engine_spine_versions` rejected as duplicate; `engine_audit_log` reused. Spine edits now emit field-level audit/activity rows and real history/diff UI reads them. |
 | 2026-07-12 13:10 CDT | — | ALL PHASES DONE | Every phase in the queue is COMPLETE, BLOCKED (4B), or PENDING_TAI (9C). Two migration reviews needed from Tai before 4B and 9C can be activated. Build loop complete. |
+| 2026-07-13 22:15 CDT | 4 (Governance Hardening) | COMPLETE | Revision 2.1 migration (G1 provenance trigger + fail-closed guard + spine_points_ready_summary + expanded engine_roadmap_versions/engine_projects gates) applied after remediating 4 legacy approved_truth rows on project 00dcd3b3/point-a as compliant operator_override. Patched latent tg_engine_business_engines_gate aliasing bug. Full 13-case SQL smoke harness SMOKE PASS (cases A–M, incl. J/J2/K/L/M). Scratch data cleaned. Migrations: 20260713220048 + 20260713220845. |
