@@ -3963,7 +3963,7 @@ Acceptance: `SMOKE PASS` line printed after N–U all behave as specified.
 - Automatic child creation by AI (chat may propose; only admin CTA commits).
 - Portal exposure of family rollup (deferred to a follow-up migration as above).
 
-Status: **PENDING TAI REVIEW (Revision 2).**
+Status: **PENDING TAI REVIEW (Revision 4) — apply-ready pending final sign-off.**
 
 
 ## Runtime Schema Drift Fix — engine_projects.current_phase + client_portal_roadmaps grants
