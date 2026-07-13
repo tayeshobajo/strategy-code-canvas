@@ -1772,7 +1772,7 @@ ALTER TABLE public.client_portal_roadmaps
 COMMIT;
 ```
 
-### Smoke cases (28 — DB-level, `.orchestrator/phase-3-smoke/db-cases.sql`)
+### Smoke cases (30 — DB-level, `.orchestrator/phase-3-smoke/db-cases.sql`)
 
 1. Backfill: latest published_at per project → `published`; older → `superseded`; unpublished rows unchanged.
 2. Post-backfill preflight aborts a synthesized dual-`published` scenario.
@@ -1797,32 +1797,44 @@ COMMIT;
 21. ON DELETE RESTRICT: deleting a roadmap referenced by an event → FK violation.
 22. Events RLS: non-staff `authenticated` sees zero rows.
 23. Events RLS: staff sees all rows.
-24. Acknowledgment event: `event_type='acknowledged'` insert succeeds and is history-filterable.
+24. Acknowledgment event: `event_type='acknowledged'` insert succeeds, is history-filterable, and passes the ref-validation trigger (same-project roadmap).
 25. **[v3]** Scrub: banned key nested 3 levels deep in `client_safe_canvas.phases[0].items[0].provenance` → rejected, error names `provenance`.
 26. **[v3]** Scrub: banned key nested inside `metadata.publish.debug.agent_costs` → rejected, error names `agent_costs`.
-27. **[v3]** Transition: UPDATE `published` → `approved` → rejected (`invalid_status_transition`); same for `superseded` → `in_progress`, `retracted` → `delivered`, `published` → `in_progress`.
-28. **[v3]** Transition: `superseded` → `published` without `metadata.transition_reason='rollback'` → rejected; with the flag → ALLOWED. `retracted` → `published` without `metadata.transition_reason='restore'` → rejected; with the flag → ALLOWED.
+27. **[v4]** Transition: UPDATE `published` → `approved`, `superseded` → `in_progress`, `retracted` → `delivered`, `published` → `in_progress` → all rejected (`invalid_status_transition`).
+28. **[v4]** Transition: `superseded` → `published` ALLOWED at the DB layer (no `transition_reason` involved); `retracted` → `published` ALLOWED at the DB layer. App-level smoke A1/A2 covers the paired event-row requirement.
+29. **[v4]** Immutability: UPDATE `project_id` on a `published` / `superseded` / `retracted` row → immutability trigger error naming `project_id`. Pre-publish row (`in_progress`, `approved`) may still change `project_id` but re-runs the lineage validation trigger.
+30. **[v4]** Publish-event ref validation:
+    a. Insert event with `portal_roadmap_id` whose `project_id` ≠ `portal_project_id` → rejected.
+    b. Insert event with `previous_portal_roadmap_id` from a different project → rejected.
+    c. Insert event with `previous_portal_roadmap_id = portal_roadmap_id` → rejected.
+    d. UPDATE an existing event to swap `portal_roadmap_id` to a foreign-project row → rejected.
+    e. Valid `rolled_back` event with same-project previous ref → ALLOWED.
 
 UI/app-level smoke deferred to the app-layer PR after migration lands
 (publish → republish idempotent, rollback, retract, ack, history panel).
+Additional app-level cases already scoped:
+
+- **A1** — `rollbackPortalPublication` writes exactly one `event_type='rolled_back'` row referencing the target roadmap, in the same transaction as the `superseded → published` UPDATE; if the event insert fails, the status flip is rolled back.
+- **A2** — same shape for `restorePortalPublication` / `event_type='restored'`.
 
 ### What ships on the app side after Tai applies this
 
 - `publishVersionToPortal` reworked (diff-aware, idempotent, writes lineage
   + `published`/`superseded` events).
-- New `rollbackPortalPublication` (sets `metadata.transition_reason='rollback'`
-  before flipping `superseded`→`published`), `retractPortalPublication`,
-  `restorePortalPublication` (sets `transition_reason='restore'` for
-  `retracted`→`published`), `getPortalPublicationHistory`, and
-  `acknowledgePortalRoadmap` (writes an `acknowledged` event) server
-  functions.
+- New `rollbackPortalPublication` (flips `superseded → published` and writes
+  a paired `rolled_back` event with reason/actor in the same transaction),
+  `retractPortalPublication`, `restorePortalPublication` (flips
+  `retracted → published` and writes a paired `restored` event),
+  `getPortalPublicationHistory`, and `acknowledgePortalRoadmap` (writes an
+  `acknowledged` event) server functions. None of these mutate `metadata` on
+  post-publish rows — reason lives on the event row, not the snapshot.
 - `sendProjectDelivery` re-routed through the same publish primitive.
 - Portal read filters narrow from `IN('approved','delivered')` to
   `= 'published'`.
 - Internal UI: Publish diff preview, Publish History panel, Rollback +
   Retract + Restore controls (admin-only).
 - Guard tests extending `publish-column-integrity.test.ts` and
-  `portal-context-leaks.test.ts`; 28-case smoke harness under
+  `portal-context-leaks.test.ts`; 30-case DB smoke + A1/A2 app smoke under
   `.orchestrator/phase-3-smoke/`.
 
 ### Capabilities moved to CONFIRMED (post-apply)
