@@ -5230,6 +5230,10 @@ export type Database = {
       }
     }
     Functions: {
+      acknowledge_portal_roadmap: {
+        Args: { _portal_roadmap_id: string }
+        Returns: string
+      }
       admin_grant_role: {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: string
@@ -5290,6 +5294,26 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_portal_publication_history: {
+        Args: { _portal_project_id: string }
+        Returns: {
+          actor_email: string
+          created_at: string
+          engine_project_id: string
+          engine_version_id: string
+          event_id: string
+          event_type: string
+          portal_roadmap_id: string
+          previous_portal_roadmap_id: string
+          roadmap_published_at: string
+          roadmap_retracted_at: string
+          roadmap_retraction_reason: string
+          roadmap_status: string
+          roadmap_title: string
+          roadmap_version_label: string
+          summary: string
+        }[]
+      }
       has_client_access: { Args: { _email: string }; Returns: boolean }
       has_contradictions: { Args: { _project_id: string }; Returns: boolean }
       has_role: {
@@ -5349,6 +5373,26 @@ export type Database = {
         }
         Returns: number
       }
+      publish_portal_roadmap: {
+        Args: {
+          _client_safe_canvas: Json
+          _current_diagnosis: string
+          _engine_project_id: string
+          _engine_version_id: string
+          _executive_summary: string
+          _portal_project_id: string
+          _publish_diff?: Json
+          _recommended_next_move: string
+          _risks_dependencies: Json
+          _sequence_30_60_90: Json
+          _strategic_priorities: Json
+          _summary?: string
+          _title: string
+          _version_label: string
+          _visible_modules?: Json
+        }
+        Returns: string
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -5364,6 +5408,22 @@ export type Database = {
       resolve_portal_follow_up: {
         Args: { _message_id: string }
         Returns: boolean
+      }
+      restore_portal_publication: {
+        Args: { _portal_roadmap_id: string; _reason: string }
+        Returns: string
+      }
+      retract_portal_publication: {
+        Args: { _portal_roadmap_id: string; _reason: string }
+        Returns: string
+      }
+      rollback_portal_publication: {
+        Args: {
+          _portal_project_id: string
+          _reason: string
+          _target_roadmap_id: string
+        }
+        Returns: string
       }
       spine_field_keys: {
         Args: { _project_id: string; _spine: string }
