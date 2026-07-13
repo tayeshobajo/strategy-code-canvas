@@ -5592,6 +5592,10 @@ export type Database = {
         Args: { _portal_roadmap_id: string }
         Returns: string
       }
+      activate_business_engine: {
+        Args: { _engine_id: string; _owner_email: string }
+        Returns: undefined
+      }
       admin_grant_role: {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: string
@@ -5652,6 +5656,27 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_command_center_exceptions: {
+        Args: { _limit?: number }
+        Returns: {
+          client_risk: boolean
+          created_at: string
+          deadline_at: string
+          engine_id: string
+          engine_name: string
+          id: string
+          impact_score: number
+          kind: string
+          next_action: string
+          next_action_owner: string
+          project_id: string
+          project_name: string
+          severity: Database["public"]["Enums"]["engine_exception_severity"]
+          status: Database["public"]["Enums"]["engine_exception_status"]
+          summary: string
+          urgency_score: number
+        }[]
+      }
       get_portal_publication_history: {
         Args: { _portal_project_id: string }
         Returns: {
@@ -5684,6 +5709,14 @@ export type Database = {
       has_role_email: {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
+      }
+      internal_caller_email: { Args: never; Returns: string }
+      internal_engine_next_run: {
+        Args: {
+          _cadence: Database["public"]["Enums"]["business_engine_cadence"]
+          _from: string
+        }
+        Returns: string
       }
       internal_project_has_contradictions: {
         Args: { _project_id: string }
@@ -5731,6 +5764,27 @@ export type Database = {
         }
         Returns: number
       }
+      open_engine_exception: {
+        Args: {
+          _client_risk?: boolean
+          _deadline_at?: string
+          _detail?: Json
+          _engine_id: string
+          _impact_score?: number
+          _kind: string
+          _next_action?: string
+          _next_action_owner?: string
+          _run_id?: string
+          _severity?: Database["public"]["Enums"]["engine_exception_severity"]
+          _summary: string
+          _urgency_score?: number
+        }
+        Returns: string
+      }
+      propose_milestone_solution: {
+        Args: { _milestone_id: string; _payload: Json }
+        Returns: string
+      }
       publish_portal_roadmap: {
         Args: {
           _client_safe_canvas: Json
@@ -5763,6 +5817,30 @@ export type Database = {
         Args: { _project_id: string }
         Returns: undefined
       }
+      record_engine_run: {
+        Args: {
+          _approval_ids?: string[]
+          _cost_cents?: number
+          _cycle_key: string
+          _decisions?: Json
+          _engine_id: string
+          _error?: string
+          _evidence_ids?: string[]
+          _inputs?: Json
+          _latency_ms?: number
+          _model?: string
+          _outputs?: Json
+          _proposal_ids?: string[]
+          _status: Database["public"]["Enums"]["engine_run_status"]
+          _tokens_input?: number
+          _tokens_output?: number
+        }
+        Returns: string
+      }
+      resolve_engine_exception: {
+        Args: { _exception_id: string; _resolution_note?: string }
+        Returns: undefined
+      }
       resolve_portal_follow_up: {
         Args: { _message_id: string }
         Returns: boolean
@@ -5782,6 +5860,10 @@ export type Database = {
           _target_roadmap_id: string
         }
         Returns: string
+      }
+      select_milestone_solution: {
+        Args: { _reason?: string; _solution_id: string }
+        Returns: undefined
       }
       spine_field_keys: {
         Args: { _project_id: string; _spine: string }
