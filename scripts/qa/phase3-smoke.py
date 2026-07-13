@@ -2,17 +2,38 @@
 """
 Phase 3 v4 — DB smoke PASS/FAIL harness.
 
-Runs every case against a scratch portal project + roadmap fixture using psql.
-Each case executes in its OWN transaction that is always rolled back so the
-run is idempotent. A case PASSES when its actual outcome matches the
-expectation encoded in the case definition (either a specific error
-substring or "success").
+Runs every case against a scratch portal project + roadmap fixture using
+psql. Each case executes in its OWN savepoint that is always rolled back so
+the run is idempotent. A case PASSES when its actual outcome matches the
+expectation encoded in the case (either a specific error substring or
+"success").
 
-Usage:
-  PG* env vars must point at the target Supabase Postgres. Requires that
-  the Phase 3 v4 migration and the Phase 3B RPCs are applied.
+Connection
+----------
+UPDATE-path cases (immutability, transition whitelists, recursive scrubs)
+exercise triggers that fire on rows already visible via RLS. The default
+Lovable Cloud psql role (`sandbox_exec`) has SELECT/INSERT only, so it
+cannot drive those cases — they will falsely "pass" with a bogus
+`permission denied` and never touch the invariants under test.
 
-  python3 scripts/qa/phase3-smoke.py
+To actually exercise the invariants, supply a privileged Postgres
+connection via ONE of:
+
+  * PHASE3_SMOKE_DATABASE_URL   (preferred)  — full libpq URI including the
+    service-role or postgres password, e.g.
+    postgres://postgres:<pw>@db.<ref>.supabase.co:5432/postgres
+  * SERVICE_PGHOST, SERVICE_PGPORT, SERVICE_PGUSER, SERVICE_PGPASSWORD,
+    SERVICE_PGDATABASE — same libpq fields as PG* but for the privileged
+    connection.
+
+The harness runs a preflight to confirm the connection actually has UPDATE
+privilege on `public.client_portal_roadmaps`; if it doesn't, the run stops
+immediately with actionable guidance instead of green-washing bad results.
+
+Usage
+-----
+  PHASE3_SMOKE_DATABASE_URL="postgres://postgres:<pw>@...:5432/postgres" \
+    python3 scripts/qa/phase3-smoke.py
 
 Exits 0 iff all cases pass.
 """
@@ -24,18 +45,100 @@ import subprocess
 import sys
 import uuid
 from dataclasses import dataclass
-from typing import Optional
+
+
+# ---------------------------------------------------------------------------
+# Connection resolution
+# ---------------------------------------------------------------------------
+
+def _resolve_psql_argv() -> list[str]:
+    """Build the psql invocation for the privileged connection."""
+    uri = os.environ.get("PHASE3_SMOKE_DATABASE_URL", "").strip()
+    if uri:
+        return ["psql", uri, "-tAX", "-q", "-v", "ON_ERROR_STOP=1"]
+
+    host = os.environ.get("SERVICE_PGHOST", "").strip()
+    if host:
+        env_pairs = {
+            "PGHOST": host,
+            "PGPORT": os.environ.get("SERVICE_PGPORT", "5432"),
+            "PGUSER": os.environ.get("SERVICE_PGUSER", "postgres"),
+            "PGPASSWORD": os.environ.get("SERVICE_PGPASSWORD", ""),
+            "PGDATABASE": os.environ.get("SERVICE_PGDATABASE", "postgres"),
+        }
+        # These are propagated via a wrapper shell.
+        _resolve_psql_argv._env = env_pairs  # type: ignore[attr-defined]
+        return ["psql", "-tAX", "-q", "-v", "ON_ERROR_STOP=1"]
+
+    return []
+
+
+_PSQL_ARGV: list[str] = []
+_PSQL_ENV: dict[str, str] | None = None
+
+
+def _prepare_connection() -> str | None:
+    """Return an error string if no privileged connection is available."""
+    global _PSQL_ARGV, _PSQL_ENV
+    argv = _resolve_psql_argv()
+    if not argv:
+        return (
+            "No privileged Postgres connection configured.\n"
+            "Set PHASE3_SMOKE_DATABASE_URL (preferred), e.g.\n"
+            "  export PHASE3_SMOKE_DATABASE_URL="
+            "'postgres://postgres:<pw>@db.<ref>.supabase.co:5432/postgres'\n"
+            "or set SERVICE_PGHOST / SERVICE_PGUSER / SERVICE_PGPASSWORD "
+            "/ SERVICE_PGPORT / SERVICE_PGDATABASE.\n"
+            "The sandbox `PG*` role only has SELECT/INSERT and cannot drive "
+            "UPDATE-path cases."
+        )
+    _PSQL_ARGV = argv
+    _PSQL_ENV = getattr(_resolve_psql_argv, "_env", None)
+    return None
 
 
 def psql(sql: str, *, allow_error: bool = False) -> tuple[int, str, str]:
+    env = os.environ.copy()
+    if _PSQL_ENV:
+        env.update(_PSQL_ENV)
     p = subprocess.run(
-        ["psql", "-tAX", "-q", "-v", "ON_ERROR_STOP=1"],
-        input=sql, text=True, capture_output=True,
+        _PSQL_ARGV,
+        input=sql, text=True, capture_output=True, env=env,
     )
     if not allow_error and p.returncode != 0:
         raise RuntimeError(f"psql failed:\n{p.stderr}")
     return p.returncode, p.stdout.strip(), p.stderr.strip()
 
+
+def preflight() -> str | None:
+    """Verify the connection can UPDATE the target table."""
+    rc, out, err = psql(
+        "SELECT current_user, "
+        "has_table_privilege(current_user, 'public.client_portal_roadmaps', 'UPDATE'), "
+        "has_table_privilege(current_user, 'public.client_portal_roadmaps', 'INSERT'), "
+        "has_table_privilege(current_user, 'public.client_portal_publish_events', 'INSERT');",
+        allow_error=True,
+    )
+    if rc != 0:
+        return f"Preflight connection failed: {err or out}"
+    parts = out.split("|")
+    if len(parts) != 4:
+        return f"Unexpected preflight output: {out!r}"
+    user, upd, ins, evt = parts
+    if upd.strip() != "t" or ins.strip() != "t" or evt.strip() != "t":
+        return (
+            f"Connection role {user!r} lacks required privileges "
+            f"(UPDATE={upd}, INSERT client_portal_roadmaps={ins}, "
+            f"INSERT client_portal_publish_events={evt}).\n"
+            "Reconnect with the service-role / postgres user — see the header "
+            "of this script for env-var setup."
+        )
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Cases
+# ---------------------------------------------------------------------------
 
 @dataclass
 class Case:
@@ -150,16 +253,27 @@ def run_case(c: Case) -> tuple[bool, str]:
     rc, out, err = psql(wrapped, allow_error=True)
     if c.expect == "success":
         ok = rc == 0
-        return ok, ("" if ok else err.splitlines()[-1] if err else "unknown failure")
+        return ok, ("" if ok else (err.splitlines()[-1] if err else "unknown failure"))
     substr = c.expect.lower()
     hit = substr in (err.lower() + " " + out.lower())
-    return hit, ("" if hit else f"expected '{c.expect}', got: {err or out}")
+    # Guard against false-positives: a bare "permission denied" is NOT proof
+    # the invariant fired — it means the connection lacked privilege.
+    if hit and "permission denied" in err.lower() and substr not in ("permission denied",):
+        return False, f"suspicious: got 'permission denied' while expecting {c.expect!r}"
+    return hit, ("" if hit else f"expected {c.expect!r}, got: {err or out}")
 
 
 def main() -> int:
-    if not os.environ.get("PGHOST"):
-        print("SKIP: PGHOST not set; harness requires Supabase psql env.")
-        return 0
+    conn_err = _prepare_connection()
+    if conn_err:
+        print(f"SETUP ERROR: {conn_err}")
+        return 2
+
+    pf = preflight()
+    if pf:
+        print(f"PREFLIGHT ERROR: {pf}")
+        return 2
+
     ids = build_fixture()
     try:
         results: list[tuple[str, bool, str, str]] = []
