@@ -65,6 +65,22 @@ export type ProjectChatContext = {
       approved_summary: string | null;
       approved_at: string | null;
     } | null;
+    family: {
+      root_id: string;
+      is_root: boolean;
+      parent: { id: string; name: string; status: string } | null;
+      siblings: Array<{ id: string; name: string; status: string }>;
+      children: Array<{
+        id: string;
+        name: string;
+        status: string;
+        approved_at: string | null;
+        completed_at: string | null;
+      }>;
+      total_children: number;
+      approved_children: number;
+      completed_children: number;
+    } | null;
     missing_data: string[];
   };
 };
