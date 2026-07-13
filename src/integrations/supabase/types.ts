@@ -5870,6 +5870,10 @@ export type Database = {
         Returns: string[]
       }
       spine_points_approved: { Args: { _project_id: string }; Returns: Json }
+      spine_points_ready_summary: {
+        Args: { _project_id: string }
+        Returns: Json
+      }
       sync_client_access_user: { Args: never; Returns: undefined }
     }
     Enums: {

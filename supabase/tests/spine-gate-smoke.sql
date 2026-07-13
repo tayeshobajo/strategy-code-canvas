@@ -26,7 +26,7 @@ DECLARE
   v_ceremony_b_id  uuid := gen_random_uuid();
   v_signal_id      uuid := gen_random_uuid();
   v_actor          text := 'smoke:harness';
-  v_human_email    text := 'smoke-operator@example.com';
+  v_human_email    text := 'tai@trust-tai.com';  -- must hold admin/operator for G1 operator_override bootstrap
   v_point_a_keys   text[] := ARRAY['lenses','diagnosis','key_diagnosis'];
   v_point_b_keys   text[] := ARRAY['24_month_destination','10_year_position',
                                    'client_outcome','customer_outcome',
@@ -36,6 +36,20 @@ DECLARE
 BEGIN
   ------------------------------------------------------------------
   -- Seed scratch project
+  --
+  -- Bootstrap ordering (all triggers ON — no bypass):
+  --   1. ceremony rows as 'in_progress'
+  --   2. one decision per canonical field (approved_truth) on each ceremony
+  --   3. field_truth rows as approved_truth via operator_override
+  --      (v_human_email holds admin/operator → G1 override branch accepts)
+  --   4. complete each ceremony (enforce_ceremony_completion sees all
+  --      canonical keys already terminal → allowed)
+  --   5. re-stamp field_truth to point at the now-completed ceremony via
+  --      the ceremony_id path (G1 ceremony branch accepts because the
+  --      ceremony is completed and a matching decision exists)
+  --
+  -- After step 5 the seed matches the pre-Revision-2.1 shape (ceremony_id
+  -- + kind=ceremony) that the existing cases A–J restore paths assume.
   ------------------------------------------------------------------
   INSERT INTO public.engine_clients (id, company)
     VALUES (v_client_id, 'Smoke Client');
@@ -49,28 +63,86 @@ BEGIN
   INSERT INTO public.engine_business_engines (id, project_id, name, kind, outcome, cadence, status, created_by)
     VALUES (v_engine_id, v_project_id, 'Smoke Engine', 'custom', 'smoke-outcome', 'weekly', 'proposed', v_actor);
 
-  -- Two completed ceremonies (one per spine) for provenance-satisfying writes.
-  INSERT INTO public.engine_spine_ceremonies (id, project_id, spine, status, opened_by_email, opened_at, completed_at, completed_by_email)
-    VALUES (v_ceremony_a_id, v_project_id, 'point-a', 'completed', v_human_email, now(), now(), v_human_email),
-           (v_ceremony_b_id, v_project_id, 'point-b', 'completed', v_human_email, now(), now(), v_human_email);
+  -- Point A first (Point B ceremony is blocked until Point A is completed).
+  INSERT INTO public.engine_spine_ceremonies (id, project_id, spine, status, opened_by_email, opened_at)
+    VALUES (v_ceremony_a_id, v_project_id, 'point-a', 'in_progress', v_human_email, now());
 
-  -- Full approved truth for all canonical keys via the ceremony path.
+  FOREACH v_k IN ARRAY v_point_a_keys LOOP
+    INSERT INTO public.engine_spine_ceremony_decisions
+      (ceremony_id, project_id, spine, field_key, new_status, source_ref, decided_by_email)
+    VALUES (v_ceremony_a_id, v_project_id, 'point-a', v_k, 'approved_truth',
+            jsonb_build_object(
+              'kind','ceremony','approval_kind','ceremony',
+              'ceremony_id', v_ceremony_a_id::text,
+              'operator_confirmed_by', v_human_email),
+            v_human_email);
+  END LOOP;
+
   FOREACH v_k IN ARRAY v_point_a_keys LOOP
     INSERT INTO public.engine_spine_field_truth
       (project_id, spine, field_key, status, source_ref,
        updated_by_email, updated_by_actor, ceremony_id)
     VALUES (v_project_id, 'point-a', v_k, 'approved_truth',
-            jsonb_build_object('kind','ceremony'),
-            v_human_email, 'human', v_ceremony_a_id);
+            jsonb_build_object(
+              'kind','operator_override',
+              'operator_email', v_human_email,
+              'reason','smoke bootstrap',
+              'approval_kind','operator_override',
+              'operator_confirmed_by', v_human_email),
+            v_human_email, 'human', NULL);
   END LOOP;
+
+  UPDATE public.engine_spine_ceremonies
+     SET status='completed', completed_at=now(), completed_by_email=v_human_email
+   WHERE id = v_ceremony_a_id;
+
+  -- Now Point B ceremony can open.
+  INSERT INTO public.engine_spine_ceremonies (id, project_id, spine, status, opened_by_email, opened_at)
+    VALUES (v_ceremony_b_id, v_project_id, 'point-b', 'in_progress', v_human_email, now());
+
+  FOREACH v_k IN ARRAY v_point_b_keys LOOP
+    INSERT INTO public.engine_spine_ceremony_decisions
+      (ceremony_id, project_id, spine, field_key, new_status, source_ref, decided_by_email)
+    VALUES (v_ceremony_b_id, v_project_id, 'point-b', v_k, 'approved_truth',
+            jsonb_build_object(
+              'kind','ceremony','approval_kind','ceremony',
+              'ceremony_id', v_ceremony_b_id::text,
+              'operator_confirmed_by', v_human_email),
+            v_human_email);
+  END LOOP;
+
   FOREACH v_k IN ARRAY v_point_b_keys LOOP
     INSERT INTO public.engine_spine_field_truth
       (project_id, spine, field_key, status, source_ref,
        updated_by_email, updated_by_actor, ceremony_id)
     VALUES (v_project_id, 'point-b', v_k, 'approved_truth',
-            jsonb_build_object('kind','ceremony'),
-            v_human_email, 'human', v_ceremony_b_id);
+            jsonb_build_object(
+              'kind','operator_override',
+              'operator_email', v_human_email,
+              'reason','smoke bootstrap',
+              'approval_kind','operator_override',
+              'operator_confirmed_by', v_human_email),
+            v_human_email, 'human', NULL);
   END LOOP;
+
+  UPDATE public.engine_spine_ceremonies
+     SET status='completed', completed_at=now(), completed_by_email=v_human_email
+   WHERE id = v_ceremony_b_id;
+
+  -- Step 5: re-stamp field_truth to ceremony provenance so existing case
+  -- restore paths (kind=ceremony + ceremony_id) satisfy G1.
+  UPDATE public.engine_spine_field_truth
+     SET ceremony_id = v_ceremony_a_id,
+         source_ref  = jsonb_build_object('kind','ceremony')
+   WHERE project_id = v_project_id AND spine = 'point-a';
+  UPDATE public.engine_spine_field_truth
+     SET ceremony_id = v_ceremony_b_id,
+         source_ref  = jsonb_build_object('kind','ceremony')
+   WHERE project_id = v_project_id AND spine = 'point-b';
+
+
+
+
 
   ------------------------------------------------------------------
   -- Helper: run an approve attempt on the engine and report state.
@@ -211,7 +283,8 @@ BEGIN
   -- CASE H — active unresolved extracted-signal contradiction => blocked
   ------------------------------------------------------------------
   INSERT INTO public.engine_extracted_signals (id, project_id, status, superseded_by, category, label, confidence, client_safe, source_ref)
-    VALUES (v_signal_id, v_project_id, 'contradicted', NULL, 'smoke', 'smoke-signal', 0.5, false, '{}'::jsonb);
+    VALUES (v_signal_id, v_project_id, 'contradicted', NULL, 'risk', 'smoke-signal', 0.5, false, '{}'::jsonb);
+
   BEGIN
     UPDATE public.engine_business_engines SET status='approved', approved_by='smoke:reviewer', approved_at=now() WHERE id=v_engine_id;
     v_state := 'ALLOWED';
