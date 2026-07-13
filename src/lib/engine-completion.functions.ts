@@ -6,7 +6,10 @@
 //    Sets engine_projects.status='completed', completed_at, completed_by_email.
 //  - prepareDeliveryPackage: admin-only. Requires latest delivery readiness
 //    review to be status='approved' AND readiness='ready_for_delivery_package'.
-//    Publishes to client_portal_roadmaps. Does NOT notify the client.
+//    Stages the row in client_portal_roadmaps with status='approved' (staff-side
+//    only — NOT visible in the client portal, which reads status='published').
+//    The client sees nothing until sendProjectDelivery / publishVersionToPortal
+//    routes the row through the publish_portal_roadmap RPC.
 //  - saveClientFeedback: admin/operator. Stores manual operator-entered
 //    rating + feedback on engine_projects.delivery JSONB.
 //
@@ -190,7 +193,10 @@ export const completeProject = createServerFn({ method: "POST" })
   });
 
 // ============================================================
-// prepareDeliveryPackage — v7 publish-only (no client notification)
+// prepareDeliveryPackage — v7 stage-only (staff-side; NOT client-visible)
+// Writes client_portal_roadmaps.status='approved'. Portal SELECT is scoped to
+// status='published', so this row becomes visible only after
+// sendProjectDelivery / publishVersionToPortal flips it via publish_portal_roadmap.
 // ============================================================
 
 export const prepareDeliveryPackage = createServerFn({ method: "POST" })
