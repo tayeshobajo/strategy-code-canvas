@@ -10,8 +10,8 @@ type Sb = any;
 
 export type SpineReadiness = {
   ready: boolean;
-  point_a: { required: string[]; missing: string[]; approved: string[] };
-  point_b: { required: string[]; missing: string[]; approved: string[] };
+  point_a: { required: string[]; missing: string[]; approved: boolean };
+  point_b: { required: string[]; missing: string[]; approved: boolean };
   has_active_contradictions: boolean;
 };
 

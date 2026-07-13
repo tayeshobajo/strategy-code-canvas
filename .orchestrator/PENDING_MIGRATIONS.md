@@ -3004,3 +3004,199 @@ Written after tables land, in a follow-on migration if you want them phased. Inc
 - No parent/child project decomposition — a separate Phase 5 draft.
 
 Status: **PENDING TAI REVIEW — apply-ready.**
+
+---
+
+## Phase 4 QA Fixes — Governance Gate Hardening
+
+**Origin:** QA audit 2026-07-13 against Phase 4 spine approval gate.
+**Verdict from audit:** FAIL — three gaps found. This migration closes G1 (provenance) and G2 (scope). G3 (SQL smoke harness) ships as a companion fixture, not a migration.
+
+### G1 — Enforce ceremony provenance for `approved_truth` writes
+
+Add BEFORE INSERT/UPDATE trigger on `public.engine_spine_field_truth`. When `NEW.status='approved_truth'`:
+
+1. `NEW.updated_by_actor` MUST be `'human'` (AI/system actors cannot mint approved truth).
+2. Either
+   - `NEW.ceremony_id IS NOT NULL` AND the referenced `engine_spine_ceremonies` row is `status='completed'` AND same `project_id` AND same `spine`, OR
+   - `NEW.source_ref->>'kind' = 'operator_override'` AND `NEW.source_ref->>'operator_email'` matches `NEW.updated_by_email`.
+
+Any other combination raises `check_violation` with a specific message.
+
+```sql
+CREATE OR REPLACE FUNCTION public.tg_engine_spine_field_truth_provenance()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  is_backfill boolean := (NEW.source_ref ->> 'kind') = 'backfill';
+  ceremony public.engine_spine_ceremonies%ROWTYPE;
+BEGIN
+  IF is_backfill THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.status = 'approved_truth' THEN
+    IF NEW.updated_by_actor <> 'human' THEN
+      RAISE EXCEPTION 'approved_truth requires human actor (got actor=%, field=%:%)',
+        NEW.updated_by_actor, NEW.spine, NEW.field_key
+        USING ERRCODE = 'check_violation';
+    END IF;
+
+    IF NEW.ceremony_id IS NOT NULL THEN
+      SELECT * INTO ceremony FROM public.engine_spine_ceremonies WHERE id = NEW.ceremony_id;
+      IF ceremony.id IS NULL
+         OR ceremony.project_id <> NEW.project_id
+         OR ceremony.spine <> NEW.spine
+         OR ceremony.status <> 'completed' THEN
+        RAISE EXCEPTION 'approved_truth ceremony_id % invalid (project/spine mismatch or not completed) for field %:%',
+          NEW.ceremony_id, NEW.spine, NEW.field_key
+          USING ERRCODE = 'check_violation';
+      END IF;
+    ELSIF (NEW.source_ref ->> 'kind') = 'operator_override' THEN
+      IF COALESCE(NEW.source_ref ->> 'operator_email','') = ''
+         OR lower(NEW.source_ref ->> 'operator_email') <> lower(COALESCE(NEW.updated_by_email,'')) THEN
+        RAISE EXCEPTION 'approved_truth operator_override requires source_ref.operator_email matching updated_by_email (field %:%)',
+          NEW.spine, NEW.field_key
+          USING ERRCODE = 'check_violation';
+      END IF;
+    ELSE
+      RAISE EXCEPTION 'approved_truth requires ceremony_id or source_ref.kind=operator_override (field %:%)',
+        NEW.spine, NEW.field_key
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_engine_spine_field_truth_provenance
+BEFORE INSERT OR UPDATE ON public.engine_spine_field_truth
+FOR EACH ROW EXECUTE FUNCTION public.tg_engine_spine_field_truth_provenance();
+```
+
+**Backfill note:** existing `approved_truth` rows written before this trigger MUST be audited before install. Query:
+
+```sql
+SELECT id, project_id, spine, field_key, updated_by_actor, ceremony_id, source_ref
+  FROM public.engine_spine_field_truth
+ WHERE status = 'approved_truth'
+   AND (updated_by_actor <> 'human'
+        OR (ceremony_id IS NULL AND COALESCE(source_ref->>'kind','') <> 'operator_override'));
+```
+
+Any row returned must be either (a) attached to a completed ceremony via ops UI, (b) re-stamped as `operator_override` with the acting operator's email, or (c) demoted back to `verified` before the trigger is installed. Otherwise the next UPDATE on that row will fail.
+
+### G2 — Extend gate to `engine_roadmap_versions`
+
+Install the same missing-key + contradiction gate as a BEFORE UPDATE trigger on `engine_roadmap_versions` when `NEW.status` transitions to `'approved'`:
+
+```sql
+CREATE OR REPLACE FUNCTION public.tg_engine_roadmap_versions_gate()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  a_missing jsonb;
+  b_missing jsonb;
+  has_contra boolean;
+BEGIN
+  IF NEW.status = 'approved' AND (OLD.status IS DISTINCT FROM 'approved') THEN
+    has_contra := public.internal_project_has_contradictions(NEW.project_id);
+    IF has_contra THEN
+      RAISE EXCEPTION 'Cannot approve roadmap version %: project % has unresolved contradictions',
+        NEW.id, NEW.project_id USING ERRCODE = 'check_violation';
+    END IF;
+
+    SELECT COALESCE(jsonb_agg(k), '[]'::jsonb) INTO a_missing FROM (
+      SELECT field_key AS k FROM public.internal_spine_field_keys(NEW.project_id, 'point-a') s
+       WHERE NOT EXISTS (
+         SELECT 1 FROM public.engine_spine_field_truth t
+          WHERE t.project_id = NEW.project_id AND t.spine='point-a'
+            AND t.field_key = s.field_key AND t.status='approved_truth')
+    ) x;
+
+    SELECT COALESCE(jsonb_agg(k), '[]'::jsonb) INTO b_missing FROM (
+      SELECT field_key AS k FROM public.internal_spine_field_keys(NEW.project_id, 'point-b') s
+       WHERE NOT EXISTS (
+         SELECT 1 FROM public.engine_spine_field_truth t
+          WHERE t.project_id = NEW.project_id AND t.spine='point-b'
+            AND t.field_key = s.field_key AND t.status='approved_truth')
+    ) x;
+
+    IF jsonb_array_length(a_missing) > 0 OR jsonb_array_length(b_missing) > 0 THEN
+      RAISE EXCEPTION 'Cannot approve roadmap version %: spine not fully approved. point_a_missing=%, point_b_missing=%',
+        NEW.id, a_missing, b_missing USING ERRCODE = 'check_violation';
+    END IF;
+
+    IF NEW.approved_at IS NULL THEN NEW.approved_at := now(); END IF;
+    IF NEW.approved_by IS NULL THEN
+      RAISE EXCEPTION 'approved_by required when approving roadmap version %', NEW.id
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER engine_roadmap_versions_gate
+BEFORE UPDATE OF status ON public.engine_roadmap_versions
+FOR EACH ROW EXECUTE FUNCTION public.tg_engine_roadmap_versions_gate();
+
+-- Companion: same self-approve rule as business engines.
+CREATE OR REPLACE FUNCTION public.tg_engine_roadmap_versions_no_self_approve()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.approved_by IS NOT NULL
+     AND NEW.created_by IS NOT NULL
+     AND NEW.approved_by = NEW.created_by
+     AND NEW.created_by ILIKE 'agent:%' THEN
+    RAISE EXCEPTION 'AI-created roadmap version % cannot self-approve (created_by=%, approved_by=%)',
+      NEW.id, NEW.created_by, NEW.approved_by USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER engine_roadmap_versions_no_self_approve
+BEFORE INSERT OR UPDATE OF approved_by ON public.engine_roadmap_versions
+FOR EACH ROW EXECUTE FUNCTION public.tg_engine_roadmap_versions_no_self_approve();
+```
+
+`engine_projects.status` is intentionally NOT gated in this pass — the project lifecycle uses `current_step`/`current_step_num` for staging and does not have a canonical proposed→approved transition. If Tai wants that gated, add a follow-up spec identifying which target statuses require the check.
+
+### G3 — SQL smoke harness (ships as `.sql` fixture, not a migration)
+
+`supabase/tests/spine-gate-smoke.sql` — service-role-executed script that:
+
+1. Seeds a scratch project (`engine_projects`) + minimal `client_portal_projects`/`engine_clients` rows.
+2. Walks cases A–J from the QA prompt, using `SAVEPOINT` + `ROLLBACK TO` per case to keep state clean.
+3. For each blocking case asserts `SQLSTATE = '23514'` (`check_violation`) and pattern-matches the exception message for the specific missing-key list.
+4. Tears down the scratch project.
+
+Cases:
+- A: full approve, no contradictions → UPDATE succeeds.
+- B/C: missing 1 Point A / Point B key → UPDATE raises with `point_a_missing`/`point_b_missing` naming the key.
+- D: only core subset approved → raises with full missing list.
+- E: `verified` (not `approved_truth`) → raises.
+- F/G: `contradicted` on point-a / point-b field truth → raises "unresolved contradictions".
+- H: contradicted extracted signal (not superseded) → raises.
+- I: reverse an approved_truth field, then attempt approve → raises.
+- J: attempt INSERT `approved_truth` with `updated_by_actor='ai'` and no ceremony → G1 trigger raises.
+
+To be added as new file — no schema impact, safe to ship without Tai approval, but flagged here so it lands in the same review.
+
+### Companion app-layer fix (non-migration, already applied)
+
+`src/lib/engine-spine-readiness.functions.ts` — `SpineReadiness.point_a.approved` / `point_b.approved` retyped from `string[]` to `boolean` to match the RPC return shape. UI unaffected (only reads `.missing`).
+
+Status: **PENDING TAI REVIEW — apply-ready. Run the G1 backfill audit query BEFORE installing the G1 trigger.**
