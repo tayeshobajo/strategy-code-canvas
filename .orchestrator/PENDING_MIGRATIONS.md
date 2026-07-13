@@ -3547,9 +3547,10 @@ Status: **PENDING TAI REVIEW — apply-ready after Revision 2.1. Executable migr
 
 ---
 
-## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 4
+## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 4 (APPLIED)
 
-Status: **PENDING TAI REVIEW (Revision 4) — apply-ready pending final sign-off.** Do not apply until reviewed. See doctrine `Phase 5D` for governance rules and invariants.
+Status: **APPLIED 2026-07-13. DB layer complete. Smoke: PASS 26/26** (N, O, P/P-early, T1–T5, S1–S6, Q1–Q3, R1–R5, U1/U3/U4). Follow-up (Rev 4a, also applied): tightened `tg_engine_projects_child_rollup_guard` under a completed parent to block clearing `completed_at` alone (previously the predicate check allowed it when `status='completed'` remained). App-layer follow-ups still pending (see below). See doctrine `Phase 5D` for governance rules and invariants.
+
 
 Revision 4 closes the two remaining bypasses found in Revision 3:
 - **Back-door completion via `NEW.approved_at`.** The non-parent completion gate now keys off `OLD.approved_at IS NULL` (prior state), not `NEW.approved_at IS NULL`. A caller can no longer set `status='completed'` and `approved_at=now()` in the same UPDATE to skip the Spine gate. INSERT always runs the gate regardless of supplied `approved_at`.
