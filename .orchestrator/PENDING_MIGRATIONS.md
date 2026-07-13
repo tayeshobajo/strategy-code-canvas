@@ -3916,18 +3916,25 @@ Run under service_role; scratch data cleaned in final rollback block.
 - **Case O** — Attempt to approve parent P while C1 approved and C2 pending → BLOCKED (`not all children approved`).
 - **Case P** — Approve C2 fully, then approve P → ALLOWED. Then set `completed_at`/`status='completed'` on both children, then complete P → ALLOWED. Attempt to complete P before both children complete → BLOCKED.
 - **Case Q** — Kind transitions: `parent → child` BLOCKED; `child → parent` BLOCKED; `parent → standalone` while children exist BLOCKED; after reparenting all children, `parent → standalone` ALLOWED.
-- **Case R** — `DELETE parent` while children attached → BLOCKED (`foreign_key_violation`). `DELETE child` → ALLOWED. INSERT child under standalone → BLOCKED. INSERT child with mismatched `client_id` → BLOCKED. INSERT parent with non-empty `point_a` → BLOCKED.
-- **Case S — Stale-rollup guards (new).** With P approved and C1/C2 approved:
-  - S1: INSERT a new unapproved C3 under P → BLOCKED (`Cannot attach unapproved child to approved/completed parent`).
+- **Case R** — `DELETE parent` while children attached → BLOCKED (`foreign_key_violation`). `DELETE child` under an unapproved parent → ALLOWED. INSERT child under standalone → BLOCKED. INSERT child with mismatched `client_id` → BLOCKED. INSERT parent with non-empty `point_a` → BLOCKED.
+- **Case S — Stale-rollup guards under an approved parent.** With P approved and C1/C2 approved:
+  - S1: INSERT a new unapproved C3 under P → BLOCKED.
   - S2: UPDATE C1 to detach (`parent_project_id=NULL`, `project_kind=standalone`) → BLOCKED.
   - S3: UPDATE C1 `status='in_progress'` (regress from approved) → BLOCKED.
   - S4: Demote P (`status` back to `in_progress`), then S1/S2/S3 → ALLOWED.
-- **Case T — Completed-parent guards (new).** With P completed and both children completed:
+  - S5: `DELETE` C1 while P is approved → BLOCKED (`Cannot delete child … under approved/completed parent`).
+  - S6: INSERT an already-approved (or already-completed) C3 under approved P → BLOCKED (parent approval covers a fixed child set).
+- **Case T — Completed-parent guards.** With P completed and both children completed:
   - T1: UPDATE C1 `completed_at = NULL` → BLOCKED.
   - T2: INSERT a new non-completed child under P → BLOCKED.
   - T3: Demote P (clear `completed_at`, `status` back to `approved`), then T1/T2 → ALLOWED.
+  - T4: INSERT an already-completed child under completed P → BLOCKED (set is frozen).
+  - T5: UPDATE C1 `status` from `completed` back to `approved` (or `in_progress`) with `completed_at` also cleared so `new_child_completed=false`, under completed P → BLOCKED.
+- **Case U — No back-door completion.** Create standalone child C4 with incomplete Point A/B truth:
+  - U1: UPDATE C4 `status='completed'` directly (never approved, `approved_at IS NULL`) → BLOCKED with the same Spine/contradiction message as approval.
+  - U2: Attach C4 (still uncompleted) under parent P2, jump C4 to `status='completed'` to satisfy `internal_all_children_approved`/`internal_all_children_completed`, then approve P2 → the C4 completion transition itself is BLOCKED, so P2 approval cannot be laundered through it.
 
-Acceptance: `SMOKE PASS` line printed after N–T all behave as specified.
+Acceptance: `SMOKE PASS` line printed after N–U all behave as specified.
 
 ### Post-migration app follow-ups (tracked, not part of this SQL)
 
