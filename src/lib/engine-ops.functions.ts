@@ -6,45 +6,13 @@ import { buildClientSafePayload } from "@/lib/roadmap-publish";
 import { throwGeneric } from "@/lib/engine-error";
 import { impactSummarySchema } from "@/lib/engine-proposal-impact";
 
-// Exported for behavioral role-rejection tests (Audit V3 #8).
-export async function assertAdminEmail(context: {
-  claims?: Record<string, unknown>;
-  supabase: {
-    rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
-  };
-}) {
-  const email = (context.claims?.email as string | undefined) ?? undefined;
-  const admin = await hasRoleForEmail(
-    context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
-    email,
-    "admin",
-  );
-  if (!admin) throw new Error("Forbidden: admin role required");
-  return email ?? "unknown";
-}
+// Role guards live in a sibling .server.ts module so createServerFn
+// handlers can reference them across the tss-serverfn-split boundary
+// (sibling declarations inside this file get dropped from split
+// handler chunks and throw ReferenceError at runtime).
+export { assertAdminEmail, assertOps } from "@/lib/engine-ops-guards.server";
+import { assertAdminEmail, assertOps } from "@/lib/engine-ops-guards.server";
 
-// Exported for behavioral role-rejection tests (Audit V3 #8).
-export async function assertOps(context: {
-  claims?: Record<string, unknown>;
-  supabase: {
-    rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
-  };
-}) {
-  const email = (context.claims?.email as string | undefined) ?? undefined;
-  const admin = await hasRoleForEmail(
-    context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
-    email,
-    "admin",
-  );
-  if (admin) return email ?? "unknown";
-  const op = await hasRoleForEmail(
-    context.supabase as unknown as Parameters<typeof hasRoleForEmail>[0],
-    email,
-    "operator",
-  );
-  if (!op) throw new Error("Forbidden: admin or operator role required");
-  return email ?? "unknown";
-}
 
 // ─── Delivery Room ──────────────────────────────────────────────
 export type DeliveryStatus =
