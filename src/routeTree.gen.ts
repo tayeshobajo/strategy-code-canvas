@@ -60,6 +60,7 @@ import { Route as EngineExecutionRouteImport } from './routes/engine.execution'
 import { Route as EngineDeliveryRouteImport } from './routes/engine.delivery'
 import { Route as EngineApprovalsRouteImport } from './routes/engine.approvals'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as ClientsSpartanRouteImport } from './routes/clients.spartan'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as BuildMyRoadmapWriteRouteImport } from './routes/build-my-roadmap.write'
@@ -405,6 +406,11 @@ const EngineApprovalsRoute = EngineApprovalsRouteImport.update({
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsSpartanRoute = ClientsSpartanRouteImport.update({
+  id: '/clients/spartan',
+  path: '/clients/spartan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoadmapRoute = CheckoutRoadmapRouteImport.update({
@@ -972,6 +978,7 @@ export interface FileRoutesByFullPath {
   '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engine/approvals': typeof EngineApprovalsRoute
   '/engine/delivery': typeof EngineDeliveryRoute
@@ -1112,6 +1119,7 @@ export interface FileRoutesByTo {
   '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engine/approvals': typeof EngineApprovalsRoute
   '/engine/delivery': typeof EngineDeliveryRoute
@@ -1257,6 +1265,7 @@ export interface FileRoutesById {
   '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engine/approvals': typeof EngineApprovalsRoute
   '/engine/delivery': typeof EngineDeliveryRoute
@@ -1402,6 +1411,7 @@ export interface FileRouteTypes {
     | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/clients/spartan'
     | '/email/unsubscribe'
     | '/engine/approvals'
     | '/engine/delivery'
@@ -1542,6 +1552,7 @@ export interface FileRouteTypes {
     | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/clients/spartan'
     | '/email/unsubscribe'
     | '/engine/approvals'
     | '/engine/delivery'
@@ -1686,6 +1697,7 @@ export interface FileRouteTypes {
     | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/clients/spartan'
     | '/email/unsubscribe'
     | '/engine/approvals'
     | '/engine/delivery'
@@ -1806,6 +1818,7 @@ export interface RootRouteChildren {
   BuildMyRoadmapWriteRoute: typeof BuildMyRoadmapWriteRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
+  ClientsSpartanRoute: typeof ClientsSpartanRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
   WalksSlugRoute: typeof WalksSlugRoute
@@ -2184,6 +2197,13 @@ declare module '@tanstack/react-router' {
       path: '/email/unsubscribe'
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients/spartan': {
+      id: '/clients/spartan'
+      path: '/clients/spartan'
+      fullPath: '/clients/spartan'
+      preLoaderRoute: typeof ClientsSpartanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout/roadmap': {
@@ -3170,6 +3190,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuildMyRoadmapWriteRoute: BuildMyRoadmapWriteRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutRoadmapRoute: CheckoutRoadmapRoute,
+  ClientsSpartanRoute: ClientsSpartanRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   InsightsSlugRoute: InsightsSlugRoute,
   WalksSlugRoute: WalksSlugRoute,
