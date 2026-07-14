@@ -152,10 +152,16 @@ function CommandStrip({
   systemHealth,
   criticalAlerts,
   topDecision,
+  onOpenTop,
+  changesSinceLast,
+  lastChecked,
 }: {
   systemHealth: "green" | "amber" | "red";
   criticalAlerts: number;
   topDecision: Decision | null;
+  onOpenTop: () => void;
+  changesSinceLast: number;
+  lastChecked: string | null;
 }) {
   const now = new Date();
   const healthTone =
@@ -193,12 +199,25 @@ function CommandStrip({
             >
               <AlertOctagon className="h-3 w-3" /> {criticalAlerts} critical alert{criticalAlerts === 1 ? "" : "s"}
             </span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5",
+                changesSinceLast > 0
+                  ? "border-sky-300 bg-sky-50 text-sky-800"
+                  : "border-[#E8E1D6] bg-[#F5F1E8] text-[#667085]",
+              )}
+              title={lastChecked ? `Since ${new Date(lastChecked).toLocaleString()}` : "First visit — no baseline yet."}
+            >
+              <History className="h-3 w-3" />
+              {changesSinceLast} change{changesSinceLast === 1 ? "" : "s"} since last check
+            </span>
           </div>
         </div>
 
         {topDecision ? (
-          <Link
-            to={topDecision.href}
+          <button
+            type="button"
+            onClick={onOpenTop}
             className="group inline-flex max-w-full items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-left text-amber-900 transition hover:bg-amber-100"
           >
             <div className="min-w-0">
@@ -208,7 +227,7 @@ function CommandStrip({
               <div className="mt-0.5 truncate text-sm font-medium">{topDecision.what}</div>
             </div>
             <ArrowRight className="h-4 w-4 shrink-0 transition group-hover:translate-x-0.5" />
-          </Link>
+          </button>
         ) : (
           <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-emerald-700">
             <CheckCircle2 className="h-4 w-4" />
@@ -222,7 +241,15 @@ function CommandStrip({
 
 // ─── requires decision queue ─────────────────────────────────────────────────
 
-function RequiresDecisionQueue({ decisions }: { decisions: Decision[] }) {
+function RequiresDecisionQueue({
+  decisions,
+  now,
+  onSelect,
+}: {
+  decisions: Decision[];
+  now: number;
+  onSelect: (id: string) => void;
+}) {
   return (
     <section className="rounded-xl border border-[#E8E1D6] bg-white">
       <SectionHeader
@@ -245,7 +272,7 @@ function RequiresDecisionQueue({ decisions }: { decisions: Decision[] }) {
       ) : (
         <ul className="divide-y divide-[#EFEAE0]">
           {decisions.slice(0, 8).map((d) => (
-            <DecisionRow key={d.id} d={d} />
+            <DecisionRow key={d.id} d={d} now={now} onSelect={onSelect} />
           ))}
         </ul>
       )}
@@ -253,48 +280,80 @@ function RequiresDecisionQueue({ decisions }: { decisions: Decision[] }) {
   );
 }
 
-function DecisionRow({ d }: { d: Decision }) {
-  const tone = severityTone(d.severity);
+function SlaBadge({ deadlineAt, now }: { deadlineAt: string; now: number }) {
+  const { label, tone, overdue } = formatCountdown(deadlineAt, now);
+  const cls =
+    tone === "critical"
+      ? "border-rose-300 bg-rose-50 text-rose-700"
+      : tone === "warning"
+        ? "border-amber-300 bg-amber-50 text-amber-800"
+        : "border-[#E0D8C8] bg-[#F5F1E8] text-[#334155]";
   return (
-    <li className="grid grid-cols-1 items-start gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:gap-6">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2 text-[11px]">
-          <span className={cn("inline-flex items-center gap-1 rounded border px-1.5 py-0.5 uppercase tracking-widest", tone.badge)}>
-            {tone.icon}
-            {d.severity === "critical" ? "Critical" : d.severity === "warning" ? "Risk" : "Review"}
-          </span>
-          <span className="text-[#8A94A6]">{kindLabel(d.kind)}</span>
-          <span className="text-[#C8CFD9]">·</span>
-          <span className="truncate text-[#334155]">{d.clientCompany}</span>
-          <span className="text-[#C8CFD9]">·</span>
-          <span className="truncate text-[#8A94A6]">{d.projectName}</span>
-          {d.due && (
-            <span className="ml-auto inline-flex items-center gap-1 text-[#8A94A6]">
-              <Clock className="h-3 w-3" /> Due {formatDate(d.due)}
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-widest",
+        cls,
+      )}
+      title={`Deadline ${new Date(deadlineAt).toLocaleString()}`}
+    >
+      <Timer className={cn("h-3 w-3", overdue && "animate-pulse")} />
+      {label}
+    </span>
+  );
+}
+
+function DecisionRow({ d, now, onSelect }: { d: Decision; now: number; onSelect: (id: string) => void }) {
+  const tone = severityTone(d.severity);
+  const hasChanges = d.changes.length > 0;
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onSelect(d.id)}
+        className="grid w-full grid-cols-1 items-start gap-3 px-5 py-4 text-left transition hover:bg-[#FBF9F4] md:grid-cols-[minmax(0,1fr)_auto] md:gap-6"
+      >
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className={cn("inline-flex items-center gap-1 rounded border px-1.5 py-0.5 uppercase tracking-widest", tone.badge)}>
+              {tone.icon}
+              {d.severity === "critical" ? "Critical" : d.severity === "warning" ? "Risk" : "Review"}
             </span>
-          )}
+            <SlaBadge deadlineAt={d.deadlineAt} now={now} />
+            <span className="text-[#8A94A6]">{kindLabel(d.kind)}</span>
+            <span className="text-[#C8CFD9]">·</span>
+            <span className="truncate text-[#334155]">{d.clientCompany}</span>
+            <span className="text-[#C8CFD9]">·</span>
+            <span className="truncate text-[#8A94A6]">{d.projectName}</span>
+            {d.due && (
+              <span className="ml-auto inline-flex items-center gap-1 text-[#8A94A6]">
+                <Clock className="h-3 w-3" /> Due {formatDate(d.due)}
+              </span>
+            )}
+          </div>
+          <div className="mt-2 text-sm font-medium text-[#0A0F1F]">{d.what}</div>
+          <div className="mt-1 text-xs text-[#667085]">
+            <span className="text-[#98A2B3]">Why:</span> {d.why}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+            <span className="text-[#8A94A6]">
+              <span className="text-[#98A2B3]">Owner:</span> {d.owner}
+            </span>
+            <span className="text-[#334155]">
+              <span className="text-[#98A2B3]">Recommended action:</span> {d.recommended}
+            </span>
+            {hasChanges && (
+              <span className="inline-flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-sky-800">
+                <History className="h-3 w-3" /> {d.changes.length} new since last check
+              </span>
+            )}
+          </div>
         </div>
-        <div className="mt-2 text-sm font-medium text-[#0A0F1F]">{d.what}</div>
-        <div className="mt-1 text-xs text-[#667085]">
-          <span className="text-[#98A2B3]">Why:</span> {d.why}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-          <span className="text-[#8A94A6]">
-            <span className="text-[#98A2B3]">Owner:</span> {d.owner}
+        <div className="flex items-center gap-2 md:pt-1">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E0D8C8] bg-[#F5F1E8] px-3 py-1.5 text-xs font-medium text-[#0A0F1F]">
+            Open details <ArrowUpRight className="h-3.5 w-3.5" />
           </span>
-          <span className="text-[#334155]">
-            <span className="text-[#98A2B3]">Recommended action:</span> {d.recommended}
-          </span>
         </div>
-      </div>
-      <div className="flex items-center gap-2 md:pt-1">
-        <Link
-          to={d.href}
-          className="inline-flex items-center gap-1.5 rounded-md border border-[#E0D8C8] bg-[#F5F1E8] px-3 py-1.5 text-xs font-medium text-[#0A0F1F] hover:bg-[#EFE9DC]"
-        >
-          {ctaLabel(d.kind)} <ArrowUpRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+      </button>
     </li>
   );
 }
