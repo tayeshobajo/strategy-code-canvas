@@ -323,6 +323,7 @@ function HeaderCard({
   onSubmit,
   onApprove,
   onArchive,
+  onEdit,
 }: {
   state: ImplementationPlanState;
   busy: string | null;
@@ -330,6 +331,7 @@ function HeaderCard({
   onSubmit: (id: string) => void;
   onApprove: (id: string) => void;
   onArchive: (id: string) => void;
+  onEdit: () => void;
 }) {
   const latest = state.latest;
   const backend = state.approved_backend_plan;
