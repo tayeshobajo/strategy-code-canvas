@@ -3256,7 +3256,7 @@ BEGIN
               WHERE c.id          = t.ceremony_id
                 AND c.project_id  = t.project_id
                 AND c.spine       = t.spine
-                AND c.status      = 'completed'
+                AND c.status      IN ('in_progress','completed')
                 AND d.project_id  = t.project_id
                 AND d.spine       = t.spine
                 AND d.field_key   = t.field_key
