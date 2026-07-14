@@ -4459,6 +4459,7 @@ export type Database = {
           completed_at: string | null
           completed_by_email: string | null
           created_at: string
+          current_phase: string | null
           current_step: string
           current_step_num: number
           deadlines: Json
@@ -4511,6 +4512,7 @@ export type Database = {
           completed_at?: string | null
           completed_by_email?: string | null
           created_at?: string
+          current_phase?: string | null
           current_step?: string
           current_step_num?: number
           deadlines?: Json
@@ -4563,6 +4565,7 @@ export type Database = {
           completed_at?: string | null
           completed_by_email?: string | null
           created_at?: string
+          current_phase?: string | null
           current_step?: string
           current_step_num?: number
           deadlines?: Json

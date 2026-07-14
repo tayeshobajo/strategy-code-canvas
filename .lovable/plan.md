@@ -1,82 +1,55 @@
-## Phase 5D QA + Docs Reconciliation + Separate Runtime Schema Hotfix
+## Runtime Schema Drift Hotfix — Independent Review, Apply, Verify
 
-Two independent workstreams. Phase 5D stays "implementation-complete pending QA" in `BUILD_STATE.md` until section A passes. The schema drift fix ships as its own hotfix (section C), not folded into 5D.
+Scope: the `Runtime Schema Drift Fix` block already written in `.orchestrator/PENDING_MIGRATIONS.md` (lines ~3970–end). Not bundled with Phase 5D. Approval of this plan = Tai approval to apply the migration.
 
----
+### What the migration does
 
-### A. Phase 5D QA harness (no code changes yet — QA-only pass)
+Single migration, two changes:
 
-Write a service-role smoke harness at `.orchestrator/qa/phase-5D-smoke.ts` (or `.sql` where pure SQL suffices) exercising each guard. Each check prints `PASS` / `FAIL <reason>`. Overall: **QA PASS** only if all green.
+1. `ALTER TABLE public.engine_projects ADD COLUMN IF NOT EXISTS current_phase text NULL` — matches generated types; unblocks 64 recent production errors from `engine-nba.functions.ts`, `engine-execution.functions.ts`, `engine-completion.functions.ts`.
+2. Restore Data API grants on `public.client_portal_roadmaps`:
+   - `GRANT SELECT ON ... TO anon` (portal magic-link reads under token-scoped RLS)
+   - `GRANT SELECT, INSERT, UPDATE, DELETE ON ... TO authenticated` (staff writes)
+   - `GRANT ALL ON ... TO service_role` (admin/server-fn writes)
 
-Checks:
+Preflight already recorded in `PENDING_MIGRATIONS.md`:
+- RLS enabled on `client_portal_roadmaps`
+- Two scoped policies (`Clients read published roadmaps` via `client_portal_permissions`, `Operators manage roadmaps` via `client_portal_is_operator`)
+- No `USING(true)` policies — grants are safe
 
-1. **Staff-only route guard** — `/engine/projects/$projectId/family`
-   - Anonymous → redirected to `/auth`
-   - Signed-in non-operator → 403 / redirect (whatever the workspace shell enforces elsewhere)
-   - Operator (via `hasRoleForEmail`) → 200 with tree
-2. **`createChildProject` authorization**
-   - Non-operator caller → rejected at server fn (not just RLS)
-   - Operator on client A cannot create child under client B's parent → rejected
-   - Operator on same client → succeeds, row visible, `engine_activity` + `engine_audit_log` written with actor email + subtree summary
-3. **`reparentProject` authorization**
-   - Non-operator → rejected
-   - Cross-client reparent (move client-A subtree under client-B parent) → rejected
-   - Cycle attempt (reparent to own descendant) → rejected
-   - Legal reparent → `engine_audit_log` snapshot includes pre-move subtree ids + size
-4. **Cross-client isolation on reads**
-   - `getProjectFamily` / `listStaffFamilyRoots` called with operator scoped to client A returns only client-A projects
-   - `getFamilyImpact` never surfaces nodes/edges from another client
-5. **Portal surface (`getPortalProjectFamily`)**
-   - Only projects with published/client-safe status appear
-   - No `internal_status`, diagnostics, staff notes, costs, unpublished children, or draft milestones in payload — assert via explicit column allowlist diff
-   - Portal token for client A cannot read client B family (negative test with a second portal token)
-6. **Audit trail integrity**
-   - After each create/reparent, `engine_activity` row exists AND `engine_audit_log` row exists with matching `actor_email`, `action`, affected subtree
-   - Assert both, not just one
-7. **Impact analysis guard**
-   - `getFamilyImpact` respects DB triggers from Revision 4 — attempting to preview a `complete` that would bypass Spine returns the blocker, not a success
-   - No cross-client leakage in blocker list
+### Apply
 
-Deliverable: `.orchestrator/qa/phase-5D-smoke-output.md` with per-check status + final verdict. If any FAIL, file a fix task and keep 5D open.
+Issue the migration via `supabase--migration` using the SQL block already committed to `PENDING_MIGRATIONS.md`. The tool surfaces it for approval; on approval it runs.
 
-### B. Docs reconciliation (only after A is green)
+### Post-apply verification (must all PASS before marking hotfix closed)
 
-1. `.orchestrator/BUILD_STATE.md` — flip Phase 5D to **complete** with date + link to smoke output.
-2. `.orchestrator/PENDING_MIGRATIONS.md` — remove/annotate the Phase 5D block that still reads "app follow-ups pending / revision pending review". Keep only genuinely pending items (e.g., optional `engine_audit_log` column additions if still deferred).
-3. `.orchestrator/phase-5D-output.md` and `phase-5D-followups-output.md` — add a "QA verified" footer pointing at the smoke report.
-4. Sweep `.orchestrator/` for any other stale "5D pending" mentions and reconcile.
+Write and run `.orchestrator/qa/hotfix-portal-roadmaps-smoke.sql`:
 
-### C. Runtime schema drift hotfix (SEPARATE from 5D)
+1. **Column present** — `\d public.engine_projects` shows `current_phase text NULL`; `SELECT current_phase FROM public.engine_projects LIMIT 1` succeeds.
+2. **Grants present** — `information_schema.role_table_grants` returns the expected rows for anon (SELECT), authenticated (SELECT/INSERT/UPDATE/DELETE), service_role (ALL).
+3. **RLS still enforcing** — `pg_class.relrowsecurity = t` on `client_portal_roadmaps`, both policies still present, unchanged.
+4. **Positive read** — an authenticated context matching an active `client_portal_permissions` row for a published roadmap returns that row.
+5. **Negative portal-token test (the one you called out)** — under `SET LOCAL ROLE anon` plus a JWT claim simulating client-A's magic-link email (via `set_config('request.jwt.claims', ...)`), `SELECT * FROM client_portal_roadmaps` returns:
+   - client-A's published rows: >0
+   - client-B's published rows: 0
+   - any client's non-published rows: 0
+   If any of these fail, treat as RLS drift — roll the grants back immediately (RLS wasn't doing the scoping we thought) and re-open the hotfix.
+6. **App-surface smoke** — hit portal magic-link roadmap page in preview; confirm Next-Best-Action panel loads without the previous "column does not exist" errors.
 
-Scope: add `current_phase` column + grants on `client_portal_roadmaps`. Ships as its own migration + entry in `.orchestrator/PENDING_MIGRATIONS.md` labelled `hotfix-portal-roadmaps-schema`, not under Phase 5D.
+### On PASS
 
-Preflight (must pass before writing the migration):
+- Write `.orchestrator/hotfix-portal-roadmaps-output.md` with per-check status + timestamps.
+- Update `PENDING_MIGRATIONS.md` §Runtime Schema Drift Fix status: `APPLIED YYYY-MM-DD, verified` with link to smoke output.
+- Note in `BUILD_STATE.md` build log.
 
-1. Confirm `client_portal_roadmaps` has `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` on
-2. Enumerate existing policies; confirm they scope by client/portal token (not `USING (true)`)
-3. If either is missing, the hotfix expands to include RLS enable + scoped policies before the grants — grants without real RLS are unsafe
+### On FAIL
 
-Migration contents (pending approval, written to `PENDING_MIGRATIONS.md` only):
-
-- `ALTER TABLE public.client_portal_roadmaps ADD COLUMN IF NOT EXISTS current_phase text`
-- Any missing RLS/policies uncovered in preflight
-- `GRANT SELECT ON public.client_portal_roadmaps TO anon, authenticated` (only if RLS confirmed scoping)
-- `GRANT ALL ON public.client_portal_roadmaps TO service_role`
-
-Post-apply verification:
-
-- Negative portal-token test: portal token for client A queries `client_portal_roadmaps` — must return only client-A rows, zero client-B rows
-- Positive test: same token reads its own `current_phase` successfully
-- Record results in `.orchestrator/hotfix-portal-roadmaps-output.md`
-
-### Order of operations
-
-1. Section A (QA harness + run) → PASS required
-2. Section B (docs reconciliation)
-3. Section C (hotfix preflight → migration draft in `PENDING_MIGRATIONS.md` → await Tai approval → apply → verify)
+- Do not silently patch. Capture failure in the smoke output.
+- If check 5 fails (negative portal-token), issue a compensating migration that REVOKEs the newly added grants and file a follow-up to strengthen RLS before re-granting.
+- If check 1/2 fails, investigate before any app-layer changes.
 
 ### Out of scope
 
-- No new features on the family surface
-- No schema changes under Phase 5D
-- No auto-apply of the hotfix migration (goes through Tai per non-negotiable rule #1)
+- No app-layer code changes — the column and grants alone unblock the existing call sites.
+- No touching Phase 5D artifacts.
+- No changes to other tables flagged as sibling errors in the finding (they resolved to derived-column false positives, per the existing PENDING_MIGRATIONS entry).
