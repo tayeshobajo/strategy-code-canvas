@@ -4210,13 +4210,43 @@ WHERE item_type = 'outcome_checkin' ORDER BY created_at DESC LIMIT 20;
 - `src/routes/api/public/hooks/outcome-checkins.ts`
 - `src/routes/admin.outcome-scheduler.tsx`
 
-## Phase H6 · B12 — Non-spine proposal enforcement (REVISED 2026-07-14, ready for review)
+## Phase H6 · B12 — Non-spine proposal enforcement (REVISED 2026-07-14, needs one more fix before apply)
 
-**Status:** UNBLOCKED. App-side `applyApprovedProposal()` server fn now ships
+**Status:** UNBLOCKED IN CODE, but the SECURITY DEFINER + `SET LOCAL` pattern
+below has a **known transaction-boundary caveat** that must be resolved before
+apply. See "Transaction-boundary caveat" section below.
+
+App-side `applyApprovedProposal()` server fn now ships
 (see `src/lib/engine-ops.functions.ts`). It calls the SECURITY DEFINER helper
-`public.begin_proposal_apply()` at the start of the request, which sets
-`SET LOCAL engine.proposal_apply = 'on'` for the current transaction. The
-triggers below check that GUC and allow the write when it is present.
+`public.begin_proposal_apply()` before the governed UPDATE. The triggers below
+check the GUC and allow the write when it is present.
+
+### Transaction-boundary caveat (must resolve before apply)
+
+PostgREST wraps each HTTP request in its own transaction. `SET LOCAL` from an
+RPC call in one request will NOT carry over to a subsequent `.update()` call
+issued from the same server-fn handler, because that `.update()` is a
+separate PostgREST request in a separate transaction. As written, the B12
+triggers would then reject the update.
+
+**Two viable resolutions** (pick one before applying B12):
+
+1. **Move the whole apply into a stored procedure.** Add
+   `public.apply_approved_proposal(_proposal_id uuid)` as a `SECURITY DEFINER`
+   function that runs `PERFORM set_config('engine.proposal_apply','on',true)`
+   and then performs the governed UPDATE in one transaction. Rewrite the
+   server fn `applyApprovedProposal` to call `sb.rpc('apply_approved_proposal',
+   { _proposal_id: id })` instead of doing the update client-side. This is the
+   recommended path — one atomic txn, one round trip.
+
+2. **Use pg_bundle / txn RPC.** Not natively supported by supabase-js in the
+   generated client; would require raw PostgREST `POST /rpc/...` with a
+   custom `Prefer: tx=commit` header. Fragile — do not use.
+
+Applying the triggers below WITHOUT resolution 1 will break the current
+`applyApprovedProposal` server fn (each governed UPDATE will RAISE).
+
+
 
 Target columns are corrected to match the real schema:
 - `engine_milestones`: `brief_md`, `acceptance_criteria`, `developer_prompt`,
