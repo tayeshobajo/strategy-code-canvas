@@ -9,6 +9,8 @@ import {
   type ProjectFamilyPayload,
 } from "@/lib/engine-project-family.functions";
 import { getFamilyImpact, type FamilyImpactPayload } from "@/lib/engine-project-impact.functions";
+import { FamilyDependencyGraph } from "@/components/engine/FamilyDependencyGraph";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/engine/projects/$projectId/family")({
   component: FamilyPage,
