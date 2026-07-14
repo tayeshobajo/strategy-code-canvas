@@ -126,6 +126,139 @@ export const listEngineTemplates = createServerFn({ method: "POST" })
   });
 
 // -------------------------------------------------------
+// Pending clone approvals — details + audit log for admin UX
+// -------------------------------------------------------
+
+export type PendingCloneAuditEntry = {
+  id: string;
+  actorEmail: string | null;
+  action: string;
+  summary: string | null;
+  createdAt: string;
+  metadataJson: string | null;
+};
+
+export type PendingCloneDetail = {
+  reviewItemId: string;
+  reviewCreatedAt: string;
+  requestedBy: string | null;
+  projectId: string;
+  projectName: string | null;
+  engineId: string | null;
+  engineName: string | null;
+  engineStatus: string | null;
+  engineCreatedBy: string | null;
+  engineCreatedAt: string | null;
+  ownerEmail: string | null;
+  templateId: string | null;
+  templateName: string | null;
+  cadence: string | null;
+  cronExpression: string | null;
+  outcome: string | null;
+  workflowStepCount: number;
+  metricCount: number;
+  exceptionRuleCount: number;
+  auditLog: PendingCloneAuditEntry[];
+};
+
+export const listPendingTemplateClones = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PendingCloneDetail[]> => {
+    await assertStaff(context as Ctx);
+    const sb = (context as Ctx).supabase;
+
+    const { data: reviews, error: rErr } = await sb
+      .from("engine_review_items")
+      .select("id, project_id, project, title, requested_by, created_at, status")
+      .eq("item_type", "engine_template_clone")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    if (rErr) throw new Error(rErr.message);
+    if (!reviews || reviews.length === 0) return [];
+
+    const projectIds = Array.from(new Set(reviews.map((r: any) => r.project_id).filter(Boolean)));
+
+    // Load recent template-related audit entries per project (to correlate to reviews).
+    const { data: auditRows } = await sb
+      .from("engine_audit_log")
+      .select("id, project_id, actor_email, action, summary, created_at, target_id, metadata")
+      .in("project_id", projectIds)
+      .like("action", "engine.template.%")
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    // Load draft/proposed engines for those projects to correlate.
+    const { data: engines } = await sb
+      .from("engine_business_engines")
+      .select(
+        "id, project_id, name, status, owner_email, created_by, created_at, cadence, cron_expression, outcome, workflow, metrics, exception_rules, metadata",
+      )
+      .in("project_id", projectIds)
+      .in("status", ["draft", "proposed", "approved"]);
+
+    const projectNames = new Map<string, string>();
+    if (projectIds.length > 0) {
+      const { data: projects } = await sb
+        .from("engine_projects")
+        .select("id, name")
+        .in("id", projectIds);
+      for (const p of projects ?? []) projectNames.set(p.id, p.name);
+    }
+
+    return reviews.map((r: any): PendingCloneDetail => {
+      // Correlate: pick the most recent draft engine for this project with a
+      // template_id, created at/before the review item.
+      const projectEngines = (engines ?? [])
+        .filter((e: any) => e.project_id === r.project_id)
+        .filter((e: any) => (e.metadata as any)?.template_id)
+        .sort((a: any, b: any) => Date.parse(b.created_at) - Date.parse(a.created_at));
+      const engine = projectEngines[0] ?? null;
+      const templateId = engine ? ((engine.metadata as any)?.template_id ?? null) : null;
+      const template = templateId ? getTemplateById(templateId) : null;
+      const audit = (auditRows ?? [])
+        .filter(
+          (a: any) =>
+            a.project_id === r.project_id &&
+            (engine ? a.target_id === engine.id || (a.metadata as any)?.review_item_id === r.id : true),
+        )
+        .slice(0, 20)
+        .map(
+          (a: any): PendingCloneAuditEntry => ({
+            id: a.id,
+            actorEmail: a.actor_email ?? null,
+            action: a.action,
+            summary: a.summary ?? null,
+            createdAt: a.created_at,
+            metadataJson: a.metadata ? JSON.stringify(a.metadata) : null,
+          }),
+        );
+
+      return {
+        reviewItemId: r.id,
+        reviewCreatedAt: r.created_at,
+        requestedBy: r.requested_by ?? null,
+        projectId: r.project_id,
+        projectName: projectNames.get(r.project_id) ?? r.project ?? null,
+        engineId: engine?.id ?? null,
+        engineName: engine?.name ?? null,
+        engineStatus: engine?.status ?? null,
+        engineCreatedBy: engine?.created_by ?? null,
+        engineCreatedAt: engine?.created_at ?? null,
+        ownerEmail: engine?.owner_email ?? null,
+        templateId,
+        templateName: template?.name ?? engine?.name ?? null,
+        cadence: engine?.cadence ?? template?.cadence ?? null,
+        cronExpression: engine?.cron_expression ?? template?.cronExpression ?? null,
+        outcome: engine?.outcome ?? template?.outcome ?? null,
+        workflowStepCount: Array.isArray(engine?.workflow) ? engine.workflow.length : 0,
+        metricCount: Array.isArray(engine?.metrics) ? engine.metrics.length : 0,
+        exceptionRuleCount: Array.isArray(engine?.exception_rules) ? engine.exception_rules.length : 0,
+        auditLog: audit,
+      };
+    });
+  });
+
+// -------------------------------------------------------
 // Propose engine from template
 // -------------------------------------------------------
 

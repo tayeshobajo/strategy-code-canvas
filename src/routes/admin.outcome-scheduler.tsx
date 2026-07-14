@@ -61,18 +61,62 @@ function OutcomeSchedulerPage() {
         <CardHeader>
           <CardTitle>Manual run</CardTitle>
           <CardDescription>
-            Same code path pg_cron will invoke via /api/public/hooks/outcome-checkins.
+            "Preview next cadence" is a dry-run: it computes exactly which outcome
+            check-ins would be generated on the next cron tick — grouped by trigger
+            and window — without inserting review items or activity events. Use
+            "Run now" to commit the same result.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex gap-2">
           <Button variant="outline" onClick={() => runDry.mutate()} disabled={runDry.isPending}>
-            {runDry.isPending ? "Scanning…" : "Dry run"}
+            {runDry.isPending ? "Scanning…" : "Preview next cadence"}
           </Button>
           <Button onClick={() => runLive.mutate()} disabled={runLive.isPending}>
             {runLive.isPending ? "Running…" : "Run now"}
           </Button>
         </CardContent>
       </Card>
+
+      {lastRun && lastRun.emissions.some((e) => e.status === "emitted") && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Preview — what would be generated</CardTitle>
+            <CardDescription>
+              Grouped by trigger. Deduped items are hidden here (see the full run
+              breakdown below).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(["delivered_project", "completed_milestone", "active_business_engine", "cost_resumed_project"] as const).map(
+              (kind) => {
+                const items = lastRun.emissions.filter(
+                  (e) => e.status === "emitted" && e.triggerKind === kind,
+                );
+                if (items.length === 0) return null;
+                return (
+                  <div key={kind}>
+                    <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">
+                      {kind.replace(/_/g, " ")} ({items.length})
+                    </div>
+                    <ul className="text-sm space-y-1">
+                      {items.map((e, i) => (
+                        <li key={`${kind}-${i}`} className="flex items-center gap-2">
+                          <Badge variant="outline">{e.window}</Badge>
+                          <span>{e.subjectName}</span>
+                          <span className="font-mono text-xs opacity-60">
+                            {e.subjectId.slice(0, 8)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              },
+            )}
+          </CardContent>
+        </Card>
+      )}
+
 
       {lastRun && (
         <Card>
