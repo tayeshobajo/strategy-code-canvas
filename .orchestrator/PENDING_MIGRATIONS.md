@@ -705,7 +705,7 @@ CREATE INDEX IF NOT EXISTS engine_spine_field_truth_ceremony_idx
 -- ============================================================
 CREATE TRIGGER trg_engine_spine_ceremonies_updated
   BEFORE UPDATE ON public.engine_spine_ceremonies
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION public.tg_touch_updated_at();
 
 -- ============================================================
 -- 5. Audit (INSERT + UPDATE) via engine_audit_log
