@@ -212,8 +212,67 @@ export default function DriftDetectionPage() {
               </div>
             </div>
           )}
+
+          <CausalitySection />
         </>
       )}
+    </div>
+  );
+}
+
+function CausalitySection() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["workspace-drift-causality"],
+    queryFn: () => getDriftCausalityReport(),
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <GitFork className="w-4 h-4 text-amber-400" />
+        <h2 className="text-sm font-medium text-white/70 uppercase tracking-wider">
+          Root-Cause Clusters
+        </h2>
+      </div>
+      <p className="text-xs text-white/40 -mt-1">
+        Groups drift + open review items by shared project entity. Root cause = highest-severity node with no upstream signal.
+      </p>
+
+      {isLoading && <div className="text-xs text-white/40">Building causal graph…</div>}
+
+      {data && data.clusters.length === 0 && (
+        <div className="text-xs text-white/40">No causal clusters — either aligned or too few signals to link.</div>
+      )}
+
+      {data && data.clusters.map((cluster) => (
+        <div key={cluster.projectId} className="rounded-lg border border-white/10 bg-white/[0.03] p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-white font-medium">{cluster.projectName}</div>
+            <div className="text-[10px] text-white/40">
+              {cluster.nodes.length} nodes · {cluster.edges.length} edges
+            </div>
+          </div>
+          <div className="text-xs text-amber-300/90">{cluster.explanation}</div>
+          {cluster.edges.length > 0 && (
+            <ul className="text-[11px] text-white/60 space-y-1 pl-3 border-l border-white/10">
+              {cluster.edges.slice(0, 6).map((e, i) => {
+                const from = cluster.nodes.find((n) => n.id === e.from);
+                const to = cluster.nodes.find((n) => n.id === e.to);
+                return (
+                  <li key={i}>
+                    <span className="text-white/80">{from?.label ?? e.from}</span>
+                    <span className="text-white/30"> → </span>
+                    <span className="text-white/80">{to?.label ?? e.to}</span>
+                    <span className="text-white/40"> · {e.reason}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
