@@ -1,5 +1,5 @@
 export const WORKSPACE_STEPS = [
-  { num: 1, key: "intelligence", label: "Intelligence Layer", to: "/engine/projects/$projectId/intelligence" },
+  { num: 1, key: "intelligence", label: "Intelligence Layer", to: "/engine/projects/$projectId/intelligence-layer" },
   { num: 2, key: "signal-room", label: "Signal Room", to: "/engine/projects/$projectId/signal-room" },
   { num: 3, key: "extraction", label: "Signal Extraction", to: "/engine/projects/$projectId/extraction" },
   { num: 4, key: "point-a", label: "Point A Diagnosis", to: "/engine/projects/$projectId/point-a" },
