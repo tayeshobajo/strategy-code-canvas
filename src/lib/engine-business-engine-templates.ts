@@ -32,8 +32,8 @@ export type EngineTemplate = {
     requires_approval?: boolean;
     owner_role?: string;
   }>;
-  triggers: Record<string, unknown>;
-  approvalRules: Record<string, unknown>;
+  triggers: Record<string, any>;
+  approvalRules: Record<string, any>;
   metrics: Array<{
     key: string;
     label: string;
