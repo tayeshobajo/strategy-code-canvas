@@ -1,5 +1,47 @@
 # Pending Migrations — Require Tai Review Before Applying
 
+---
+
+## Paired Deployment Guard — Truth ↔ Ceremony Dependencies
+
+**Rule (enforced by orchestrator preflight):** Phase 1 R3 (spine field truth) and
+Phase 2 R4/R4B (ceremonies) MUST be applied in the same migration window on any
+environment where either is missing. They share the `engine_spine_field_truth`
+table and the `epistemic_status` enum; applying one without the other leaves an
+intermediate state where the truth table exists but ceremonies can't reference
+it (or vice versa).
+
+### Preflight check (run before applying either block on a new environment)
+
+```sql
+SELECT
+  to_regtype('public.epistemic_status')          IS NOT NULL AS has_enum,
+  to_regclass('public.engine_spine_field_truth') IS NOT NULL AS has_truth,
+  to_regclass('public.engine_spine_ceremonies')  IS NOT NULL AS has_ceremonies,
+  to_regclass('public.engine_spine_ceremony_decisions')     IS NOT NULL AS has_decisions,
+  to_regclass('public.engine_spine_ceremony_invalidations') IS NOT NULL AS has_invalidations;
+```
+
+### Decision matrix
+
+| has_truth | has_ceremonies | Action |
+|-----------|----------------|--------|
+| true      | true           | Both applied — skip; mark as APPLIED if not already noted. |
+| false     | false          | **PAIRED APPLY REQUIRED** — concatenate Phase 1 R3 + Phase 2 R4/R4B into one migration; do NOT apply either alone. |
+| true      | false          | Phase 2 R4/R4B only — safe to apply alone (truth already present). |
+| false     | true           | **STOP — inconsistent state.** Escalate to Tai; do not attempt repair autonomously. |
+
+### Rollback
+
+If the paired apply fails, roll back in reverse order (Phase 2 first, then
+Phase 1) using the rollback blocks kept alongside each phase in this file.
+
+Reference outputs: `.orchestrator/phase-1-output.md`, `.orchestrator/phase-2-output.md`.
+
+---
+
+
+
 ## Phase 6C — Roadmap Acknowledgment Columns
 
 Status: REJECTED (2026-07-12) — superseded by existing columns on `public.client_portal_roadmaps`.
