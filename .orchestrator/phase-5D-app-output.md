@@ -85,3 +85,8 @@ Edited:
 - DB governance already smoke-passed at Phase 5D Revision 4 (SMOKE PASS 26/26);
   the app layer reads and mutations respect those triggers (any violation
   bubbles up as a normal error to the UI).
+
+
+---
+
+**QA verified 2026-07-14.** See `.orchestrator/qa/phase-5D-smoke-output.md` — 7/7 DB guards + 3/3 app-layer guards PASS. Phase 5D closed.
