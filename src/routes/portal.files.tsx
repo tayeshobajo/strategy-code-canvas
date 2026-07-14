@@ -30,8 +30,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+
 import { useServerFn } from "@tanstack/react-start";
 import { logPortalFileEvent } from "@/lib/portal.functions";
+import { logPortalActivity } from "@/lib/portal-activity.functions";
+
 import { toast } from "sonner";
 
 
@@ -135,9 +139,17 @@ function FilesPage() {
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
   const email = ctx.data?.email ?? null;
+  usePortalViewLogger({
+    projectId,
+    subjectType: "portal_files",
+    subjectId: projectId,
+  });
+
   const { data: files, isLoading, isError, refetch } = useFiles(projectId);
   const qc = useQueryClient();
   const logFileEvent = useServerFn(logPortalFileEvent);
+  const logActivity = useServerFn(logPortalActivity);
+
 
 
   const search = Route.useSearch();
@@ -338,8 +350,20 @@ function FilesPage() {
       return;
     }
     void logFileEvent({ data: { fileId: row.id, event: "downloaded" } }).catch(() => {});
+    if (projectId) {
+      void logActivity({
+        data: {
+          project_id: projectId,
+          kind: "downloaded",
+          subject_type: "portal_file",
+          subject_id: row.id,
+          summary: `Downloaded ${row.file_name}`,
+        },
+      }).catch(() => {});
+    }
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
+
 
 
   return (

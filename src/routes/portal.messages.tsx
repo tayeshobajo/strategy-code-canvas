@@ -31,6 +31,9 @@ import { sendPortalMessage, getPortalRoadmapContextOptions } from "@/lib/portal.
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+import { logPortalActivity } from "@/lib/portal-activity.functions";
+
 import { toast } from "sonner";
 
 const messagesSearchSchema = z.object({

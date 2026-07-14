@@ -9,6 +9,8 @@ import {
   submitPortalOnboarding,
 } from "@/lib/portal.functions";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +70,13 @@ function OnboardingPage() {
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const email = ctx.data?.email ?? null;
   const portalProjectId = project?.id;
+  usePortalViewLogger({
+    projectId: portalProjectId,
+    subjectType: "portal_onboarding",
+    subjectId: portalProjectId,
+  });
+
+
 
   const getFn = useServerFn(getPortalOnboarding);
   const saveFn = useServerFn(savePortalOnboardingSection);

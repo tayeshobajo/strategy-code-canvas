@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+
 import {
   PortalPage,
   PortalCard,
@@ -91,6 +93,12 @@ function ActivityPage() {
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
   const qc = useQueryClient();
+  usePortalViewLogger({
+    projectId,
+    subjectType: "portal_activity",
+    subjectId: projectId,
+  });
+
 
   const [categories, setCategories] = useState<Set<Category>>(
     () => new Set(ALL_CATEGORIES),
