@@ -4294,11 +4294,16 @@ UPDATE public.engine_milestones SET body = body || ' edit' WHERE id = '<real-id>
 
 ---
 
-## Phase H6 · J4 — Universal `impact_summary` on proposals (PROPOSED, not applied)
+## Phase H6 · J4 — Universal `impact_summary` on proposals (APPLIED 2026-07-14)
+
+Applied via combined H6 migration. `ADD COLUMN IF NOT EXISTS` + backfill from
+`payload->>'scope'` and `proposal_type`-derived reversibility. 31 existing
+rows now carry a non-empty `impact_summary`.
 
 ```sql
 ALTER TABLE public.engine_project_chat_proposals
   ADD COLUMN IF NOT EXISTS impact_summary jsonb NOT NULL DEFAULT '{}'::jsonb;
+```
 
 COMMENT ON COLUMN public.engine_project_chat_proposals.impact_summary IS
   'Standardised proposal impact: {scope, budgetDelta, timelineDelta, dependencies, clientExpectations, reversibility, risks}. Rendered by ProposalImpactPanel.';
