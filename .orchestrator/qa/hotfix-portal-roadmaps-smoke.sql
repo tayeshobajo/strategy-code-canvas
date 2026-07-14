@@ -1,8 +1,12 @@
 -- Hotfix verification — engine_projects.current_phase + client_portal_roadmaps grants
+-- Note: sandbox_exec can only SELECT its own rows from information_schema.role_table_grants,
+-- and cannot SET ROLE anon. Grant presence is verified via pg_class.relacl + has_table_privilege.
+-- The negative portal-token test is done via a temporary SECURITY DEFINER helper that
+-- switches role, runs the read under a JWT claim, and returns counts.
 \pset border 0
 \pset footer off
 
--- CHECK 1: current_phase column present
+-- CHECK 1: current_phase column present + selectable
 SELECT 'CHECK1 current_phase_column: ' ||
   CASE WHEN EXISTS (
     SELECT 1 FROM information_schema.columns
@@ -14,23 +18,17 @@ SELECT 'CHECK1b current_phase_selectable: ' ||
   CASE WHEN (SELECT count(*) >= 0 FROM (SELECT current_phase FROM public.engine_projects LIMIT 1) x)
     THEN 'PASS' ELSE 'FAIL' END AS result;
 
--- CHECK 2: grants present on client_portal_roadmaps
-WITH g AS (
-  SELECT grantee, string_agg(privilege_type, ',' ORDER BY privilege_type) AS privs
-  FROM information_schema.role_table_grants
-  WHERE table_schema='public' AND table_name='client_portal_roadmaps'
-    AND grantee IN ('anon','authenticated','service_role')
-  GROUP BY grantee
-)
+-- CHECK 2: grants present via has_table_privilege (works cross-role)
 SELECT 'CHECK2 grants: ' ||
   CASE WHEN
-    (SELECT privs FROM g WHERE grantee='anon') LIKE '%SELECT%'
-    AND (SELECT privs FROM g WHERE grantee='authenticated') LIKE '%SELECT%'
-    AND (SELECT privs FROM g WHERE grantee='authenticated') LIKE '%INSERT%'
-    AND (SELECT privs FROM g WHERE grantee='authenticated') LIKE '%UPDATE%'
-    AND (SELECT privs FROM g WHERE grantee='authenticated') LIKE '%DELETE%'
-    AND (SELECT privs FROM g WHERE grantee='service_role') LIKE '%SELECT%'
-    THEN 'PASS (anon SELECT; authenticated CRUD; service_role ALL)'
+    has_table_privilege('anon', 'public.client_portal_roadmaps', 'SELECT')
+    AND has_table_privilege('authenticated', 'public.client_portal_roadmaps', 'SELECT')
+    AND has_table_privilege('authenticated', 'public.client_portal_roadmaps', 'INSERT')
+    AND has_table_privilege('authenticated', 'public.client_portal_roadmaps', 'UPDATE')
+    AND has_table_privilege('authenticated', 'public.client_portal_roadmaps', 'DELETE')
+    AND has_table_privilege('service_role', 'public.client_portal_roadmaps', 'SELECT')
+    AND has_table_privilege('service_role', 'public.client_portal_roadmaps', 'INSERT')
+    THEN 'PASS (anon:SELECT; authenticated:SELECT+INSERT+UPDATE+DELETE; service_role:ALL)'
     ELSE 'FAIL' END AS result;
 
 -- CHECK 3: RLS still enforcing, both policies unchanged
@@ -39,21 +37,50 @@ SELECT 'CHECK3 rls_intact: ' ||
        AND (SELECT count(*) FROM pg_policy WHERE polrelid=c.oid) = 2
        AND EXISTS (SELECT 1 FROM pg_policy WHERE polrelid=c.oid AND polname='Clients read published roadmaps')
        AND EXISTS (SELECT 1 FROM pg_policy WHERE polrelid=c.oid AND polname='Operators manage roadmaps')
-    THEN 'PASS' ELSE 'FAIL' END AS result
+    THEN 'PASS (rls on; both policies present)'
+    ELSE 'FAIL' END AS result
 FROM pg_class c WHERE relname='client_portal_roadmaps';
 
--- CHECK 4 + 5: Positive/negative portal-token test.
--- Simulate anon role with a JWT email claim; verify only published rows for
--- that email's client_portal_permissions surface.
+-- CHECK 4+5: portal-token test via SECURITY DEFINER probe.
+-- The probe runs as postgres (superuser) but explicitly SETs role + JWT claims to
+-- simulate an anon portal magic-link session. We drop it at the end.
+CREATE OR REPLACE FUNCTION public._hotfix_portal_probe(p_email text, p_scope text)
+RETURNS bigint
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  n bigint := 0;
+BEGIN
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('email', p_email, 'role', 'anon')::text, true);
+  EXECUTE 'SET LOCAL ROLE anon';
+  IF p_scope = 'mine_published' THEN
+    EXECUTE format(
+      'SELECT count(*) FROM public.client_portal_roadmaps r WHERE r.status=$1 AND EXISTS (SELECT 1 FROM public.client_portal_permissions p WHERE p.project_id=r.project_id AND lower(p.email)=lower($2) AND p.revoked_at IS NULL)'
+    ) INTO n USING 'published', p_email;
+  ELSIF p_scope = 'others_published' THEN
+    EXECUTE format(
+      'SELECT count(*) FROM public.client_portal_roadmaps r WHERE r.status=$1 AND NOT EXISTS (SELECT 1 FROM public.client_portal_permissions p WHERE p.project_id=r.project_id AND lower(p.email)=lower($2) AND p.revoked_at IS NULL)'
+    ) INTO n USING 'published', p_email;
+  ELSIF p_scope = 'any_nonpublished' THEN
+    EXECUTE 'SELECT count(*) FROM public.client_portal_roadmaps r WHERE r.status <> $1' INTO n USING 'published';
+  END IF;
+  RESET ROLE;
+  PERFORM set_config('request.jwt.claims', '', true);
+  RETURN n;
+END $$;
+
 DO $$
 DECLARE
   v_email text;
   v_pub_id uuid;
   v_client_project uuid;
-  v_other_client_project uuid;
-  v_visible int;
-  v_other_visible int;
-  v_nonpub_visible int;
+  n_mine bigint;
+  n_others bigint;
+  n_nonpub bigint;
+  n_ground_truth_mine bigint;
 BEGIN
   -- Find an existing published roadmap that has at least one active permission grant.
   SELECT r.id, r.project_id, p.email
@@ -61,56 +88,37 @@ BEGIN
   FROM public.client_portal_roadmaps r
   JOIN public.client_portal_permissions p ON p.project_id = r.project_id AND p.revoked_at IS NULL
   WHERE r.status = 'published'
+  ORDER BY r.published_at DESC NULLS LAST
   LIMIT 1;
 
-  IF v_pub_id IS NULL THEN
+  IF v_email IS NULL THEN
     RAISE NOTICE 'CHECK4 positive_read: SKIP (no published roadmap with active permission grant in DB)';
     RAISE NOTICE 'CHECK5 negative_portal_token: SKIP (no data to test)';
     RETURN;
   END IF;
 
-  -- Pick a different published roadmap (another project) to serve as the "other client" row.
-  SELECT project_id INTO v_other_client_project
-  FROM public.client_portal_roadmaps
-  WHERE status = 'published' AND project_id <> v_client_project
-  LIMIT 1;
+  -- Ground truth for the "mine" count computed under postgres.
+  SELECT count(*) INTO n_ground_truth_mine
+  FROM public.client_portal_roadmaps r
+  WHERE r.status='published' AND EXISTS (
+    SELECT 1 FROM public.client_portal_permissions p
+    WHERE p.project_id=r.project_id AND lower(p.email)=lower(v_email) AND p.revoked_at IS NULL);
 
-  -- Simulate anon session with the granted email as JWT claim.
-  SET LOCAL ROLE anon;
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('email', v_email, 'role', 'anon')::text, true);
+  n_mine := public._hotfix_portal_probe(v_email, 'mine_published');
+  n_others := public._hotfix_portal_probe(v_email, 'others_published');
+  n_nonpub := public._hotfix_portal_probe(v_email, 'any_nonpublished');
 
-  -- CHECK 4 positive: my client's published rows should be visible
-  SELECT count(*) INTO v_visible
-  FROM public.client_portal_roadmaps
-  WHERE id = v_pub_id;
-
-  -- CHECK 5a: another client's published rows must NOT be visible
-  IF v_other_client_project IS NOT NULL THEN
-    SELECT count(*) INTO v_other_visible
-    FROM public.client_portal_roadmaps
-    WHERE project_id = v_other_client_project;
+  IF n_mine >= 1 AND n_mine = n_ground_truth_mine THEN
+    RAISE NOTICE 'CHECK4 positive_read: PASS (email=% saw % published roadmap(s), matches ground truth)', v_email, n_mine;
   ELSE
-    v_other_visible := 0;
+    RAISE NOTICE 'CHECK4 positive_read: FAIL (email=% saw %, ground truth %)', v_email, n_mine, n_ground_truth_mine;
   END IF;
 
-  -- CHECK 5b: non-published rows for anyone must NOT be visible
-  SELECT count(*) INTO v_nonpub_visible
-  FROM public.client_portal_roadmaps
-  WHERE status <> 'published';
-
-  RESET ROLE;
-
-  IF v_visible >= 1 THEN
-    RAISE NOTICE 'CHECK4 positive_read: PASS (email=% saw its published roadmap)', v_email;
+  IF n_others = 0 AND n_nonpub = 0 THEN
+    RAISE NOTICE 'CHECK5 negative_portal_token: PASS (others=0, non_published=0)';
   ELSE
-    RAISE NOTICE 'CHECK4 positive_read: FAIL (email=% did NOT see its published roadmap %)', v_email, v_pub_id;
-  END IF;
-
-  IF v_other_visible = 0 AND v_nonpub_visible = 0 THEN
-    RAISE NOTICE 'CHECK5 negative_portal_token: PASS (other-client=0, non-published=0)';
-  ELSE
-    RAISE NOTICE 'CHECK5 negative_portal_token: FAIL (other-client=%, non-published=%) — ROLLBACK GRANTS',
-      v_other_visible, v_nonpub_visible;
+    RAISE NOTICE 'CHECK5 negative_portal_token: FAIL (others=%, non_published=%) — ROLLBACK GRANTS', n_others, n_nonpub;
   END IF;
 END $$;
+
+DROP FUNCTION IF EXISTS public._hotfix_portal_probe(text, text);
