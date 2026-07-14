@@ -3099,6 +3099,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          impact_summary: Json
           payload: Json
           project_id: string
           proposal_type: string
@@ -3115,6 +3116,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          impact_summary?: Json
           payload?: Json
           project_id: string
           proposal_type: string
@@ -3131,6 +3133,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          impact_summary?: Json
           payload?: Json
           project_id?: string
           proposal_type?: string
@@ -4692,47 +4695,65 @@ export type Database = {
       engine_review_items: {
         Row: {
           client_portal_project_id: string | null
+          client_risk: boolean
           created_at: string
+          deadline_at: string | null
           id: string
           impact: string
+          impact_score: number | null
           item_type: string
           project: string
           project_id: string
           requested_by: string | null
+          risk_score: number
+          severity: string | null
           source: string | null
           status: string
           title: string
           updated_at: string
+          urgency_score: number | null
           version_id: string | null
         }
         Insert: {
           client_portal_project_id?: string | null
+          client_risk?: boolean
           created_at?: string
+          deadline_at?: string | null
           id?: string
           impact?: string
+          impact_score?: number | null
           item_type: string
           project: string
           project_id: string
           requested_by?: string | null
+          risk_score?: number
+          severity?: string | null
           source?: string | null
           status?: string
           title: string
           updated_at?: string
+          urgency_score?: number | null
           version_id?: string | null
         }
         Update: {
           client_portal_project_id?: string | null
+          client_risk?: boolean
           created_at?: string
+          deadline_at?: string | null
           id?: string
           impact?: string
+          impact_score?: number | null
           item_type?: string
           project?: string
           project_id?: string
           requested_by?: string | null
+          risk_score?: number
+          severity?: string | null
           source?: string | null
           status?: string
           title?: string
           updated_at?: string
+          urgency_score?: number | null
           version_id?: string | null
         }
         Relationships: [

@@ -4210,7 +4210,24 @@ WHERE item_type = 'outcome_checkin' ORDER BY created_at DESC LIMIT 20;
 - `src/routes/api/public/hooks/outcome-checkins.ts`
 - `src/routes/admin.outcome-scheduler.tsx`
 
-## Phase H6 · B12 — Non-spine proposal enforcement (PROPOSED, not applied)
+## Phase H6 · B12 — Non-spine proposal enforcement (BLOCKED — do not apply)
+
+**Blocker (2026-07-14):** the trigger assumes callers set
+`SET LOCAL engine.proposal_apply = 'on'` inside an `applyApprovedProposal()`
+transaction, but no such function exists in `src/`. Also, the governed columns
+named here (`body`, `success_criteria`, `data_model`, `integrations`) do NOT
+exist — the real columns are `brief_md`, `acceptance_criteria`,
+`developer_prompt`, `client_safe_md` on `engine_milestones` and `summary`,
+`payload` on `engine_project_implementation_plans`. Applying as written would
+either no-op (wrong column names) or, once rewritten to real columns, break
+`updateMilestone` and every current impl-plan writer.
+
+**Unblock path:** ship `applyApprovedProposal()` that opens a txn, calls
+`SET LOCAL engine.proposal_apply = 'on'`, then applies the payload to the
+real columns. Rewrite the trigger below against the real column names before
+applying.
+
+Original proposal (kept for reference only, DO NOT APPLY):
 
 Extends `tg_engine_chat_proposals_enforce_transition` so material edits to
 milestone bodies (`engine_milestones.body`, `.acceptance_criteria`,
@@ -4277,11 +4294,16 @@ UPDATE public.engine_milestones SET body = body || ' edit' WHERE id = '<real-id>
 
 ---
 
-## Phase H6 · J4 — Universal `impact_summary` on proposals (PROPOSED, not applied)
+## Phase H6 · J4 — Universal `impact_summary` on proposals (APPLIED 2026-07-14)
+
+Applied via combined H6 migration. `ADD COLUMN IF NOT EXISTS` + backfill from
+`payload->>'scope'` and `proposal_type`-derived reversibility. 31 existing
+rows now carry a non-empty `impact_summary`.
 
 ```sql
 ALTER TABLE public.engine_project_chat_proposals
   ADD COLUMN IF NOT EXISTS impact_summary jsonb NOT NULL DEFAULT '{}'::jsonb;
+```
 
 COMMENT ON COLUMN public.engine_project_chat_proposals.impact_summary IS
   'Standardised proposal impact: {scope, budgetDelta, timelineDelta, dependencies, clientExpectations, reversibility, risks}. Rendered by ProposalImpactPanel.';
@@ -4302,7 +4324,17 @@ App-side (already committed):
 
 ---
 
-## Phase H6 · I11 — `risk_score` on review items (PROPOSED, not applied)
+## Phase H6 · I11 — `risk_score` on review items (APPLIED 2026-07-14)
+
+Applied via combined H6 migration. Because the schema didn't yet carry the
+risk-input columns, the migration also added nullable `severity`,
+`impact_score`, `urgency_score`, `deadline_at`, `client_risk` with matching
+CHECK constraints, then installed the trigger + index. Existing rows were
+backfilled to `risk_score = 36` (medium fallback) via a self-update; new
+inputs will land in the correct band as callers begin writing severity /
+impact / urgency / deadline / client_risk.
+
+Original DDL (kept for reference):
 
 ```sql
 ALTER TABLE public.engine_review_items
