@@ -37,6 +37,8 @@ import {
   type ChatActionId,
 } from "@/lib/engine-chat-actions";
 import { ActionConfirmDialog } from "./ActionConfirmDialog";
+import { ProposalImpactEditor } from "@/components/engine/ProposalImpactEditor";
+import { deriveImpactSummary, type ProposalImpactSummary } from "@/components/ProposalImpactPanel";
 
 type Props = {
   projectId: string;
