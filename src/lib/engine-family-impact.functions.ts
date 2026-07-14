@@ -222,7 +222,6 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
           source: "family_impact_auto",
           status: "pending",
           requested_by: staffEmail,
-          metadata: { fingerprint, reason: b.reason, childId: b.child.id },
         })
         .select("id")
         .single();
@@ -231,9 +230,9 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
       await sb.from("engine_activity").insert({
         project_id: b.parent.id,
         kind: "family.impact.emitted",
-        actor_email: staffEmail,
-        summary: title,
-        metadata: { fingerprint },
+        title,
+        body: `fingerprint=${fingerprint}`,
+        severity: impactFor(b.reason),
       });
 
       emitted.push({
