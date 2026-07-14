@@ -80,6 +80,17 @@ export type ProjectChatContext = {
       total_children: number;
       approved_children: number;
       completed_children: number;
+      shortcuts: {
+        open_family_route: string;
+        create_child_hint: string;
+        reparent_hint: string;
+        available_actions: Array<{
+          id: "family.create_child" | "family.reparent";
+          label: string;
+          description: string;
+          surface: "family_route" | "chat";
+        }>;
+      };
     } | null;
     missing_data: string[];
   };
