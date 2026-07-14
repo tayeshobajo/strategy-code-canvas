@@ -144,6 +144,7 @@ import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engin
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicHooksOutcomeCheckinsRouteImport } from './routes/api/public/hooks/outcome-checkins'
 import { Route as ApiPublicHooksEngineTickRouteImport } from './routes/api/public/hooks/engine-tick'
+import { Route as ApiPublicHooksCostAutopauseRouteImport } from './routes/api/public/hooks/cost-autopause'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
 import { Route as EngineProjectsProjectIdVersionsCompareRouteImport } from './routes/engine.projects.$projectId.versions.compare'
 import { Route as EngineProjectsProjectIdAgentTasksRouteImport } from './routes/engine.projects.$projectId.agent.tasks'
@@ -875,6 +876,12 @@ const ApiPublicHooksEngineTickRoute =
     path: '/api/public/hooks/engine-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksCostAutopauseRoute =
+  ApiPublicHooksCostAutopauseRouteImport.update({
+    id: '/api/public/hooks/cost-autopause',
+    path: '/api/public/hooks/cost-autopause',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksBuildRoadmapContactRoute =
   ApiPublicHooksBuildRoadmapContactRouteImport.update({
     id: '/api/public/hooks/build-roadmap-contact',
@@ -1010,6 +1017,7 @@ export interface FileRoutesByFullPath {
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
+  '/api/public/hooks/cost-autopause': typeof ApiPublicHooksCostAutopauseRoute
   '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
   '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -1148,6 +1156,7 @@ export interface FileRoutesByTo {
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
+  '/api/public/hooks/cost-autopause': typeof ApiPublicHooksCostAutopauseRoute
   '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
   '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -1293,6 +1302,7 @@ export interface FileRoutesById {
   '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
+  '/api/public/hooks/cost-autopause': typeof ApiPublicHooksCostAutopauseRoute
   '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
   '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -1437,6 +1447,7 @@ export interface FileRouteTypes {
     | '/ops/submissions/$id'
     | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
+    | '/api/public/hooks/cost-autopause'
     | '/api/public/hooks/engine-tick'
     | '/api/public/hooks/outcome-checkins'
     | '/api/public/payments/webhook'
@@ -1575,6 +1586,7 @@ export interface FileRouteTypes {
     | '/ops/submissions/$id'
     | '/engine/projects'
     | '/api/public/hooks/build-roadmap-contact'
+    | '/api/public/hooks/cost-autopause'
     | '/api/public/hooks/engine-tick'
     | '/api/public/hooks/outcome-checkins'
     | '/api/public/payments/webhook'
@@ -1719,6 +1731,7 @@ export interface FileRouteTypes {
     | '/ops/submissions/$id'
     | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
+    | '/api/public/hooks/cost-autopause'
     | '/api/public/hooks/engine-tick'
     | '/api/public/hooks/outcome-checkins'
     | '/api/public/payments/webhook'
@@ -1803,6 +1816,7 @@ export interface RootRouteChildren {
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
+  ApiPublicHooksCostAutopauseRoute: typeof ApiPublicHooksCostAutopauseRoute
   ApiPublicHooksEngineTickRoute: typeof ApiPublicHooksEngineTickRoute
   ApiPublicHooksOutcomeCheckinsRoute: typeof ApiPublicHooksOutcomeCheckinsRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -2760,6 +2774,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksEngineTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/cost-autopause': {
+      id: '/api/public/hooks/cost-autopause'
+      path: '/api/public/hooks/cost-autopause'
+      fullPath: '/api/public/hooks/cost-autopause'
+      preLoaderRoute: typeof ApiPublicHooksCostAutopauseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/build-roadmap-contact': {
       id: '/api/public/hooks/build-roadmap-contact'
       path: '/api/public/hooks/build-roadmap-contact'
@@ -3160,6 +3181,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksBuildRoadmapContactRoute:
     ApiPublicHooksBuildRoadmapContactRoute,
+  ApiPublicHooksCostAutopauseRoute: ApiPublicHooksCostAutopauseRoute,
   ApiPublicHooksEngineTickRoute: ApiPublicHooksEngineTickRoute,
   ApiPublicHooksOutcomeCheckinsRoute: ApiPublicHooksOutcomeCheckinsRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
