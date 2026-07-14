@@ -430,16 +430,24 @@ function EngineTemplatesPage() {
   );
 }
 
+type ApproveArgs = {
+  engineId: string;
+  reviewItemId: string;
+  ownerEmail: string;
+  approverEmail: string;
+};
+type RejectArgs = { engineId: string; reviewItemId: string; reason: string };
+
 function PendingClonesSection({
   items,
   loading,
-  onPrefillApprove,
-  onPrefillReject,
+  onApprove,
+  onReject,
 }: {
   items: PendingCloneDetail[];
   loading: boolean;
-  onPrefillApprove: (p: PendingCloneDetail) => void;
-  onPrefillReject: (p: PendingCloneDetail) => void;
+  onApprove: (args: ApproveArgs) => Promise<void>;
+  onReject: (args: RejectArgs) => Promise<void>;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   return (
@@ -447,8 +455,8 @@ function PendingClonesSection({
       <CardHeader>
         <CardTitle>Pending clone approvals ({items.length})</CardTitle>
         <CardDescription>
-          Drafts awaiting a separate approver. Expand for full clone details and audit
-          trail before activating.
+          Drafts awaiting a separate approver. Expand for full clone details, audit
+          trail, and inline activate / reject controls.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -456,104 +464,227 @@ function PendingClonesSection({
         {!loading && items.length === 0 && (
           <p className="text-sm text-muted-foreground">No pending clones.</p>
         )}
-        {items.map((p) => {
-          const open = openId === p.reviewItemId;
-          return (
-            <div key={p.reviewItemId} className="border rounded p-3 space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-medium text-sm">
-                    {p.templateName ?? "Template"} → {p.projectName ?? p.projectId.slice(0, 8)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Requested by {p.requestedBy ?? "—"} ·{" "}
-                    {new Date(p.reviewCreatedAt).toLocaleString()}
-                  </div>
-                  <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                    {p.engineStatus && <Badge variant="outline">engine: {p.engineStatus}</Badge>}
-                    {p.cadence && <Badge variant="outline">{p.cadence}</Badge>}
-                    {p.cronExpression && (
-                      <Badge variant="outline">cron: {p.cronExpression}</Badge>
-                    )}
-                    <Badge variant="outline">{p.workflowStepCount} steps</Badge>
-                    <Badge variant="outline">{p.metricCount} metrics</Badge>
-                    <Badge variant="outline">{p.exceptionRuleCount} rules</Badge>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setOpenId(open ? null : p.reviewItemId)}
-                  >
-                    {open ? "Hide" : "Details"}
-                  </Button>
-                  <Button size="sm" onClick={() => onPrefillApprove(p)} disabled={!p.engineId}>
-                    Activate…
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => onPrefillReject(p)}
-                    disabled={!p.engineId}
-                  >
-                    Reject…
-                  </Button>
-                </div>
-              </div>
-              {open && (
-                <div className="mt-2 grid grid-cols-2 gap-4 text-xs">
-                  <div className="space-y-1">
-                    <div>
-                      <span className="text-muted-foreground">Engine ID:</span>{" "}
-                      <span className="font-mono">{p.engineId ?? "—"}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Review item:</span>{" "}
-                      <span className="font-mono">{p.reviewItemId}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Cloned by:</span>{" "}
-                      {p.engineCreatedBy ?? "—"}
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Assigned owner:</span>{" "}
-                      {p.ownerEmail ?? "(unset)"}
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Outcome:</span>{" "}
-                      {p.outcome ?? "—"}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold uppercase text-muted-foreground mb-1">
-                      Audit log ({p.auditLog.length})
-                    </div>
-                    {p.auditLog.length === 0 ? (
-                      <div className="text-muted-foreground">No entries yet.</div>
-                    ) : (
-                      <ul className="space-y-1">
-                        {p.auditLog.map((a) => (
-                          <li key={a.id} className="border-l-2 pl-2">
-                            <div>
-                              <span className="font-mono">{a.action}</span> by{" "}
-                              {a.actorEmail ?? "—"}
-                            </div>
-                            <div className="text-muted-foreground">
-                              {new Date(a.createdAt).toLocaleString()}
-                              {a.summary ? ` — ${a.summary}` : ""}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {items.map((p) => (
+          <PendingCloneRow
+            key={p.reviewItemId}
+            p={p}
+            expanded={openId === p.reviewItemId}
+            onToggle={() => setOpenId(openId === p.reviewItemId ? null : p.reviewItemId)}
+            onApprove={onApprove}
+            onReject={onReject}
+          />
+        ))}
       </CardContent>
     </Card>
+  );
+}
+
+function PendingCloneRow({
+  p,
+  expanded,
+  onToggle,
+  onApprove,
+  onReject,
+}: {
+  p: PendingCloneDetail;
+  expanded: boolean;
+  onToggle: () => void;
+  onApprove: (args: ApproveArgs) => Promise<void>;
+  onReject: (args: RejectArgs) => Promise<void>;
+}) {
+  const [mode, setMode] = useState<null | "approve" | "reject">(null);
+  const [ownerEmail, setOwnerEmail] = useState(p.ownerEmail ?? "");
+  const [approverEmail, setApproverEmail] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const canApprove = !!p.engineId && ownerEmail && approverEmail && !busy;
+  const canReject = !!p.engineId && reason.length >= 4 && !busy;
+
+  const runApprove = async () => {
+    if (!p.engineId) return;
+    setBusy(true);
+    try {
+      await onApprove({
+        engineId: p.engineId,
+        reviewItemId: p.reviewItemId,
+        ownerEmail,
+        approverEmail,
+      });
+      setMode(null);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runReject = async () => {
+    if (!p.engineId) return;
+    setBusy(true);
+    try {
+      await onReject({ engineId: p.engineId, reviewItemId: p.reviewItemId, reason });
+      setMode(null);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="border rounded p-3 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-medium text-sm">
+            {p.templateName ?? "Template"} → {p.projectName ?? p.projectId.slice(0, 8)}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Requested by {p.requestedBy ?? "—"} ·{" "}
+            {new Date(p.reviewCreatedAt).toLocaleString()}
+          </div>
+          <div className="mt-1 flex flex-wrap gap-2 text-xs">
+            {p.engineStatus && <Badge variant="outline">engine: {p.engineStatus}</Badge>}
+            {p.cadence && <Badge variant="outline">{p.cadence}</Badge>}
+            {p.cronExpression && <Badge variant="outline">cron: {p.cronExpression}</Badge>}
+            <Badge variant="outline">{p.workflowStepCount} steps</Badge>
+            <Badge variant="outline">{p.metricCount} metrics</Badge>
+            <Badge variant="outline">{p.exceptionRuleCount} rules</Badge>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={onToggle}>
+            {expanded ? "Hide" : "Details"}
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setMode(mode === "approve" ? null : "approve")}
+            disabled={!p.engineId}
+            variant={mode === "approve" ? "secondary" : "default"}
+          >
+            Approve
+          </Button>
+          <Button
+            size="sm"
+            variant={mode === "reject" ? "secondary" : "destructive"}
+            onClick={() => setMode(mode === "reject" ? null : "reject")}
+            disabled={!p.engineId}
+          >
+            Reject
+          </Button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-2 grid grid-cols-2 gap-4 text-xs">
+          <div className="space-y-1">
+            <div>
+              <span className="text-muted-foreground">Engine ID:</span>{" "}
+              <span className="font-mono">{p.engineId ?? "—"}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Review item:</span>{" "}
+              <span className="font-mono">{p.reviewItemId}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Cloned by:</span>{" "}
+              {p.engineCreatedBy ?? "—"}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Assigned owner:</span>{" "}
+              {p.ownerEmail ?? "(unset)"}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Outcome:</span> {p.outcome ?? "—"}
+            </div>
+          </div>
+          <div>
+            <div className="font-semibold uppercase text-muted-foreground mb-1">
+              Audit log ({p.auditLog.length})
+            </div>
+            {p.auditLog.length === 0 ? (
+              <div className="text-muted-foreground">No entries yet.</div>
+            ) : (
+              <ul className="space-y-1">
+                {p.auditLog.map((a) => (
+                  <li key={a.id} className="border-l-2 pl-2">
+                    <div>
+                      <span className="font-mono">{a.action}</span> by{" "}
+                      {a.actorEmail ?? "—"}
+                    </div>
+                    <div className="text-muted-foreground">
+                      {new Date(a.createdAt).toLocaleString()}
+                      {a.summary ? ` — ${a.summary}` : ""}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {mode === "approve" && (
+        <div className="mt-2 border-t pt-2 space-y-2 bg-muted/30 rounded p-2">
+          <div className="text-xs font-semibold uppercase text-muted-foreground">
+            Activate engine
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Approver email must match your signed-in account and cannot equal the cloner
+            ({p.engineCreatedBy ?? "unknown"}).
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Owner email</Label>
+              <Input
+                value={ownerEmail}
+                onChange={(e) => setOwnerEmail(e.target.value)}
+                placeholder="owner@company.com"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Approver email (you)</Label>
+              <Input
+                value={approverEmail}
+                onChange={(e) => setApproverEmail(e.target.value)}
+                placeholder="you@company.com"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={runApprove} disabled={!canApprove}>
+              {busy ? "Activating…" : "Confirm activate"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setMode(null)} disabled={busy}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {mode === "reject" && (
+        <div className="mt-2 border-t pt-2 space-y-2 bg-muted/30 rounded p-2">
+          <div className="text-xs font-semibold uppercase text-muted-foreground">
+            Reject &amp; archive draft
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Reason (min 4 chars)</Label>
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Why this draft is being rejected"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="destructive" onClick={runReject} disabled={!canReject}>
+              {busy ? "Rejecting…" : "Confirm reject"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setMode(null)} disabled={busy}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
