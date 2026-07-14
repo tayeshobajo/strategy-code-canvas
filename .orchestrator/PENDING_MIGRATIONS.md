@@ -4228,22 +4228,13 @@ that does NOT set the GUC will RAISE. Current direct writers to
 
 - `src/lib/engine.functions.ts:1563-1564` — swaps `sort_index` only. **Safe**
   (sort_index is not governed).
-- `src/lib/engine-execution.functions.ts:164` — `updateMilestone()` patches
-  arbitrary fields including governed ones (`brief_md`,
-  `acceptance_criteria`, `developer_prompt`, `client_safe_md`). **BLOCKER**.
-
-Resolution options for `updateMilestone` (pick before apply):
-
-1. Split into two paths: `updateMilestoneMetadata` (non-governed fields
-   only, direct UPDATE) and `updateMilestoneDraft` (calls
-   `apply_approved_proposal` via an auto-created draft proposal).
-2. Add a check inside `updateMilestone` that rejects patches touching
-   governed keys and instructs callers to route through
-   `applyApprovedProposal`.
-3. Have `updateMilestone` open its own `begin_proposal_apply()` GUC when the
-   caller is an admin AND the patch is explicitly marked as an approved
-   applyment — logs to `engine_activity` for auditability. Reduces B12's
-   guarantee but preserves current UX.
+- `src/lib/engine-execution.functions.ts` — `updateMilestone()` now splits
+  the incoming patch: governed keys (`brief_md`, `acceptance_criteria`,
+  `developer_prompt`, `client_safe_md`) are forwarded to the SECURITY
+  DEFINER RPC `admin_edit_milestone_governed(_id, _patch)` (defined in
+  step 5 below) which sets the GUC atomically before applying the
+  update. Non-governed keys keep going through the regular UPDATE so RLS
+  remains the primary gate. **Resolved** — no direct writer remains.
 
 Direct writers to `engine_project_implementation_plans` governed columns
 (`summary`, `payload`): none found in current codebase.
