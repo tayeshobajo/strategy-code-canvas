@@ -589,22 +589,29 @@ function SystemIntelligenceRail({ data, lastChecked }: { data: CommandCenterPayl
         )}
       </RailCard>
 
-      <RailCard icon={<Zap className="h-4 w-4 text-[#667085]" />} title="Recent material changes">
+      <RailCard icon={<Zap className="h-4 w-4 text-[#667085]" />} title="Changed since last check">
         {materialActivity.length === 0 ? (
           <div className="text-xs text-[#8A94A6]">Nothing material since last check.</div>
         ) : (
           <ul className="space-y-2">
-            {materialActivity.map((a) => (
-              <li key={a.id} className="text-xs">
-                <div className="text-[#0A0F1F]">{a.title}</div>
-                <div className="text-[#8A94A6]">
-                  {a.project_name ?? "—"} · {new Date(a.created_at).toLocaleString()}
-                </div>
-              </li>
-            ))}
+            {materialActivity.map((a) => {
+              const isNew = new Date(a.created_at).getTime() > cutoffMs;
+              return (
+                <li key={a.id} className="text-xs">
+                  <div className="flex items-baseline gap-1.5">
+                    {isNew && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500" title="New since last check" />}
+                    <span className="text-[#0A0F1F]">{a.title}</span>
+                  </div>
+                  <div className="pl-3 text-[#8A94A6]">
+                    {a.project_name ?? "—"} · {new Date(a.created_at).toLocaleString()}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </RailCard>
+
 
       <RailCard icon={<Users className="h-4 w-4 text-[#667085]" />} title="Client actions">
         <div className="grid grid-cols-3 gap-2 text-center">
