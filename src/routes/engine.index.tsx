@@ -32,7 +32,7 @@ export const Route = createFileRoute("/engine/")({
   head: () => ({ meta: [{ title: "Command Center — Trust Tai" }, { name: "robots", content: "noindex" }] }),
   component: CommandCenter,
   errorComponent: ({ error }) => (
-    <div className="p-6 text-rose-300">Failed to load Command Center: {(error as Error).message}</div>
+    <div className="p-6 text-rose-600">Failed to load Command Center: {(error as Error).message}</div>
   ),
 });
 
@@ -74,7 +74,7 @@ function CommandCenter() {
     decisions.filter((d) => d.severity === "critical").length;
 
   return (
-    <div className="-mx-4 -my-7 min-h-full bg-[#0A0F1F] text-white sm:-mx-6 sm:-my-8 lg:-mx-8 lg:-my-10">
+    <div className="-mx-4 -my-7 min-h-full bg-[#FBF9F4] text-[#0A0F1F] sm:-mx-6 sm:-my-8 lg:-mx-8 lg:-my-10">
       <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <CommandStrip
           systemHealth={data.metrics.system_health}
@@ -113,22 +113,22 @@ function CommandStrip({
   const now = new Date();
   const healthTone =
     systemHealth === "red"
-      ? "border-rose-500/40 bg-rose-500/10 text-rose-200"
+      ? "border-rose-300 bg-rose-50 text-rose-700"
       : systemHealth === "amber"
-        ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
-        : "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+        ? "border-amber-300 bg-amber-50 text-amber-800"
+        : "border-emerald-300 bg-emerald-50 text-emerald-700";
   const healthLabel = systemHealth === "green" ? "Nominal" : systemHealth === "amber" ? "Elevated" : "Critical";
 
   return (
-    <header className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+    <header className="rounded-xl border border-[#E8E1D6] bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.28em] text-white/50">
-            <Radio className="h-3 w-3 text-emerald-400" /> Today’s Command Center
+          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.28em] text-[#8A94A6]">
+            <Radio className="h-3 w-3 text-emerald-600" /> Today’s Command Center
           </div>
-          <h1 className="mt-1 font-display text-2xl leading-tight text-white sm:text-[28px]">
+          <h1 className="mt-1 font-display text-2xl leading-tight text-[#0A0F1F] sm:text-[28px]">
             {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-            <span className="ml-2 text-white/40">
+            <span className="ml-2 text-[#98A2B3]">
               · {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
             </span>
           </h1>
@@ -140,8 +140,8 @@ function CommandStrip({
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5",
                 criticalAlerts > 0
-                  ? "border-rose-500/40 bg-rose-500/10 text-rose-200"
-                  : "border-white/10 bg-white/5 text-white/60",
+                  ? "border-rose-300 bg-rose-50 text-rose-700"
+                  : "border-[#E8E1D6] bg-[#F5F1E8] text-[#667085]",
               )}
             >
               <AlertOctagon className="h-3 w-3" /> {criticalAlerts} critical alert{criticalAlerts === 1 ? "" : "s"}
@@ -152,10 +152,10 @@ function CommandStrip({
         {topDecision ? (
           <Link
             to={topDecision.href}
-            className="group inline-flex max-w-full items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-left text-amber-100 transition hover:bg-amber-500/20"
+            className="group inline-flex max-w-full items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-left text-amber-900 transition hover:bg-amber-100"
           >
             <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-widest text-amber-300/80">
+              <div className="text-[10px] uppercase tracking-widest text-amber-700/80">
                 Review highest-priority decision
               </div>
               <div className="mt-0.5 truncate text-sm font-medium">{topDecision.what}</div>
@@ -163,7 +163,7 @@ function CommandStrip({
             <ArrowRight className="h-4 w-4 shrink-0 transition group-hover:translate-x-0.5" />
           </Link>
         ) : (
-          <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-emerald-200">
+          <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-emerald-700">
             <CheckCircle2 className="h-4 w-4" />
             <span className="text-sm">No decisions waiting. All clear.</span>
           </div>
@@ -177,7 +177,7 @@ function CommandStrip({
 
 function RequiresDecisionQueue({ decisions }: { decisions: Decision[] }) {
   return (
-    <section className="rounded-xl border border-white/10 bg-white/[0.02]">
+    <section className="rounded-xl border border-[#E8E1D6] bg-white">
       <SectionHeader
         icon={<Target className="h-4 w-4" />}
         title="Requires decision"
@@ -185,18 +185,18 @@ function RequiresDecisionQueue({ decisions }: { decisions: Decision[] }) {
         right={
           <Link
             to="/engine/approvals"
-            className="text-[11px] uppercase tracking-widest text-white/50 hover:text-white"
+            className="text-[11px] uppercase tracking-widest text-[#8A94A6] hover:text-[#0A0F1F]"
           >
             Open queue →
           </Link>
         }
       />
       {decisions.length === 0 ? (
-        <EmptyState icon={<CheckCircle2 className="h-5 w-5 text-emerald-400" />}>
+        <EmptyState icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}>
           Nothing awaiting a decision. Healthy silence.
         </EmptyState>
       ) : (
-        <ul className="divide-y divide-white/5">
+        <ul className="divide-y divide-[#EFEAE0]">
           {decisions.slice(0, 8).map((d) => (
             <DecisionRow key={d.id} d={d} />
           ))}
@@ -216,34 +216,34 @@ function DecisionRow({ d }: { d: Decision }) {
             {tone.icon}
             {d.severity === "critical" ? "Critical" : d.severity === "warning" ? "Risk" : "Review"}
           </span>
-          <span className="text-white/50">{kindLabel(d.kind)}</span>
-          <span className="text-white/30">·</span>
-          <span className="truncate text-white/70">{d.clientCompany}</span>
-          <span className="text-white/30">·</span>
-          <span className="truncate text-white/50">{d.projectName}</span>
+          <span className="text-[#8A94A6]">{kindLabel(d.kind)}</span>
+          <span className="text-[#C8CFD9]">·</span>
+          <span className="truncate text-[#334155]">{d.clientCompany}</span>
+          <span className="text-[#C8CFD9]">·</span>
+          <span className="truncate text-[#8A94A6]">{d.projectName}</span>
           {d.due && (
-            <span className="ml-auto inline-flex items-center gap-1 text-white/50">
+            <span className="ml-auto inline-flex items-center gap-1 text-[#8A94A6]">
               <Clock className="h-3 w-3" /> Due {formatDate(d.due)}
             </span>
           )}
         </div>
-        <div className="mt-2 text-sm font-medium text-white">{d.what}</div>
-        <div className="mt-1 text-xs text-white/60">
-          <span className="text-white/40">Why:</span> {d.why}
+        <div className="mt-2 text-sm font-medium text-[#0A0F1F]">{d.what}</div>
+        <div className="mt-1 text-xs text-[#667085]">
+          <span className="text-[#98A2B3]">Why:</span> {d.why}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-          <span className="text-white/50">
-            <span className="text-white/40">Owner:</span> {d.owner}
+          <span className="text-[#8A94A6]">
+            <span className="text-[#98A2B3]">Owner:</span> {d.owner}
           </span>
-          <span className="text-white/70">
-            <span className="text-white/40">Recommended action:</span> {d.recommended}
+          <span className="text-[#334155]">
+            <span className="text-[#98A2B3]">Recommended action:</span> {d.recommended}
           </span>
         </div>
       </div>
       <div className="flex items-center gap-2 md:pt-1">
         <Link
           to={d.href}
-          className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10"
+          className="inline-flex items-center gap-1.5 rounded-md border border-[#E0D8C8] bg-[#F5F1E8] px-3 py-1.5 text-xs font-medium text-[#0A0F1F] hover:bg-[#EFE9DC]"
         >
           {ctaLabel(d.kind)} <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
@@ -328,23 +328,23 @@ function buildAttentionGroups(data: CommandCenterPayload): AttentionGroup[] {
 
 function AttentionSection({ groups, total }: { groups: AttentionGroup[]; total: number }) {
   return (
-    <section className="rounded-xl border border-white/10 bg-white/[0.02]">
+    <section className="rounded-xl border border-[#E8E1D6] bg-white">
       <SectionHeader
         icon={<ShieldAlert className="h-4 w-4" />}
         title="Projects needing attention"
         subtitle={`${total} exception${total === 1 ? "" : "s"}`}
         right={
-          <Link to="/engine/projects" className="text-[11px] uppercase tracking-widest text-white/50 hover:text-white">
+          <Link to="/engine/projects" className="text-[11px] uppercase tracking-widest text-[#8A94A6] hover:text-[#0A0F1F]">
             All projects →
           </Link>
         }
       />
       {total === 0 ? (
-        <EmptyState icon={<CheckCircle2 className="h-5 w-5 text-emerald-400" />}>
+        <EmptyState icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}>
           No exceptions. Every project is healthy.
         </EmptyState>
       ) : (
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-[#EFEAE0]">
           {groups.map((g) => (
             <div key={g.key} className="px-5 py-4">
               <div className="mb-2 flex items-center gap-2">
@@ -352,33 +352,33 @@ function AttentionSection({ groups, total }: { groups: AttentionGroup[]; total: 
                   className={cn(
                     "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-widest",
                     g.tone === "critical"
-                      ? "border-rose-500/40 bg-rose-500/10 text-rose-200"
+                      ? "border-rose-300 bg-rose-50 text-rose-700"
                       : g.tone === "warning"
-                        ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
-                        : "border-white/15 bg-white/5 text-white/70",
+                        ? "border-amber-300 bg-amber-50 text-amber-800"
+                        : "border-[#E0D8C8] bg-[#F5F1E8] text-[#334155]",
                   )}
                 >
                   {g.label}
                 </span>
-                <span className="text-[11px] text-white/40">{g.rows.length}</span>
+                <span className="text-[11px] text-[#98A2B3]">{g.rows.length}</span>
               </div>
               <ul className="space-y-1.5">
                 {g.rows.slice(0, 5).map((r) => (
                   <li
                     key={r.id}
-                    className="grid grid-cols-1 items-center gap-2 rounded border border-white/5 bg-black/20 px-3 py-2 md:grid-cols-[minmax(0,1fr)_auto]"
+                    className="grid grid-cols-1 items-center gap-2 rounded border border-[#EFEAE0] bg-[#FBF9F4] px-3 py-2 md:grid-cols-[minmax(0,1fr)_auto]"
                   >
                     <div className="min-w-0">
                       <div className="flex items-baseline gap-2 truncate">
-                        <span className="truncate text-sm text-white">{r.name}</span>
-                        <span className="truncate text-xs text-white/40">· {r.client_company}</span>
+                        <span className="truncate text-sm text-[#0A0F1F]">{r.name}</span>
+                        <span className="truncate text-xs text-[#98A2B3]">· {r.client_company}</span>
                       </div>
-                      <div className="mt-0.5 truncate text-xs text-white/60">{g.reason(r)}</div>
+                      <div className="mt-0.5 truncate text-xs text-[#667085]">{g.reason(r)}</div>
                     </div>
                     <Link
                       to="/engine/projects/$projectId/overview"
                       params={{ projectId: r.id }}
-                      className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white hover:bg-white/10"
+                      className="inline-flex items-center gap-1 rounded border border-[#E8E1D6] bg-[#F5F1E8] px-2.5 py-1 text-[11px] text-[#0A0F1F] hover:bg-[#EFE9DC]"
                     >
                       Review <ArrowUpRight className="h-3 w-3" />
                     </Link>
@@ -409,70 +409,70 @@ function SystemIntelligenceRail({ data }: { data: CommandCenterPayload }) {
   return (
     <aside className="space-y-4">
       <RailCard
-        icon={<Sparkles className="h-4 w-4 text-sky-300" />}
+        icon={<Sparkles className="h-4 w-4 text-sky-700" />}
         title="Next best action"
       >
         {nba ? (
           <div>
-            <div className="text-sm text-white">{nba.action}</div>
-            <div className="mt-1 text-xs text-white/60">{nba.reason}</div>
-            <div className="mt-2 text-[11px] text-white/50">
+            <div className="text-sm text-[#0A0F1F]">{nba.action}</div>
+            <div className="mt-1 text-xs text-[#667085]">{nba.reason}</div>
+            <div className="mt-2 text-[11px] text-[#8A94A6]">
               {nba.client_company} · {nba.project_name}
             </div>
             <Link
               to="/engine/projects/$projectId/overview"
               params={{ projectId: nba.project_id }}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs text-sky-300 hover:text-sky-200"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs text-sky-700 hover:text-sky-800"
             >
               Open project <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         ) : (
-          <div className="text-xs text-white/50">Captain has no new recommendations.</div>
+          <div className="text-xs text-[#8A94A6]">Captain has no new recommendations.</div>
         )}
       </RailCard>
 
       <RailCard
-        icon={<DollarSign className={cn("h-4 w-4", budgetTone === "critical" ? "text-rose-300" : budgetTone === "warning" ? "text-amber-300" : "text-white/60")} />}
+        icon={<DollarSign className={cn("h-4 w-4", budgetTone === "critical" ? "text-rose-600" : budgetTone === "warning" ? "text-amber-700" : "text-[#667085]")} />}
         title="Cost / budget"
       >
-        <div className="text-sm text-white">
+        <div className="text-sm text-[#0A0F1F]">
           {formatCents(data.metrics.agent_spend_cents)}{" "}
-          <span className="text-white/40">of {formatCents(data.metrics.agent_budget_cents)}</span>
+          <span className="text-[#98A2B3]">of {formatCents(data.metrics.agent_budget_cents)}</span>
         </div>
-        <div className="mt-2 h-1.5 rounded bg-white/5">
+        <div className="mt-2 h-1.5 rounded bg-[#F5F1E8]">
           <div
             className={cn(
               "h-full rounded",
-              budgetTone === "critical" ? "bg-rose-400" : budgetTone === "warning" ? "bg-amber-400" : "bg-white/40",
+              budgetTone === "critical" ? "bg-rose-500" : budgetTone === "warning" ? "bg-amber-500" : "bg-[#98A2B3]",
             )}
             style={{ width: `${Math.min(100, budgetRatio * 100)}%` }}
           />
         </div>
         {budgetTone !== "info" && (
-          <div className="mt-2 text-xs text-white/60">
+          <div className="mt-2 text-xs text-[#667085]">
             {Math.round(budgetRatio * 100)}% of monthly agent spend consumed.
           </div>
         )}
       </RailCard>
 
-      <RailCard icon={<Flame className="h-4 w-4 text-rose-300" />} title="Agent failures (24h)">
-        <div className="text-2xl font-semibold text-white">{data.agent_ops?.failures_24h ?? 0}</div>
-        <div className="mt-1 text-xs text-white/50">
-          Runs in progress: <span className="text-white/70">{data.agent_ops?.runs_in_progress ?? 0}</span>
-          {" · "}Needs attention: <span className="text-white/70">{data.agent_ops?.needs_attention ?? 0}</span>
+      <RailCard icon={<Flame className="h-4 w-4 text-rose-600" />} title="Agent failures (24h)">
+        <div className="text-2xl font-semibold text-[#0A0F1F]">{data.agent_ops?.failures_24h ?? 0}</div>
+        <div className="mt-1 text-xs text-[#8A94A6]">
+          Runs in progress: <span className="text-[#334155]">{data.agent_ops?.runs_in_progress ?? 0}</span>
+          {" · "}Needs attention: <span className="text-[#334155]">{data.agent_ops?.needs_attention ?? 0}</span>
         </div>
       </RailCard>
 
-      <RailCard icon={<Clock className="h-4 w-4 text-amber-300" />} title="Upcoming deadlines">
+      <RailCard icon={<Clock className="h-4 w-4 text-amber-700" />} title="Upcoming deadlines">
         {data.upcoming_deadlines.length === 0 ? (
-          <div className="text-xs text-white/50">None in the next window.</div>
+          <div className="text-xs text-[#8A94A6]">None in the next window.</div>
         ) : (
           <ul className="space-y-2">
             {data.upcoming_deadlines.slice(0, 4).map((d) => (
               <li key={`${d.project_id}-${d.label}`} className="text-xs">
-                <div className="text-white">{d.label}</div>
-                <div className="text-white/50">
+                <div className="text-[#0A0F1F]">{d.label}</div>
+                <div className="text-[#8A94A6]">
                   {d.project_name} · due {formatDate(d.due_on)}
                 </div>
               </li>
@@ -481,15 +481,15 @@ function SystemIntelligenceRail({ data }: { data: CommandCenterPayload }) {
         )}
       </RailCard>
 
-      <RailCard icon={<Zap className="h-4 w-4 text-white/60" />} title="Recent material changes">
+      <RailCard icon={<Zap className="h-4 w-4 text-[#667085]" />} title="Recent material changes">
         {materialActivity.length === 0 ? (
-          <div className="text-xs text-white/50">Nothing material since last check.</div>
+          <div className="text-xs text-[#8A94A6]">Nothing material since last check.</div>
         ) : (
           <ul className="space-y-2">
             {materialActivity.map((a) => (
               <li key={a.id} className="text-xs">
-                <div className="text-white">{a.title}</div>
-                <div className="text-white/50">
+                <div className="text-[#0A0F1F]">{a.title}</div>
+                <div className="text-[#8A94A6]">
                   {a.project_name ?? "—"} · {new Date(a.created_at).toLocaleString()}
                 </div>
               </li>
@@ -498,7 +498,7 @@ function SystemIntelligenceRail({ data }: { data: CommandCenterPayload }) {
         )}
       </RailCard>
 
-      <RailCard icon={<Users className="h-4 w-4 text-white/60" />} title="Client actions">
+      <RailCard icon={<Users className="h-4 w-4 text-[#667085]" />} title="Client actions">
         <div className="grid grid-cols-3 gap-2 text-center">
           <MiniStat label="Decisions" value={data.client_action_counts.decisions_needed} />
           <MiniStat label="Info req." value={data.client_action_counts.info_requests} />
@@ -515,24 +515,24 @@ function SupportingContext({ data }: { data: CommandCenterPayload }) {
   const total = data.stage_breakdown.reduce((n, s) => n + s.count, 0);
   const hb = data.health_breakdown;
   return (
-    <section className="mt-8 rounded-lg border border-white/10 bg-white/[0.02] px-5 py-4">
+    <section className="mt-8 rounded-lg border border-[#E8E1D6] bg-white px-5 py-4">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-xs">
-        <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">Portfolio context</div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#98A2B3]">Portfolio context</div>
         <MutedCounter label="Total" value={total} />
         <MutedCounter label="Active" value={data.metrics.active_projects} />
         <MutedCounter label="Approved" value={data.metrics.approved} />
         <MutedCounter label="In execution" value={data.metrics.in_execution} />
-        <div className="mx-2 h-4 w-px bg-white/10" />
-        <HealthChip color="bg-emerald-400" label="On track" value={hb.on_track} />
-        <HealthChip color="bg-amber-400" label="Needs attn" value={hb.needs_attention} />
-        <HealthChip color="bg-rose-400" label="At risk" value={hb.at_risk} />
+        <div className="mx-2 h-4 w-px bg-[#EFE9DC]" />
+        <HealthChip color="bg-emerald-500" label="On track" value={hb.on_track} />
+        <HealthChip color="bg-amber-500" label="Needs attn" value={hb.needs_attention} />
+        <HealthChip color="bg-rose-500" label="At risk" value={hb.at_risk} />
         <HealthChip color="bg-rose-500" label="Blocked" value={hb.blocked} />
-        <HealthChip color="bg-white/40" label="Planning" value={hb.planning} />
-        <div className="ml-auto flex items-center gap-2 text-white/40">
+        <HealthChip color="bg-[#98A2B3]" label="Planning" value={hb.planning} />
+        <div className="ml-auto flex items-center gap-2 text-[#98A2B3]">
           <span>Stages:</span>
           {data.stage_breakdown.map((s) => (
-            <span key={s.stage} className="text-white/60">
-              {s.stage} <span className="text-white/40">{s.count}</span>
+            <span key={s.stage} className="text-[#667085]">
+              {s.stage} <span className="text-[#98A2B3]">{s.count}</span>
             </span>
           ))}
         </div>
@@ -555,11 +555,11 @@ function SectionHeader({
   right?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-white/5 px-5 py-3">
+    <div className="flex items-center justify-between gap-3 border-b border-[#EFEAE0] px-5 py-3">
       <div className="flex items-center gap-2">
-        <span className="text-white/60">{icon}</span>
-        <h2 className="text-sm font-semibold text-white">{title}</h2>
-        {subtitle && <span className="text-[11px] text-white/40">· {subtitle}</span>}
+        <span className="text-[#667085]">{icon}</span>
+        <h2 className="text-sm font-semibold text-[#0A0F1F]">{title}</h2>
+        {subtitle && <span className="text-[11px] text-[#98A2B3]">· {subtitle}</span>}
       </div>
       {right}
     </div>
@@ -568,8 +568,8 @@ function SectionHeader({
 
 function RailCard({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-      <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-widest text-white/50">
+    <div className="rounded-lg border border-[#E8E1D6] bg-white p-4">
+      <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-widest text-[#8A94A6]">
         {icon}
         {title}
       </div>
@@ -580,7 +580,7 @@ function RailCard({ icon, title, children }: { icon: ReactNode; title: string; c
 
 function EmptyState({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 px-5 py-6 text-sm text-white/60">
+    <div className="flex items-center gap-3 px-5 py-6 text-sm text-[#667085]">
       {icon}
       <span>{children}</span>
     </div>
@@ -589,9 +589,9 @@ function EmptyState({ icon, children }: { icon: ReactNode; children: ReactNode }
 
 function MiniStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded border border-white/10 bg-black/20 py-2">
-      <div className="text-lg font-semibold text-white">{value}</div>
-      <div className="text-[10px] uppercase tracking-widest text-white/50">{label}</div>
+    <div className="rounded border border-[#E8E1D6] bg-[#FBF9F4] py-2">
+      <div className="text-lg font-semibold text-[#0A0F1F]">{value}</div>
+      <div className="text-[10px] uppercase tracking-widest text-[#8A94A6]">{label}</div>
     </div>
   );
 }
@@ -599,8 +599,8 @@ function MiniStat({ label, value }: { label: string; value: number }) {
 function MutedCounter({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-baseline gap-1.5">
-      <span className="text-white/40">{label}</span>
-      <span className="font-medium text-white">{value}</span>
+      <span className="text-[#98A2B3]">{label}</span>
+      <span className="font-medium text-[#0A0F1F]">{value}</span>
     </div>
   );
 }
@@ -609,8 +609,8 @@ function HealthChip({ color, label, value }: { color: string; label: string; val
   return (
     <div className="inline-flex items-center gap-1.5">
       <span className={cn("h-1.5 w-1.5 rounded-full", color)} />
-      <span className="text-white/50">{label}</span>
-      <span className="text-white">{value}</span>
+      <span className="text-[#8A94A6]">{label}</span>
+      <span className="text-[#0A0F1F]">{value}</span>
     </div>
   );
 }
@@ -620,18 +620,18 @@ function HealthChip({ color, label, value }: { color: string; label: string; val
 function severityTone(s: Severity) {
   if (s === "critical") {
     return {
-      badge: "border-rose-500/40 bg-rose-500/10 text-rose-200",
+      badge: "border-rose-300 bg-rose-50 text-rose-700",
       icon: <AlertOctagon className="h-3 w-3" />,
     };
   }
   if (s === "warning") {
     return {
-      badge: "border-amber-500/40 bg-amber-500/10 text-amber-200",
+      badge: "border-amber-300 bg-amber-50 text-amber-800",
       icon: <AlertTriangle className="h-3 w-3" />,
     };
   }
   return {
-    badge: "border-white/15 bg-white/5 text-white/70",
+    badge: "border-[#E0D8C8] bg-[#F5F1E8] text-[#334155]",
     icon: <Sparkles className="h-3 w-3" />,
   };
 }
