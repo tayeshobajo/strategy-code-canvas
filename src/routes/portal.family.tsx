@@ -145,7 +145,7 @@ function FamilyContent({ portalProjectId }: { portalProjectId: string }) {
           </p>
         )}
         <p className="mt-4 text-xs text-ink/60">
-          Have a question? <Link to="/portal/messages" className="underline">Send us a message</Link>.
+          Have a question? <Link to="/portal/messages" search={{}} className="underline">Send us a message</Link>.
         </p>
       </PortalCard>
     </div>
