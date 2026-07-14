@@ -75,6 +75,8 @@ import { Route as AdminMilestoneChangesRouteImport } from './routes/admin.milest
 import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-alerts'
 import { Route as AdminExceptionManagementRouteImport } from './routes/admin.exception-management'
 import { Route as AdminEvidenceEnforcementRouteImport } from './routes/admin.evidence-enforcement'
+import { Route as AdminEnginePromotionRouteImport } from './routes/admin.engine-promotion'
+import { Route as AdminEngineLearningRouteImport } from './routes/admin.engine-learning'
 import { Route as AdminDriftDetectionRouteImport } from './routes/admin.drift-detection'
 import { Route as AdminDeliveryReadinessGateRouteImport } from './routes/admin.delivery-readiness-gate'
 import { Route as AdminDecisionLogRouteImport } from './routes/admin.decision-log'
@@ -477,6 +479,16 @@ const AdminEvidenceEnforcementRoute =
     path: '/evidence-enforcement',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminEnginePromotionRoute = AdminEnginePromotionRouteImport.update({
+  id: '/engine-promotion',
+  path: '/engine-promotion',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEngineLearningRoute = AdminEngineLearningRouteImport.update({
+  id: '/engine-learning',
+  path: '/engine-learning',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDriftDetectionRoute = AdminDriftDetectionRouteImport.update({
   id: '/drift-detection',
   path: '/drift-detection',
@@ -894,6 +906,8 @@ export interface FileRoutesByFullPath {
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
+  '/admin/engine-learning': typeof AdminEngineLearningRoute
+  '/admin/engine-promotion': typeof AdminEnginePromotionRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
@@ -1025,6 +1039,8 @@ export interface FileRoutesByTo {
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
+  '/admin/engine-learning': typeof AdminEngineLearningRoute
+  '/admin/engine-promotion': typeof AdminEnginePromotionRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
@@ -1161,6 +1177,8 @@ export interface FileRoutesById {
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
+  '/admin/engine-learning': typeof AdminEngineLearningRoute
+  '/admin/engine-promotion': typeof AdminEnginePromotionRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
@@ -1297,6 +1315,8 @@ export interface FileRouteTypes {
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
     | '/admin/drift-detection'
+    | '/admin/engine-learning'
+    | '/admin/engine-promotion'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
     | '/admin/intake-alerts'
@@ -1428,6 +1448,8 @@ export interface FileRouteTypes {
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
     | '/admin/drift-detection'
+    | '/admin/engine-learning'
+    | '/admin/engine-promotion'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
     | '/admin/intake-alerts'
@@ -1563,6 +1585,8 @@ export interface FileRouteTypes {
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
     | '/admin/drift-detection'
+    | '/admin/engine-learning'
+    | '/admin/engine-promotion'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
     | '/admin/intake-alerts'
@@ -2179,6 +2203,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEvidenceEnforcementRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/engine-promotion': {
+      id: '/admin/engine-promotion'
+      path: '/engine-promotion'
+      fullPath: '/admin/engine-promotion'
+      preLoaderRoute: typeof AdminEnginePromotionRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/engine-learning': {
+      id: '/admin/engine-learning'
+      path: '/engine-learning'
+      fullPath: '/admin/engine-learning'
+      preLoaderRoute: typeof AdminEngineLearningRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/drift-detection': {
       id: '/admin/drift-detection'
       path: '/drift-detection'
@@ -2706,6 +2744,8 @@ interface AdminRouteChildren {
   AdminDecisionLogRoute: typeof AdminDecisionLogRoute
   AdminDeliveryReadinessGateRoute: typeof AdminDeliveryReadinessGateRoute
   AdminDriftDetectionRoute: typeof AdminDriftDetectionRoute
+  AdminEngineLearningRoute: typeof AdminEngineLearningRoute
+  AdminEnginePromotionRoute: typeof AdminEnginePromotionRoute
   AdminEvidenceEnforcementRoute: typeof AdminEvidenceEnforcementRoute
   AdminExceptionManagementRoute: typeof AdminExceptionManagementRoute
   AdminIntakeAlertsRoute: typeof AdminIntakeAlertsRoute
@@ -2728,6 +2768,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDecisionLogRoute: AdminDecisionLogRoute,
   AdminDeliveryReadinessGateRoute: AdminDeliveryReadinessGateRoute,
   AdminDriftDetectionRoute: AdminDriftDetectionRoute,
+  AdminEngineLearningRoute: AdminEngineLearningRoute,
+  AdminEnginePromotionRoute: AdminEnginePromotionRoute,
   AdminEvidenceEnforcementRoute: AdminEvidenceEnforcementRoute,
   AdminExceptionManagementRoute: AdminExceptionManagementRoute,
   AdminIntakeAlertsRoute: AdminIntakeAlertsRoute,
