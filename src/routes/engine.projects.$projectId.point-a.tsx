@@ -40,8 +40,16 @@ function PointA() {
     diagnosis?: Card[];
     key_diagnosis?: string;
   };
-  const lenses = data.lenses ?? [];
-  const diagnosis = data.diagnosis ?? [];
+  const lenses: Lens[] = Array.isArray(data.lenses) ? data.lenses : [];
+  const diagnosis: Card[] = (Array.isArray(data.diagnosis) ? data.diagnosis : []).map((d) => ({
+    title: d?.title ?? "",
+    tag: d?.tag ?? "DEFAULT",
+    bullets: Array.isArray(d?.bullets)
+      ? d.bullets
+      : typeof d?.bullets === "string"
+        ? [d.bullets]
+        : [],
+  }));
   const fetchStatus = useServerFn(getSpineFieldStatus);
   const { data: statusData } = useQuery({
     queryKey: ["engine", "spine-status", projectId, "point-a"],
