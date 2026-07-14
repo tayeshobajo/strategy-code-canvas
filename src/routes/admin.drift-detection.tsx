@@ -4,10 +4,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { getWorkspaceDriftReport } from "@/lib/engine-drift-detection.functions";
 import type { DriftSignal, DriftSeverity } from "@/lib/engine-drift-detection.functions";
+import { getDriftCausalityReport } from "@/lib/engine-drift-causality.functions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, ShieldCheck, RefreshCw, GitMerge, Info } from "lucide-react";
+import { AlertTriangle, ShieldCheck, RefreshCw, GitMerge, Info, GitFork } from "lucide-react";
 
 export const Route = createFileRoute("/admin/drift-detection")({});
 
