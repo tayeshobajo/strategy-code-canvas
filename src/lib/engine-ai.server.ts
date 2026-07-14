@@ -87,3 +87,75 @@ export function parseJsonOutput<T>(text: string): T | null {
     return null;
   }
 }
+
+/**
+ * Phase 10 (Top-10 gap sweep) — runtime retry + fallback.
+ *
+ * Wraps `callLovableAi` with:
+ *   1. Bounded exponential backoff on transient 429/503 conditions
+ *      (retryable errors thrown by callLovableAi carry "rate limited"
+ *      or "gateway 5" in their message).
+ *   2. Automatic model fallback across a configured cascade when the
+ *      primary model exhausts retries. Falls forward silently — the
+ *      caller sees a successful AiCallResult tagged with the model that
+ *      actually served the request.
+ *
+ * Non-retryable errors (402 credits exhausted, 4xx other than 429) are
+ * rethrown immediately.
+ */
+export type AiCallWithFallbackResult = AiCallResult & { model_used: string };
+
+export const DEFAULT_MODEL_CASCADE: readonly string[] = [
+  "google/gemini-3-flash-preview",
+  "google/gemini-2.5-flash",
+  "openai/gpt-5-mini",
+];
+
+function isRetryableError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /rate limited|gateway 5\d\d|ECONNRESET|ETIMEDOUT|fetch failed/i.test(msg);
+}
+
+function isNonRetryable(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /credits exhausted|Missing LOVABLE_API_KEY/i.test(msg);
+}
+
+export async function callLovableAiWithFallback(
+  messages: AiChatMessage[],
+  opts: {
+    models?: readonly string[];
+    json?: boolean;
+    temperature?: number;
+    maxRetriesPerModel?: number;
+    baseDelayMs?: number;
+  } = {},
+): Promise<AiCallWithFallbackResult> {
+  const models = opts.models?.length ? opts.models : DEFAULT_MODEL_CASCADE;
+  const maxRetries = opts.maxRetriesPerModel ?? 2;
+  const baseDelay = opts.baseDelayMs ?? 400;
+
+  let lastErr: unknown = null;
+  for (const model of models) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await callLovableAi(messages, {
+          model,
+          json: opts.json,
+          temperature: opts.temperature,
+        });
+        return { ...res, model_used: model };
+      } catch (err) {
+        lastErr = err;
+        if (isNonRetryable(err)) throw err;
+        if (!isRetryableError(err)) break; // move to next model
+        if (attempt === maxRetries) break;
+        const delay = baseDelay * 2 ** attempt + Math.floor(Math.random() * 100);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error("AI runtime: all fallback models failed");
+}
