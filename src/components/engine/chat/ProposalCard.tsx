@@ -271,7 +271,15 @@ export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, c
       {row?.id && (
         <ProposalImpactEditor
           proposalId={row.id}
-          initial={(row.impact_summary as ProposalImpactSummary | null) ?? deriveImpactSummary(row)}
+          initial={
+            (row.impact_summary as ProposalImpactSummary | null) ??
+            deriveImpactSummary({
+              proposal_type: row.proposal_type,
+              payload: (row.payload && typeof row.payload === "object" && !Array.isArray(row.payload)
+                ? (row.payload as Record<string, unknown>)
+                : null),
+            })
+          }
           canEdit={capState.isStaff}
         />
       )}
