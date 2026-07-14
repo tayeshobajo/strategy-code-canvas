@@ -6360,7 +6360,6 @@ export type Database = {
       }
     }
     Functions: {
-      _smoke_phase4: { Args: never; Returns: string }
       acknowledge_portal_roadmap: {
         Args: { _portal_roadmap_id: string }
         Returns: string
