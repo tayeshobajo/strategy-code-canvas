@@ -1026,16 +1026,45 @@ function NoteFromTaiSection() {
               className="mt-6 h-auto w-36 max-w-[28%] object-contain sm:w-40 md:w-44 lg:w-48"
             />
 
-            <div ref={calendlyRootRef} className="mt-8 sm:mt-10">
-              <button
-                type="button"
-                onClick={() => setIsCalendlyOpen(true)}
-                className="group inline-flex w-auto items-center justify-center gap-2 whitespace-nowrap rounded-sm bg-[#E63946] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_rgba(230,57,70,0.5)] hover:opacity-95 sm:gap-3 sm:px-8 sm:py-5 sm:text-[13px] sm:tracking-[0.15em]"
+            <div
+              ref={calendlyRootRef}
+              className="mt-10 rounded-2xl border p-6 sm:mt-14 sm:p-8"
+              style={{
+                borderColor: "rgba(15,27,61,0.08)",
+                background:
+                  "linear-gradient(135deg, rgba(230,57,70,0.04) 0%, rgba(15,27,61,0.03) 100%)",
+              }}
+            >
+              <div
+                className="text-[10px] font-black uppercase tracking-[0.28em]"
+                style={{ color: red }}
               >
-                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                Book the roadmap walkthrough
-                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5 sm:h-4 sm:w-4" />
-              </button>
+                Next Step
+              </div>
+              <p
+                className="mt-3 text-[20px] leading-[1.25] sm:text-[24px] md:text-[26px]"
+                style={{
+                  color: navy,
+                  fontFamily: "'Instrument Serif', 'Playfair Display', Georgia, serif",
+                }}
+              >
+                Let&rsquo;s walk through the full roadmap together.
+              </p>
+              <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+                <button
+                  type="button"
+                  onClick={() => setIsCalendlyOpen(true)}
+                  className="group inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-lg bg-[#E63946] px-6 py-4 text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:gap-3 sm:px-8 sm:py-5 sm:text-[13px] sm:tracking-[0.18em]"
+                >
+                  <Calendar className="h-4 w-4" />
+                  Book the walkthrough
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </button>
+                <div className="flex flex-col gap-1 text-[11px] font-medium tracking-[0.14em] text-[rgba(15,27,61,0.6)]">
+                  <span className="uppercase">Free · 30&nbsp;minutes · Zoom</span>
+                  <span className="text-[rgba(15,27,61,0.5)]">No pitch. Just the full thinking.</span>
+                </div>
+              </div>
 
               {calendlyRootRef.current && (
                 <PopupModal
