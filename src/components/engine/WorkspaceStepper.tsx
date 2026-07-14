@@ -102,9 +102,9 @@ export function WorkspaceStepper({
       <div className="px-4 sm:px-5 py-5 sm:py-6 flex items-center gap-2 min-w-max">
         <div className="pr-4 border-r border-border mr-2 snap-start">
           <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/50">
-            Roadmap Workflow
+            Workflow navigation
           </div>
-          <div className="text-[11px] text-ink/60 mt-1">14 steps for this project</div>
+          <div className="text-[11px] text-ink/60 mt-1">Step {currentStepNum} of 14</div>
           <Link
             to="/engine/projects/$projectId/spine"
             params={{ projectId }}
