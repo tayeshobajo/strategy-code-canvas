@@ -15,6 +15,19 @@ export type NextBestAction = {
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
+// The DB NBA RPC (and older AI outputs) sometimes returns hrefs pointing at
+// routes that do not exist in the app (e.g. `/engine/projects/:id/reviews`).
+// Remap those to the real destinations so CTA buttons never link to a
+// broken/empty page.
+function sanitizeNbaHref(href: string | null): string | null {
+  if (!href) return href;
+  // /engine/projects/:id/reviews  →  /engine/projects/:id/builder
+  return href.replace(
+    /^(\/engine\/projects\/[^/]+)\/reviews(\/?.*)$/,
+    "$1/builder$2",
+  );
+}
+
 function buildNBAPrompt(ctx: {
   projectName: string;
   clientCompany: string;
