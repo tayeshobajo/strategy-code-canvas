@@ -111,7 +111,9 @@ App-layer follow-ups shipped in the same turn:
 
 ## Phase 1 — Epistemic-Status Taxonomy (Truth Model) — **REVISION R3 (Variant B)**
 
-Status: **PENDING TAI REVIEW** — do not apply. Supersedes R2 (never applied).
+Status: **APPLIED (2026-07-12)**.
+See `.orchestrator/phase-1-output.md` for the acceptance verification.
+
 
 ### What changed from R2
 
