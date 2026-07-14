@@ -4324,7 +4324,17 @@ App-side (already committed):
 
 ---
 
-## Phase H6 · I11 — `risk_score` on review items (PROPOSED, not applied)
+## Phase H6 · I11 — `risk_score` on review items (APPLIED 2026-07-14)
+
+Applied via combined H6 migration. Because the schema didn't yet carry the
+risk-input columns, the migration also added nullable `severity`,
+`impact_score`, `urgency_score`, `deadline_at`, `client_risk` with matching
+CHECK constraints, then installed the trigger + index. Existing rows were
+backfilled to `risk_score = 36` (medium fallback) via a self-update; new
+inputs will land in the correct band as callers begin writing severity /
+impact / urgency / deadline / client_risk.
+
+Original DDL (kept for reference):
 
 ```sql
 ALTER TABLE public.engine_review_items
