@@ -1116,7 +1116,7 @@ Point B ceremonies exist. Phase 2B must ship before that path unlocks:
 2. Confirm `engine_audit_log.action` accepts the new values
    (`spine_ceremony_opened`, `spine_ceremony_changed`,
    `spine_ceremony_decision`) — column is free-text today.
-3. Confirm `public.update_updated_at_column()` exists.
+3. Confirm `public.tg_touch_updated_at()` exists.
 4. Confirm `public.has_role_email(text, app_role)` exists.
 5. Confirm `public.is_engine_staff()` exists.
 6. Confirm `public.epistemic_status` enum exists (Phase 1 R3 shipped it).
