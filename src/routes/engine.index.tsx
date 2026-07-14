@@ -87,9 +87,16 @@ const SLA_HOURS: Record<Decision["kind"], number> = {
 function CommandCenter() {
   const fn = useServerFn(getCommandCenter);
   const { data } = useSuspenseQuery(commandOpts(fn));
+  const lastChecked = useLastChecked();
+  const now = useNowTick();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const decisions = useMemo(() => buildDecisions(data), [data]);
+  const decisions = useMemo(
+    () => enrichWithChanges(buildDecisions(data), data, lastChecked),
+    [data, lastChecked],
+  );
   const top = decisions[0] ?? null;
+  const selected = decisions.find((d) => d.id === selectedId) ?? null;
 
   const attentionGroups = useMemo(() => buildAttentionGroups(data), [data]);
   const attentionCount = attentionGroups.reduce((n, g) => n + g.rows.length, 0);
@@ -99,6 +106,11 @@ function CommandCenter() {
     (data.metrics.system_health === "red" ? 1 : 0) +
     decisions.filter((d) => d.severity === "critical").length;
 
+  const changesSinceLast = useMemo(() => {
+    const cutoffMs = lastChecked ? new Date(lastChecked).getTime() : 0;
+    return (data.recent_activity ?? []).filter((a) => new Date(a.created_at).getTime() > cutoffMs).length;
+  }, [data.recent_activity, lastChecked]);
+
   return (
     <div className="-mx-4 -my-7 min-h-full bg-[#FBF9F4] text-[#0A0F1F] sm:-mx-6 sm:-my-8 lg:-mx-8 lg:-my-10">
       <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -106,20 +118,29 @@ function CommandCenter() {
           systemHealth={data.metrics.system_health}
           criticalAlerts={criticalAlerts}
           topDecision={top}
+          onOpenTop={() => top && setSelectedId(top.id)}
+          changesSinceLast={changesSinceLast}
+          lastChecked={lastChecked}
         />
 
         <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           {/* Main column */}
           <div className="space-y-6">
-            <RequiresDecisionQueue decisions={decisions} />
+            <RequiresDecisionQueue decisions={decisions} now={now} onSelect={setSelectedId} />
             <AttentionSection groups={attentionGroups} total={attentionCount} />
           </div>
 
           {/* Right rail */}
-          <SystemIntelligenceRail data={data} />
+          <SystemIntelligenceRail data={data} lastChecked={lastChecked} />
         </div>
 
         <SupportingContext data={data} />
+
+        <DecisionDrawer
+          decision={selected}
+          now={now}
+          onClose={() => setSelectedId(null)}
+        />
       </div>
     </div>
   );
