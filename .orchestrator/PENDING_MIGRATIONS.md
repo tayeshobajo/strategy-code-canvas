@@ -4210,7 +4210,24 @@ WHERE item_type = 'outcome_checkin' ORDER BY created_at DESC LIMIT 20;
 - `src/routes/api/public/hooks/outcome-checkins.ts`
 - `src/routes/admin.outcome-scheduler.tsx`
 
-## Phase H6 · B12 — Non-spine proposal enforcement (PROPOSED, not applied)
+## Phase H6 · B12 — Non-spine proposal enforcement (BLOCKED — do not apply)
+
+**Blocker (2026-07-14):** the trigger assumes callers set
+`SET LOCAL engine.proposal_apply = 'on'` inside an `applyApprovedProposal()`
+transaction, but no such function exists in `src/`. Also, the governed columns
+named here (`body`, `success_criteria`, `data_model`, `integrations`) do NOT
+exist — the real columns are `brief_md`, `acceptance_criteria`,
+`developer_prompt`, `client_safe_md` on `engine_milestones` and `summary`,
+`payload` on `engine_project_implementation_plans`. Applying as written would
+either no-op (wrong column names) or, once rewritten to real columns, break
+`updateMilestone` and every current impl-plan writer.
+
+**Unblock path:** ship `applyApprovedProposal()` that opens a txn, calls
+`SET LOCAL engine.proposal_apply = 'on'`, then applies the payload to the
+real columns. Rewrite the trigger below against the real column names before
+applying.
+
+Original proposal (kept for reference only, DO NOT APPLY):
 
 Extends `tg_engine_chat_proposals_enforce_transition` so material edits to
 milestone bodies (`engine_milestones.body`, `.acceptance_criteria`,
