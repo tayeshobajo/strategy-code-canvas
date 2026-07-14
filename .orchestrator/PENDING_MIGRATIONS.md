@@ -3547,9 +3547,9 @@ Status: **PENDING TAI REVIEW — apply-ready after Revision 2.1. Executable migr
 
 ---
 
-## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 4 (APPLIED)
+## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 4 (APPLIED + APP LAYER COMPLETE)
 
-Status: **APPLIED 2026-07-13. DB layer complete. Smoke: PASS 26/26** (N, O, P/P-early, T1–T5, S1–S6, Q1–Q3, R1–R5, U1/U3/U4). Follow-up (Rev 4a, also applied): tightened `tg_engine_projects_child_rollup_guard` under a completed parent to block clearing `completed_at` alone (previously the predicate check allowed it when `status='completed'` remained). App-layer follow-ups still pending (see below). See doctrine `Phase 5D` for governance rules and invariants.
+Status: **DB APPLIED 2026-07-13. DB smoke PASS 26/26** (N, O, P/P-early, T1–T5, S1–S6, Q1–Q3, R1–R5, U1/U3/U4). Follow-up (Rev 4a, also applied): tightened `tg_engine_projects_child_rollup_guard` under a completed parent to block clearing `completed_at` alone. **App layer + follow-ups built and QA-verified 2026-07-14 — see `.orchestrator/qa/phase-5D-smoke-output.md` (7/7 DB guards + 3/3 app-layer guards).** Phase 5D is CLOSED. Only the separate `hotfix-portal-roadmaps-schema` block below remains outstanding, and it is not a 5D dependency.
 
 
 Revision 4 closes the two remaining bypasses found in Revision 3:
