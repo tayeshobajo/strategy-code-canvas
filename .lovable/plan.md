@@ -1,57 +1,65 @@
-## Verification & Cleanup — H1 + H6·B12 + H4
+## Roadmap Engine Capability Confirmation Audit (Sections A–Q + Ultimate)
 
-Verify the three applied migrations are complete, evidence is captured, and no direct-writer bypasses remain. No new migrations unless verification proves one is missing.
+Produce an evidence-backed audit report answering every confirmation in the user's questionnaire. This is a verification + reporting task — no product code changes.
 
-### 1. Migration presence check
-Query `supabase_migrations.schema_migrations` (or equivalent) for the four ids:
-- `20260714-175059-742685` (H1)
-- `20260714-175310-970763` (H6·B12)
-- `20260714-175406-713684` (B12 search_path)
-- `20260714-175459-098362` (H4)
+### Deliverable
 
-If any missing → stop and report before proceeding.
+Single markdown file:
+`.orchestrator/audit/roadmap-engine-capability-confirmation-2026-07-14.md`
 
-### 2. Doc consistency
-- Grep `.orchestrator/PENDING_MIGRATIONS.md` for H1/H4/H6·B12 sections; confirm each is marked APPLIED with the matching id. Fix status lines only if drift is found (no unrelated edits).
-- Confirm `.orchestrator/phase-h1-h4-h6b12-apply-output.md` exists and matches (already verified in context).
+For every item (~200 checks across 17 sections):
 
-### 3. Direct-writer audit (B12)
-Confirm code fixes present:
-- `regenerateMilestoneSection` → `admin_edit_milestone_governed`
-- `updateProjectImplementationPlan` → `admin_edit_impl_plan_governed`
+- **Verdict:** one of `CONFIRMED` / `PARTIAL` / `NOT CONFIRMED` / `NOT BUILT`
+- **Evidence:** file paths + line refs, DB objects (tables/triggers/RPCs/policies), route paths, and/or migration ids. No claim without a pointer.
+- **Gap note (when < CONFIRMED):** one line on what's missing and where the nearest existing capability lives.
 
-Then run:
-```
-rg -n "engine_milestones" src/ | rg "brief_md|acceptance_criteria|developer_prompt|client_safe_md"
-rg -n "engine_project_implementation_plans" src/ | rg "\.update\(|summary|payload"
-```
-Classify each hit as governed-RPC / non-governed field / read-only. Report any remaining bypass.
+Each section ends with a rollup (e.g. `A. Conversational Intake — 9 CONFIRMED / 2 PARTIAL / 1 NOT BUILT`).
+Report ends with:
+- Cross-cutting **top gaps** list ranked by impact.
+- Answer to the final "Ultimate Confirmation" as a single honest verdict with reasoning.
 
-### 4. H1 live-fire smoke (QA project)
-On a clearly labelled QA project (`[QA] cost-guard smoke <ts>` in name/notes):
-- set tiny `monthly_budget_cents` (e.g. 100)
-- insert synthetic `engine_agent_costs` row for current month over budget, `actor_email='qa+costguard@trusttai.com'`
-- assert: `cost_paused_at IS NOT NULL`, `cost_paused_reason` populated, 1 `engine_review_items` row `item_type='cost_overrun'`, 1 `engine_activity` `project.cost.autopause`
-- attempt resume via `/admin/cost-guard` as same email → must fail; retry as different staff email → must succeed and clear columns
-- delete synthetic cost row + review item + audit row, or leave with `[QA]` markers per user's choice (default: clean up)
+### Method
 
-### 5. H4 verification
-- `SELECT jobid, jobname, schedule, active, command FROM cron.job WHERE jobid=117 OR jobname='outcome-checkins-daily';`
-- Inspect `command` — confirm real publishable key present, not the placeholder.
-- Manually run one `net.http_post` matching the cron body; capture request id and poll `net._http_response` for status/body.
-- Check `engine_review_items WHERE item_type='outcome_checkin' AND created_at > now() - interval '10 min'`.
-- Note: scheduler proof (that pg_cron itself fires) deferred to post-09:00 UTC `cron.job_run_details` check — flagged as PENDING in output doc.
+1. **Reuse prior audits as index, not as ground truth.** Read `.orchestrator/audit/capability-audit-summary-2026-07-14b.md`, `capability-audit-2026-07-14b.md`, `.lovable/engine-audit-2026-07.md`, `.lovable/engine-qa-audit.md`, and `doctrine/ROADMAP_ENGINE_PHASE_MAP.md` to locate relevant subsystems fast — then re-verify each claim against current code/DB before marking CONFIRMED.
+2. **Codebase sweeps by section** using `rg` over `src/lib/`, `src/routes/`, `src/components/engine/`, `src/components/portal/`, `src/integrations/`. Section→surface map (starting points, not exhaustive):
+   - A Intake: `src/routes/intake*`, `src/lib/intake*`, `intake_drafts`, `intake_submissions`, `src/components/intake/`
+   - B Understanding: `engine-extraction*`, `engine_extracted_signals`, `engine_extraction_runs`, `engine_spine_field_truth`, `engine_project_chat_proposals`
+   - C Captain / agents: `engine-captain*`, `engine_project_agents`, `engine_agent_tasks`, `engine_agent_costs`, `engine_agent_permissions`, `has_role`
+   - D Readiness: `spine_points_approved`, `spine_points_ready_summary`, `engine_spine_ceremonies`
+   - E Roadmap: `engine_roadmap_versions`, `engine_milestones`, `roadmap-generation*`
+   - F Multi-project: `engine_projects.parent_id`, Phase 5D artifacts, `hasChildren`/rollup guards
+   - G Mockups/plans/specs: `engine_project_mockups`, `engine_project_implementation_plans`, `engine_project_frames`, `admin_edit_impl_plan_governed`
+   - H Build/execution: `engine_project_build_packets`, `engine_project_build_evidence`, cost-guard trigger, retry paths
+   - I QA/evidence: `engine_project_qa_plans`, `engine_project_qa_evidence_reviews`, `engine_project_delivery_readiness_reviews`
+   - J Approvals/governance: `engine_review_items`, `engine_review_audit`, `roadmap_approvals`, `engine_project_chat_proposals`, `apply_approved_proposal`, spine gate triggers
+   - K Spine/versioning/drift: `engine_spine_field_truth`, `engine_version_change_decisions`, `engine_change_events`, drift detectors
+   - L Portal/comms: `client_portal_*`, `publish_portal_roadmap`, `retract_portal_publication`, `portal_access_events`, `RoadmapAcknowledgmentBanner`, `engine_project_openclaw_*`
+   - M Engines/rhythm: `engine_business_engines`, `_runs`, `_exceptions`, `activate_business_engine`
+   - N Delivery/transitions: `engine_delivery_items`, `engine_delivery_history`, `client_portal_publish_events`
+   - O Outcomes/learning: `engine-outcome-scheduler*`, `outcome_checkin` review items, `engine_intelligence_memory`
+   - P Portfolio/Command Center: `admin.command-center`, `get_command_center_exceptions`, health explainer
+   - Q Reliability/security: `engine_audit_log`, RLS policies, `has_role`, `assertStaff`, fallback + model-agnostic paths
+3. **DB verification** via `supabase--read_query` for: table columns, RLS policies, triggers, RPC signatures, cron job for outcome scheduler.
+4. **Governance touchstones** to spot-check every relevant claim:
+   - proposal-only writes to governed columns (H6·B12 triggers)
+   - separate-approver on cost resume
+   - `service_role`-gated publish RPCs
+   - AI cannot self-approve (Phase 9C posture from earlier audits)
+5. **No writes.** No migrations, no data inserts, no code edits. Read-only audit.
 
-### 6. Repo validation
-Run repo-standard checks (lint + typecheck). Report any new errors.
+### Ground rules for verdicts
 
-### 7. Update apply-output doc
-Append a "Verification 2026-07-14 (post-apply sweep)" section to `.orchestrator/phase-h1-h4-h6b12-apply-output.md` with PASS/PARTIAL/FAIL for each of steps 1–6, including query results, direct-writer audit summary, smoke evidence, and pg_net response.
+- `CONFIRMED` requires a concrete live artifact (code path, DB object, or route) that implements the exact behavior described.
+- If enforcement is UI-only and can be bypassed at the DB/RPC layer, that is `PARTIAL` with the gap noted (e.g. the known F1 `activate_business_engine` readiness bypass).
+- If a capability exists in a doctrine/roadmap doc but not in code, that is `NOT BUILT`.
+- If a claim overlaps a known open finding from prior audits (`.orchestrator/audit/*`), cite the finding.
 
-### 8. Final pending queue report
-Summarize which items remain in `PENDING_MIGRATIONS.md` at end. No edits to unrelated sections.
+### Scope boundaries
 
-### Deliverables
-- Updated `.orchestrator/phase-h1-h4-h6b12-apply-output.md`
-- Possible small status-line touch-ups in `PENDING_MIGRATIONS.md` (only if drift found)
-- Chat report: per-task PASS/PARTIAL/FAIL, direct-writer audit table, smoke evidence, deferred cron-tick check flagged
+- Not fixing anything found. Anything discovered mid-audit that looks like a live defect gets logged in a "Newly surfaced issues" appendix with severity, not silently patched.
+- Not editing `PENDING_MIGRATIONS.md` or any product code.
+- Not touching unrelated audits.
+
+### Estimated output size
+
+~200 rows across 17 tables + rollups + top-gaps + final verdict. Long doc, one file.
