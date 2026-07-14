@@ -776,11 +776,9 @@ BEGIN
     -- Static allowlist mirrored from src/lib/engine-spine-fields.ts.
     -- Vitest diff-fails if this drifts from the TS registry.
     RETURN QUERY SELECT unnest(ARRAY[
-      'current_state:summary',
-      'current_state:pain_points',
-      'current_state:constraints',
-      'current_state:stakeholders'
-      -- ... full Point A static list mirrored from TS registry
+      'lenses',
+      'diagnosis',
+      'key_diagnosis'
     ]::text[]);
 
     -- Dynamic Point A: diagnosis:<title> keys derived per-project from
@@ -795,9 +793,13 @@ BEGIN
 
   ELSIF _spine = 'point-b' THEN
     RETURN QUERY SELECT unnest(ARRAY[
-      'target_state:summary',
-      'target_state:success_metrics'
-      -- ... full Point B static list
+      '24_month_destination',
+      '10_year_position',
+      'client_outcome',
+      'customer_outcome',
+      'operational_outcome',
+      'revenue_outcome',
+      'brand_position'
     ]::text[]);
   END IF;
 END;
