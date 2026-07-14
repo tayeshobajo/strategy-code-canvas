@@ -268,6 +268,14 @@ export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, c
 
       <PayloadFields proposal_type={draft.proposal_type} payload={draft.payload as Record<string, unknown>} />
 
+      {row?.id && (
+        <ProposalImpactEditor
+          proposalId={row.id}
+          initial={(row.impact_summary as ProposalImpactSummary | null) ?? deriveImpactSummary(row)}
+          canEdit={capState.isStaff}
+        />
+      )}
+
       {draft.target_route && (
         <div className="mt-2">
           <Link
