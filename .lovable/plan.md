@@ -1,63 +1,92 @@
-## Hardening Sprint Plan — Post-Ultimate-Confirmation
 
-Core capability is proven (152 PASS / 35 PARTIAL / 0 MISSING). No new core phases. Five hardening sprints, ranked by blast radius. Each is independently shippable and touches only the surfaces named.
+# Hardening Sprint — H4 + H5 + Family-Impact Regression
 
-### Sprint H1 — Cost-overrun auto-pause (closes H9)
+Five user asks collapse into three build tracks because (1)+(5) are the same H4 work and (2)+(4) are the same H5 work. Track C hardens H2 (family-impact) with idempotency guards and tests.
 
-**Why first:** silent spend is the highest-severity remaining risk. Everything else is UX or coverage.
+## Track A — H4 Outcome Scheduler & Coverage (asks 1 + 5)
 
-**Build:**
-- Migration proposal → `.orchestrator/PENDING_MIGRATIONS.md`:
-  - `engine_projects.cost_cap_usd numeric`, `cost_paused_at timestamptz`, `cost_paused_reason text`
-  - Trigger `engine_agent_costs_cap_guard` on `engine_agent_costs` insert: if `SUM(cost_usd) per project > cost_cap_usd`, set project `status='paused'`, write `engine_audit_log` row `project.cost.autopause`, insert `engine_review_items` (`item_type='cost_overrun'`) for staff.
-- Server fn `resumeProjectAfterCostReview` in `src/lib/engine-cost-guard.functions.ts` — staff-gated, requires reviewer ≠ last cost committer, clears pause + audits.
-- Admin surface at `src/routes/admin.cost-guard.tsx` — list of paused projects, per-project spend breakdown, resume action.
-- Phase output → `.orchestrator/phase-h9-cost-autopause-output.md`.
+**Goal:** Broaden outcome feedback beyond delivered projects — cover milestone completions, engine activations, and cost-guard resumes on a scheduled cadence, all with evidence.
 
-### Sprint H2 — Cross-project impact automation (closes F7)
+**New files**
+- `src/lib/engine-outcome-scheduler.functions.ts`
+  - `runOutcomeCheckins({ window })` — server fn (staff-gated). Scans:
+    - `engine_projects` where `status='delivered'` at 30/60/90d windows
+    - `engine_milestones` where `status='completed'` at 14/30d windows
+    - `engine_business_engines` where `status='active'` at 30d cadence
+    - `engine_projects` recently resumed from `cost_paused_at` (7d recheck)
+  - Computes deltas vs baseline `engine_intelligence_memory` snapshot, writes an `engine_review_items` row per finding (`item_type='outcome_checkin'`, `source='outcome_scheduler'`) with `metadata.window`, `metadata.trigger_kind`, `metadata.evidence_refs`.
+  - Idempotency: dedupe by `(subject_id, trigger_kind, window)` scoped to last 24h.
+  - Writes `engine_activity` audit row per run summarizing counts.
+- `src/routes/api/public/hooks/outcome-checkins.ts` — POST hook, verifies `apikey` header matches `SUPABASE_PUBLISHABLE_KEY`, invokes the server-only helper. No PII in response body.
+- `src/routes/admin.outcome-scheduler.tsx` — admin surface: last run summary, per-trigger counts, manual "run now" button, open outcome review items list.
 
-**Build:**
-- Server fn `emitFamilyImpactReviews` in `src/lib/engine-family-impact.functions.ts`. Triggered from existing status-change hooks on `engine_projects` and `engine_milestones`.
-- For each sibling/parent/child linked via `parent_project_id` and `engine_milestone_solutions`, insert `engine_review_items` (`item_type='family_impact'`) with `old_value`/`new_value` snapshot + affected node list.
-- Extend `FamilyDependencyGraph.tsx` with a "pending impact reviews" badge per node (read-only additive prop, no layout change).
-- No schema migration needed — uses existing tables.
-- Phase output → `.orchestrator/phase-f7-family-impact-output.md`.
+**PENDING_MIGRATIONS.md addition (not applied)**
+- `pg_cron` schedule (daily 09:00 UTC) calling the public hook with `apikey` header. Documented as proposal only.
 
-### Sprint H3 — Business Engine templates (closes M3–M6)
+**Nav:** add "Outcome scheduler" entry to `src/routes/admin.tsx`.
 
-**Build:** Migration proposal seeding four `engine_business_engines` template rows (`status='template'`, `project_id=NULL`) → `.orchestrator/PENDING_MIGRATIONS.md`:
-- Content Authority Engine (weekly cadence, publish workflow, review gate)
-- Lead Follow-Up Engine (event-triggered, 24h/72h/7d cadence, escalation rule)
-- Review & Reputation Engine (post-delivery trigger, response-time SLA)
-- Client Success Engine (monthly cadence, health-score metric, at-risk exception)
+## Track B — H5 Health Explainability (asks 2 + 4)
 
-Each template: `outcome`, `workflow` jsonb, `cadence`, `cron_expression`, `approval_rules`, `metrics`, `exception_rules`. Admin route `src/routes/admin.engine-templates.tsx` adds a "clone template into project" action calling existing `activate_business_engine` RPC after a separate-approver gate. Phase output → `.orchestrator/phase-m3-m6-templates-output.md`.
+**Goal:** Every project/engine health verdict must be traceable to concrete drivers.
 
-### Sprint H4 — Outcome feedback scheduler coverage (closes O partials)
+**New files**
+- `src/lib/engine-health-explainer.functions.ts`
+  - `explainProjectHealth({ projectId })` — returns:
+    - current status label + score
+    - ranked drivers (open review items by severity, business-engine exceptions, cost-pause state, family-impact blockers, stale evidence)
+    - evidence refs (audit log ids, review item ids, exception ids) so admins can jump to source
+  - `explainEngineHealth({ engineId })` — same shape scoped to a business engine.
+- `src/components/HealthExplainerPanel.tsx` — reusable panel: driver list with severity chips, timestamps, deep links to source rows.
+- `src/routes/admin.health-explainer.tsx` — picker for project or engine, renders the panel.
 
-**Build:**
-- `pg_cron` job `outcome_checkins_scheduler` (per `schedule-jobs-options`, `apikey` header pattern) hitting `/api/public/hooks/outcome-checkins`.
-- Route `src/routes/api/public/hooks/outcome-checkins.ts` scans `engine_projects` where `status='delivered'` and computes 30/60/90d elapsed windows, emitting `engine_review_items` (`item_type='outcome_checkin'`) with the delta pattern used in M11.
-- Migration proposal for cron job → `.orchestrator/PENDING_MIGRATIONS.md`.
-- Phase output → `.orchestrator/phase-o-outcome-coverage-output.md`.
+**Integration points**
+- Mount `HealthExplainerPanel` on:
+  - `src/routes/engine/$projectId/index.tsx` (project header)
+  - existing portfolio health view (if present under `src/routes/admin.*`)
+- No schema changes — reads existing `engine_review_items`, `engine_business_engine_exceptions`, `engine_audit_log`, `engine_projects.cost_paused_*`.
 
-### Sprint H5 — Portfolio health explainability (closes P9)
+## Track C — Family-Impact Idempotency & Regression (ask 3)
 
-**Build:** UI-only. Extend the portfolio dashboard (existing at `src/routes/ops/*` or admin surface — confirm during build) with a per-project "why this status" panel: renders reason codes from `engine_review_items`, `engine_business_engine_exceptions`, `engine_audit_log` (last 5 status-changing rows), and any active `cost_paused_reason` from H1. No schema changes. Phase output → `.orchestrator/phase-p9-health-explainability-output.md`.
+**Goal:** H2's `emitFamilyImpactReviews` must not double-emit under repeat runs and must be covered by tests.
 
-### Guardrails (all sprints)
+**Changes to `src/lib/engine-family-impact.functions.ts`**
+- Add fingerprint helper: `hash(subject_id + affected_node_id + trigger_reason)`.
+- Before insert, query `engine_review_items` where `source='family_impact_auto'` AND `metadata->>'fingerprint'` matches AND `status IN ('open','pending')` — skip if hit.
+- Persist `fingerprint` into `metadata` on new rows.
+- Return per-node result (`emitted` | `deduped` | `skipped_no_impact`) for observability.
 
-- Any DDL goes only to `.orchestrator/PENDING_MIGRATIONS.md`. No auto-applied migrations.
-- No AI-approves-own-work paths. All new gates enforce separate-approver in code AND rely on existing DB triggers where applicable.
-- No portal-facing surface changes without an explicit approval gate.
-- Every sprint ends with: phase output file + `BUILD_STATE.md` append + typecheck clean.
+**New file**
+- `src/lib/engine-family-impact.test.ts` — vitest, mocks supabase admin client, covers:
+  - single scan emits N rows
+  - immediate re-scan emits 0 rows (dedupe by fingerprint)
+  - closing an open review item allows re-emission
+  - unrelated family changes do not trigger duplicates
+- Add regression note to `src/routes/admin.family-impact.tsx` showing per-scan `emitted/deduped/skipped` counts.
 
-### Sequencing
+## Guardrails (unchanged from prior sprints)
 
-Ship H1 first (risk). H2 and H3 can run in parallel after H1 (independent surfaces). H4 depends on H3 templates existing. H5 last (consumes signals from H1–H4).
+- All DDL proposals go to `.orchestrator/PENDING_MIGRATIONS.md` only. No auto-applied migrations.
+- No AI approves its own work — outcome review items and family-impact items are `pending` until human review; existing separate-approver checks stay in force.
+- Public hook uses `/api/public/*` prefix and validates the `apikey` header inside the handler.
+- Every server fn touching state writes `engine_audit_log` + `engine_activity`.
+- Typecheck (`bunx tsgo --noEmit`) must pass before commit.
 
-### Technical notes
+## Deliverables per track
 
-- H1 trigger uses the same `SECURITY DEFINER` pattern as `engine_business_engines_gate` — verify with `has_role(auth.uid(), 'admin')` for resume.
-- H2 avoids infinite loops by tagging emitted review items with `source='family_impact_auto'` and skipping re-emission when the triggering change itself came from a `family_impact` approval.
-- H4 uses the documented `apikey` header pattern from `schedule-jobs-options`, not a custom `CRON_SECRET`.
+- `.orchestrator/phase-h4-outcome-scheduler-output.md`
+- `.orchestrator/phase-h5-health-explainability-output.md`
+- `.orchestrator/phase-h2b-family-impact-hardening-output.md`
+- `.orchestrator/BUILD_STATE.md` appended
+- `.orchestrator/PENDING_MIGRATIONS.md` appended with the pg_cron schedule proposal
+
+## Sequencing
+
+1. Track C first (small, unblocks confidence in H2 before layering more automation).
+2. Track A (introduces new automation surface).
+3. Track B (reads from A's new review items, so best last).
+
+## Out of scope
+
+- Applying any migration (pg_cron schedule stays in PENDING_MIGRATIONS.md).
+- New tables or enum values.
+- Portal-facing changes — everything stays internal admin.

@@ -116,6 +116,7 @@ export type FamilyImpactEmission = {
   childId: string;
   childName: string;
   reviewItemId: string | null;
+  fingerprint: string;
   skipped: "already_pending" | null;
 };
 
@@ -126,6 +127,19 @@ export type FamilyImpactScanResult = {
   emitted: FamilyImpactEmission[];
   skipped: FamilyImpactEmission[];
 };
+
+// Deterministic fingerprint so re-scans dedupe even if the title format changes later.
+// Kept synchronous + dependency-free for testability.
+export function fingerprintBlocker(input: {
+  parentId: string;
+  childId: string;
+  reason: BlockerReason;
+}): string {
+  const raw = `${input.parentId}::${input.childId}::${input.reason}`;
+  let h = 5381;
+  for (let i = 0; i < raw.length; i++) h = ((h << 5) + h + raw.charCodeAt(i)) | 0;
+  return `fi_${(h >>> 0).toString(16)}_${input.reason}`;
+}
 
 const ScanInput = z.object({
   projectId: z.string().uuid(),
@@ -161,6 +175,11 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
 
     for (const b of blockers) {
       const title = titleFor(b);
+      const fingerprint = fingerprintBlocker({
+        parentId: b.parent.id,
+        childId: b.child.id,
+        reason: b.reason,
+      });
       const key = `${b.parent.id}::${title}`;
       if (pendingTitles.has(key)) {
         skipped.push({
@@ -171,6 +190,7 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
           childId: b.child.id,
           childName: b.child.name,
           reviewItemId: null,
+          fingerprint,
           skipped: "already_pending",
         });
         continue;
@@ -185,6 +205,7 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
           childId: b.child.id,
           childName: b.child.name,
           reviewItemId: null,
+          fingerprint,
           skipped: null,
         });
         continue;
@@ -209,8 +230,9 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
       await sb.from("engine_activity").insert({
         project_id: b.parent.id,
         kind: "family.impact.emitted",
-        actor_email: staffEmail,
-        summary: title,
+        title,
+        body: `fingerprint=${fingerprint}`,
+        severity: impactFor(b.reason),
       });
 
       emitted.push({
@@ -221,6 +243,7 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
         childId: b.child.id,
         childName: b.child.name,
         reviewItemId: inserted.id,
+        fingerprint,
         skipped: null,
       });
     }
