@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { EmptyState, MetricCard, SectionCard } from "@/components/engine/primitives";
 import { decideReviewItem, listReviewQueue, type ReviewItem } from "@/lib/engine-ops.functions";
+import { ReviewRiskInputsEditor } from "@/components/engine/ReviewRiskInputsEditor";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/engine/approvals")({
