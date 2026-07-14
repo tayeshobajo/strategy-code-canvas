@@ -647,3 +647,21 @@
 }
 
 
+
+/* ================================================================
+ * Client roadmap presets (Spartan and future client preview pages).
+ * Scoped via .spartan-deck so they don't affect the rest of the site.
+ * ================================================================ */
+.spartan-deck {
+  font-size: 12.75px;
+  line-height: 1.55;
+}
+.spartan-deck .slide-snap {
+  min-height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+@keyframes spartan-button-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.45); }
+  50% { box-shadow: 0 0 0 10px rgba(230, 57, 70, 0); }
+}

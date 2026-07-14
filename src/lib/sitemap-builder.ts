@@ -24,6 +24,7 @@ export const SITE_ENTRIES: SitemapEntry[] = [
   { path: "/walks", changefreq: "monthly", priority: "0.8" },
   { path: "/insights", changefreq: "weekly", priority: "0.8" },
   { path: "/build-my-roadmap", changefreq: "monthly", priority: "0.9" },
+  { path: "/clients/spartan", changefreq: "monthly", priority: "0.7" },
   ...INSIGHTS.map((i) => ({
     path: `/insights/${i.slug}`,
     changefreq: "monthly" as const,
