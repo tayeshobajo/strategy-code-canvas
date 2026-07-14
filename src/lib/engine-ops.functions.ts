@@ -232,10 +232,12 @@ export const listReviewQueue = createServerFn({ method: "GET" })
       };
     };
     const itemsBase = sb.from("engine_review_items").select("*");
+    // Phase H6 · I11 — sort by computed risk_score (nulls last) then recency.
     const itemsQuery = isAdmin
-      ? itemsBase.order("created_at", { ascending: false }).limit(500)
+      ? itemsBase.order("risk_score", { ascending: false, nullsFirst: false } as never).order("created_at", { ascending: false }).limit(500)
       : itemsBase
           .not("item_type", "in", "(roadmap_version,Roadmap Update,version_approval,Version Change)")
+          .order("risk_score", { ascending: false, nullsFirst: false } as never)
           .order("created_at", { ascending: false })
           .limit(500);
     const [it, au] = await Promise.all([
