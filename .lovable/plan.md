@@ -1,87 +1,85 @@
-# Project Overview → Command Center
+# /engine Command Center → Decision Cockpit
 
-Presentation-only refactor of `src/routes/engine.projects.$projectId.overview.tsx`. No schema changes, no server-function changes, no governance changes. The top `WorkspaceStepper` strip (rendered by the workspace layout) is not touched here — only its label wording where it appears on Overview.
+Presentation-only rewrite of `src/routes/engine.index.tsx`. No schema changes, no server-function changes, no new packages. All data already exists in `CommandCenterPayload` returned by `getCommandCenter` — this plan just reshapes what's rendered from it.
 
 ## Why
 
-Inside a project the Overview shows two overlapping status models:
-- **Roadmap Workflow** (14-step top strip) — actually a *navigation* control that also reads as progress
-- **Project Progress** (7-stage card) — a phase rollup on the page
+Today's `/engine` reads as a generic analytics dashboard: stat cards, a donut, a stage-flow chart, activity feed. It does not tell Tai the single most important thing to do. Exceptions and metrics sit at the same visual weight, and healthy state is as loud as risk.
 
-They conflict. A user cannot tell in 5 seconds where the project is, what is blocking it, or what happens next. Worst case: a "36% Project Progress" bar reads as delivery progress while the roadmap is still under review.
-
-## Decision
-
-Replace both progress models on the Overview page with **one** unified indicator: **Current Stage**. The 14-step strip stays where it lives today (workspace chrome, used as nav on sub-pages) but is re-labeled so it never reads as delivery progress.
-
-## New Overview layout
+## New page structure
 
 ```text
-┌────────────────────────────────────────────────────────────────────┐
-│ Header: project name · client / business type · status · stage    │
-├──────────────────────────────────┬─────────────────────────────────┤
-│ CURRENT STAGE (hero)             │ RIGHT RAIL                      │
-│  Stage name + context sentence   │  Pending actions (0 or list)    │
-│  Next required action + owner    │  Upcoming dates                 │
-│  Primary CTA                     │  Health drivers                 │
-│  Workflow position · Step X/14   │                                 │
-│  Delivery progress (conditional) │                                 │
-├──────────────────────────────────┤                                 │
-│ Secondary metrics row            │                                 │
-│  Health · Open decisions ·       │                                 │
-│  Critical dates · Blockers       │                                 │
-├──────────────────────────────────┴─────────────────────────────────┤
-│ Recent activity │ Approved artifacts │ Drafts │ Spine summary     │
-└────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│ 1. COMMAND STRIP                                                   │
+│    "Today's Command Center" · date/time · system status pill ·     │
+│    critical alerts count · CTA "Review highest-priority decision"  │
+├──────────────────────────────┬──────────────────────────────────────┤
+│ 2. REQUIRES DECISION (left)  │ 4. SYSTEM INTELLIGENCE (right rail)  │
+│    Ranked queue: approvals,  │    - Next Best Action                │
+│    escalations, blocked,     │    - Recent material changes         │
+│    cost overruns, failed     │    - Cost/budget warnings            │
+│    agent runs, client        │    - Outcome check-ins due           │
+│    follow-ups.               │    - Agent failures / retries        │
+│    Each row: project/client, │    - Upcoming deadlines              │
+│    why it matters, risk,     │                                      │
+│    owner, recommended        │                                      │
+│    action, CTA.              │                                      │
+│                              │                                      │
+│ 3. PROJECTS NEEDING          │                                      │
+│    ATTENTION (center/below)  │                                      │
+│    Exceptions only, grouped: │                                      │
+│    At Risk · Blocked ·       │                                      │
+│    Needs Review · Waiting on │                                      │
+│    Client · Over Budget.     │                                      │
+│    Healthy projects hidden.  │                                      │
+├──────────────────────────────┴──────────────────────────────────────┤
+│ 5. SUPPORTING CONTEXT (demoted, small, muted)                       │
+│    Total · Active · Completed · Avg health · stage counts inline    │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Copy rules (locked)
+## Data mapping (all from existing `CommandCenterPayload`)
 
-- "Workflow progress" — the 14-step chrome. Never "project progress".
-- "Delivery progress" — only after roadmap approval. Milestone/evidence based after build starts.
-- "Roadmap readiness" — pre-approval.
-- "Current stage" and "Next required action" — the two hero phrases.
-- No bare "% complete" without an explicit object.
+- Command strip status/alerts: `metrics.system_health`, `agent_ops.failures_24h`, `metrics.blocked_decisions`, `approval_breakdown.total`.
+- Requires Decision queue (ranked): merge + sort by severity from
+  `approval_breakdown.items` (impact=high first), `agent_alerts` (severity), projects with `status in (blocked, at_risk)` from `active_projects`, `client_action_counts.decisions_needed`, `agent_ops.failures_24h`. Recommended action pulled from matching entry in `next_best_actions_v2` when project_id matches, else derived from item type.
+- Projects Needing Attention groups: filter `active_projects` by status → At Risk, Blocked, Needs Review; Waiting on Client from `client_action_counts` + project rows with pending client responses; Over Budget from `metrics.agent_spend_cents / agent_budget_cents` per project (portfolio-level shown if per-project not available).
+- System Intelligence rail: `next_best_actions_v2[0]`, `recent_activity` (top 4, material only — filter out routine kinds), budget warning from `metrics.agent_spend_cents/budget_cents`, `upcoming_deadlines` (top 3), `agent_alerts` (top 2).
+- Supporting context strip: `metrics.active_projects`, `stage_breakdown` totals, `health_breakdown` as tiny inline chips (not a donut).
 
-## Behavior rules
+## Removed / demoted
 
-Stage derivation reuses existing signals only (`status`, `roadmap_version`, `approved_version`, `step_states`, `signal_count`, `next_action`, review queue):
-
-- Pre-roadmap-approval → hero shows **Roadmap readiness**; delivery block hidden.
-- Roadmap drafted, not approved → stage = "Roadmap Review", CTA = "Review AI-drafted roadmap".
-- Post-approval, pre-build → introduce delivery progress at 0% with "Begins after kickoff".
-- In build → delivery progress = milestones/evidence rollup (already available via `p.step_states` + activity).
-- Blocked → hero explains blocker + owner (derived from top pending `ReviewItem` with `impact = high`, else project `next_action`).
-- Nothing pending → hero says what the system is waiting for.
-
-CTA always matches the derived next required action (existing `getIntelligentNextAction` server fn already returns this — reuse; do not re-fetch).
+- Big donut "Project Health" chart — replaced by 5 inline health chips in supporting strip.
+- "Projects by Stage" tabbed table above the fold — moved to a small collapsible below supporting strip.
+- Full "Recent Activity" panel — replaced by "Recent material changes" (top 4) in the right rail.
+- "Summary Stats" grid (Client Actions / Agent Ops / Delivery Forecast / System Health cards) — folded into the right rail as compact one-liners.
+- Top row of 5 stat cards with sparklines — removed; only kept as small muted counters in the supporting strip.
 
 ## Files touched
 
-- `src/routes/engine.projects.$projectId.overview.tsx` — rewrite page body:
-  - Delete `computeStages` + `ProgressStepper` + the "Project Progress" `SectionCard`.
-  - Delete the current "Next best action" and "Project Summary" cards (folded into the new Current Stage hero + secondary metrics + right rail).
-  - Add `CurrentStageHero`, `SecondaryMetrics`, `RightRail`, `LowerSections` — all local components in the same file (kept small; extract later if reused).
-  - Reuse existing queries: `useWorkspace`, `getIntelligentNextAction`, `listReviewQueue`, `getVersionCompareData`.
-- `src/components/engine/WorkspaceStepper.tsx` — line 105 label: "Roadmap Workflow" → "Workflow navigation"; line 107 subline: "14 steps for this project" → "Step X of 14".
+- `src/routes/engine.index.tsx` — full body rewrite. Local subcomponents kept in the same file: `CommandStrip`, `RequiresDecisionQueue`, `DecisionRow`, `AttentionGroup`, `AttentionProjectRow`, `SystemIntelligenceRail`, `SupportingContext`. Reuse `EngineStatusBadge`, `formatDate`, `formatCents`, `cn`.
 
-No other files change. No new server functions. No new tables. No new packages.
+No other files change. No server functions change. No new queries.
 
-## Design direction
+## Copy rules (locked)
 
-Quiet, premium SaaS. Dark theme retained. Denser than today but calm — one dominant hero, everything else supporting. Lucide icons, compact badges, tooltips on health drivers and blockers. Mobile: hero stacks above metrics; right rail moves below lower sections; no overlapping text (uses the grid + `min-w-0` + `shrink-0` pattern for the header row).
+Command language only: "Needs decision", "Blocked by", "Recommended action", "Risk driver", "Owner", "Due", "Escalate", "Review", "Resolve". No generic "Dashboard", "Overview", "Statistics".
+
+## Visual direction
+
+Premium dark operational UI — Linear + Vercel + air-traffic-control. Tight spacing, muted borders (white/8), strong hierarchy. Amber only for warnings, red only for true critical, green only for verified healthy. Everything else neutral. No decorative gradients, no big donuts, no colored stat cards.
 
 ## Acceptance
 
-- Project state readable in <5s.
-- One primary status/progress concept above the fold.
-- "Roadmap Review" never presented as "% delivered".
-- Primary CTA always matches the next required action.
-- Mobile clean at 375px.
-- No governance/business-logic changes; no schema changes.
+- In 5 seconds Tai sees the single highest-priority decision above the fold with a CTA.
+- Exceptions dominate the page; metrics are demoted to a muted strip.
+- Every top-level Requires-Decision and Attention row has an explicit recommended action + CTA.
+- Healthy projects never appear in Attention groups.
+- No chart above the fold.
+- Mobile clean at 375px (rail stacks below main columns).
 
 ## Out of scope
 
-- Sub-page redesigns (Blueprint, Plans, etc.).
-- The 14-step strip's own structure (only its label).
-- Client Portal overview (separate concern).
+- Server-function or schema changes.
+- Per-project overview page (already redesigned).
+- Sidebar / global chrome.
