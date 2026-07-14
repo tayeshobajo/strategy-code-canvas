@@ -3050,7 +3050,7 @@ Written after tables land, in a follow-on migration if you want them phased. Inc
 - No auto-conversion of existing milestones into engines. Manual promotion via `select_milestone_solution` + operator flag.
 - No parent/child project decomposition — a separate Phase 5 draft.
 
-Status: **PENDING TAI REVIEW — apply-ready.**
+Status: **APPLIED (pre-existing, verified 2026-07-14).** All 4 tables present (`engine_milestone_solutions`, `engine_business_engines`, `engine_business_engine_runs`, `engine_business_engine_exceptions`), governance functions in place (`spine_points_approved`, `spine_points_ready_summary`, `internal_spine_field_keys`, `internal_project_has_contradictions`), immutability + single-selected triggers deployed. Command Center routes wired: `admin.command-center.tsx` (ranked exceptions via `get_command_center_exceptions` — severity → client_risk → urgency_score → deadline → impact), `engine.projects.$projectId.engines.tsx` (spine readiness banner via `spine_points_approved` RPC), `engine.projects.$projectId.solutions.tsx`, `engine.projects.$projectId.engines.runs.$runId.tsx`, `admin.engine-promotion.tsx`, `api/public/hooks/engine-tick.ts`. **Open follow-ups tracked separately (not blocking APPLIED status):** (F1) `activate_business_engine` RPC does NOT enforce `spine_points_approved(_project_id).ready` before flipping `proposed → approved → active` — gate is currently UI-only via readiness banner and can be bypassed by direct RPC call. (F2) Confirm engines Activate button is `disabled` when readiness banner is not `ready`. (F3) Confirm `recordEngineRun` writes to `engine_project_chat_proposals` via `proposal_ids` rather than any direct portal write path.
 
 ---
 
