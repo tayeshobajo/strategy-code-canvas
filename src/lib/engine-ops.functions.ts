@@ -223,11 +223,14 @@ export const listReviewQueue = createServerFn({ method: "GET" })
       (context as any).claims?.email as string | undefined,
       "admin",
     );
+    type OrderChain = {
+      order: (c: string, o: { ascending: boolean; nullsFirst?: boolean }) => OrderChain;
+      limit: (n: number) => Promise<{ data: unknown; error: unknown }>;
+    };
     const sb = context.supabase as never as {
       from: (t: string) => {
-        select: (s: string) => {
-          order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> };
-          not: (c: string, op: string, v: unknown) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } };
+        select: (s: string) => OrderChain & {
+          not: (c: string, op: string, v: unknown) => OrderChain;
         };
       };
     };
