@@ -175,6 +175,11 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
 
     for (const b of blockers) {
       const title = titleFor(b);
+      const fingerprint = fingerprintBlocker({
+        parentId: b.parent.id,
+        childId: b.child.id,
+        reason: b.reason,
+      });
       const key = `${b.parent.id}::${title}`;
       if (pendingTitles.has(key)) {
         skipped.push({
@@ -185,6 +190,7 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
           childId: b.child.id,
           childName: b.child.name,
           reviewItemId: null,
+          fingerprint,
           skipped: "already_pending",
         });
         continue;
@@ -199,6 +205,7 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
           childId: b.child.id,
           childName: b.child.name,
           reviewItemId: null,
+          fingerprint,
           skipped: null,
         });
         continue;
@@ -215,6 +222,7 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
           source: "family_impact_auto",
           status: "pending",
           requested_by: staffEmail,
+          metadata: { fingerprint, reason: b.reason, childId: b.child.id },
         })
         .select("id")
         .single();
@@ -225,6 +233,7 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
         kind: "family.impact.emitted",
         actor_email: staffEmail,
         summary: title,
+        metadata: { fingerprint },
       });
 
       emitted.push({
@@ -235,6 +244,7 @@ export const scanFamilyImpactForReviews = createServerFn({ method: "POST" })
         childId: b.child.id,
         childName: b.child.name,
         reviewItemId: inserted.id,
+        fingerprint,
         skipped: null,
       });
     }
