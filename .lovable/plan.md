@@ -1,108 +1,66 @@
-# Hardening Sprint H6.5 — Wire-Up, Governance, and CI
+# Fresh Capability Audit — Roadmap Engine (A→Q + Ultimate)
 
-Eight work items, sequenced so each one lands on a green baseline before the next starts. No schema DDL is applied autonomously — any new migration is written to `.orchestrator/PENDING_MIGRATIONS.md` for your approval.
+## Deliverable
 
-## Sequencing
+One new file:
 
-```text
-1. Regen types  →  2. Impact/Risk UI plumbing  →  3. Regression tests
-                                    ↓
-4. applyApprovedProposal + B12 unblock
-                                    ↓
-5. Portal activity tracking  →  6. Drift-detection detail view
-                                    ↓
-7. Portal readiness gate  →  8. CI check
-```
+`.orchestrator/audit/capability-audit-2026-07-14c.md`
 
----
+Structured as:
 
-## 1. Regenerate Supabase types + baseline typecheck
+1. **Executive summary** — counts per verdict (PASS / PARTIAL / FAIL / UNBUILT), the 10 highest-impact gaps, the "Ultimate Confirmation" verdict, and a table of section-level scores (A–Q).
+2. **One block per confirmation** — every single question from A–Q + the Ultimate, in the order given, with:
+   - Verdict: `PASS` / `PARTIAL` / `FAIL` / `UNBUILT`
+   - Evidence: 1–3 `path:line` citations OR a DB object name (table / policy / trigger / function) OR "no code / no schema found"
+   - One-line rationale
+   - When PARTIAL/FAIL, a one-line "what would flip it to PASS"
+3. **Cross-cutting findings** — patterns spanning multiple sections (e.g. "portal publish path is gated but portal activity is not tracked" appears in L and N; roll it up once).
+4. **Governance/spine changes since 2026-07-14b** — B12 triggers, `apply_approved_proposal`, `admin_edit_milestone_governed`, `impact_summary`, `risk_score`, drift causality — verified fresh against current code + DB, not inherited from prior audits.
 
-- Regenerate `src/integrations/supabase/types.ts` against the live schema so `impact_summary`, `risk_score`, `severity`, `impact_score`, `urgency_score`, `deadline_at`, `client_risk` appear on the correct rows.
-- Run `tsgo` across the repo. Fix any fallout from newly-typed columns (mostly `.select("*")` sites that now return the new fields).
-- Deliverable: clean typecheck, committed types file.
+The prior `capability-audit-2026-07-14b*` files are NOT trusted; every confirmation is re-verified from the current codebase and live DB state.
 
-## 2. Impact-summary + risk-score UI plumbing
+## Method
 
-Read/edit/save paths for the two new columns.
+For each section I'll combine three read-only signals:
 
-- **Proposals (impact_summary):**
-  - `ProposalImpactPanel` already renders. Add a Zod schema `impactSummarySchema` in `src/lib/engine-proposal-impact.ts` and validate on write.
-  - Server fn `updateProposalImpact({ proposalId, impact_summary })` under `src/lib/engine-ops.functions.ts`, admin-only, writes with `deriveImpactSummary` fallback if fields missing.
-  - Editor UI in the proposal detail drawer (chat proposals + approvals queue expanded card).
-- **Review items (risk_score inputs):**
-  - Trigger recomputes on input change; UI never writes `risk_score` directly.
-  - Add a "Risk inputs" editor (severity / impact / urgency / deadline / client_risk) inside the approvals-queue expanded card in `src/routes/engine.approvals.tsx`.
-  - Server fn `updateReviewItemRiskInputs(...)` with Zod validation matching DB CHECK constraints.
-  - Sort queue by `risk_score DESC, created_at DESC` (matches new index).
+1. **Codebase evidence** — `rg` / `code--view` across `src/lib/**`, `src/routes/**`, `src/components/**`, `src/integrations/**`, and `supabase/migrations/**`. I'll use `acp_subagent--explore` for the wide-search sections (E roadmap generation, K spine/drift, M engines, P portfolio) to keep my own context clean.
+2. **DB evidence** — `psql` (read-only) for: table existence + column set, RLS policies, triggers, `pg_proc` for SECURITY DEFINER functions, and spot-checked row counts (e.g. does `engine_review_items` actually carry `risk_score` values, does `engine_project_chat_proposals` carry `impact_summary`).
+3. **Runtime signals where they exist** — reading tests under `src/**/__tests__/`, `.orchestrator/qa/*`, and `.lovable/*-qa-report.md` to see which invariants already have regression coverage.
 
-## 3. Regression tests for J4 + I11
+## Verdict rubric (applied uniformly)
 
-Vitest specs under `src/lib/__tests__/`:
+- **PASS** — code path + DB objects + (where relevant) an approval/audit trail + a test or QA artifact.
+- **PARTIAL** — capability exists but is missing one of: server-side enforcement, audit trail, UI surface, or coverage on all relevant surfaces.
+- **FAIL** — capability is claimed by architecture docs or referenced by other code, but the enforcing code / policy / trigger is missing or bypassable.
+- **UNBUILT** — no code, schema, or doctrine reference exists yet.
 
-- `impact-summary-backfill.test.ts` — new proposals default to `{}`; inserted proposals get non-empty summary via server fn; malformed payloads rejected by Zod.
-- `risk-score-trigger.test.ts` — inserts with each input combo recompute `risk_score` within expected weighted range; CHECK constraint blocks out-of-range values.
-- Both tests read from a scratch project fixture, assert via `supabaseAdmin`, and clean up.
+## Section coverage plan
 
-## 4. applyApprovedProposal + unblock B12
+- **A Conversational intake** — `intake_drafts`, `intake_submissions`, voice/attachment components, `src/routes/intake*`, transcript pipeline (H7-A8 in `.lovable/plan.md`).
+- **B Automatic understanding** — `engine_extraction_runs`, `engine_extracted_signals`, `engine_project_intake_failures`, `engine-intelligence.functions.ts`, contradiction detection.
+- **C Captain & agents** — `engine_project_agents`, `engine_agent_tasks`, `engine_agent_permissions`, `engine_agent_costs`, Phase 9C no-self-approval check.
+- **D Understanding readiness** — Point A / Point B promotion, spine gate (`supabase/tests/spine-gate-smoke.sql`), `engine_spine_*` tables.
+- **E Roadmap generation** — `engine_project_frames`, `engine_roadmap_versions`, `engine_milestones`, "not yet" recommendations, existing-asset detection.
+- **F Multiple solutions / decomposition** — parent/child project modeling in `engine_projects`, cross-project dependencies.
+- **G Mockups & specs** — `engine_project_mockups`, plans/frames, versioning, approval-required-before-build gate.
+- **H Controlled build** — `engine_project_build_packets`, `engine_project_build_evidence`, "do not touch" boundary, cost-overrun approvals.
+- **I QA & evidence** — `engine_project_qa_plans`, `engine_project_qa_evidence_reviews`, no-self-acceptance rule.
+- **J Approvals & governance** — `engine_review_items` + risk_score, `engine_review_audit`, `ProposalImpactPanel` / `ProposalImpactEditor`, condition tracking.
+- **K Spine, versioning, drift** — `engine_spine_field_truth`, `engine_version_change_decisions`, `engine-drift-causality.functions.ts`, B12 triggers verified live.
+- **L Client comms & portal** — `client_portal_*` tables, `RoadmapAcknowledgmentBanner`, `portal.functions.ts` publish gates, portal activity tracking (`client_portal_activity`, `portal_access_events`).
+- **M Business engines** — `engine_business_engines`, `engine_business_engine_runs`, `engine_business_engine_exceptions`, named-engine coverage (Content / Lead / Review / Client-Success / Founder Rhythm).
+- **N Delivery & transitions** — `engine_delivery_items`, `engine_delivery_history`, `sendProjectDelivery` gate, delivery-readiness reviews.
+- **O Outcome feedback** — 30/60/90 scheduler (H4 output), `engine_intelligence_memory`, cross-client privacy boundary.
+- **P Portfolio scale** — command-center / NBA coverage, exception ranking (I11 risk_score), Decision Log surface.
+- **Q Reliability, security, accountability** — audit coverage, RLS breadth, `engine-model-scoring.ts`, fallback behavior, low-confidence disclosure.
+- **Ultimate confirmation** — synthesized from the above; PASS only if every section clears PARTIAL.
 
-- New server fn `applyApprovedProposal({ proposalId })` in `src/lib/engine-ops.functions.ts`:
-  - Admin-gated via `hasRoleForEmail`.
-  - Wraps writes in a Postgres transaction that first runs `SET LOCAL engine.proposal_apply = 'on'` (via a `SECURITY DEFINER` RPC — see PENDING_MIGRATIONS entry below).
-  - Applies the proposal payload to the correct table using the real column map (`engine_milestones.brief_md / acceptance_criteria / developer_prompt / client_safe_md`, `engine_project_implementation_plans.summary / payload`).
-- Rewrite the B12 migration in `.orchestrator/PENDING_MIGRATIONS.md`:
-  - Correct target columns (per the schema, not the doctrine wording).
-  - Trigger checks `current_setting('engine.proposal_apply', true) = 'on'` and blocks direct edits otherwise.
-  - Add the `SECURITY DEFINER` helper `public.begin_proposal_apply()` that sets the GUC.
-- Mark migration DDL as pending; do not apply.
+## What this plan does NOT do
 
-## 5. End-to-end portal activity tracking
+- No migrations, no code edits, no doctrine rewrites. Fresh audit only.
+- No re-running of the linter or security scan (already have current results in context).
+- No plan for fixing gaps — that would be a follow-up sprint once you've read the verdicts.
 
-- Extend `client_portal_activity` writes to cover the full lifecycle: `viewed`, `downloaded`, `acknowledged`, `replied`, `follow_up_needed`. Confirm columns exist; if a new enum value or column is required, write it to PENDING_MIGRATIONS.
-- Client-side hooks:
-  - `useTrackPortalView` on roadmap / milestone / file components (fire on mount, dedupe per session).
-  - `download` handler in file card + PDF viewer records `downloaded` with `resource_id`.
-  - Ack banner already writes; add `replied` on comment submit and `follow_up_needed` toggle from client + admin.
-- Auditable UI: new `PortalActivityLog` component on the client detail page (admin) and a compact "Recent activity" strip on the client's own portal.
+## Time / cost note
 
-## 6. Admin drift-detection detail view
-
-- New route `src/routes/admin.drift-detection.$clusterId.tsx`.
-- Data via `getDriftClusterDetail(clusterId)` in `engine-drift-causality.functions.ts` returning cluster, member signals, causality edges, and linked review-item / proposal / version evidence.
-- Render:
-  - Header with score, severity, first/last-seen.
-  - Causality graph (simple SVG DAG using existing utility) with edge weights.
-  - Evidence table linking each row to its source (approvals queue, chat proposal, roadmap version).
-- Link from cluster rows in `/admin/drift-detection` list.
-
-## 7. Portal governance readiness gate
-
-- New component `PortalReadinessGate` on the portal roadmap top-of-page.
-- Reads gate state via new server fn `getPortalReadiness(projectId)` returning:
-  - Point A blockers (intake completeness, unresolved clarifications, missing acceptance).
-  - Point B blockers (unapproved current version, open critical change events, unconfirmed investment, unacknowledged roadmap).
-  - Each blocker: title, plain-English reason, "who can unblock" (client vs Trust Tai admin), CTA link.
-- Milestones remain read-only until gate reports `ready`. Approval requires signed-in authorized approver — reuses existing `roadmap_approvals` writer, no new auth surface.
-
-## 8. CI check
-
-- Add `.github/workflows/ci.yml` (or extend existing) running on PR:
-  - `bun install --frozen-lockfile`
-  - `bun run typecheck` (`tsgo`).
-  - Migration validation: `bun run scripts/qa/validate-migrations.ts` — new script that parses every file in `supabase/migrations/`, ensures each `CREATE TABLE public.*` has a `GRANT` and `ENABLE ROW LEVEL SECURITY` in the same file.
-  - Playwright smoke on critical admin/portal routes (`/admin/engine-templates`, `/admin/outcome-scheduler`, `/admin/drift-detection`, `/engine/approvals`, `/portal`), reusing existing `playwright.config.ts` with a fresh dev server.
-- Fails the PR on any red step.
-
----
-
-## Technical notes
-
-- **No autonomous DDL.** Items 4, 5, 6 write proposed DDL to `.orchestrator/PENDING_MIGRATIONS.md` for review. Items 1–3, 6–8 are code-only.
-- **No AI self-approval.** New `updateProposalImpact` and `applyApprovedProposal` require `hasRoleForEmail(email, "admin")` and are audit-logged in `engine_activity`.
-- **RLS.** New reads in the portal (activity log, readiness) go through `requireSupabaseAuth`-scoped server fns; admin reads via existing admin gate.
-- **Types regen (step 1) must land first** so subsequent server fns compile against the new column set.
-
-## Out of scope
-
-- Sprints H7–H10 (intake pipeline, captain/roadmap depth, outcome loop, final re-score) — proposed separately after this sprint lands.
-- Reworking the existing approvals queue visual layout beyond adding the risk-input editor.
+This is a large exploration: ~200 confirmations × 2–3 evidence lookups each. I'll batch reads and delegate the widest sections to `acp_subagent--explore` to keep it efficient, but expect the audit file itself to be long (~1500–2500 lines). After approval I'll produce it in one build-mode turn.
