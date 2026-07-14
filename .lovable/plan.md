@@ -1,55 +1,42 @@
-## Runtime Schema Drift Hotfix — Independent Review, Apply, Verify
 
-Scope: the `Runtime Schema Drift Fix` block already written in `.orchestrator/PENDING_MIGRATIONS.md` (lines ~3970–end). Not bundled with Phase 5D. Approval of this plan = Tai approval to apply the migration.
+# Roadmap Engine Capability Audit — Sections A–Q
 
-### What the migration does
+## Goal
+Produce a single evidence-based audit report scoring every item in the A–Q checklist (≈250 items) plus the final "Ultimate Confirmation" as **PASS / PARTIAL / MISSING**, with concrete evidence (file path + line region, table + policy name, or read-only SQL result). No code, schema, or data changes.
 
-Single migration, two changes:
+## Deliverables (written under `.orchestrator/audit/`)
+1. `capability-audit-2026-07-14.md` — full report, one row per checklist item:
+   - `Status` (PASS / PARTIAL / MISSING)
+   - `Evidence` (file:lines, table.policy, or SQL result reference)
+   - `Gap` (one line, only when PARTIAL/MISSING)
+2. `capability-audit-summary.md` — section-level scorecard (A–Q), top 10 gaps ranked by blast radius, and mapping of MISSING items to existing phases in `doctrine/ROADMAP_ENGINE_PHASE_MAP.md` where possible.
+3. `capability-audit-smoke.sql` — the read-only SQL harness that was run (RLS checks, policy inventory, trigger inventory, cross-client isolation probes, evidence/approval constraints, portal-safety probes). Results captured in `capability-audit-smoke-output.md`.
 
-1. `ALTER TABLE public.engine_projects ADD COLUMN IF NOT EXISTS current_phase text NULL` — matches generated types; unblocks 64 recent production errors from `engine-nba.functions.ts`, `engine-execution.functions.ts`, `engine-completion.functions.ts`.
-2. Restore Data API grants on `public.client_portal_roadmaps`:
-   - `GRANT SELECT ON ... TO anon` (portal magic-link reads under token-scoped RLS)
-   - `GRANT SELECT, INSERT, UPDATE, DELETE ON ... TO authenticated` (staff writes)
-   - `GRANT ALL ON ... TO service_role` (admin/server-fn writes)
+## Method (per section)
+- **Codebase evidence:** `rg` across `src/lib/**`, `src/routes/**`, `src/components/engine/**`, `src/components/portal/**`, `supabase/migrations/**`, `.orchestrator/**` for the concrete surface each item claims (server fn, table, policy, trigger, route guard, UI panel).
+- **DB evidence (heavy):** read-only `psql` / `supabase--read_query` against `engine_*`, `client_portal_*`, `engine_audit_log`, `engine_agent_costs`, `engine_review_items`, `engine_spine_*`, `engine_change_events`, `engine_project_chat_proposals`, etc. — verify RLS on, policy scoping, trigger presence (cycle detection, frozen-parent, self-approval, roll-ups), and grants.
+- **Cross-client isolation probes:** simulate anon + wrong-client contexts against portal-facing tables; confirm 0 rows leak.
+- **Governance probes:** confirm `created_by ≠ approved_by` enforcement status; confirm no `USING(true)` policies on sensitive tables; confirm publish-gate tables (`client_portal_publish_events`, `client_portal_projects.status`) exist and are the only path to portal exposure.
+- **AI/agent evidence:** `engine_agent_tasks`, `engine_agent_costs`, `engine_agent_permissions` — confirm every run logs model/inputs/outputs/cost/latency and that permissions scope per project/client.
 
-Preflight already recorded in `PENDING_MIGRATIONS.md`:
-- RLS enabled on `client_portal_roadmaps`
-- Two scoped policies (`Clients read published roadmaps` via `client_portal_permissions`, `Operators manage roadmaps` via `client_portal_is_operator`)
-- No `USING(true)` policies — grants are safe
+## Scoring rules
+- **PASS** — direct implementation exists AND is enforced (DB constraint, RLS policy, route guard, or governance table entry).
+- **PARTIAL** — surface exists but enforcement is soft (UI-only, missing trigger, missing policy, or admin-bypass path).
+- **MISSING** — no code/table/policy backing the claim.
+- Items that are aspirational-by-design (e.g. "engine learns from results") are marked MISSING unless a concrete learning loop table + writer exist; no credit for prompt text alone.
 
-### Apply
+## Non-goals / guardrails
+- No migrations, inserts, updates, deletes, or deploys.
+- No changes to `BUILD_STATE.md` phase status.
+- Any newly-discovered required migration is only appended to `PENDING_MIGRATIONS.md` as a proposal, never applied.
+- Self-approval prevention (Phase 9C) will be scored MISSING unless already present; no attempt to add it in this audit.
 
-Issue the migration via `supabase--migration` using the SQL block already committed to `PENDING_MIGRATIONS.md`. The tool surfaces it for approval; on approval it runs.
+## Rough sequencing
+1. Load phase map + BUILD_STATE + existing `.orchestrator/phase-*-output.md` to avoid re-deriving known state.
+2. Enumerate tables, policies, triggers, functions via `information_schema` / `pg_catalog` into the smoke output file (single pass).
+3. Grep code surfaces per section in parallel batches.
+4. Fill the report section by section (A → Q → Ultimate).
+5. Write summary + top-gaps + phase mapping.
 
-### Post-apply verification (must all PASS before marking hotfix closed)
-
-Write and run `.orchestrator/qa/hotfix-portal-roadmaps-smoke.sql`:
-
-1. **Column present** — `\d public.engine_projects` shows `current_phase text NULL`; `SELECT current_phase FROM public.engine_projects LIMIT 1` succeeds.
-2. **Grants present** — `information_schema.role_table_grants` returns the expected rows for anon (SELECT), authenticated (SELECT/INSERT/UPDATE/DELETE), service_role (ALL).
-3. **RLS still enforcing** — `pg_class.relrowsecurity = t` on `client_portal_roadmaps`, both policies still present, unchanged.
-4. **Positive read** — an authenticated context matching an active `client_portal_permissions` row for a published roadmap returns that row.
-5. **Negative portal-token test (the one you called out)** — under `SET LOCAL ROLE anon` plus a JWT claim simulating client-A's magic-link email (via `set_config('request.jwt.claims', ...)`), `SELECT * FROM client_portal_roadmaps` returns:
-   - client-A's published rows: >0
-   - client-B's published rows: 0
-   - any client's non-published rows: 0
-   If any of these fail, treat as RLS drift — roll the grants back immediately (RLS wasn't doing the scoping we thought) and re-open the hotfix.
-6. **App-surface smoke** — hit portal magic-link roadmap page in preview; confirm Next-Best-Action panel loads without the previous "column does not exist" errors.
-
-### On PASS
-
-- Write `.orchestrator/hotfix-portal-roadmaps-output.md` with per-check status + timestamps.
-- Update `PENDING_MIGRATIONS.md` §Runtime Schema Drift Fix status: `APPLIED YYYY-MM-DD, verified` with link to smoke output.
-- Note in `BUILD_STATE.md` build log.
-
-### On FAIL
-
-- Do not silently patch. Capture failure in the smoke output.
-- If check 5 fails (negative portal-token), issue a compensating migration that REVOKEs the newly added grants and file a follow-up to strengthen RLS before re-granting.
-- If check 1/2 fails, investigate before any app-layer changes.
-
-### Out of scope
-
-- No app-layer code changes — the column and grants alone unblock the existing call sites.
-- No touching Phase 5D artifacts.
-- No changes to other tables flagged as sibling errors in the finding (they resolved to derived-column false positives, per the existing PENDING_MIGRATIONS entry).
+## Estimated size
+Report ~250 rows; expected runtime dominated by the SQL harness (single pass) and codebase greps. No user interaction required after approval.
