@@ -4918,5 +4918,5 @@ GRANT EXECUTE ON FUNCTION public.activate_business_engine(uuid, text) TO authent
 
 Restore the prior body from `supabase/migrations/20260713173448_dd44a646-e587-4b57-9fff-d341f5828fa9.sql` lines 72–95.
 
-Status: **DRAFT — apply-ready, awaiting Tai review.** Closes Phase 4 F1. F2 verified in place. F3 verified in place.
+Status: **APPLIED 2026-07-14.** Closes Phase 4 F1. F2 verified in place. F3 verified in place.
 
