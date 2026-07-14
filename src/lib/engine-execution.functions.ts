@@ -161,8 +161,31 @@ export const updateMilestone = createServerFn({ method: "POST" })
       if (willApprove && !patch.approved_at) patch.approved_at = new Date().toISOString();
     }
 
-    const { error } = await sb.from("engine_milestones").update(patch).eq("id", data.id);
-    if (error) throwGeneric(error, "Operation failed");
+    // B12: governed body columns are locked at the DB layer by the
+    // `engine_milestones_require_proposal` trigger. Route any patch that
+    // touches them through the SECURITY DEFINER RPC that sets the
+    // `engine.proposal_apply` GUC atomically. Non-governed fields keep
+    // going through the regular UPDATE so RLS remains the primary gate.
+    const governedKeys = Object.keys(patch).filter((k) => PROTECTED_APPROVED_FIELDS.has(k));
+    const nonGovernedPatch: any = { ...patch };
+    for (const k of governedKeys) delete nonGovernedPatch[k];
+
+    if (governedKeys.length) {
+      const governedPatch: Record<string, any> = {};
+      for (const k of governedKeys) governedPatch[k] = patch[k];
+      const { error: gErr } = await sb.rpc("admin_edit_milestone_governed", {
+        _id: data.id,
+        _patch: governedPatch,
+      });
+      if (gErr) throwGeneric(gErr, "Operation failed");
+    }
+    if (Object.keys(nonGovernedPatch).length) {
+      const { error } = await sb
+        .from("engine_milestones")
+        .update(nonGovernedPatch)
+        .eq("id", data.id);
+      if (error) throwGeneric(error, "Operation failed");
+    }
     if (current?.project_id) {
       await sb.from("engine_audit_log").insert({
         project_id: current.project_id,
