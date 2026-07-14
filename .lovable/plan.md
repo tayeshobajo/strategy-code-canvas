@@ -1,46 +1,36 @@
-## Fix the two preflight blockers in `.orchestrator/PENDING_MIGRATIONS.md`
+# Paired apply: Phase 1 R3 (Truth Model) + Phase 2 (Ceremonies)
 
-Scope: edit the pending migration draft only. No code changes, no migration application, no other phases touched. Both edits are in the same file.
+Both blocks in `.orchestrator/PENDING_MIGRATIONS.md` share `engine_spine_field_truth` and `epistemic_status`. Applying them in separate migration windows leaves an intermediate state where the truth table exists but ceremonies can't reference it. This plan concatenates them into one migration submission.
 
-### Fix 1 — Complete Point A / Point B static arrays in `internal_spine_field_keys`
+## Steps
 
-File: `.orchestrator/PENDING_MIGRATIONS.md`, lines ~767–804 (Phase 1 R3 block).
+1. **Combined preflight (read-only)** — run both preflight blocks against the live DB via `supabase--read_query`:
+   - Phase 1: `epistemic_status` type absent, `engine_spine_field_truth` absent, no `status/source_ref/superseded_by` on `engine_extracted_signals`, project/point_a/point_b row counts.
+   - Phase 2: `is_engine_staff()`, `has_role_email()`, `tg_touch_updated_at()`, `engine_audit_log`, `epistemic_status` (will exist by end of Phase 1 in the same file), plus `POINT_A_BASE_FIELD_KEYS` / `POINT_B_FIELD_KEYS` static list matches TS registry (already fixed).
+   - Abort if any check fails; report to Tai.
 
-Source of truth is `src/lib/engine-spine-fields.ts`:
-- `POINT_A_BASE_FIELD_KEYS = ['lenses', 'diagnosis', 'key_diagnosis']`
-- `POINT_B_FIELD_KEYS = ['24_month_destination', '10_year_position', 'client_outcome', 'customer_outcome', 'operational_outcome', 'revenue_outcome', 'brand_position']`
-- Dynamic Point A: `diagnosis:<title>` (already handled via the existing `RETURN QUERY … LIKE 'diagnosis:%'` block).
+2. **Assemble a single migration SQL body**, in this exact order (no edits to the SQL beyond concatenation):
+   1. Phase 1 R3 Variant B block (enum → signal columns → truth table → GRANTs → RLS → policies → audit trigger → backfill from `engine_projects.point_a/point_b`).
+   2. Phase 2 R4 + R4B block (ceremonies + decisions tables → GRANTs → RLS → `internal_spine_field_keys` (with the corrected Point A/B static arrays) → `spine_field_keys` wrapper → `internal_project_has_contradictions` → all `trg_enforce_*` and cascade triggers → `trg_engine_spine_ceremonies_updated` using `public.tg_touch_updated_at()` → Phase 2B invalidation columns/table/triggers).
 
-Replace the placeholder Point A array (`current_state:*` sample + `-- ... full Point A static list mirrored from TS registry`) with the exact three base keys above. Replace the placeholder Point B array (`target_state:*` sample + `-- ... full Point B static list`) with the seven keys above. Preserve order so the vitest drift check (`spine-field-keys-drift.test.ts`, which asserts `expect(dbKeys).toEqual([...POINT_A_BASE_FIELD_KEYS])`) passes on first run.
+3. **Submit via `supabase--migration`** with a plain-English description covering: new truth model, ceremony/decision model, invalidation cascade, RLS (staff read; admin/operator write; no delete), audit trail. Wait for Tai's approval — the tool blocks until approved.
 
-Leave the dynamic `diagnosis:%` `RETURN QUERY` block untouched.
+4. **Post-apply verification** — run the documented smoke plans:
+   - Phase 1 R3 smoke queries → append to `.orchestrator/phase-1-output.md`.
+   - Phase 2 22-case smoke (existing `/tmp/browser/phase2-ui-smoke/run.py`) → append results to `.orchestrator/phase-2-output.md`.
+   - Run `bunx vitest run src/lib/__tests__/spine-field-keys-drift.test.ts`.
+   - Run `supabase--linter`; record any new WARN findings (expected: `SECURITY DEFINER` pattern warnings, same class as existing 45).
 
-### Fix 2 — Correct trigger function name for `engine_spine_ceremonies.updated_at`
+5. **Rollback readiness (not executed)** — keep the two documented rollback blocks side-by-side in a scratch file so Tai can reverse in Phase 2 → Phase 1 order if smoke fails.
 
-File: `.orchestrator/PENDING_MIGRATIONS.md`, line 708 (Phase 2 ceremony model block).
+## Out of scope
 
-Change:
-```sql
-FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-```
-to:
-```sql
-FOR EACH ROW EXECUTE FUNCTION public.tg_touch_updated_at();
-```
+- No SQL rewrites beyond concatenation. The two blocks were signed off individually; the paired-apply is a scheduling change, not a design change.
+- No app-layer edits in this window — `src/lib/engine-spine-ceremonies.functions.ts` and `engine-spine-invalidation.functions.ts` already exist and match the shipped shape per `.orchestrator/phase-2-output.md`.
+- Phase 2B UI (`CeremonyPanel`, stepper badge) — already shipped; nothing to redo.
 
-This matches the function that already exists on this project and is what the other three ceremony-model triggers (lines 2527, 2614, 2739) already use — so this is the odd one out.
+## Risks
 
-Also update the Phase 2 preflight note (~line 1117) so it reads "Confirm `public.tg_touch_updated_at()` exists" rather than `update_updated_at_column()`, keeping the preflight checklist honest.
-
-### Not in scope
-
-- No SQL applied. Both edits stay queued in `PENDING_MIGRATIONS.md` for Tai's review.
-- No changes to Phase 1 R3 rollback SQL (it does not reference either symbol).
-- No changes to any other phase, server function, or UI.
-- The paired-apply recommendation for Phase 1 R3 + Phase 2 ceremony model is noted but not implemented here; it belongs to the apply-window plan, not this preflight fix.
-
-### Acceptance
-
-- `rg "update_updated_at_column" .orchestrator/PENDING_MIGRATIONS.md` returns only the historical mention in the diagnostic notes block (line ~3983), not the trigger DDL.
-- `rg "full Point A static list|full Point B static list" .orchestrator/PENDING_MIGRATIONS.md` returns zero hits.
-- The two static arrays in `internal_spine_field_keys` match `POINT_A_BASE_FIELD_KEYS` and `POINT_B_FIELD_KEYS` element-for-element in order.
+- **Single failure = full rollback.** A trigger error in Phase 2 aborts the whole transaction, including Phase 1 enum/table creation. This is the desired atomicity; call it out to Tai when submitting.
+- Backfill volume in Phase 1 is bounded by project count (small); no performance concern.
+- Linter WARN noise is expected and pre-existing pattern; not a blocker.
