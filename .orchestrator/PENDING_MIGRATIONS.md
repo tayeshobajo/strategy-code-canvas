@@ -4075,7 +4075,7 @@ Status: **APPLIED 2026-07-14, VERIFIED.** Migration `20260714-005744-436757`. Se
 
 ## Phase H1 — Cost-Overrun Auto-Pause
 
-Status: **PENDING TAI REVIEW** (proposed 2026-07-14).
+Status: **APPLIED 2026-07-14** via `20260714-175059-742685`. See `.orchestrator/phase-h1-h4-h6b12-apply-output.md`.
 
 Closes gap H9 from `.orchestrator/audit/capability-audit-2026-07-14b.md`: `engine_agent_costs` records spend but nothing halts a project when it exceeds `engine_projects.agent_budget_monthly_cents`.
 
