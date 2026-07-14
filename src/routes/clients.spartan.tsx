@@ -308,9 +308,9 @@ function CurrentStateSection() {
           </h2>
         </div>
 
-        <div className="grid flex-1 grid-cols-1 items-stretch gap-8 sm:gap-10 md:grid-cols-[3fr_2fr] md:gap-14">
+        <div className="grid flex-1 grid-cols-1 items-stretch gap-10 sm:gap-12 md:grid-cols-[1.05fr_1fr] md:gap-16 lg:gap-20">
           <div className="flex h-full flex-col">
-            <div className="relative w-full flex-1 min-h-[240px] sm:min-h-[320px] md:min-h-[420px] overflow-hidden rounded-lg">
+            <div className="relative w-full flex-1 min-h-[280px] sm:min-h-[380px] md:min-h-[520px] lg:min-h-[600px] overflow-hidden rounded-xl shadow-[0_30px_60px_-24px_rgba(15,27,61,0.35)]">
               <img
                 src={pointABuilding.url}
                 alt="Spartan Security Services headquarters at sunset"
@@ -320,15 +320,35 @@ function CurrentStateSection() {
                 decoding="async"
                 className="h-full w-full scale-105 object-cover object-[40%_10%]"
               />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3"
+                style={{ background: "linear-gradient(to top, rgba(6,17,42,0.55), transparent)" }}
+              />
+              <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-3 text-white">
+                <span
+                  className="text-[10px] font-bold uppercase tracking-[0.28em]"
+                  style={{ color: "rgba(255,255,255,0.85)" }}
+                >
+                  Spartan HQ · Houston, TX
+                </span>
+                <span
+                  className="text-[10px] font-mono tracking-[0.18em]"
+                  style={{ color: "rgba(255,255,255,0.6)" }}
+                >
+                  Est. presence
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex h-full flex-col gap-6 sm:gap-8">
+          <div className="flex h-full flex-col gap-8 sm:gap-10">
             <p
-              className="text-[15px] not-italic leading-[1.3] sm:text-[19px] md:text-[21px] lg:text-[22px]"
+              className="text-[20px] not-italic leading-[1.25] sm:text-[24px] md:text-[28px] lg:text-[32px]"
               style={{
                 color: "#0B1B3A",
                 fontFamily: "'Instrument Serif', 'Playfair Display', Georgia, serif",
+                letterSpacing: "-0.005em",
               }}
             >
               Spartan already has a business{" "}
@@ -339,7 +359,7 @@ function CurrentStateSection() {
             </p>
 
             <div
-              className="space-y-4 text-[13.5px] leading-[1.65] sm:space-y-5 sm:text-[14.5px] sm:leading-[1.7]"
+              className="space-y-5 text-[14px] leading-[1.75] sm:space-y-6 sm:text-[15px] sm:leading-[1.8]"
               style={{ color: "rgba(15,27,61,0.78)" }}
             >
               <p>
@@ -347,10 +367,19 @@ function CurrentStateSection() {
                 authority in Houston.
               </p>
               <div
-                className="rounded-lg border border-[rgba(15,27,61,0.08)] bg-[rgba(15,27,61,0.02)] p-4"
+                className="rounded-xl border border-[rgba(15,27,61,0.08)] bg-[rgba(15,27,61,0.02)] p-5 sm:p-6"
                 style={{ color: "#0B1B3A" }}
               >
-                <ul className="flex flex-col gap-3">
+                <div className="mb-4 flex items-center gap-2">
+                  <span
+                    className="text-[10px] font-black uppercase tracking-[0.24em]"
+                    style={{ color: "#E63946" }}
+                  >
+                    Assets already in place
+                  </span>
+                  <div className="h-px flex-1" style={{ backgroundColor: "rgba(15,27,61,0.12)" }} />
+                </div>
+                <ul className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
                   {[
                     "Marquee clients (Costco, Greystar, RPM…)",
                     "Trained security officers",
@@ -361,14 +390,14 @@ function CurrentStateSection() {
                   ].map((item) => (
                     <li
                       key={item}
-                      className="group flex items-start gap-3 text-[13px] font-medium leading-snug"
+                      className="flex items-start gap-3 text-[13px] font-medium leading-snug"
                     >
                       <span
                         aria-hidden="true"
-                        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full sm:h-4 sm:w-4"
+                        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
                         style={{ backgroundColor: "#E63946" }}
                       >
-                        <Check size={10} color="#ffffff" strokeWidth={3} />
+                        <Check size={11} color="#ffffff" strokeWidth={3} />
                       </span>
                       <span>{item}</span>
                     </li>
