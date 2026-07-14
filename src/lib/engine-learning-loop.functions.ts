@@ -64,7 +64,7 @@ export type LearningSignal = {
 export type WorkflowDiff = {
   kind: "add_review_step" | "adjust_cadence" | "add_guard" | "remove_step" | "note";
   reason: string;
-  patch: Record<string, unknown>;
+  patch: any;
 };
 
 export type LearningReport = {
