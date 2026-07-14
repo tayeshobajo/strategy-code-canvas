@@ -150,7 +150,14 @@ function MessagesPage() {
   const ctx = usePortalContext();
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
+  usePortalViewLogger({
+    projectId,
+    subjectType: "portal_messages",
+    subjectId: projectId,
+  });
+  const logActivity = useServerFn(logPortalActivity);
   const { data: messages, isLoading, isError, refetch } = useMessages(projectId);
+
   const { data: fileMap } = useMessageFiles(projectId);
   const loadCtxOptions = useServerFn(getPortalRoadmapContextOptions);
   const { data: ctxOptions } = useQuery({
