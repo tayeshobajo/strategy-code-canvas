@@ -33,13 +33,27 @@ import {
   submitProjectImplementationPlanToReview,
   approveProjectImplementationPlan,
   archiveProjectImplementationPlan,
+  saveProjectImplementationPlanDraft,
   type ImplementationPlanState,
   type ImplPlanRow,
   type ImplPlanStatus,
   type ImplPriority,
   type ImplStepType,
+  type ImplementationPayload,
 } from "@/lib/engine-implementation-plan.functions";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Pencil } from "lucide-react";
 
 export const Route = createFileRoute(
   "/engine/projects/$projectId/implementation-plan",
