@@ -17,6 +17,8 @@ import { RoadmapFilters, FILTERABLE_STATUSES } from "@/components/portal/roadmap
 import { targetBounds } from "@/components/portal/roadmap/roadmap-layout";
 import { DEMO_ROADMAP_RAW, DEMO_PROJECT } from "@/lib/portal-roadmap-demo-fixture";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+
 import { Button } from "@/components/ui/button";
 import { RoadmapAcknowledgmentBanner } from "@/components/portal/RoadmapAcknowledgmentBanner";
 import {
