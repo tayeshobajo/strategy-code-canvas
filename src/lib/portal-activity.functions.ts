@@ -54,16 +54,14 @@ export const logPortalActivity = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
-    const { supabase, claims } = context as {
-      supabase: {
-        rpc: (
-          fn: string,
-          args: Record<string, unknown>,
-        ) => Promise<{ data: unknown; error: { message: string } | null }>;
-      };
-      claims: { email?: string | null } | null;
-    };
-    const actorEmail = claims?.email ?? null;
+    const { supabase, claims } = context;
+    const actorEmail = (claims as { email?: string | null } | null)?.email ?? null;
+    const rpc = (supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: { message: string } | null }>;
+    }).rpc;
 
     const metadata = {
       subject_type: data.subject_type,
