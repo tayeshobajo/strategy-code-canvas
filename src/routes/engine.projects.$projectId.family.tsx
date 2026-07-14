@@ -322,6 +322,14 @@ function FamilyRow({
           </div>
         </div>
         <div className="flex items-center gap-1 text-xs">
+          <Link
+            to="/engine/projects/$projectId/chat"
+            params={{ projectId: node.id }}
+            className="rounded-md border border-[#E8E1D6] px-2 py-1 hover:bg-white"
+            title="Open project chat for this node"
+          >
+            chat
+          </Link>
           <button
             className="rounded-md border border-[#E8E1D6] px-2 py-1 hover:bg-white"
             onClick={() => onAdd(node.id)}
