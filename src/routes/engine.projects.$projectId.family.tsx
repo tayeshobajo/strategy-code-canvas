@@ -22,6 +22,7 @@ export const Route = createFileRoute("/engine/projects/$projectId/family")({
 function FamilyPage() {
   const { projectId } = Route.useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const familyFn = useServerFn(getProjectFamily);
   const impactFn = useServerFn(getFamilyImpact);
   const createFn = useServerFn(createChildProject);
