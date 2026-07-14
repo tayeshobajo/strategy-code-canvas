@@ -100,6 +100,18 @@ const NAV: AdminNav[] = [
     icon: Wrench,
     match: "/admin/project-integrity",
   },
+  {
+    to: "/admin/engine-learning",
+    label: "Engine learning",
+    icon: Brain,
+    match: "/admin/engine-learning",
+  },
+  {
+    to: "/admin/engine-promotion",
+    label: "Engine promotion",
+    icon: Rocket,
+    match: "/admin/engine-promotion",
+  },
 ];
 
 function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
