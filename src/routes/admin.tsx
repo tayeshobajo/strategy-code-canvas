@@ -18,6 +18,8 @@ import {
   Zap,
   Brain,
   Rocket,
+  DollarSign,
+  Network,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -111,6 +113,18 @@ const NAV: AdminNav[] = [
     label: "Engine promotion",
     icon: Rocket,
     match: "/admin/engine-promotion",
+  },
+  {
+    to: "/admin/cost-guard",
+    label: "Cost guard",
+    icon: DollarSign,
+    match: "/admin/cost-guard",
+  },
+  {
+    to: "/admin/family-impact",
+    label: "Family impact",
+    icon: Network,
+    match: "/admin/family-impact",
   },
 ];
 

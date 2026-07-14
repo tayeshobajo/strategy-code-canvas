@@ -73,6 +73,7 @@ import { Route as AdminPlanDepthRouteImport } from './routes/admin.plan-depth'
 import { Route as AdminOutcomeFeedbackRouteImport } from './routes/admin.outcome-feedback'
 import { Route as AdminMilestoneChangesRouteImport } from './routes/admin.milestone-changes'
 import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-alerts'
+import { Route as AdminFamilyImpactRouteImport } from './routes/admin.family-impact'
 import { Route as AdminExceptionManagementRouteImport } from './routes/admin.exception-management'
 import { Route as AdminEvidenceEnforcementRouteImport } from './routes/admin.evidence-enforcement'
 import { Route as AdminEnginePromotionRouteImport } from './routes/admin.engine-promotion'
@@ -80,6 +81,7 @@ import { Route as AdminEngineLearningRouteImport } from './routes/admin.engine-l
 import { Route as AdminDriftDetectionRouteImport } from './routes/admin.drift-detection'
 import { Route as AdminDeliveryReadinessGateRouteImport } from './routes/admin.delivery-readiness-gate'
 import { Route as AdminDecisionLogRouteImport } from './routes/admin.decision-log'
+import { Route as AdminCostGuardRouteImport } from './routes/admin.cost-guard'
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
 import { Route as AdminCommandCenterRouteImport } from './routes/admin.command-center'
 import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
@@ -467,6 +469,11 @@ const AdminIntakeAlertsRoute = AdminIntakeAlertsRouteImport.update({
   path: '/intake-alerts',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminFamilyImpactRoute = AdminFamilyImpactRouteImport.update({
+  id: '/family-impact',
+  path: '/family-impact',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminExceptionManagementRoute =
   AdminExceptionManagementRouteImport.update({
     id: '/exception-management',
@@ -503,6 +510,11 @@ const AdminDeliveryReadinessGateRoute =
 const AdminDecisionLogRoute = AdminDecisionLogRouteImport.update({
   id: '/decision-log',
   path: '/decision-log',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCostGuardRoute = AdminCostGuardRouteImport.update({
+  id: '/cost-guard',
+  path: '/cost-guard',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminConfigRoute = AdminConfigRouteImport.update({
@@ -903,6 +915,7 @@ export interface FileRoutesByFullPath {
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/cost-guard': typeof AdminCostGuardRoute
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
@@ -910,6 +923,7 @@ export interface FileRoutesByFullPath {
   '/admin/engine-promotion': typeof AdminEnginePromotionRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
+  '/admin/family-impact': typeof AdminFamilyImpactRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
@@ -1036,6 +1050,7 @@ export interface FileRoutesByTo {
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/cost-guard': typeof AdminCostGuardRoute
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
@@ -1043,6 +1058,7 @@ export interface FileRoutesByTo {
   '/admin/engine-promotion': typeof AdminEnginePromotionRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
+  '/admin/family-impact': typeof AdminFamilyImpactRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
@@ -1174,6 +1190,7 @@ export interface FileRoutesById {
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/cost-guard': typeof AdminCostGuardRoute
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
@@ -1181,6 +1198,7 @@ export interface FileRoutesById {
   '/admin/engine-promotion': typeof AdminEnginePromotionRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
+  '/admin/family-impact': typeof AdminFamilyImpactRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
@@ -1312,6 +1330,7 @@ export interface FileRouteTypes {
     | '/admin/client-portals'
     | '/admin/command-center'
     | '/admin/config'
+    | '/admin/cost-guard'
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
     | '/admin/drift-detection'
@@ -1319,6 +1338,7 @@ export interface FileRouteTypes {
     | '/admin/engine-promotion'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
+    | '/admin/family-impact'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
     | '/admin/outcome-feedback'
@@ -1445,6 +1465,7 @@ export interface FileRouteTypes {
     | '/admin/client-portals'
     | '/admin/command-center'
     | '/admin/config'
+    | '/admin/cost-guard'
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
     | '/admin/drift-detection'
@@ -1452,6 +1473,7 @@ export interface FileRouteTypes {
     | '/admin/engine-promotion'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
+    | '/admin/family-impact'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
     | '/admin/outcome-feedback'
@@ -1582,6 +1604,7 @@ export interface FileRouteTypes {
     | '/admin/client-portals'
     | '/admin/command-center'
     | '/admin/config'
+    | '/admin/cost-guard'
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
     | '/admin/drift-detection'
@@ -1589,6 +1612,7 @@ export interface FileRouteTypes {
     | '/admin/engine-promotion'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
+    | '/admin/family-impact'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
     | '/admin/outcome-feedback'
@@ -2189,6 +2213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIntakeAlertsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/family-impact': {
+      id: '/admin/family-impact'
+      path: '/family-impact'
+      fullPath: '/admin/family-impact'
+      preLoaderRoute: typeof AdminFamilyImpactRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/exception-management': {
       id: '/admin/exception-management'
       path: '/exception-management'
@@ -2236,6 +2267,13 @@ declare module '@tanstack/react-router' {
       path: '/decision-log'
       fullPath: '/admin/decision-log'
       preLoaderRoute: typeof AdminDecisionLogRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cost-guard': {
+      id: '/admin/cost-guard'
+      path: '/cost-guard'
+      fullPath: '/admin/cost-guard'
+      preLoaderRoute: typeof AdminCostGuardRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/config': {
@@ -2741,6 +2779,7 @@ interface AdminRouteChildren {
   AdminClientPortalsRoute: typeof AdminClientPortalsRoute
   AdminCommandCenterRoute: typeof AdminCommandCenterRoute
   AdminConfigRoute: typeof AdminConfigRoute
+  AdminCostGuardRoute: typeof AdminCostGuardRoute
   AdminDecisionLogRoute: typeof AdminDecisionLogRoute
   AdminDeliveryReadinessGateRoute: typeof AdminDeliveryReadinessGateRoute
   AdminDriftDetectionRoute: typeof AdminDriftDetectionRoute
@@ -2748,6 +2787,7 @@ interface AdminRouteChildren {
   AdminEnginePromotionRoute: typeof AdminEnginePromotionRoute
   AdminEvidenceEnforcementRoute: typeof AdminEvidenceEnforcementRoute
   AdminExceptionManagementRoute: typeof AdminExceptionManagementRoute
+  AdminFamilyImpactRoute: typeof AdminFamilyImpactRoute
   AdminIntakeAlertsRoute: typeof AdminIntakeAlertsRoute
   AdminMilestoneChangesRoute: typeof AdminMilestoneChangesRoute
   AdminOutcomeFeedbackRoute: typeof AdminOutcomeFeedbackRoute
@@ -2765,6 +2805,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminClientPortalsRoute: AdminClientPortalsRoute,
   AdminCommandCenterRoute: AdminCommandCenterRoute,
   AdminConfigRoute: AdminConfigRoute,
+  AdminCostGuardRoute: AdminCostGuardRoute,
   AdminDecisionLogRoute: AdminDecisionLogRoute,
   AdminDeliveryReadinessGateRoute: AdminDeliveryReadinessGateRoute,
   AdminDriftDetectionRoute: AdminDriftDetectionRoute,
@@ -2772,6 +2813,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEnginePromotionRoute: AdminEnginePromotionRoute,
   AdminEvidenceEnforcementRoute: AdminEvidenceEnforcementRoute,
   AdminExceptionManagementRoute: AdminExceptionManagementRoute,
+  AdminFamilyImpactRoute: AdminFamilyImpactRoute,
   AdminIntakeAlertsRoute: AdminIntakeAlertsRoute,
   AdminMilestoneChangesRoute: AdminMilestoneChangesRoute,
   AdminOutcomeFeedbackRoute: AdminOutcomeFeedbackRoute,
