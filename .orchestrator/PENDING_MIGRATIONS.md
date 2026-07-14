@@ -705,7 +705,7 @@ CREATE INDEX IF NOT EXISTS engine_spine_field_truth_ceremony_idx
 -- ============================================================
 CREATE TRIGGER trg_engine_spine_ceremonies_updated
   BEFORE UPDATE ON public.engine_spine_ceremonies
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION public.tg_touch_updated_at();
 
 -- ============================================================
 -- 5. Audit (INSERT + UPDATE) via engine_audit_log
@@ -776,11 +776,9 @@ BEGIN
     -- Static allowlist mirrored from src/lib/engine-spine-fields.ts.
     -- Vitest diff-fails if this drifts from the TS registry.
     RETURN QUERY SELECT unnest(ARRAY[
-      'current_state:summary',
-      'current_state:pain_points',
-      'current_state:constraints',
-      'current_state:stakeholders'
-      -- ... full Point A static list mirrored from TS registry
+      'lenses',
+      'diagnosis',
+      'key_diagnosis'
     ]::text[]);
 
     -- Dynamic Point A: diagnosis:<title> keys derived per-project from
@@ -795,9 +793,13 @@ BEGIN
 
   ELSIF _spine = 'point-b' THEN
     RETURN QUERY SELECT unnest(ARRAY[
-      'target_state:summary',
-      'target_state:success_metrics'
-      -- ... full Point B static list
+      '24_month_destination',
+      '10_year_position',
+      'client_outcome',
+      'customer_outcome',
+      'operational_outcome',
+      'revenue_outcome',
+      'brand_position'
     ]::text[]);
   END IF;
 END;
@@ -1114,7 +1116,7 @@ Point B ceremonies exist. Phase 2B must ship before that path unlocks:
 2. Confirm `engine_audit_log.action` accepts the new values
    (`spine_ceremony_opened`, `spine_ceremony_changed`,
    `spine_ceremony_decision`) — column is free-text today.
-3. Confirm `public.update_updated_at_column()` exists.
+3. Confirm `public.tg_touch_updated_at()` exists.
 4. Confirm `public.has_role_email(text, app_role)` exists.
 5. Confirm `public.is_engine_staff()` exists.
 6. Confirm `public.epistemic_status` enum exists (Phase 1 R3 shipped it).
