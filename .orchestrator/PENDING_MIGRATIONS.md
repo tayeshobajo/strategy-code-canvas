@@ -3969,7 +3969,7 @@ Status: **PENDING TAI REVIEW (Revision 4) — apply-ready pending final sign-off
 
 ## Runtime Schema Drift Fix — engine_projects.current_phase + client_portal_roadmaps grants
 
-Status: **PENDING TAI REVIEW.** Do not apply until reviewed.
+Status: **APPLIED 2026-07-14, VERIFIED.** See `.orchestrator/hotfix-portal-roadmaps-output.md` (5/5 checks PASS incl. negative anon-token via Data API). Migration id `20260714-005744-436757`.
 
 Origin: Project monitoring 2026-07-13 — two high-severity runtime errors in production.
 
