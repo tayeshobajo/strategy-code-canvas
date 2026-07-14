@@ -37,6 +37,8 @@ import {
   type ChatActionId,
 } from "@/lib/engine-chat-actions";
 import { ActionConfirmDialog } from "./ActionConfirmDialog";
+import { ProposalImpactEditor } from "@/components/engine/ProposalImpactEditor";
+import { deriveImpactSummary, type ProposalImpactSummary } from "@/components/ProposalImpactPanel";
 
 type Props = {
   projectId: string;
@@ -265,6 +267,22 @@ export function ProposalCard({ projectId, threadId, sourceMessageId, proposal, c
       {draft.summary && <div className="mt-1 text-xs leading-relaxed opacity-90">{draft.summary}</div>}
 
       <PayloadFields proposal_type={draft.proposal_type} payload={draft.payload as Record<string, unknown>} />
+
+      {row?.id && (
+        <ProposalImpactEditor
+          proposalId={row.id}
+          initial={
+            (row.impact_summary as ProposalImpactSummary | null) ??
+            deriveImpactSummary({
+              proposal_type: row.proposal_type,
+              payload: (row.payload && typeof row.payload === "object" && !Array.isArray(row.payload)
+                ? (row.payload as Record<string, unknown>)
+                : null),
+            })
+          }
+          canEdit={capState.isStaff}
+        />
+      )}
 
       {draft.target_route && (
         <div className="mt-2">

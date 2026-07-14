@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { EmptyState, MetricCard, SectionCard } from "@/components/engine/primitives";
 import { decideReviewItem, listReviewQueue, type ReviewItem } from "@/lib/engine-ops.functions";
+import { ReviewRiskInputsEditor } from "@/components/engine/ReviewRiskInputsEditor";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/engine/approvals")({
@@ -276,6 +277,17 @@ function renderItemCard(
             >
               {item.status.replace("_", " ")}
             </span>
+            {item.risk_score != null && (
+              <span
+                className="rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.2em]"
+                style={{
+                  borderColor: item.risk_score >= 80 ? "#C94B4B" : item.risk_score >= 60 ? "#D7A64A" : STONE,
+                  color: item.risk_score >= 60 ? "#8A3A00" : "rgba(10, 15, 31, 0.65)",
+                }}
+              >
+                risk {item.risk_score}
+              </span>
+            )}
           </div>
           <h3 className="mt-2 text-lg font-semibold" style={{ color: NAVY }}>
             {item.title}
@@ -299,6 +311,10 @@ function renderItemCard(
             <Detail label="Requested By" value={item.requested_by ?? "Unknown"} />
             <Detail label="Source" value={item.source ?? "Not provided"} />
           </dl>
+
+          <ReviewRiskInputsEditor item={item} />
+
+
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <ActionButton
