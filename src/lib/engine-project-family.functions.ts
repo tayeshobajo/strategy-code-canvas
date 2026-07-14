@@ -95,6 +95,38 @@ export const createChildProject = createServerFn({ method: "POST" })
       },
     ]);
 
+    // Durable audit trail — one row per side of the relationship so
+    // audit queries scoped to either project surface the mutation.
+    const auditPayload = {
+      old_parent_id: null,
+      new_parent_id: data.parentProjectId,
+      subtree_ids: [childId],
+      child_name: data.name,
+      parent_name: parent.name,
+    };
+    await sb.from("engine_audit_log").insert([
+      {
+        project_id: childId,
+        action: "family.create_child",
+        actor_email: actor || null,
+        summary: `Created ${data.name} as child of ${parent.name}`,
+        target_id: data.parentProjectId,
+        affected_modules: ["family", "rollups"],
+        metadata: auditPayload,
+        new_value: auditPayload,
+      },
+      {
+        project_id: data.parentProjectId,
+        action: "family.create_child",
+        actor_email: actor || null,
+        summary: `Attached new child ${data.name}`,
+        target_id: childId,
+        affected_modules: ["family", "rollups"],
+        metadata: auditPayload,
+        new_value: auditPayload,
+      },
+    ]);
+
     return { childId };
   });
 
