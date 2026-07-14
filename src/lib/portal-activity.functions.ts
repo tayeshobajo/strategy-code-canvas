@@ -73,10 +73,10 @@ export const logPortalActivity = createServerFn({ method: "POST" })
       data.summary ??
       `${data.kind}: ${data.subject_type}${data.subject_id ? ` (${data.subject_id})` : ""}`;
 
-    const { error } = await supabase.rpc("log_client_portal_activity", {
+    const { error } = await rpc("log_client_portal_activity", {
       _project_id: data.project_id,
       _actor_type: "client",
-      _actor_email: actorEmail,
+      _actor_email: actorEmail ?? "",
       _event_type: data.kind,
       _summary: summary,
       _client_visible: data.client_visible ?? true,
