@@ -404,14 +404,24 @@ function HeaderCard({
             Generate Implementation Plan
           </button>
           {latest?.status === "draft" ? (
-            <button
-              onClick={() => onSubmit(latest.id)}
-              disabled={busy === "submit"}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border text-xs px-3 py-1.5 hover:border-royal/50 disabled:opacity-50"
-              data-qa="btn-submit-impl"
-            >
-              <ArrowUpCircle className="w-3.5 h-3.5" /> Submit to Review
-            </button>
+            <>
+              <button
+                onClick={onEdit}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border text-xs px-3 py-1.5 hover:border-royal/50"
+                data-qa="btn-edit-impl-draft"
+                title="Edit draft — routes through admin_edit_impl_plan_governed RPC"
+              >
+                <Pencil className="w-3.5 h-3.5" /> Edit draft
+              </button>
+              <button
+                onClick={() => onSubmit(latest.id)}
+                disabled={busy === "submit"}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border text-xs px-3 py-1.5 hover:border-royal/50 disabled:opacity-50"
+                data-qa="btn-submit-impl"
+              >
+                <ArrowUpCircle className="w-3.5 h-3.5" /> Submit to Review
+              </button>
+            </>
           ) : null}
           {latest?.status === "in_review" && state.capabilities.canApprove ? (
             <button
