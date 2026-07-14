@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useMemo, useState, useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -7,6 +7,13 @@ import type { CommandCenterPayload, EngineProjectRow } from "@/lib/engine.functi
 import { formatDate, formatCents } from "@/components/engine/primitives";
 import { cn } from "@/lib/utils";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
   AlertOctagon,
   AlertTriangle,
   ArrowRight,
@@ -14,11 +21,14 @@ import {
   CheckCircle2,
   Clock,
   DollarSign,
+  ExternalLink,
   Flame,
+  History,
   Radio,
   ShieldAlert,
   Sparkles,
   Target,
+  Timer,
   Users,
   Zap,
 } from "lucide-react";
