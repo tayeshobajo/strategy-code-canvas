@@ -33,13 +33,27 @@ import {
   submitProjectImplementationPlanToReview,
   approveProjectImplementationPlan,
   archiveProjectImplementationPlan,
+  saveProjectImplementationPlanDraft,
   type ImplementationPlanState,
   type ImplPlanRow,
   type ImplPlanStatus,
   type ImplPriority,
   type ImplStepType,
+  type ImplementationPayload,
 } from "@/lib/engine-implementation-plan.functions";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Pencil } from "lucide-react";
 
 export const Route = createFileRoute(
   "/engine/projects/$projectId/implementation-plan",
@@ -78,6 +92,8 @@ function ImplementationPlanPage() {
   const submitFn = useServerFn(submitProjectImplementationPlanToReview);
   const approveFn = useServerFn(approveProjectImplementationPlan);
   const archiveFn = useServerFn(archiveProjectImplementationPlan);
+  const saveDraftFn = useServerFn(saveProjectImplementationPlanDraft);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data, isPending, isError, error, refetch } = useQuery(
     planQueryOptions(
@@ -201,6 +217,19 @@ function ImplementationPlanPage() {
           onSubmit={onSubmit}
           onApprove={onApprove}
           onArchive={onArchive}
+          onEdit={() => setEditOpen(true)}
+        />
+        <EditDraftDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          plan={latest}
+          projectId={projectId}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          saveFn={saveDraftFn as any}
+          onSaved={() => {
+            setEditOpen(false);
+            invalidate();
+          }}
         />
         {latest ? (
           <>
@@ -294,6 +323,7 @@ function HeaderCard({
   onSubmit,
   onApprove,
   onArchive,
+  onEdit,
 }: {
   state: ImplementationPlanState;
   busy: string | null;
@@ -301,6 +331,7 @@ function HeaderCard({
   onSubmit: (id: string) => void;
   onApprove: (id: string) => void;
   onArchive: (id: string) => void;
+  onEdit: () => void;
 }) {
   const latest = state.latest;
   const backend = state.approved_backend_plan;
@@ -373,14 +404,24 @@ function HeaderCard({
             Generate Implementation Plan
           </button>
           {latest?.status === "draft" ? (
-            <button
-              onClick={() => onSubmit(latest.id)}
-              disabled={busy === "submit"}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border text-xs px-3 py-1.5 hover:border-royal/50 disabled:opacity-50"
-              data-qa="btn-submit-impl"
-            >
-              <ArrowUpCircle className="w-3.5 h-3.5" /> Submit to Review
-            </button>
+            <>
+              <button
+                onClick={onEdit}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border text-xs px-3 py-1.5 hover:border-royal/50"
+                data-qa="btn-edit-impl-draft"
+                title="Edit draft — routes through admin_edit_impl_plan_governed RPC"
+              >
+                <Pencil className="w-3.5 h-3.5" /> Edit draft
+              </button>
+              <button
+                onClick={() => onSubmit(latest.id)}
+                disabled={busy === "submit"}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border text-xs px-3 py-1.5 hover:border-royal/50 disabled:opacity-50"
+                data-qa="btn-submit-impl"
+              >
+                <ArrowUpCircle className="w-3.5 h-3.5" /> Submit to Review
+              </button>
+            </>
           ) : null}
           {latest?.status === "in_review" && state.capabilities.canApprove ? (
             <button
@@ -405,6 +446,182 @@ function HeaderCard({
         </div>
       </div>
     </div>
+  );
+}
+
+// ------------------------ Edit Draft Dialog ------------------------
+//
+// Governed-fields edit surface. All mutations flow through
+// `saveProjectImplementationPlanDraft`, which internally invokes the
+// SECURITY DEFINER RPC `admin_edit_impl_plan_governed` (Phase H6·B12).
+// This is the ONLY admin-facing edit path for `summary` + `payload` on an
+// implementation plan draft. Direct table updates are blocked by the
+// `engine_impl_plans_require_proposal` trigger.
+
+type SaveDraftFn = (input: {
+  data: {
+    projectId: string;
+    planId: string;
+    title: string;
+    summary?: string | null;
+    payload: ImplementationPayload;
+  };
+}) => Promise<{ plan: ImplPlanRow }>;
+
+function EditDraftDialog({
+  open,
+  onOpenChange,
+  plan,
+  projectId,
+  saveFn,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  plan: ImplPlanRow | null;
+  projectId: string;
+  saveFn: SaveDraftFn;
+  onSaved: () => void;
+}) {
+  const editable = plan && plan.status === "draft";
+  const [title, setTitle] = useState(plan?.title ?? "");
+  const [summary, setSummary] = useState(plan?.summary ?? "");
+  const [payloadText, setPayloadText] = useState(
+    plan ? JSON.stringify(plan.payload, null, 2) : "{}",
+  );
+  const [saving, setSaving] = useState(false);
+  const [jsonErr, setJsonErr] = useState<string | null>(null);
+
+  // Reset fields when the dialog opens against a fresh plan.
+  useMemo(() => {
+    if (open && plan) {
+      setTitle(plan.title);
+      setSummary(plan.summary ?? "");
+      setPayloadText(JSON.stringify(plan.payload, null, 2));
+      setJsonErr(null);
+    }
+  }, [open, plan]);
+
+  const onSave = async () => {
+    if (!plan) return;
+    let parsed: ImplementationPayload;
+    try {
+      parsed = JSON.parse(payloadText) as ImplementationPayload;
+      setJsonErr(null);
+    } catch (e) {
+      setJsonErr(`Invalid JSON: ${(e as Error).message}`);
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveFn({
+        data: {
+          projectId,
+          planId: plan.id,
+          title: title.trim(),
+          summary: summary.trim() ? summary.trim() : null,
+          payload: parsed,
+        },
+      });
+      toast.success("Draft saved via admin_edit_impl_plan_governed");
+      onSaved();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Edit implementation plan draft</DialogTitle>
+          <DialogDescription>
+            Governed fields — writes go through the{" "}
+            <code className="font-mono text-[11px]">admin_edit_impl_plan_governed</code>{" "}
+            RPC. Only draft plans are editable.
+          </DialogDescription>
+        </DialogHeader>
+
+        {!editable ? (
+          <div className="rounded border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+            This plan is in status{" "}
+            <strong>{plan?.status ?? "unknown"}</strong>. Only drafts can be edited;
+            create a new draft to change an approved / in-review plan.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="impl-edit-title">Title</Label>
+              <Input
+                id="impl-edit-title"
+                value={title}
+                maxLength={200}
+                onChange={(e) => setTitle(e.target.value)}
+                data-qa="impl-edit-title"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="impl-edit-summary">Summary</Label>
+              <Textarea
+                id="impl-edit-summary"
+                value={summary}
+                maxLength={2000}
+                rows={3}
+                onChange={(e) => setSummary(e.target.value)}
+                data-qa="impl-edit-summary"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="impl-edit-payload">
+                Payload (JSON) — governed
+              </Label>
+              <Textarea
+                id="impl-edit-payload"
+                value={payloadText}
+                rows={16}
+                className="font-mono text-xs"
+                onChange={(e) => setPayloadText(e.target.value)}
+                data-qa="impl-edit-payload"
+              />
+              {jsonErr ? (
+                <div className="text-xs text-red-700">{jsonErr}</div>
+              ) : (
+                <div className="text-[11px] text-ink/50">
+                  Server re-normalizes the payload against the approved backend +
+                  QA plans before writing.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="rounded-md border border-border px-3 py-1.5 text-xs hover:border-royal/50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={!editable || saving || !title.trim()}
+            className="inline-flex items-center gap-1.5 rounded-md bg-royal text-white px-3 py-1.5 text-xs hover:bg-royal/90 disabled:opacity-50"
+            data-qa="btn-save-impl-draft"
+          >
+            {saving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            )}
+            Save draft
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

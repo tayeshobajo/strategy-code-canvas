@@ -4924,3 +4924,123 @@ Restore the prior body from `supabase/migrations/20260713173448_dd44a646-e587-4b
 
 Status: **APPLIED 2026-07-14.** Closes Phase 4 F1. F2 verified in place. F3 verified in place.
 
+
+---
+
+## Phase H1.b — Cost-Overrun Auto-Pause NOTIFICATIONS (trigger enhancement)
+
+**Status: PENDING TAI REVIEW — NOT YET APPLIED.**
+
+Pairs with the app-side hook `POST /api/public/hooks/cost-autopause` and the
+`cost-overrun-autopause` email template. Extends the existing
+`tg_engine_agent_costs_cap_guard()` function so that whenever it flips a
+project into the cost-paused state, it fires an async `pg_net.http_post` to
+the hook with the project name, spend, budget, reason, and paused_at. The
+hook dispatches Slack (if `SLACK_WEBHOOK_URL` is set) and enqueues one
+`cost-overrun-autopause` email per operator/admin email.
+
+### Prerequisites
+
+1. App containing `src/routes/api/public/hooks/cost-autopause.ts` deployed.
+2. `pg_net` extension enabled (`CREATE EXTENSION IF NOT EXISTS pg_net;`).
+3. Optional: workspace secret `SLACK_WEBHOOK_URL` set for Slack alerts. Without
+   it, email-only alerts still ship.
+
+### Migration SQL (do not apply until reviewed)
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+CREATE OR REPLACE FUNCTION public.tg_engine_agent_costs_cap_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_budget integer;
+  v_spend integer;
+  v_already_paused timestamptz;
+  v_project_name text;
+  v_paused_at timestamptz;
+  v_reason text;
+  v_hook_url text := 'https://project--b3555ed3-b0dc-4def-8fee-77ff34a2cb82.lovable.app/api/public/hooks/cost-autopause';
+  v_apikey text := 'sb_publishable_mF24_o-spzzxHlB3i3jDkA_8euIpH9o';
+BEGIN
+  SELECT agent_budget_monthly_cents, cost_paused_at, name
+    INTO v_budget, v_already_paused, v_project_name
+  FROM public.engine_projects WHERE id = NEW.project_id;
+
+  IF v_budget IS NULL OR v_budget <= 0 THEN RETURN NEW; END IF;
+  IF v_already_paused IS NOT NULL THEN RETURN NEW; END IF;
+
+  SELECT COALESCE(SUM(cost_cents), 0) INTO v_spend
+  FROM public.engine_agent_costs
+  WHERE project_id = NEW.project_id
+    AND created_at >= date_trunc('month', now());
+
+  IF v_spend > v_budget THEN
+    v_paused_at := now();
+    v_reason := format(
+      'Month-to-date spend $%s exceeded budget $%s',
+      to_char(v_spend/100.0, 'FM999,999,990.00'),
+      to_char(v_budget/100.0, 'FM999,999,990.00'));
+
+    UPDATE public.engine_projects
+       SET cost_paused_at = v_paused_at,
+           cost_paused_reason = v_reason
+     WHERE id = NEW.project_id;
+
+    INSERT INTO public.engine_review_items
+      (project_id, project, item_type, title, impact, source, status)
+    VALUES
+      (NEW.project_id, v_project_name, 'cost_overrun',
+       format('Cost cap exceeded — project auto-paused ($%s / $%s)',
+              to_char(v_spend/100.0, 'FM999,999,990.00'),
+              to_char(v_budget/100.0, 'FM999,999,990.00')),
+       'high', 'cost_guard_auto', 'pending');
+
+    INSERT INTO public.engine_audit_log
+      (project_id, action, actor_email, field_changed, old_value, new_value, reason, metadata)
+    VALUES
+      (NEW.project_id, 'project.cost.autopause', 'system:cost_guard',
+       'cost_paused_at', NULL, v_paused_at::text, v_reason,
+       jsonb_build_object('spend_cents', v_spend, 'budget_cents', v_budget,
+                          'triggering_cost_id', NEW.id));
+
+    -- Async notification dispatch. pg_net queues the request; failures
+    -- here do NOT roll back the auto-pause (best-effort alerting).
+    PERFORM net.http_post(
+      url := v_hook_url,
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'apikey', v_apikey),
+      body := jsonb_build_object(
+        'project_id',   NEW.project_id,
+        'project_name', v_project_name,
+        'spend_cents',  v_spend,
+        'budget_cents', v_budget,
+        'reason',       v_reason,
+        'paused_at',    v_paused_at));
+  END IF;
+
+  RETURN NEW;
+END $$;
+```
+
+### Verification (post-apply)
+
+1. Insert a synthetic `engine_agent_costs` row that pushes a test project over
+   its budget.
+2. Confirm the project is auto-paused (as before).
+3. Query `net.http_request_queue` / `net._http_response` — confirm a POST to
+   `/api/public/hooks/cost-autopause` was queued and returned 200.
+4. Check `email_send_log` for one `template_name='cost-overrun-autopause'` row
+   per operator/admin recipient with `status IN ('pending','sent')`.
+5. If `SLACK_WEBHOOK_URL` is configured, confirm the Slack alert lands.
+
+### Rollback
+
+Restore the prior body of `tg_engine_agent_costs_cap_guard` from
+`supabase/migrations/20260714175046_aabe47e4-131b-4cd5-a2ef-488d2dda13a6.sql`
+(lines 10–71).
