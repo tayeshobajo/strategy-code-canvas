@@ -37,17 +37,36 @@ interface RoadmapAcknowledgmentBannerProps {
 
 export function RoadmapAcknowledgmentBanner({
   portalRoadmapId,
+  projectId,
   clientEmail,
   acknowledgedAt,
   acknowledgedByEmail,
   onAcknowledged,
 }: RoadmapAcknowledgmentBannerProps) {
   const recordEvent = useServerFn(recordPortalRoadmapEvent);
+  const logActivity = useServerFn(logPortalActivity);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [localAcknowledgedAt, setLocalAcknowledgedAt] = useState<string | null>(
     acknowledgedAt ?? null
   );
+  const viewedLoggedRef = useRef(false);
+
+  // Phase 2 (Top-10 sweep): emit one `viewed` activity per mount.
+  useEffect(() => {
+    if (viewedLoggedRef.current) return;
+    viewedLoggedRef.current = true;
+    logActivity({
+      data: {
+        project_id: projectId,
+        kind: 'viewed',
+        subject_type: 'portal_roadmap',
+        subject_id: portalRoadmapId,
+      },
+    }).catch(() => {
+      // Telemetry only — never block the roadmap view.
+    });
+  }, [logActivity, projectId, portalRoadmapId]);
 
   const isAcknowledged = !!localAcknowledgedAt;
 
