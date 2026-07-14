@@ -4021,3 +4021,147 @@ GRANT ALL ON public.client_portal_roadmaps TO service_role;
 Status: **PENDING TAI REVIEW.** Independent of Phase 5D.
 
 
+
+---
+
+## Phase H1 — Cost-Overrun Auto-Pause
+
+Status: **PENDING TAI REVIEW** (proposed 2026-07-14).
+
+Closes gap H9 from `.orchestrator/audit/capability-audit-2026-07-14b.md`: `engine_agent_costs` records spend but nothing halts a project when it exceeds `engine_projects.agent_budget_monthly_cents`.
+
+### Design
+
+Reuse the existing budget column (`agent_budget_monthly_cents`) — do not add a second cap concept. Add two nullable columns to record pause state, and one AFTER-INSERT trigger on `engine_agent_costs` that:
+1. Recomputes month-to-date spend for the affected project.
+2. If spend > budget AND project is not already cost-paused AND budget > 0, sets `cost_paused_at = now()` + `cost_paused_reason`, and inserts an `engine_review_items` row (`item_type='cost_overrun'`, `impact='high'`, `source='cost_guard_auto'`) plus an `engine_audit_log` row (`action='project.cost.autopause'`).
+
+Project `status` enum is **not** modified — pause is expressed by `cost_paused_at IS NOT NULL`. All existing readers keep working; new UI checks the timestamp.
+
+Resume is app-side via `resumeProjectAfterCostReview` (staff-gated server fn) which clears `cost_paused_at`/`cost_paused_reason` and audits. Separate-approver enforced in code: the resuming email MUST differ from the actor_email on the most recent `engine_agent_costs` row that tripped the cap.
+
+### Preflight (must pass before apply)
+
+```sql
+-- 1. No project currently has cost_paused_at column (idempotency check)
+SELECT column_name FROM information_schema.columns
+WHERE table_schema='public' AND table_name='engine_projects'
+  AND column_name IN ('cost_paused_at','cost_paused_reason');
+-- expect: 0 rows
+
+-- 2. Confirm budget column shape unchanged
+SELECT column_name, data_type FROM information_schema.columns
+WHERE table_schema='public' AND table_name='engine_projects'
+  AND column_name IN ('agent_budget_monthly_cents','agent_spend_month_cents');
+-- expect: 2 rows, integer
+
+-- 3. Snapshot projects already over budget (they will trip on next insert)
+SELECT p.id, p.name, p.agent_budget_monthly_cents,
+       COALESCE(SUM(c.cost_cents) FILTER (
+         WHERE c.created_at >= date_trunc('month', now())
+       ), 0) AS mtd_spend_cents
+FROM public.engine_projects p
+LEFT JOIN public.engine_agent_costs c ON c.project_id = p.id
+GROUP BY p.id
+HAVING p.agent_budget_monthly_cents > 0
+   AND COALESCE(SUM(c.cost_cents) FILTER (
+        WHERE c.created_at >= date_trunc('month', now())
+      ), 0) > p.agent_budget_monthly_cents;
+```
+
+If preflight #3 returns rows, decide per project whether to raise the budget, pause manually, or accept immediate auto-pause on next cost row.
+
+### Proposed SQL
+
+```sql
+-- H1.1: pause-state columns
+ALTER TABLE public.engine_projects
+  ADD COLUMN IF NOT EXISTS cost_paused_at timestamptz NULL,
+  ADD COLUMN IF NOT EXISTS cost_paused_reason text NULL;
+
+CREATE INDEX IF NOT EXISTS engine_projects_cost_paused_idx
+  ON public.engine_projects (cost_paused_at)
+  WHERE cost_paused_at IS NOT NULL;
+
+-- H1.2: guard function
+CREATE OR REPLACE FUNCTION public.tg_engine_agent_costs_cap_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_budget integer;
+  v_spend integer;
+  v_already_paused timestamptz;
+  v_project_name text;
+BEGIN
+  SELECT agent_budget_monthly_cents, cost_paused_at, name
+    INTO v_budget, v_already_paused, v_project_name
+  FROM public.engine_projects WHERE id = NEW.project_id;
+
+  IF v_budget IS NULL OR v_budget <= 0 THEN
+    RETURN NEW;
+  END IF;
+  IF v_already_paused IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT COALESCE(SUM(cost_cents), 0) INTO v_spend
+  FROM public.engine_agent_costs
+  WHERE project_id = NEW.project_id
+    AND created_at >= date_trunc('month', now());
+
+  IF v_spend > v_budget THEN
+    UPDATE public.engine_projects
+       SET cost_paused_at = now(),
+           cost_paused_reason = format(
+             'Month-to-date spend $%s exceeded budget $%s',
+             to_char(v_spend/100.0, 'FM999,999,990.00'),
+             to_char(v_budget/100.0, 'FM999,999,990.00'))
+     WHERE id = NEW.project_id;
+
+    INSERT INTO public.engine_review_items
+      (project_id, project, item_type, title, impact, source, status)
+    VALUES
+      (NEW.project_id, v_project_name, 'cost_overrun',
+       format('Cost cap exceeded — project auto-paused ($%s / $%s)',
+              to_char(v_spend/100.0, 'FM999,999,990.00'),
+              to_char(v_budget/100.0, 'FM999,999,990.00')),
+       'high', 'cost_guard_auto', 'pending');
+
+    INSERT INTO public.engine_audit_log
+      (project_id, action, actor_email, field_changed, old_value, new_value, reason, metadata)
+    VALUES
+      (NEW.project_id, 'project.cost.autopause', 'system:cost_guard',
+       'cost_paused_at', NULL, now()::text,
+       format('spend_cents=%s budget_cents=%s', v_spend, v_budget),
+       jsonb_build_object('spend_cents', v_spend, 'budget_cents', v_budget,
+                          'triggering_cost_id', NEW.id));
+  END IF;
+
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS engine_agent_costs_cap_guard ON public.engine_agent_costs;
+CREATE TRIGGER engine_agent_costs_cap_guard
+  AFTER INSERT ON public.engine_agent_costs
+  FOR EACH ROW EXECUTE FUNCTION public.tg_engine_agent_costs_cap_guard();
+```
+
+### Post-apply verification
+
+```sql
+-- Trigger present
+SELECT trigger_name FROM information_schema.triggers
+WHERE trigger_name = 'engine_agent_costs_cap_guard';
+
+-- Simulate: insert a cost row that trips a test project. Confirm cost_paused_at populated,
+-- review_item row created with item_type='cost_overrun', audit_log row with action='project.cost.autopause'.
+```
+
+### App-side (already committed, inert until this migration lands)
+
+- `src/lib/engine-cost-guard.functions.ts` — `getCostGuardReport()`, `resumeProjectAfterCostReview()`.
+- `src/routes/admin.cost-guard.tsx` — read-only dashboard using existing `agent_budget_monthly_cents` + summed `engine_agent_costs`. Pause banner only appears after migration lands (column NULL-safe).
+
