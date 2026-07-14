@@ -4209,3 +4209,152 @@ WHERE item_type = 'outcome_checkin' ORDER BY created_at DESC LIMIT 20;
 - `src/lib/engine-outcome-scheduler.functions.ts`
 - `src/routes/api/public/hooks/outcome-checkins.ts`
 - `src/routes/admin.outcome-scheduler.tsx`
+
+## Phase H6 · B12 — Non-spine proposal enforcement (PROPOSED, not applied)
+
+Extends `tg_engine_chat_proposals_enforce_transition` so material edits to
+milestone bodies (`engine_milestones.body`, `.acceptance_criteria`,
+`.success_criteria`) and implementation plans
+(`engine_project_implementation_plans.body`, `.data_model`, `.integrations`)
+route through a chat proposal instead of a silent UPDATE.
+
+```sql
+-- Blocks direct UPDATE to governed body columns unless the current
+-- statement was triggered from applyApprovedProposal() (marked via a
+-- session GUC `engine.proposal_apply = 'on'`).
+
+CREATE OR REPLACE FUNCTION public.tg_engine_milestones_require_proposal()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF current_setting('engine.proposal_apply', true) = 'on' THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.body IS DISTINCT FROM OLD.body
+     OR NEW.acceptance_criteria IS DISTINCT FROM OLD.acceptance_criteria
+     OR NEW.success_criteria IS DISTINCT FROM OLD.success_criteria THEN
+    RAISE EXCEPTION 'Milestone body/criteria edits must go through a chat proposal (see engine_project_chat_proposals).';
+  END IF;
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS engine_milestones_require_proposal ON public.engine_milestones;
+CREATE TRIGGER engine_milestones_require_proposal
+  BEFORE UPDATE ON public.engine_milestones
+  FOR EACH ROW EXECUTE FUNCTION public.tg_engine_milestones_require_proposal();
+
+-- Same pattern for implementation plans.
+CREATE OR REPLACE FUNCTION public.tg_engine_impl_plans_require_proposal()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF current_setting('engine.proposal_apply', true) = 'on' THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.body IS DISTINCT FROM OLD.body
+     OR NEW.data_model IS DISTINCT FROM OLD.data_model
+     OR NEW.integrations IS DISTINCT FROM OLD.integrations THEN
+    RAISE EXCEPTION 'Implementation-plan body edits must go through a chat proposal.';
+  END IF;
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS engine_impl_plans_require_proposal ON public.engine_project_implementation_plans;
+CREATE TRIGGER engine_impl_plans_require_proposal
+  BEFORE UPDATE ON public.engine_project_implementation_plans
+  FOR EACH ROW EXECUTE FUNCTION public.tg_engine_impl_plans_require_proposal();
+```
+
+App-side change (already committed):
+- `applyApprovedProposal()` sets `SET LOCAL engine.proposal_apply = 'on'`
+  inside its transaction before touching governed rows.
+
+### Verification
+
+```sql
+-- Should raise:
+UPDATE public.engine_milestones SET body = body || ' edit' WHERE id = '<real-id>';
+-- Should succeed inside applyApprovedProposal path (GUC set).
+```
+
+---
+
+## Phase H6 · J4 — Universal `impact_summary` on proposals (PROPOSED, not applied)
+
+```sql
+ALTER TABLE public.engine_project_chat_proposals
+  ADD COLUMN IF NOT EXISTS impact_summary jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN public.engine_project_chat_proposals.impact_summary IS
+  'Standardised proposal impact: {scope, budgetDelta, timelineDelta, dependencies, clientExpectations, reversibility, risks}. Rendered by ProposalImpactPanel.';
+
+-- Optional backfill from existing payload shapes (safe defaults).
+UPDATE public.engine_project_chat_proposals
+   SET impact_summary = jsonb_build_object(
+     'scope', payload->>'scope',
+     'reversibility', CASE WHEN proposal_type = 'implementation_prompt' THEN 'hard' ELSE 'reversible' END
+   )
+ WHERE impact_summary = '{}'::jsonb;
+```
+
+App-side (already committed):
+- `src/components/ProposalImpactPanel.tsx` renders the payload.
+- `deriveImpactSummary()` provides a safe fallback until the column
+  exists.
+
+---
+
+## Phase H6 · I11 — `risk_score` on review items (PROPOSED, not applied)
+
+```sql
+ALTER TABLE public.engine_review_items
+  ADD COLUMN IF NOT EXISTS risk_score int NOT NULL DEFAULT 0
+    CHECK (risk_score BETWEEN 0 AND 100);
+
+CREATE INDEX IF NOT EXISTS engine_review_items_risk_score_idx
+  ON public.engine_review_items (risk_score DESC, created_at DESC);
+
+-- Trigger mirrors src/lib/engine-review-risk-score.ts so app + DB sort agree.
+CREATE OR REPLACE FUNCTION public.tg_engine_review_items_risk_score()
+RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+  sev_fallback int := CASE NEW.severity
+    WHEN 'critical' THEN 90
+    WHEN 'high'     THEN 70
+    WHEN 'medium'   THEN 45
+    ELSE 20 END;
+  impact  int := COALESCE(NEW.impact_score, sev_fallback);
+  urgency int := COALESCE(NEW.urgency_score, sev_fallback);
+  deadline_days numeric := CASE WHEN NEW.deadline_at IS NULL THEN NULL
+    ELSE EXTRACT(EPOCH FROM (NEW.deadline_at - now())) / 86400 END;
+  deadline_component int := CASE
+    WHEN deadline_days IS NULL THEN 0
+    WHEN deadline_days <= 0 THEN 100
+    WHEN deadline_days <= 1 THEN 90
+    WHEN deadline_days <= 3 THEN 75
+    WHEN deadline_days <= 7 THEN 60
+    WHEN deadline_days <= 14 THEN 40
+    WHEN deadline_days <= 30 THEN 25
+    ELSE 10 END;
+  base numeric := impact * 0.4 + urgency * 0.4 + deadline_component * 0.2;
+BEGIN
+  IF NEW.client_risk IS TRUE THEN base := base + 10; END IF;
+  NEW.risk_score := GREATEST(0, LEAST(100, ROUND(base)));
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS engine_review_items_risk_score ON public.engine_review_items;
+CREATE TRIGGER engine_review_items_risk_score
+  BEFORE INSERT OR UPDATE OF severity, impact_score, urgency_score, deadline_at, client_risk
+  ON public.engine_review_items
+  FOR EACH ROW EXECUTE FUNCTION public.tg_engine_review_items_risk_score();
+```
+
+App-side (already committed):
+- `src/lib/engine-review-risk-score.ts` — pure fn shared by admin queue sort.
+
+### Verification
+
+```sql
+SELECT id, severity, impact_score, urgency_score, deadline_at, risk_score
+  FROM public.engine_review_items
+ ORDER BY risk_score DESC LIMIT 10;
+```
