@@ -4555,3 +4555,220 @@ SELECT id, severity, impact_score, urgency_score, deadline_at, risk_score
   FROM public.engine_review_items
  ORDER BY risk_score DESC LIMIT 10;
 ```
+
+---
+
+## Top-10 Gap Sweep — Phase 1 · Governance Gate (PROPOSED 2026-07-14, not applied)
+
+**Purpose.** DB-side twin of `src/lib/engine-governance-gate.server.ts`. Adds a
+single SECURITY DEFINER function `assert_official_transition()` and BEFORE
+triggers on eight "official" tables so that no state transition to
+`approved` / `published` / `sent` / `accepted` / `promoted` / `completed` can
+land without: (1) role check, (2) no-self-approval, (3) approved review item
+of the required kind, (4) completeness threshold, (5) audit-log row.
+
+Extends the B12 pattern (milestones + impl_plans) to the full official set.
+This is the DB tier the acceptance criteria in
+`.orchestrator/audit/acceptance-criteria-2026-07-14c.md` require for Gate 0.
+
+**Status.** NOT APPLIED. Ships when Tai approves. Application-tier module
+already enforces the same rules and is safe on its own; DB triggers add
+belt-and-suspenders + protection against direct SQL writes.
+
+### SQL
+
+```sql
+-- 1. Function ---------------------------------------------------------------
+create or replace function public.assert_official_transition(
+  _artifact_type text,
+  _artifact_id uuid,
+  _next_state text,
+  _actor_email text,
+  _review_item_id uuid default null,
+  _skip_completeness boolean default false
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_registry record;
+  v_created_by text;
+  v_project_id uuid;
+  v_review record;
+  v_audit_id uuid;
+begin
+  -- Registry: 8 official transitions.
+  select * into v_registry from (values
+    ('milestone',            'approved',  'engine_milestones',                        'created_by', 'milestone_approval',            'admin'),
+    ('implementation_plan',  'approved',  'engine_project_implementation_plans',      'created_by', 'implementation_plan_approval',  'admin'),
+    ('mockup',               'approved',  'engine_project_mockups',                   'created_by', 'mockup_approval',               'admin'),
+    ('roadmap_version',      'published', 'engine_roadmap_versions',                  'created_by', 'roadmap_version_publish',       'admin'),
+    ('delivery_item',        'sent',      'engine_delivery_items',                    'created_by', 'delivery_send',                 'admin'),
+    ('portal_roadmap',       'published', 'client_portal_roadmaps',                   'created_by', 'portal_publish',                'admin'),
+    ('business_engine_run',  'completed', 'engine_business_engine_runs',              'started_by', null,                            'admin'),
+    ('intelligence_memory',  'promoted',  'engine_intelligence_memory',               'created_by', 'intelligence_memory_promotion', 'admin')
+  ) as t(artifact_type, next_state, tbl, created_by_col, review_kind, required_role)
+  where t.artifact_type = _artifact_type and t.next_state = _next_state;
+
+  if not found then
+    raise exception 'GOVERNANCE: unknown official transition %→%', _artifact_type, _next_state
+      using errcode = 'P0001';
+  end if;
+
+  if _actor_email is null or _actor_email = '' then
+    raise exception 'GOVERNANCE: actor_email required' using errcode = 'P0001';
+  end if;
+
+  -- Rule 1: role
+  if not public.has_role_email(_actor_email, v_registry.required_role::app_role) then
+    raise exception 'GOVERNANCE: actor % lacks role %', _actor_email, v_registry.required_role
+      using errcode = 'P0001';
+  end if;
+
+  -- Rule 2: no self-approval — dynamic SQL because table varies.
+  execute format(
+    'select %I, project_id from public.%I where id = $1',
+    v_registry.created_by_col, v_registry.tbl
+  ) into v_created_by, v_project_id using _artifact_id;
+
+  if v_created_by is null then
+    raise exception 'GOVERNANCE: artifact % of type % not found', _artifact_id, _artifact_type
+      using errcode = 'P0001';
+  end if;
+
+  if v_created_by = _actor_email then
+    raise exception 'GOVERNANCE: actor % cannot approve their own %', _actor_email, _artifact_type
+      using errcode = 'P0001';
+  end if;
+
+  -- Rule 3: review item present + approved (when required)
+  if v_registry.review_kind is not null then
+    if _review_item_id is null then
+      raise exception 'GOVERNANCE: %→% requires review_item of kind %',
+        _artifact_type, _next_state, v_registry.review_kind using errcode = 'P0001';
+    end if;
+    select id, kind, status, target_id
+      into v_review
+      from public.engine_review_items
+     where id = _review_item_id;
+    if not found then
+      raise exception 'GOVERNANCE: review item % not found', _review_item_id using errcode = 'P0001';
+    end if;
+    if v_review.kind <> v_registry.review_kind then
+      raise exception 'GOVERNANCE: review kind % does not match required %', v_review.kind, v_registry.review_kind
+        using errcode = 'P0001';
+    end if;
+    if v_review.status not in ('approved', 'approved_with_conditions') then
+      raise exception 'GOVERNANCE: review item status is %, not approved', v_review.status
+        using errcode = 'P0001';
+    end if;
+    if v_review.target_id is not null and v_review.target_id <> _artifact_id then
+      raise exception 'GOVERNANCE: review item targets a different artifact' using errcode = 'P0001';
+    end if;
+  end if;
+
+  -- Rule 4: completeness (delegated to per-artifact helper unless skipped).
+  -- Kept intentionally light in v1: callers pass _skip_completeness=false and
+  -- the application-tier module performs the deep predicate. Future revision
+  -- may inline per-table CHECK-style predicates here.
+
+  -- Rule 5: audit row.
+  insert into public.engine_audit_log (
+    project_id, actor_email, action, summary, affected_modules, target_id, metadata
+  ) values (
+    v_project_id, _actor_email, 'official_transition',
+    _artifact_type || ' → ' || _next_state,
+    array[_artifact_type],
+    _artifact_id,
+    jsonb_build_object(
+      'artifact_type', _artifact_type,
+      'next_state', _next_state,
+      'review_item_id', _review_item_id
+    )
+  ) returning id into v_audit_id;
+
+  return v_audit_id;
+end;
+$$;
+
+grant execute on function public.assert_official_transition(text, uuid, text, text, uuid, boolean)
+  to authenticated, service_role;
+
+-- 2. Generic BEFORE trigger factory -----------------------------------------
+-- Each table gets its own trigger that calls assert_official_transition when
+-- the row's status/state column moves into one of the registered "official"
+-- states. Payload signature varies per table; we ship one trigger per table.
+
+-- Example: milestones
+create or replace function public.tg_engine_milestones_official_gate()
+returns trigger language plpgsql as $$
+declare v_actor text; v_review uuid;
+begin
+  if NEW.status = 'approved' and (OLD.status is null or OLD.status <> 'approved') then
+    v_actor := coalesce(current_setting('request.jwt.claims', true)::jsonb->>'email', session_user);
+    v_review := (NEW.governance ->> 'review_item_id')::uuid;
+    perform public.assert_official_transition(
+      'milestone', NEW.id, 'approved', v_actor, v_review, false
+    );
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists tg_engine_milestones_official_gate on public.engine_milestones;
+create trigger tg_engine_milestones_official_gate
+  before update on public.engine_milestones
+  for each row execute function public.tg_engine_milestones_official_gate();
+
+-- Repeat for: implementation_plan, mockup, roadmap_version, delivery_item,
+-- portal_roadmap, business_engine_run, intelligence_memory.
+-- (Full 8-table trigger block will be finalized in the batch migration.)
+```
+
+### Rollback
+
+```sql
+drop trigger if exists tg_engine_milestones_official_gate on public.engine_milestones;
+drop function if exists public.tg_engine_milestones_official_gate();
+drop function if exists public.assert_official_transition(text, uuid, text, text, uuid, boolean);
+```
+
+### Verification
+
+```sql
+-- Self-approval must be rejected.
+select public.assert_official_transition(
+  'milestone', '<milestone-id>', 'approved', '<its-own-creator-email>', null, true
+);
+-- ERROR:  GOVERNANCE: actor <email> cannot approve their own milestone
+
+-- Missing review must be rejected.
+select public.assert_official_transition(
+  'milestone', '<milestone-id>', 'approved', '<different-admin>', null, true
+);
+-- ERROR:  GOVERNANCE: milestone→approved requires review_item of kind milestone_approval
+
+-- Happy path returns an audit uuid.
+select public.assert_official_transition(
+  'milestone', '<milestone-id>', 'approved', '<different-admin>', '<approved-review-id>', true
+);
+-- returns uuid
+```
+
+### Coordinated schema additions from Phases 3–11
+
+The batch migration will also carry the following (each documented in its own
+Phase output when written, but consolidated here so Tai reviews once):
+
+- **Phase 3 (Gap #10):** `engine_intake_reviews` table + extraction-gate trigger.
+- **Phase 4 (Gaps #5 + #6):** `engine_review_item_conditions` + close-block trigger + `approved_with_conditions` in review status allowlist.
+- **Phase 5 (Gaps #3 + #9):** `engine_intelligence_memory` gains `client_id NOT NULL`, `pattern_is_generalizable`, `de_identified_payload`; RLS split for cross-client reads; `read_generalizable_patterns()` helper.
+- **Phase 6 (Gap #7):** `client_portal_roadmaps.client_accepted_*` + `client_accept_delivery()` RPC + scheduler gate.
+- **Phase 7 (Gap #8):** `tg_engine_projects_family_impact_notify` trigger.
+- **Phase 8 (Gap #4):** `engine_agent_capability_catalog` seed table.
+- **Phase 11 (E10):** `engine_milestones.recommendation` column.
+- **Phase 11 (G10):** `engine_project_implementation_plans.field_approvals` column.
+
+Each will be appended below when its phase completes so the final apply can
+be reviewed as one coherent block.
