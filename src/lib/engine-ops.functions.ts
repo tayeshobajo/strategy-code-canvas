@@ -197,6 +197,13 @@ export type ReviewItem = {
   requested_by: string | null;
   status: "pending" | "in_review" | "approved" | "sent_back" | "rejected";
   created_at: string;
+  // Phase H6 · I11 — risk scoring inputs (nullable) and computed score.
+  severity?: string | null;
+  impact_score?: number | null;
+  urgency_score?: number | null;
+  deadline_at?: string | null;
+  client_risk?: boolean | null;
+  risk_score?: number | null;
 };
 export type ReviewAudit = {
   id: string; project: string; item_type: string; title: string;
