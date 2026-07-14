@@ -1,36 +1,54 @@
-# Paired apply: Phase 1 R3 (Truth Model) + Phase 2 (Ceremonies)
+# Phase 4 QA Fixes Rev 2.1 — Deadlock Fix + Enumeration
 
-Both blocks in `.orchestrator/PENDING_MIGRATIONS.md` share `engine_spine_field_truth` and `epistemic_status`. Applying them in separate migration windows leaves an intermediate state where the truth table exists but ceremonies can't reference it. This plan concatenates them into one migration submission.
+## Problem
 
-## Steps
+Rev 2.1's G1 provenance trigger requires `engine_spine_ceremonies.status = 'completed'` before an `approved_truth` row can be written. But Phase 2's ceremony lifecycle writes `approved_truth` during `recordCeremonyDecision()` while the ceremony is still `in_progress`, and only flips to `completed` after all fields are terminal.
 
-1. **Combined preflight (read-only)** — run both preflight blocks against the live DB via `supabase--read_query`:
-   - Phase 1: `epistemic_status` type absent, `engine_spine_field_truth` absent, no `status/source_ref/superseded_by` on `engine_extracted_signals`, project/point_a/point_b row counts.
-   - Phase 2: `is_engine_staff()`, `has_role_email()`, `tg_touch_updated_at()`, `engine_audit_log`, `epistemic_status` (will exist by end of Phase 1 in the same file), plus `POINT_A_BASE_FIELD_KEYS` / `POINT_B_FIELD_KEYS` static list matches TS registry (already fixed).
-   - Abort if any check fails; report to Tai.
+Result: deadlock. Truth can't be written until ceremony completes; ceremony can't complete until truth exists.
 
-2. **Assemble a single migration SQL body**, in this exact order (no edits to the SQL beyond concatenation):
-   1. Phase 1 R3 Variant B block (enum → signal columns → truth table → GRANTs → RLS → policies → audit trigger → backfill from `engine_projects.point_a/point_b`).
-   2. Phase 2 R4 + R4B block (ceremonies + decisions tables → GRANTs → RLS → `internal_spine_field_keys` (with the corrected Point A/B static arrays) → `spine_field_keys` wrapper → `internal_project_has_contradictions` → all `trg_enforce_*` and cascade triggers → `trg_engine_spine_ceremonies_updated` using `public.tg_touch_updated_at()` → Phase 2B invalidation columns/table/triggers).
+## Plan
 
-3. **Submit via `supabase--migration`** with a plain-English description covering: new truth model, ceremony/decision model, invalidation cascade, RLS (staff read; admin/operator write; no delete), audit trail. Wait for Tai's approval — the tool blocks until approved.
+### 1. Run enumeration first (read-only)
 
-4. **Post-apply verification** — run the documented smoke plans:
-   - Phase 1 R3 smoke queries → append to `.orchestrator/phase-1-output.md`.
-   - Phase 2 22-case smoke (existing `/tmp/browser/phase2-ui-smoke/run.py`) → append results to `.orchestrator/phase-2-output.md`.
-   - Run `bunx vitest run src/lib/__tests__/spine-field-keys-drift.test.ts`.
-   - Run `supabase--linter`; record any new WARN findings (expected: `SECURITY DEFINER` pattern warnings, same class as existing 45).
+Execute the Step 1 enumeration query from Rev 2.1 against the live DB to count legacy `approved_truth` rows that would fail the new trigger. Output row counts by category (missing ceremony, wrong actor, no operator_override reason, etc.). Save results to `.orchestrator/phase-4-qa-rev-2-1-enumeration.md`.
 
-5. **Rollback readiness (not executed)** — keep the two documented rollback blocks side-by-side in a scratch file so Tai can reverse in Phase 2 → Phase 1 order if smoke fails.
+Do NOT apply the migration.
 
-## Out of scope
+### 2. Patch Rev 2.1 in `.orchestrator/PENDING_MIGRATIONS.md`
 
-- No SQL rewrites beyond concatenation. The two blocks were signed off individually; the paired-apply is a scheduling change, not a design change.
-- No app-layer edits in this window — `src/lib/engine-spine-ceremonies.functions.ts` and `engine-spine-invalidation.functions.ts` already exist and match the shipped shape per `.orchestrator/phase-2-output.md`.
-- Phase 2B UI (`CeremonyPanel`, stepper badge) — already shipped; nothing to redo.
+Replace the ceremony-status predicate in three places so ceremonies that are actively being recorded also satisfy provenance:
 
-## Risks
+- **Runtime trigger `tg_engine_spine_field_truth_provenance` (ceremony branch)** — change the ceremony status guard from
+  ```
+  OR ceremony.status <> 'completed'
+  ```
+  to
+  ```
+  OR ceremony.status NOT IN ('in_progress', 'completed')
+  ```
+  Keep the rest of the ceremony match unchanged (same `project_id`, same `spine`, and — critical — a matching `engine_spine_ceremony_decisions` row for this `field_key` with `new_status = 'approved_truth'`). The ceremony_decisions row is what proves this specific field was ceremonially decided; ceremony status alone is not sufficient.
 
-- **Single failure = full rollback.** A trigger error in Phase 2 aborts the whole transaction, including Phase 1 enum/table creation. This is the desired atomicity; call it out to Tai when submitting.
-- Backfill volume in Phase 1 is bounded by project count (small); no performance concern.
-- Linter WARN noise is expected and pre-existing pattern; not a blocker.
+- **Step 1 enumeration query** — same status set, so the pre-apply count matches what the runtime trigger will actually reject.
+
+- **Step 3 fail-closed guard** (if it re-checks status independently) — same status set, so guard and trigger don't drift.
+
+Mark the block header: `Rev 2.1 — NOT APPLY-READY. Blocked on ceremony-status deadlock; patched pending re-review.` Bump to Rev 2.2 once patched.
+
+### 3. Re-review, then apply
+
+After the patch:
+1. Re-run enumeration against the patched predicate.
+2. Remediate any remaining legacy rows (attach to a completed/in-progress ceremony with a matching decision, restamp as `operator_override` with reason, or demote to `verified`).
+3. Only then apply G1 + G1a + G1b + G1c + G2 + G3 in one migration.
+
+## Out of scope this turn
+
+- Applying the migration.
+- Remediation of legacy rows (depends on enumeration output).
+- G2 (roadmap_versions / projects gate) and G3 (smoke harness) — unchanged by this fix, ride along in the same migration once G1 is patched.
+
+## Technical notes
+
+- Ceremony decisions table: `engine_spine_ceremony_decisions` — the per-field decision row is the real provenance anchor. Ceremony status is a coarser gate.
+- Operator override path is unchanged: `source_ref.kind='operator_override'` + `operator_email` matching `updated_by_email` + non-empty `reason`.
+- Backfill path (`source_ref.kind='backfill'`) remains exempt per Rev 2.1.
