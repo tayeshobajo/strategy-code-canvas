@@ -19,10 +19,12 @@ import {
 import { toast } from "sonner";
 import {
   listEngineTemplates,
+  listPendingTemplateClones,
   proposeEngineFromTemplate,
   approveEngineFromTemplate,
   rejectEngineFromTemplate,
   type TemplateCatalogEntry,
+  type PendingCloneDetail,
 } from "@/lib/engine-business-engine-templates.functions";
 
 export const Route = createFileRoute("/admin/engine-templates")({
@@ -43,10 +45,12 @@ function statusBadge(s: string) {
 
 function EngineTemplatesPage() {
   const listFn = useServerFn(listEngineTemplates);
+  const pendingFn = useServerFn(listPendingTemplateClones);
   const proposeFn = useServerFn(proposeEngineFromTemplate);
   const approveFn = useServerFn(approveEngineFromTemplate);
   const rejectFn = useServerFn(rejectEngineFromTemplate);
   const qc = useQueryClient();
+
 
   const [proposeState, setProposeState] = useState({ projectId: "", ownerEmail: "" });
   const [approveState, setApproveState] = useState({
@@ -65,6 +69,11 @@ function EngineTemplatesPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin", "engine-templates"],
     queryFn: () => listFn(),
+  });
+
+  const pendingQuery = useQuery({
+    queryKey: ["admin", "engine-templates", "pending-clones"],
+    queryFn: () => pendingFn(),
   });
 
   const propose = useMutation({
@@ -142,6 +151,23 @@ function EngineTemplatesPage() {
           </div>
         </CardContent>
       </Card>
+
+      <PendingClonesSection
+        items={pendingQuery.data ?? []}
+        loading={pendingQuery.isLoading}
+        onPrefillApprove={(p) =>
+          setApproveState({
+            engineId: p.engineId ?? "",
+            reviewItemId: p.reviewItemId,
+            ownerEmail: p.ownerEmail ?? "",
+            approverEmail: "",
+          })
+        }
+        onPrefillReject={(p) =>
+          setRejectState({ engineId: p.engineId ?? "", reviewItemId: p.reviewItemId, reason: "" })
+        }
+      />
+
 
       {data?.map((t) => {
         const open = openTemplate === t.id;
@@ -400,5 +426,133 @@ function EngineTemplatesPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function PendingClonesSection({
+  items,
+  loading,
+  onPrefillApprove,
+  onPrefillReject,
+}: {
+  items: PendingCloneDetail[];
+  loading: boolean;
+  onPrefillApprove: (p: PendingCloneDetail) => void;
+  onPrefillReject: (p: PendingCloneDetail) => void;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Pending clone approvals ({items.length})</CardTitle>
+        <CardDescription>
+          Drafts awaiting a separate approver. Expand for full clone details and audit
+          trail before activating.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {!loading && items.length === 0 && (
+          <p className="text-sm text-muted-foreground">No pending clones.</p>
+        )}
+        {items.map((p) => {
+          const open = openId === p.reviewItemId;
+          return (
+            <div key={p.reviewItemId} className="border rounded p-3 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-medium text-sm">
+                    {p.templateName ?? "Template"} → {p.projectName ?? p.projectId.slice(0, 8)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Requested by {p.requestedBy ?? "—"} ·{" "}
+                    {new Date(p.reviewCreatedAt).toLocaleString()}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                    {p.engineStatus && <Badge variant="outline">engine: {p.engineStatus}</Badge>}
+                    {p.cadence && <Badge variant="outline">{p.cadence}</Badge>}
+                    {p.cronExpression && (
+                      <Badge variant="outline">cron: {p.cronExpression}</Badge>
+                    )}
+                    <Badge variant="outline">{p.workflowStepCount} steps</Badge>
+                    <Badge variant="outline">{p.metricCount} metrics</Badge>
+                    <Badge variant="outline">{p.exceptionRuleCount} rules</Badge>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setOpenId(open ? null : p.reviewItemId)}
+                  >
+                    {open ? "Hide" : "Details"}
+                  </Button>
+                  <Button size="sm" onClick={() => onPrefillApprove(p)} disabled={!p.engineId}>
+                    Activate…
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => onPrefillReject(p)}
+                    disabled={!p.engineId}
+                  >
+                    Reject…
+                  </Button>
+                </div>
+              </div>
+              {open && (
+                <div className="mt-2 grid grid-cols-2 gap-4 text-xs">
+                  <div className="space-y-1">
+                    <div>
+                      <span className="text-muted-foreground">Engine ID:</span>{" "}
+                      <span className="font-mono">{p.engineId ?? "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Review item:</span>{" "}
+                      <span className="font-mono">{p.reviewItemId}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Cloned by:</span>{" "}
+                      {p.engineCreatedBy ?? "—"}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Assigned owner:</span>{" "}
+                      {p.ownerEmail ?? "(unset)"}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Outcome:</span>{" "}
+                      {p.outcome ?? "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold uppercase text-muted-foreground mb-1">
+                      Audit log ({p.auditLog.length})
+                    </div>
+                    {p.auditLog.length === 0 ? (
+                      <div className="text-muted-foreground">No entries yet.</div>
+                    ) : (
+                      <ul className="space-y-1">
+                        {p.auditLog.map((a) => (
+                          <li key={a.id} className="border-l-2 pl-2">
+                            <div>
+                              <span className="font-mono">{a.action}</span> by{" "}
+                              {a.actorEmail ?? "—"}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {new Date(a.createdAt).toLocaleString()}
+                              {a.summary ? ` — ${a.summary}` : ""}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }
