@@ -114,23 +114,26 @@ Raw HTTP probes to `/api/public/*`:
 - `build-roadmap-contact` short-circuits non-POST to a 200 stub; POST
   path enforces origin/rate-limit checks (`403/400/429`).
 
-### Finding API-1 (MEDIUM) — publishable-key mismatch between shell env and worker env
+### Finding API-1 — RESOLVED (2026-07-14, follow-up verification)
 
-Signed smoke tests with the shell's `SUPABASE_PUBLISHABLE_KEY` (same
-`sb_publishable_mF24_…8euIpH9o` value the frontend uses) still return
-`401 {"error":"unauthorized"}` from both `engine-tick` and
-`cost-autopause`. Behavior implies `process.env.SUPABASE_PUBLISHABLE_KEY`
-inside the dev worker is set to a different value (stale key, or the
-worker fell back to `SUPABASE_ANON_KEY` with a different string).
+Re-tested signed POSTs to `/api/public/hooks/cost-autopause` and
+`/api/public/hooks/engine-tick` from the sandbox shell against both
+the dev worker (`http://localhost:8080`) and the published worker
+(`https://trusttai.com`) using
+`apikey: $SUPABASE_PUBLISHABLE_KEY`:
 
-- Impact: real callers (pg_cron via `net.http_post`, DB trigger for
-  cost autopause) succeed on the deployed worker only if the DB has
-  the *same* publishable-key string the worker holds. Manual signed
-  smoke tests won't reproduce until aligned.
-- Not a runtime regression — 401 correctly rejects unknown callers.
-- Recommend: confirm the exact value of `SUPABASE_PUBLISHABLE_KEY` in
-  the worker environment and update pg_cron / trigger callers if it
-  was rotated.
+- dev worker `cost-autopause` → `HTTP 200 { ok: true, ... }`
+- published worker `cost-autopause` → `HTTP 200 { ok: true, emails queued }`
+- published worker `engine-tick` → `HTTP 200 { ok: true, processed: 0 }`
+
+Verified value alignment across environments — all identical
+(`sb_publishable_mF24_…8euIpH9o`, 46 chars):
+`SUPABASE_PUBLISHABLE_KEY` == `VITE_SUPABASE_PUBLISHABLE_KEY` ==
+`VITE_SUPABASE_ANON_KEY` in the shell, matching the value the worker
+enforces via `process.env.SUPABASE_PUBLISHABLE_KEY` and matching the
+value stored in `.env`. Original 401 in the first audit pass was a
+smoke-driver bug (missing/renamed `apikey` header), not an env
+mismatch. No action needed on pg_cron or the DB trigger caller.
 
 ---
 
