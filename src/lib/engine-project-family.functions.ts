@@ -197,6 +197,14 @@ export const reparentProject = createServerFn({ method: "POST" })
       }
     }
 
+    // Snapshot the subtree BEFORE the move so the audit log records exactly
+    // which projects came along with this reparent.
+    let subtreeIds: string[] = [data.projectId];
+    try {
+      const sub = await fetchFamilySubtree(sb, data.projectId);
+      subtreeIds = sub.map((n) => n.id);
+    } catch { /* best-effort */ }
+
     const { error: updErr } = await sb
       .from("engine_projects")
       .update({ parent_project_id: data.newParentId })
@@ -231,6 +239,51 @@ export const reparentProject = createServerFn({ method: "POST" })
       });
     }
     await sb.from("engine_activity").insert(activityRows);
+
+    const auditMeta = {
+      old_parent_id: oldParentId,
+      new_parent_id: data.newParentId,
+      subtree_ids: subtreeIds,
+      subtree_size: subtreeIds.length,
+      project_name: proj.name,
+    };
+    const auditRows: any[] = [
+      {
+        project_id: data.projectId,
+        action: "family.reparent",
+        actor_email: actor || null,
+        summary: `Reparented ${proj.name} (${subtreeIds.length} node subtree) from ${oldParentId ?? "root"} to ${data.newParentId ?? "root"}`,
+        target_id: data.newParentId ?? oldParentId ?? null,
+        affected_modules: ["family", "rollups"],
+        metadata: auditMeta,
+        old_value: { parent_project_id: oldParentId },
+        new_value: { parent_project_id: data.newParentId },
+        field_changed: "parent_project_id",
+      },
+    ];
+    if (oldParentId) {
+      auditRows.push({
+        project_id: oldParentId,
+        action: "family.reparent",
+        actor_email: actor || null,
+        summary: `Detached ${proj.name} (${subtreeIds.length} node subtree)`,
+        target_id: data.projectId,
+        affected_modules: ["family", "rollups"],
+        metadata: auditMeta,
+      });
+    }
+    if (data.newParentId) {
+      auditRows.push({
+        project_id: data.newParentId,
+        action: "family.reparent",
+        actor_email: actor || null,
+        summary: `Attached ${proj.name} (${subtreeIds.length} node subtree)`,
+        target_id: data.projectId,
+        affected_modules: ["family", "rollups"],
+        metadata: auditMeta,
+      });
+    }
+    await sb.from("engine_audit_log").insert(auditRows);
 
     return { ok: true as const, changed: true as const };
   });
