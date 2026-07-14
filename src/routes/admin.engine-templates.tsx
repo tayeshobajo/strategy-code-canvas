@@ -155,18 +155,19 @@ function EngineTemplatesPage() {
       <PendingClonesSection
         items={pendingQuery.data ?? []}
         loading={pendingQuery.isLoading}
-        onPrefillApprove={(p) =>
-          setApproveState({
-            engineId: p.engineId ?? "",
-            reviewItemId: p.reviewItemId,
-            ownerEmail: p.ownerEmail ?? "",
-            approverEmail: "",
-          })
-        }
-        onPrefillReject={(p) =>
-          setRejectState({ engineId: p.engineId ?? "", reviewItemId: p.reviewItemId, reason: "" })
-        }
+        onApprove={async (args) => {
+          await approveFn({ data: args });
+          toast.success("Engine activated.");
+          qc.invalidateQueries({ queryKey: ["admin", "engine-templates"] });
+        }}
+        onReject={async (args) => {
+          await rejectFn({ data: args });
+          toast.success("Draft archived.");
+          qc.invalidateQueries({ queryKey: ["admin", "engine-templates"] });
+        }}
       />
+
+
 
 
       {data?.map((t) => {
