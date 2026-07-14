@@ -87,6 +87,16 @@ export function RoadmapAcknowledgmentBanner({
       const stampedAt = new Date().toISOString();
       setLocalAcknowledgedAt(stampedAt);
       onAcknowledged?.(stampedAt);
+      // Phase 2 (Top-10 sweep): mirror the acknowledgment as a portal-activity row.
+      logActivity({
+        data: {
+          project_id: projectId,
+          kind: 'acknowledged',
+          subject_type: 'portal_roadmap',
+          subject_id: portalRoadmapId,
+          summary: 'Client acknowledged roadmap',
+        },
+      }).catch(() => {});
     } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
