@@ -501,16 +501,18 @@ function AttentionSection({ groups, total }: { groups: AttentionGroup[]; total: 
 
 // ─── system intelligence rail ────────────────────────────────────────────────
 
-function SystemIntelligenceRail({ data }: { data: CommandCenterPayload }) {
+function SystemIntelligenceRail({ data, lastChecked }: { data: CommandCenterPayload; lastChecked: string | null }) {
   const nba = data.next_best_actions_v2?.[0] ?? data.next_best_actions?.[0] ?? null;
   const budgetRatio = data.metrics.agent_budget_cents
     ? data.metrics.agent_spend_cents / data.metrics.agent_budget_cents
     : 0;
   const budgetTone =
     budgetRatio > 0.9 ? "critical" : budgetRatio > 0.7 ? "warning" : "info";
-  const materialActivity = (data.recent_activity ?? []).filter((a) =>
-    /approv|reject|block|risk|deliver|complete|escalat|fail/i.test(`${a.kind} ${a.title}`),
-  ).slice(0, 4);
+  const cutoffMs = lastChecked ? new Date(lastChecked).getTime() : 0;
+  const materialActivity = (data.recent_activity ?? [])
+    .filter((a) => /approv|reject|block|risk|deliver|complete|escalat|fail/i.test(`${a.kind} ${a.title}`))
+    .slice(0, 6);
+
 
   return (
     <aside className="space-y-4">
