@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { buildClientSafePayload } from "@/lib/roadmap-publish";
 import { throwGeneric } from "@/lib/engine-error";
+import { impactSummarySchema } from "@/lib/engine-proposal-impact";
 
 // Exported for behavioral role-rejection tests (Audit V3 #8).
 export async function assertAdminEmail(context: {
