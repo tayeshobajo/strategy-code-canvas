@@ -20,6 +20,7 @@ import {
   Rocket,
   DollarSign,
   Network,
+  LayoutTemplate,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -125,6 +126,12 @@ const NAV: AdminNav[] = [
     label: "Family impact",
     icon: Network,
     match: "/admin/family-impact",
+  },
+  {
+    to: "/admin/engine-templates",
+    label: "Engine templates",
+    icon: LayoutTemplate,
+    match: "/admin/engine-templates",
   },
 ];
 

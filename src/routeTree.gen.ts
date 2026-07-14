@@ -76,6 +76,7 @@ import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-ale
 import { Route as AdminFamilyImpactRouteImport } from './routes/admin.family-impact'
 import { Route as AdminExceptionManagementRouteImport } from './routes/admin.exception-management'
 import { Route as AdminEvidenceEnforcementRouteImport } from './routes/admin.evidence-enforcement'
+import { Route as AdminEngineTemplatesRouteImport } from './routes/admin.engine-templates'
 import { Route as AdminEnginePromotionRouteImport } from './routes/admin.engine-promotion'
 import { Route as AdminEngineLearningRouteImport } from './routes/admin.engine-learning'
 import { Route as AdminDriftDetectionRouteImport } from './routes/admin.drift-detection'
@@ -486,6 +487,11 @@ const AdminEvidenceEnforcementRoute =
     path: '/evidence-enforcement',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminEngineTemplatesRoute = AdminEngineTemplatesRouteImport.update({
+  id: '/engine-templates',
+  path: '/engine-templates',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminEnginePromotionRoute = AdminEnginePromotionRouteImport.update({
   id: '/engine-promotion',
   path: '/engine-promotion',
@@ -921,6 +927,7 @@ export interface FileRoutesByFullPath {
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
   '/admin/engine-learning': typeof AdminEngineLearningRoute
   '/admin/engine-promotion': typeof AdminEnginePromotionRoute
+  '/admin/engine-templates': typeof AdminEngineTemplatesRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/family-impact': typeof AdminFamilyImpactRoute
@@ -1056,6 +1063,7 @@ export interface FileRoutesByTo {
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
   '/admin/engine-learning': typeof AdminEngineLearningRoute
   '/admin/engine-promotion': typeof AdminEnginePromotionRoute
+  '/admin/engine-templates': typeof AdminEngineTemplatesRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/family-impact': typeof AdminFamilyImpactRoute
@@ -1196,6 +1204,7 @@ export interface FileRoutesById {
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
   '/admin/engine-learning': typeof AdminEngineLearningRoute
   '/admin/engine-promotion': typeof AdminEnginePromotionRoute
+  '/admin/engine-templates': typeof AdminEngineTemplatesRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/family-impact': typeof AdminFamilyImpactRoute
@@ -1336,6 +1345,7 @@ export interface FileRouteTypes {
     | '/admin/drift-detection'
     | '/admin/engine-learning'
     | '/admin/engine-promotion'
+    | '/admin/engine-templates'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
     | '/admin/family-impact'
@@ -1471,6 +1481,7 @@ export interface FileRouteTypes {
     | '/admin/drift-detection'
     | '/admin/engine-learning'
     | '/admin/engine-promotion'
+    | '/admin/engine-templates'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
     | '/admin/family-impact'
@@ -1610,6 +1621,7 @@ export interface FileRouteTypes {
     | '/admin/drift-detection'
     | '/admin/engine-learning'
     | '/admin/engine-promotion'
+    | '/admin/engine-templates'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
     | '/admin/family-impact'
@@ -2234,6 +2246,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEvidenceEnforcementRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/engine-templates': {
+      id: '/admin/engine-templates'
+      path: '/engine-templates'
+      fullPath: '/admin/engine-templates'
+      preLoaderRoute: typeof AdminEngineTemplatesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/engine-promotion': {
       id: '/admin/engine-promotion'
       path: '/engine-promotion'
@@ -2785,6 +2804,7 @@ interface AdminRouteChildren {
   AdminDriftDetectionRoute: typeof AdminDriftDetectionRoute
   AdminEngineLearningRoute: typeof AdminEngineLearningRoute
   AdminEnginePromotionRoute: typeof AdminEnginePromotionRoute
+  AdminEngineTemplatesRoute: typeof AdminEngineTemplatesRoute
   AdminEvidenceEnforcementRoute: typeof AdminEvidenceEnforcementRoute
   AdminExceptionManagementRoute: typeof AdminExceptionManagementRoute
   AdminFamilyImpactRoute: typeof AdminFamilyImpactRoute
@@ -2811,6 +2831,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDriftDetectionRoute: AdminDriftDetectionRoute,
   AdminEngineLearningRoute: AdminEngineLearningRoute,
   AdminEnginePromotionRoute: AdminEnginePromotionRoute,
+  AdminEngineTemplatesRoute: AdminEngineTemplatesRoute,
   AdminEvidenceEnforcementRoute: AdminEvidenceEnforcementRoute,
   AdminExceptionManagementRoute: AdminExceptionManagementRoute,
   AdminFamilyImpactRoute: AdminFamilyImpactRoute,
