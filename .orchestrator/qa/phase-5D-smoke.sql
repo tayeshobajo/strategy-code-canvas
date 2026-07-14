@@ -23,7 +23,7 @@ DECLARE
 BEGIN
   -- seed clients if the table exists
   BEGIN
-    INSERT INTO engine_clients (id, name) VALUES
+    INSERT INTO engine_clients (id, company) VALUES
       (c_a, 'QA5D Client A'), (c_b, 'QA5D Client B')
     ON CONFLICT (id) DO NOTHING;
   EXCEPTION WHEN undefined_table THEN NULL; END;
