@@ -1,11 +1,11 @@
 {
-  "asset_id": "e885e5e3-1bcf-4fdb-8fa1-a1d3533de59a",
-  "content_type": "image/png",
-  "created_at": "2026-06-26T07:33:01Z",
+  "version": 1,
+  "asset_id": "c68d1205-8a0c-42a4-bc59-6f6ef727cc96",
+  "project_id": "b3555ed3-b0dc-4def-8fee-77ff34a2cb82",
+  "url": "/__l5e/assets-v1/c68d1205-8a0c-42a4-bc59-6f6ef727cc96/market-gap-google-v4.png",
+  "r2_key": "a/v1/b3555ed3-b0dc-4def-8fee-77ff34a2cb82/c68d1205-8a0c-42a4-bc59-6f6ef727cc96/market-gap-google-v4.png",
   "original_filename": "market-gap-google-v4.png",
-  "project_id": "b6eb7494-6d1b-4120-857e-38b223894cd2",
-  "r2_key": "a/v1/b6eb7494-6d1b-4120-857e-38b223894cd2/e885e5e3-1bcf-4fdb-8fa1-a1d3533de59a/market-gap-google-v4.png",
   "size": 1604829,
-  "url": "/__l5e/assets-v1/e885e5e3-1bcf-4fdb-8fa1-a1d3533de59a/market-gap-google-v4.png",
-  "version": 1
+  "content_type": "image/png",
+  "created_at": "2026-07-14T21:18:41Z"
 }
