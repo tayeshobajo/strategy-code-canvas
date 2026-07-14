@@ -20,6 +20,7 @@ import {
   Rocket,
   DollarSign,
   Network,
+  LayoutTemplate,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
