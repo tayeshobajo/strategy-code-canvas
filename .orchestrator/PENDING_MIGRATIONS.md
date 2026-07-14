@@ -4075,7 +4075,7 @@ Status: **APPLIED 2026-07-14, VERIFIED.** Migration `20260714-005744-436757`. Se
 
 ## Phase H1 — Cost-Overrun Auto-Pause
 
-Status: **PENDING TAI REVIEW** (proposed 2026-07-14).
+Status: **APPLIED 2026-07-14** via `20260714-175059-742685`. See `.orchestrator/phase-h1-h4-h6b12-apply-output.md`.
 
 Closes gap H9 from `.orchestrator/audit/capability-audit-2026-07-14b.md`: `engine_agent_costs` records spend but nothing halts a project when it exceeds `engine_projects.agent_budget_monthly_cents`.
 
@@ -4217,7 +4217,9 @@ WHERE trigger_name = 'engine_agent_costs_cap_guard';
 
 ---
 
-## Phase H4 — Outcome Scheduler pg_cron (PROPOSED, not applied)
+## Phase H4 — Outcome Scheduler pg_cron (APPLIED 2026-07-14)
+
+Status: **APPLIED** via `20260714-175459-098362`; `cron.schedule` returned jobid **117**. See `.orchestrator/phase-h1-h4-h6b12-apply-output.md`.
 
 Schedules a daily invocation of the outcome check-in scheduler. App-side
 already ships `internalRunOutcomeCheckins` and the public hook at
@@ -4261,7 +4263,7 @@ WHERE item_type = 'outcome_checkin' ORDER BY created_at DESC LIMIT 20;
 
 ## Phase H6 · B12 — Non-spine proposal enforcement (REVISED 2026-07-14, ready to apply pending caller audit)
 
-**Status:** READY TO APPLY once the audit checklist below is green. The
+**Status:** **APPLIED 2026-07-14** via `20260714-175310-970763` (+ `20260714-175406-713684` for search_path). Extended in-flight with sibling RPC `admin_edit_impl_plan_governed`. Caller audit fixed `regenerateMilestoneSection` and `updateProjectImplementationPlan`. See `.orchestrator/phase-h1-h4-h6b12-apply-output.md`. Original notes preserved for history:
 transaction-boundary caveat from the previous revision is resolved by
 performing the entire apply (GUC set + governed UPDATE + audit) inside a
 single `SECURITY DEFINER` stored procedure `public.apply_approved_proposal`.
