@@ -1909,7 +1909,7 @@ Additional app-level cases already scoped:
 
 ## Phase 3B — Portal Publication Atomic RPCs
 
-Status: **PENDING TAI REVIEW** — do not apply.
+Status: **APPLIED (pre-existing, verified 2026-07-14).** Preflight against live DB confirmed all 6 RPCs present as `SECURITY DEFINER` with expected arg counts (`publish_portal_roadmap`/15, `rollback_portal_publication`/3, `retract_portal_publication`/2, `restore_portal_publication`/2, `acknowledge_portal_roadmap`/1, `get_portal_publication_history`/1), the `Clients read published roadmaps` RLS policy is in place (old `Clients read approved roadmaps` policy already removed), `is_engine_staff()` present, and all mutable columns exist on `client_portal_roadmaps`. All 6 follow-on server-function wrappers wired to the RPCs (`src/lib/portal-publication.functions.ts` + `engine-ops.publishVersionToPortal`), covered by `portal-publication-wrappers.test.ts` and `publish-column-integrity.test.ts`. No re-apply needed.
 
 **Why this is needed.** Phase 3 v4 requires paired writes:
 `superseded → published` MUST insert a `rolled_back` event; `retracted →
@@ -2512,7 +2512,7 @@ SELECT policyname, cmd FROM pg_policies
   currently-`published` row and nothing else (no approved, delivered,
   superseded, or retracted rows).
 
-Status: **PENDING TAI REVIEW — apply-ready.**
+Status: **APPLIED (pre-existing, verified 2026-07-14).** See top of Phase 3B block for preflight evidence.
 
 ---
 
