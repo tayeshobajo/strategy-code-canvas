@@ -50,6 +50,7 @@ export type ChatProposalRow = {
   status: ProposalStatus;
   target_route: string | null;
   converted_ref: Json;
+  impact_summary?: Json | null;
   created_at: string;
   updated_at: string;
 };
