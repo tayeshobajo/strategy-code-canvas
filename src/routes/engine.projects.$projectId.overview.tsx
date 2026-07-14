@@ -10,18 +10,20 @@ import {
   Eye,
   Info,
   Sparkles,
-  Check,
   Map,
   ClipboardList,
   FlaskConical,
   Lightbulb,
   GitBranch,
   MessageSquare,
+  ArrowRight,
+  AlertTriangle,
+  Activity,
+  Calendar,
+  ShieldCheck,
 } from "lucide-react";
-import { getVersionCompareData } from "@/lib/engine-execution.functions";
 import { getIntelligentNextAction, type NextBestAction } from "@/lib/engine-nba.functions";
 import { listReviewQueue, type ReviewItem } from "@/lib/engine-ops.functions";
-import type { StepState } from "@/lib/engine-workspace";
 
 export const Route = createFileRoute("/engine/projects/$projectId/overview")({
   component: ProjectOverview,
@@ -47,260 +49,156 @@ const IMPACT_LABEL: Record<ReviewItem["impact"], string> = {
   low: "Low",
 };
 
-type StageState = "done" | "current" | "pending";
-type Stage = { key: string; label: string; state: StageState };
+// ─────────── stage derivation ────────────────────────────────────
+type Owner = "Internal team" | "Client" | "AI Captain" | "System";
+type StageStatus = "needs_review" | "in_progress" | "waiting" | "blocked" | "done";
 
-function computeStages(p: {
-  status: string;
-  signal_count: number;
-  roadmap_version: string | null;
-  approved_version: string | null;
-  step_states: Record<string, StepState>;
-}): Stage[] {
+type CurrentStage = {
+  name: string;
+  context: string;
+  nextAction: string;
+  owner: Owner;
+  status: StageStatus;
+  ctaHref: string | null;
+  ctaLabel: string;
+  showDelivery: boolean;
+  deliveryPct: number;
+  deliveryNote: string;
+  workflowStepNum: number;
+  workflowTotal: number;
+};
+
+function deriveStage(
+  p: ReturnType<typeof useWorkspace>["project"],
+  nba: NextBestAction | undefined,
+  pendingItems: ReviewItem[],
+): CurrentStage {
   const isApproved = (k: string) => p.step_states[k]?.state === "approved";
-  const understanding = p.signal_count > 0;
-  const roadmap = !!p.roadmap_version || isApproved("builder");
-  const planning = !!p.approved_version || isApproved("sequencing") || isApproved("deadlines");
-  const design = isApproved("blueprint") || isApproved("preview");
-  const build = ["in_execution", "delivered"].includes(p.status) || isApproved("delivery");
-  const qa = p.status === "delivered";
-  const delivery = p.status === "delivered";
+  const hasRoadmapDraft = !!p.roadmap_version || isApproved("builder");
+  const roadmapApproved = !!p.approved_version || isApproved("sequencing");
+  const inBuild = ["in_execution", "delivered"].includes(p.status);
+  const delivered = p.status === "delivered";
+  const blocked = p.status === "blocked";
+  const highBlocker = pendingItems.find((i) => i.impact === "high");
 
-  const flags = [understanding, roadmap, planning, design, build, qa, delivery];
-  const currentIdx = flags.findIndex((f) => !f);
-  const labels = ["Understanding", "Roadmap", "Planning", "Design", "Build", "QA", "Delivery"];
+  // Delivery %: only meaningful after roadmap approval
+  const buildSteps = ["blueprint", "preview", "delivery"];
+  const buildApproved = buildSteps.filter(isApproved).length;
+  const deliveryPct = delivered
+    ? 100
+    : inBuild
+      ? Math.round((buildApproved / buildSteps.length) * 100)
+      : 0;
 
-  return labels.map((label, i) => {
-    let state: StageState = "pending";
-    if (flags[i]) state = "done";
-    else if (i === currentIdx) state = "current";
-    return { key: label.toLowerCase(), label, state };
-  });
-}
+  let name = "Understanding";
+  let context = "Collecting business signals before drafting the roadmap.";
+  let nextAction = p.next_action ?? "Continue gathering signals.";
+  let owner: Owner = "Internal team";
+  let status: StageStatus = "in_progress";
+  let ctaHref: string | null = `/engine/projects/${p.id}/understanding-room`;
+  let ctaLabel = "Open Understanding Room";
 
-function ProgressStepper({ stages }: { stages: Stage[] }) {
-  return (
-    <div className="w-full overflow-x-auto">
-      <ol className="flex items-start min-w-max gap-0">
-        {stages.map((s, i) => {
-          const isLast = i === stages.length - 1;
-          const dotClasses =
-            s.state === "done"
-              ? "bg-emerald-500 border-emerald-500 text-white"
-              : s.state === "current"
-              ? "bg-white border-royal text-royal ring-4 ring-royal/10"
-              : "bg-white border-border text-ink/40";
-          const connectorClass =
-            stages[i + 1]?.state === "done" || s.state === "done"
-              ? "bg-emerald-500"
-              : "bg-border";
-          return (
-            <li key={s.key} className="flex items-start">
-              <div className="flex flex-col items-center w-20 sm:w-24">
-                <div
-                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-semibold ${dotClasses}`}
-                >
-                  {s.state === "done" ? <Check className="w-4 h-4" /> : i + 1}
-                </div>
-                <div
-                  className={`mt-2 text-[11px] text-center font-medium ${
-                    s.state === "pending" ? "text-ink/40" : "text-ink"
-                  }`}
-                >
-                  {s.label}
-                </div>
-              </div>
-              {!isLast && <div className={`h-0.5 w-8 sm:w-12 mt-4 ${connectorClass}`} />}
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-}
-
-function ProjectSummary({
-  p,
-  activity,
-  pendingCount,
-}: {
-  p: ReturnType<typeof useWorkspace>["project"];
-  activity: ReturnType<typeof useWorkspace>["activity"];
-  pendingCount: number;
-}) {
-  const approvedSteps = Object.entries(p.step_states)
-    .filter(([, v]) => v?.state === "approved")
-    .sort(
-      (a, b) => new Date(b[1].updated_at).getTime() - new Date(a[1].updated_at).getTime(),
-    )
-    .slice(0, 3)
-    .map(([k]) => k.replace(/-/g, " "));
-
-  const recentActivity = activity.slice(0, 3);
-  const hasAnything =
-    approvedSteps.length > 0 || recentActivity.length > 0 || p.signal_count > 0;
-
-  if (!hasAnything) {
-    return (
-      <div className="text-sm text-ink/50 italic">
-        Summary will generate once the project has activity.
-      </div>
-    );
+  if (delivered) {
+    name = "Delivered";
+    context = "Project has shipped. Post-delivery review and handoff.";
+    nextAction = "Review delivery artifacts and evidence.";
+    owner = "Internal team";
+    status = "done";
+    ctaHref = `/engine/projects/${p.id}/delivery`;
+    ctaLabel = "Open Delivery";
+  } else if (blocked) {
+    name = "Blocked";
+    context = highBlocker
+      ? `Blocked on: ${highBlocker.title}`
+      : "Project is currently blocked. Resolve the blocker to proceed.";
+    nextAction = p.next_action ?? "Unblock this project.";
+    owner = "Internal team";
+    status = "blocked";
+    ctaHref = `/engine/projects/${p.id}/chat`;
+    ctaLabel = "Open Captain Chat";
+  } else if (inBuild) {
+    name = "In Build";
+    context = "Roadmap approved. Delivery in progress against milestones.";
+    nextAction = p.next_action ?? "Advance the next milestone.";
+    owner = "Internal team";
+    status = "in_progress";
+    ctaHref = `/engine/projects/${p.id}/delivery`;
+    ctaLabel = "Open Delivery";
+  } else if (roadmapApproved) {
+    name = "Kickoff";
+    context = "Roadmap approved by the client. Build begins after kickoff.";
+    nextAction = p.next_action ?? "Schedule kickoff and begin build.";
+    owner = "Internal team";
+    status = "waiting";
+    ctaHref = `/engine/projects/${p.id}/delivery`;
+    ctaLabel = "Prepare Kickoff";
+  } else if (hasRoadmapDraft) {
+    name = "Roadmap Review";
+    context = "AI-drafted roadmap is ready for human review.";
+    nextAction = "Review AI-drafted roadmap";
+    owner = "Internal team";
+    status = "needs_review";
+    ctaHref = `/engine/projects/${p.id}/builder`;
+    ctaLabel = "Review Roadmap";
+  } else if (p.signal_count > 0) {
+    name = "Roadmap Drafting";
+    context = "Signals captured. Captain is drafting the roadmap.";
+    nextAction = p.next_action ?? "Continue drafting the roadmap.";
+    owner = "AI Captain";
+    status = "in_progress";
+    ctaHref = `/engine/projects/${p.id}/builder`;
+    ctaLabel = "Open Roadmap Builder";
   }
 
-  const objective = p.next_action ?? `Progress ${p.name} to the next milestone.`;
-  const stageLabel = `Step ${p.current_step_num} of 14 · ${p.status.replace(/_/g, " ")}`;
-  const accomplishments =
-    approvedSteps.length > 0
-      ? approvedSteps.map((s) => `Approved ${s}`)
-      : recentActivity.map((a) => a.title);
-
-  return (
-    <div className="space-y-4 text-sm">
-      <div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">
-          Objective
-        </div>
-        <div className="text-ink mt-1">{objective}</div>
-      </div>
-      <div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">
-          Stage
-        </div>
-        <div className="text-ink mt-1 capitalize">{stageLabel}</div>
-      </div>
-      {accomplishments.length > 0 && (
-        <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">
-            Recent accomplishments
-          </div>
-          <ul className="mt-1 space-y-1 list-disc list-inside text-ink/80 capitalize">
-            {accomplishments.map((a, i) => (
-              <li key={i} className="truncate">
-                {a}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {pendingCount > 0 && (
-        <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">
-            Decisions pending
-          </div>
-          <div className="text-ink mt-1">
-            {pendingCount} item{pendingCount === 1 ? "" : "s"} awaiting review
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function NeedsAttentionCard({ items }: { items: ReviewItem[] }) {
-  if (items.length === 0) {
-    return <EmptyState title="Nothing pending" hint="All caught up." />;
+  // NBA overrides CTA when available and non-blocked
+  if (nba && !blocked) {
+    nextAction = nba.action;
+    if (nba.href) ctaHref = nba.href;
   }
-  return (
-    <ul className="space-y-3">
-      {items.slice(0, 6).map((it) => (
-        <li key={it.id} className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium text-ink truncate" title={it.title}>
-              {it.title}
-            </div>
-            <div className="text-[11px] text-ink/50 mt-0.5">
-              {formatDateShort(it.created_at)} · {it.item_type}
-            </div>
-          </div>
-          <span
-            className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${IMPACT_STYLES[it.impact]}`}
-          >
-            {IMPACT_LABEL[it.impact]}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
-function HealthBreakdown({
-  p,
-  pendingCount,
-  activity,
-}: {
-  p: ReturnType<typeof useWorkspace>["project"];
-  pendingCount: number;
-  activity: ReturnType<typeof useWorkspace>["activity"];
-}) {
-  const risk: StageState =
-    p.status === "blocked" ? "pending" : pendingCount > 2 ? "current" : "done";
-  const engagement: StageState = activity.length > 0 ? "done" : "current";
-  const timeline: StageState = p.status === "blocked" ? "pending" : "done";
-
-  const rows: Array<{ label: string; text: string; tone: "green" | "amber" | "red" }> = [
-    { label: "Scope Alignment", text: "On Track", tone: "green" },
-    {
-      label: "Timeline",
-      text: timeline === "done" ? "On Track" : "At Risk",
-      tone: timeline === "done" ? "green" : "red",
-    },
-    { label: "Budget", text: "On Track", tone: "green" },
-    {
-      label: "Risk Level",
-      text: risk === "done" ? "Low" : risk === "current" ? "Elevated" : "High",
-      tone: risk === "done" ? "green" : risk === "current" ? "amber" : "red",
-    },
-    {
-      label: "Client Engagement",
-      text: engagement === "done" ? "Active" : "Quiet",
-      tone: engagement === "done" ? "green" : "amber",
-    },
-  ];
-
-  const dot: Record<"green" | "amber" | "red", string> = {
-    green: "bg-emerald-500",
-    amber: "bg-amber-500",
-    red: "bg-red-500",
+  return {
+    name,
+    context,
+    nextAction,
+    owner,
+    status,
+    ctaHref,
+    ctaLabel,
+    showDelivery: roadmapApproved || inBuild || delivered,
+    deliveryPct,
+    deliveryNote: delivered
+      ? "Delivered."
+      : inBuild
+        ? "Milestones in progress."
+        : roadmapApproved
+          ? "Begins after kickoff."
+          : "Begins after roadmap approval.",
+    workflowStepNum: p.current_step_num,
+    workflowTotal: 14,
   };
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <div className="font-display text-3xl text-ink leading-none">{p.health_score}</div>
-          <div className="text-[11px] text-ink/50 mt-1">Health score / 100</div>
-        </div>
-      </div>
-      <ul className="space-y-2 pt-2 border-t border-border">
-        {rows.map((r) => (
-          <li key={r.label} className="flex items-center justify-between text-sm">
-            <span className="text-ink/70">{r.label}</span>
-            <span className="inline-flex items-center gap-2 text-ink">
-              {r.text}
-              <span className={`inline-block w-2 h-2 rounded-full ${dot[r.tone]}`} />
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
+
+const STATUS_BADGE: Record<StageStatus, string> = {
+  needs_review: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  in_progress: "bg-royal/10 text-royal border-royal/30",
+  waiting: "bg-slate-500/10 text-slate-600 border-slate-500/30",
+  blocked: "bg-red-500/10 text-red-600 border-red-500/30",
+  done: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
+};
+
+const STATUS_LABEL: Record<StageStatus, string> = {
+  needs_review: "Needs Review",
+  in_progress: "In Progress",
+  waiting: "Waiting",
+  blocked: "Blocked",
+  done: "Done",
+};
 
 // ─────────── main component ─────────────────────────────────────
 function ProjectOverview() {
   const { projectId } = Route.useParams();
   const { project: p, dates, activity } = useWorkspace(projectId);
 
-  const compareFn = useServerFn(getVersionCompareData);
-  const compareQ = useQuery({
-    queryKey: ["engine", "versions-compare", projectId],
-    queryFn: () => compareFn({ data: { projectId } }),
-    staleTime: 30_000,
-  });
-  void compareQ;
-
-  // Intelligent NBA — Claude-powered, falls back to SQL RPC on error
   const nbaFn = useServerFn(getIntelligentNextAction);
   const nbaQ = useQuery({
     queryKey: ["engine", "intelligent-nba", projectId],
@@ -322,87 +220,65 @@ function ProjectOverview() {
       (i.project === p.name || i.project === p.id),
   );
   const pendingCount = pendingItems.length;
-  const stages = computeStages(p);
   const nba = nbaQ.data as NextBestAction | undefined;
+  const stage = deriveStage(p, nba, pendingItems);
+
+  const criticalDates = dates.slice(0, 3);
+  const recentActivity = activity.slice(0, 5);
+
+  const openDecisions = p.open_decisions ?? 0;
+  const blockerCount = pendingItems.filter((i) => i.impact === "high").length;
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between">
+        <div className="min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/50">
+            Project Command Center
+          </div>
+          <h1 className="mt-1 truncate text-xl sm:text-2xl font-semibold text-ink">
+            {p.name}
+          </h1>
+          <div className="mt-1 text-xs text-ink/60 truncate">
+            {p.client_company || "—"}
+            {p.client_owner_email ? ` · ${p.client_owner_email}` : ""}
+          </div>
+        </div>
+        <div className="shrink-0 flex items-center gap-2">
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${STATUS_BADGE[stage.status]}`}
+          >
+            {stage.name}
+          </span>
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${STATUS_BADGE[stage.status]}`}
+          >
+            {STATUS_LABEL[stage.status]}
+          </span>
+        </div>
+      </header>
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 space-y-6 min-w-0">
-          {/* Progress stepper */}
-          <SectionCard title="Project Progress">
-            <ProgressStepper stages={stages} />
-          </SectionCard>
+          {/* CURRENT STAGE HERO */}
+          <CurrentStageHero stage={stage} />
 
-          {/* Next Best Action — AI-powered */}
-          <SectionCard
-            title={
-              <span className="inline-flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-royal" />
-                Next best action
-                {nba?.ai_generated && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#3E68B2]/10 px-2 py-0.5 text-[10px] font-medium text-[#3E68B2]">
-                    <Sparkles className="w-2.5 h-2.5" />
-                    AI
-                  </span>
-                )}
-              </span>
-            }
-            className="border-l-4 border-royal"
-          >
-            {nbaQ.isLoading ? (
-              <div className="text-sm text-ink/50">Computing…</div>
-            ) : nba ? (
-              <div>
-                <div className="flex items-start gap-2">
-                  <span
-                    className={`mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ${
-                      nba.severity === "critical"
-                        ? "bg-red-500"
-                        : nba.severity === "warning"
-                        ? "bg-amber-500"
-                        : "bg-emerald-500"
-                    }`}
-                    aria-hidden
-                  />
-                  <div className="min-w-0 flex-1">
-                    {nba.href ? (
-                      <a href={nba.href} className="text-ink text-lg hover:underline">
-                        {nba.action}
-                      </a>
-                    ) : (
-                      <div className="text-ink text-lg">{nba.action}</div>
-                    )}
-                    {nba.reason ? (
-                      <div className="text-sm text-ink/70 mt-1">{nba.reason}</div>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="text-xs text-ink/60 mt-2">
-                  {pendingCount} pending{" "}
-                  {pendingCount === 1 ? "review item" : "review items"} · Step{" "}
-                  {p.current_step_num} of 14 · {nba.ai_generated ? "Captain AI" : "Live"}
-                </div>
-              </div>
-            ) : (
-              <div className="text-ink text-lg">
-                {p.next_action ?? "Nothing waiting — advance to the next step when ready."}
-              </div>
-            )}
-          </SectionCard>
-
-          {/* Project Summary */}
-          <SectionCard title="Project Summary">
-            <ProjectSummary p={p} activity={activity} pendingCount={pendingCount} />
-          </SectionCard>
+          {/* SECONDARY METRICS ROW */}
+          <SecondaryMetrics
+            healthScore={p.health_score}
+            openDecisions={openDecisions + pendingCount}
+            criticalDatesCount={dates.length}
+            blockerCount={blockerCount}
+          />
 
           {/* Recent Activity */}
           <SectionCard title="Recent Activity">
-            {activity.length === 0 ? (
+            {recentActivity.length === 0 ? (
               <EmptyState title="No activity yet" />
             ) : (
               <ul className="space-y-3">
-                {activity.map((a) => (
+                {recentActivity.map((a) => (
                   <li key={a.id} className="min-w-0">
                     <div
                       className="text-sm font-medium text-ink truncate"
@@ -432,9 +308,10 @@ function ProjectOverview() {
           </SectionCard>
         </div>
 
+        {/* RIGHT RAIL */}
         <div className="space-y-6 min-w-0">
           <SectionCard
-            title="Needs Your Attention"
+            title="Pending Actions"
             right={
               pendingCount > 0 ? (
                 <span className="text-[11px] text-ink/60">{pendingCount} pending</span>
@@ -443,17 +320,37 @@ function ProjectOverview() {
           >
             {reviewQ.isLoading ? (
               <div className="text-sm text-ink/50">Loading…</div>
+            ) : pendingItems.length === 0 ? (
+              <EmptyState title="Nothing pending" hint="System is waiting for the next signal." />
             ) : (
-              <NeedsAttentionCard items={pendingItems} />
+              <ul className="space-y-3">
+                {pendingItems.slice(0, 6).map((it) => (
+                  <li key={it.id} className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-ink truncate" title={it.title}>
+                        {it.title}
+                      </div>
+                      <div className="text-[11px] text-ink/50 mt-0.5">
+                        {formatDateShort(it.created_at)} · {it.item_type}
+                      </div>
+                    </div>
+                    <span
+                      className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${IMPACT_STYLES[it.impact]}`}
+                    >
+                      {IMPACT_LABEL[it.impact]}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
           </SectionCard>
 
-          <SectionCard title="Critical Dates">
-            {dates.length === 0 ? (
+          <SectionCard title="Upcoming Dates">
+            {criticalDates.length === 0 ? (
               <EmptyState title="No dates set" />
             ) : (
               <ul className="space-y-3 text-sm">
-                {dates.map((d) => (
+                {criticalDates.map((d) => (
                   <li key={d.id} className="flex items-baseline justify-between gap-3">
                     <span className="text-ink truncate">{d.label}</span>
                     <span className="text-ink/60 text-xs whitespace-nowrap">
@@ -468,13 +365,13 @@ function ProjectOverview() {
           <SectionCard
             title={
               <span className="inline-flex items-center">
-                Project Health
+                Health Drivers
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        aria-label="What project health means"
+                        aria-label="What health drivers mean"
                         className="ml-1 inline-flex"
                       >
                         <Info className="h-3.5 w-3.5 text-ink/40 transition hover:text-ink/60" />
@@ -482,7 +379,7 @@ function ProjectOverview() {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>
-                        Reflects signal coverage, scope, timeline, risk, and client engagement.
+                        Signal coverage, scope, timeline, risk, and client engagement.
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -490,7 +387,12 @@ function ProjectOverview() {
               </span>
             }
           >
-            <HealthBreakdown p={p} pendingCount={pendingCount} activity={activity} />
+            <HealthDrivers
+              healthScore={p.health_score}
+              blocked={p.status === "blocked"}
+              pendingCount={pendingCount}
+              activityCount={activity.length}
+            />
           </SectionCard>
 
           <SectionCard title="Shortcuts">
@@ -547,6 +449,225 @@ function ProjectOverview() {
           </SectionCard>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────── Current Stage hero ─────────────────────────────────
+function CurrentStageHero({ stage }: { stage: CurrentStage }) {
+  const workflowPct = Math.round((stage.workflowStepNum / stage.workflowTotal) * 100);
+  return (
+    <section className="rounded-xl border border-royal/20 bg-gradient-to-br from-royal/5 via-transparent to-transparent p-5 sm:p-6 shadow-sm">
+      <div className="flex items-start gap-2">
+        <Sparkles className="w-4 h-4 text-royal mt-1 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/50">
+            Current Stage
+          </div>
+          <h2 className="mt-1 text-2xl sm:text-3xl font-semibold text-ink leading-tight">
+            {stage.name}
+          </h2>
+          <p className="mt-2 text-sm text-ink/70">{stage.context}</p>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-lg border border-border bg-card p-4">
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">
+          Next required action
+        </div>
+        <div className="mt-1 text-lg font-medium text-ink">{stage.nextAction}</div>
+        <div className="mt-1 text-xs text-ink/60">
+          Owner: {stage.owner} · Status: {STATUS_LABEL[stage.status]}
+        </div>
+        {stage.ctaHref ? (
+          <a
+            href={stage.ctaHref}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-royal px-3 py-1.5 text-sm font-medium text-white hover:bg-royal/90 transition"
+          >
+            {stage.ctaLabel}
+            <ArrowRight className="w-3.5 h-3.5" />
+          </a>
+        ) : null}
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <ProgressBar
+          label="Workflow progress"
+          hint={`Step ${stage.workflowStepNum} of ${stage.workflowTotal}`}
+          pct={workflowPct}
+          tone="royal"
+        />
+        {stage.showDelivery ? (
+          <ProgressBar
+            label="Delivery progress"
+            hint={stage.deliveryNote}
+            pct={stage.deliveryPct}
+            tone="emerald"
+          />
+        ) : (
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">
+              Delivery progress
+            </div>
+            <div className="mt-1 text-sm text-ink/60 italic">
+              {stage.deliveryNote}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ProgressBar({
+  label,
+  hint,
+  pct,
+  tone,
+}: {
+  label: string;
+  hint: string;
+  pct: number;
+  tone: "royal" | "emerald";
+}) {
+  const bar = tone === "royal" ? "bg-royal" : "bg-emerald-500";
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">
+          {label}
+        </div>
+        <div className="text-xs text-ink/70 tabular-nums">{pct}%</div>
+      </div>
+      <div className="mt-1.5 h-1.5 w-full rounded-full bg-border overflow-hidden">
+        <div
+          className={`h-full ${bar} transition-all`}
+          style={{ width: `${Math.max(2, pct)}%` }}
+        />
+      </div>
+      <div className="mt-1 text-[11px] text-ink/50">{hint}</div>
+    </div>
+  );
+}
+
+// ─────────── Secondary metrics ─────────────────────────────────
+function SecondaryMetrics({
+  healthScore,
+  openDecisions,
+  criticalDatesCount,
+  blockerCount,
+}: {
+  healthScore: number;
+  openDecisions: number;
+  criticalDatesCount: number;
+  blockerCount: number;
+}) {
+  const items = [
+    {
+      label: "Health",
+      value: `${healthScore}`,
+      hint: healthScore >= 80 ? "Strong" : healthScore >= 60 ? "Watch" : "At risk",
+      icon: <ShieldCheck className="w-3.5 h-3.5" />,
+      tone: healthScore >= 80 ? "text-emerald-600" : healthScore >= 60 ? "text-amber-600" : "text-red-600",
+    },
+    {
+      label: "Open decisions",
+      value: `${openDecisions}`,
+      hint: openDecisions === 0 ? "None" : "Awaiting review",
+      icon: <Activity className="w-3.5 h-3.5" />,
+      tone: openDecisions === 0 ? "text-ink/70" : "text-amber-600",
+    },
+    {
+      label: "Critical dates",
+      value: `${criticalDatesCount}`,
+      hint: criticalDatesCount === 0 ? "None set" : "Tracked",
+      icon: <Calendar className="w-3.5 h-3.5" />,
+      tone: "text-ink/70",
+    },
+    {
+      label: "Blockers",
+      value: `${blockerCount}`,
+      hint: blockerCount === 0 ? "None" : "Needs attention",
+      icon: <AlertTriangle className="w-3.5 h-3.5" />,
+      tone: blockerCount === 0 ? "text-ink/70" : "text-red-600",
+    },
+  ];
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {items.map((it) => (
+        <div
+          key={it.label}
+          className="rounded-lg border border-border bg-card px-3 py-3 min-w-0"
+        >
+          <div className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-mono ${it.tone}`}>
+            {it.icon}
+            {it.label}
+          </div>
+          <div className="mt-1 text-2xl font-semibold text-ink tabular-nums">{it.value}</div>
+          <div className="text-[11px] text-ink/50 mt-0.5 truncate">{it.hint}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────── Health drivers ────────────────────────────────────
+function HealthDrivers({
+  healthScore,
+  blocked,
+  pendingCount,
+  activityCount,
+}: {
+  healthScore: number;
+  blocked: boolean;
+  pendingCount: number;
+  activityCount: number;
+}) {
+  const rows: Array<{ label: string; text: string; tone: "green" | "amber" | "red" }> = [
+    { label: "Scope Alignment", text: "On Track", tone: "green" },
+    {
+      label: "Timeline",
+      text: blocked ? "At Risk" : "On Track",
+      tone: blocked ? "red" : "green",
+    },
+    { label: "Budget", text: "On Track", tone: "green" },
+    {
+      label: "Risk Level",
+      text: blocked ? "High" : pendingCount > 2 ? "Elevated" : "Low",
+      tone: blocked ? "red" : pendingCount > 2 ? "amber" : "green",
+    },
+    {
+      label: "Client Engagement",
+      text: activityCount > 0 ? "Active" : "Quiet",
+      tone: activityCount > 0 ? "green" : "amber",
+    },
+  ];
+  const dot: Record<"green" | "amber" | "red", string> = {
+    green: "bg-emerald-500",
+    amber: "bg-amber-500",
+    red: "bg-red-500",
+  };
+  return (
+    <div className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <div>
+          <div className="font-display text-3xl text-ink leading-none tabular-nums">
+            {healthScore}
+          </div>
+          <div className="text-[11px] text-ink/50 mt-1">Health score / 100</div>
+        </div>
+      </div>
+      <ul className="space-y-2 pt-2 border-t border-border">
+        {rows.map((r) => (
+          <li key={r.label} className="flex items-center justify-between text-sm">
+            <span className="text-ink/70">{r.label}</span>
+            <span className="inline-flex items-center gap-2 text-ink">
+              {r.text}
+              <span className={`inline-block w-2 h-2 rounded-full ${dot[r.tone]}`} />
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
