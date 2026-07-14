@@ -1,65 +1,101 @@
-## Roadmap Engine Capability Confirmation Audit (Sections A–Q + Ultimate)
 
-Produce an evidence-backed audit report answering every confirmation in the user's questionnaire. This is a verification + reporting task — no product code changes.
+# UI & API Audit — 2026-07-14
 
-### Deliverable
+Read-mostly audit of the running app. Drives the live preview at
+`http://localhost:8080` with Playwright as two users, invokes every
+publicly-exposed server function / api route, cross-checks rendered
+values against Supabase, and lands findings in a single report. Trivial
+display bugs get patched in a short follow-up pass; anything schema- or
+governance-touching goes to `PENDING_MIGRATIONS.md` instead.
 
-Single markdown file:
-`.orchestrator/audit/roadmap-engine-capability-confirmation-2026-07-14.md`
+## Scope
 
-For every item (~200 checks across 17 sections):
+1. **Admin Engine (operator)** — signed in as `tai@trust-tai.com`
+   - `/engine/projects` list + filters
+   - `/engine/projects/$projectId` overview
+   - `/engine/projects/$projectId/chat` (Project Chat + proposals)
+   - `/engine/projects/$projectId/roadmap`
+   - `/engine/projects/$projectId/point-a` and `point-b` (ceremonies)
+   - `/engine/projects/$projectId/implementation-plan`
+   - `/engine/projects/$projectId/approvals`
+   - `/ops/*` (approvals queue, notifications, health)
+2. **Client Portal** — signed in as one seeded client user
+   - `/portal/home`, `/portal/roadmap`, `/portal/onboarding`
+   - Roadmap acknowledgment banner, decision/clarification modals
+   - Verify RLS: client sees only their project, no operator-only fields
+3. **Server functions & API routes**
+   - Enumerate every `createServerFn` in `src/lib/**` and every
+     `src/routes/api/**` file
+   - Invoke each via `stack_modern--invoke-server-function` or direct
+     Playwright-driven UI action, capturing status + response shape
+   - Confirm `/api/public/*` webhook auth guards reject unsigned calls
+   - Confirm `requireSupabaseAuth`-guarded fns 401 without a bearer
 
-- **Verdict:** one of `CONFIRMED` / `PARTIAL` / `NOT CONFIRMED` / `NOT BUILT`
-- **Evidence:** file paths + line refs, DB objects (tables/triggers/RPCs/policies), route paths, and/or migration ids. No claim without a pointer.
-- **Gap note (when < CONFIRMED):** one line on what's missing and where the nearest existing capability lives.
+## Method
 
-Each section ends with a rollup (e.g. `A. Conversational Intake — 9 CONFIRMED / 2 PARTIAL / 1 NOT BUILT`).
-Report ends with:
-- Cross-cutting **top gaps** list ranked by impact.
-- Answer to the final "Ultimate Confirmation" as a single honest verdict with reasoning.
+- Session for admin: reuse `LOVABLE_BROWSER_SUPABASE_*` env restore.
+- Session for client: sign in via password using seeded QA client
+  account (`qa-operator` or the portal seed user under
+  `scripts/portal/seed_demo_workspace.sql`). Confirm the seeded email +
+  password first with a `supabase--read_query`; if absent, ask before
+  proceeding.
+- Data correctness pass: for one live project, snapshot each rendered
+  card (milestone counts, ceremony state badges, approvals queue
+  counts, cost/pause banners) and run a matching
+  `supabase--read_query` to diff.
+- Write flows executed only in a QA project (`Jotaye Ventures` or the
+  seeded QA project id already used by
+  `scripts/qa/project-chat-action-mode-v3-qa.py`):
+  - Create a Project Chat proposal, approve it, verify audit rows.
+  - Record a ceremony decision on Point A, verify `truth.ceremony_id`.
+  - Toggle Action Mode on/off; assert audit + activity rows.
+  - Trigger cost-autopause hook via `/api/public/hooks/cost-autopause`
+    with a signed test payload; verify pause + notification proposal.
+- No schema changes. No migrations. No mutations against real client
+  projects.
 
-### Method
+## Deliverables
 
-1. **Reuse prior audits as index, not as ground truth.** Read `.orchestrator/audit/capability-audit-summary-2026-07-14b.md`, `capability-audit-2026-07-14b.md`, `.lovable/engine-audit-2026-07.md`, `.lovable/engine-qa-audit.md`, and `doctrine/ROADMAP_ENGINE_PHASE_MAP.md` to locate relevant subsystems fast — then re-verify each claim against current code/DB before marking CONFIRMED.
-2. **Codebase sweeps by section** using `rg` over `src/lib/`, `src/routes/`, `src/components/engine/`, `src/components/portal/`, `src/integrations/`. Section→surface map (starting points, not exhaustive):
-   - A Intake: `src/routes/intake*`, `src/lib/intake*`, `intake_drafts`, `intake_submissions`, `src/components/intake/`
-   - B Understanding: `engine-extraction*`, `engine_extracted_signals`, `engine_extraction_runs`, `engine_spine_field_truth`, `engine_project_chat_proposals`
-   - C Captain / agents: `engine-captain*`, `engine_project_agents`, `engine_agent_tasks`, `engine_agent_costs`, `engine_agent_permissions`, `has_role`
-   - D Readiness: `spine_points_approved`, `spine_points_ready_summary`, `engine_spine_ceremonies`
-   - E Roadmap: `engine_roadmap_versions`, `engine_milestones`, `roadmap-generation*`
-   - F Multi-project: `engine_projects.parent_id`, Phase 5D artifacts, `hasChildren`/rollup guards
-   - G Mockups/plans/specs: `engine_project_mockups`, `engine_project_implementation_plans`, `engine_project_frames`, `admin_edit_impl_plan_governed`
-   - H Build/execution: `engine_project_build_packets`, `engine_project_build_evidence`, cost-guard trigger, retry paths
-   - I QA/evidence: `engine_project_qa_plans`, `engine_project_qa_evidence_reviews`, `engine_project_delivery_readiness_reviews`
-   - J Approvals/governance: `engine_review_items`, `engine_review_audit`, `roadmap_approvals`, `engine_project_chat_proposals`, `apply_approved_proposal`, spine gate triggers
-   - K Spine/versioning/drift: `engine_spine_field_truth`, `engine_version_change_decisions`, `engine_change_events`, drift detectors
-   - L Portal/comms: `client_portal_*`, `publish_portal_roadmap`, `retract_portal_publication`, `portal_access_events`, `RoadmapAcknowledgmentBanner`, `engine_project_openclaw_*`
-   - M Engines/rhythm: `engine_business_engines`, `_runs`, `_exceptions`, `activate_business_engine`
-   - N Delivery/transitions: `engine_delivery_items`, `engine_delivery_history`, `client_portal_publish_events`
-   - O Outcomes/learning: `engine-outcome-scheduler*`, `outcome_checkin` review items, `engine_intelligence_memory`
-   - P Portfolio/Command Center: `admin.command-center`, `get_command_center_exceptions`, health explainer
-   - Q Reliability/security: `engine_audit_log`, RLS policies, `has_role`, `assertStaff`, fallback + model-agnostic paths
-3. **DB verification** via `supabase--read_query` for: table columns, RLS policies, triggers, RPC signatures, cron job for outcome scheduler.
-4. **Governance touchstones** to spot-check every relevant claim:
-   - proposal-only writes to governed columns (H6·B12 triggers)
-   - separate-approver on cost resume
-   - `service_role`-gated publish RPCs
-   - AI cannot self-approve (Phase 9C posture from earlier audits)
-5. **No writes.** No migrations, no data inserts, no code edits. Read-only audit.
+1. `.orchestrator/audit/ui-api-audit-2026-07-14.md` — findings table
+   with columns: Area · Route/Fn · Expected · Actual · Verdict
+   (PASS / DISPLAY_BUG / DATA_MISMATCH / BROKEN / SECURITY_CONCERN) ·
+   Evidence (screenshot path / query result / status code).
+2. `/tmp/browser/ui-api-audit/screenshots/` — one screenshot per route
+   per user context.
+3. `/tmp/browser/ui-api-audit/api-results.json` — status + response
+   shape for every server function / api route invoked.
+4. Ranked top-10 gap list at the end of the report.
 
-### Ground rules for verdicts
+## Auto-fix pass (follow-up turn, only after report is complete)
 
-- `CONFIRMED` requires a concrete live artifact (code path, DB object, or route) that implements the exact behavior described.
-- If enforcement is UI-only and can be bypassed at the DB/RPC layer, that is `PARTIAL` with the gap noted (e.g. the known F1 `activate_business_engine` readiness bypass).
-- If a capability exists in a doctrine/roadmap doc but not in code, that is `NOT BUILT`.
-- If a claim overlaps a known open finding from prior audits (`.orchestrator/audit/*`), cite the finding.
+Only these categories get patched in the same session, each a small
+targeted edit:
 
-### Scope boundaries
+- Empty-state text (`—`, `undefined`, `NaN`) in operator or portal
+  cards.
+- Broken internal links / 404s from stale route paths.
+- Console warnings from the current `ClientMarquee` hydration mismatch
+  (already visible in console logs today) if fix is one-line.
+- Head metadata regressions on public routes (missing title / og tags).
 
-- Not fixing anything found. Anything discovered mid-audit that looks like a live defect gets logged in a "Newly surfaced issues" appendix with severity, not silently patched.
-- Not editing `PENDING_MIGRATIONS.md` or any product code.
-- Not touching unrelated audits.
+Out of scope for auto-fix (logged only, escalated to Tai):
 
-### Estimated output size
+- Any RLS / grant change
+- Any governed-column write path change
+- Any schema migration
+- Any change touching approval or ceremony rules
+- Any AI prompt / model behavior change
 
-~200 rows across 17 tables + rollups + top-gaps + final verdict. Long doc, one file.
+## Non-goals
+
+- No load / perf testing.
+- No cross-browser matrix (Chromium headless only).
+- No SEO scoring — head-tag presence check only.
+
+## Risks
+
+- Client portal seed user credentials may not exist; will confirm
+  before running the client-context pass, otherwise fall back to
+  admin-only view of `/portal/*` and flag the gap.
+- Cost-autopause hook signature secret must be present in env; if
+  missing, that single check is skipped and reported.
