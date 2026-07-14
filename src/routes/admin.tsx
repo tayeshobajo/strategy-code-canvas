@@ -16,6 +16,8 @@ import {
   ArrowRightLeft,
   History,
   Zap,
+  Brain,
+  Rocket,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -97,6 +99,18 @@ const NAV: AdminNav[] = [
     label: "Project integrity",
     icon: Wrench,
     match: "/admin/project-integrity",
+  },
+  {
+    to: "/admin/engine-learning",
+    label: "Engine learning",
+    icon: Brain,
+    match: "/admin/engine-learning",
+  },
+  {
+    to: "/admin/engine-promotion",
+    label: "Engine promotion",
+    icon: Rocket,
+    match: "/admin/engine-promotion",
   },
 ];
 
