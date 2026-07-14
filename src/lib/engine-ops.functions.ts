@@ -1542,11 +1542,13 @@ export const updateReviewItemRiskInputs = createServerFn({ method: "POST" })
   });
 
 // ─── Phase H6.5 · B12 · Governed proposal apply path ──────────────
-// Applies an approved chat proposal to the real target row inside a
-// transaction that first sets the GUC `engine.proposal_apply = 'on'` (via
-// SECURITY DEFINER RPC `begin_proposal_apply`), which is what the pending
-// B12 triggers on `engine_milestones` / `engine_project_implementation_plans`
-// check for to allow the write.
+// Applies an approved chat proposal to the real target row atomically
+// via the SECURITY DEFINER RPC `public.apply_approved_proposal(_proposal_id)`.
+// The RPC sets the GUC `engine.proposal_apply = 'on'` and performs the
+// governed UPDATE in the SAME transaction — required because PostgREST
+// wraps each HTTP request in its own txn, so a client-side sequence of
+// `sb.rpc('begin_proposal_apply')` + `sb.from(...).update(...)` cannot
+// share the GUC. See PENDING_MIGRATIONS §H6-B12.
 export const applyApprovedProposal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ proposalId: z.string().uuid() }).parse(raw))
@@ -1555,79 +1557,42 @@ export const applyApprovedProposal = createServerFn({ method: "POST" })
     const sb = context.supabase as never as {
       from: (t: string) => {
         select: (s: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }> } };
-        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
         insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
       };
       rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
     };
 
+    const res = await sb.rpc("apply_approved_proposal", { _proposal_id: data.proposalId });
+    if (res.error) throwGeneric(res.error, "Operation failed");
+    const target = (res.data as string | null) ?? null;
+
+    // Best-effort audit: read the proposal for project_id/type. The RPC
+    // itself records the write atomically; this is our app-side log.
     const cur = await sb
       .from("engine_project_chat_proposals")
-      .select("id, project_id, proposal_type, status, payload, target_kind, target_id")
+      .select("id, project_id, proposal_type")
       .eq("id", data.proposalId)
       .maybeSingle();
-    if (cur.error) throwGeneric(cur.error, "Operation failed");
-    if (!cur.data) throw new Error("Proposal not found");
-    const p = cur.data as {
+    const p = (cur.data ?? null) as {
       id: string;
       project_id: string | null;
       proposal_type: string | null;
-      status: string | null;
-      payload: Record<string, unknown> | null;
-      target_kind: string | null;
-      target_id: string | null;
-    };
-    if (p.status !== "approved") throw new Error("Proposal is not in approved status");
-    if (!p.target_id || !p.target_kind) throw new Error("Proposal is missing target_kind / target_id");
+    } | null;
 
-    // Open GUC-scoped session. begin_proposal_apply is a SECURITY DEFINER
-    // helper that runs `SET LOCAL engine.proposal_apply = 'on'`.
-    const guc = await sb.rpc("begin_proposal_apply", {});
-    if (guc.error) throwGeneric(guc.error, "Operation failed");
-
-    let target: string | null = null;
-    const payload = p.payload ?? {};
-
-    if (p.target_kind === "milestone") {
-      const patch: Record<string, unknown> = {};
-      if (typeof payload.brief_md === "string") patch.brief_md = payload.brief_md;
-      if (Array.isArray(payload.acceptance_criteria) || (payload.acceptance_criteria && typeof payload.acceptance_criteria === "object"))
-        patch.acceptance_criteria = payload.acceptance_criteria as unknown as Record<string, unknown>;
-      if (typeof payload.developer_prompt === "string") patch.developer_prompt = payload.developer_prompt;
-      if (typeof payload.client_safe_md === "string") patch.client_safe_md = payload.client_safe_md;
-      if (Object.keys(patch).length === 0) throw new Error("Milestone payload has no governed fields to apply");
-      const { error } = await sb.from("engine_milestones").update(patch).eq("id", p.target_id);
-      if (error) throwGeneric(error, "Operation failed");
-      target = `engine_milestones:${p.target_id}`;
-    } else if (p.target_kind === "implementation_plan") {
-      const patch: Record<string, unknown> = {};
-      if (typeof payload.summary === "string") patch.summary = payload.summary;
-      if (payload.payload && typeof payload.payload === "object") patch.payload = payload.payload as Record<string, unknown>;
-      if (Object.keys(patch).length === 0) throw new Error("Implementation-plan payload has no governed fields to apply");
-      const { error } = await sb
-        .from("engine_project_implementation_plans")
-        .update(patch)
-        .eq("id", p.target_id);
-      if (error) throwGeneric(error, "Operation failed");
-      target = `engine_project_implementation_plans:${p.target_id}`;
-    } else {
-      throw new Error(`Unsupported target_kind: ${p.target_kind}`);
-    }
-
-    if (p.project_id) {
+    if (p?.project_id) {
       await sb.from("engine_activity").insert({
         project_id: p.project_id,
         actor_email: actor,
         kind: "proposal_applied",
-        summary: `Proposal ${p.id.slice(0, 8)} applied to ${target}.`,
+        summary: `Proposal ${p.id.slice(0, 8)} applied to ${target ?? "unknown"}.`,
         metadata: { proposal_id: p.id, target, proposal_type: p.proposal_type },
       });
       await sb.from("engine_audit_log").insert({
         project_id: p.project_id,
         actor_email: actor,
         action: "proposal_applied",
-        summary: `Applied approved proposal ${p.id.slice(0, 8)} to ${target}.`,
-        affected_modules: [p.target_kind ?? "unknown"],
+        summary: `Applied approved proposal ${p.id.slice(0, 8)} to ${target ?? "unknown"}.`,
+        affected_modules: [p.proposal_type ?? "unknown"],
         target_id: p.id,
         metadata: { proposal_id: p.id, target },
       });
@@ -1635,3 +1600,4 @@ export const applyApprovedProposal = createServerFn({ method: "POST" })
 
     return { ok: true, target };
   });
+
