@@ -127,6 +127,12 @@ const NAV: AdminNav[] = [
     icon: Network,
     match: "/admin/family-impact",
   },
+  {
+    to: "/admin/engine-templates",
+    label: "Engine templates",
+    icon: LayoutTemplate,
+    match: "/admin/engine-templates",
+  },
 ];
 
 function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
