@@ -4210,46 +4210,83 @@ WHERE item_type = 'outcome_checkin' ORDER BY created_at DESC LIMIT 20;
 - `src/routes/api/public/hooks/outcome-checkins.ts`
 - `src/routes/admin.outcome-scheduler.tsx`
 
-## Phase H6 · B12 — Non-spine proposal enforcement (BLOCKED — do not apply)
+## Phase H6 · B12 — Non-spine proposal enforcement (REVISED 2026-07-14, needs one more fix before apply)
 
-**Blocker (2026-07-14):** the trigger assumes callers set
-`SET LOCAL engine.proposal_apply = 'on'` inside an `applyApprovedProposal()`
-transaction, but no such function exists in `src/`. Also, the governed columns
-named here (`body`, `success_criteria`, `data_model`, `integrations`) do NOT
-exist — the real columns are `brief_md`, `acceptance_criteria`,
-`developer_prompt`, `client_safe_md` on `engine_milestones` and `summary`,
-`payload` on `engine_project_implementation_plans`. Applying as written would
-either no-op (wrong column names) or, once rewritten to real columns, break
-`updateMilestone` and every current impl-plan writer.
+**Status:** UNBLOCKED IN CODE, but the SECURITY DEFINER + `SET LOCAL` pattern
+below has a **known transaction-boundary caveat** that must be resolved before
+apply. See "Transaction-boundary caveat" section below.
 
-**Unblock path:** ship `applyApprovedProposal()` that opens a txn, calls
-`SET LOCAL engine.proposal_apply = 'on'`, then applies the payload to the
-real columns. Rewrite the trigger below against the real column names before
-applying.
+App-side `applyApprovedProposal()` server fn now ships
+(see `src/lib/engine-ops.functions.ts`). It calls the SECURITY DEFINER helper
+`public.begin_proposal_apply()` before the governed UPDATE. The triggers below
+check the GUC and allow the write when it is present.
 
-Original proposal (kept for reference only, DO NOT APPLY):
+### Transaction-boundary caveat (must resolve before apply)
 
-Extends `tg_engine_chat_proposals_enforce_transition` so material edits to
-milestone bodies (`engine_milestones.body`, `.acceptance_criteria`,
-`.success_criteria`) and implementation plans
-(`engine_project_implementation_plans.body`, `.data_model`, `.integrations`)
-route through a chat proposal instead of a silent UPDATE.
+PostgREST wraps each HTTP request in its own transaction. `SET LOCAL` from an
+RPC call in one request will NOT carry over to a subsequent `.update()` call
+issued from the same server-fn handler, because that `.update()` is a
+separate PostgREST request in a separate transaction. As written, the B12
+triggers would then reject the update.
+
+**Two viable resolutions** (pick one before applying B12):
+
+1. **Move the whole apply into a stored procedure.** Add
+   `public.apply_approved_proposal(_proposal_id uuid)` as a `SECURITY DEFINER`
+   function that runs `PERFORM set_config('engine.proposal_apply','on',true)`
+   and then performs the governed UPDATE in one transaction. Rewrite the
+   server fn `applyApprovedProposal` to call `sb.rpc('apply_approved_proposal',
+   { _proposal_id: id })` instead of doing the update client-side. This is the
+   recommended path — one atomic txn, one round trip.
+
+2. **Use pg_bundle / txn RPC.** Not natively supported by supabase-js in the
+   generated client; would require raw PostgREST `POST /rpc/...` with a
+   custom `Prefer: tx=commit` header. Fragile — do not use.
+
+Applying the triggers below WITHOUT resolution 1 will break the current
+`applyApprovedProposal` server fn (each governed UPDATE will RAISE).
+
+
+
+Target columns are corrected to match the real schema:
+- `engine_milestones`: `brief_md`, `acceptance_criteria`, `developer_prompt`,
+  `client_safe_md`
+- `engine_project_implementation_plans`: `summary`, `payload`
+
+Direct UPDATEs to any of these columns from `updateMilestone` or other
+non-proposal writers will now RAISE. Before applying, audit and migrate any
+existing writers to `applyApprovedProposal()`. Search for
+`from("engine_milestones").update(` and inspect each caller.
 
 ```sql
--- Blocks direct UPDATE to governed body columns unless the current
--- statement was triggered from applyApprovedProposal() (marked via a
--- session GUC `engine.proposal_apply = 'on'`).
+-- 1. SECURITY DEFINER helper — callers hit this via supabase.rpc()
+--    at the top of a transaction that will apply a governed write.
+CREATE OR REPLACE FUNCTION public.begin_proposal_apply()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  PERFORM set_config('engine.proposal_apply', 'on', true);
+END $$;
 
+REVOKE ALL ON FUNCTION public.begin_proposal_apply() FROM public;
+GRANT EXECUTE ON FUNCTION public.begin_proposal_apply() TO authenticated;
+
+-- 2. Milestone trigger — governs brief_md / acceptance_criteria /
+--    developer_prompt / client_safe_md.
 CREATE OR REPLACE FUNCTION public.tg_engine_milestones_require_proposal()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF current_setting('engine.proposal_apply', true) = 'on' THEN
     RETURN NEW;
   END IF;
-  IF NEW.body IS DISTINCT FROM OLD.body
+  IF NEW.brief_md IS DISTINCT FROM OLD.brief_md
      OR NEW.acceptance_criteria IS DISTINCT FROM OLD.acceptance_criteria
-     OR NEW.success_criteria IS DISTINCT FROM OLD.success_criteria THEN
-    RAISE EXCEPTION 'Milestone body/criteria edits must go through a chat proposal (see engine_project_chat_proposals).';
+     OR NEW.developer_prompt IS DISTINCT FROM OLD.developer_prompt
+     OR NEW.client_safe_md IS DISTINCT FROM OLD.client_safe_md THEN
+    RAISE EXCEPTION 'Milestone body edits (brief_md / acceptance_criteria / developer_prompt / client_safe_md) must go through an approved chat proposal applied via applyApprovedProposal().';
   END IF;
   RETURN NEW;
 END $$;
@@ -4259,17 +4296,16 @@ CREATE TRIGGER engine_milestones_require_proposal
   BEFORE UPDATE ON public.engine_milestones
   FOR EACH ROW EXECUTE FUNCTION public.tg_engine_milestones_require_proposal();
 
--- Same pattern for implementation plans.
+-- 3. Implementation-plan trigger — governs summary + payload.
 CREATE OR REPLACE FUNCTION public.tg_engine_impl_plans_require_proposal()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF current_setting('engine.proposal_apply', true) = 'on' THEN
     RETURN NEW;
   END IF;
-  IF NEW.body IS DISTINCT FROM OLD.body
-     OR NEW.data_model IS DISTINCT FROM OLD.data_model
-     OR NEW.integrations IS DISTINCT FROM OLD.integrations THEN
-    RAISE EXCEPTION 'Implementation-plan body edits must go through a chat proposal.';
+  IF NEW.summary IS DISTINCT FROM OLD.summary
+     OR NEW.payload IS DISTINCT FROM OLD.payload THEN
+    RAISE EXCEPTION 'Implementation-plan body edits (summary / payload) must go through an approved chat proposal applied via applyApprovedProposal().';
   END IF;
   RETURN NEW;
 END $$;
@@ -4280,16 +4316,31 @@ CREATE TRIGGER engine_impl_plans_require_proposal
   FOR EACH ROW EXECUTE FUNCTION public.tg_engine_impl_plans_require_proposal();
 ```
 
-App-side change (already committed):
-- `applyApprovedProposal()` sets `SET LOCAL engine.proposal_apply = 'on'`
-  inside its transaction before touching governed rows.
+### Pre-apply audit checklist
 
-### Verification
+Run these before approving the migration — if any return rows, the writer
+must be migrated to `applyApprovedProposal()` first:
+
+```
+rg -n 'from\("engine_milestones"\)\s*\.update\(' src/
+rg -n 'from\("engine_project_implementation_plans"\)\s*\.update\(' src/
+```
+
+Any remaining direct writers to governed columns will break at runtime the
+moment this migration lands.
+
+### Verification (post-apply)
 
 ```sql
--- Should raise:
-UPDATE public.engine_milestones SET body = body || ' edit' WHERE id = '<real-id>';
--- Should succeed inside applyApprovedProposal path (GUC set).
+-- Should RAISE:
+UPDATE public.engine_milestones SET brief_md = brief_md || ' edit'
+WHERE id = '<real-id>';
+
+-- Should succeed inside applyApprovedProposal() (GUC set):
+BEGIN;
+SELECT public.begin_proposal_apply();
+UPDATE public.engine_milestones SET brief_md = 'new body' WHERE id = '<real-id>';
+COMMIT;
 ```
 
 ---

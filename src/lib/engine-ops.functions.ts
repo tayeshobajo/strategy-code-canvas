@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { buildClientSafePayload } from "@/lib/roadmap-publish";
 import { throwGeneric } from "@/lib/engine-error";
+import { impactSummarySchema } from "@/lib/engine-proposal-impact";
 
 // Exported for behavioral role-rejection tests (Audit V3 #8).
 export async function assertAdminEmail(context: {
@@ -196,6 +197,13 @@ export type ReviewItem = {
   requested_by: string | null;
   status: "pending" | "in_review" | "approved" | "sent_back" | "rejected";
   created_at: string;
+  // Phase H6 · I11 — risk scoring inputs (nullable) and computed score.
+  severity?: string | null;
+  impact_score?: number | null;
+  urgency_score?: number | null;
+  deadline_at?: string | null;
+  client_risk?: boolean | null;
+  risk_score?: number | null;
 };
 export type ReviewAudit = {
   id: string; project: string; item_type: string; title: string;
@@ -215,19 +223,24 @@ export const listReviewQueue = createServerFn({ method: "GET" })
       (context as any).claims?.email as string | undefined,
       "admin",
     );
+    type OrderChain = {
+      order: (c: string, o: { ascending: boolean; nullsFirst?: boolean }) => OrderChain;
+      limit: (n: number) => Promise<{ data: unknown; error: unknown }>;
+    };
     const sb = context.supabase as never as {
       from: (t: string) => {
-        select: (s: string) => {
-          order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> };
-          not: (c: string, op: string, v: unknown) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } };
+        select: (s: string) => OrderChain & {
+          not: (c: string, op: string, v: unknown) => OrderChain;
         };
       };
     };
     const itemsBase = sb.from("engine_review_items").select("*");
+    // Phase H6 · I11 — sort by computed risk_score (nulls last) then recency.
     const itemsQuery = isAdmin
-      ? itemsBase.order("created_at", { ascending: false }).limit(500)
+      ? itemsBase.order("risk_score", { ascending: false, nullsFirst: false } as never).order("created_at", { ascending: false }).limit(500)
       : itemsBase
           .not("item_type", "in", "(roadmap_version,Roadmap Update,version_approval,Version Change)")
+          .order("risk_score", { ascending: false, nullsFirst: false } as never)
           .order("created_at", { ascending: false })
           .limit(500);
     const [it, au] = await Promise.all([
@@ -1422,4 +1435,203 @@ export const confirmProjectInvestment = createServerFn({ method: "POST" })
       affected_modules: ["investment"],
     });
     return { ok: true, investment_confirmed_at: nowIso };
+  });
+
+// ─── Phase H6.5 · J4 · Impact Summary edit path ────────────────────
+export const updateProposalImpact = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        proposalId: z.string().uuid(),
+        impact_summary: impactSummarySchema,
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const actor = await assertAdminEmail(context as never);
+    const sb = context.supabase as never as {
+      from: (t: string) => {
+        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+        select: (s: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }> } };
+      };
+    };
+    const cur = await sb
+      .from("engine_project_chat_proposals")
+      .select("id, project_id")
+      .eq("id", data.proposalId)
+      .maybeSingle();
+    if (cur.error) throwGeneric(cur.error, "Operation failed");
+    if (!cur.data) throw new Error("Proposal not found");
+    const row = cur.data as { id: string; project_id: string | null };
+
+    const { error } = await sb
+      .from("engine_project_chat_proposals")
+      .update({ impact_summary: data.impact_summary as unknown as Record<string, unknown> })
+      .eq("id", data.proposalId);
+    if (error) throwGeneric(error, "Operation failed");
+
+    if (row.project_id) {
+      await sb.from("engine_activity").insert({
+        project_id: row.project_id,
+        actor_email: actor,
+        kind: "proposal_impact_updated",
+        summary: `Impact summary updated on proposal ${row.id.slice(0, 8)}.`,
+        metadata: { proposal_id: row.id, impact_summary: data.impact_summary },
+      });
+    }
+    return { ok: true };
+  });
+
+// ─── Phase H6.5 · I11 · Risk-input edit path ──────────────────────
+// The DB trigger recomputes `risk_score` from these inputs.
+export const updateReviewItemRiskInputs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        severity: z.enum(["low", "medium", "high", "critical"]).nullable().optional(),
+        impact_score: z.number().int().min(0).max(100).nullable().optional(),
+        urgency_score: z.number().int().min(0).max(100).nullable().optional(),
+        deadline_at: z.string().datetime().nullable().optional(),
+        client_risk: z.boolean().optional(),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ data, context }): Promise<{ ok: true; risk_score: number | null }> => {
+    const actor = await assertOps(context as never);
+    const sb = context.supabase as never as {
+      from: (t: string) => {
+        update: (v: Record<string, unknown>) => {
+          eq: (c: string, v: string) => {
+            select: (s: string) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }> };
+          };
+        };
+        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+      };
+    };
+    const patch: Record<string, unknown> = {};
+    if (data.severity !== undefined) patch.severity = data.severity;
+    if (data.impact_score !== undefined) patch.impact_score = data.impact_score;
+    if (data.urgency_score !== undefined) patch.urgency_score = data.urgency_score;
+    if (data.deadline_at !== undefined) patch.deadline_at = data.deadline_at;
+    if (data.client_risk !== undefined) patch.client_risk = data.client_risk;
+    if (Object.keys(patch).length === 0) return { ok: true, risk_score: null };
+
+    const res = await sb
+      .from("engine_review_items")
+      .update(patch)
+      .eq("id", data.id)
+      .select("id, project_id, risk_score")
+      .maybeSingle();
+    if (res.error) throwGeneric(res.error, "Operation failed");
+    const row = (res.data ?? null) as { project_id: string | null; risk_score: number | null } | null;
+
+    if (row?.project_id) {
+      await sb.from("engine_activity").insert({
+        project_id: row.project_id,
+        actor_email: actor,
+        kind: "review_item_risk_updated",
+        summary: `Risk inputs updated on review item ${data.id.slice(0, 8)} → score ${row.risk_score ?? "—"}.`,
+        metadata: { review_item_id: data.id, patch, risk_score: row.risk_score },
+      });
+    }
+    return { ok: true, risk_score: row?.risk_score ?? null };
+  });
+
+// ─── Phase H6.5 · B12 · Governed proposal apply path ──────────────
+// Applies an approved chat proposal to the real target row inside a
+// transaction that first sets the GUC `engine.proposal_apply = 'on'` (via
+// SECURITY DEFINER RPC `begin_proposal_apply`), which is what the pending
+// B12 triggers on `engine_milestones` / `engine_project_implementation_plans`
+// check for to allow the write.
+export const applyApprovedProposal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ proposalId: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }): Promise<{ ok: true; target: string | null }> => {
+    const actor = await assertAdminEmail(context as never);
+    const sb = context.supabase as never as {
+      from: (t: string) => {
+        select: (s: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }> } };
+        update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+        insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+      };
+      rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+    };
+
+    const cur = await sb
+      .from("engine_project_chat_proposals")
+      .select("id, project_id, proposal_type, status, payload, target_kind, target_id")
+      .eq("id", data.proposalId)
+      .maybeSingle();
+    if (cur.error) throwGeneric(cur.error, "Operation failed");
+    if (!cur.data) throw new Error("Proposal not found");
+    const p = cur.data as {
+      id: string;
+      project_id: string | null;
+      proposal_type: string | null;
+      status: string | null;
+      payload: Record<string, unknown> | null;
+      target_kind: string | null;
+      target_id: string | null;
+    };
+    if (p.status !== "approved") throw new Error("Proposal is not in approved status");
+    if (!p.target_id || !p.target_kind) throw new Error("Proposal is missing target_kind / target_id");
+
+    // Open GUC-scoped session. begin_proposal_apply is a SECURITY DEFINER
+    // helper that runs `SET LOCAL engine.proposal_apply = 'on'`.
+    const guc = await sb.rpc("begin_proposal_apply", {});
+    if (guc.error) throwGeneric(guc.error, "Operation failed");
+
+    let target: string | null = null;
+    const payload = p.payload ?? {};
+
+    if (p.target_kind === "milestone") {
+      const patch: Record<string, unknown> = {};
+      if (typeof payload.brief_md === "string") patch.brief_md = payload.brief_md;
+      if (Array.isArray(payload.acceptance_criteria) || (payload.acceptance_criteria && typeof payload.acceptance_criteria === "object"))
+        patch.acceptance_criteria = payload.acceptance_criteria as unknown as Record<string, unknown>;
+      if (typeof payload.developer_prompt === "string") patch.developer_prompt = payload.developer_prompt;
+      if (typeof payload.client_safe_md === "string") patch.client_safe_md = payload.client_safe_md;
+      if (Object.keys(patch).length === 0) throw new Error("Milestone payload has no governed fields to apply");
+      const { error } = await sb.from("engine_milestones").update(patch).eq("id", p.target_id);
+      if (error) throwGeneric(error, "Operation failed");
+      target = `engine_milestones:${p.target_id}`;
+    } else if (p.target_kind === "implementation_plan") {
+      const patch: Record<string, unknown> = {};
+      if (typeof payload.summary === "string") patch.summary = payload.summary;
+      if (payload.payload && typeof payload.payload === "object") patch.payload = payload.payload as Record<string, unknown>;
+      if (Object.keys(patch).length === 0) throw new Error("Implementation-plan payload has no governed fields to apply");
+      const { error } = await sb
+        .from("engine_project_implementation_plans")
+        .update(patch)
+        .eq("id", p.target_id);
+      if (error) throwGeneric(error, "Operation failed");
+      target = `engine_project_implementation_plans:${p.target_id}`;
+    } else {
+      throw new Error(`Unsupported target_kind: ${p.target_kind}`);
+    }
+
+    if (p.project_id) {
+      await sb.from("engine_activity").insert({
+        project_id: p.project_id,
+        actor_email: actor,
+        kind: "proposal_applied",
+        summary: `Proposal ${p.id.slice(0, 8)} applied to ${target}.`,
+        metadata: { proposal_id: p.id, target, proposal_type: p.proposal_type },
+      });
+      await sb.from("engine_audit_log").insert({
+        project_id: p.project_id,
+        actor_email: actor,
+        action: "proposal_applied",
+        summary: `Applied approved proposal ${p.id.slice(0, 8)} to ${target}.`,
+        affected_modules: [p.target_kind ?? "unknown"],
+        target_id: p.id,
+        metadata: { proposal_id: p.id, target },
+      });
+    }
+
+    return { ok: true, target };
   });
