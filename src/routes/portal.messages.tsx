@@ -323,9 +323,26 @@ function MessagesPage() {
         qc.setQueryData(["portal", "messages", projectId], ctx.previous);
       toast.error(e.message || "Message did not send. Try again.");
     },
-    onSuccess: () => {
+    onSuccess: (_res, payload) => {
       toast.success("Message sent.");
+      if (projectId) {
+        void logActivity({
+          data: {
+            project_id: projectId,
+            kind: "replied",
+            subject_type: "portal_message",
+            subject_id: payload.milestoneSlug ?? payload.phaseKey ?? projectId,
+            summary: "Client sent a message",
+            metadata: {
+              phase_key: payload.phaseKey ?? null,
+              milestone_slug: payload.milestoneSlug ?? null,
+              attachments: payload.fileIds.length,
+            },
+          },
+        }).catch(() => {});
+      }
     },
+
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["portal", "messages", projectId] });
     },
