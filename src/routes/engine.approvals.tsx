@@ -301,6 +301,10 @@ function renderItemCard(
             <Detail label="Source" value={item.source ?? "Not provided"} />
           </dl>
 
+          <ReviewRiskInputsEditor item={item} />
+
+
+
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <ActionButton
               label="Approve"
