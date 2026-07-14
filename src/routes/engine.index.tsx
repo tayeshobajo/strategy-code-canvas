@@ -50,6 +50,8 @@ export const Route = createFileRoute("/engine/")({
 
 type Severity = "critical" | "warning" | "info";
 
+type ChangeEntry = { id: string; title: string; at: string; kind: string };
+
 type Decision = {
   id: string;
   kind: "approval" | "blocked" | "at_risk" | "agent_failure" | "client_decision" | "budget";
@@ -57,13 +59,27 @@ type Decision = {
   projectName: string;
   clientCompany: string;
   what: string;             // headline
-  why: string;              // why it matters (one line)
+  why: string;              // why it matters
   owner: string;            // who owns the next step
   recommended: string;      // recommended action
   href: string;             // CTA target
   severity: Severity;
-  due?: string | null;
+  createdAt: string;        // when the decision entered the queue
+  due?: string | null;      // explicit deadline if any
+  deadlineAt: string;       // effective SLA deadline (due ?? createdAt + SLA hours)
+  riskDrivers: string[];    // why this needs attention (bulleted context)
+  requiredFields: string[]; // what's needed to resolve
+  changes: ChangeEntry[];   // material changes since last check
   rank: number;             // sort key (higher = more urgent)
+};
+
+const SLA_HOURS: Record<Decision["kind"], number> = {
+  approval: 24,
+  blocked: 4,
+  at_risk: 24,
+  agent_failure: 2,
+  client_decision: 72,
+  budget: 24,
 };
 
 // ─── page ────────────────────────────────────────────────────────────────────
