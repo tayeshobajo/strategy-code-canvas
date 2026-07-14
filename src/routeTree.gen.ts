@@ -73,6 +73,7 @@ import { Route as AdminPlanDepthRouteImport } from './routes/admin.plan-depth'
 import { Route as AdminOutcomeFeedbackRouteImport } from './routes/admin.outcome-feedback'
 import { Route as AdminMilestoneChangesRouteImport } from './routes/admin.milestone-changes'
 import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-alerts'
+import { Route as AdminFamilyImpactRouteImport } from './routes/admin.family-impact'
 import { Route as AdminExceptionManagementRouteImport } from './routes/admin.exception-management'
 import { Route as AdminEvidenceEnforcementRouteImport } from './routes/admin.evidence-enforcement'
 import { Route as AdminEnginePromotionRouteImport } from './routes/admin.engine-promotion'
@@ -466,6 +467,11 @@ const AdminMilestoneChangesRoute = AdminMilestoneChangesRouteImport.update({
 const AdminIntakeAlertsRoute = AdminIntakeAlertsRouteImport.update({
   id: '/intake-alerts',
   path: '/intake-alerts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFamilyImpactRoute = AdminFamilyImpactRouteImport.update({
+  id: '/family-impact',
+  path: '/family-impact',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminExceptionManagementRoute =
@@ -917,6 +923,7 @@ export interface FileRoutesByFullPath {
   '/admin/engine-promotion': typeof AdminEnginePromotionRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
+  '/admin/family-impact': typeof AdminFamilyImpactRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
@@ -1051,6 +1058,7 @@ export interface FileRoutesByTo {
   '/admin/engine-promotion': typeof AdminEnginePromotionRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
+  '/admin/family-impact': typeof AdminFamilyImpactRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
@@ -1190,6 +1198,7 @@ export interface FileRoutesById {
   '/admin/engine-promotion': typeof AdminEnginePromotionRoute
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
+  '/admin/family-impact': typeof AdminFamilyImpactRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
@@ -1329,6 +1338,7 @@ export interface FileRouteTypes {
     | '/admin/engine-promotion'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
+    | '/admin/family-impact'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
     | '/admin/outcome-feedback'
@@ -1463,6 +1473,7 @@ export interface FileRouteTypes {
     | '/admin/engine-promotion'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
+    | '/admin/family-impact'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
     | '/admin/outcome-feedback'
@@ -1601,6 +1612,7 @@ export interface FileRouteTypes {
     | '/admin/engine-promotion'
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
+    | '/admin/family-impact'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
     | '/admin/outcome-feedback'
@@ -2201,6 +2213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIntakeAlertsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/family-impact': {
+      id: '/admin/family-impact'
+      path: '/family-impact'
+      fullPath: '/admin/family-impact'
+      preLoaderRoute: typeof AdminFamilyImpactRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/exception-management': {
       id: '/admin/exception-management'
       path: '/exception-management'
@@ -2768,6 +2787,7 @@ interface AdminRouteChildren {
   AdminEnginePromotionRoute: typeof AdminEnginePromotionRoute
   AdminEvidenceEnforcementRoute: typeof AdminEvidenceEnforcementRoute
   AdminExceptionManagementRoute: typeof AdminExceptionManagementRoute
+  AdminFamilyImpactRoute: typeof AdminFamilyImpactRoute
   AdminIntakeAlertsRoute: typeof AdminIntakeAlertsRoute
   AdminMilestoneChangesRoute: typeof AdminMilestoneChangesRoute
   AdminOutcomeFeedbackRoute: typeof AdminOutcomeFeedbackRoute
@@ -2793,6 +2813,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEnginePromotionRoute: AdminEnginePromotionRoute,
   AdminEvidenceEnforcementRoute: AdminEvidenceEnforcementRoute,
   AdminExceptionManagementRoute: AdminExceptionManagementRoute,
+  AdminFamilyImpactRoute: AdminFamilyImpactRoute,
   AdminIntakeAlertsRoute: AdminIntakeAlertsRoute,
   AdminMilestoneChangesRoute: AdminMilestoneChangesRoute,
   AdminOutcomeFeedbackRoute: AdminOutcomeFeedbackRoute,
