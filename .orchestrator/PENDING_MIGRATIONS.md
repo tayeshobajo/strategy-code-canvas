@@ -3116,8 +3116,8 @@ BEGIN
     IF ceremony.id IS NULL
        OR ceremony.project_id <> NEW.project_id
        OR ceremony.spine      <> NEW.spine
-       OR ceremony.status     <> 'completed' THEN
-      RAISE EXCEPTION 'approved_truth ceremony_id % invalid (project/spine mismatch or not completed) for field %:%',
+       OR ceremony.status NOT IN ('in_progress','completed') THEN
+      RAISE EXCEPTION 'approved_truth ceremony_id % invalid (project/spine mismatch or not in_progress/completed) for field %:%',
         NEW.ceremony_id, NEW.spine, NEW.field_key
         USING ERRCODE = 'check_violation';
     END IF;
