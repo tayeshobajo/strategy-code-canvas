@@ -1,11 +1,11 @@
 {
-  "asset_id": "1dd79f09-88e9-4a39-8787-6f80893ca7a0",
-  "content_type": "image/png",
-  "created_at": "2026-06-29T20:41:19Z",
+  "version": 1,
+  "asset_id": "5b515eb8-c7a2-4a74-a801-6d03b78046be",
+  "project_id": "b3555ed3-b0dc-4def-8fee-77ff34a2cb82",
+  "url": "/__l5e/assets-v1/5b515eb8-c7a2-4a74-a801-6d03b78046be/hero-suv-skyline.jpg",
+  "r2_key": "a/v1/b3555ed3-b0dc-4def-8fee-77ff34a2cb82/5b515eb8-c7a2-4a74-a801-6d03b78046be/hero-suv-skyline.jpg",
   "original_filename": "hero-suv-skyline.jpg",
-  "project_id": "b6eb7494-6d1b-4120-857e-38b223894cd2",
-  "r2_key": "a/v1/b6eb7494-6d1b-4120-857e-38b223894cd2/1dd79f09-88e9-4a39-8787-6f80893ca7a0/hero-suv-skyline.jpg",
   "size": 2109609,
-  "url": "/__l5e/assets-v1/1dd79f09-88e9-4a39-8787-6f80893ca7a0/hero-suv-skyline.jpg",
-  "version": 1
+  "content_type": "image/png",
+  "created_at": "2026-07-14T21:18:34Z"
 }

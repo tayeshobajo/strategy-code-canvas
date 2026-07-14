@@ -1,11 +1,11 @@
 {
-  "asset_id": "18e77d0b-228c-4991-9569-7ecef7513d34",
-  "content_type": "image/png",
-  "created_at": "2026-06-29T20:41:18Z",
+  "version": 1,
+  "asset_id": "bf4ba567-78b3-47eb-86c7-82cfc9cff4b5",
+  "project_id": "b3555ed3-b0dc-4def-8fee-77ff34a2cb82",
+  "url": "/__l5e/assets-v1/bf4ba567-78b3-47eb-86c7-82cfc9cff4b5/hero-spartan-officer.png",
+  "r2_key": "a/v1/b3555ed3-b0dc-4def-8fee-77ff34a2cb82/bf4ba567-78b3-47eb-86c7-82cfc9cff4b5/hero-spartan-officer.png",
   "original_filename": "hero-spartan-officer.png",
-  "project_id": "b6eb7494-6d1b-4120-857e-38b223894cd2",
-  "r2_key": "a/v1/b6eb7494-6d1b-4120-857e-38b223894cd2/18e77d0b-228c-4991-9569-7ecef7513d34/hero-spartan-officer.png",
   "size": 387828,
-  "url": "/__l5e/assets-v1/18e77d0b-228c-4991-9569-7ecef7513d34/hero-spartan-officer.png",
-  "version": 1
+  "content_type": "image/png",
+  "created_at": "2026-07-14T21:18:31Z"
 }
