@@ -39,6 +39,7 @@ import { Route as PortalMessagesRouteImport } from './routes/portal.messages'
 import { Route as PortalLoginRouteImport } from './routes/portal.login'
 import { Route as PortalHomeRouteImport } from './routes/portal.home'
 import { Route as PortalFilesRouteImport } from './routes/portal.files'
+import { Route as PortalFamilyRouteImport } from './routes/portal.family'
 import { Route as PortalBillingRouteImport } from './routes/portal.billing'
 import { Route as PortalActivityRouteImport } from './routes/portal.activity'
 import { Route as PortalAccountRouteImport } from './routes/portal.account'
@@ -290,6 +291,11 @@ const PortalHomeRoute = PortalHomeRouteImport.update({
 const PortalFilesRoute = PortalFilesRouteImport.update({
   id: '/files',
   path: '/files',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalFamilyRoute = PortalFamilyRouteImport.update({
+  id: '/family',
+  path: '/family',
   getParentRoute: () => PortalRoute,
 } as any)
 const PortalBillingRoute = PortalBillingRouteImport.update({
@@ -923,6 +929,7 @@ export interface FileRoutesByFullPath {
   '/portal/account': typeof PortalAccountRoute
   '/portal/activity': typeof PortalActivityRoute
   '/portal/billing': typeof PortalBillingRoute
+  '/portal/family': typeof PortalFamilyRoute
   '/portal/files': typeof PortalFilesRoute
   '/portal/home': typeof PortalHomeRoute
   '/portal/login': typeof PortalLoginRoute
@@ -1053,6 +1060,7 @@ export interface FileRoutesByTo {
   '/portal/account': typeof PortalAccountRoute
   '/portal/activity': typeof PortalActivityRoute
   '/portal/billing': typeof PortalBillingRoute
+  '/portal/family': typeof PortalFamilyRoute
   '/portal/files': typeof PortalFilesRoute
   '/portal/home': typeof PortalHomeRoute
   '/portal/login': typeof PortalLoginRoute
@@ -1188,6 +1196,7 @@ export interface FileRoutesById {
   '/portal/account': typeof PortalAccountRoute
   '/portal/activity': typeof PortalActivityRoute
   '/portal/billing': typeof PortalBillingRoute
+  '/portal/family': typeof PortalFamilyRoute
   '/portal/files': typeof PortalFilesRoute
   '/portal/home': typeof PortalHomeRoute
   '/portal/login': typeof PortalLoginRoute
@@ -1323,6 +1332,7 @@ export interface FileRouteTypes {
     | '/portal/account'
     | '/portal/activity'
     | '/portal/billing'
+    | '/portal/family'
     | '/portal/files'
     | '/portal/home'
     | '/portal/login'
@@ -1453,6 +1463,7 @@ export interface FileRouteTypes {
     | '/portal/account'
     | '/portal/activity'
     | '/portal/billing'
+    | '/portal/family'
     | '/portal/files'
     | '/portal/home'
     | '/portal/login'
@@ -1587,6 +1598,7 @@ export interface FileRouteTypes {
     | '/portal/account'
     | '/portal/activity'
     | '/portal/billing'
+    | '/portal/family'
     | '/portal/files'
     | '/portal/home'
     | '/portal/login'
@@ -1913,6 +1925,13 @@ declare module '@tanstack/react-router' {
       path: '/files'
       fullPath: '/portal/files'
       preLoaderRoute: typeof PortalFilesRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/family': {
+      id: '/portal/family'
+      path: '/family'
+      fullPath: '/portal/family'
+      preLoaderRoute: typeof PortalFamilyRouteImport
       parentRoute: typeof PortalRoute
     }
     '/portal/billing': {
@@ -2908,6 +2927,7 @@ interface PortalRouteChildren {
   PortalAccountRoute: typeof PortalAccountRoute
   PortalActivityRoute: typeof PortalActivityRoute
   PortalBillingRoute: typeof PortalBillingRoute
+  PortalFamilyRoute: typeof PortalFamilyRoute
   PortalFilesRoute: typeof PortalFilesRoute
   PortalHomeRoute: typeof PortalHomeRoute
   PortalLoginRoute: typeof PortalLoginRoute
@@ -2923,6 +2943,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalAccountRoute: PortalAccountRoute,
   PortalActivityRoute: PortalActivityRoute,
   PortalBillingRoute: PortalBillingRoute,
+  PortalFamilyRoute: PortalFamilyRoute,
   PortalFilesRoute: PortalFilesRoute,
   PortalHomeRoute: PortalHomeRoute,
   PortalLoginRoute: PortalLoginRoute,
