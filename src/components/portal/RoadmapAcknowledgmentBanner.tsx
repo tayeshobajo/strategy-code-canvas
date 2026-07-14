@@ -15,10 +15,11 @@
  * project monitoring finding 5349d5ea.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useServerFn } from '@tanstack/react-start';
 import { recordPortalRoadmapEvent } from '@/lib/portal.functions';
+import { logPortalActivity } from '@/lib/portal-activity.functions';
 
 interface RoadmapAcknowledgmentBannerProps {
   portalRoadmapId: string;
