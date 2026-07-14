@@ -753,6 +753,17 @@ function HiddenOpportunitiesSection() {
               </h3>
             </div>
 
+            <div
+              key={`b-${index}`}
+              className="mt-6 space-y-4 text-[14px] leading-[1.75] sm:mt-8 sm:space-y-5 sm:text-[15px] sm:leading-[1.8] [&_mark]:transition-colors"
+              style={{ color: muted }}
+            >
+              {slide.body}
+            </div>
+          </div>
+
+
+
 
           <div
             className="mt-6 flex items-center gap-3 rounded-2xl border bg-white p-2 shadow-[0_8px_24px_-12px_rgba(15,27,61,0.15)] sm:gap-4"
