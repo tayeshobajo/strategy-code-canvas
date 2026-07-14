@@ -70,9 +70,11 @@ import { Route as AdminProjectIntegrityRouteImport } from './routes/admin.projec
 import { Route as AdminPostDeliveryLearningRouteImport } from './routes/admin.post-delivery-learning'
 import { Route as AdminPlatformConfigRouteImport } from './routes/admin.platform-config'
 import { Route as AdminPlanDepthRouteImport } from './routes/admin.plan-depth'
+import { Route as AdminOutcomeSchedulerRouteImport } from './routes/admin.outcome-scheduler'
 import { Route as AdminOutcomeFeedbackRouteImport } from './routes/admin.outcome-feedback'
 import { Route as AdminMilestoneChangesRouteImport } from './routes/admin.milestone-changes'
 import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-alerts'
+import { Route as AdminHealthExplainerRouteImport } from './routes/admin.health-explainer'
 import { Route as AdminFamilyImpactRouteImport } from './routes/admin.family-impact'
 import { Route as AdminExceptionManagementRouteImport } from './routes/admin.exception-management'
 import { Route as AdminEvidenceEnforcementRouteImport } from './routes/admin.evidence-enforcement'
@@ -140,6 +142,7 @@ import { Route as EngineProjectsProjectIdBackendBuilderRouteImport } from './rou
 import { Route as EngineProjectsProjectIdAiWorkspaceRouteImport } from './routes/engine.projects.$projectId.ai-workspace'
 import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engine.projects.$projectId.agent'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicHooksOutcomeCheckinsRouteImport } from './routes/api/public/hooks/outcome-checkins'
 import { Route as ApiPublicHooksEngineTickRouteImport } from './routes/api/public/hooks/engine-tick'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
 import { Route as EngineProjectsProjectIdVersionsCompareRouteImport } from './routes/engine.projects.$projectId.versions.compare'
@@ -455,6 +458,11 @@ const AdminPlanDepthRoute = AdminPlanDepthRouteImport.update({
   path: '/plan-depth',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOutcomeSchedulerRoute = AdminOutcomeSchedulerRouteImport.update({
+  id: '/outcome-scheduler',
+  path: '/outcome-scheduler',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminOutcomeFeedbackRoute = AdminOutcomeFeedbackRouteImport.update({
   id: '/outcome-feedback',
   path: '/outcome-feedback',
@@ -468,6 +476,11 @@ const AdminMilestoneChangesRoute = AdminMilestoneChangesRouteImport.update({
 const AdminIntakeAlertsRoute = AdminIntakeAlertsRouteImport.update({
   id: '/intake-alerts',
   path: '/intake-alerts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHealthExplainerRoute = AdminHealthExplainerRouteImport.update({
+  id: '/health-explainer',
+  path: '/health-explainer',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminFamilyImpactRoute = AdminFamilyImpactRouteImport.update({
@@ -850,6 +863,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksOutcomeCheckinsRoute =
+  ApiPublicHooksOutcomeCheckinsRouteImport.update({
+    id: '/api/public/hooks/outcome-checkins',
+    path: '/api/public/hooks/outcome-checkins',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksEngineTickRoute =
   ApiPublicHooksEngineTickRouteImport.update({
     id: '/api/public/hooks/engine-tick',
@@ -931,9 +950,11 @@ export interface FileRoutesByFullPath {
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/family-impact': typeof AdminFamilyImpactRoute
+  '/admin/health-explainer': typeof AdminHealthExplainerRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
+  '/admin/outcome-scheduler': typeof AdminOutcomeSchedulerRoute
   '/admin/plan-depth': typeof AdminPlanDepthRoute
   '/admin/platform-config': typeof AdminPlatformConfigRoute
   '/admin/post-delivery-learning': typeof AdminPostDeliveryLearningRoute
@@ -990,6 +1011,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
+  '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -1067,9 +1089,11 @@ export interface FileRoutesByTo {
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/family-impact': typeof AdminFamilyImpactRoute
+  '/admin/health-explainer': typeof AdminHealthExplainerRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
+  '/admin/outcome-scheduler': typeof AdminOutcomeSchedulerRoute
   '/admin/plan-depth': typeof AdminPlanDepthRoute
   '/admin/platform-config': typeof AdminPlatformConfigRoute
   '/admin/post-delivery-learning': typeof AdminPostDeliveryLearningRoute
@@ -1125,6 +1149,7 @@ export interface FileRoutesByTo {
   '/engine/projects': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
+  '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -1208,9 +1233,11 @@ export interface FileRoutesById {
   '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
   '/admin/exception-management': typeof AdminExceptionManagementRoute
   '/admin/family-impact': typeof AdminFamilyImpactRoute
+  '/admin/health-explainer': typeof AdminHealthExplainerRoute
   '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
   '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
   '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
+  '/admin/outcome-scheduler': typeof AdminOutcomeSchedulerRoute
   '/admin/plan-depth': typeof AdminPlanDepthRoute
   '/admin/platform-config': typeof AdminPlatformConfigRoute
   '/admin/post-delivery-learning': typeof AdminPostDeliveryLearningRoute
@@ -1267,6 +1294,7 @@ export interface FileRoutesById {
   '/engine/projects/': typeof EngineProjectsIndexRoute
   '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
   '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
+  '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -1349,9 +1377,11 @@ export interface FileRouteTypes {
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
     | '/admin/family-impact'
+    | '/admin/health-explainer'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
     | '/admin/outcome-feedback'
+    | '/admin/outcome-scheduler'
     | '/admin/plan-depth'
     | '/admin/platform-config'
     | '/admin/post-delivery-learning'
@@ -1408,6 +1438,7 @@ export interface FileRouteTypes {
     | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/hooks/engine-tick'
+    | '/api/public/hooks/outcome-checkins'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
@@ -1485,9 +1516,11 @@ export interface FileRouteTypes {
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
     | '/admin/family-impact'
+    | '/admin/health-explainer'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
     | '/admin/outcome-feedback'
+    | '/admin/outcome-scheduler'
     | '/admin/plan-depth'
     | '/admin/platform-config'
     | '/admin/post-delivery-learning'
@@ -1543,6 +1576,7 @@ export interface FileRouteTypes {
     | '/engine/projects'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/hooks/engine-tick'
+    | '/api/public/hooks/outcome-checkins'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
@@ -1625,9 +1659,11 @@ export interface FileRouteTypes {
     | '/admin/evidence-enforcement'
     | '/admin/exception-management'
     | '/admin/family-impact'
+    | '/admin/health-explainer'
     | '/admin/intake-alerts'
     | '/admin/milestone-changes'
     | '/admin/outcome-feedback'
+    | '/admin/outcome-scheduler'
     | '/admin/plan-depth'
     | '/admin/platform-config'
     | '/admin/post-delivery-learning'
@@ -1684,6 +1720,7 @@ export interface FileRouteTypes {
     | '/engine/projects/'
     | '/api/public/hooks/build-roadmap-contact'
     | '/api/public/hooks/engine-tick'
+    | '/api/public/hooks/outcome-checkins'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
@@ -1767,6 +1804,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
   ApiPublicHooksEngineTickRoute: typeof ApiPublicHooksEngineTickRoute
+  ApiPublicHooksOutcomeCheckinsRoute: typeof ApiPublicHooksOutcomeCheckinsRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -2204,6 +2242,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPlanDepthRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/outcome-scheduler': {
+      id: '/admin/outcome-scheduler'
+      path: '/outcome-scheduler'
+      fullPath: '/admin/outcome-scheduler'
+      preLoaderRoute: typeof AdminOutcomeSchedulerRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/outcome-feedback': {
       id: '/admin/outcome-feedback'
       path: '/outcome-feedback'
@@ -2223,6 +2268,13 @@ declare module '@tanstack/react-router' {
       path: '/intake-alerts'
       fullPath: '/admin/intake-alerts'
       preLoaderRoute: typeof AdminIntakeAlertsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/health-explainer': {
+      id: '/admin/health-explainer'
+      path: '/health-explainer'
+      fullPath: '/admin/health-explainer'
+      preLoaderRoute: typeof AdminHealthExplainerRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/family-impact': {
@@ -2694,6 +2746,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/outcome-checkins': {
+      id: '/api/public/hooks/outcome-checkins'
+      path: '/api/public/hooks/outcome-checkins'
+      fullPath: '/api/public/hooks/outcome-checkins'
+      preLoaderRoute: typeof ApiPublicHooksOutcomeCheckinsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/engine-tick': {
       id: '/api/public/hooks/engine-tick'
       path: '/api/public/hooks/engine-tick'
@@ -2808,9 +2867,11 @@ interface AdminRouteChildren {
   AdminEvidenceEnforcementRoute: typeof AdminEvidenceEnforcementRoute
   AdminExceptionManagementRoute: typeof AdminExceptionManagementRoute
   AdminFamilyImpactRoute: typeof AdminFamilyImpactRoute
+  AdminHealthExplainerRoute: typeof AdminHealthExplainerRoute
   AdminIntakeAlertsRoute: typeof AdminIntakeAlertsRoute
   AdminMilestoneChangesRoute: typeof AdminMilestoneChangesRoute
   AdminOutcomeFeedbackRoute: typeof AdminOutcomeFeedbackRoute
+  AdminOutcomeSchedulerRoute: typeof AdminOutcomeSchedulerRoute
   AdminPlanDepthRoute: typeof AdminPlanDepthRoute
   AdminPlatformConfigRoute: typeof AdminPlatformConfigRoute
   AdminPostDeliveryLearningRoute: typeof AdminPostDeliveryLearningRoute
@@ -2835,9 +2896,11 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEvidenceEnforcementRoute: AdminEvidenceEnforcementRoute,
   AdminExceptionManagementRoute: AdminExceptionManagementRoute,
   AdminFamilyImpactRoute: AdminFamilyImpactRoute,
+  AdminHealthExplainerRoute: AdminHealthExplainerRoute,
   AdminIntakeAlertsRoute: AdminIntakeAlertsRoute,
   AdminMilestoneChangesRoute: AdminMilestoneChangesRoute,
   AdminOutcomeFeedbackRoute: AdminOutcomeFeedbackRoute,
+  AdminOutcomeSchedulerRoute: AdminOutcomeSchedulerRoute,
   AdminPlanDepthRoute: AdminPlanDepthRoute,
   AdminPlatformConfigRoute: AdminPlatformConfigRoute,
   AdminPostDeliveryLearningRoute: AdminPostDeliveryLearningRoute,
@@ -3098,6 +3161,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksBuildRoadmapContactRoute:
     ApiPublicHooksBuildRoadmapContactRoute,
   ApiPublicHooksEngineTickRoute: ApiPublicHooksEngineTickRoute,
+  ApiPublicHooksOutcomeCheckinsRoute: ApiPublicHooksOutcomeCheckinsRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
