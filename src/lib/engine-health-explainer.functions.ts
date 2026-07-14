@@ -81,6 +81,10 @@ async function assertStaff(ctx: Ctx): Promise<string> {
   return email;
 }
 
+export async function loadProjectDriversForTest(sb: Sb, projectId: string): Promise<HealthDriver[]> {
+  return loadProjectDrivers(sb, projectId);
+}
+
 async function loadProjectDrivers(sb: Sb, projectId: string): Promise<HealthDriver[]> {
   const drivers: HealthDriver[] = [];
 
