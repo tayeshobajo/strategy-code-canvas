@@ -681,7 +681,7 @@ function HiddenOpportunitiesSection() {
         </div>
       </div>
 
-      <div className="grid w-full flex-1 grid-cols-1 bg-white lg:grid-cols-12">
+      <div className="grid w-full grid-cols-1 bg-white lg:grid-cols-12">
         <div className="flex flex-col p-6 pb-4 sm:p-10 sm:pb-4 md:p-14 md:pb-6 lg:col-span-5 lg:p-16 lg:pb-6 xl:p-20 xl:pb-6">
           <div className="flex flex-1 flex-col">
             <div key={`h-${index}`} className="flex items-baseline gap-2 sm:gap-3">
