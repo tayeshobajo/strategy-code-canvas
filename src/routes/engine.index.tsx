@@ -270,7 +270,7 @@ function RequiresDecisionQueue({
           Nothing awaiting a decision. Healthy silence.
         </EmptyState>
       ) : (
-        <ul className="divide-y divide-[#EFEAE0]">
+        <ul className="divide-y divide-[#EFE9DC]">
           {decisions.slice(0, 8).map((d) => (
             <DecisionRow key={d.id} d={d} now={now} onSelect={onSelect} />
           ))}
@@ -287,7 +287,7 @@ function SlaBadge({ deadlineAt, now }: { deadlineAt: string; now: number }) {
       ? "border-rose-300 bg-rose-50 text-rose-700"
       : tone === "warning"
         ? "border-amber-300 bg-amber-50 text-amber-800"
-        : "border-[#E0D8C8] bg-[#F5F1E8] text-[#334155]";
+        : "border-[#E8E1D6] bg-[#F5F1E8] text-[#334155]";
   return (
     <span
       className={cn(
@@ -349,7 +349,7 @@ function DecisionRow({ d, now, onSelect }: { d: Decision; now: number; onSelect:
           </div>
         </div>
         <div className="flex items-center gap-2 md:pt-1">
-          <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E0D8C8] bg-[#F5F1E8] px-3 py-1.5 text-xs font-medium text-[#0A0F1F]">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E8E1D6] bg-[#F5F1E8] px-3 py-1.5 text-xs font-medium text-[#0A0F1F]">
             Open details <ArrowUpRight className="h-3.5 w-3.5" />
           </span>
         </div>
@@ -450,7 +450,7 @@ function AttentionSection({ groups, total }: { groups: AttentionGroup[]; total: 
           No exceptions. Every project is healthy.
         </EmptyState>
       ) : (
-        <div className="divide-y divide-[#EFEAE0]">
+        <div className="divide-y divide-[#EFE9DC]">
           {groups.map((g) => (
             <div key={g.key} className="px-5 py-4">
               <div className="mb-2 flex items-center gap-2">
@@ -461,7 +461,7 @@ function AttentionSection({ groups, total }: { groups: AttentionGroup[]; total: 
                       ? "border-rose-300 bg-rose-50 text-rose-700"
                       : g.tone === "warning"
                         ? "border-amber-300 bg-amber-50 text-amber-800"
-                        : "border-[#E0D8C8] bg-[#F5F1E8] text-[#334155]",
+                        : "border-[#E8E1D6] bg-[#F5F1E8] text-[#334155]",
                   )}
                 >
                   {g.label}
@@ -472,7 +472,7 @@ function AttentionSection({ groups, total }: { groups: AttentionGroup[]; total: 
                 {g.rows.slice(0, 5).map((r) => (
                   <li
                     key={r.id}
-                    className="grid grid-cols-1 items-center gap-2 rounded-lg border border-[#EFEAE0] bg-[#FBF9F4] px-3 py-2 md:grid-cols-[minmax(0,1fr)_auto]"
+                    className="grid grid-cols-1 items-center gap-2 rounded-lg border border-[#EFE9DC] bg-[#FBF9F4] px-3 py-2 md:grid-cols-[minmax(0,1fr)_auto]"
                   >
                     <div className="min-w-0">
                       <div className="flex items-baseline gap-2 truncate">
@@ -746,7 +746,7 @@ function severityTone(s: Severity) {
     };
   }
   return {
-    badge: "border-[#E0D8C8] bg-[#F5F1E8] text-[#334155]",
+    badge: "border-[#E8E1D6] bg-[#F5F1E8] text-[#334155]",
     icon: <Sparkles className="h-3 w-3" />,
   };
 }
@@ -1101,7 +1101,7 @@ function DecisionDrawer({
                     to="/engine/projects/$projectId/overview"
                     params={{ projectId: decision.projectId }}
                     onClick={onClose}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-[#E0D8C8] bg-[#F5F1E8] px-3.5 py-2 text-xs font-medium text-[#0A0F1F] hover:bg-[#EFE9DC]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#E8E1D6] bg-[#F5F1E8] px-3.5 py-2 text-xs font-medium text-[#0A0F1F] hover:bg-[#EFE9DC]"
                   >
                     Open project <ExternalLink className="h-3.5 w-3.5" />
                   </Link>
