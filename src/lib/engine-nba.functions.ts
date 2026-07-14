@@ -100,7 +100,7 @@ async function getSQLFallback(sb: any, projectId: string): Promise<NextBestActio
   return {
     action: (row as { action?: string }).action ?? "Nothing waiting",
     reason: (row as { reason?: string }).reason ?? "",
-    href: (row as { href?: string }).href ?? null,
+    href: sanitizeNbaHref((row as { href?: string }).href ?? null),
     severity: ((row as { severity?: string }).severity ?? "info") as NextBestAction["severity"],
     ai_generated: false,
   };
