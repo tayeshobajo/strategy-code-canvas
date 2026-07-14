@@ -684,7 +684,15 @@ function ctaLabel(k: Decision["kind"]) {
   }
 }
 
+function computeDeadline(kind: Decision["kind"], createdAt: string, due: string | null | undefined) {
+  if (due) return new Date(due).toISOString();
+  const started = new Date(createdAt).getTime();
+  const ms = SLA_HOURS[kind] * 3600_000;
+  return new Date(started + ms).toISOString();
+}
+
 function buildDecisions(data: CommandCenterPayload): Decision[] {
+  const nowIso = new Date().toISOString();
   const out: Decision[] = [];
   const projects = new Map<string, EngineProjectRow>();
   for (const p of data.active_projects ?? []) projects.set(p.id, p);
@@ -694,6 +702,7 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
   // Approvals — highest impact first
   for (const item of data.approval_breakdown?.items ?? []) {
     const severity: Severity = item.impact === "high" ? "critical" : "warning";
+    const createdAt = item.created_at ?? nowIso;
     out.push({
       id: `approval:${item.id}`,
       kind: "approval",
@@ -706,6 +715,15 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
       recommended: "Review and approve or reject.",
       href: "/engine/approvals",
       severity,
+      createdAt,
+      deadlineAt: computeDeadline("approval", createdAt, null),
+      riskDrivers: [
+        `Impact classified ${item.impact}.`,
+        `Artifact type: ${item.item_type.replace(/_/g, " ")}.`,
+        `Sitting in review since ${new Date(createdAt).toLocaleString()}.`,
+      ],
+      requiredFields: ["Operator sign-off", "Optional rejection reason", "Notify client if impact = high"],
+      changes: [],
       rank: severity === "critical" ? 100 : 70,
     });
   }
@@ -713,6 +731,7 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
   // Blocked projects
   for (const p of data.active_projects ?? []) {
     if (p.status !== "blocked") continue;
+    const createdAt = p.last_activity_at ?? nowIso;
     out.push({
       id: `blocked:${p.id}`,
       kind: "blocked",
@@ -725,7 +744,21 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
       recommended: nbaByProject.get(p.id) ?? p.next_action ?? "Identify blocker and reassign owner.",
       href: `/engine/projects/${p.id}/overview`,
       severity: "critical",
+      createdAt,
       due: p.next_critical_date?.due_on ?? null,
+      deadlineAt: computeDeadline("blocked", createdAt, p.next_critical_date?.due_on ?? null),
+      riskDrivers: [
+        `Status: ${p.status}.`,
+        p.open_decisions > 0 ? `${p.open_decisions} open decision(s) on client side.` : "Owner is Operator; internal blocker.",
+        p.next_critical_date ? `${p.next_critical_date.label} due ${formatDate(p.next_critical_date.due_on)}.` : "No hard deadline set.",
+        `Agent status: ${p.agent_status}.`,
+      ],
+      requiredFields: [
+        "Identify blocker root cause",
+        "Reassign owner if stalled >4h",
+        "Update next_action or clear status",
+      ],
+      changes: [],
       rank: 95,
     });
   }
@@ -745,6 +778,15 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
       recommended: "Open Command Center exception feed and resolve.",
       href: "/admin/command-center",
       severity: failures > 3 ? "critical" : "warning",
+      createdAt: nowIso,
+      deadlineAt: computeDeadline("agent_failure", nowIso, null),
+      riskDrivers: [
+        `${failures} failed run(s) in 24h.`,
+        `Runs in progress: ${data.agent_ops?.runs_in_progress ?? 0}.`,
+        `Runs needing attention: ${data.agent_ops?.needs_attention ?? 0}.`,
+      ],
+      requiredFields: ["Inspect failing runs", "Retry or archive", "Root-cause repeat failures"],
+      changes: [],
       rank: failures > 3 ? 90 : 60,
     });
   }
@@ -764,6 +806,15 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
       recommended: "Send reminders or escalate to a call.",
       href: "/engine/approvals",
       severity: clientDecisions > 3 ? "warning" : "info",
+      createdAt: nowIso,
+      deadlineAt: computeDeadline("client_decision", nowIso, null),
+      riskDrivers: [
+        `${clientDecisions} pending client decision(s).`,
+        `${data.client_action_counts.info_requests} info request(s) outstanding.`,
+        `${data.client_action_counts.feedback_pending} feedback item(s) pending.`,
+      ],
+      requiredFields: ["Send reminder", "Escalate to call if >72h", "Log outcome in project chat"],
+      changes: [],
       rank: 55,
     });
   }
@@ -784,9 +835,87 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
       recommended: "Raise cap or pause non-critical agents.",
       href: "/engine/operations",
       severity: spend / budget > 1 ? "critical" : "warning",
+      createdAt: nowIso,
+      deadlineAt: computeDeadline("budget", nowIso, null),
+      riskDrivers: [
+        `${formatCents(spend)} of ${formatCents(budget)} consumed.`,
+        `${Math.round((spend / budget) * 100)}% utilisation.`,
+        spend / budget > 1 ? "Cap already exceeded." : "Trend suggests overrun within the week.",
+      ],
+      requiredFields: ["Raise monthly cap", "Or pause low-priority agents", "Alert stakeholders"],
+      changes: [],
       rank: 65,
     });
   }
 
   return out.sort((a, b) => b.rank - a.rank);
 }
+
+// ─── SLA / countdown helpers ────────────────────────────────────────────────
+
+function formatCountdown(deadlineIso: string, nowMs: number): { label: string; tone: Severity; overdue: boolean } {
+  const target = new Date(deadlineIso).getTime();
+  const diff = target - nowMs;
+  const overdue = diff < 0;
+  const abs = Math.abs(diff);
+  const days = Math.floor(abs / 86_400_000);
+  const hours = Math.floor((abs % 86_400_000) / 3_600_000);
+  const mins = Math.floor((abs % 3_600_000) / 60_000);
+  const parts = days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  const label = overdue ? `Overdue ${parts}` : `Due in ${parts}`;
+  const tone: Severity = overdue
+    ? "critical"
+    : diff < 4 * 3_600_000
+      ? "warning"
+      : "info";
+  return { label, tone, overdue };
+}
+
+function useNowTick(intervalMs = 60_000) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(t);
+  }, [intervalMs]);
+  return now;
+}
+
+const LAST_CHECK_KEY = "engine:command-center:last-checked";
+
+/** Reads previous last-checked cutoff and writes a fresh one on mount. */
+function useLastChecked(): string | null {
+  const [cutoff, setCutoff] = useState<string | null>(null);
+  const wrote = useRef(false);
+  useEffect(() => {
+    if (wrote.current) return;
+    wrote.current = true;
+    try {
+      const prev = window.localStorage.getItem(LAST_CHECK_KEY);
+      setCutoff(prev);
+      window.localStorage.setItem(LAST_CHECK_KEY, new Date().toISOString());
+    } catch {
+      setCutoff(null);
+    }
+  }, []);
+  return cutoff;
+}
+
+function enrichWithChanges(decisions: Decision[], data: CommandCenterPayload, cutoffIso: string | null): Decision[] {
+  const cutoffMs = cutoffIso ? new Date(cutoffIso).getTime() : 0;
+  const activity = (data.recent_activity ?? []).filter((a) => new Date(a.created_at).getTime() > cutoffMs);
+  return decisions.map((d) => {
+    const matches = activity
+      .filter((a) => {
+        if (d.projectId && a.project_id === d.projectId) return true;
+        if (a.project_name && d.projectName && a.project_name === d.projectName) return true;
+        // system-scoped decisions match failure/budget activity kinds
+        if (d.kind === "agent_failure" && /fail|error|retry/i.test(`${a.kind} ${a.title}`)) return true;
+        if (d.kind === "budget" && /budget|spend|cost/i.test(`${a.kind} ${a.title}`)) return true;
+        return false;
+      })
+      .slice(0, 4)
+      .map<ChangeEntry>((a) => ({ id: a.id, title: a.title, at: a.created_at, kind: a.kind }));
+    return { ...d, changes: matches };
+  });
+}
+
