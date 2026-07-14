@@ -339,7 +339,13 @@ function RoadmapJourneyView({
     ctx.data && "approvedRoadmap" in ctx.data
       ? ctx.data.approvedRoadmap?.acknowledged_at ?? null
       : null;
+  usePortalViewLogger({
+    projectId,
+    subjectType: "portal_roadmap",
+    subjectId: portalRoadmapId ?? projectId,
+  });
   const schedulingUrl =
+
     ctx.data && "project" in ctx.data
       ? (ctx.data.project as { scheduling_url?: string | null } | null | undefined)
           ?.scheduling_url ?? null
