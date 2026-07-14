@@ -213,7 +213,7 @@ export const getIntelligentNextAction = createServerFn({ method: "POST" })
       return {
         action: parsed.action,
         reason: parsed.reason ?? "",
-        href: parsed.href ?? null,
+        href: sanitizeNbaHref(parsed.href ?? null),
         severity: (["info", "warning", "critical"].includes(parsed.severity ?? "")
           ? parsed.severity
           : "info") as NextBestAction["severity"],
