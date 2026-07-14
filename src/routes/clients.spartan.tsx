@@ -649,9 +649,10 @@ function HiddenOpportunitiesSection() {
   return (
     <section
       id="section-2"
-      className="relative flex min-h-screen w-full flex-col"
+      className="relative flex w-full flex-col"
       style={{ backgroundColor: navy }}
     >
+
       <div className="w-full bg-white">
         <div className="flex flex-col items-center justify-center px-6 pt-8 pb-5 text-center sm:pt-14 sm:pb-8 md:pt-16 md:pb-10 lg:pt-20 lg:pb-12">
           <div className="hidden items-center gap-3 md:flex">
@@ -866,8 +867,9 @@ function NoteFromTaiSection() {
   return (
     <section
       id="note-from-tai"
-      className="relative flex min-h-screen w-full items-center bg-white"
+      className="relative flex w-full items-center bg-white"
     >
+
       <div className="w-full px-5 py-8 sm:px-8 sm:py-14 md:px-14 md:py-20 lg:px-20 lg:py-24">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-8 sm:gap-10 lg:grid-cols-12 lg:gap-14">
           <div className="hidden lg:col-span-5 lg:block">
