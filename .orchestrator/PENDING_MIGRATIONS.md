@@ -4383,6 +4383,60 @@ DROP TRIGGER IF EXISTS engine_impl_plans_require_proposal ON public.engine_proje
 CREATE TRIGGER engine_impl_plans_require_proposal
   BEFORE UPDATE ON public.engine_project_implementation_plans
   FOR EACH ROW EXECUTE FUNCTION public.tg_engine_impl_plans_require_proposal();
+
+-- 5. Admin-only atomic writer for governed milestone columns.
+--    Used by src/lib/engine-execution.functions.ts `updateMilestone()` so
+--    admin-driven draft edits (pre-approval) still work under the B12
+--    trigger. Only the four governed columns are honored; any other keys
+--    in `_patch` are ignored so the RPC can't be repurposed to bypass RLS
+--    on unrelated fields.
+CREATE OR REPLACE FUNCTION public.admin_edit_milestone_governed(_id uuid, _patch jsonb)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  caller_uid uuid := auth.uid();
+BEGIN
+  IF caller_uid IS NULL THEN
+    RAISE EXCEPTION 'admin_edit_milestone_governed: not authenticated';
+  END IF;
+  IF NOT public.has_role(caller_uid, 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'admin_edit_milestone_governed: admin role required';
+  END IF;
+  IF _patch IS NULL OR jsonb_typeof(_patch) <> 'object' THEN
+    RAISE EXCEPTION 'admin_edit_milestone_governed: _patch must be a JSON object';
+  END IF;
+
+  PERFORM set_config('engine.proposal_apply', 'on', true);
+
+  UPDATE public.engine_milestones
+     SET brief_md = CASE
+           WHEN _patch ? 'brief_md' THEN NULLIF(_patch->>'brief_md', '')
+           ELSE brief_md
+         END,
+         acceptance_criteria = CASE
+           WHEN _patch ? 'acceptance_criteria' THEN _patch->'acceptance_criteria'
+           ELSE acceptance_criteria
+         END,
+         developer_prompt = CASE
+           WHEN _patch ? 'developer_prompt' THEN NULLIF(_patch->>'developer_prompt', '')
+           ELSE developer_prompt
+         END,
+         client_safe_md = CASE
+           WHEN _patch ? 'client_safe_md' THEN NULLIF(_patch->>'client_safe_md', '')
+           ELSE client_safe_md
+         END
+   WHERE id = _id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'admin_edit_milestone_governed: milestone % not found', _id;
+  END IF;
+END $$;
+
+REVOKE ALL ON FUNCTION public.admin_edit_milestone_governed(uuid, jsonb) FROM public;
+GRANT EXECUTE ON FUNCTION public.admin_edit_milestone_governed(uuid, jsonb) TO authenticated;
 ```
 
 ### Verification (post-apply)
