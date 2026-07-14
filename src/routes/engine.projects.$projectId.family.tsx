@@ -143,6 +143,25 @@ function FamilyPage() {
       </section>
 
       <section className="rounded-xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-display text-lg text-[#0A0F1F]">Dependency graph</h2>
+          <p className="text-xs text-[#667085]">
+            Preview what a reparent or completion would ripple.
+          </p>
+        </div>
+        <div className="mt-4">
+          <FamilyDependencyGraph
+            nodes={family.nodes}
+            blockers={impact.blockers}
+            currentProjectId={projectId}
+            onOpenNode={(id) =>
+              navigate({ to: "/engine/projects/$projectId/overview", params: { projectId: id } })
+            }
+          />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
         <h2 className="font-display text-lg text-[#0A0F1F]">Impact & blockers</h2>
         {impact.blockers.length === 0 ? (
           <p className="mt-2 text-sm text-[#667085]">No blockers detected.</p>
