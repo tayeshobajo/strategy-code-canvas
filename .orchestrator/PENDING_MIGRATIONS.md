@@ -3082,7 +3082,7 @@ BEFORE INSERT/UPDATE trigger on `public.engine_spine_field_truth`. When `NEW.sta
 
 1. `NEW.updated_by_actor='human'`.
 2. Either
-   - `NEW.ceremony_id IS NOT NULL` **and** referenced `engine_spine_ceremonies` row is `status='completed'`, same `project_id`, same `spine`, **and** an `engine_spine_ceremony_decisions` row exists for `(ceremony_id, field_key, new_status='approved_truth')`, or
+   - `NEW.ceremony_id IS NOT NULL` **and** referenced `engine_spine_ceremonies` row is `status IN ('in_progress','completed')`, same `project_id`, same `spine`, **and** an `engine_spine_ceremony_decisions` row exists for `(ceremony_id, field_key, new_status='approved_truth')`, or
    - `NEW.source_ref->>'kind'='operator_override'` with a non-empty `reason`, `operator_email` matching `updated_by_email` (case-insensitive), and that email carrying `admin` or `operator` role. Emits an `engine_audit_log` row for every override write.
 
 No other combination is accepted. There is no backfill bypass.
