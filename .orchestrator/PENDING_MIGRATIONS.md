@@ -4165,3 +4165,47 @@ WHERE trigger_name = 'engine_agent_costs_cap_guard';
 - `src/lib/engine-cost-guard.functions.ts` — `getCostGuardReport()`, `resumeProjectAfterCostReview()`.
 - `src/routes/admin.cost-guard.tsx` — read-only dashboard using existing `agent_budget_monthly_cents` + summed `engine_agent_costs`. Pause banner only appears after migration lands (column NULL-safe).
 
+
+---
+
+## Phase H4 — Outcome Scheduler pg_cron (PROPOSED, not applied)
+
+Schedules a daily invocation of the outcome check-in scheduler. App-side
+already ships `internalRunOutcomeCheckins` and the public hook at
+`/api/public/hooks/outcome-checkins`. Dedupe is enforced in the handler
+(24h window per project + title).
+
+```sql
+-- Requires pg_cron + pg_net extensions.
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+SELECT cron.schedule(
+  'outcome-checkins-daily',
+  '0 9 * * *', -- 09:00 UTC daily
+  $$
+  SELECT net.http_post(
+    url := 'https://project--b3555ed3-b0dc-4def-8fee-77ff34a2cb82.lovable.app/api/public/hooks/outcome-checkins',
+    headers := '{"Content-Type":"application/json","apikey":"REPLACE_WITH_PUBLISHABLE_KEY"}'::jsonb,
+    body := '{}'::jsonb
+  ) AS request_id;
+  $$
+);
+```
+
+### Post-apply verification
+
+```sql
+SELECT * FROM cron.job WHERE jobname = 'outcome-checkins-daily';
+-- After first tick:
+SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 5;
+-- New review items:
+SELECT id, project_id, title, created_at FROM public.engine_review_items
+WHERE item_type = 'outcome_checkin' ORDER BY created_at DESC LIMIT 20;
+```
+
+### App-side (already committed)
+
+- `src/lib/engine-outcome-scheduler.functions.ts`
+- `src/routes/api/public/hooks/outcome-checkins.ts`
+- `src/routes/admin.outcome-scheduler.tsx`
