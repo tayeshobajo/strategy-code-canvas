@@ -1,35 +1,63 @@
-# Plan: Refresh Capability Audit (post M11 + M12)
+## Hardening Sprint Plan — Post-Ultimate-Confirmation
 
-The last audit (`.orchestrator/audit/capability-audit-2026-07-14.md`) scored 150 PASS / 35 PARTIAL / 2 MISSING, with the two MISSING items being:
+Core capability is proven (152 PASS / 35 PARTIAL / 0 MISSING). No new core phases. Five hardening sprints, ranked by blast radius. Each is independently shippable and touches only the surfaces named.
 
-- **M11** — engine-level learning loop
-- **M12** — milestone → engine promotion
+### Sprint H1 — Cost-overrun auto-pause (closes H9)
 
-Both have since landed:
+**Why first:** silent spend is the highest-severity remaining risk. Everything else is UX or coverage.
 
-- `src/lib/engine-learning-loop.functions.ts` + `src/routes/admin.engine-learning.tsx` (phase output: `.orchestrator/phase-m11-engine-learning-output.md`)
-- `src/lib/engine-milestone-promotion.functions.ts` + `src/routes/admin.engine-promotion.tsx` (phase output: `.orchestrator/phase-m12-engine-promotion-output.md`)
+**Build:**
+- Migration proposal → `.orchestrator/PENDING_MIGRATIONS.md`:
+  - `engine_projects.cost_cap_usd numeric`, `cost_paused_at timestamptz`, `cost_paused_reason text`
+  - Trigger `engine_agent_costs_cap_guard` on `engine_agent_costs` insert: if `SUM(cost_usd) per project > cost_cap_usd`, set project `status='paused'`, write `engine_audit_log` row `project.cost.autopause`, insert `engine_review_items` (`item_type='cost_overrun'`) for staff.
+- Server fn `resumeProjectAfterCostReview` in `src/lib/engine-cost-guard.functions.ts` — staff-gated, requires reviewer ≠ last cost committer, clears pause + audits.
+- Admin surface at `src/routes/admin.cost-guard.tsx` — list of paused projects, per-project spend breakdown, resume action.
+- Phase output → `.orchestrator/phase-h9-cost-autopause-output.md`.
 
-The user has re-pasted the full A–Q + Ultimate checklist. They want an updated, evidence-based confirmation for every item, reflecting the new landings.
+### Sprint H2 — Cross-project impact automation (closes F7)
 
-## Deliverables (all read-only, under `.orchestrator/audit/`)
+**Build:**
+- Server fn `emitFamilyImpactReviews` in `src/lib/engine-family-impact.functions.ts`. Triggered from existing status-change hooks on `engine_projects` and `engine_milestones`.
+- For each sibling/parent/child linked via `parent_project_id` and `engine_milestone_solutions`, insert `engine_review_items` (`item_type='family_impact'`) with `old_value`/`new_value` snapshot + affected node list.
+- Extend `FamilyDependencyGraph.tsx` with a "pending impact reviews" badge per node (read-only additive prop, no layout change).
+- No schema migration needed — uses existing tables.
+- Phase output → `.orchestrator/phase-f7-family-impact-output.md`.
 
-1. **`capability-audit-2026-07-14b.md`** — full refreshed scorecard. One row per checklist item with Status (PASS / PARTIAL / MISSING), Evidence (file:line, table, policy, trigger, or SQL result), and Gap (if any). Diff-focused against the prior report: only re-verify items touching Sections F, M, J, K, O, Q where M11/M12 changes propagate; carry forward unchanged rows with a "carry-forward" note pointing at the prior report row.
-2. **`capability-audit-summary-2026-07-14b.md`** — updated section scorecard, Ultimate Confirmation verdict, and remaining PARTIALs ranked by blast radius. Explicitly re-scores M11 and M12 and updates Section M totals.
-3. **`capability-audit-smoke-2026-07-14b.sql`** + **`capability-audit-smoke-2026-07-14b-output.md`** — small delta smoke harness: confirm `engine_business_engines_no_self_approve` still fires on promotion path, `engine_review_items` gains `engine_promotion` / `engine_workflow_change` types, no new permissive policies, promotion route reachable behind `assertStaff`.
+### Sprint H3 — Business Engine templates (closes M3–M6)
 
-## Method
+**Build:** Migration proposal seeding four `engine_business_engines` template rows (`status='template'`, `project_id=NULL`) → `.orchestrator/PENDING_MIGRATIONS.md`:
+- Content Authority Engine (weekly cadence, publish workflow, review gate)
+- Lead Follow-Up Engine (event-triggered, 24h/72h/7d cadence, escalation rule)
+- Review & Reputation Engine (post-delivery trigger, response-time SLA)
+- Client Success Engine (monthly cadence, health-score metric, at-risk exception)
 
-- Codebase evidence via `rg` in `src/lib/**`, `src/routes/**`, `.orchestrator/phase-m1{1,2}-*.md`.
-- DB evidence via `psql` (read-only): triggers, policies, grants on `engine_business_engines`, `engine_business_engine_runs`, `engine_review_items`, `engine_audit_log`.
-- Scoring rules unchanged from prior audit (PASS requires implementation AND enforcement).
+Each template: `outcome`, `workflow` jsonb, `cadence`, `cron_expression`, `approval_rules`, `metrics`, `exception_rules`. Admin route `src/routes/admin.engine-templates.tsx` adds a "clone template into project" action calling existing `activate_business_engine` RPC after a separate-approver gate. Phase output → `.orchestrator/phase-m3-m6-templates-output.md`.
 
-## Guardrails
+### Sprint H4 — Outcome feedback scheduler coverage (closes O partials)
 
-- Read-only. No migrations, inserts, updates, deletes, deploys, or `BUILD_STATE.md` phase-status changes.
-- Any newly-discovered required migration goes only into `.orchestrator/PENDING_MIGRATIONS.md` as a proposal.
-- No source-file edits outside the four audit artifacts above.
+**Build:**
+- `pg_cron` job `outcome_checkins_scheduler` (per `schedule-jobs-options`, `apikey` header pattern) hitting `/api/public/hooks/outcome-checkins`.
+- Route `src/routes/api/public/hooks/outcome-checkins.ts` scans `engine_projects` where `status='delivered'` and computes 30/60/90d elapsed windows, emitting `engine_review_items` (`item_type='outcome_checkin'`) with the delta pattern used in M11.
+- Migration proposal for cron job → `.orchestrator/PENDING_MIGRATIONS.md`.
+- Phase output → `.orchestrator/phase-o-outcome-coverage-output.md`.
 
-## Expected outcome
+### Sprint H5 — Portfolio health explainability (closes P9)
 
-Based on the landed code, expected result is **≈152 PASS / 35 PARTIAL / 0 MISSING**, moving the Ultimate Confirmation from PARTIAL → PASS on the "operate consistently after launch" clause. Remaining PARTIALs (e.g., cost-overrun auto-pause H9, cross-project impact automation F7, Business Engine templates M3–M6) will be listed as next candidate phases but not built in this pass.
+**Build:** UI-only. Extend the portfolio dashboard (existing at `src/routes/ops/*` or admin surface — confirm during build) with a per-project "why this status" panel: renders reason codes from `engine_review_items`, `engine_business_engine_exceptions`, `engine_audit_log` (last 5 status-changing rows), and any active `cost_paused_reason` from H1. No schema changes. Phase output → `.orchestrator/phase-p9-health-explainability-output.md`.
+
+### Guardrails (all sprints)
+
+- Any DDL goes only to `.orchestrator/PENDING_MIGRATIONS.md`. No auto-applied migrations.
+- No AI-approves-own-work paths. All new gates enforce separate-approver in code AND rely on existing DB triggers where applicable.
+- No portal-facing surface changes without an explicit approval gate.
+- Every sprint ends with: phase output file + `BUILD_STATE.md` append + typecheck clean.
+
+### Sequencing
+
+Ship H1 first (risk). H2 and H3 can run in parallel after H1 (independent surfaces). H4 depends on H3 templates existing. H5 last (consumes signals from H1–H4).
+
+### Technical notes
+
+- H1 trigger uses the same `SECURITY DEFINER` pattern as `engine_business_engines_gate` — verify with `has_role(auth.uid(), 'admin')` for resume.
+- H2 avoids infinite loops by tagging emitted review items with `source='family_impact_auto'` and skipping re-emission when the triggering change itself came from a `family_impact` approval.
+- H4 uses the documented `apikey` header pattern from `schedule-jobs-options`, not a custom `CRON_SECRET`.
