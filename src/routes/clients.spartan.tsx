@@ -724,31 +724,35 @@ function HiddenOpportunitiesSection() {
       </div>
 
       <div className="grid w-full grid-cols-1 bg-white lg:grid-cols-12">
-        <div className="flex flex-col p-6 pb-4 sm:p-10 sm:pb-4 md:p-14 md:pb-6 lg:col-span-5 lg:p-16 lg:pb-6 xl:p-20 xl:pb-6">
+        <div className="flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12">
           <div className="flex flex-1 flex-col">
-            <div key={`h-${index}`} className="flex items-baseline gap-2 sm:gap-3">
-              <span
-                className="text-[12px] font-black tabular-nums uppercase tracking-[0.2em] sm:text-[13px] sm:tracking-[0.22em] lg:text-[16px] lg:tracking-[0.24em]"
-                style={{ color: red }}
-              >
-                {gapNum}
-              </span>
-              <span
-                className="text-[12px] font-black uppercase tracking-[0.2em] sm:text-[13px] sm:tracking-[0.22em] lg:text-[16px] lg:tracking-[0.24em]"
-                style={{ color: navy }}
+            <div key={`h-${index}`} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <span
+                  className="text-[11px] font-black tabular-nums tracking-[0.28em]"
+                  style={{ color: red }}
+                >
+                  GAP {gapNum}
+                </span>
+                <div className="h-px w-10" style={{ backgroundColor: "rgba(15,27,61,0.18)" }} />
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-[0.24em]"
+                  style={{ color: "rgba(15,27,61,0.5)" }}
+                >
+                  {String(total).padStart(2, "0")} total
+                </span>
+              </div>
+              <h3
+                className="font-black uppercase leading-[1.05] tracking-[-0.005em]"
+                style={{
+                  color: navy,
+                  fontSize: "clamp(22px, 2.4vw, 34px)",
+                }}
               >
                 {slide.label}
-              </span>
+              </h3>
             </div>
 
-            <div
-              key={`b-${index}`}
-              className="mt-5 space-y-3.5 text-[13.5px] leading-[1.65] sm:mt-6 sm:space-y-4 sm:text-[14.5px] sm:leading-[1.7] [&_mark]:transition-colors"
-              style={{ color: muted }}
-            >
-              {slide.body}
-            </div>
-          </div>
 
           <div
             className="mt-6 flex items-center gap-3 rounded-2xl border bg-white p-2 shadow-[0_8px_24px_-12px_rgba(15,27,61,0.15)] sm:gap-4"
