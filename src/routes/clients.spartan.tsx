@@ -177,11 +177,19 @@ function HeroSection() {
           </div>
         </div>
 
-        <div className="mt-8 max-w-[720px] space-y-4 sm:mt-12 sm:space-y-5 lg:mt-14 lg:max-w-[820px] xl:mt-16 xl:max-w-[920px]">
-          <div className="h-[2px] w-10 sm:w-12" style={{ backgroundColor: "#E63946" }} />
+        <div className="mt-10 max-w-[720px] space-y-6 sm:mt-16 sm:space-y-7 lg:mt-20 lg:max-w-[860px] xl:mt-24 xl:max-w-[960px]">
+          <div className="flex items-center gap-3">
+            <div className="h-[2px] w-12 sm:w-14" style={{ backgroundColor: "#E63946" }} />
+            <span
+              className="text-[10px] font-bold uppercase tracking-[0.32em]"
+              style={{ color: "rgba(255,255,255,0.6)" }}
+            >
+              Growth Roadmap · Houston
+            </span>
+          </div>
           <h1
-            className="font-black uppercase leading-[1.02] tracking-tight text-white"
-            style={{ fontSize: "clamp(26px, 3.0vw, 56px)" }}
+            className="font-black uppercase leading-[1.02] tracking-[-0.01em] text-white"
+            style={{ fontSize: "clamp(28px, 3.4vw, 62px)" }}
           >
             THE GROWTH&nbsp;ROADMAP
             <br />
@@ -192,14 +200,14 @@ function HeroSection() {
             CONTRACT <span style={{ color: "#3B82F6" }}>OPPORTUNITIES.</span>
           </h1>
           <p
-            className="max-w-[460px] text-[13px] leading-relaxed sm:text-[14px]"
+            className="max-w-[520px] text-[14px] leading-[1.65] sm:text-[15.5px]"
             style={{ color: "rgba(255,255,255,0.78)" }}
           >
             A strategic plan to increase visibility, build trust,
             <br className="hidden sm:inline" /> and turn opportunities into long-term contracts.
           </p>
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex items-center gap-3 pt-1">
             <span
               className="flex h-9 w-9 items-center justify-center rounded-full"
               style={{
@@ -215,14 +223,19 @@ function HeroSection() {
             </div>
           </div>
 
-          <a
-            href="#note-from-tai"
-            className="group mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white transition-all duration-200 hover:gap-3 sm:w-auto sm:justify-start"
-            style={{ backgroundColor: "#E63946" }}
-          >
-            Book Roadmap Walkthrough
-            <ArrowRight size={16} strokeWidth={2.2} />
-          </a>
+          <div className="flex flex-col gap-3 pt-3 sm:flex-row sm:items-center sm:gap-5">
+            <a
+              href="#note-from-tai"
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-4 text-[13px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:gap-3 hover:shadow-[0_22px_50px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:justify-start"
+              style={{ backgroundColor: "#E63946" }}
+            >
+              Book Roadmap Walkthrough
+              <ArrowRight size={16} strokeWidth={2.4} />
+            </a>
+            <span className="text-[11px] font-medium tracking-[0.14em] text-white/55">
+              Free · 30&nbsp;min · No pitch
+            </span>
+          </div>
         </div>
 
         <div className="mt-auto pt-6 sm:pt-8">
