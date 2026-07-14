@@ -37,3 +37,8 @@ New: `src/routes/portal.family.tsx`
 
 - `bunx tsgo` clean.
 - Route tree regenerated (`src/routeTree.gen.ts`) picks up `portal.family` on next dev run.
+
+
+---
+
+**QA verified 2026-07-14.** See `.orchestrator/qa/phase-5D-smoke-output.md` — 7/7 DB guards + 3/3 app-layer guards PASS. Phase 5D closed.

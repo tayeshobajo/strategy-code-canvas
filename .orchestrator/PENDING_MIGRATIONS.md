@@ -3547,9 +3547,9 @@ Status: **PENDING TAI REVIEW — apply-ready after Revision 2.1. Executable migr
 
 ---
 
-## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 4 (APPLIED)
+## Phase 5D — Multi-Project Decomposition (Parent → Sub-Projects) — Revision 4 (APPLIED + APP LAYER COMPLETE)
 
-Status: **APPLIED 2026-07-13. DB layer complete. Smoke: PASS 26/26** (N, O, P/P-early, T1–T5, S1–S6, Q1–Q3, R1–R5, U1/U3/U4). Follow-up (Rev 4a, also applied): tightened `tg_engine_projects_child_rollup_guard` under a completed parent to block clearing `completed_at` alone (previously the predicate check allowed it when `status='completed'` remained). App-layer follow-ups still pending (see below). See doctrine `Phase 5D` for governance rules and invariants.
+Status: **DB APPLIED 2026-07-13. DB smoke PASS 26/26** (N, O, P/P-early, T1–T5, S1–S6, Q1–Q3, R1–R5, U1/U3/U4). Follow-up (Rev 4a, also applied): tightened `tg_engine_projects_child_rollup_guard` under a completed parent to block clearing `completed_at` alone. **App layer + follow-ups built and QA-verified 2026-07-14 — see `.orchestrator/qa/phase-5D-smoke-output.md` (7/7 DB guards + 3/3 app-layer guards).** Phase 5D is CLOSED. Only the separate `hotfix-portal-roadmaps-schema` block below remains outstanding, and it is not a 5D dependency.
 
 
 Revision 4 closes the two remaining bypasses found in Revision 3:
@@ -4001,12 +4001,23 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.client_portal_roadmaps TO authent
 GRANT ALL ON public.client_portal_roadmaps TO service_role;
 ```
 
+### Preflight (2026-07-14 — completed as part of Phase 5D closure sweep)
+
+- `client_portal_roadmaps` **RLS is ENABLED** (`pg_class.relrowsecurity = t`).
+- Policies present and scoped:
+  - `Clients read published roadmaps` — SELECT — `status='published' AND project_id IN (SELECT project_id FROM client_portal_permissions WHERE lower(email)=lower(auth.email()) AND revoked_at IS NULL)`
+  - `Operators manage roadmaps` — ALL — `client_portal_is_operator(auth.email())`
+- **No `USING (true)` policies.** Grants can be added safely; RLS does the real scoping.
+- `engine_projects.current_phase` confirmed missing from live schema.
+
 ### Post-apply verification
 
 - `\d public.engine_projects` shows `current_phase text NULL`.
 - `SELECT current_phase FROM public.engine_projects LIMIT 1` succeeds.
 - `SELECT grantee, privilege_type FROM information_schema.role_table_grants WHERE table_name='client_portal_roadmaps'` returns rows for `anon` (SELECT), `authenticated` (SELECT/INSERT/UPDATE/DELETE), `service_role` (ALL).
 - Portal magic-link roadmap fetch returns rows again; Next-Best-Action panel loads without error.
+- **Negative portal-token test (required after grants land):** an `anon` role query against `client_portal_roadmaps` with client-A's magic-link email context MUST return zero client-B rows. Fail = missing RLS scoping and the grants must be rolled back.
 
-Status: **PENDING TAI REVIEW.**
+Status: **PENDING TAI REVIEW.** Independent of Phase 5D.
+
 
