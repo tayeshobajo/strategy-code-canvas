@@ -4217,7 +4217,9 @@ WHERE trigger_name = 'engine_agent_costs_cap_guard';
 
 ---
 
-## Phase H4 — Outcome Scheduler pg_cron (PROPOSED, not applied)
+## Phase H4 — Outcome Scheduler pg_cron (APPLIED 2026-07-14)
+
+Status: **APPLIED** via `20260714-175459-098362`; `cron.schedule` returned jobid **117**. See `.orchestrator/phase-h1-h4-h6b12-apply-output.md`.
 
 Schedules a daily invocation of the outcome check-in scheduler. App-side
 already ships `internalRunOutcomeCheckins` and the public hook at
