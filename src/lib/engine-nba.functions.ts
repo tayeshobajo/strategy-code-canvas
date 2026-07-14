@@ -15,6 +15,19 @@ export type NextBestAction = {
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
+// The DB NBA RPC (and older AI outputs) sometimes returns hrefs pointing at
+// routes that do not exist in the app (e.g. `/engine/projects/:id/reviews`).
+// Remap those to the real destinations so CTA buttons never link to a
+// broken/empty page.
+function sanitizeNbaHref(href: string | null): string | null {
+  if (!href) return href;
+  // /engine/projects/:id/reviews  →  /engine/projects/:id/builder
+  return href.replace(
+    /^(\/engine\/projects\/[^/]+)\/reviews(\/?.*)$/,
+    "$1/builder$2",
+  );
+}
+
 function buildNBAPrompt(ctx: {
   projectName: string;
   clientCompany: string;
@@ -87,7 +100,7 @@ async function getSQLFallback(sb: any, projectId: string): Promise<NextBestActio
   return {
     action: (row as { action?: string }).action ?? "Nothing waiting",
     reason: (row as { reason?: string }).reason ?? "",
-    href: (row as { href?: string }).href ?? null,
+    href: sanitizeNbaHref((row as { href?: string }).href ?? null),
     severity: ((row as { severity?: string }).severity ?? "info") as NextBestAction["severity"],
     ai_generated: false,
   };
@@ -200,7 +213,7 @@ export const getIntelligentNextAction = createServerFn({ method: "POST" })
       return {
         action: parsed.action,
         reason: parsed.reason ?? "",
-        href: parsed.href ?? null,
+        href: sanitizeNbaHref(parsed.href ?? null),
         severity: (["info", "warning", "critical"].includes(parsed.severity ?? "")
           ? parsed.severity
           : "info") as NextBestAction["severity"],
