@@ -2512,7 +2512,7 @@ SELECT policyname, cmd FROM pg_policies
   currently-`published` row and nothing else (no approved, delivered,
   superseded, or retracted rows).
 
-Status: **PENDING TAI REVIEW — apply-ready.**
+Status: **APPLIED (pre-existing, verified 2026-07-14).** See top of Phase 3B block for preflight evidence.
 
 ---
 
