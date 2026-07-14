@@ -4263,7 +4263,7 @@ WHERE item_type = 'outcome_checkin' ORDER BY created_at DESC LIMIT 20;
 
 ## Phase H6 · B12 — Non-spine proposal enforcement (REVISED 2026-07-14, ready to apply pending caller audit)
 
-**Status:** READY TO APPLY once the audit checklist below is green. The
+**Status:** **APPLIED 2026-07-14** via `20260714-175310-970763` (+ `20260714-175406-713684` for search_path). Extended in-flight with sibling RPC `admin_edit_impl_plan_governed`. Caller audit fixed `regenerateMilestoneSection` and `updateProjectImplementationPlan`. See `.orchestrator/phase-h1-h4-h6b12-apply-output.md`. Original notes preserved for history:
 transaction-boundary caveat from the previous revision is resolved by
 performing the entire apply (GUC set + governed UPDATE + audit) inside a
 single `SECURITY DEFINER` stored procedure `public.apply_approved_proposal`.
