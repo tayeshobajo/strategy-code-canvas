@@ -4461,6 +4461,8 @@ export type Database = {
           client_preview: Json
           completed_at: string | null
           completed_by_email: string | null
+          cost_paused_at: string | null
+          cost_paused_reason: string | null
           created_at: string
           current_phase: string | null
           current_step: string
@@ -4514,6 +4516,8 @@ export type Database = {
           client_preview?: Json
           completed_at?: string | null
           completed_by_email?: string | null
+          cost_paused_at?: string | null
+          cost_paused_reason?: string | null
           created_at?: string
           current_phase?: string | null
           current_step?: string
@@ -4567,6 +4571,8 @@ export type Database = {
           client_preview?: Json
           completed_at?: string | null
           completed_by_email?: string | null
+          cost_paused_at?: string | null
+          cost_paused_reason?: string | null
           created_at?: string
           current_phase?: string | null
           current_step?: string
@@ -6368,6 +6374,14 @@ export type Database = {
         Args: { _engine_id: string; _owner_email: string }
         Returns: undefined
       }
+      admin_edit_impl_plan_governed: {
+        Args: { _id: string; _patch: Json }
+        Returns: undefined
+      }
+      admin_edit_milestone_governed: {
+        Args: { _id: string; _patch: Json }
+        Returns: undefined
+      }
       admin_grant_role: {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: string
@@ -6400,6 +6414,11 @@ export type Database = {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: number
       }
+      apply_approved_proposal: {
+        Args: { _proposal_id: string }
+        Returns: string
+      }
+      begin_proposal_apply: { Args: never; Returns: undefined }
       client_portal_is_operator: { Args: { _email: string }; Returns: boolean }
       compute_engine_next_best_action: {
         Args: { _project_id: string }

@@ -1415,11 +1415,24 @@ export const regenerateMilestoneSection = createServerFn({ method: "POST" })
       newValue = (ai.text ?? "").trim();
     }
 
-    const { error: updErr } = await sb
-      .from("engine_milestones")
-      .update({ [data.section]: newValue, created_by_kind: "ai" })
-      .eq("id", data.id);
-    if (updErr) throwGeneric(updErr, "Operation failed");
+    // B12: route governed columns through the SECURITY DEFINER RPC so the
+    // `engine_milestones_require_proposal` trigger accepts the write. Non-governed
+    // sections (qa_checklist, risks) keep the plain UPDATE.
+    if (PROTECTED_APPROVED_FIELDS.has(data.section)) {
+      const { error: updErr } = await sb.rpc("admin_edit_milestone_governed", {
+        _id: data.id,
+        _patch: { [data.section]: newValue },
+      });
+      if (updErr) throwGeneric(updErr, "Operation failed");
+      // created_by_kind is non-governed; stamp it separately.
+      await sb.from("engine_milestones").update({ created_by_kind: "ai" }).eq("id", data.id);
+    } else {
+      const { error: updErr } = await sb
+        .from("engine_milestones")
+        .update({ [data.section]: newValue, created_by_kind: "ai" })
+        .eq("id", data.id);
+      if (updErr) throwGeneric(updErr, "Operation failed");
+    }
 
     await sb.from("engine_audit_log").insert({
       project_id: current.project_id,

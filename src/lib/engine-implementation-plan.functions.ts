@@ -1068,12 +1068,19 @@ export const saveProjectImplementationPlanDraft = createServerFn({ method: "POST
     );
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // B12: governed columns (summary, payload) are locked by the
+    // `engine_impl_plans_require_proposal` trigger. Route governed fields
+    // through the SECURITY DEFINER RPC that sets `engine.proposal_apply='on'`
+    // atomically; write non-governed fields (title, generated_by) directly.
+    const { error: gErr } = await (supabaseAdmin.rpc as any)("admin_edit_impl_plan_governed", {
+      _id: data.planId,
+      _patch: { summary: data.summary ?? null, payload: sanitized },
+    });
+    if (gErr) throw new Error(gErr.message ?? "Failed to update draft (governed)");
     const { data: upd, error } = await supabaseAdmin
       .from("engine_project_implementation_plans")
       .update({
         title: data.title,
-        summary: data.summary ?? null,
-        payload: sanitized,
         generated_by: existing.generated_by === "ai" ? "hybrid" : existing.generated_by,
       })
       .eq("id", data.planId)
