@@ -277,6 +277,17 @@ function renderItemCard(
             >
               {item.status.replace("_", " ")}
             </span>
+            {item.risk_score != null && (
+              <span
+                className="rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.2em]"
+                style={{
+                  borderColor: item.risk_score >= 80 ? "#C94B4B" : item.risk_score >= 60 ? "#D7A64A" : STONE,
+                  color: item.risk_score >= 60 ? "#8A3A00" : "rgba(10, 15, 31, 0.65)",
+                }}
+              >
+                risk {item.risk_score}
+              </span>
+            )}
           </div>
           <h3 className="mt-2 text-lg font-semibold" style={{ color: NAVY }}>
             {item.title}
