@@ -1,101 +1,87 @@
+# Project Overview → Command Center
 
-# UI & API Audit — 2026-07-14
+Presentation-only refactor of `src/routes/engine.projects.$projectId.overview.tsx`. No schema changes, no server-function changes, no governance changes. The top `WorkspaceStepper` strip (rendered by the workspace layout) is not touched here — only its label wording where it appears on Overview.
 
-Read-mostly audit of the running app. Drives the live preview at
-`http://localhost:8080` with Playwright as two users, invokes every
-publicly-exposed server function / api route, cross-checks rendered
-values against Supabase, and lands findings in a single report. Trivial
-display bugs get patched in a short follow-up pass; anything schema- or
-governance-touching goes to `PENDING_MIGRATIONS.md` instead.
+## Why
 
-## Scope
+Inside a project the Overview shows two overlapping status models:
+- **Roadmap Workflow** (14-step top strip) — actually a *navigation* control that also reads as progress
+- **Project Progress** (7-stage card) — a phase rollup on the page
 
-1. **Admin Engine (operator)** — signed in as `tai@trust-tai.com`
-   - `/engine/projects` list + filters
-   - `/engine/projects/$projectId` overview
-   - `/engine/projects/$projectId/chat` (Project Chat + proposals)
-   - `/engine/projects/$projectId/roadmap`
-   - `/engine/projects/$projectId/point-a` and `point-b` (ceremonies)
-   - `/engine/projects/$projectId/implementation-plan`
-   - `/engine/projects/$projectId/approvals`
-   - `/ops/*` (approvals queue, notifications, health)
-2. **Client Portal** — signed in as one seeded client user
-   - `/portal/home`, `/portal/roadmap`, `/portal/onboarding`
-   - Roadmap acknowledgment banner, decision/clarification modals
-   - Verify RLS: client sees only their project, no operator-only fields
-3. **Server functions & API routes**
-   - Enumerate every `createServerFn` in `src/lib/**` and every
-     `src/routes/api/**` file
-   - Invoke each via `stack_modern--invoke-server-function` or direct
-     Playwright-driven UI action, capturing status + response shape
-   - Confirm `/api/public/*` webhook auth guards reject unsigned calls
-   - Confirm `requireSupabaseAuth`-guarded fns 401 without a bearer
+They conflict. A user cannot tell in 5 seconds where the project is, what is blocking it, or what happens next. Worst case: a "36% Project Progress" bar reads as delivery progress while the roadmap is still under review.
 
-## Method
+## Decision
 
-- Session for admin: reuse `LOVABLE_BROWSER_SUPABASE_*` env restore.
-- Session for client: sign in via password using seeded QA client
-  account (`qa-operator` or the portal seed user under
-  `scripts/portal/seed_demo_workspace.sql`). Confirm the seeded email +
-  password first with a `supabase--read_query`; if absent, ask before
-  proceeding.
-- Data correctness pass: for one live project, snapshot each rendered
-  card (milestone counts, ceremony state badges, approvals queue
-  counts, cost/pause banners) and run a matching
-  `supabase--read_query` to diff.
-- Write flows executed only in a QA project (`Jotaye Ventures` or the
-  seeded QA project id already used by
-  `scripts/qa/project-chat-action-mode-v3-qa.py`):
-  - Create a Project Chat proposal, approve it, verify audit rows.
-  - Record a ceremony decision on Point A, verify `truth.ceremony_id`.
-  - Toggle Action Mode on/off; assert audit + activity rows.
-  - Trigger cost-autopause hook via `/api/public/hooks/cost-autopause`
-    with a signed test payload; verify pause + notification proposal.
-- No schema changes. No migrations. No mutations against real client
-  projects.
+Replace both progress models on the Overview page with **one** unified indicator: **Current Stage**. The 14-step strip stays where it lives today (workspace chrome, used as nav on sub-pages) but is re-labeled so it never reads as delivery progress.
 
-## Deliverables
+## New Overview layout
 
-1. `.orchestrator/audit/ui-api-audit-2026-07-14.md` — findings table
-   with columns: Area · Route/Fn · Expected · Actual · Verdict
-   (PASS / DISPLAY_BUG / DATA_MISMATCH / BROKEN / SECURITY_CONCERN) ·
-   Evidence (screenshot path / query result / status code).
-2. `/tmp/browser/ui-api-audit/screenshots/` — one screenshot per route
-   per user context.
-3. `/tmp/browser/ui-api-audit/api-results.json` — status + response
-   shape for every server function / api route invoked.
-4. Ranked top-10 gap list at the end of the report.
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│ Header: project name · client / business type · status · stage    │
+├──────────────────────────────────┬─────────────────────────────────┤
+│ CURRENT STAGE (hero)             │ RIGHT RAIL                      │
+│  Stage name + context sentence   │  Pending actions (0 or list)    │
+│  Next required action + owner    │  Upcoming dates                 │
+│  Primary CTA                     │  Health drivers                 │
+│  Workflow position · Step X/14   │                                 │
+│  Delivery progress (conditional) │                                 │
+├──────────────────────────────────┤                                 │
+│ Secondary metrics row            │                                 │
+│  Health · Open decisions ·       │                                 │
+│  Critical dates · Blockers       │                                 │
+├──────────────────────────────────┴─────────────────────────────────┤
+│ Recent activity │ Approved artifacts │ Drafts │ Spine summary     │
+└────────────────────────────────────────────────────────────────────┘
+```
 
-## Auto-fix pass (follow-up turn, only after report is complete)
+## Copy rules (locked)
 
-Only these categories get patched in the same session, each a small
-targeted edit:
+- "Workflow progress" — the 14-step chrome. Never "project progress".
+- "Delivery progress" — only after roadmap approval. Milestone/evidence based after build starts.
+- "Roadmap readiness" — pre-approval.
+- "Current stage" and "Next required action" — the two hero phrases.
+- No bare "% complete" without an explicit object.
 
-- Empty-state text (`—`, `undefined`, `NaN`) in operator or portal
-  cards.
-- Broken internal links / 404s from stale route paths.
-- Console warnings from the current `ClientMarquee` hydration mismatch
-  (already visible in console logs today) if fix is one-line.
-- Head metadata regressions on public routes (missing title / og tags).
+## Behavior rules
 
-Out of scope for auto-fix (logged only, escalated to Tai):
+Stage derivation reuses existing signals only (`status`, `roadmap_version`, `approved_version`, `step_states`, `signal_count`, `next_action`, review queue):
 
-- Any RLS / grant change
-- Any governed-column write path change
-- Any schema migration
-- Any change touching approval or ceremony rules
-- Any AI prompt / model behavior change
+- Pre-roadmap-approval → hero shows **Roadmap readiness**; delivery block hidden.
+- Roadmap drafted, not approved → stage = "Roadmap Review", CTA = "Review AI-drafted roadmap".
+- Post-approval, pre-build → introduce delivery progress at 0% with "Begins after kickoff".
+- In build → delivery progress = milestones/evidence rollup (already available via `p.step_states` + activity).
+- Blocked → hero explains blocker + owner (derived from top pending `ReviewItem` with `impact = high`, else project `next_action`).
+- Nothing pending → hero says what the system is waiting for.
 
-## Non-goals
+CTA always matches the derived next required action (existing `getIntelligentNextAction` server fn already returns this — reuse; do not re-fetch).
 
-- No load / perf testing.
-- No cross-browser matrix (Chromium headless only).
-- No SEO scoring — head-tag presence check only.
+## Files touched
 
-## Risks
+- `src/routes/engine.projects.$projectId.overview.tsx` — rewrite page body:
+  - Delete `computeStages` + `ProgressStepper` + the "Project Progress" `SectionCard`.
+  - Delete the current "Next best action" and "Project Summary" cards (folded into the new Current Stage hero + secondary metrics + right rail).
+  - Add `CurrentStageHero`, `SecondaryMetrics`, `RightRail`, `LowerSections` — all local components in the same file (kept small; extract later if reused).
+  - Reuse existing queries: `useWorkspace`, `getIntelligentNextAction`, `listReviewQueue`, `getVersionCompareData`.
+- `src/components/engine/WorkspaceStepper.tsx` — line 105 label: "Roadmap Workflow" → "Workflow navigation"; line 107 subline: "14 steps for this project" → "Step X of 14".
 
-- Client portal seed user credentials may not exist; will confirm
-  before running the client-context pass, otherwise fall back to
-  admin-only view of `/portal/*` and flag the gap.
-- Cost-autopause hook signature secret must be present in env; if
-  missing, that single check is skipped and reported.
+No other files change. No new server functions. No new tables. No new packages.
+
+## Design direction
+
+Quiet, premium SaaS. Dark theme retained. Denser than today but calm — one dominant hero, everything else supporting. Lucide icons, compact badges, tooltips on health drivers and blockers. Mobile: hero stacks above metrics; right rail moves below lower sections; no overlapping text (uses the grid + `min-w-0` + `shrink-0` pattern for the header row).
+
+## Acceptance
+
+- Project state readable in <5s.
+- One primary status/progress concept above the fold.
+- "Roadmap Review" never presented as "% delivered".
+- Primary CTA always matches the next required action.
+- Mobile clean at 375px.
+- No governance/business-logic changes; no schema changes.
+
+## Out of scope
+
+- Sub-page redesigns (Blueprint, Plans, etc.).
+- The 14-step strip's own structure (only its label).
+- Client Portal overview (separate concern).
