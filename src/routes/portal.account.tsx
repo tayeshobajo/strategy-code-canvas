@@ -22,6 +22,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resendPortalWelcome, updatePortalProfile } from "@/lib/portal.functions";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+
 import {
   PASSWORD_STRENGTH_LABELS,
   scorePasswordStrength,
@@ -67,6 +69,13 @@ function AccountPage() {
 
   const project = ctx.data?.hasAccess ? ctx.data.project : null;
   const isRevoked = ctx.data && !ctx.data.hasAccess;
+  usePortalViewLogger({
+    projectId: project?.id,
+    subjectType: "portal_account",
+    subjectId: project?.id,
+  });
+
+
 
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<FormValues>({

@@ -17,6 +17,8 @@ import { RoadmapFilters, FILTERABLE_STATUSES } from "@/components/portal/roadmap
 import { targetBounds } from "@/components/portal/roadmap/roadmap-layout";
 import { DEMO_ROADMAP_RAW, DEMO_PROJECT } from "@/lib/portal-roadmap-demo-fixture";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+
 import { Button } from "@/components/ui/button";
 import { RoadmapAcknowledgmentBanner } from "@/components/portal/RoadmapAcknowledgmentBanner";
 import {
@@ -337,7 +339,13 @@ function RoadmapJourneyView({
     ctx.data && "approvedRoadmap" in ctx.data
       ? ctx.data.approvedRoadmap?.acknowledged_at ?? null
       : null;
+  usePortalViewLogger({
+    projectId,
+    subjectType: "portal_roadmap",
+    subjectId: portalRoadmapId ?? projectId,
+  });
   const schedulingUrl =
+
     ctx.data && "project" in ctx.data
       ? (ctx.data.project as { scheduling_url?: string | null } | null | undefined)
           ?.scheduling_url ?? null

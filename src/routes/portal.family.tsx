@@ -9,6 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+
 import { getPortalProjectFamily, type PortalFamilyPayload } from "@/lib/portal-family.functions";
 import { PortalPage, PortalCard, PortalPageHeader } from "@/components/portal/PortalPage";
 
@@ -29,6 +31,13 @@ export const Route = createFileRoute("/portal/family")({
 function PortalFamilyPage() {
   const ctx = usePortalContext();
   const portalProjectId = (ctx.data as { project?: { id?: string } } | undefined)?.project?.id;
+  usePortalViewLogger({
+    projectId: portalProjectId,
+    subjectType: "portal_family",
+    subjectId: portalProjectId,
+  });
+
+
 
   return (
     <PortalPage>

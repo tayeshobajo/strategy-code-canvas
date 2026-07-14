@@ -31,6 +31,9 @@ import { sendPortalMessage, getPortalRoadmapContextOptions } from "@/lib/portal.
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+import { logPortalActivity } from "@/lib/portal-activity.functions";
+
 import { toast } from "sonner";
 
 const messagesSearchSchema = z.object({
@@ -147,7 +150,14 @@ function MessagesPage() {
   const ctx = usePortalContext();
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
+  usePortalViewLogger({
+    projectId,
+    subjectType: "portal_messages",
+    subjectId: projectId,
+  });
+  const logActivity = useServerFn(logPortalActivity);
   const { data: messages, isLoading, isError, refetch } = useMessages(projectId);
+
   const { data: fileMap } = useMessageFiles(projectId);
   const loadCtxOptions = useServerFn(getPortalRoadmapContextOptions);
   const { data: ctxOptions } = useQuery({
@@ -313,9 +323,26 @@ function MessagesPage() {
         qc.setQueryData(["portal", "messages", projectId], ctx.previous);
       toast.error(e.message || "Message did not send. Try again.");
     },
-    onSuccess: () => {
+    onSuccess: (_res, payload) => {
       toast.success("Message sent.");
+      if (projectId) {
+        void logActivity({
+          data: {
+            project_id: projectId,
+            kind: "replied",
+            subject_type: "portal_message",
+            subject_id: payload.milestoneSlug ?? payload.phaseKey ?? projectId,
+            summary: "Client sent a message",
+            metadata: {
+              phase_key: payload.phaseKey ?? null,
+              milestone_slug: payload.milestoneSlug ?? null,
+              attachments: payload.fileIds.length,
+            },
+          },
+        }).catch(() => {});
+      }
     },
+
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["portal", "messages", projectId] });
     },

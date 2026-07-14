@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Suspense, useState } from "react";
 import { Mail, Check, Loader2, LifeBuoy, ShieldCheck } from "lucide-react";
 import { isAdminEmail, isOperatorEmail } from "@/lib/ops/access";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+
 
 
 
@@ -379,6 +381,14 @@ function PortalHome() {
   const fetchCtx = useServerFn(getPortalContext);
   const { data } = useSuspenseQuery(portalCtxOptions(fetchCtx));
 
+  const homeProjectId =
+    data.hasAccess && data.project ? data.project.id : undefined;
+  usePortalViewLogger({
+    projectId: homeProjectId,
+    subjectType: "portal_home",
+    subjectId: homeProjectId,
+  });
+
   // Authenticated but no project record yet. Two cases land here:
   //   - Access exists (client_access row) but the project workspace isn't
   //     provisioned in client_portal_projects yet.
@@ -395,6 +405,7 @@ function PortalHome() {
 
 
   const { project } = data;
+
   const acknowledged = !!data.approvedRoadmap?.acknowledged_at;
   const copy =
     project.portal_status === "roadmap_delivered" && acknowledged

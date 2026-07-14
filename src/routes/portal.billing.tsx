@@ -19,6 +19,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { usePortalContext } from "@/hooks/use-portal-context";
+import { usePortalViewLogger } from "@/hooks/use-portal-view-logger";
+
 import {
   createBillingPortalSession,
   cancelSubscription,
@@ -101,7 +103,13 @@ function BillingPage() {
   const ctx = usePortalContext();
   const project = ctx.data?.hasAccess ? ctx.data.project : undefined;
   const projectId = project?.id;
+  usePortalViewLogger({
+    projectId,
+    subjectType: "portal_billing",
+    subjectId: projectId,
+  });
   const { data, isLoading, isError, refetch, dataUpdatedAt, isFetching } = useBilling(projectId);
+
   const qc = useQueryClient();
   const portalFn = useServerFn(createBillingPortalSession);
   const cancelFn = useServerFn(cancelSubscription);
