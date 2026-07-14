@@ -177,11 +177,19 @@ function HeroSection() {
           </div>
         </div>
 
-        <div className="mt-8 max-w-[720px] space-y-4 sm:mt-12 sm:space-y-5 lg:mt-14 lg:max-w-[820px] xl:mt-16 xl:max-w-[920px]">
-          <div className="h-[2px] w-10 sm:w-12" style={{ backgroundColor: "#E63946" }} />
+        <div className="mt-10 max-w-[720px] space-y-6 sm:mt-16 sm:space-y-7 lg:mt-20 lg:max-w-[860px] xl:mt-24 xl:max-w-[960px]">
+          <div className="flex items-center gap-3">
+            <div className="h-[2px] w-12 sm:w-14" style={{ backgroundColor: "#E63946" }} />
+            <span
+              className="text-[10px] font-bold uppercase tracking-[0.32em]"
+              style={{ color: "rgba(255,255,255,0.6)" }}
+            >
+              Growth Roadmap · Houston
+            </span>
+          </div>
           <h1
-            className="font-black uppercase leading-[1.02] tracking-tight text-white"
-            style={{ fontSize: "clamp(26px, 3.0vw, 56px)" }}
+            className="font-black uppercase leading-[1.02] tracking-[-0.01em] text-white"
+            style={{ fontSize: "clamp(28px, 3.4vw, 62px)" }}
           >
             THE GROWTH&nbsp;ROADMAP
             <br />
@@ -192,14 +200,14 @@ function HeroSection() {
             CONTRACT <span style={{ color: "#3B82F6" }}>OPPORTUNITIES.</span>
           </h1>
           <p
-            className="max-w-[460px] text-[13px] leading-relaxed sm:text-[14px]"
+            className="max-w-[520px] text-[14px] leading-[1.65] sm:text-[15.5px]"
             style={{ color: "rgba(255,255,255,0.78)" }}
           >
             A strategic plan to increase visibility, build trust,
             <br className="hidden sm:inline" /> and turn opportunities into long-term contracts.
           </p>
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex items-center gap-3 pt-1">
             <span
               className="flex h-9 w-9 items-center justify-center rounded-full"
               style={{
@@ -215,14 +223,19 @@ function HeroSection() {
             </div>
           </div>
 
-          <a
-            href="#note-from-tai"
-            className="group mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white transition-all duration-200 hover:gap-3 sm:w-auto sm:justify-start"
-            style={{ backgroundColor: "#E63946" }}
-          >
-            Book Roadmap Walkthrough
-            <ArrowRight size={16} strokeWidth={2.2} />
-          </a>
+          <div className="flex flex-col gap-3 pt-3 sm:flex-row sm:items-center sm:gap-5">
+            <a
+              href="#note-from-tai"
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-4 text-[13px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:gap-3 hover:shadow-[0_22px_50px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:justify-start"
+              style={{ backgroundColor: "#E63946" }}
+            >
+              Book Roadmap Walkthrough
+              <ArrowRight size={16} strokeWidth={2.4} />
+            </a>
+            <span className="text-[11px] font-medium tracking-[0.14em] text-white/55">
+              Free · 30&nbsp;min · No pitch
+            </span>
+          </div>
         </div>
 
         <div className="mt-auto pt-6 sm:pt-8">
@@ -295,9 +308,9 @@ function CurrentStateSection() {
           </h2>
         </div>
 
-        <div className="grid flex-1 grid-cols-1 items-stretch gap-8 sm:gap-10 md:grid-cols-[3fr_2fr] md:gap-14">
+        <div className="grid flex-1 grid-cols-1 items-stretch gap-10 sm:gap-12 md:grid-cols-[1.05fr_1fr] md:gap-16 lg:gap-20">
           <div className="flex h-full flex-col">
-            <div className="relative w-full flex-1 min-h-[240px] sm:min-h-[320px] md:min-h-[420px] overflow-hidden rounded-lg">
+            <div className="relative w-full flex-1 min-h-[280px] sm:min-h-[380px] md:min-h-[520px] lg:min-h-[600px] overflow-hidden rounded-xl shadow-[0_30px_60px_-24px_rgba(15,27,61,0.35)]">
               <img
                 src={pointABuilding.url}
                 alt="Spartan Security Services headquarters at sunset"
@@ -307,15 +320,35 @@ function CurrentStateSection() {
                 decoding="async"
                 className="h-full w-full scale-105 object-cover object-[40%_10%]"
               />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3"
+                style={{ background: "linear-gradient(to top, rgba(6,17,42,0.55), transparent)" }}
+              />
+              <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-3 text-white">
+                <span
+                  className="text-[10px] font-bold uppercase tracking-[0.28em]"
+                  style={{ color: "rgba(255,255,255,0.85)" }}
+                >
+                  Spartan HQ · Houston, TX
+                </span>
+                <span
+                  className="text-[10px] font-mono tracking-[0.18em]"
+                  style={{ color: "rgba(255,255,255,0.6)" }}
+                >
+                  Est. presence
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex h-full flex-col gap-6 sm:gap-8">
+          <div className="flex h-full flex-col gap-8 sm:gap-10">
             <p
-              className="text-[15px] not-italic leading-[1.3] sm:text-[19px] md:text-[21px] lg:text-[22px]"
+              className="text-[20px] not-italic leading-[1.25] sm:text-[24px] md:text-[28px] lg:text-[32px]"
               style={{
                 color: "#0B1B3A",
                 fontFamily: "'Instrument Serif', 'Playfair Display', Georgia, serif",
+                letterSpacing: "-0.005em",
               }}
             >
               Spartan already has a business{" "}
@@ -326,7 +359,7 @@ function CurrentStateSection() {
             </p>
 
             <div
-              className="space-y-4 text-[13.5px] leading-[1.65] sm:space-y-5 sm:text-[14.5px] sm:leading-[1.7]"
+              className="space-y-5 text-[14px] leading-[1.75] sm:space-y-6 sm:text-[15px] sm:leading-[1.8]"
               style={{ color: "rgba(15,27,61,0.78)" }}
             >
               <p>
@@ -334,10 +367,19 @@ function CurrentStateSection() {
                 authority in Houston.
               </p>
               <div
-                className="rounded-lg border border-[rgba(15,27,61,0.08)] bg-[rgba(15,27,61,0.02)] p-4"
+                className="rounded-xl border border-[rgba(15,27,61,0.08)] bg-[rgba(15,27,61,0.02)] p-5 sm:p-6"
                 style={{ color: "#0B1B3A" }}
               >
-                <ul className="flex flex-col gap-3">
+                <div className="mb-4 flex items-center gap-2">
+                  <span
+                    className="text-[10px] font-black uppercase tracking-[0.24em]"
+                    style={{ color: "#E63946" }}
+                  >
+                    Assets already in place
+                  </span>
+                  <div className="h-px flex-1" style={{ backgroundColor: "rgba(15,27,61,0.12)" }} />
+                </div>
+                <ul className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
                   {[
                     "Marquee clients (Costco, Greystar, RPM…)",
                     "Trained security officers",
@@ -348,14 +390,14 @@ function CurrentStateSection() {
                   ].map((item) => (
                     <li
                       key={item}
-                      className="group flex items-start gap-3 text-[13px] font-medium leading-snug"
+                      className="flex items-start gap-3 text-[13px] font-medium leading-snug"
                     >
                       <span
                         aria-hidden="true"
-                        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full sm:h-4 sm:w-4"
+                        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
                         style={{ backgroundColor: "#E63946" }}
                       >
-                        <Check size={10} color="#ffffff" strokeWidth={3} />
+                        <Check size={11} color="#ffffff" strokeWidth={3} />
                       </span>
                       <span>{item}</span>
                     </li>
@@ -682,31 +724,46 @@ function HiddenOpportunitiesSection() {
       </div>
 
       <div className="grid w-full grid-cols-1 bg-white lg:grid-cols-12">
-        <div className="flex flex-col p-6 pb-4 sm:p-10 sm:pb-4 md:p-14 md:pb-6 lg:col-span-5 lg:p-16 lg:pb-6 xl:p-20 xl:pb-6">
+        <div className="flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12">
           <div className="flex flex-1 flex-col">
-            <div key={`h-${index}`} className="flex items-baseline gap-2 sm:gap-3">
-              <span
-                className="text-[12px] font-black tabular-nums uppercase tracking-[0.2em] sm:text-[13px] sm:tracking-[0.22em] lg:text-[16px] lg:tracking-[0.24em]"
-                style={{ color: red }}
-              >
-                {gapNum}
-              </span>
-              <span
-                className="text-[12px] font-black uppercase tracking-[0.2em] sm:text-[13px] sm:tracking-[0.22em] lg:text-[16px] lg:tracking-[0.24em]"
-                style={{ color: navy }}
+            <div key={`h-${index}`} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <span
+                  className="text-[11px] font-black tabular-nums tracking-[0.28em]"
+                  style={{ color: red }}
+                >
+                  GAP {gapNum}
+                </span>
+                <div className="h-px w-10" style={{ backgroundColor: "rgba(15,27,61,0.18)" }} />
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-[0.24em]"
+                  style={{ color: "rgba(15,27,61,0.5)" }}
+                >
+                  {String(total).padStart(2, "0")} total
+                </span>
+              </div>
+              <h3
+                className="font-black uppercase leading-[1.05] tracking-[-0.005em]"
+                style={{
+                  color: navy,
+                  fontSize: "clamp(22px, 2.4vw, 34px)",
+                }}
               >
                 {slide.label}
-              </span>
+              </h3>
             </div>
 
             <div
               key={`b-${index}`}
-              className="mt-5 space-y-3.5 text-[13.5px] leading-[1.65] sm:mt-6 sm:space-y-4 sm:text-[14.5px] sm:leading-[1.7] [&_mark]:transition-colors"
+              className="mt-6 space-y-4 text-[14px] leading-[1.75] sm:mt-8 sm:space-y-5 sm:text-[15px] sm:leading-[1.8] [&_mark]:transition-colors"
               style={{ color: muted }}
             >
               {slide.body}
             </div>
           </div>
+
+
+
 
           <div
             className="mt-6 flex items-center gap-3 rounded-2xl border bg-white p-2 shadow-[0_8px_24px_-12px_rgba(15,27,61,0.15)] sm:gap-4"
@@ -969,16 +1026,45 @@ function NoteFromTaiSection() {
               className="mt-6 h-auto w-36 max-w-[28%] object-contain sm:w-40 md:w-44 lg:w-48"
             />
 
-            <div ref={calendlyRootRef} className="mt-8 sm:mt-10">
-              <button
-                type="button"
-                onClick={() => setIsCalendlyOpen(true)}
-                className="group inline-flex w-auto items-center justify-center gap-2 whitespace-nowrap rounded-sm bg-[#E63946] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_rgba(230,57,70,0.5)] hover:opacity-95 sm:gap-3 sm:px-8 sm:py-5 sm:text-[13px] sm:tracking-[0.15em]"
+            <div
+              ref={calendlyRootRef}
+              className="mt-10 rounded-2xl border p-6 sm:mt-14 sm:p-8"
+              style={{
+                borderColor: "rgba(15,27,61,0.08)",
+                background:
+                  "linear-gradient(135deg, rgba(230,57,70,0.04) 0%, rgba(15,27,61,0.03) 100%)",
+              }}
+            >
+              <div
+                className="text-[10px] font-black uppercase tracking-[0.28em]"
+                style={{ color: red }}
               >
-                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                Book the roadmap walkthrough
-                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5 sm:h-4 sm:w-4" />
-              </button>
+                Next Step
+              </div>
+              <p
+                className="mt-3 text-[20px] leading-[1.25] sm:text-[24px] md:text-[26px]"
+                style={{
+                  color: navy,
+                  fontFamily: "'Instrument Serif', 'Playfair Display', Georgia, serif",
+                }}
+              >
+                Let&rsquo;s walk through the full roadmap together.
+              </p>
+              <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+                <button
+                  type="button"
+                  onClick={() => setIsCalendlyOpen(true)}
+                  className="group inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-lg bg-[#E63946] px-6 py-4 text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:gap-3 sm:px-8 sm:py-5 sm:text-[13px] sm:tracking-[0.18em]"
+                >
+                  <Calendar className="h-4 w-4" />
+                  Book the walkthrough
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </button>
+                <div className="flex flex-col gap-1 text-[11px] font-medium tracking-[0.14em] text-[rgba(15,27,61,0.6)]">
+                  <span className="uppercase">Free · 30&nbsp;minutes · Zoom</span>
+                  <span className="text-[rgba(15,27,61,0.5)]">No pitch. Just the full thinking.</span>
+                </div>
+              </div>
 
               {calendlyRootRef.current && (
                 <PopupModal
