@@ -9,6 +9,8 @@ import {
   type ProjectFamilyPayload,
 } from "@/lib/engine-project-family.functions";
 import { getFamilyImpact, type FamilyImpactPayload } from "@/lib/engine-project-impact.functions";
+import { FamilyDependencyGraph } from "@/components/engine/FamilyDependencyGraph";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/engine/projects/$projectId/family")({
   component: FamilyPage,
@@ -20,6 +22,7 @@ export const Route = createFileRoute("/engine/projects/$projectId/family")({
 function FamilyPage() {
   const { projectId } = Route.useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const familyFn = useServerFn(getProjectFamily);
   const impactFn = useServerFn(getFamilyImpact);
   const createFn = useServerFn(createChildProject);
@@ -136,6 +139,25 @@ function FamilyPage() {
           ) : (
             <div className="text-sm text-[#667085]">Family root not resolvable.</div>
           )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-display text-lg text-[#0A0F1F]">Dependency graph</h2>
+          <p className="text-xs text-[#667085]">
+            Preview what a reparent or completion would ripple.
+          </p>
+        </div>
+        <div className="mt-4">
+          <FamilyDependencyGraph
+            nodes={family.nodes}
+            blockers={impact.blockers}
+            currentProjectId={projectId}
+            onOpenNode={(id) =>
+              navigate({ to: "/engine/projects/$projectId/overview", params: { projectId: id } })
+            }
+          />
         </div>
       </section>
 
@@ -300,6 +322,14 @@ function FamilyRow({
           </div>
         </div>
         <div className="flex items-center gap-1 text-xs">
+          <Link
+            to="/engine/projects/$projectId/chat"
+            params={{ projectId: node.id }}
+            className="rounded-md border border-[#E8E1D6] px-2 py-1 hover:bg-white"
+            title="Open project chat for this node"
+          >
+            chat
+          </Link>
           <button
             className="rounded-md border border-[#E8E1D6] px-2 py-1 hover:bg-white"
             onClick={() => onAdd(node.id)}

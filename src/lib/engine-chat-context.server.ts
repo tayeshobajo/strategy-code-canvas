@@ -80,6 +80,17 @@ export type ProjectChatContext = {
       total_children: number;
       approved_children: number;
       completed_children: number;
+      shortcuts: {
+        open_family_route: string;
+        create_child_hint: string;
+        reparent_hint: string;
+        available_actions: Array<{
+          id: "family.create_child" | "family.reparent";
+          label: string;
+          description: string;
+          surface: "family_route" | "chat";
+        }>;
+      };
     } | null;
     missing_data: string[];
   };
@@ -141,6 +152,29 @@ export async function buildProjectChatContext(sb: Sb, projectId: string): Promis
         completed_children: nodes.filter(
           (n) => n.parent_project_id === projectId && !!n.completed_at,
         ).length,
+        shortcuts: {
+          open_family_route: `/engine/projects/${projectId}/family`,
+          create_child_hint:
+            "Use the '+ child' button on the family route to add a child project under this or any node. Frozen parents (approved/completed) cannot take new children.",
+          reparent_hint:
+            "Use the 'move' button on the family route to reparent a project. Frozen projects cannot be moved and cross-client moves are blocked.",
+          available_actions: [
+            {
+              id: "family.create_child",
+              label: "Create child project",
+              description:
+                "Add a new child project under a chosen parent. Requires staff role and non-frozen parent.",
+              surface: "family_route",
+            },
+            {
+              id: "family.reparent",
+              label: "Reparent project",
+              description:
+                "Move a project to a new parent (or to root). Requires staff role, same client_id, and no cycles.",
+              surface: "family_route",
+            },
+          ],
+        },
       };
     }
   } catch {
