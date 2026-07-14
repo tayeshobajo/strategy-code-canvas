@@ -21,6 +21,8 @@ import {
   DollarSign,
   Network,
   LayoutTemplate,
+  Timer,
+  HeartPulse,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -132,6 +134,18 @@ const NAV: AdminNav[] = [
     label: "Engine templates",
     icon: LayoutTemplate,
     match: "/admin/engine-templates",
+  },
+  {
+    to: "/admin/outcome-scheduler",
+    label: "Outcome scheduler",
+    icon: Timer,
+    match: "/admin/outcome-scheduler",
+  },
+  {
+    to: "/admin/health-explainer",
+    label: "Health explainer",
+    icon: HeartPulse,
+    match: "/admin/health-explainer",
   },
 ];
 
