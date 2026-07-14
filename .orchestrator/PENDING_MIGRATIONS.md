@@ -3054,10 +3054,12 @@ Status: **APPLIED (pre-existing, verified 2026-07-14).** All 4 tables present (`
 
 ---
 
-## Phase 4 QA Fixes — Governance Gate Hardening (Revision 2)
+## Phase 4 QA Fixes — Governance Gate Hardening (Revision 2.2)
 
+**Status:** PENDING TAI REVIEW — apply-ready pending re-review of Rev 2.2 patch.
 **Origin:** QA audit 2026-07-13 against Phase 4 spine approval gate.
-**Revision 2 origin:** Tai review 2026-07-13 of Revision 1. Blockers addressed below; nothing else changed.
+**Revision 2 origin:** Tai review 2026-07-13 of Revision 1. Blockers addressed below.
+**Revision 2.2 origin:** Tai review 2026-07-14 of Rev 2.1 — flagged a ceremony-status deadlock. Rev 2.1 required `ceremony.status='completed'` before an `approved_truth` truth row could be written, but Phase 2 `recordCeremonyDecision()` writes `approved_truth` while the ceremony is still `in_progress` and only flips to `completed` after all fields are terminal. Fix: accept `ceremony.status IN ('in_progress','completed')`; the per-field `engine_spine_ceremony_decisions` row remains the real provenance anchor. Enumeration under the patched predicate is clean (0 rows require remediation) — see `.orchestrator/phase-4-qa-rev-2-1-enumeration.md`.
 
 ### Revision 2 blockers addressed
 
@@ -3080,7 +3082,7 @@ BEFORE INSERT/UPDATE trigger on `public.engine_spine_field_truth`. When `NEW.sta
 
 1. `NEW.updated_by_actor='human'`.
 2. Either
-   - `NEW.ceremony_id IS NOT NULL` **and** referenced `engine_spine_ceremonies` row is `status='completed'`, same `project_id`, same `spine`, **and** an `engine_spine_ceremony_decisions` row exists for `(ceremony_id, field_key, new_status='approved_truth')`, or
+   - `NEW.ceremony_id IS NOT NULL` **and** referenced `engine_spine_ceremonies` row is `status IN ('in_progress','completed')`, same `project_id`, same `spine`, **and** an `engine_spine_ceremony_decisions` row exists for `(ceremony_id, field_key, new_status='approved_truth')`, or
    - `NEW.source_ref->>'kind'='operator_override'` with a non-empty `reason`, `operator_email` matching `updated_by_email` (case-insensitive), and that email carrying `admin` or `operator` role. Emits an `engine_audit_log` row for every override write.
 
 No other combination is accepted. There is no backfill bypass.
@@ -3114,8 +3116,8 @@ BEGIN
     IF ceremony.id IS NULL
        OR ceremony.project_id <> NEW.project_id
        OR ceremony.spine      <> NEW.spine
-       OR ceremony.status     <> 'completed' THEN
-      RAISE EXCEPTION 'approved_truth ceremony_id % invalid (project/spine mismatch or not completed) for field %:%',
+       OR ceremony.status NOT IN ('in_progress','completed') THEN
+      RAISE EXCEPTION 'approved_truth ceremony_id % invalid (project/spine mismatch or not in_progress/completed) for field %:%',
         NEW.ceremony_id, NEW.spine, NEW.field_key
         USING ERRCODE = 'check_violation';
     END IF;
@@ -3196,7 +3198,7 @@ Do **not** place the `CREATE TRIGGER` before the guard in the migration file —
 
 **Pre-install backfill (mandatory).** Run BEFORE creating the trigger.
 
-Step 1 — enumerate offending rows for human review and remediation. The ceremony branch mirrors the trigger predicate exactly (ceremony exists, same `project_id`, same `spine`, `status='completed'`, and a matching `engine_spine_ceremony_decisions` row for `(ceremony_id, project_id, spine, field_key, new_status='approved_truth')`):
+Step 1 — enumerate offending rows for human review and remediation. The ceremony branch mirrors the trigger predicate exactly (ceremony exists, same `project_id`, same `spine`, `status IN ('in_progress','completed')`, and a matching `engine_spine_ceremony_decisions` row for `(ceremony_id, project_id, spine, field_key, new_status='approved_truth')`):
 
 ```sql
 SELECT t.id, t.project_id, t.spine, t.field_key, t.updated_by_actor, t.updated_by_email,
@@ -3214,7 +3216,7 @@ SELECT t.id, t.project_id, t.spine, t.field_key, t.updated_by_actor, t.updated_b
             WHERE c.id          = t.ceremony_id
               AND c.project_id  = t.project_id
               AND c.spine       = t.spine
-              AND c.status      = 'completed'
+              AND c.status      IN ('in_progress','completed')
               AND d.project_id  = t.project_id
               AND d.spine       = t.spine
               AND d.field_key   = t.field_key
@@ -3254,7 +3256,7 @@ BEGIN
               WHERE c.id          = t.ceremony_id
                 AND c.project_id  = t.project_id
                 AND c.spine       = t.spine
-                AND c.status      = 'completed'
+                AND c.status      IN ('in_progress','completed')
                 AND d.project_id  = t.project_id
                 AND d.spine       = t.spine
                 AND d.field_key   = t.field_key
