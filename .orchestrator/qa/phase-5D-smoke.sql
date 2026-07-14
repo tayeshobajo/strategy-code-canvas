@@ -31,12 +31,12 @@ BEGIN
   -- seed projects (skip trigger side-effects by using planning status)
   INSERT INTO engine_projects (id, name, client_id, status, project_kind)
   VALUES
-    (p_a_root, 'QA5D-A-root', c_a, 'planning', 'parent'),
-    (p_a_child, 'QA5D-A-child', c_a, 'planning', 'child'),
-    (p_a_grand, 'QA5D-A-grand', c_a, 'planning', 'child'),
-    (p_b_root, 'QA5D-B-root', c_b, 'planning', 'parent')
+    (p_a_root, 'QA5D-A-root', c_a, 'intake', 'parent'),
+    (p_a_child, 'QA5D-A-child', c_a, 'intake', 'child'),
+    (p_a_grand, 'QA5D-A-grand', c_a, 'intake', 'child'),
+    (p_b_root, 'QA5D-B-root', c_b, 'intake', 'parent')
   ON CONFLICT (id) DO UPDATE
-    SET parent_project_id = NULL, status = 'planning';
+    SET parent_project_id = NULL, status = 'intake';
 
   UPDATE engine_projects SET parent_project_id = p_a_root WHERE id = p_a_child;
   UPDATE engine_projects SET parent_project_id = p_a_child WHERE id = p_a_grand;
@@ -85,14 +85,14 @@ BEGIN
     -- Attempt to insert a child under the approved parent.
     BEGIN
       INSERT INTO engine_projects (id, name, client_id, parent_project_id, status, project_kind)
-      VALUES (p_new, 'QA5D-A-late-child', c_a, p_a_root, 'planning', 'child');
+      VALUES (p_new, 'QA5D-A-late-child', c_a, p_a_root, 'intake', 'child');
       RAISE NOTICE 'CHECK2 frozen_parent_add_child: SKIP (no DB-level guard; app-layer only)';
       DELETE FROM engine_projects WHERE id = p_new;
     EXCEPTION WHEN OTHERS THEN
       GET STACKED DIAGNOSTICS err = MESSAGE_TEXT;
       RAISE NOTICE 'CHECK2 frozen_parent_add_child: PASS (%)', err;
     END;
-    UPDATE engine_projects SET status = 'planning', approved_at = NULL WHERE id = p_a_root;
+    UPDATE engine_projects SET status = 'intake', approved_at = NULL WHERE id = p_a_root;
   EXCEPTION WHEN OTHERS THEN
     GET STACKED DIAGNOSTICS err = MESSAGE_TEXT;
     RAISE NOTICE 'CHECK2 frozen_parent_add_child: SKIP (spine gate blocked test setup: %)', err;
