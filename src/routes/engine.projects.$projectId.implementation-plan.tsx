@@ -217,6 +217,19 @@ function ImplementationPlanPage() {
           onSubmit={onSubmit}
           onApprove={onApprove}
           onArchive={onArchive}
+          onEdit={() => setEditOpen(true)}
+        />
+        <EditDraftDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          plan={latest}
+          projectId={projectId}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          saveFn={saveDraftFn as any}
+          onSaved={() => {
+            setEditOpen(false);
+            invalidate();
+          }}
         />
         {latest ? (
           <>
