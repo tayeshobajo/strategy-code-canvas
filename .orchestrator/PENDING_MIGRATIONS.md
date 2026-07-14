@@ -3056,7 +3056,7 @@ Status: **APPLIED (pre-existing, verified 2026-07-14).** All 4 tables present (`
 
 ## Phase 4 QA Fixes — Governance Gate Hardening (Revision 2.2)
 
-**Status:** PENDING TAI REVIEW — apply-ready pending re-review of Rev 2.2 patch.
+**Status:** APPLIED 2026-07-14 (Rev 2.2). G1 provenance trigger + G1a summary function + G2 gate triggers + G3 harness file all live. Deadlock fix applied via targeted follow-up migration replacing the ceremony status predicate. See `.orchestrator/phase-4-qa-rev-2-2-apply-output.md`.
 **Origin:** QA audit 2026-07-13 against Phase 4 spine approval gate.
 **Revision 2 origin:** Tai review 2026-07-13 of Revision 1. Blockers addressed below.
 **Revision 2.2 origin:** Tai review 2026-07-14 of Rev 2.1 — flagged a ceremony-status deadlock. Rev 2.1 required `ceremony.status='completed'` before an `approved_truth` truth row could be written, but Phase 2 `recordCeremonyDecision()` writes `approved_truth` while the ceremony is still `in_progress` and only flips to `completed` after all fields are terminal. Fix: accept `ceremony.status IN ('in_progress','completed')`; the per-field `engine_spine_ceremony_decisions` row remains the real provenance anchor. Enumeration under the patched predicate is clean (0 rows require remediation) — see `.orchestrator/phase-4-qa-rev-2-1-enumeration.md`.
