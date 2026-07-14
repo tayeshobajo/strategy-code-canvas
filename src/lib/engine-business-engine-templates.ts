@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Phase H3 — Business Engine templates (closes M3–M6)
 //
 // Four canonical operating engines every services business runs on:
