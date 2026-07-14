@@ -28,7 +28,10 @@ export const reflectAnswer = createServerFn({ method: "POST" })
     const { data: draft, error: draftErr } = await (
       supabaseAdmin.from("intake_drafts") as unknown as {
         select: (s: string) => {
-          eq: (c: string, v: string) => {
+          eq: (
+            c: string,
+            v: string,
+          ) => {
             maybeSingle: () => Promise<{ data: { resume_token: string } | null; error: unknown }>;
           };
         };
@@ -96,7 +99,16 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SaveDraftInput = z.object({
   resume_token: z.string().regex(UUID_RE).optional(),
   answers: z.array(AnswerSchema).max(20).default([]),
-  contact: ContactSchema.default(() => ({ name: "", business: "", website: "", email: "", role: "", timeline: "", decision_makers: "", reply_preference: "" })),
+  contact: ContactSchema.default(() => ({
+    name: "",
+    business: "",
+    website: "",
+    email: "",
+    role: "",
+    timeline: "",
+    decision_makers: "",
+    reply_preference: "",
+  })),
 });
 
 export const saveDraft = createServerFn({ method: "POST" })
@@ -121,13 +133,17 @@ export const saveDraft = createServerFn({ method: "POST" })
     try {
       const raw = answersByKey["_scores"]?.response;
       if (raw) objective_scores = JSON.parse(raw) as Record<string, number>;
-    } catch { /* keep {} */ }
+    } catch {
+      /* keep {} */
+    }
 
     let asked: string[] = [];
     try {
       const raw = answersByKey["_asked"]?.response;
       if (raw) asked = JSON.parse(raw) as string[];
-    } catch { /* keep [] */ }
+    } catch {
+      /* keep [] */
+    }
 
     // Open objectives = anything asked or scored that hasn't cleared the bar (60).
     const BAR = 60;
@@ -190,7 +206,6 @@ export const saveDraft = createServerFn({ method: "POST" })
     }
     return { resume_token: inserted.resume_token };
   });
-
 
 const LoadDraftInput = z.object({ resume_token: z.string().regex(UUID_RE) });
 
@@ -270,7 +285,7 @@ export const loadDraft = createServerFn({ method: "POST" })
       size: Number(a.size ?? 0),
       mime: a.mime == null ? null : String(a.mime),
       question_id: a.question_id == null ? null : String(a.question_id),
-      kind: (["image","audio","video","doc"] as const).includes(a.kind as "image")
+      kind: (["image", "audio", "video", "doc"] as const).includes(a.kind as "image")
         ? (a.kind as "image" | "audio" | "video" | "doc")
         : undefined,
       summary: a.summary == null ? null : String(a.summary),
@@ -356,7 +371,10 @@ export const submitIntake = createServerFn({ method: "POST" })
       const { data: draft } = await (
         supabaseAdmin.from("intake_drafts") as unknown as {
           select: (s: string) => {
-            eq: (c: string, v: string) => {
+            eq: (
+              c: string,
+              v: string,
+            ) => {
               maybeSingle: () => Promise<{
                 data: { attachments: unknown; sources: unknown } | null;
               }>;
@@ -414,11 +432,7 @@ export const submitIntake = createServerFn({ method: "POST" })
       ? sources
           .map((s) => {
             const kind =
-              s.kind === "transcript"
-                ? "transcript"
-                : s.kind === "notes"
-                  ? "notes"
-                  : "url";
+              s.kind === "transcript" ? "transcript" : s.kind === "notes" ? "notes" : "url";
             const target = s.kind === "url" && s.url ? s.url : `${s.content.length} chars`;
             return `- [${kind}] ${s.label} — ${target} (internal_only)`;
           })
@@ -460,35 +474,34 @@ export const submitIntake = createServerFn({ method: "POST" })
       }),
     ];
     // --- Rate limiting (server-side, no external service required) ---
-    // Allow at most 3 submissions per email (or IP) within a 10-minute window.
+    // Allow at most 3 submissions per email within a 10-minute window.
+    // `intake_submissions.submitter_ip` never shipped to production, so the
+    // old email-or-IP query failed open on every submit.
     {
-      const { getRequestHeader } = await import("@tanstack/react-start/server");
-      const forwardedFor = getRequestHeader("x-forwarded-for");
-      // x-forwarded-for may be a comma-separated list; take the first (leftmost) entry.
-      const submitterIp =
-        (forwardedFor ? forwardedFor.split(",")[0].trim() : null) ||
-        getRequestHeader("x-real-ip") ||
-        null;
-
       const windowStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
       // Build the filter: always check email; add IP check when we have one.
       type RawRow = { id: string };
-      const emailQuery = (supabaseAdmin.from("intake_submissions") as unknown as {
-        select: (s: string) => {
-          gte: (col: string, val: string) => {
-            or: (filter: string) => Promise<{ data: RawRow[] | null; error: unknown }>;
+      const emailQuery = (
+        supabaseAdmin.from("intake_submissions") as unknown as {
+          select: (s: string) => {
+            eq: (
+              col: string,
+              val: string,
+            ) => {
+              gte: (
+                timeCol: string,
+                val: string,
+              ) => Promise<{ data: RawRow[] | null; error: unknown }>;
+            };
           };
-        };
-      })
+        }
+      )
         .select("id")
+        .eq("email", data.email)
         .gte("created_at", windowStart);
 
-      const orFilter = submitterIp
-        ? `email.eq.${data.email},submitter_ip.eq.${submitterIp}`
-        : `email.eq.${data.email}`;
-
-      const { data: recentRows, error: rlErr } = await emailQuery.or(orFilter);
+      const { data: recentRows, error: rlErr } = await emailQuery;
 
       if (rlErr) {
         // Log but don't block on a rate-limit query failure — fail open
@@ -497,12 +510,9 @@ export const submitIntake = createServerFn({ method: "POST" })
       } else if (recentRows && recentRows.length >= 3) {
         console.warn("[submit-intake] rate limit hit", {
           email: data.email,
-          ip: submitterIp,
           recent_count: recentRows.length,
         });
-        throw new Error(
-          "Too many submissions. Please wait a few minutes before trying again."
-        );
+        throw new Error("Too many submissions. Please wait a few minutes before trying again.");
       }
     }
     // --- End rate limiting ---
@@ -595,7 +605,8 @@ export const submitIntake = createServerFn({ method: "POST" })
     // even if they close the browser tab immediately. Fire-and-forget:
     // delivery failure must never block or fail the submission.
     try {
-      const { enqueueTransactionalEmail } = await import("@/lib/email/enqueue-transactional.server");
+      const { enqueueTransactionalEmail } =
+        await import("@/lib/email/enqueue-transactional.server");
       await enqueueTransactionalEmail({
         templateName: "intake-client-confirmation",
         recipientEmail: data.email,
@@ -636,7 +647,6 @@ export const submitIntake = createServerFn({ method: "POST" })
       _engine: engineBridge,
     };
   });
-
 
 // ─── Operator notification ─────────────────────────────────────────────
 // Fans out an "intake submitted" alert to every operator/admin so no
@@ -693,9 +703,11 @@ async function notifyOperatorsOfIntake(input: {
   // bell / inbox without depending on email delivery.
   try {
     const businessLine = input.business ? ` · ${input.business}` : "";
-    await (supabaseAdmin.from("operator_notifications") as unknown as {
-      insert: (r: Record<string, unknown>) => Promise<{ error: unknown }>;
-    }).insert({
+    await (
+      supabaseAdmin.from("operator_notifications") as unknown as {
+        insert: (r: Record<string, unknown>) => Promise<{ error: unknown }>;
+      }
+    ).insert({
       kind: "intake_submitted",
       submission_id: input.submissionId,
       title: `New roadmap intake: ${input.founderName}${businessLine}`,
@@ -769,10 +781,16 @@ type StoredAttachment = {
 
 function kindFromMime(mime: string | null | undefined, ext: string): AttachmentKind {
   const m = (mime ?? "").toLowerCase();
-  if (m.startsWith("image/") || ["png","jpg","jpeg","gif","webp","heic","svg"].includes(ext)) return "image";
-  if (m.startsWith("audio/") || ["mp3","wav","m4a","ogg","webm"].includes(ext) && m.startsWith("audio")) return "audio";
+  if (m.startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp", "heic", "svg"].includes(ext))
+    return "image";
+  if (
+    m.startsWith("audio/") ||
+    (["mp3", "wav", "m4a", "ogg", "webm"].includes(ext) && m.startsWith("audio"))
+  )
+    return "audio";
   if (m.startsWith("audio/")) return "audio";
-  if (m.startsWith("video/") || ["mp4","mov","webm"].includes(ext) && m.startsWith("video")) return "video";
+  if (m.startsWith("video/") || (["mp4", "mov", "webm"].includes(ext) && m.startsWith("video")))
+    return "video";
   if (m.startsWith("video/")) return "video";
   return "doc";
 }
@@ -786,7 +804,7 @@ function normalizeAttachments(raw: unknown): StoredAttachment[] {
     mime: a.mime == null ? null : String(a.mime),
     uploaded_at: String(a.uploaded_at ?? new Date(0).toISOString()),
     question_id: a.question_id == null ? null : String(a.question_id),
-    kind: (["image","audio","video","doc"] as const).includes(a.kind as AttachmentKind)
+    kind: (["image", "audio", "video", "doc"] as const).includes(a.kind as AttachmentKind)
       ? (a.kind as AttachmentKind)
       : undefined,
     summary: a.summary == null ? null : String(a.summary),
@@ -799,13 +817,37 @@ function normalizeAttachments(raw: unknown): StoredAttachment[] {
 // is rejected before we record the row in intake_drafts.
 const ATTACHMENT_MAX_BYTES = 25 * 1024 * 1024;
 const ATTACHMENT_ALLOWED_EXT = new Set<string>([
-  "pdf", "doc", "docx", "txt", "md", "rtf",
-  "xls", "xlsx", "csv", "ppt", "pptx", "key",
-  "png", "jpg", "jpeg", "gif", "webp", "heic", "svg",
-  "zip", "json", "yaml", "yml",
+  "pdf",
+  "doc",
+  "docx",
+  "txt",
+  "md",
+  "rtf",
+  "xls",
+  "xlsx",
+  "csv",
+  "ppt",
+  "pptx",
+  "key",
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "webp",
+  "heic",
+  "svg",
+  "zip",
+  "json",
+  "yaml",
+  "yml",
   // Media (in-conversation uploads)
-  "mp3", "wav", "m4a", "ogg", "webm",
-  "mp4", "mov",
+  "mp3",
+  "wav",
+  "m4a",
+  "ogg",
+  "webm",
+  "mp4",
+  "mov",
 ]);
 // Mime prefixes accepted regardless of extension (browsers vary on which
 // mime string they emit). Uploads without a declared mime are accepted as
@@ -872,9 +914,8 @@ export const recordIntakeAttachment = createServerFn({ method: "POST" })
     const extOk = ATTACHMENT_ALLOWED_EXT.has(ext);
     const mimeOk = isMimeAllowed(data.mime ?? null);
     if (!extOk || !mimeOk) {
-      const { supabaseAdmin: adminForCleanup } = await import(
-        "@/integrations/supabase/client.server"
-      );
+      const { supabaseAdmin: adminForCleanup } =
+        await import("@/integrations/supabase/client.server");
       await adminForCleanup.storage.from("intake-uploads").remove([data.storage_path]);
       throw new Error(
         !extOk
@@ -888,7 +929,10 @@ export const recordIntakeAttachment = createServerFn({ method: "POST" })
     const { data: existing } = await (
       supabaseAdmin.from("intake_drafts") as unknown as {
         select: (s: string) => {
-          eq: (c: string, v: string) => {
+          eq: (
+            c: string,
+            v: string,
+          ) => {
             maybeSingle: () => Promise<{ data: { attachments: unknown } | null }>;
           };
         };
@@ -955,7 +999,10 @@ export const removeIntakeAttachment = createServerFn({ method: "POST" })
     const { data: existing } = await (
       supabaseAdmin.from("intake_drafts") as unknown as {
         select: (s: string) => {
-          eq: (c: string, v: string) => {
+          eq: (
+            c: string,
+            v: string,
+          ) => {
             maybeSingle: () => Promise<{ data: { attachments: unknown } | null }>;
           };
         };
@@ -996,7 +1043,10 @@ export const setIntakeAttachmentSummary = createServerFn({ method: "POST" })
     const { data: existing } = await (
       supabaseAdmin.from("intake_drafts") as unknown as {
         select: (s: string) => {
-          eq: (c: string, v: string) => {
+          eq: (
+            c: string,
+            v: string,
+          ) => {
             maybeSingle: () => Promise<{ data: { attachments: unknown } | null }>;
           };
         };
@@ -1038,7 +1088,12 @@ async function autoBridgeIntakeToEngine(input: {
     email: string;
     role?: string | null;
   };
-  answers: Array<{ key: string; question: string; response: string; reflected_offered?: string | null }>;
+  answers: Array<{
+    key: string;
+    question: string;
+    response: string;
+    reflected_offered?: string | null;
+  }>;
   attachments: Array<{ storage_path: string; filename: string; size: number; mime: string | null }>;
   sources?: Array<{
     id: string;
@@ -1124,7 +1179,10 @@ async function autoBridgeIntakeToEngine(input: {
       body: `Submission ${input.submissionId} — ${contactEmail || "no email"}`,
       severity: "info",
     })
-    .then(() => undefined, () => undefined);
+    .then(
+      () => undefined,
+      () => undefined,
+    );
 
   // 3. Compile the raw intake into a single brief text for the pipeline.
   const briefLines: string[] = [];
@@ -1196,39 +1254,38 @@ async function autoBridgeIntakeToEngine(input: {
   }
   const sourceId = src.id as string;
 
-  // 5. Fire the intelligence pipeline. Fire-and-forget so submit returns
-  //    immediately; the pipeline logs its own progress into
-  //    engine_extraction_runs / engine_extracted_signals /
-  //    engine_roadmap_versions and creates the review item ops sees.
-  void (async () => {
-    try {
-      const { runIntelligencePipelineInternal } = await import(
-        "@/lib/engine-intelligence.functions"
-      );
-      await runIntelligencePipelineInternal(sb, {
-        projectId,
-        sourceIds: [sourceId],
-        actorEmail,
-      });
-    } catch (e) {
-      const msg = (e as Error)?.message ?? String(e);
-      if (msg.startsWith("pipeline_blocked:")) {
-        await sb
-          .from("engine_activity")
-          .insert({
-            project_id: projectId,
-            kind: "intake_bridge_pipeline_blocked",
-            title: "Intake bridged — auto-extraction blocked",
-            body: "Agent permissions block run_intelligence_pipeline for this project. Review the intake source manually.",
-            severity: "warn",
-          })
-          .then(() => undefined, () => undefined);
-      } else {
-        console.warn("[intake-bridge] pipeline run failed", msg);
-      }
+  // 5. Run the intelligence pipeline before returning. Cloudflare Workers
+  //    tear down detached async work as soon as the response resolves, which
+  //    leaves the extraction run stranded in `running` forever. If submit
+  //    latency becomes unacceptable, move this to a real durable queue rather
+  //    than a fire-and-forget promise.
+  try {
+    const { runIntelligencePipelineInternal } = await import("@/lib/engine-intelligence.functions");
+    await runIntelligencePipelineInternal(sb, {
+      projectId,
+      sourceIds: [sourceId],
+      actorEmail,
+    });
+  } catch (e) {
+    const msg = (e as Error)?.message ?? String(e);
+    if (msg.startsWith("pipeline_blocked:")) {
+      await sb
+        .from("engine_activity")
+        .insert({
+          project_id: projectId,
+          kind: "intake_bridge_pipeline_blocked",
+          title: "Intake bridged — auto-extraction blocked",
+          body: "Agent permissions block run_intelligence_pipeline for this project. Review the intake source manually.",
+          severity: "warn",
+        })
+        .then(
+          () => undefined,
+          () => undefined,
+        );
+    } else {
+      console.warn("[intake-bridge] pipeline run failed", msg);
     }
-  })();
+  }
 
   return { project_id: projectId, source_id: sourceId };
 }
-
