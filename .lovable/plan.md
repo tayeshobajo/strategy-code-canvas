@@ -1,92 +1,83 @@
+# Close all remaining PARTIALs — Hardening Sprints H6–H10
 
-# Hardening Sprint — H4 + H5 + Family-Impact Regression
+**Starting state:** 152 PASS / 35 PARTIAL / 0 MISSING. **Ultimate Confirmation already PASS.** No MISSINGs exist (closed by M11/M12).
 
-Five user asks collapse into three build tracks because (1)+(5) are the same H4 work and (2)+(4) are the same H5 work. Track C hardens H2 (family-impact) with idempotency guards and tests.
+Of the 35 PARTIALs, **5 are already implemented** in shipped hardening but not re-scored yet:
+- H9 (cost-overrun auto-pause) — shipped in H1
+- F7 (cross-project impact automation) — shipped in H2/H2b
+- M3–M6 (four engine templates) — shipped in H3 (counts as 4 items)
+- O (outcome scheduler coverage) — shipped in H4
+- P9 (portfolio health explainability) — shipped in H5
 
-## Track A — H4 Outcome Scheduler & Coverage (asks 1 + 5)
+That leaves **26 true PARTIALs** to close, plus a re-score pass to confirm the 8 above. Grouped into 5 ranked sprints by blast radius:
 
-**Goal:** Broaden outcome feedback beyond delivered projects — cover milestone completions, engine activations, and cost-guard resumes on a scheduled cadence, all with evidence.
+---
 
-**New files**
-- `src/lib/engine-outcome-scheduler.functions.ts`
-  - `runOutcomeCheckins({ window })` — server fn (staff-gated). Scans:
-    - `engine_projects` where `status='delivered'` at 30/60/90d windows
-    - `engine_milestones` where `status='completed'` at 14/30d windows
-    - `engine_business_engines` where `status='active'` at 30d cadence
-    - `engine_projects` recently resumed from `cost_paused_at` (7d recheck)
-  - Computes deltas vs baseline `engine_intelligence_memory` snapshot, writes an `engine_review_items` row per finding (`item_type='outcome_checkin'`, `source='outcome_scheduler'`) with `metadata.window`, `metadata.trigger_kind`, `metadata.evidence_refs`.
-  - Idempotency: dedupe by `(subject_id, trigger_kind, window)` scoped to last 24h.
-  - Writes `engine_activity` audit row per run summarizing counts.
-- `src/routes/api/public/hooks/outcome-checkins.ts` — POST hook, verifies `apikey` header matches `SUPABASE_PUBLISHABLE_KEY`, invokes the server-only helper. No PII in response body.
-- `src/routes/admin.outcome-scheduler.tsx` — admin surface: last run summary, per-trigger counts, manual "run now" button, open outcome review items list.
+## Sprint H6 — Governance & AI safety edges (5 items)
 
-**PENDING_MIGRATIONS.md addition (not applied)**
-- `pg_cron` schedule (daily 09:00 UTC) calling the public hook with `apikey` header. Documented as proposal only.
+Highest risk if left partial: silent writes and unaudited AI paths.
 
-**Nav:** add "Outcome scheduler" entry to `src/routes/admin.tsx`.
+- **B12** — Extend `tg_engine_chat_proposals_enforce_transition` coverage matrix to non-spine surfaces (milestone body edits, plan body edits) so any material change becomes a proposal, never a silent overwrite. Migration → `PENDING_MIGRATIONS.md`.
+- **J4** — Standardise a `ProposalImpactPanel` component and require every `engine_project_chat_proposals` row to emit `impact_summary` jsonb (scope / budget / timeline / deps / expectations). Backfill defaults in code, migrate the column via `PENDING_MIGRATIONS.md`.
+- **Q7** — Add explicit privacy + cost + reliability scoring to `engine-ai-providers.server.ts` selector; expose the chosen scores on every `engine_agent_costs` row via existing `metadata` column (no schema change).
+- **I11** — Add `risk_score int` on `engine_review_items` (computed from impact × urgency × deadline proximity) and sort the approvals queue by it. Migration → `PENDING_MIGRATIONS.md`.
+- **K8** — Root-cause graph: new `src/lib/engine-drift-causality.functions.ts` that clusters `engine_review_items` + drift signals by shared entity (spine field, milestone, engine) and returns causal edges. Rendered on the existing drift-detection route.
 
-## Track B — H5 Health Explainability (asks 2 + 4)
+## Sprint H7 — Intake & understanding (4 items)
 
-**Goal:** Every project/engine health verdict must be traceable to concrete drivers.
+- **A8** — Transcript-parse pipeline: new `src/lib/intake-transcript.functions.ts` that accepts pasted or uploaded transcript, runs an LLM extractor into `engine_extracted_signals` with `source_kind='transcript'`. New `admin.intake-transcript.tsx` page.
+- **A9** — UI polish: render `is_reflection` (already in `intake_questions`) as an "Optional" pill in `QuestionAttachments.tsx` / question card. Zero backend change.
+- **A12** — Promote `engine-intake-review` from optional to hard pre-roadmap gate: check for a positive `intake_reviewed_at` in the frame-builder guard and refuse generation with a clear error. Migration → `PENDING_MIGRATIONS.md` (adds column).
+- **B10** — Wire `intake/gap-analyzer.ts` output into `engine_agent_tasks` for research / specialist assignments; extend `engine_review_items.assigned_to_kind` enum values (`client|team|research|agent`) via `PENDING_MIGRATIONS.md`.
 
-**New files**
-- `src/lib/engine-health-explainer.functions.ts`
-  - `explainProjectHealth({ projectId })` — returns:
-    - current status label + score
-    - ranked drivers (open review items by severity, business-engine exceptions, cost-pause state, family-impact blockers, stale evidence)
-    - evidence refs (audit log ids, review item ids, exception ids) so admins can jump to source
-  - `explainEngineHealth({ engineId })` — same shape scoped to a business engine.
-- `src/components/HealthExplainerPanel.tsx` — reusable panel: driver list with severity chips, timestamps, deep links to source rows.
-- `src/routes/admin.health-explainer.tsx` — picker for project or engine, renders the panel.
+## Sprint H8 — Captain, roadmap, decomposition (7 items)
 
-**Integration points**
-- Mount `HealthExplainerPanel` on:
-  - `src/routes/engine/$projectId/index.tsx` (project header)
-  - existing portfolio health view (if present under `src/routes/admin.*`)
-- No schema changes — reads existing `engine_review_items`, `engine_business_engine_exceptions`, `engine_audit_log`, `engine_projects.cost_paused_*`.
+- **C2** — Extend `engine-chat-prompt.server.ts` to explicitly cover Client Success + Growth Strategy capability sections; add capability tags to `engine_project_agents.capabilities`.
+- **C6** — Seed distinct specialist role templates (SEO / analytics / compliance / automation) in `engine_agent_permissions` catalog. Code-only.
+- **D4** — Weighted-readiness score component: `src/components/ReadinessScore.tsx` reading from existing `engine_spine_field_truth.confidence` × field weight. Mount on project overview + engine header.
+- **E2** — "100/100" rubric artifact: extend Point B ceremony to require a `success_rubric jsonb` (weighted criteria). Migration → `PENDING_MIGRATIONS.md`.
+- **F1** — Multi-solution classifier: heuristic + LLM check on intake completion; emits `engine_review_items` (`item_type='multi_solution_recommended'`) when scope signals suggest decomposition.
+- **F8** — Captain-side milestone-split recommender: heuristic (effort > threshold OR mixed categories) in `engine-milestone-intelligence.functions.ts`; emits `suggested_task` chat proposal with `create_child_project` action.
+- **G7 + G8** — Branch `engine-plan-depth.functions.ts` into simple / standard / complex pipelines; wire depth-score → pipeline choice in the builder orchestrator.
 
-## Track C — Family-Impact Idempotency & Regression (ask 3)
+## Sprint H9 — QA, portal, outcome loop (7 items)
 
-**Goal:** H2's `emitFamilyImpactReviews` must not double-emit under repeat runs and must be covered by tests.
+- **I2** — Add `regression_pack` field on `engine_project_qa_plans` and auto-populate on milestone-completion event (reuses shipped openclaw run infra).
+- **L12** — Fire `recompute_engine_project_state` from portal message + file events (extend existing trigger). Migration → `PENDING_MIGRATIONS.md`.
+- **O6** — Automated Captain recommendation from outcome deltas: new `src/lib/engine-outcome-recommender.functions.ts` reads `engine-outcome-feedback` output, emits `roadmap_adjustment` chat proposals under human approval.
+- **O8** — Cross-project pattern → roadmap generator: read `engine_intelligence_memory` aggregates (already scoped) into the frame builder's prompt context (no schema change).
+- **O10** — Anonymisation pass on any pattern lifted cross-project: new `src/lib/engine-pattern-anonymiser.server.ts` strips client-identifying fields before writing lifted patterns.
+- **P10** — Push more admin actions inline (approve / assign / snooze) on the exception board so operators decide, not hunt. Frontend-only.
+- **E14** — Auto-suggest engine promotion for delivered operational milestones on portal publish (calls existing M12 `proposeEnginePromotion`). No new code path — orchestration only.
 
-**Changes to `src/lib/engine-family-impact.functions.ts`**
-- Add fingerprint helper: `hash(subject_id + affected_node_id + trigger_reason)`.
-- Before insert, query `engine_review_items` where `source='family_impact_auto'` AND `metadata->>'fingerprint'` matches AND `status IN ('open','pending')` — skip if hit.
-- Persist `fingerprint` into `metadata` on new rows.
-- Return per-node result (`emitted` | `deduped` | `skipped_no_impact`) for observability.
+## Sprint H10 — Rescore + regression tests + docs (3 items)
 
-**New file**
-- `src/lib/engine-family-impact.test.ts` — vitest, mocks supabase admin client, covers:
-  - single scan emits N rows
-  - immediate re-scan emits 0 rows (dedupe by fingerprint)
-  - closing an open review item allows re-emission
-  - unrelated family changes do not trigger duplicates
-- Add regression note to `src/routes/admin.family-impact.tsx` showing per-scan `emitted/deduped/skipped` counts.
+- **Rescore pass** — Refresh `.orchestrator/audit/capability-audit-*.md` after H6–H9 land; confirm the 5 hardening-covered items (H9-cost / F7 / M3–M6 / O / P9) roll to PASS.
+- **Integration tests** — Extend the pattern of `engine-outcome-scheduler.test.ts` (in-memory Supabase mock) to cover every new server-fn added in H6–H9. One test file per sprint.
+- **Docs + BUILD_STATE** — Update `.orchestrator/BUILD_STATE.md`, add per-sprint output manifests under `.orchestrator/phase-h{6..10}-*-output.md`, and refresh the ranked-follow-ups list.
 
-## Guardrails (unchanged from prior sprints)
+---
 
-- All DDL proposals go to `.orchestrator/PENDING_MIGRATIONS.md` only. No auto-applied migrations.
-- No AI approves its own work — outcome review items and family-impact items are `pending` until human review; existing separate-approver checks stay in force.
-- Public hook uses `/api/public/*` prefix and validates the `apikey` header inside the handler.
-- Every server fn touching state writes `engine_audit_log` + `engine_activity`.
-- Typecheck (`bunx tsgo --noEmit`) must pass before commit.
+## Guardrails (unchanged from H1–H5)
 
-## Deliverables per track
+- **No schema migrations auto-applied.** Every DDL noted above lands in `.orchestrator/PENDING_MIGRATIONS.md` for Tai to run.
+- **No AI approves its own work** — every new proposer routes through `engine_review_items` + separate-approver DB triggers.
+- **Public hooks** verified via `apikey` header, never a bespoke shared secret.
+- **Typecheck + vitest clean** before each sprint output manifest.
 
-- `.orchestrator/phase-h4-outcome-scheduler-output.md`
-- `.orchestrator/phase-h5-health-explainability-output.md`
-- `.orchestrator/phase-h2b-family-impact-hardening-output.md`
-- `.orchestrator/BUILD_STATE.md` appended
-- `.orchestrator/PENDING_MIGRATIONS.md` appended with the pg_cron schedule proposal
+## Deliverables per sprint
+
+- 1 phase output file (`.orchestrator/phase-h{n}-*-output.md`)
+- BUILD_STATE.md entry
+- PENDING_MIGRATIONS.md additions (where applicable)
+- vitest coverage for every new server fn
 
 ## Sequencing
 
-1. Track C first (small, unblocks confidence in H2 before layering more automation).
-2. Track A (introduces new automation surface).
-3. Track B (reads from A's new review items, so best last).
+H6 → H7 → H8 → H9 → H10, one sprint per approval cycle, so you can course-correct between sprints. Each sprint is self-contained (~4–7 items).
 
 ## Out of scope
 
-- Applying any migration (pg_cron schedule stays in PENDING_MIGRATIONS.md).
-- New tables or enum values.
-- Portal-facing changes — everything stays internal admin.
+- Anything requiring schema migrations to run (they stay proposals).
+- Portal-facing UX overhauls beyond the specific fields listed.
+- Cross-tenant learning (blocked by O10 anonymiser — do not lift patterns before that ships).
