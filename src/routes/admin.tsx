@@ -114,6 +114,18 @@ const NAV: AdminNav[] = [
     icon: Rocket,
     match: "/admin/engine-promotion",
   },
+  {
+    to: "/admin/cost-guard",
+    label: "Cost guard",
+    icon: DollarSign,
+    match: "/admin/cost-guard",
+  },
+  {
+    to: "/admin/family-impact",
+    label: "Family impact",
+    icon: Network,
+    match: "/admin/family-impact",
+  },
 ];
 
 function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
