@@ -52,7 +52,13 @@ export const Route = createFileRoute("/clients/spartan")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: heroSpartanOfficer.url },
     ],
-    links: [{ rel: "canonical", href: CANONICAL }],
+    links: [
+      { rel: "canonical", href: CANONICAL },
+      // Preload above-the-fold LCP candidates
+      { rel: "preload", as: "image", href: heroSuvSkyline.url, fetchpriority: "high" },
+      { rel: "preload", as: "image", href: heroSpartanOfficer.url, fetchpriority: "high" },
+      { rel: "preload", as: "image", href: spartanLogo.url },
+    ],
   }),
   component: SpartanRoadmap,
 });
@@ -138,6 +144,11 @@ function HeroSection() {
       <img
         src={heroSpartanOfficer.url}
         alt="Spartan security officer"
+        width={476}
+        height={730}
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
         className="pointer-events-none absolute bottom-0 right-[10%] z-[2] hidden h-[88%] w-auto object-contain object-bottom md:block"
       />
 
@@ -146,6 +157,11 @@ function HeroSection() {
           <img
             src={spartanLogo.url}
             alt="Spartan Security Services logo"
+            width={280}
+            height={58}
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             className="h-auto w-full max-w-[150px] object-contain sm:max-w-[180px] md:max-w-[210px]"
           />
           <div className="text-right">
@@ -285,6 +301,10 @@ function CurrentStateSection() {
               <img
                 src={pointABuilding.url}
                 alt="Spartan Security Services headquarters at sunset"
+                width={1672}
+                height={941}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full scale-105 object-cover object-[40%_10%]"
               />
             </div>
@@ -793,7 +813,10 @@ function HiddenOpportunitiesSection() {
                 key={`img-${index}`}
                 src={slide.image}
                 alt={slide.alt}
+                width={1536}
+                height={1024}
                 loading="lazy"
+                decoding="async"
                 className="block h-[240px] w-full object-cover object-left-top sm:h-[420px] md:h-[520px] lg:h-[560px] xl:h-[640px]"
               />
             </div>
@@ -855,7 +878,10 @@ function NoteFromTaiSection() {
               <img
                 src={taiPortrait.url}
                 alt="Portrait of Tai"
+                width={1122}
+                height={1402}
                 loading="lazy"
+                decoding="async"
                 className="block h-full w-full object-cover"
               />
             </div>
@@ -878,7 +904,10 @@ function NoteFromTaiSection() {
               <img
                 src={taiPortrait.url}
                 alt="Portrait of Tai"
+                width={1122}
+                height={1402}
                 loading="lazy"
+                decoding="async"
                 className="block h-full w-full object-cover"
               />
             </div>
@@ -931,7 +960,10 @@ function NoteFromTaiSection() {
             <img
               src={signatureTai.url}
               alt="Tai Shobajo signature"
+              width={1584}
+              height={672}
               loading="lazy"
+              decoding="async"
               className="mt-6 h-auto w-36 max-w-[28%] object-contain sm:w-40 md:w-44 lg:w-48"
             />
 
