@@ -173,7 +173,7 @@ function CommandStrip({
   const healthLabel = systemHealth === "green" ? "Nominal" : systemHealth === "amber" ? "Elevated" : "Critical";
 
   return (
-    <header className="rounded-xl border border-[#E8E1D6] bg-white p-5">
+    <header className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.28em] text-[#8A94A6]">
@@ -251,7 +251,7 @@ function RequiresDecisionQueue({
   onSelect: (id: string) => void;
 }) {
   return (
-    <section className="rounded-xl border border-[#E8E1D6] bg-white">
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
       <SectionHeader
         icon={<Target className="h-4 w-4" />}
         title="Requires decision"
@@ -434,7 +434,7 @@ function buildAttentionGroups(data: CommandCenterPayload): AttentionGroup[] {
 
 function AttentionSection({ groups, total }: { groups: AttentionGroup[]; total: number }) {
   return (
-    <section className="rounded-xl border border-[#E8E1D6] bg-white">
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
       <SectionHeader
         icon={<ShieldAlert className="h-4 w-4" />}
         title="Projects needing attention"
@@ -472,7 +472,7 @@ function AttentionSection({ groups, total }: { groups: AttentionGroup[]; total: 
                 {g.rows.slice(0, 5).map((r) => (
                   <li
                     key={r.id}
-                    className="grid grid-cols-1 items-center gap-2 rounded border border-[#EFEAE0] bg-[#FBF9F4] px-3 py-2 md:grid-cols-[minmax(0,1fr)_auto]"
+                    className="grid grid-cols-1 items-center gap-2 rounded-lg border border-[#EFEAE0] bg-[#FBF9F4] px-3 py-2 md:grid-cols-[minmax(0,1fr)_auto]"
                   >
                     <div className="min-w-0">
                       <div className="flex items-baseline gap-2 truncate">
@@ -484,7 +484,7 @@ function AttentionSection({ groups, total }: { groups: AttentionGroup[]; total: 
                     <Link
                       to="/engine/projects/$projectId/overview"
                       params={{ projectId: r.id }}
-                      className="inline-flex items-center gap-1 rounded border border-[#E8E1D6] bg-[#F5F1E8] px-2.5 py-1 text-[11px] text-[#0A0F1F] hover:bg-[#EFE9DC]"
+                      className="inline-flex items-center gap-1 rounded-lg border border-[#EFE9DC] bg-[#F5F1E8] px-2.5 py-1 text-[11px] text-[#0A0F1F] hover:bg-[#EFE9DC]"
                     >
                       Review <ArrowUpRight className="h-3 w-3" />
                     </Link>
@@ -630,7 +630,7 @@ function SupportingContext({ data }: { data: CommandCenterPayload }) {
   const total = data.stage_breakdown.reduce((n, s) => n + s.count, 0);
   const hb = data.health_breakdown;
   return (
-    <section className="mt-8 rounded-lg border border-[#E8E1D6] bg-white px-5 py-4">
+    <section className="mt-8 rounded-2xl border border-[#E8E1D6] bg-white px-5 py-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-xs">
         <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#98A2B3]">Portfolio context</div>
         <MutedCounter label="Total" value={total} />
@@ -670,7 +670,7 @@ function SectionHeader({
   right?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-[#EFEAE0] px-5 py-3">
+    <div className="flex items-center justify-between gap-3 border-b border-[#EFE9DC] px-5 py-3">
       <div className="flex items-center gap-2">
         <span className="text-[#667085]">{icon}</span>
         <h2 className="text-sm font-semibold text-[#0A0F1F]">{title}</h2>
@@ -683,7 +683,7 @@ function SectionHeader({
 
 function RailCard({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-[#E8E1D6] bg-white p-4">
+    <div className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
       <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-widest text-[#8A94A6]">
         {icon}
         {title}
@@ -704,7 +704,7 @@ function EmptyState({ icon, children }: { icon: ReactNode; children: ReactNode }
 
 function MiniStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded border border-[#E8E1D6] bg-[#FBF9F4] py-2">
+    <div className="rounded-lg border border-[#EFE9DC] bg-[#FBF9F4] py-2">
       <div className="text-lg font-semibold text-[#0A0F1F]">{value}</div>
       <div className="text-[10px] uppercase tracking-widest text-[#8A94A6]">{label}</div>
     </div>
@@ -1052,7 +1052,7 @@ function DecisionDrawer({
               </DrawerSection>
 
               <DrawerSection title="Recommended next action" icon={<Sparkles className="h-4 w-4 text-sky-700" />}>
-                <div className="rounded-md border border-[#E8E1D6] bg-[#FBF9F4] p-3 text-[13px] text-[#0A0F1F]">
+                <div className="rounded-xl border border-[#EFE9DC] bg-[#FBF9F4] p-3 text-[13px] text-[#0A0F1F]">
                   {decision.recommended}
                 </div>
               </DrawerSection>
@@ -1088,11 +1088,11 @@ function DecisionDrawer({
                 )}
               </DrawerSection>
 
-              <div className="flex flex-wrap items-center gap-2 border-t border-[#EFEAE0] pt-4">
+              <div className="flex flex-wrap items-center gap-2 border-t border-[#EFE9DC] pt-4">
                 <Link
                   to={decision.href}
                   onClick={onClose}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-[#0A0F1F] px-3.5 py-2 text-xs font-medium text-[#FBF9F4] hover:bg-[#1a2234]"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#3E68B2] px-3.5 py-2 text-xs font-medium text-white hover:bg-[#345aa0]"
                 >
                   {ctaLabel(decision.kind)} <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
@@ -1124,7 +1124,7 @@ function DecisionDrawer({
 
 function DrawerMeta({ decision }: { decision: Decision }) {
   return (
-    <div className="grid grid-cols-2 gap-3 rounded-md border border-[#E8E1D6] bg-[#FBF9F4] p-3 text-xs">
+    <div className="grid grid-cols-2 gap-3 rounded-xl border border-[#EFE9DC] bg-[#FBF9F4] p-3 text-xs">
       <MetaRow label="Client" value={decision.clientCompany} />
       <MetaRow label="Project" value={decision.projectName} />
       <MetaRow label="Owner" value={decision.owner} />
