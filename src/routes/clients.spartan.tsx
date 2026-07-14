@@ -649,9 +649,10 @@ function HiddenOpportunitiesSection() {
   return (
     <section
       id="section-2"
-      className="relative flex min-h-screen w-full flex-col"
+      className="relative flex w-full flex-col"
       style={{ backgroundColor: navy }}
     >
+
       <div className="w-full bg-white">
         <div className="flex flex-col items-center justify-center px-6 pt-8 pb-5 text-center sm:pt-14 sm:pb-8 md:pt-16 md:pb-10 lg:pt-20 lg:pb-12">
           <div className="hidden items-center gap-3 md:flex">
