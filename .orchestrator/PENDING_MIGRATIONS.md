@@ -4001,12 +4001,23 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.client_portal_roadmaps TO authent
 GRANT ALL ON public.client_portal_roadmaps TO service_role;
 ```
 
+### Preflight (2026-07-14 — completed as part of Phase 5D closure sweep)
+
+- `client_portal_roadmaps` **RLS is ENABLED** (`pg_class.relrowsecurity = t`).
+- Policies present and scoped:
+  - `Clients read published roadmaps` — SELECT — `status='published' AND project_id IN (SELECT project_id FROM client_portal_permissions WHERE lower(email)=lower(auth.email()) AND revoked_at IS NULL)`
+  - `Operators manage roadmaps` — ALL — `client_portal_is_operator(auth.email())`
+- **No `USING (true)` policies.** Grants can be added safely; RLS does the real scoping.
+- `engine_projects.current_phase` confirmed missing from live schema.
+
 ### Post-apply verification
 
 - `\d public.engine_projects` shows `current_phase text NULL`.
 - `SELECT current_phase FROM public.engine_projects LIMIT 1` succeeds.
 - `SELECT grantee, privilege_type FROM information_schema.role_table_grants WHERE table_name='client_portal_roadmaps'` returns rows for `anon` (SELECT), `authenticated` (SELECT/INSERT/UPDATE/DELETE), `service_role` (ALL).
 - Portal magic-link roadmap fetch returns rows again; Next-Best-Action panel loads without error.
+- **Negative portal-token test (required after grants land):** an `anon` role query against `client_portal_roadmaps` with client-A's magic-link email context MUST return zero client-B rows. Fail = missing RLS scoping and the grants must be rolled back.
 
-Status: **PENDING TAI REVIEW.**
+Status: **PENDING TAI REVIEW.** Independent of Phase 5D.
+
 
