@@ -4067,7 +4067,7 @@ GRANT ALL ON public.client_portal_roadmaps TO service_role;
 - Portal magic-link roadmap fetch returns rows again; Next-Best-Action panel loads without error.
 - **Negative portal-token test (required after grants land):** an `anon` role query against `client_portal_roadmaps` with client-A's magic-link email context MUST return zero client-B rows. Fail = missing RLS scoping and the grants must be rolled back.
 
-Status: **PENDING TAI REVIEW.** Independent of Phase 5D.
+Status: **APPLIED 2026-07-14, VERIFIED.** Migration `20260714-005744-436757`. See `.orchestrator/hotfix-portal-roadmaps-output.md`. Superseded — kept for audit trail only.
 
 
 
