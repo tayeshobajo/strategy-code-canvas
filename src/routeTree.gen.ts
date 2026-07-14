@@ -80,6 +80,7 @@ import { Route as AdminEngineLearningRouteImport } from './routes/admin.engine-l
 import { Route as AdminDriftDetectionRouteImport } from './routes/admin.drift-detection'
 import { Route as AdminDeliveryReadinessGateRouteImport } from './routes/admin.delivery-readiness-gate'
 import { Route as AdminDecisionLogRouteImport } from './routes/admin.decision-log'
+import { Route as AdminCostGuardRouteImport } from './routes/admin.cost-guard'
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
 import { Route as AdminCommandCenterRouteImport } from './routes/admin.command-center'
 import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
@@ -505,6 +506,11 @@ const AdminDecisionLogRoute = AdminDecisionLogRouteImport.update({
   path: '/decision-log',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCostGuardRoute = AdminCostGuardRouteImport.update({
+  id: '/cost-guard',
+  path: '/cost-guard',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminConfigRoute = AdminConfigRouteImport.update({
   id: '/config',
   path: '/config',
@@ -903,6 +909,7 @@ export interface FileRoutesByFullPath {
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/cost-guard': typeof AdminCostGuardRoute
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
@@ -1036,6 +1043,7 @@ export interface FileRoutesByTo {
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/cost-guard': typeof AdminCostGuardRoute
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
@@ -1174,6 +1182,7 @@ export interface FileRoutesById {
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
+  '/admin/cost-guard': typeof AdminCostGuardRoute
   '/admin/decision-log': typeof AdminDecisionLogRoute
   '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
   '/admin/drift-detection': typeof AdminDriftDetectionRoute
@@ -1312,6 +1321,7 @@ export interface FileRouteTypes {
     | '/admin/client-portals'
     | '/admin/command-center'
     | '/admin/config'
+    | '/admin/cost-guard'
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
     | '/admin/drift-detection'
@@ -1445,6 +1455,7 @@ export interface FileRouteTypes {
     | '/admin/client-portals'
     | '/admin/command-center'
     | '/admin/config'
+    | '/admin/cost-guard'
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
     | '/admin/drift-detection'
@@ -1582,6 +1593,7 @@ export interface FileRouteTypes {
     | '/admin/client-portals'
     | '/admin/command-center'
     | '/admin/config'
+    | '/admin/cost-guard'
     | '/admin/decision-log'
     | '/admin/delivery-readiness-gate'
     | '/admin/drift-detection'
@@ -2238,6 +2250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDecisionLogRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cost-guard': {
+      id: '/admin/cost-guard'
+      path: '/cost-guard'
+      fullPath: '/admin/cost-guard'
+      preLoaderRoute: typeof AdminCostGuardRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/config': {
       id: '/admin/config'
       path: '/config'
@@ -2741,6 +2760,7 @@ interface AdminRouteChildren {
   AdminClientPortalsRoute: typeof AdminClientPortalsRoute
   AdminCommandCenterRoute: typeof AdminCommandCenterRoute
   AdminConfigRoute: typeof AdminConfigRoute
+  AdminCostGuardRoute: typeof AdminCostGuardRoute
   AdminDecisionLogRoute: typeof AdminDecisionLogRoute
   AdminDeliveryReadinessGateRoute: typeof AdminDeliveryReadinessGateRoute
   AdminDriftDetectionRoute: typeof AdminDriftDetectionRoute
@@ -2765,6 +2785,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminClientPortalsRoute: AdminClientPortalsRoute,
   AdminCommandCenterRoute: AdminCommandCenterRoute,
   AdminConfigRoute: AdminConfigRoute,
+  AdminCostGuardRoute: AdminCostGuardRoute,
   AdminDecisionLogRoute: AdminDecisionLogRoute,
   AdminDeliveryReadinessGateRoute: AdminDeliveryReadinessGateRoute,
   AdminDriftDetectionRoute: AdminDriftDetectionRoute,
