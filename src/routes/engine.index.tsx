@@ -1008,3 +1008,162 @@ function enrichWithChanges(decisions: Decision[], data: CommandCenterPayload, cu
   });
 }
 
+// ─── decision detail drawer ─────────────────────────────────────────────────
+
+function DecisionDrawer({
+  decision,
+  now,
+  onClose,
+}: {
+  decision: Decision | null;
+  now: number;
+  onClose: () => void;
+}) {
+  const open = decision !== null;
+  return (
+    <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <SheetContent side="right" className="w-full overflow-y-auto border-l border-[#E8E1D6] bg-white sm:max-w-[520px]">
+        {decision && (
+          <>
+            <SheetHeader className="text-left">
+              <div className="flex flex-wrap items-center gap-2">
+                <SeverityChip severity={decision.severity} />
+                <SlaBadge deadlineAt={decision.deadlineAt} now={now} />
+                <span className="text-[11px] uppercase tracking-widest text-[#8A94A6]">
+                  {kindLabel(decision.kind)}
+                </span>
+              </div>
+              <SheetTitle className="text-[#0A0F1F]">{decision.what}</SheetTitle>
+              <SheetDescription className="text-[#667085]">{decision.why}</SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-6 space-y-6 text-sm">
+              <DrawerMeta decision={decision} />
+
+              <DrawerSection title="Risk drivers" icon={<AlertTriangle className="h-4 w-4 text-amber-700" />}>
+                <ul className="space-y-1.5">
+                  {decision.riskDrivers.map((r, i) => (
+                    <li key={i} className="flex gap-2 text-[13px] text-[#334155]">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#98A2B3]" />
+                      <span>{r}</span>
+                    </li>
+                  ))}
+                </ul>
+              </DrawerSection>
+
+              <DrawerSection title="Recommended next action" icon={<Sparkles className="h-4 w-4 text-sky-700" />}>
+                <div className="rounded-md border border-[#E8E1D6] bg-[#FBF9F4] p-3 text-[13px] text-[#0A0F1F]">
+                  {decision.recommended}
+                </div>
+              </DrawerSection>
+
+              <DrawerSection title="Required to resolve" icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}>
+                <ul className="space-y-1.5">
+                  {decision.requiredFields.map((r, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[13px] text-[#334155]">
+                      <span className="mt-1 inline-block h-3 w-3 shrink-0 rounded border border-[#C8CFD9]" />
+                      <span>{r}</span>
+                    </li>
+                  ))}
+                </ul>
+              </DrawerSection>
+
+              <DrawerSection title="Changed since last check" icon={<History className="h-4 w-4 text-sky-700" />}>
+                {decision.changes.length === 0 ? (
+                  <div className="text-[13px] text-[#8A94A6]">
+                    Nothing new. You have the latest state.
+                  </div>
+                ) : (
+                  <ol className="space-y-2 border-l border-[#E8E1D6] pl-3">
+                    {decision.changes.map((c) => (
+                      <li key={c.id} className="relative text-[13px]">
+                        <span className="absolute -left-[7px] top-1.5 h-2 w-2 rounded-full bg-sky-500" />
+                        <div className="text-[#0A0F1F]">{c.title}</div>
+                        <div className="text-xs text-[#8A94A6]">
+                          {c.kind} · {new Date(c.at).toLocaleString()}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </DrawerSection>
+
+              <div className="flex flex-wrap items-center gap-2 border-t border-[#EFEAE0] pt-4">
+                <Link
+                  to={decision.href}
+                  onClick={onClose}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#0A0F1F] px-3.5 py-2 text-xs font-medium text-[#FBF9F4] hover:bg-[#1a2234]"
+                >
+                  {ctaLabel(decision.kind)} <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+                {decision.projectId && (
+                  <Link
+                    to="/engine/projects/$projectId/overview"
+                    params={{ projectId: decision.projectId }}
+                    onClick={onClose}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#E0D8C8] bg-[#F5F1E8] px-3.5 py-2 text-xs font-medium text-[#0A0F1F] hover:bg-[#EFE9DC]"
+                  >
+                    Open project <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="ml-auto text-[11px] uppercase tracking-widest text-[#8A94A6] hover:text-[#0A0F1F]"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function DrawerMeta({ decision }: { decision: Decision }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 rounded-md border border-[#E8E1D6] bg-[#FBF9F4] p-3 text-xs">
+      <MetaRow label="Client" value={decision.clientCompany} />
+      <MetaRow label="Project" value={decision.projectName} />
+      <MetaRow label="Owner" value={decision.owner} />
+      <MetaRow label="Opened" value={new Date(decision.createdAt).toLocaleString()} />
+      <MetaRow label="Deadline" value={new Date(decision.deadlineAt).toLocaleString()} />
+      {decision.due && <MetaRow label="Hard due date" value={formatDate(decision.due)} />}
+    </div>
+  );
+}
+
+function MetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[10px] uppercase tracking-widest text-[#98A2B3]">{label}</div>
+      <div className="truncate text-[#0A0F1F]">{value}</div>
+    </div>
+  );
+}
+
+function DrawerSection({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+  return (
+    <section>
+      <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-widest text-[#8A94A6]">
+        {icon}
+        {title}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function SeverityChip({ severity }: { severity: Severity }) {
+  const tone = severityTone(severity);
+  return (
+    <span className={cn("inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-widest", tone.badge)}>
+      {tone.icon}
+      {severity === "critical" ? "Critical" : severity === "warning" ? "Risk" : "Review"}
+    </span>
+  );
+}
+
+
