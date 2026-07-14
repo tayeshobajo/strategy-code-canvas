@@ -3198,7 +3198,7 @@ Do **not** place the `CREATE TRIGGER` before the guard in the migration file —
 
 **Pre-install backfill (mandatory).** Run BEFORE creating the trigger.
 
-Step 1 — enumerate offending rows for human review and remediation. The ceremony branch mirrors the trigger predicate exactly (ceremony exists, same `project_id`, same `spine`, `status='completed'`, and a matching `engine_spine_ceremony_decisions` row for `(ceremony_id, project_id, spine, field_key, new_status='approved_truth')`):
+Step 1 — enumerate offending rows for human review and remediation. The ceremony branch mirrors the trigger predicate exactly (ceremony exists, same `project_id`, same `spine`, `status IN ('in_progress','completed')`, and a matching `engine_spine_ceremony_decisions` row for `(ceremony_id, project_id, spine, field_key, new_status='approved_truth')`):
 
 ```sql
 SELECT t.id, t.project_id, t.spine, t.field_key, t.updated_by_actor, t.updated_by_email,
