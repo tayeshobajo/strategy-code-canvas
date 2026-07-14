@@ -111,7 +111,9 @@ App-layer follow-ups shipped in the same turn:
 
 ## Phase 1 — Epistemic-Status Taxonomy (Truth Model) — **REVISION R3 (Variant B)**
 
-Status: **PENDING TAI REVIEW** — do not apply. Supersedes R2 (never applied).
+Status: **APPLIED (2026-07-12)**.
+See `.orchestrator/phase-1-output.md` for the acceptance verification.
+
 
 ### What changed from R2
 
@@ -491,8 +493,9 @@ verification".
 
 ## Phase 2 — Point A / Point B Approval Ceremonies (data model)
 
-Status: **ACCEPTED (2026-07-12)** — R4 + R4B + acceptance smoke pass complete.
+Status: **APPLIED (2026-07-12)** — R4 + R4B + acceptance smoke pass complete.
 See `.orchestrator/phase-2-output.md` for the 21/21 acceptance run.
+
 
 Post-acceptance hardening applied:
 - `public.spine_field_keys(uuid, text)` locked to internal staff only
