@@ -285,7 +285,7 @@ function CurrentStateSection() {
       className="relative w-full overflow-hidden"
       style={{ backgroundColor: "#ffffff" }}
     >
-      <div className="mx-auto flex min-h-full max-w-[1400px] flex-col px-5 py-10 sm:px-8 sm:py-14 md:px-16 md:py-16 lg:px-24 lg:py-20 xl:px-28">
+      <div className="mx-auto flex min-h-full max-w-[1240px] flex-col px-5 py-10 sm:px-8 sm:py-14 md:px-12 md:py-16 lg:px-16 lg:py-20">
         <div className="mb-6 text-center sm:mb-10 md:mb-12">
           <div className="hidden items-center justify-center gap-3 md:flex">
             <span className="text-[11px] font-black tracking-[0.32em]" style={{ color: "#E63946" }}>
