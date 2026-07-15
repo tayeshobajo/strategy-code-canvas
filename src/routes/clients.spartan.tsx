@@ -617,6 +617,7 @@ function HiddenOpportunitiesSection() {
 
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [isNextInteracting, setIsNextInteracting] = useState(false);
   const total = slides.length;
   const slide = slides[index];
   const go = (dir: number) => {
@@ -681,8 +682,10 @@ function HiddenOpportunitiesSection() {
           role="group"
           aria-roledescription="slide"
           aria-label={`Gap ${index + 1} of ${total}: ${slide.title}`}
-          aria-live="polite"
         >
+          <span className="sr-only" aria-live="polite" aria-atomic="true">
+            {`Gap ${index + 1} of ${total}: ${slide.title}`}
+          </span>
 
           <div className="flex flex-1 flex-col">
             <div key={`h-${index}`} className={`relative space-y-4 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}>
@@ -797,83 +800,103 @@ function HiddenOpportunitiesSection() {
           </div>
 
 
-          <div
-            className="mt-6 flex items-center gap-3 rounded-lg border bg-white p-2 shadow-[0_8px_24px_-12px_rgba(15,27,61,0.15)] sm:gap-4"
-            style={{ borderColor: "rgba(15,27,61,0.12)" }}
-          >
-            <button
-              type="button"
-              onClick={() => go(-1)}
-              aria-label="Previous market gap"
-              aria-controls="market-gap-slider"
-              className="group flex h-11 items-center gap-2 rounded-lg border bg-white px-3 transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#E63946] sm:px-4"
-              style={{ borderColor: "rgba(15,27,61,0.15)", color: "rgba(15,27,61,0.55)" }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <span className="hidden text-[11px] font-black uppercase tracking-[0.22em] sm:inline">
-                Prev
-              </span>
-            </button>
-
-            <span
-              className="text-[13px] font-black tabular-nums tracking-[0.18em]"
+          <div className="mt-6 space-y-2">
+            <div
+              className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] sm:text-[12px]"
               style={{ color: navy }}
             >
-              {gapNum}
-              <span style={{ color: "rgba(15,27,61,0.35)" }}>
-                {" "}
-                / {String(total).padStart(2, "0")}
-              </span>
-            </span>
-
-            <div
-              className="hidden flex-1 items-center gap-2 sm:flex"
-              role="tablist"
-              aria-label="Select market gap"
-            >
-              {slides.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => jumpTo(i)}
-                  role="tab"
-                  aria-selected={i === index}
-                  aria-label={`Go to market gap ${i + 1} of ${total}: ${slides[i].title}`}
-                  aria-controls="market-gap-slider"
-                  className="h-1.5 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#E63946]"
-                  style={{
-                    width: i === index ? 40 : 24,
-                    backgroundColor: i === index ? red : "rgba(15,27,61,0.15)",
-                  }}
-                />
-              ))}
+              <span style={{ color: red }}>Gap {gapNum}</span>
+              <span style={{ color: "rgba(15,27,61,0.35)" }}>·</span>
+              <span>{slide.title}</span>
             </div>
-            <div className="flex-1 sm:hidden" />
-
-            <span className="relative inline-flex shrink-0">
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-lg animate-ping motion-reduce:hidden"
-                style={{ backgroundColor: red, opacity: 0.45, animationDuration: "1.8s" }}
-              />
+            <div
+              className="flex items-center gap-3 rounded-lg border bg-white p-2 shadow-[0_8px_24px_-12px_rgba(15,27,61,0.15)] sm:gap-4"
+              style={{ borderColor: "rgba(15,27,61,0.12)" }}
+            >
               <button
                 type="button"
-                onClick={() => go(1)}
-                aria-label="Next market gap"
+                onClick={() => go(-1)}
+                aria-label="Previous market gap"
                 aria-controls="market-gap-slider"
-                className="group relative flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-4 text-white transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white sm:gap-2 sm:px-6"
-                style={{
-                  backgroundImage: `linear-gradient(135deg, ${red} 0%, #C41E2E 100%)`,
-                  boxShadow:
-                    "0 10px 28px -8px rgba(230,57,70,0.65), 0 2px 6px -2px rgba(230,57,70,0.55), inset 0 1px 0 rgba(255,255,255,0.22)",
-                }}
+                className="group flex h-11 items-center gap-2 rounded-lg border bg-white px-3 transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#E63946] sm:px-4"
+                style={{ borderColor: "rgba(15,27,61,0.15)", color: "rgba(15,27,61,0.55)" }}
               >
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] sm:text-[12px] sm:tracking-[0.24em]">
-                  Next gap
+                <ChevronLeft className="h-4 w-4" />
+                <span className="hidden text-[11px] font-black uppercase tracking-[0.22em] sm:inline">
+                  Prev
                 </span>
-                <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
               </button>
-            </span>
+
+              <span
+                className="text-[13px] font-black tabular-nums tracking-[0.18em]"
+                style={{ color: navy }}
+              >
+                {gapNum}
+                <span style={{ color: "rgba(15,27,61,0.35)" }}>
+                  {" "}
+                  / {String(total).padStart(2, "0")}
+                </span>
+              </span>
+
+              <div
+                className="hidden flex-1 items-center gap-2 sm:flex"
+                role="tablist"
+                aria-label="Select market gap"
+              >
+                {slides.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => jumpTo(i)}
+                    role="tab"
+                    aria-selected={i === index}
+                    aria-label={`Go to market gap ${i + 1} of ${total}: ${slides[i].title}`}
+                    aria-controls="market-gap-slider"
+                    className="h-1.5 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#E63946]"
+                    style={{
+                      width: i === index ? 40 : 24,
+                      backgroundColor: i === index ? red : "rgba(15,27,61,0.35)",
+                      boxShadow: i === index ? "0 0 0 3px rgba(230,57,70,0.18)" : "none",
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="flex-1 sm:hidden" />
+
+              <span className="relative inline-flex shrink-0">
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-lg animate-ping motion-reduce:hidden"
+                  style={{
+                    backgroundColor: red,
+                    opacity: 0.45,
+                    animationDuration: "1.8s",
+                    animationPlayState: isNextInteracting ? "paused" : "running",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => go(1)}
+                  onMouseEnter={() => setIsNextInteracting(true)}
+                  onMouseLeave={() => setIsNextInteracting(false)}
+                  onFocus={() => setIsNextInteracting(true)}
+                  onBlur={() => setIsNextInteracting(false)}
+                  aria-label="Next market gap"
+                  aria-controls="market-gap-slider"
+                  className="group relative flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-4 text-white transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white sm:gap-2 sm:px-6"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${red} 0%, #C41E2E 100%)`,
+                    boxShadow:
+                      "0 10px 28px -8px rgba(230,57,70,0.65), 0 2px 6px -2px rgba(230,57,70,0.55), inset 0 1px 0 rgba(255,255,255,0.22)",
+                  }}
+                >
+                  <span className="text-[11px] font-black uppercase tracking-[0.2em] sm:text-[12px] sm:tracking-[0.24em]">
+                    Next gap
+                  </span>
+                  <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                </button>
+              </span>
+            </div>
           </div>
         </div>
 
@@ -947,7 +970,7 @@ function HiddenOpportunitiesSection() {
                           className="h-px flex-1 lg:hidden"
                           style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
                         />
-                        <p className="w-full text-left text-[12px] leading-snug text-white/75 sm:text-[13px] lg:text-[13.5px]">
+                        <p className="w-full max-w-[75ch] text-left text-[12px] leading-[1.7] text-white/80 sm:text-[13px] sm:leading-[1.75] lg:text-[14px] py-1">
                           {label ? (
                             <span
                               className="mr-1.5 font-bold"
