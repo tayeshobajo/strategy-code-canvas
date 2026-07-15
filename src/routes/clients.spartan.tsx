@@ -825,14 +825,21 @@ function HiddenOpportunitiesSection() {
               </span>
             </span>
 
-            <div className="hidden flex-1 items-center gap-2 sm:flex">
+            <div
+              className="hidden flex-1 items-center gap-2 sm:flex"
+              role="tablist"
+              aria-label="Select market gap"
+            >
               {slides.map((_, i) => (
                 <button
                   key={i}
                   type="button"
-                  onClick={() => setIndex(i)}
-                  aria-label={`Go to market gap ${i + 1}`}
-                  className="h-1.5 rounded-full transition-all duration-300"
+                  onClick={() => jumpTo(i)}
+                  role="tab"
+                  aria-selected={i === index}
+                  aria-label={`Go to market gap ${i + 1} of ${total}: ${slides[i].title}`}
+                  aria-controls="market-gap-slider"
+                  className="h-1.5 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#E63946]"
                   style={{
                     width: i === index ? 40 : 24,
                     backgroundColor: i === index ? red : "rgba(15,27,61,0.15)",
