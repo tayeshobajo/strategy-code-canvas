@@ -970,7 +970,7 @@ function HiddenOpportunitiesSection() {
                           className="h-px flex-1 lg:hidden"
                           style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
                         />
-                        <p className="w-full text-left text-[12px] leading-snug text-white/75 sm:text-[13px] lg:text-[13.5px]">
+                        <p className="w-full max-w-[75ch] text-left text-[12px] leading-[1.7] text-white/80 sm:text-[13px] sm:leading-[1.75] lg:text-[14px] py-1">
                           {label ? (
                             <span
                               className="mr-1.5 font-bold"
