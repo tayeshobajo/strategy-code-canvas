@@ -744,8 +744,9 @@ function HiddenOpportunitiesSection() {
         </div>
 
         <div
-          className="relative flex flex-col justify-start overflow-hidden p-6 sm:p-8 md:p-10 lg:col-span-7 lg:p-10 xl:p-12"
+          className="relative order-1 flex flex-col justify-start overflow-hidden p-6 sm:p-8 md:p-10 lg:order-none lg:col-span-7 lg:p-10 xl:p-12"
           style={{ backgroundColor: navy }}
+
         >
           <div
             aria-hidden
