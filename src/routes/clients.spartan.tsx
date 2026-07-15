@@ -53,7 +53,6 @@ export const Route = createFileRoute("/clients/spartan")({
     ],
     links: [
       { rel: "canonical", href: CANONICAL },
-      // Preload above-the-fold LCP candidates
       { rel: "preload", as: "image", href: heroSuvSkyline.url, fetchpriority: "high" },
       { rel: "preload", as: "image", href: heroSpartanOfficer.url, fetchpriority: "high" },
       { rel: "preload", as: "image", href: spartanLogo.url },
@@ -196,7 +195,7 @@ function HeroSection() {
             This is the roadmap that makes Houston see it.
           </h1>
           <p
-            className="max-w-[680px] text-[14px] leading-[1.65] sm:text-[15.5px] sm:leading-[1.75]"
+            className="max-w-[540px] text-[14px] leading-[1.65] sm:text-[15.5px] sm:leading-[1.75]"
             style={{
               color: "rgba(255,255,255,0.78)",
               fontFamily: "Inter, system-ui, sans-serif",
@@ -217,7 +216,7 @@ function HeroSection() {
             >
               <ShieldCheck size={16} color="#E63946" strokeWidth={2.2} />
             </span>
-            <p className="text-[11px] font-bold leading-snug tracking-[0.16em] text-white sm:whitespace-nowrap">
+            <p className="text-[11px] font-bold leading-snug tracking-[0.16em] text-white">
               Stronger presence. Deeper trust. Contracts that hold.
             </p>
           </div>
@@ -660,9 +659,7 @@ function HiddenOpportunitiesSection() {
               </div>
               <h3
                 className="relative text-[26px] font-black leading-[1.02] tracking-normal sm:text-[32px] lg:text-[40px]"
-                style={{
-                  color: navy,
-                }}
+                style={{ color: navy }}
               >
                 {slide.title}
               </h3>
@@ -976,7 +973,7 @@ function NoteFromTaiSection() {
                 className="text-[10px] font-black uppercase tracking-[0.28em]"
                 style={{ color: red }}
               >
-                Next Step
+                Next step
               </div>
               <p
                 className="mt-3 text-[20px] font-light italic leading-[1.3] sm:text-[22px] md:text-[24px]"
