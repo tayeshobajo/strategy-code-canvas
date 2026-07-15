@@ -941,9 +941,6 @@ function NoteFromTaiSection() {
               decoding="async"
               className="mt-6 h-auto w-36 max-w-[28%] object-contain sm:w-40 md:w-44 lg:w-48"
             />
-            <p className="mt-1 text-[12px] font-semibold tracking-[0.08em]" style={{ color: navy }}>
-              Tai Shobajo
-            </p>
 
             <div
               ref={calendlyRootRef}
