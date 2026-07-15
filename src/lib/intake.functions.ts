@@ -666,31 +666,18 @@ async function notifyOperatorsOfIntake(input: {
   attachmentCount: number;
 }): Promise<void> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { ADMIN_EMAILS, OPERATOR_EMAILS } = await import("@/lib/ops/access");
+  const { OPERATOR_NOTIFICATION_EMAILS } = await import("@/lib/ops/access");
   const { enqueueTransactionalEmail } = await import("@/lib/email/enqueue-transactional.server");
   const { absoluteUrl } = await import("@/lib/site-url");
 
+  // Alerts go to the single canonical ops address. Access lists (ADMIN_EMAILS
+  // / OPERATOR_EMAILS) and user_roles rows include multiple aliases that all
+  // forward to the same inbox — expanding them here caused duplicate emails
+  // per submission. Internal forwarding handles team distribution.
   const recipients = new Set<string>();
-  for (const e of [...ADMIN_EMAILS, ...OPERATOR_EMAILS]) {
+  for (const e of OPERATOR_NOTIFICATION_EMAILS) {
     const norm = e.trim().toLowerCase();
     if (norm) recipients.add(norm);
-  }
-  try {
-    const { data: roleRows } = await (
-      supabaseAdmin.from("user_roles") as unknown as {
-        select: (s: string) => {
-          in: (c: string, v: string[]) => Promise<{ data: Array<{ email: string | null }> | null }>;
-        };
-      }
-    )
-      .select("email")
-      .in("role", ["admin", "operator"]);
-    for (const row of roleRows ?? []) {
-      const e = (row.email ?? "").trim().toLowerCase();
-      if (e) recipients.add(e);
-    }
-  } catch (roleErr) {
-    console.warn("[submit-intake] role lookup for notifications failed", roleErr);
   }
 
   if (recipients.size === 0) return;
