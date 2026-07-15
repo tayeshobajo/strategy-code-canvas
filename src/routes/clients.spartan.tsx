@@ -1069,10 +1069,10 @@ function NoteFromTaiSection({
                   <button
                     type="button"
                     onClick={() => setIsCalendlyOpen(true)}
-                    className="group mt-5 inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-lg bg-[#E63946] px-8 py-4 text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-14px_rgba(230,57,70,0.85)] sm:text-[13px] sm:tracking-[0.18em]"
+                    className="group mt-5 inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#E63946] px-5 py-4 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-14px_rgba(230,57,70,0.85)] sm:px-8 sm:text-[12px] sm:tracking-[0.16em] md:text-[13px] md:tracking-[0.18em]"
                   >
                     Book the roadmap walkthrough
-                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1 sm:h-4 sm:w-4" />
                   </button>
 
                   <div
@@ -1113,8 +1113,14 @@ function NoteFromTaiSection({
         height={1280}
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[78%] -translate-x-[22%] translate-y-[10%] rotate-[-6deg] opacity-75 md:block md:w-[62%] lg:w-[48%]"
-        style={{ filter: "drop-shadow(0 14px 40px rgba(11,27,58,0.08))" }}
+        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[78%] -translate-x-[22%] translate-y-[10%] rotate-[-6deg] md:block md:w-[62%] lg:w-[48%]"
+        style={{
+          filter: "contrast(1.2) brightness(1.05) drop-shadow(0 16px 44px rgba(11,27,58,0.12))",
+          maskImage: "linear-gradient(90deg, transparent 0%, black 16%, black 78%, transparent 100%), linear-gradient(0deg, transparent 0%, black 12%, black 86%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(90deg, transparent 0%, black 16%, black 78%, transparent 100%), linear-gradient(0deg, transparent 0%, black 12%, black 86%, transparent 100%)",
+          maskComposite: "intersect",
+          WebkitMaskComposite: "source-in",
+        }}
       />
     </section>
   );
