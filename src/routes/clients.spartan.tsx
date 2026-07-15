@@ -637,6 +637,26 @@ function HiddenOpportunitiesSection() {
     else if (e.key === "End") { e.preventDefault(); jumpTo(total - 1); }
   };
 
+  // Touch swipe support (mobile)
+  const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    const dt = Date.now() - start.t;
+    // Horizontal swipe: >40px, dominant over vertical, within 800ms
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4 && dt < 800) {
+      go(dx < 0 ? 1 : -1);
+    }
+  };
+
 
   return (
     <section id="section-2" className="relative flex w-full flex-col bg-white">
