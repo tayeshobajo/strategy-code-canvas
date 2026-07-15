@@ -839,17 +839,18 @@ function HiddenOpportunitiesSection() {
           <div key={`q-${index}`} className="relative mb-6 sm:mb-8">
             <span
               aria-hidden
-              className="absolute -left-3 -top-5 text-[48px] leading-none opacity-25 sm:-left-4 sm:-top-6 sm:text-[64px]"
-              style={{ color: red, fontFamily: "'Instrument Serif', Georgia, serif" }}
+              className="absolute -left-3 -top-5 text-[48px] font-light leading-none opacity-30 sm:-left-4 sm:-top-6 sm:text-[64px]"
+              style={{ color: red, fontFamily: "Inter, system-ui, sans-serif" }}
             >
               &ldquo;
             </span>
             <p
-              className="text-[15px] not-italic leading-[1.3] text-white sm:text-[19px] md:text-[21px] lg:text-[22px]"
-              style={{ fontFamily: "'Instrument Serif', 'Playfair Display', Georgia, serif" }}
+              className="text-[16px] font-light italic leading-[1.4] text-white sm:text-[19px] md:text-[21px] lg:text-[22px]"
+              style={{ fontFamily: "Inter, system-ui, sans-serif", letterSpacing: "-0.005em" }}
             >
               {slide.pullQuote}
             </p>
+
           </div>
 
           <div className="relative flex flex-col">
