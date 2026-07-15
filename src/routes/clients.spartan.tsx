@@ -972,44 +972,24 @@ function NoteFromTaiSection() {
               className="mt-6 space-y-4 text-[14px] leading-[1.7] sm:mt-8 sm:space-y-5 sm:text-[15px] sm:leading-[1.75]"
               style={{ color: muted }}
             >
-              <p>If we were sitting across the table, I would not start this conversation by talking about the website.</p>
-              <p>I would start with the business.</p>
               <p>
+                We didn&rsquo;t need to guess.{" "}
                 <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  Somewhere in Houston, someone is probably looking for security help right now.
-                </mark>{" "}
-                They are not loyal to a provider yet. They are comparing. They are checking who
-                looks credible, who can handle the pressure, and who seems worth calling.
+                  Spartan&rsquo;s track record is already there
+                </mark>
+                , in real client relationships, in the training facility, in the officers already on the ground.
               </p>
               <p>
-                They may not know Spartan yet, and that is not a problem.{" "}
+                What we needed to design was the version of Spartan that Houston can see, understand, and choose in the moment of decision.{" "}
                 <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  That is an opening.
+                  That is what this roadmap is.
                 </mark>
               </p>
-              <p>
-                There is a real opportunity here for Spartan to become the security authority the
-                market can&apos;t ignore.{" "}
-                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  When someone searches for security in Houston, Spartan should be at the top of
-                  that search result.
-                </mark>
-              </p>
-              <p>That is what this roadmap is about. And more.</p>
-              <p>
-                This preview only shows the first layer.{" "}
-                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  The full roadmap goes deeper into where Spartan is today, the underused assets
-                  already inside the business, where the business can move next, and how the pieces
-                  all connect into a stronger authority engine.
-                </mark>
-              </p>
-              <p>
-                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  The call is not a pitch. It is a conversation worth having.
-                </mark>{" "}
-                I&rsquo;ll walk you through the full thinking, answer your questions, and if you
-                feel it&apos;s the right next step, we can talk about execution.
+              <p className="pt-2 text-[13px] font-semibold uppercase tracking-[0.18em]" style={{ color: navy }}>
+                Tai Wilkinson
+                <span className="ml-2 font-medium normal-case tracking-normal" style={{ color: muted }}>
+                  Founder, Trust Tai
+                </span>
               </p>
             </div>
 
