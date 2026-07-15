@@ -1042,8 +1042,8 @@ function NoteFromTaiSection({
         height={1280}
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[85%] -translate-x-[12%] translate-y-[6%] rotate-[-8deg] md:block md:w-[68%] lg:w-[52%]"
-        style={{ filter: "drop-shadow(0 14px 44px rgba(11,27,58,0.12))" }}
+        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[78%] -translate-x-[22%] translate-y-[10%] rotate-[-6deg] opacity-75 md:block md:w-[62%] lg:w-[48%]"
+        style={{ filter: "drop-shadow(0 14px 40px rgba(11,27,58,0.08))" }}
       />
     </section>
   );
