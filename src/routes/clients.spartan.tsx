@@ -1046,14 +1046,16 @@ function NoteFromTaiSection() {
                 Next Step
               </div>
               <p
-                className="mt-3 text-[20px] leading-[1.25] sm:text-[24px] md:text-[26px]"
+                className="mt-3 text-[20px] font-light italic leading-[1.3] sm:text-[22px] md:text-[24px]"
                 style={{
                   color: navy,
-                  fontFamily: "'Instrument Serif', 'Playfair Display', Georgia, serif",
+                  fontFamily: "Inter, system-ui, sans-serif",
+                  letterSpacing: "-0.01em",
                 }}
               >
                 Let&rsquo;s walk through the full roadmap together.
               </p>
+
               <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
                 <button
                   type="button"
