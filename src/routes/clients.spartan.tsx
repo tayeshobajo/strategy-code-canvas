@@ -10,7 +10,9 @@ import {
   ChevronRight,
   Calendar,
   Check,
+  MapPin,
 } from "lucide-react";
+
 import { PopupModal } from "react-calendly";
 
 import { SiteHeader } from "@/components/SiteHeader";
