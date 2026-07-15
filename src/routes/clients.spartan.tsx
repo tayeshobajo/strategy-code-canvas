@@ -684,7 +684,7 @@ function HiddenOpportunitiesSection() {
         >
 
           <div className="flex flex-1 flex-col">
-            <div key={`h-${index}`} className="relative space-y-4">
+            <div key={`h-${index}`} className={`relative space-y-4 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}>
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute -left-3 -top-14 select-none text-[132px] font-black leading-none sm:-left-5 sm:text-[170px] xl:-left-10"
