@@ -84,10 +84,7 @@ function WorkspaceLayout() {
         </div>
       </div>
       <ProjectHeaderStrip project={workspace.project} />
-      <WorkspaceStepper
-        projectId={projectId}
-        currentStepNum={workspace.project.current_step_num}
-      />
+      <ProjectTabs projectId={projectId} />
       <Outlet />
     </div>
   );
