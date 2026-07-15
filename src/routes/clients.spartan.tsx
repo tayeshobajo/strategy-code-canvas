@@ -344,19 +344,20 @@ function CurrentStateSection() {
 
           <div className="flex h-full flex-col gap-8 sm:gap-10">
             <p
-              className="text-[20px] not-italic leading-[1.25] sm:text-[24px] md:text-[28px] lg:text-[32px]"
+              className="text-[20px] font-light italic leading-[1.3] sm:text-[22px] md:text-[26px] lg:text-[28px]"
               style={{
                 color: "#0B1B3A",
-                fontFamily: "'Instrument Serif', 'Playfair Display', Georgia, serif",
-                letterSpacing: "-0.005em",
+                fontFamily: "Inter, system-ui, sans-serif",
+                letterSpacing: "-0.01em",
               }}
             >
               Spartan already has a business{" "}
-              <span className="font-bold not-italic" style={{ color: "#E63946" }}>
+              <span className="font-semibold not-italic" style={{ color: "#E63946" }}>
                 worth making more visible
               </span>
               .
             </p>
+
 
             <div
               className="space-y-5 text-[14px] leading-[1.75] sm:space-y-6 sm:text-[15px] sm:leading-[1.8]"
