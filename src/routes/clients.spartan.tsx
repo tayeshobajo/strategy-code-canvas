@@ -616,10 +616,26 @@ function HiddenOpportunitiesSection() {
   ];
 
   const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
   const total = slides.length;
   const slide = slides[index];
-  const go = (dir: number) => setIndex((i) => (i + dir + total) % total);
+  const go = (dir: number) => {
+    setDirection(dir);
+    setIndex((i) => (i + dir + total) % total);
+  };
+  const jumpTo = (i: number) => {
+    setDirection(i >= index ? 1 : -1);
+    setIndex(i);
+  };
   const gapNum = String(index + 1).padStart(2, "0");
+  const slideInClass = direction >= 0 ? "slide-in-from-right-6" : "slide-in-from-left-6";
+  const onSliderKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowRight") { e.preventDefault(); go(1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+    else if (e.key === "Home") { e.preventDefault(); jumpTo(0); }
+    else if (e.key === "End") { e.preventDefault(); jumpTo(total - 1); }
+  };
+
 
   return (
     <section id="section-2" className="relative flex w-full flex-col bg-white">
