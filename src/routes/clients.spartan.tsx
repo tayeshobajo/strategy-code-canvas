@@ -191,20 +191,17 @@ function HeroSection() {
             className="font-black uppercase leading-[1.02] tracking-[-0.01em] text-white"
             style={{ fontSize: "clamp(28px, 3.4vw, 62px)" }}
           >
-            THE GROWTH&nbsp;ROADMAP
+            <span style={{ color: "#E63946" }}>Spartan</span> already does the work.
             <br />
-            TO HELP <span style={{ color: "#E63946" }}>SPARTAN</span> WIN
+            This is the roadmap that makes
             <br />
-            MORE HOUSTON SECURITY
-            <br />
-            CONTRACT <span style={{ color: "#3B82F6" }}>OPPORTUNITIES.</span>
+            Houston <span style={{ color: "#3B82F6" }}>see it.</span>
           </h1>
           <p
-            className="max-w-[520px] text-[14px] leading-[1.65] sm:text-[15.5px]"
+            className="max-w-[600px] text-[14px] leading-[1.65] sm:text-[15.5px]"
             style={{ color: "rgba(255,255,255,0.78)" }}
           >
-            A strategic plan to increase visibility, build trust,
-            <br className="hidden sm:inline" /> and turn opportunities into long-term contracts.
+            The credibility is already Spartan's. This is the plan that turns it into visibility, trust, and contracts that last, mapped from where Spartan stands today to where it could stand in Houston security.
           </p>
 
           <div className="flex items-center gap-3 pt-1">
