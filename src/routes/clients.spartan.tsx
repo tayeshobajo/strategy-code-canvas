@@ -241,10 +241,10 @@ function HeroSection() {
             }}
           >
             {[
-              { Icon: TrendingUp, title: "Increase Visibility", desc: "Dominate local search and digital channels." },
-              { Icon: Shield, title: "Build Trust", desc: "Showcase what makes Spartan the right choice." },
-              { Icon: Eye, title: "Win More Contracts", desc: "Convert more opportunities into long-term clients." },
-              { Icon: ArrowRight, title: "Drive Recurring Revenue", desc: "Strengthen retention and grow account value." },
+              { Icon: Eye, title: "Get found", desc: "Show up first when Houston searches for security, not only when someone already knows the name." },
+              { Icon: Shield, title: "Earn the trust", desc: "Let buyers see the proof before they ever pick up the phone." },
+              { Icon: TrendingUp, title: "Win the work", desc: "Turn more of that attention into signed contracts." },
+              { Icon: ArrowRight, title: "Grow what recurs", desc: "Keep clients longer, and grow the value of each one." },
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="flex items-start gap-2.5 sm:gap-3">
                 <Icon size={20} color="#E63946" strokeWidth={1.6} className="mt-0.5 shrink-0 sm:h-[22px] sm:w-[22px]" />
