@@ -1153,11 +1153,11 @@ function NoteFromTaiSection({
         height={1280}
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[78%] -translate-x-[22%] translate-y-[10%] rotate-[-6deg] md:block md:w-[62%] lg:w-[48%]"
+        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[78%] -translate-x-[22%] translate-y-[10%] rotate-[-6deg] opacity-25 md:block md:w-[62%] lg:w-[48%]"
         style={{
-          filter: "contrast(1.2) brightness(1.05) drop-shadow(0 16px 44px rgba(11,27,58,0.12))",
-          maskImage: "linear-gradient(90deg, transparent 0%, black 16%, black 78%, transparent 100%), linear-gradient(0deg, transparent 0%, black 12%, black 86%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(90deg, transparent 0%, black 16%, black 78%, transparent 100%), linear-gradient(0deg, transparent 0%, black 12%, black 86%, transparent 100%)",
+          filter: "grayscale(1) drop-shadow(0 12px 32px rgba(11,27,58,0.06))",
+          maskImage: "linear-gradient(90deg, transparent 0%, black 18%, black 78%, transparent 100%), linear-gradient(0deg, transparent 0%, black 14%, black 86%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(90deg, transparent 0%, black 18%, black 78%, transparent 100%), linear-gradient(0deg, transparent 0%, black 14%, black 86%, transparent 100%)",
           maskComposite: "intersect",
           WebkitMaskComposite: "source-in",
         }}
