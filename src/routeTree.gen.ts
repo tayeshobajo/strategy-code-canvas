@@ -143,6 +143,7 @@ import { Route as EngineProjectsProjectIdBackendBuilderRouteImport } from './rou
 import { Route as EngineProjectsProjectIdAiWorkspaceRouteImport } from './routes/engine.projects.$projectId.ai-workspace'
 import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engine.projects.$projectId.agent'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicHooksRunPipelineQueueRouteImport } from './routes/api/public/hooks/run-pipeline-queue'
 import { Route as ApiPublicHooksOutcomeCheckinsRouteImport } from './routes/api/public/hooks/outcome-checkins'
 import { Route as ApiPublicHooksEngineTickRouteImport } from './routes/api/public/hooks/engine-tick'
 import { Route as ApiPublicHooksCostAutopauseRouteImport } from './routes/api/public/hooks/cost-autopause'
@@ -870,6 +871,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksRunPipelineQueueRoute =
+  ApiPublicHooksRunPipelineQueueRouteImport.update({
+    id: '/api/public/hooks/run-pipeline-queue',
+    path: '/api/public/hooks/run-pipeline-queue',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksOutcomeCheckinsRoute =
   ApiPublicHooksOutcomeCheckinsRouteImport.update({
     id: '/api/public/hooks/outcome-checkins',
@@ -1027,6 +1034,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/cost-autopause': typeof ApiPublicHooksCostAutopauseRoute
   '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
   '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
+  '/api/public/hooks/run-pipeline-queue': typeof ApiPublicHooksRunPipelineQueueRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -1167,6 +1175,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/cost-autopause': typeof ApiPublicHooksCostAutopauseRoute
   '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
   '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
+  '/api/public/hooks/run-pipeline-queue': typeof ApiPublicHooksRunPipelineQueueRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -1314,6 +1323,7 @@ export interface FileRoutesById {
   '/api/public/hooks/cost-autopause': typeof ApiPublicHooksCostAutopauseRoute
   '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
   '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
+  '/api/public/hooks/run-pipeline-queue': typeof ApiPublicHooksRunPipelineQueueRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -1460,6 +1470,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cost-autopause'
     | '/api/public/hooks/engine-tick'
     | '/api/public/hooks/outcome-checkins'
+    | '/api/public/hooks/run-pipeline-queue'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
@@ -1600,6 +1611,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cost-autopause'
     | '/api/public/hooks/engine-tick'
     | '/api/public/hooks/outcome-checkins'
+    | '/api/public/hooks/run-pipeline-queue'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
@@ -1746,6 +1758,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cost-autopause'
     | '/api/public/hooks/engine-tick'
     | '/api/public/hooks/outcome-checkins'
+    | '/api/public/hooks/run-pipeline-queue'
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
@@ -1832,6 +1845,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCostAutopauseRoute: typeof ApiPublicHooksCostAutopauseRoute
   ApiPublicHooksEngineTickRoute: typeof ApiPublicHooksEngineTickRoute
   ApiPublicHooksOutcomeCheckinsRoute: typeof ApiPublicHooksOutcomeCheckinsRoute
+  ApiPublicHooksRunPipelineQueueRoute: typeof ApiPublicHooksRunPipelineQueueRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -2780,6 +2794,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/run-pipeline-queue': {
+      id: '/api/public/hooks/run-pipeline-queue'
+      path: '/api/public/hooks/run-pipeline-queue'
+      fullPath: '/api/public/hooks/run-pipeline-queue'
+      preLoaderRoute: typeof ApiPublicHooksRunPipelineQueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/outcome-checkins': {
       id: '/api/public/hooks/outcome-checkins'
       path: '/api/public/hooks/outcome-checkins'
@@ -3205,6 +3226,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksCostAutopauseRoute: ApiPublicHooksCostAutopauseRoute,
   ApiPublicHooksEngineTickRoute: ApiPublicHooksEngineTickRoute,
   ApiPublicHooksOutcomeCheckinsRoute: ApiPublicHooksOutcomeCheckinsRoute,
+  ApiPublicHooksRunPipelineQueueRoute: ApiPublicHooksRunPipelineQueueRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
