@@ -713,7 +713,7 @@ function InvestmentPage() {
         <QuoteDivider />
       </main>
       <SiteClosing
-        headline={<>The cost of building this is not the question. <Accent>The cost of staying where you are is.</Accent></>}
+        headline={<>The cost of building this is not the question.<br /><Accent>The cost of staying where you are is.</Accent></>}
         supporting={<>You are not buying software. You are buying back the part of the company that still runs through you.</>}
       />
     </div>
