@@ -85,6 +85,10 @@ function ProjectSpine() {
         </div>
       </header>
 
+      <SpineReadinessPanel />
+
+
+
       <div className="grid gap-4 lg:grid-cols-2">
         <TruthCard
           label="POINT A — WHERE WE ARE"
