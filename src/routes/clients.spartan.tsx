@@ -923,7 +923,7 @@ function HiddenOpportunitiesSection() {
                 height={1024}
                 loading="lazy"
                 decoding="async"
-                className="block h-[240px] w-full object-cover object-left-top sm:h-[420px] md:h-[520px] lg:h-[560px] xl:h-[640px]"
+                className={`block h-[240px] w-full object-cover object-left-top sm:h-[420px] md:h-[520px] lg:h-[560px] xl:h-[640px] animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}
               />
             </div>
 
