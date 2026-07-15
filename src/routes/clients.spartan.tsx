@@ -689,12 +689,14 @@ function HiddenOpportunitiesSection() {
 
       <div
         id="market-gap-slider"
-        className="grid w-full grid-cols-1 bg-white lg:grid-cols-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E63946]/60"
+        className="grid w-full grid-cols-1 bg-white lg:grid-cols-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E63946]/60 touch-pan-y select-none"
         role="region"
         aria-roledescription="carousel"
-        aria-label="Market gap slider. Use left and right arrow keys to navigate."
+        aria-label="Market gap slider. Swipe left or right on touch devices, or use arrow keys."
         tabIndex={0}
         onKeyDown={onSliderKeyDown}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
       >
 
         <div
