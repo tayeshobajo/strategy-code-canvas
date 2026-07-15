@@ -30,6 +30,7 @@ import mgContentImg from "@/assets/clients/spartan/market-gap-content.png.asset.
 import websiteSecurityImg from "@/assets/clients/spartan/spartan-website-homepage.png.asset.json";
 import taiPortrait from "@/assets/clients/spartan/tai-portrait.png.asset.json";
 import signatureTai from "@/assets/clients/spartan/signature-tai.png.asset.json";
+import eagleSilhouette from "@/assets/clients/spartan/eagle-silhouette.png.asset.json";
 
 const CANONICAL = "https://trusttai.com/clients/spartan";
 
@@ -870,8 +871,8 @@ function NoteFromTaiSection({
   const muted = "rgba(15,27,61,0.72)";
 
   return (
-    <section id="note-from-tai" className="relative flex w-full items-center bg-white">
-      <div className="w-full py-8 sm:py-14 md:py-20 lg:py-24">
+    <section id="note-from-tai" className="relative flex w-full items-center overflow-hidden bg-white">
+      <div className="relative z-10 w-full py-8 sm:py-14 md:py-20 lg:py-24">
         <div className="mx-auto grid max-w-[1240px] grid-cols-1 items-start gap-8 px-5 sm:gap-10 sm:px-8 md:px-12 lg:grid-cols-12 lg:gap-14 lg:px-16">
           <div className="hidden lg:col-span-5 lg:block">
             <div
@@ -1032,6 +1033,18 @@ function NoteFromTaiSection({
         </div>
 
       </div>
+
+      <img
+        src={eagleSilhouette.url}
+        alt=""
+        aria-hidden="true"
+        width={1024}
+        height={1280}
+        loading="lazy"
+        decoding="async"
+        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[78%] -translate-x-[22%] translate-y-[10%] rotate-[-6deg] opacity-75 md:block md:w-[62%] lg:w-[48%]"
+        style={{ filter: "drop-shadow(0 14px 40px rgba(11,27,58,0.08))" }}
+      />
     </section>
   );
 }
