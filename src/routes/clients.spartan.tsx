@@ -692,12 +692,11 @@ function HiddenOpportunitiesSection() {
   return (
     <section
       id="section-2"
-      className="relative flex w-full flex-col"
-      style={{ backgroundColor: navy }}
+      className="relative flex w-full flex-col bg-white"
     >
 
       <div className="w-full bg-white">
-        <div className="flex flex-col items-center justify-center px-6 pt-8 pb-5 text-center sm:pt-14 sm:pb-8 md:pt-16 md:pb-10 lg:pt-20 lg:pb-12">
+        <div className="mx-auto flex max-w-[1240px] flex-col items-center justify-center px-5 pt-8 pb-5 text-center sm:px-8 sm:pt-14 sm:pb-8 md:px-12 md:pt-16 md:pb-10 lg:px-16 lg:pt-20 lg:pb-12">
           <div className="hidden items-center gap-3 md:flex">
             <span className="text-[11px] font-black tracking-[0.32em]" style={{ color: red }}>
               02
@@ -724,7 +723,8 @@ function HiddenOpportunitiesSection() {
         </div>
       </div>
 
-      <div className="grid w-full grid-cols-1 bg-white lg:grid-cols-12">
+      <div className="mx-auto grid w-full max-w-[1240px] grid-cols-1 bg-white lg:grid-cols-12">
+
         <div className="flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12">
           <div className="flex flex-1 flex-col">
             <div key={`h-${index}`} className="space-y-3">
