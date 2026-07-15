@@ -695,20 +695,76 @@ function HiddenOpportunitiesSection() {
               <p>{slide.body}</p>
             </div>
 
-            <div className="mt-auto pt-8">
-              <div className="border-l-2 py-1 pl-4" style={{ borderColor: red }}>
-                <div className="text-[10px] font-black tracking-[0.2em]" style={{ color: red }}>
-                  What it unlocks
-                </div>
-                <p
-                  className="mt-2 text-[13px] font-semibold leading-[1.55] sm:text-[14px]"
-                  style={{ color: navy }}
+            <div className="mt-auto space-y-5 pt-8 sm:space-y-6">
+              {/* What this means — red-accented card */}
+              <div
+                key={`m-${index}`}
+                className="relative flex items-start gap-4 rounded-r-md border-l-[3px] p-4 sm:gap-5 sm:p-5"
+                style={{
+                  borderColor: red,
+                  backgroundColor: "rgba(230,57,70,0.045)",
+                }}
+              >
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12"
+                  style={{ backgroundColor: "rgba(230,57,70,0.12)" }}
                 >
-                  {slide.unlock}
-                </p>
+                  <TrendingUp className="h-5 w-5 sm:h-[22px] sm:w-[22px]" style={{ color: red }} />
+                </div>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <div
+                    className="text-[10px] font-black tracking-[0.22em] sm:text-[11px]"
+                    style={{ color: red }}
+                  >
+                    WHAT THIS MEANS
+                  </div>
+                  <p
+                    className="mt-1.5 text-[14px] font-semibold leading-[1.5] sm:text-[15px]"
+                    style={{ color: navy }}
+                  >
+                    {slide.means}
+                  </p>
+                </div>
+              </div>
+
+              {/* What it unlocks — blue-accented card */}
+              <div
+                key={`u-${index}`}
+                className="relative flex items-start gap-4 border-t pt-5 sm:gap-5 sm:pt-6"
+                style={{ borderColor: "rgba(15,27,61,0.10)" }}
+              >
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12"
+                  style={{ backgroundColor: "rgba(37,99,235,0.10)" }}
+                >
+                  <Target className="h-5 w-5 sm:h-[22px] sm:w-[22px]" style={{ color: "#2563EB" }} />
+                </div>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <div
+                    className="text-[10px] font-black tracking-[0.22em] sm:text-[11px]"
+                    style={{ color: "#2563EB" }}
+                  >
+                    WHAT IT UNLOCKS
+                  </div>
+                  <p
+                    className="mt-1.5 text-[14px] font-semibold leading-[1.5] sm:text-[15px]"
+                    style={{ color: navy }}
+                  >
+                    {slide.unlockPayoff}
+                  </p>
+                  {slide.unlockSupport ? (
+                    <p
+                      className="mt-1.5 text-[13px] leading-[1.6] sm:text-[13.5px]"
+                      style={{ color: muted }}
+                    >
+                      {slide.unlockSupport}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
+
 
           <div
             className="mt-6 flex items-center gap-3 rounded-lg border bg-white p-2 shadow-[0_8px_24px_-12px_rgba(15,27,61,0.15)] sm:gap-4"
