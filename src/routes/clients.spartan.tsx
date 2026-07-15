@@ -288,18 +288,18 @@ function CurrentStateSection() {
               className="text-[10px] font-semibold uppercase tracking-[0.28em]"
               style={{ color: "rgba(15,27,61,0.55)" }}
             >
-              Where Spartan Stands
+              Where Spartan stands today
             </span>
           </div>
           <h2
-            className="mt-4 font-black uppercase leading-[0.92] tracking-tight"
+            className="mt-4 font-black leading-[1.05] tracking-tight"
             style={{
               fontSize: "clamp(30px, 4.2vw, 56px)",
               fontFamily: "Inter, system-ui, sans-serif",
             }}
           >
-            <span style={{ color: "#E63946" }}>POINT A:</span>
-            <span style={{ color: "#0B1B3A" }}>&nbsp;CURRENT POSITION</span>
+            <span style={{ color: "#E63946" }}>Point A:</span>
+            <span style={{ color: "#0B1B3A" }}>&nbsp;the current position</span>
           </h2>
         </div>
 
