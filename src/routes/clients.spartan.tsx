@@ -927,7 +927,7 @@ function HiddenOpportunitiesSection() {
               />
             </div>
 
-            <div key={`cap-${index}`} className="mt-4 flex min-h-[40px] items-center gap-3 sm:mt-5">
+            <div key={`cap-${index}`} className={`mt-4 flex min-h-[40px] items-center gap-3 sm:mt-5 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}>
               {slide.imageCaption
                 ? (() => {
                     const match = slide.imageCaption.match(/^(Image\s+\d+\.)\s*(.*)$/);
