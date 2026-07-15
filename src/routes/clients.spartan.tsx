@@ -682,8 +682,10 @@ function HiddenOpportunitiesSection() {
           role="group"
           aria-roledescription="slide"
           aria-label={`Gap ${index + 1} of ${total}: ${slide.title}`}
-          aria-live="polite"
         >
+          <span className="sr-only" aria-live="polite" aria-atomic="true">
+            {`Gap ${index + 1} of ${total}: ${slide.title}`}
+          </span>
 
           <div className="flex flex-1 flex-col">
             <div key={`h-${index}`} className={`relative space-y-4 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}>
