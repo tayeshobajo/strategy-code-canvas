@@ -195,7 +195,7 @@ export const getIntelligentNextAction = createServerFn({ method: "POST" })
       totalMilestones: milestones.length,
       completedMilestones: completedMs,
       overdueDates,
-      signalCount: (proj.source_count as number) ?? 0,
+      signalCount: sourceCount ?? 0,
       recentActivity: activity.slice(0, 5).map((a) => a.title ?? ""),
       openDecisions: (proj.open_decisions as number) ?? 0,
     });
