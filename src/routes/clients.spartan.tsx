@@ -346,9 +346,9 @@ function CurrentStateSection() {
                 letterSpacing: "-0.01em",
               }}
             >
-              Spartan already has a business{" "}
+              Spartan already runs a business{" "}
               <span className="font-semibold not-italic" style={{ color: "#E63946" }}>
-                worth making more visible
+                worth making visible
               </span>
               .
             </p>
@@ -359,8 +359,7 @@ function CurrentStateSection() {
               style={{ color: "rgba(15,27,61,0.78)" }}
             >
               <p>
-                Spartan already has the hard, crucial pieces needed to become a stronger security
-                authority in Houston.
+                Spartan protects Costco, Greystar, Builders FirstSource, RPM, and Kaplan. That is not a starting line. That is proof most security companies never earn. The hard part is already done.
               </p>
               <div
                 className="rounded-xl border border-[rgba(15,27,61,0.08)] bg-[rgba(15,27,61,0.02)] p-5 sm:p-6"
@@ -377,12 +376,12 @@ function CurrentStateSection() {
                 </div>
                 <ul className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
                   {[
-                    "Marquee clients (Costco, Greystar, RPM…)",
-                    "Trained security officers",
+                    "Marquee clients: Costco, Greystar, RPM",
                     "SecureAI",
+                    "A training facility and the knowledge inside it",
+                    "Trained security officers",
                     "Instructors and trainees",
-                    "Training facility and knowledge",
-                    "Massive Houston security data",
+                    "Years of Houston security data",
                   ].map((item) => (
                     <li
                       key={item}
@@ -400,20 +399,33 @@ function CurrentStateSection() {
                   ))}
                 </ul>
               </div>
-              <p>So the question was never whether Spartan has credibility.</p>
               <p>
+                So the question was never whether Spartan is credible. The market settled that a long time ago. The question is quieter.{" "}
                 <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  The question is why this level of credibility is not as visible&nbsp; online.
+                  Why is a company with this record not the obvious choice the moment a Houston buyer starts looking.
                 </mark>
               </p>
               <p>
-                The conversation started with a question about hosting and cost.{" "}
+                The conversation started with hosting and cost.{" "}
                 <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  I looked deeper: at the website, the business, the training, and the structure
-                  underneath everything, and I saw a larger opportunity than a website refresh
+                  Looking closer, at the website, the training, the data, the relationships, there was a far larger opportunity sitting in plain sight than a website refresh.
                 </mark>
-                .
               </p>
+
+              <div
+                className="mt-2 rounded-xl border p-4 sm:p-5"
+                style={{
+                  borderColor: "rgba(15,27,61,0.12)",
+                  background: "linear-gradient(135deg, rgba(230,57,70,0.05) 0%, rgba(15,27,61,0.03) 100%)",
+                }}
+              >
+                <div className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: "#E63946" }}>
+                  Assistant
+                </div>
+                <p className="mt-2 text-[14px] italic leading-[1.55] sm:text-[15px]" style={{ color: "#0B1B3A" }}>
+                  &ldquo;I&rsquo;ve reviewed everything you shared and the site. This is more than a website project.&rdquo;
+                </p>
+              </div>
             </div>
           </div>
         </div>
