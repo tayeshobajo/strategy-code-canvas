@@ -64,6 +64,9 @@ export const Route = createFileRoute("/clients/spartan")({
 });
 
 function SpartanRoadmap() {
+  const [isCalendlyOpen, setIsCalendlyOpen] = useState(false);
+  const calendlyRootRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -75,10 +78,14 @@ function SpartanRoadmap() {
           color: "#0B1B3A",
         }}
       >
-        <HeroSection />
+        <HeroSection setIsCalendlyOpen={setIsCalendlyOpen} />
         <CurrentStateSection />
         <HiddenOpportunitiesSection />
-        <NoteFromTaiSection />
+        <NoteFromTaiSection
+          isCalendlyOpen={isCalendlyOpen}
+          setIsCalendlyOpen={setIsCalendlyOpen}
+          calendlyRootRef={calendlyRootRef}
+        />
       </main>
       <SiteFooter />
     </div>
