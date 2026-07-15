@@ -11,6 +11,7 @@ import {
   Calendar,
   Check,
   MapPin,
+  Target,
 } from "lucide-react";
 
 import { PopupModal } from "react-calendly";
