@@ -536,161 +536,139 @@ function HiddenOpportunitiesSection() {
   const red = "#E63946";
   const muted = "rgba(15,27,61,0.72)";
 
+  const fixListStyle = { color: "inherit" } as const;
+  const markStyle = { backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" } as const;
+
+  const renderGapBody = (
+    leftIntro: ReactNode,
+    rightIntro: ReactNode,
+    fixes: string[],
+  ) => (
+    <>
+      <p><mark style={markStyle}>{leftIntro}</mark></p>
+      <p>{rightIntro}</p>
+      <div className="mt-2">
+        <div className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: red }}>
+          The fix, from the roadmap
+        </div>
+        <ol className="mt-3 space-y-2 text-[14px] leading-[1.65] sm:text-[15px]" style={fixListStyle}>
+          {fixes.map((f, i) => (
+            <li key={i} className="flex gap-3">
+              <span
+                aria-hidden
+                className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black text-white"
+                style={{ backgroundColor: red }}
+              >
+                {i + 1}
+              </span>
+              <span>{f}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </>
+  );
+
   const slides: Slide[] = [
     {
-      label: "Search Engine Optimization",
+      label: "Discovery",
       urlBar: "google.com/search?q=security+guards+near+me",
       image: hiddenOppImg.url,
       alt: "Google search results for security services in Houston",
-      captionTag: "Market Reality",
-      captionText: "Competitors ranking · Spartan not yet visible",
-      imageCaption: "Image 01. Real-time search. Spartan isn't ranking well for some security keywords on Google.",
+      captionTag: "Discovery",
+      captionText: "New buyers don't find Spartan first",
+      imageCaption: "Image 01. Real-time search. Spartan isn't visible when Houston buyers search for security.",
       pullQuote: (
         <>
-          Houston security buyers may be finding{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>competitors first</mark>{" "}
-          when they search online.
+          The right buyers should see Spartan{" "}
+          <mark style={{ backgroundColor: "transparent", color: red }}>first, not tenth</mark>.
         </>
       ),
-      body: (
-        <>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The image on the right is a real-time Google search, and this is how Houston buyers are likely searching for security help.</mark> They search by the problem they need solved, not the name of a company.
-          </p>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>Competitors are showing up near the top for those searches, while Spartan seems to show up strongest when the search includes &ldquo;Spartan.&rdquo;</mark> That means Spartan is easier to find for people who already know the brand, but not visible enough for buyers who do not.
-          </p>
-          <p>
-            That is the bigger opportunity. <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>Spartan has the credibility to compete for that attention, and even win it.</mark> The digital structure just needs to make the business as visible as it deserves to be.
-          </p>
-        </>
+      body: renderGapBody(
+        "Buyers don't find Spartan first when they search for security in Houston.",
+        "Spartan comes up when someone already knows the name. New buyers see other companies first, and Spartan never gets the meeting.",
+        [
+          "Show up in Houston security search from the local level up.",
+          "Turn every service into its own page a buyer can land on.",
+          "Give the site the structure to be discoverable, not only visitable.",
+        ],
       ),
     },
     {
-      label: "Service Pages",
-      urlBar: "competitor-security.com/services",
-      image: mgServicesImg.url,
-      alt: "Competitor security company website with specific service pages",
-      captionTag: "Service Gap",
-      captionText: "Broad pages · Buyers need specific paths",
-      imageCaption: "Image 02. A competitor's website showing dedicated service pages.",
-      pullQuote: (
-        <>
-          Buyers search the{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>exact situation</mark>{" "}
-          they need protected, not a company.
-        </>
-      ),
-      body: (
-        <>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>A buyer looking for security is usually thinking about the exact situation in front of them</mark>: a construction site, a warehouse, a residential community, a retail property, a high-rise, or an event that needs protection.
-          </p>
-          <p>
-            Spartan already serves these kinds of needs. <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The website needs clearer service pages that match how buyers are searching, so when they land there, they can quickly see Spartan as the solution they need.</mark>
-          </p>
-        </>
-      ),
-    },
-    {
-      label: "Website Security",
-      urlBar: "spartan-security.com/website-security",
+      label: "Content",
+      urlBar: "spartan-security.com",
       image: websiteSecurityImg.url,
-      alt: "Spartan Security Services website homepage showing professional security brand presence",
-      captionTag: "Website Security",
-      captionText: "Digital front door · Needs the same field standard",
-      imageCaption: "Image 03. Spartan's website is the digital front door. It needs the same protection standard the business is known for.",
+      alt: "Spartan Security Services website homepage",
+      captionTag: "Content",
+      captionText: "Presents the company · Doesn't build trust yet",
+      imageCaption: "Image 02. The site presents Spartan, but doesn't build trust before the meeting.",
       pullQuote: (
         <>
-          The digital front door needs to feel{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>as secure as the business behind it</mark>.
+          Show the depth.{" "}
+          <mark style={{ backgroundColor: "transparent", color: red }}>That is what closes deals</mark>{" "}
+          before the call.
         </>
       ),
-      body: (
-        <>
-          <p>
-            Spartan protects properties, people, and operations in the real world, so <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>the website should carry that same sense of care online.</mark>
-          </p>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The same standard buyers expect from the company in the field should show up on the website too</mark>: secure forms, malware scanning, backups, hosting checks, safe redirects, monitoring, and a tight process for catching issues early. The website is the digital front door, and that front door needs to feel as secure as the business behind it.
-          </p>
-        </>
+      body: renderGapBody(
+        "The site presents Spartan, it doesn't build trust before the meeting.",
+        "Buyers arrive with real questions. Coverage, response time, quality of officers, training standards, and get generic language, not proof.",
+        [
+          "Convert Spartan's training and standards into buyer-facing proof.",
+          "Publish Houston-market insight, not stock claims.",
+          "Speak in the language of enterprise buyers, not vendors.",
+        ],
       ),
     },
     {
-      label: "SecureAI Positioning",
-      urlBar: "spartan-security.com/secureai",
-      image: mgSecureAIImg.url,
-      alt: "SecureAI AI-powered security monitoring platform mockup",
-      captionTag: "SecureAI Gap",
-      captionText: "Strong asset · Not yet positioned clearly enough",
-      imageCaption: "Image 04. SecureAI positioned as a real reason to choose Spartan, combining officers, AI and monitoring.",
-      pullQuote: (
-        <>
-          SecureAI is a{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>reason to choose Spartan</mark>
-          &nbsp;,&nbsp;not a footnote.
-        </>
-      ),
-      body: (
-        <>
-          <p>
-            SecureAI makes Spartan&rsquo;s story stronger. <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>It shows buyers that the company is thinking beyond basic security coverage and looking at how people, patrol, and technology can work together to protect properties better.</mark>
-          </p>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>That needs to come through more clearly on the website</mark>, so a buyer can quickly understand how Spartan&rsquo;s officers, patrol, and AI-powered monitoring fit together as one stronger security solution.
-          </p>
-        </>
-      ),
-    },
-    {
-      label: "Trust Proof",
+      label: "Trust",
       urlBar: "spartan-security.com/clients",
       image: mgTrustImg.url,
-      alt: "Trust and client proof section with client logos and reviews",
-      captionTag: "Trust Gap",
-      captionText: "Strong proof · Not working hard enough yet",
-      imageCaption: "Image 05. Mockup home page showing marquee client proof on the front page.",
+      alt: "Trust and client proof section with client logos",
+      captionTag: "Trust",
+      captionText: "Real proof · Currently invisible",
+      imageCaption: "Image 03. Mockup home page showing marquee client proof on the front page.",
       pullQuote: (
         <>
-          Costco, Greystar, Builders FirstSource ... That&nbsp;{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>proof should be doing more work</mark>.
+          Buyers need to{" "}
+          <mark style={{ backgroundColor: "transparent", color: red }}>see who you are</mark>, not read about it.
         </>
       ),
-      body: (
-        <>
-          <p>
-            Spartan has worked with serious names like Costco, Greystar, Builders FirstSource, RPM, and Kaplan, and <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>that kind of proof should not be hidden. It should be on the front pages, showing buyers that Spartan already has the credibility to handle real properties, real responsibility, real operations, and real pressure.</mark>
-          </p>
-        </>
+      body: renderGapBody(
+        "The market can't see Spartan's proof yet.",
+        "Real relationships, real footage, real experience, invisible on the surface. Nothing on the site signals scale, longevity, or the caliber of client already served.",
+        [
+          "Bring the client roster into view once approved.",
+          "Present the leadership behind the company.",
+          "Show tenure, footprint, and depth of service.",
+        ],
       ),
     },
     {
-      label: "Content Engine",
-      urlBar: "spartan-security.com/insights",
-      image: mgContentImg.url,
-      alt: "Content and authority dashboard with blog and social posts",
-      captionTag: "Authority Gap",
-      captionText: "Knowledge inside · Not visible enough outside",
-      imageCaption: "Image 06. Mockup content engine dashboard turning Spartan's field knowledge into blog posts, articles and social posts.",
+      label: "Services",
+      urlBar: "spartan-security.com/services",
+      image: mgServicesImg.url,
+      alt: "Security services broken out into dedicated pages",
+      captionTag: "Services",
+      captionText: "Full range · Not visible or comparable",
+      imageCaption: "Image 04. Dedicated service pages so buyers can map their exact need to a Spartan service.",
       pullQuote: (
         <>
-          Spartan already knows the market ,&nbsp;{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>the outside just can&rsquo;t hear it yet</mark>.
+          When a buyer sees the range,{" "}
+          <mark style={{ backgroundColor: "transparent", color: red }}>budgets grow</mark>.
         </>
       ),
-      body: (
-        <>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>Spartan already has the content assets it needs to build stronger social presence and authority online</mark>: years of security experience, real Houston crime data, field knowledge, training insight, and real opinions about what makes security work. Those assets should not sit dormant in documents.
-          </p>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The content engine can use that knowledge base to create blog posts, articles, FAQs, short videos, and social media posts</mark> that make Spartan more visible and more trusted. Built to be automated, without adding extra workload for the team.
-          </p>
-        </>
+      body: renderGapBody(
+        "The full range of Spartan's work isn't visible or comparable.",
+        "Officers, patrols, executive protection, event, retail loss prevention, training, and specialized security, live as one blur. Buyers can't map their need to a service.",
+        [
+          "Give each service a page and a story.",
+          "Explain when to choose which.",
+          "Show how they layer together for larger clients.",
+        ],
       ),
     },
   ];
+
 
   const [index, setIndex] = useState(0);
   const total = slides.length;
