@@ -930,8 +930,9 @@ function NoteFromTaiSection() {
       className="relative flex w-full items-center bg-white"
     >
 
-      <div className="w-full px-5 py-8 sm:px-8 sm:py-14 md:px-14 md:py-20 lg:px-20 lg:py-24">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-8 sm:gap-10 lg:grid-cols-12 lg:gap-14">
+      <div className="w-full py-8 sm:py-14 md:py-20 lg:py-24">
+        <div className="mx-auto grid max-w-[1240px] grid-cols-1 items-start gap-8 px-5 sm:gap-10 sm:px-8 md:px-12 lg:grid-cols-12 lg:gap-14 lg:px-16">
+
           <div className="hidden lg:col-span-5 lg:block">
             <div
               className="mx-auto max-w-sm overflow-hidden rounded-2xl sm:max-w-md lg:max-w-none"
