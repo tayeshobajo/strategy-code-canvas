@@ -760,7 +760,7 @@ function HiddenOpportunitiesSection() {
               {/* What it unlocks — blue-accented card */}
               <div
                 key={`u-${index}`}
-                className="relative flex items-start gap-4 border-t pt-5 sm:gap-5 sm:pt-6"
+                className={`relative flex items-start gap-4 border-t pt-5 sm:gap-5 sm:pt-6 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}
                 style={{ borderColor: "rgba(15,27,61,0.10)" }}
               >
                 <div
