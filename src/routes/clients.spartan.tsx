@@ -94,7 +94,11 @@ function SpartanRoadmap() {
 
 /* ================== SECTION 00: HERO ================== */
 
-function HeroSection() {
+function HeroSection({
+  setIsCalendlyOpen,
+}: {
+  setIsCalendlyOpen: (open: boolean) => void;
+}) {
   return (
     <section
       id="section-0"
