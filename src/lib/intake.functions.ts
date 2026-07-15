@@ -1254,37 +1254,37 @@ async function autoBridgeIntakeToEngine(input: {
   }
   const sourceId = src.id as string;
 
-  // 5. Run the intelligence pipeline before returning. Cloudflare Workers
-  //    tear down detached async work as soon as the response resolves, which
-  //    leaves the extraction run stranded in `running` forever. If submit
-  //    latency becomes unacceptable, move this to a real durable queue rather
-  //    than a fire-and-forget promise.
+  // 5. Enqueue for the durable pipeline runner (pg_cron → run-pipeline-queue
+  //    hook). The engine_sources row is inserted as `status='queued'`; the
+  //    runner atomically claims queued brief sources and executes the
+  //    intelligence pipeline out-of-band. Submit no longer awaits the LLM run.
+  await sb
+    .from("engine_activity")
+    .insert({
+      project_id: projectId,
+      kind: "pipeline_queued",
+      title: "Intelligence run queued",
+      body: `Source ${sourceId} queued for durable pipeline runner.`,
+      severity: "info",
+    })
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+
+  // Best-effort nudge so the queue runs immediately without waiting for the
+  // next cron tick. Fire-and-forget; never blocks or throws.
   try {
-    const { runIntelligencePipelineInternal } = await import("@/lib/engine-intelligence.functions");
-    await runIntelligencePipelineInternal(sb, {
-      projectId,
-      sourceIds: [sourceId],
-      actorEmail,
-    });
-  } catch (e) {
-    const msg = (e as Error)?.message ?? String(e);
-    if (msg.startsWith("pipeline_blocked:")) {
-      await sb
-        .from("engine_activity")
-        .insert({
-          project_id: projectId,
-          kind: "intake_bridge_pipeline_blocked",
-          title: "Intake bridged — auto-extraction blocked",
-          body: "Agent permissions block run_intelligence_pipeline for this project. Review the intake source manually.",
-          severity: "warn",
-        })
-        .then(
-          () => undefined,
-          () => undefined,
-        );
-    } else {
-      console.warn("[intake-bridge] pipeline run failed", msg);
-    }
+    const { absoluteUrl } = await import("@/lib/site-url");
+    const url = absoluteUrl("/api/public/hooks/run-pipeline-queue");
+    const apikey = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
+    void fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", apikey },
+      body: JSON.stringify({ source_id: sourceId }),
+    }).catch(() => undefined);
+  } catch {
+    // ignore
   }
 
   return { project_id: projectId, source_id: sourceId };
