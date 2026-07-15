@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState } from "react";
 import {
   Shield,
   ShieldCheck,
@@ -38,13 +38,12 @@ export const Route = createFileRoute("/clients/spartan")({
       {
         name: "description",
         content:
-          "A strategic growth roadmap for Spartan Security Services — turning existing assets, SecureAI, and Houston market knowledge into more contract wins.",
+          "A strategic growth roadmap for Spartan Security Services — turning existing credibility into visibility, trust, and long-term contracts in Houston.",
       },
       { property: "og:title", content: "Spartan Security Services — Growth Roadmap" },
       {
         property: "og:description",
-        content:
-          "Spartan already does the work. This is the roadmap that makes Houston see it — turning credibility into visibility, trust, and long-term contracts.",
+        content: "Spartan already does the work. This is the roadmap that makes Houston see it.",
       },
       { property: "og:type", content: "article" },
       { property: "og:url", content: CANONICAL },
@@ -111,7 +110,7 @@ function HeroSection() {
         aria-hidden="true"
         style={{
           background:
-            "linear-gradient(90deg, #06112A 0%, rgba(6,17,42,0.92) 38%, rgba(6,17,42,0.55) 70%, rgba(6,17,42,0.85) 100%)",
+            "linear-gradient(90deg, #06112A 0%, rgba(6,17,42,0.94) 42%, rgba(6,17,42,0.58) 70%, rgba(6,17,42,0.86) 100%)",
         }}
       />
       <div
@@ -119,8 +118,7 @@ function HeroSection() {
         aria-hidden="true"
         style={{
           background:
-            "radial-gradient(circle 520px at 62% 48%, rgba(40,90,200,0.45), transparent 60%)," +
-            "radial-gradient(circle 520px at 82% 55%, rgba(220,38,38,0.42), transparent 60%)",
+            "radial-gradient(circle 520px at 82% 55%, rgba(230,57,70,0.42), transparent 60%)",
         }}
       />
       <div
@@ -134,7 +132,7 @@ function HeroSection() {
             color: "transparent",
             WebkitTextStroke: "2px rgba(255,255,255,0.06)",
             fontFamily: "Inter, system-ui, sans-serif",
-            letterSpacing: "-0.05em",
+            letterSpacing: "0",
           }}
         >
           S
@@ -177,41 +175,41 @@ function HeroSection() {
           </div>
         </div>
 
-        <div className="mt-10 max-w-[720px] space-y-6 sm:mt-16 sm:space-y-7 lg:mt-20 lg:max-w-[860px] xl:mt-24 xl:max-w-[960px]">
+        <div className="mt-10 max-w-[680px] space-y-6 sm:mt-16 sm:space-y-7 lg:mt-20 lg:max-w-[760px] xl:mt-24">
           <div className="flex items-center gap-3">
             <div className="h-[2px] w-12 sm:w-14" style={{ backgroundColor: "#E63946" }} />
             <span
-              className="text-[10px] font-bold uppercase tracking-[0.32em]"
+              className="text-[10px] font-bold tracking-[0.24em]"
               style={{ color: "rgba(255,255,255,0.6)" }}
             >
-              Growth Roadmap · Houston
+              Growth roadmap · Houston
             </span>
           </div>
           <h1
-            className="font-black uppercase leading-[0.92] tracking-tight text-white"
+            className="max-w-[13.4ch] text-wrap text-[34px] font-black leading-[0.94] tracking-normal text-white sm:max-w-[14.6ch] sm:text-[44px] lg:max-w-[15ch] lg:text-[60px] xl:text-[70px]"
             style={{
-              fontSize: "clamp(30px, 3.6vw, 64px)",
               fontFamily: "Inter, system-ui, sans-serif",
             }}
           >
             <span style={{ color: "#E63946" }}>Spartan</span> already does the work.
             <br />
-            This is the roadmap that makes Houston{" "}
-            <span style={{ color: "#3B82F6" }}>see it.</span>
+            This is the roadmap that makes Houston see it.
           </h1>
           <p
-            className="max-w-[640px] text-[14px] leading-[1.7] tracking-[-0.01em] sm:text-[15.5px] sm:leading-[1.75]"
+            className="max-w-[680px] text-[14px] leading-[1.65] sm:text-[15.5px] sm:leading-[1.75]"
             style={{
               color: "rgba(255,255,255,0.78)",
               fontFamily: "Inter, system-ui, sans-serif",
             }}
           >
-            The credibility is already Spartan's. This is the plan that turns it into visibility, trust, and contracts that last, mapped from where Spartan stands today to where it could stand in Houston security.
+            The credibility is already Spartan's. This is the plan that turns it into visibility,
+            trust, and contracts that last, mapped from where Spartan stands today to where it could
+            stand in Houston security.
           </p>
 
           <div className="flex items-center gap-3 pt-1">
             <span
-              className="flex h-9 w-9 items-center justify-center rounded-full"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
               style={{
                 border: "1.5px solid #E63946",
                 backgroundColor: "rgba(230,57,70,0.08)",
@@ -219,30 +217,29 @@ function HeroSection() {
             >
               <ShieldCheck size={16} color="#E63946" strokeWidth={2.2} />
             </span>
-            <div className="text-[11px] font-bold uppercase leading-tight tracking-[0.18em]">
-              <div className="text-white">Stronger Presence. More Trust.</div>
-              <div style={{ color: "#E63946" }}>More Wins.</div>
-            </div>
+            <p className="text-[11px] font-bold leading-snug tracking-[0.16em] text-white sm:whitespace-nowrap">
+              Stronger presence. Deeper trust. Contracts that hold.
+            </p>
           </div>
 
           <div className="flex flex-col gap-3 pt-3 sm:flex-row sm:items-center sm:gap-5">
             <a
               href="#note-from-tai"
-              className="group inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-4 text-[13px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:gap-3 hover:shadow-[0_22px_50px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:justify-start"
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-4 text-[12px] font-bold tracking-[0.08em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:gap-3 hover:shadow-[0_22px_50px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:justify-start sm:whitespace-nowrap sm:text-[13px]"
               style={{ backgroundColor: "#E63946" }}
             >
-              Book Roadmap Walkthrough
+              Book the roadmap walkthrough
               <ArrowRight size={16} strokeWidth={2.4} />
             </a>
             <span className="text-[11px] font-medium tracking-[0.14em] text-white/55">
-              Free · 30&nbsp;min · No pitch
+              Free · 30 minutes · No pitch
             </span>
           </div>
         </div>
 
         <div className="mt-auto pt-6 sm:pt-8">
           <div
-            className="grid grid-cols-1 gap-x-4 gap-y-4 rounded-2xl px-4 py-4 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-5 sm:px-6 sm:py-5 md:grid-cols-4 md:gap-x-6"
+            className="grid grid-cols-1 gap-x-4 gap-y-4 rounded-lg px-4 py-4 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-5 sm:px-6 sm:py-5 md:grid-cols-4 md:gap-x-6"
             style={{
               backgroundColor: "rgba(255,255,255,0.04)",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -251,13 +248,34 @@ function HeroSection() {
             }}
           >
             {[
-              { Icon: TrendingUp, title: "Increase Visibility", desc: "Dominate local search and digital channels." },
-              { Icon: Shield, title: "Build Trust", desc: "Showcase what makes Spartan the right choice." },
-              { Icon: Eye, title: "Win More Contracts", desc: "Convert more opportunities into long-term clients." },
-              { Icon: ArrowRight, title: "Drive Recurring Revenue", desc: "Strengthen retention and grow account value." },
+              {
+                Icon: TrendingUp,
+                title: "Get found",
+                desc: "Show up first when Houston searches for security, not only when someone already knows the name.",
+              },
+              {
+                Icon: Shield,
+                title: "Earn the trust",
+                desc: "Let buyers see the proof before they ever pick up the phone.",
+              },
+              {
+                Icon: Eye,
+                title: "Win the work",
+                desc: "Turn more of that attention into signed contracts.",
+              },
+              {
+                Icon: ArrowRight,
+                title: "Grow what recurs",
+                desc: "Keep clients longer, and grow the value of each one.",
+              },
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="flex items-start gap-2.5 sm:gap-3">
-                <Icon size={20} color="#E63946" strokeWidth={1.6} className="mt-0.5 shrink-0 sm:h-[22px] sm:w-[22px]" />
+                <Icon
+                  size={20}
+                  color="#E63946"
+                  strokeWidth={1.6}
+                  className="mt-0.5 shrink-0 sm:h-[22px] sm:w-[22px]"
+                />
                 <div className="min-w-0">
                   <div className="text-[10.5px] font-extrabold uppercase leading-tight tracking-[0.12em] text-white sm:text-[11px] sm:tracking-[0.14em]">
                     {title}
@@ -290,32 +308,31 @@ function CurrentStateSection() {
       <div className="mx-auto flex min-h-full max-w-[1240px] flex-col px-5 py-10 sm:px-8 sm:py-14 md:px-12 md:py-16 lg:px-16 lg:py-20">
         <div className="mb-6 text-center sm:mb-10 md:mb-12">
           <div className="hidden items-center justify-center gap-3 md:flex">
-            <span className="text-[11px] font-black tracking-[0.32em]" style={{ color: "#E63946" }}>
-              01
+            <span className="text-[11px] font-black tracking-[0.24em]" style={{ color: "#E63946" }}>
+              01 · Where Spartan stands today
             </span>
             <div className="h-px w-10" style={{ backgroundColor: "rgba(15,27,61,0.22)" }} />
             <span
-              className="text-[10px] font-semibold uppercase tracking-[0.28em]"
+              className="text-[10px] font-semibold tracking-[0.2em]"
               style={{ color: "rgba(15,27,61,0.55)" }}
             >
-              Where Spartan Stands
+              Point A
             </span>
           </div>
           <h2
-            className="mt-4 font-black uppercase leading-[0.92] tracking-tight"
+            className="mt-4 text-[30px] font-black leading-[0.98] tracking-normal sm:text-[40px] lg:text-[54px]"
             style={{
-              fontSize: "clamp(30px, 4.2vw, 56px)",
               fontFamily: "Inter, system-ui, sans-serif",
             }}
           >
-            <span style={{ color: "#E63946" }}>POINT A:</span>
-            <span style={{ color: "#0B1B3A" }}>&nbsp;CURRENT POSITION</span>
+            <span style={{ color: "#E63946" }}>Point A:</span>
+            <span style={{ color: "#0B1B3A" }}> the current position</span>
           </h2>
         </div>
 
         <div className="grid flex-1 grid-cols-1 items-stretch gap-10 sm:gap-12 md:grid-cols-[1.05fr_1fr] md:gap-16 lg:gap-20">
           <div className="flex h-full flex-col">
-            <div className="relative w-full flex-1 min-h-[280px] sm:min-h-[380px] md:min-h-[520px] lg:min-h-[600px] overflow-hidden rounded-xl shadow-[0_30px_60px_-24px_rgba(15,27,61,0.35)]">
+            <div className="relative min-h-[280px] w-full flex-1 overflow-hidden rounded-lg shadow-[0_30px_60px_-24px_rgba(15,27,61,0.35)] sm:min-h-[380px] md:min-h-[520px] lg:min-h-[600px]">
               <img
                 src={pointABuilding.url}
                 alt="Spartan Security Services headquarters at sunset"
@@ -353,27 +370,27 @@ function CurrentStateSection() {
               style={{
                 color: "#0B1B3A",
                 fontFamily: "Inter, system-ui, sans-serif",
-                letterSpacing: "-0.01em",
+                letterSpacing: "0",
               }}
             >
-              Spartan already has a business{" "}
+              Spartan already runs a business{" "}
               <span className="font-semibold not-italic" style={{ color: "#E63946" }}>
-                worth making more visible
+                worth making visible
               </span>
               .
             </p>
-
 
             <div
               className="space-y-5 text-[14px] leading-[1.75] sm:space-y-6 sm:text-[15px] sm:leading-[1.8]"
               style={{ color: "rgba(15,27,61,0.78)" }}
             >
               <p>
-                Spartan already has the hard, crucial pieces needed to become a stronger security
-                authority in Houston.
+                Spartan protects Costco, Greystar, Builders FirstSource, RPM, and Kaplan. That is
+                not a starting line. That is proof most security companies never earn. The hard part
+                is already done.
               </p>
               <div
-                className="rounded-xl border border-[rgba(15,27,61,0.08)] bg-[rgba(15,27,61,0.02)] p-5 sm:p-6"
+                className="rounded-lg border border-[rgba(15,27,61,0.08)] bg-[rgba(15,27,61,0.02)] p-5 sm:p-6"
                 style={{ color: "#0B1B3A" }}
               >
                 <div className="mb-4 flex items-center gap-2">
@@ -387,12 +404,12 @@ function CurrentStateSection() {
                 </div>
                 <ul className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
                   {[
-                    "Marquee clients (Costco, Greystar, RPM…)",
-                    "Trained security officers",
+                    "Marquee clients, Costco, Greystar, RPM",
                     "SecureAI",
+                    "A training facility and the knowledge inside it",
+                    "Trained security officers",
                     "Instructors and trainees",
-                    "Training facility and knowledge",
-                    "Massive Houston security data",
+                    "Years of Houston security data",
                   ].map((item) => (
                     <li
                       key={item}
@@ -410,19 +427,15 @@ function CurrentStateSection() {
                   ))}
                 </ul>
               </div>
-              <p>So the question was never whether Spartan has credibility.</p>
               <p>
-                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  The question is why this level of credibility is not as visible&nbsp; online.
-                </mark>
+                So the question was never whether Spartan is credible. The market settled that a
+                long time ago. The question is quieter. Why is a company with this record not the
+                obvious choice the moment a Houston buyer starts looking.
               </p>
               <p>
-                The conversation started with a question about hosting and cost.{" "}
-                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  I looked deeper: at the website, the business, the training, and the structure
-                  underneath everything, and I saw a larger opportunity than a website refresh
-                </mark>
-                .
+                The conversation started with hosting and cost. Looking closer, at the website, the
+                training, the data, the relationships, there was a far larger opportunity sitting in
+                plain sight than a website refresh.
               </p>
             </div>
           </div>
@@ -432,25 +445,27 @@ function CurrentStateSection() {
           <div className="flex items-center gap-4">
             <div className="h-px flex-1" style={{ backgroundColor: "rgba(15,27,61,0.18)" }} />
             <span
-              className="text-[10px] font-semibold tracking-[0.28em]"
+              className="text-[10px] font-semibold tracking-[0.22em]"
               style={{ color: "#E63946" }}
             >
-              TRUSTED BY
+              Trusted by
             </span>
             <div className="h-px flex-1" style={{ backgroundColor: "rgba(15,27,61,0.18)" }} />
           </div>
 
           <div className="relative mt-5 sm:mt-6">
-            <div
-              className="flex snap-x snap-mandatory items-center justify-between gap-2 overflow-x-auto pb-2 sm:flex-nowrap sm:gap-8"
-              style={{ scrollbarWidth: "none" }}
+            <p
+              className="text-center text-[12px] font-semibold leading-relaxed tracking-[0.12em] sm:text-[13px] md:text-[14px]"
+              style={{ color: "rgba(15,27,61,0.72)" }}
             >
-              <div className="snap-center shrink-0"><CostcoMark /></div>
-              <div className="snap-center shrink-0"><GreystarMark /></div>
-              <div className="snap-center shrink-0"><BuildersMark /></div>
-              <div className="snap-center shrink-0"><RpmMark /></div>
-              <div className="snap-center shrink-0"><KaplanMark /></div>
-            </div>
+              Costco <span className="mx-2 text-[rgba(15,27,61,0.32)]">·</span> Greystar{" "}
+              <span className="mx-2 text-[rgba(15,27,61,0.32)]">·</span> Builders FirstSource{" "}
+              <span className="mx-2 text-[rgba(15,27,61,0.32)]">·</span> RPM{" "}
+              <span className="mx-2 text-[rgba(15,27,61,0.32)]">·</span> Kaplan
+            </p>
+            <p className="mt-3 text-center text-[10px] font-medium leading-snug text-[rgba(15,27,61,0.42)]">
+              Shown once each contract clears for display.
+            </p>
           </div>
         </div>
       </div>
@@ -458,72 +473,20 @@ function CurrentStateSection() {
   );
 }
 
-function CostcoMark() {
-  return (
-    <div className="flex flex-col items-center leading-none">
-      <div className="text-[11px] font-extrabold italic tracking-tight sm:text-[14px]" style={{ color: "#E31837" }}>
-        COSTCO
-      </div>
-      <div className="mt-0.5 rounded-2xl px-1 py-[1px] text-[4px] font-bold tracking-[0.2em] text-white sm:text-[6px]" style={{ backgroundColor: "#005DAA" }}>
-        WHOLESALE
-      </div>
-    </div>
-  );
-}
-
-function GreystarMark() {
-  return (
-    <div className="text-[11px] tracking-tight sm:text-[14px]" style={{ color: "#3a3a3a", fontFamily: "Georgia, 'Times New Roman', serif" }}>
-      Greystar
-    </div>
-  );
-}
-
-function BuildersMark() {
-  return (
-    <div className="flex items-center gap-1">
-      <svg className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" viewBox="0 0 26 26">
-        <rect x="0" y="0" width="26" height="26" rx="2" fill="#E31837" />
-        <path d="M6 18 L13 6 L20 18 Z" fill="#fff" />
-      </svg>
-      <div className="flex flex-col leading-tight">
-        <span className="text-[7px] font-extrabold sm:text-[9px]" style={{ color: "#1a1a1a" }}>Builders</span>
-        <span className="text-[5px] font-semibold sm:text-[7px]" style={{ color: "#6b7280" }}>FirstSource</span>
-      </div>
-    </div>
-  );
-}
-
-function RpmMark() {
-  return (
-    <div className="text-[12px] font-extrabold italic tracking-tight sm:text-[16px]" style={{ color: "#1f4e79", fontFamily: "Arial Black, sans-serif" }}>
-      RPM
-    </div>
-  );
-}
-
-function KaplanMark() {
-  return (
-    <div className="relative">
-      <div className="text-[11px] font-extrabold tracking-tight sm:text-[14px]" style={{ color: "#0033A0" }}>
-        KAPLAN
-      </div>
-      <div className="absolute -bottom-0.5 left-0 right-0 h-px rounded-full" style={{ backgroundColor: "#0033A0" }} />
-    </div>
-  );
-}
-
 /* ================== SECTION 02: HIDDEN OPPORTUNITIES ================== */
 
 type Slide = {
-  label: string;
-  body: ReactNode;
+  eyebrow: string;
+  title: string;
+  lead: string;
+  body: string;
+  unlock: string;
   image: string;
   alt: string;
   urlBar: string;
   captionTag: string;
   captionText: string;
-  pullQuote: ReactNode;
+  pullQuote: string;
   imageCaption?: string;
 };
 
@@ -534,157 +497,92 @@ function HiddenOpportunitiesSection() {
 
   const slides: Slide[] = [
     {
-      label: "Search Engine Optimization",
+      eyebrow: "Gap 01 · 06 total",
+      title: "Being found first",
+      lead: "When a Houston buyer searches, the first name they see gets the call.",
+      body: "Buyers rarely start with a company name. They start with the problem, construction site security, warehouse patrol, a community that needs coverage overnight. Competitors are showing up first, and Spartan shows up strongest only when someone already knows to look for it. The credibility is there. Visibility is the gap, and it is the one that decides who gets the inquiry.",
+      unlock: "More qualified inquiries from buyers who did not already know the name.",
       urlBar: "google.com/search?q=security+guards+near+me",
       image: hiddenOppImg.url,
       alt: "Google search results for security services in Houston",
       captionTag: "Market Reality",
       captionText: "Competitors ranking · Spartan not yet visible",
-      imageCaption: "Image 01. Real-time search. Spartan isn't ranking well for some security keywords on Google.",
-      pullQuote: (
-        <>
-          Houston security buyers may be finding{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>competitors first</mark>{" "}
-          when they search online.
-        </>
-      ),
-      body: (
-        <>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The image on the right is a real-time Google search, and this is how Houston buyers are likely searching for security help.</mark> They search by the problem they need solved, not the name of a company.
-          </p>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>Competitors are showing up near the top for those searches, while Spartan seems to show up strongest when the search includes &ldquo;Spartan.&rdquo;</mark> That means Spartan is easier to find for people who already know the brand, but not visible enough for buyers who do not.
-          </p>
-          <p>
-            That is the bigger opportunity. <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>Spartan has the credibility to compete for that attention, and even win it.</mark> The digital structure just needs to make the business as visible as it deserves to be.
-          </p>
-        </>
-      ),
+      imageCaption:
+        "Image 01. Real-time search. Spartan is not yet winning enough broad Houston security searches.",
+      pullQuote: "Houston buyers may be meeting competitors first when they search.",
     },
     {
-      label: "Service Pages",
+      eyebrow: "Gap 02 · 06 total",
+      title: "Service pages",
+      lead: "Buyers search the exact thing they need protected, not a company.",
+      body: "A buyer is thinking about the site in front of them, a warehouse, a residential community, a retail property, an event. Spartan covers all of it. The site does not yet have a page for each, so a buyer who searches a specific need does not land on a page built for that need. A page per need is how a buyer knows, in seconds, that Spartan is the right call.",
+      unlock: "A clear path from each search straight to a page that speaks to that buyer.",
       urlBar: "competitor-security.com/services",
       image: mgServicesImg.url,
       alt: "Competitor security company website with specific service pages",
       captionTag: "Service Gap",
       captionText: "Broad pages · Buyers need specific paths",
       imageCaption: "Image 02. A competitor's website showing dedicated service pages.",
-      pullQuote: (
-        <>
-          Buyers search the{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>exact situation</mark>{" "}
-          they need protected, not a company.
-        </>
-      ),
-      body: (
-        <>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>A buyer looking for security is usually thinking about the exact situation in front of them</mark>: a construction site, a warehouse, a residential community, a retail property, a high-rise, or an event that needs protection.
-          </p>
-          <p>
-            Spartan already serves these kinds of needs. <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The website needs clearer service pages that match how buyers are searching, so when they land there, they can quickly see Spartan as the solution they need.</mark>
-          </p>
-        </>
-      ),
+      pullQuote: "Buyers search the exact situation they need protected, not a company.",
     },
     {
-      label: "Website Security",
+      eyebrow: "Gap 03 · 06 total",
+      title: "Website security",
+      lead: "The digital front door should feel as secure as the business behind it.",
+      body: "Spartan protects properties, people, and operations in the real world. The website is the first thing a buyer touches, and it should carry the same standard, secure forms, backups, monitoring, and a process that catches issues early. For a security company, a site that feels unprotected is the one gap a buyer notices without being told.",
+      unlock: "A front door that reinforces the promise instead of quietly undercutting it.",
       urlBar: "spartan-security.com/website-security",
       image: websiteSecurityImg.url,
       alt: "Spartan Security Services website homepage showing professional security brand presence",
       captionTag: "Website Security",
       captionText: "Digital front door · Needs the same field standard",
-      imageCaption: "Image 03. Spartan's website is the digital front door. It needs the same protection standard the business is known for.",
-      pullQuote: (
-        <>
-          The digital front door needs to feel{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>as secure as the business behind it</mark>.
-        </>
-      ),
-      body: (
-        <>
-          <p>
-            Spartan protects properties, people, and operations in the real world, so <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>the website should carry that same sense of care online.</mark>
-          </p>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The same standard buyers expect from the company in the field should show up on the website too</mark>: secure forms, malware scanning, backups, hosting checks, safe redirects, monitoring, and a tight process for catching issues early. The website is the digital front door, and that front door needs to feel as secure as the business behind it.
-          </p>
-        </>
-      ),
+      imageCaption:
+        "Image 03. Spartan's website is the digital front door. It needs the same protection standard the business is known for.",
+      pullQuote: "The digital front door should feel as secure as the business behind it.",
     },
     {
-      label: "SecureAI Positioning",
+      eyebrow: "Gap 04 · 06 total",
+      title: "SecureAI positioning",
+      lead: "SecureAI is a reason to choose Spartan, not a footnote.",
+      body: "SecureAI shows a buyer that Spartan thinks past basic coverage, that officers, patrol, and monitoring work as one. Right now it reads like a feature buried in the site. Positioned as the advantage it is, it becomes a reason a buyer picks Spartan over a cheaper name, and a path into higher-value contracts.",
+      unlock: "A premium differentiator buyers weigh before they ever compare on price.",
       urlBar: "spartan-security.com/secureai",
       image: mgSecureAIImg.url,
       alt: "SecureAI AI-powered security monitoring platform mockup",
       captionTag: "SecureAI Gap",
       captionText: "Strong asset · Not yet positioned clearly enough",
-      imageCaption: "Image 04. SecureAI positioned as a real reason to choose Spartan, combining officers, AI and monitoring.",
-      pullQuote: (
-        <>
-          SecureAI is a{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>reason to choose Spartan</mark>
-          &nbsp;,&nbsp;not a footnote.
-        </>
-      ),
-      body: (
-        <>
-          <p>
-            SecureAI makes Spartan&rsquo;s story stronger. <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>It shows buyers that the company is thinking beyond basic security coverage and looking at how people, patrol, and technology can work together to protect properties better.</mark>
-          </p>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>That needs to come through more clearly on the website</mark>, so a buyer can quickly understand how Spartan&rsquo;s officers, patrol, and AI-powered monitoring fit together as one stronger security solution.
-          </p>
-        </>
-      ),
+      imageCaption:
+        "Image 04. SecureAI positioned as a real reason to choose Spartan, combining officers, AI and monitoring.",
+      pullQuote: "SecureAI is a reason to choose Spartan, not a footnote.",
     },
     {
-      label: "Trust Proof",
+      eyebrow: "Gap 05 · 06 total",
+      title: "Trust proof",
+      lead: "Costco, Greystar, Builders FirstSource. That proof should be doing more work.",
+      body: "Spartan has earned names most security companies never will. Proof like that belongs on the front page, where a buyer sees it before they ever ask, showing that Spartan already handles real properties, real responsibility, and real pressure. Proof a buyer has to dig for is proof that is not yet paying its way.",
+      unlock: "Credibility that closes the buyer before the first call.",
       urlBar: "spartan-security.com/clients",
       image: mgTrustImg.url,
       alt: "Trust and client proof section with client logos and reviews",
       captionTag: "Trust Gap",
       captionText: "Strong proof · Not working hard enough yet",
       imageCaption: "Image 05. Mockup home page showing marquee client proof on the front page.",
-      pullQuote: (
-        <>
-          Costco, Greystar, Builders FirstSource ... That&nbsp;{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>proof should be doing more work</mark>.
-        </>
-      ),
-      body: (
-        <>
-          <p>
-            Spartan has worked with serious names like Costco, Greystar, Builders FirstSource, RPM, and Kaplan, and <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>that kind of proof should not be hidden. It should be on the front pages, showing buyers that Spartan already has the credibility to handle real properties, real responsibility, real operations, and real pressure.</mark>
-          </p>
-        </>
-      ),
+      pullQuote: "Costco, Greystar, Builders FirstSource. That proof should be doing more work.",
     },
     {
-      label: "Content Engine",
+      eyebrow: "Gap 06 · 06 total",
+      title: "Content engine",
+      lead: "Spartan already knows the market. The outside just cannot hear it yet.",
+      body: "Years of field experience, Houston crime data, and a real point of view on what keeps a property safe. That knowledge is sitting in documents and in people's heads. A content engine turns it into the articles, guides, and posts buyers read and trust, built to run without adding to the team's week.",
+      unlock: "Authority that brings buyers and recruits in on their own.",
       urlBar: "spartan-security.com/insights",
       image: mgContentImg.url,
       alt: "Content and authority dashboard with blog and social posts",
       captionTag: "Authority Gap",
       captionText: "Knowledge inside · Not visible enough outside",
-      imageCaption: "Image 06. Mockup content engine dashboard turning Spartan's field knowledge into blog posts, articles and social posts.",
-      pullQuote: (
-        <>
-          Spartan already knows the market ,&nbsp;{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>the outside just can&rsquo;t hear it yet</mark>.
-        </>
-      ),
-      body: (
-        <>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>Spartan already has the content assets it needs to build stronger social presence and authority online</mark>: years of security experience, real Houston crime data, field knowledge, training insight, and real opinions about what makes security work. Those assets should not sit dormant in documents.
-          </p>
-          <p>
-            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The content engine can use that knowledge base to create blog posts, articles, FAQs, short videos, and social media posts</mark> that make Spartan more visible and more trusted. Built to be automated, without adding extra workload for the team.
-          </p>
-        </>
-      ),
+      imageCaption:
+        "Image 06. Mockup content engine dashboard turning Spartan's field knowledge into blog posts, articles and social posts.",
+      pullQuote: "Spartan already knows the market. The outside just cannot hear it yet.",
     },
   ];
 
@@ -695,91 +593,119 @@ function HiddenOpportunitiesSection() {
   const gapNum = String(index + 1).padStart(2, "0");
 
   return (
-    <section
-      id="section-2"
-      className="relative flex w-full flex-col bg-white"
-    >
-
+    <section id="section-2" className="relative flex w-full flex-col bg-white">
       <div className="w-full bg-white">
         <div className="mx-auto flex max-w-[1240px] flex-col items-center justify-center px-5 pt-8 pb-5 text-center sm:px-8 sm:pt-14 sm:pb-8 md:px-12 md:pt-16 md:pb-10 lg:px-16 lg:pt-20 lg:pb-12">
           <div className="hidden items-center gap-3 md:flex">
-            <span className="text-[11px] font-black tracking-[0.32em]" style={{ color: red }}>
-              02
+            <span className="text-[11px] font-black tracking-[0.24em]" style={{ color: red }}>
+              02 · What is being missed
             </span>
             <div className="h-px w-10" style={{ backgroundColor: "rgba(15,27,61,0.22)" }} />
             <span
-              className="text-[10px] font-semibold uppercase tracking-[0.28em]"
+              className="text-[10px] font-semibold tracking-[0.2em]"
               style={{ color: "rgba(15,27,61,0.55)" }}
             >
-              What&apos;s Being Missed
+              Six fixable gaps
             </span>
           </div>
 
           <h2
-            className="mt-4 font-black uppercase leading-[0.98] tracking-tight sm:mt-5"
+            className="mt-4 text-[32px] font-black leading-[0.98] tracking-normal sm:mt-5 sm:text-[44px] lg:text-[64px]"
             style={{
               color: navy,
               fontFamily: "Inter, system-ui, sans-serif",
-              fontSize: "clamp(32px, 4.4vw, 64px)",
             }}
           >
-            THE MARKET <span style={{ color: red }}>GAP</span>
+            The market <span style={{ color: red }}>gap</span>
           </h2>
         </div>
       </div>
 
       <div className="grid w-full grid-cols-1 bg-white lg:grid-cols-12">
+        <div className="relative flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12 xl:pl-32">
+          <div className="absolute left-8 top-24 hidden w-40 flex-col gap-2 xl:flex">
+            {slides.map((item, i) => (
+              <button
+                key={item.title}
+                type="button"
+                onClick={() => setIndex(i)}
+                className="flex items-center gap-2 text-left text-[10px] font-bold leading-tight transition-colors duration-200"
+                style={{ color: i === index ? red : "rgba(15,27,61,0.34)" }}
+              >
+                <span className="font-mono tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+                <span>{item.title}</span>
+              </button>
+            ))}
+          </div>
 
-        <div className="flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12">
           <div className="flex flex-1 flex-col">
-            <div key={`h-${index}`} className="space-y-3">
+            <div key={`h-${index}`} className="relative space-y-4">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -left-3 -top-14 select-none text-[132px] font-black leading-none sm:-left-5 sm:text-[170px] xl:-left-10"
+                style={{
+                  color: "rgba(230,57,70,0.055)",
+                  fontFamily: "Inter, system-ui, sans-serif",
+                }}
+              >
+                {gapNum}
+              </span>
               <div className="flex items-center gap-3">
                 <span
                   className="text-[11px] font-black tabular-nums tracking-[0.28em]"
                   style={{ color: red }}
                 >
-                  GAP {gapNum}
-                </span>
-                <div className="h-px w-10" style={{ backgroundColor: "rgba(15,27,61,0.18)" }} />
-                <span
-                  className="text-[10px] font-semibold uppercase tracking-[0.24em]"
-                  style={{ color: "rgba(15,27,61,0.5)" }}
-                >
-                  {String(total).padStart(2, "0")} total
+                  {slide.eyebrow}
                 </span>
               </div>
               <h3
-                className="font-black uppercase leading-[1.05] tracking-[-0.005em]"
+                className="relative text-[26px] font-black leading-[1.02] tracking-normal sm:text-[32px] lg:text-[40px]"
                 style={{
                   color: navy,
-                  fontSize: "clamp(22px, 2.4vw, 34px)",
                 }}
               >
-                {slide.label}
+                {slide.title}
               </h3>
+              <p
+                className="relative max-w-[34rem] text-[15px] font-semibold leading-[1.55] sm:text-[17px]"
+                style={{ color: navy }}
+              >
+                {slide.lead}
+              </p>
             </div>
 
             <div
               key={`b-${index}`}
-              className="mt-6 space-y-4 text-[14px] leading-[1.75] sm:mt-8 sm:space-y-5 sm:text-[15px] sm:leading-[1.8] [&_mark]:transition-colors"
+              className="mt-6 text-[14px] leading-[1.68] sm:mt-7 sm:text-[15px] sm:leading-[1.72]"
               style={{ color: muted }}
             >
-              {slide.body}
+              <p>{slide.body}</p>
+            </div>
+
+            <div className="mt-auto pt-8">
+              <div className="border-l-2 py-1 pl-4" style={{ borderColor: red }}>
+                <div className="text-[10px] font-black tracking-[0.2em]" style={{ color: red }}>
+                  What it unlocks
+                </div>
+                <p
+                  className="mt-2 text-[13px] font-semibold leading-[1.55] sm:text-[14px]"
+                  style={{ color: navy }}
+                >
+                  {slide.unlock}
+                </p>
+              </div>
             </div>
           </div>
 
-
-
-
           <div
-            className="mt-6 flex items-center gap-3 rounded-2xl border bg-white p-2 shadow-[0_8px_24px_-12px_rgba(15,27,61,0.15)] sm:gap-4"
+            className="mt-6 flex items-center gap-3 rounded-lg border bg-white p-2 shadow-[0_8px_24px_-12px_rgba(15,27,61,0.15)] sm:gap-4"
             style={{ borderColor: "rgba(15,27,61,0.12)" }}
           >
             <button
               type="button"
               onClick={() => go(-1)}
               aria-label="Previous market gap"
-              className="group flex h-11 items-center gap-2 rounded-xl border bg-white px-3 transition-all duration-200 hover:-translate-y-0.5 sm:px-4"
+              className="group flex h-11 items-center gap-2 rounded-lg border bg-white px-3 transition-all duration-200 hover:-translate-y-0.5 sm:px-4"
               style={{ borderColor: "rgba(15,27,61,0.15)", color: "rgba(15,27,61,0.55)" }}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -793,7 +719,10 @@ function HiddenOpportunitiesSection() {
               style={{ color: navy }}
             >
               {gapNum}
-              <span style={{ color: "rgba(15,27,61,0.35)" }}> / {String(total).padStart(2, "0")}</span>
+              <span style={{ color: "rgba(15,27,61,0.35)" }}>
+                {" "}
+                / {String(total).padStart(2, "0")}
+              </span>
             </span>
 
             <div className="hidden flex-1 items-center gap-2 sm:flex">
@@ -817,10 +746,15 @@ function HiddenOpportunitiesSection() {
               type="button"
               onClick={() => go(1)}
               aria-label="Next market gap"
-              className="group flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-8px_rgba(230,57,70,0.55)] sm:gap-2 sm:px-5"
-              style={{ backgroundColor: red, animation: "spartan-button-pulse 2s ease-in-out infinite" }}
+              className="group flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-8px_rgba(230,57,70,0.55)] sm:gap-2 sm:px-5"
+              style={{
+                backgroundColor: red,
+                animation: "spartan-button-pulse 2s ease-in-out infinite",
+              }}
             >
-              <span className="text-[11px] font-black uppercase tracking-[0.18em] sm:text-[12px] sm:tracking-[0.22em]">Next</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.18em] sm:text-[12px] sm:tracking-[0.22em]">
+                Next
+              </span>
               <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </button>
           </div>
@@ -832,13 +766,11 @@ function HiddenOpportunitiesSection() {
         >
           <div
             aria-hidden
-            className="pointer-events-none absolute -right-32 -top-32 h-64 w-64 rounded-full blur-3xl"
-            style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -bottom-32 -left-32 h-64 w-64 rounded-full blur-3xl"
-            style={{ backgroundColor: "rgba(230,57,70,0.12)" }}
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(145deg, rgba(255,255,255,0.045), transparent 34%), linear-gradient(315deg, rgba(230,57,70,0.11), transparent 38%)",
+            }}
           />
 
           <div key={`q-${index}`} className="relative mb-6 sm:mb-8">
@@ -851,11 +783,10 @@ function HiddenOpportunitiesSection() {
             </span>
             <p
               className="text-[16px] font-light italic leading-[1.4] text-white sm:text-[19px] md:text-[21px] lg:text-[22px]"
-              style={{ fontFamily: "Inter, system-ui, sans-serif", letterSpacing: "-0.005em" }}
+              style={{ fontFamily: "Inter, system-ui, sans-serif", letterSpacing: "0" }}
             >
               {slide.pullQuote}
             </p>
-
           </div>
 
           <div className="relative flex flex-col">
@@ -894,20 +825,25 @@ function HiddenOpportunitiesSection() {
                     const body = match ? match[2] : slide.imageCaption;
                     return (
                       <>
-                        <div className="h-px flex-1 lg:hidden" style={{ backgroundColor: "rgba(255,255,255,0.18)" }} />
+                        <div
+                          className="h-px flex-1 lg:hidden"
+                          style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
+                        />
                         <p className="max-w-[64ch] text-left text-[12px] leading-snug text-white/75 sm:text-[13px] lg:text-[13.5px]">
                           {label ? (
                             <span
                               className="mr-1.5 font-bold"
                               style={{ fontFamily: "Inter, system-ui, sans-serif" }}
                             >
-
                               {label}
                             </span>
                           ) : null}
                           <span>{body}</span>
                         </p>
-                        <div className="h-px flex-1 lg:hidden" style={{ backgroundColor: "rgba(255,255,255,0.18)" }} />
+                        <div
+                          className="h-px flex-1 lg:hidden"
+                          style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
+                        />
                       </>
                     );
                   })()
@@ -930,17 +866,12 @@ function NoteFromTaiSection() {
   const calendlyRootRef = useRef<HTMLDivElement>(null);
 
   return (
-    <section
-      id="note-from-tai"
-      className="relative flex w-full items-center bg-white"
-    >
-
+    <section id="note-from-tai" className="relative flex w-full items-center bg-white">
       <div className="w-full py-8 sm:py-14 md:py-20 lg:py-24">
         <div className="mx-auto grid max-w-[1240px] grid-cols-1 items-start gap-8 px-5 sm:gap-10 sm:px-8 md:px-12 lg:grid-cols-12 lg:gap-14 lg:px-16">
-
           <div className="hidden lg:col-span-5 lg:block">
             <div
-              className="mx-auto max-w-sm overflow-hidden rounded-2xl sm:max-w-md lg:max-w-none"
+              className="mx-auto max-w-sm overflow-hidden rounded-lg sm:max-w-md lg:max-w-none"
               style={{ boxShadow: "0 30px 60px -20px rgba(15,27,61,0.25)" }}
             >
               <img
@@ -957,18 +888,20 @@ function NoteFromTaiSection() {
 
           <div className="lg:col-span-7">
             <h2
-              className="font-black uppercase leading-[0.98] tracking-tight"
+              className="text-[32px] font-black leading-[0.98] tracking-normal sm:text-[44px] lg:text-[56px]"
               style={{
                 color: navy,
                 fontFamily: "Inter, system-ui, sans-serif",
-                fontSize: "clamp(32px, 4vw, 56px)",
               }}
             >
               A note from <span style={{ color: red }}>Tai</span>.
             </h2>
             <div className="mt-4 h-1 w-14 rounded-full sm:w-16" style={{ backgroundColor: red }} />
 
-            <div className="mt-6 overflow-hidden rounded-2xl lg:hidden" style={{ boxShadow: "0 20px 40px -20px rgba(15,27,61,0.25)" }}>
+            <div
+              className="mt-6 overflow-hidden rounded-lg lg:hidden"
+              style={{ boxShadow: "0 20px 40px -20px rgba(15,27,61,0.25)" }}
+            >
               <img
                 src={taiPortrait.url}
                 alt="Portrait of Tai"
@@ -984,44 +917,36 @@ function NoteFromTaiSection() {
               className="mt-6 space-y-4 text-[14px] leading-[1.7] sm:mt-8 sm:space-y-5 sm:text-[15px] sm:leading-[1.75]"
               style={{ color: muted }}
             >
-              <p>If we were sitting across the table, I would not start this conversation by talking about the website.</p>
-              <p>I would start with the business.</p>
               <p>
-                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  Somewhere in Houston, someone is probably looking for security help right now.
-                </mark>{" "}
-                They are not loyal to a provider yet. They are comparing. They are checking who
-                looks credible, who can handle the pressure, and who seems worth calling.
+                If we were sitting across the table, I would not start this conversation with the
+                website.
               </p>
               <p>
-                They may not know Spartan yet, and that is not a problem.{" "}
-                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  That is an opening.
-                </mark>
+                I would start with the business, and with what your market is already doing whether
+                Spartan is in the conversation or not.
               </p>
+              <p>
+                Right now, somewhere in Houston, someone is looking for security. They are not loyal
+                to anyone yet. They are comparing. They are checking who looks credible, who can
+                handle the pressure, and who is worth calling.
+              </p>
+              <p>They may not know Spartan yet. That is not a problem. That is an opening.</p>
               <p>
                 There is a real opportunity here for Spartan to become the security authority the
-                market can&apos;t ignore.{" "}
-                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  When someone searches for security in Houston, Spartan should be at the top of
-                  that search result.
-                </mark>
+                market cannot ignore. When someone searches for security in Houston, Spartan should
+                be the name at the top of that result.
               </p>
-              <p>That is what this roadmap is about. And more.</p>
+              <p>That is where this roadmap begins.</p>
               <p>
-                This preview only shows the first layer.{" "}
-                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  The full roadmap goes deeper into where Spartan is today, the underused assets
-                  already inside the business, where the business can move next, and how the pieces
-                  all connect into a stronger authority engine.
-                </mark>
+                This preview only shows the first layer. The full roadmap goes deeper. Where Spartan
+                stands today. The assets already inside the business that have not been built yet.
+                Where the business can move next. And how the pieces connect into one authority
+                engine.
               </p>
               <p>
-                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  The call is not a pitch. It is a conversation worth having.
-                </mark>{" "}
-                I&rsquo;ll walk you through the full thinking, answer your questions, and if you
-                feel it&apos;s the right next step, we can talk about execution.
+                The call is not a pitch. It is a conversation worth having. I will walk you through
+                the whole picture, answer your questions, and if it feels like the right next step,
+                we can talk about execution.
               </p>
             </div>
 
@@ -1034,10 +959,13 @@ function NoteFromTaiSection() {
               decoding="async"
               className="mt-6 h-auto w-36 max-w-[28%] object-contain sm:w-40 md:w-44 lg:w-48"
             />
+            <p className="mt-1 text-[12px] font-semibold tracking-[0.08em]" style={{ color: navy }}>
+              Tai Shobajo
+            </p>
 
             <div
               ref={calendlyRootRef}
-              className="mt-10 rounded-2xl border p-6 sm:mt-14 sm:p-8"
+              className="mt-10 rounded-lg border p-6 sm:mt-14 sm:p-8"
               style={{
                 borderColor: "rgba(15,27,61,0.08)",
                 background:
@@ -1055,10 +983,10 @@ function NoteFromTaiSection() {
                 style={{
                   color: navy,
                   fontFamily: "Inter, system-ui, sans-serif",
-                  letterSpacing: "-0.01em",
+                  letterSpacing: "0",
                 }}
               >
-                Let&rsquo;s walk through the full roadmap together.
+                Let&rsquo;s walk the full roadmap together.
               </p>
 
               <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
@@ -1071,11 +999,14 @@ function NoteFromTaiSection() {
                   Book the walkthrough
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </button>
-                <div className="flex flex-col gap-1 text-[11px] font-medium tracking-[0.14em] text-[rgba(15,27,61,0.6)]">
-                  <span className="uppercase">Free · 30&nbsp;minutes · Zoom</span>
-                  <span className="text-[rgba(15,27,61,0.5)]">No pitch. Just the full thinking.</span>
+                <div className="flex flex-col gap-1 text-[11px] font-medium tracking-[0.1em] text-[rgba(15,27,61,0.6)]">
+                  <span>Free · 30 minutes · Zoom · No pitch, just the full thinking.</span>
                 </div>
               </div>
+
+              <p className="mt-8 max-w-[44rem] text-[12px] leading-relaxed text-[rgba(15,27,61,0.5)]">
+                If the timing is right, we should talk. If it is not, the work is here when it is.
+              </p>
 
               {calendlyRootRef.current && (
                 <PopupModal

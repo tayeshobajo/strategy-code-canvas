@@ -83,8 +83,13 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html { font-family: var(--font-sans); overflow-x: clip; }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    font-family: var(--font-sans);
+    overflow-x: clip;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -93,9 +98,20 @@
     overflow-x: clip;
   }
 
-  h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.02em; }
-  .font-display { font-family: var(--font-display); }
-  .font-mono { font-family: var(--font-mono); }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
 }
 
 /* Shared responsive shell padding for authenticated app main regions
@@ -128,7 +144,9 @@
    other site lists that want the same royal-tinted interaction model. */
 @utility row-interactive {
   cursor: pointer;
-  transition: background-color 200ms ease, box-shadow 200ms ease;
+  transition:
+    background-color 200ms ease,
+    box-shadow 200ms ease;
   &:hover {
     background-color: var(--row-hover-bg);
   }
@@ -152,8 +170,6 @@
   }
 }
 
-
-
 @utility eyebrow {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -167,14 +183,38 @@
   background-image:
     radial-gradient(ellipse 80% 60% at 20% 30%, oklch(0.22 0.07 262 / 0.5), transparent 60%),
     radial-gradient(ellipse 70% 50% at 85% 70%, oklch(0.2 0.06 262 / 0.4), transparent 60%),
-    repeating-radial-gradient(circle at 30% 40%, transparent 0, transparent 38px, oklch(1 0 0 / 0.025) 38px, oklch(1 0 0 / 0.025) 39px),
-    repeating-radial-gradient(circle at 75% 65%, transparent 0, transparent 44px, oklch(1 0 0 / 0.025) 44px, oklch(1 0 0 / 0.025) 45px);
+    repeating-radial-gradient(
+      circle at 30% 40%,
+      transparent 0,
+      transparent 38px,
+      oklch(1 0 0 / 0.025) 38px,
+      oklch(1 0 0 / 0.025) 39px
+    ),
+    repeating-radial-gradient(
+      circle at 75% 65%,
+      transparent 0,
+      transparent 44px,
+      oklch(1 0 0 / 0.025) 44px,
+      oklch(1 0 0 / 0.025) 45px
+    );
 }
 
 @utility hero-texture {
   background-image:
-    repeating-radial-gradient(ellipse 60% 45% at 25% 35%, transparent 0, transparent 52px, oklch(0.13 0.05 265 / 0.04) 52px, oklch(0.13 0.05 265 / 0.04) 53px),
-    repeating-radial-gradient(ellipse 50% 40% at 70% 65%, transparent 0, transparent 64px, oklch(0.13 0.05 265 / 0.035) 64px, oklch(0.13 0.05 265 / 0.035) 65px),
+    repeating-radial-gradient(
+      ellipse 60% 45% at 25% 35%,
+      transparent 0,
+      transparent 52px,
+      oklch(0.13 0.05 265 / 0.04) 52px,
+      oklch(0.13 0.05 265 / 0.04) 53px
+    ),
+    repeating-radial-gradient(
+      ellipse 50% 40% at 70% 65%,
+      transparent 0,
+      transparent 64px,
+      oklch(0.13 0.05 265 / 0.035) 64px,
+      oklch(0.13 0.05 265 / 0.035) 65px
+    ),
     url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.08  0 0 0 0 0.08  0 0 0 0 0.15  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -183,7 +223,13 @@
   background-image:
     radial-gradient(ellipse 60% 45% at 15% 0%, oklch(1 0 0 / 0.45), transparent 60%),
     radial-gradient(ellipse 50% 40% at 90% 100%, oklch(0.85 0.03 75 / 0.35), transparent 65%),
-    repeating-radial-gradient(ellipse 70% 50% at 30% 40%, transparent 0, transparent 58px, oklch(0.35 0.04 70 / 0.04) 58px, oklch(0.35 0.04 70 / 0.04) 59px),
+    repeating-radial-gradient(
+      ellipse 70% 50% at 30% 40%,
+      transparent 0,
+      transparent 58px,
+      oklch(0.35 0.04 70 / 0.04) 58px,
+      oklch(0.35 0.04 70 / 0.04) 59px
+    ),
     url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.28  0 0 0 0 0.18  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -209,13 +255,23 @@
 }
 
 @keyframes cta-rule {
-  from { width: 0; }
-  to { width: 36px; }
+  from {
+    width: 0;
+  }
+  to {
+    width: 36px;
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -223,7 +279,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .animate-fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 /* ---------- Scroll-triggered reveal system ---------- */
@@ -234,10 +294,18 @@
     opacity 700ms cubic-bezier(0.2, 0.6, 0.2, 1) var(--reveal-delay, 0ms),
     transform 700ms cubic-bezier(0.2, 0.6, 0.2, 1) var(--reveal-delay, 0ms);
 }
-[data-reveal="fade"]       { transform: none; }
-[data-reveal="fade-up"]    { transform: translateY(14px); }
-[data-reveal="rise"]       { transform: translateY(24px); }
-[data-reveal="fade-right"] { transform: translateX(28px); }
+[data-reveal="fade"] {
+  transform: none;
+}
+[data-reveal="fade-up"] {
+  transform: translateY(14px);
+}
+[data-reveal="rise"] {
+  transform: translateY(24px);
+}
+[data-reveal="fade-right"] {
+  transform: translateX(28px);
+}
 
 [data-reveal][data-revealed="true"] {
   opacity: 1;
@@ -246,19 +314,37 @@
 
 /* ---------- Diagram-specific keyframes ---------- */
 @keyframes draw-stroke {
-  to { stroke-dashoffset: 0; }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 @keyframes scale-pop {
-  from { transform: scale(0); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 @keyframes pulse-soft {
-  0%, 100% { opacity: 0.55; }
-  50%      { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 @keyframes drift-y {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-4px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 /* Icon stroke draw-in when parent reveals */
@@ -269,7 +355,6 @@
 [data-reveal-icons][data-revealed="true"] svg :is(path, circle, rect, ellipse) {
   animation: draw-stroke 1100ms cubic-bezier(0.2, 0.6, 0.2, 1) var(--reveal-delay, 0ms) forwards;
 }
-
 
 /* SVG diagram revealed state hooks */
 .svg-reveal [data-anim="line"] {
@@ -307,36 +392,53 @@
 }
 
 /* Continuous gentle motion utilities */
-.drift { animation: drift-y 6s ease-in-out infinite; }
-.pulse-dot { animation: pulse-soft 3.2s ease-in-out infinite; }
+.drift {
+  animation: drift-y 6s ease-in-out infinite;
+}
+.pulse-dot {
+  animation: pulse-soft 3.2s ease-in-out infinite;
+}
 
 /* ---------- Ambient motion layer ---------- */
 @keyframes ambient-drift {
-  0%   { transform: translate3d(-3%, -2%, 0) scale(1.05); }
-  50%  { transform: translate3d(3%, 2%, 0) scale(1.1); }
-  100% { transform: translate3d(-3%, -2%, 0) scale(1.05); }
+  0% {
+    transform: translate3d(-3%, -2%, 0) scale(1.05);
+  }
+  50% {
+    transform: translate3d(3%, 2%, 0) scale(1.1);
+  }
+  100% {
+    transform: translate3d(-3%, -2%, 0) scale(1.05);
+  }
 }
 @keyframes dust-drift {
-  0%   { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(-40px, -28px, 0); }
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-40px, -28px, 0);
+  }
 }
 .ambient-layer {
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
   mix-blend-mode: multiply;
 }
 .ambient-layer .ambient-gradient {
-  position: absolute; inset: -10%;
+  position: absolute;
+  inset: -10%;
   background:
-    radial-gradient(ellipse 50% 40% at 18% 22%, oklch(0.72 0.12 262 / 0.10), transparent 60%),
-    radial-gradient(ellipse 45% 38% at 82% 78%, oklch(0.65 0.10 60 / 0.08), transparent 65%);
+    radial-gradient(ellipse 50% 40% at 18% 22%, oklch(0.72 0.12 262 / 0.1), transparent 60%),
+    radial-gradient(ellipse 45% 38% at 82% 78%, oklch(0.65 0.1 60 / 0.08), transparent 65%);
   animation: ambient-drift 38s ease-in-out infinite;
   will-change: transform;
 }
 .ambient-layer .ambient-dust {
-  position: absolute; inset: -20%;
+  position: absolute;
+  inset: -20%;
   opacity: 0.32;
   background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.16  0 0 0 0 0.22  0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   animation: dust-drift 24s linear infinite;
@@ -347,9 +449,13 @@
 .ms-item {
   position: relative;
   cursor: pointer;
-  transition: background-color 300ms ease, padding-left 400ms cubic-bezier(0.2, 0.6, 0.2, 1);
+  transition:
+    background-color 300ms ease,
+    padding-left 400ms cubic-bezier(0.2, 0.6, 0.2, 1);
 }
-.ms-item:hover { background-color: oklch(0.97 0.012 260 / 0.6); }
+.ms-item:hover {
+  background-color: oklch(0.97 0.012 260 / 0.6);
+}
 .ms-item[data-active="true"] {
   padding-left: 14px;
   background-color: oklch(0.97 0.018 260 / 0.85);
@@ -357,15 +463,21 @@
 .ms-item::before {
   content: "";
   position: absolute;
-  left: 0; top: 50%;
-  height: 0; width: 2px;
+  left: 0;
+  top: 50%;
+  height: 0;
+  width: 2px;
   background: var(--royal);
   transform: translateY(-50%);
   transition: height 400ms cubic-bezier(0.2, 0.6, 0.2, 1);
 }
-.ms-item[data-active="true"]::before { height: 70%; }
+.ms-item[data-active="true"]::before {
+  height: 70%;
+}
 .ms-item .ms-dot {
-  transition: transform 400ms cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 400ms ease;
+  transition:
+    transform 400ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 400ms ease;
 }
 .ms-item[data-active="true"] .ms-dot {
   transform: scale(1.5);
@@ -376,12 +488,30 @@
 .ms-detail > * {
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity 500ms cubic-bezier(0.2, 0.6, 0.2, 1), transform 500ms cubic-bezier(0.2, 0.6, 0.2, 1);
+  transition:
+    opacity 500ms cubic-bezier(0.2, 0.6, 0.2, 1),
+    transform 500ms cubic-bezier(0.2, 0.6, 0.2, 1);
 }
-.ms-detail[data-state="in"] > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 60ms; }
-.ms-detail[data-state="in"] > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 160ms; }
-.ms-detail[data-state="in"] > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 260ms; }
-.ms-detail[data-state="in"] > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 360ms; }
+.ms-detail[data-state="in"] > *:nth-child(1) {
+  opacity: 1;
+  transform: none;
+  transition-delay: 60ms;
+}
+.ms-detail[data-state="in"] > *:nth-child(2) {
+  opacity: 1;
+  transform: none;
+  transition-delay: 160ms;
+}
+.ms-detail[data-state="in"] > *:nth-child(3) {
+  opacity: 1;
+  transform: none;
+  transition-delay: 260ms;
+}
+.ms-detail[data-state="in"] > *:nth-child(4) {
+  opacity: 1;
+  transform: none;
+  transition-delay: 360ms;
+}
 
 .ms-bar-track {
   position: relative;
@@ -391,7 +521,8 @@
   overflow: hidden;
 }
 .ms-bar-fill {
-  position: absolute; inset: 0 auto 0 0;
+  position: absolute;
+  inset: 0 auto 0 0;
   background: linear-gradient(to right, var(--royal), oklch(0.62 0.16 262));
   border-radius: 999px;
   width: 0%;
@@ -399,21 +530,42 @@
 }
 
 /* Mapped-path active highlight */
-.path-active-marker { transition: transform 700ms cubic-bezier(0.2, 0.6, 0.2, 1); will-change: transform; }
-.path-active-marker circle { animation: pulse-soft 2.6s ease-in-out infinite; }
-.path-progress { transition: stroke-dashoffset 900ms cubic-bezier(0.2, 0.6, 0.2, 1); }
-.path-point { transition: opacity 400ms ease; }
-.path-point[data-state="dim"] { opacity: 0.35; }
+.path-active-marker {
+  transition: transform 700ms cubic-bezier(0.2, 0.6, 0.2, 1);
+  will-change: transform;
+}
+.path-active-marker circle {
+  animation: pulse-soft 2.6s ease-in-out infinite;
+}
+.path-progress {
+  transition: stroke-dashoffset 900ms cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.path-point {
+  transition: opacity 400ms ease;
+}
+.path-point[data-state="dim"] {
+  opacity: 0.35;
+}
 
 /* Reduced motion: short-circuit */
 /* ---------- Roadmap (home) build-order chart ---------- */
 @keyframes seg-grow {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 @keyframes row-fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .roadmap-rows[data-animate="true"] .roadmap-row {
   opacity: 0;
@@ -429,11 +581,17 @@
 
 /* Hairline rule under hero accent draws in */
 @keyframes hairline-draw {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 .hero-hairline {
-  display: block; height: 1px; width: 64px;
+  display: block;
+  height: 1px;
+  width: 64px;
   background: var(--royal);
   transform-origin: left center;
   animation: hairline-draw 900ms cubic-bezier(0.2, 0.6, 0.2, 1) 700ms both;
@@ -441,7 +599,9 @@
 
 /* Pricing featured-card settle-lift on enter */
 .price-card-featured {
-  transition: transform 700ms cubic-bezier(0.2, 0.6, 0.2, 1), box-shadow 700ms cubic-bezier(0.2, 0.6, 0.2, 1);
+  transition:
+    transform 700ms cubic-bezier(0.2, 0.6, 0.2, 1),
+    box-shadow 700ms cubic-bezier(0.2, 0.6, 0.2, 1);
 }
 [data-revealed="true"].price-card-featured,
 [data-revealed="true"] .price-card-featured {
@@ -457,13 +617,20 @@
   transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .il-pill > rect {
-  transition: fill 220ms ease, stroke 220ms ease, stroke-width 220ms ease;
+  transition:
+    fill 220ms ease,
+    stroke 220ms ease,
+    stroke-width 220ms ease;
 }
 .il-pill > text {
   transition: fill 220ms ease;
 }
-.il-pill:hover { transform: scale(1.05); }
-.il-pill.is-active { transform: scale(1.06); }
+.il-pill:hover {
+  transform: scale(1.05);
+}
+.il-pill.is-active {
+  transform: scale(1.06);
+}
 .il-pill:focus-visible > rect {
   stroke: #ffffff;
   stroke-width: 2;
@@ -471,27 +638,55 @@
 .il-pill:focus-visible {
   filter: drop-shadow(0 0 6px rgba(122, 166, 255, 0.7));
 }
-.il-pill:active { transform: scale(0.97); transition-duration: 120ms; }
+.il-pill:active {
+  transform: scale(0.97);
+  transition-duration: 120ms;
+}
 
-.il-connector { transition: stroke 220ms ease, stroke-width 220ms ease; }
+.il-connector {
+  transition:
+    stroke 220ms ease,
+    stroke-width 220ms ease;
+}
 .il-connector.is-active {
   stroke-dasharray: 4 8;
   animation: il-flow 1.2s linear infinite;
 }
 @keyframes il-flow {
-  to { stroke-dashoffset: -24; }
+  to {
+    stroke-dashoffset: -24;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .il-pill, .il-pill > rect, .il-pill > text, .il-connector { transition: none; }
-  .il-pill:hover, .il-pill.is-active, .il-pill:active { transform: none; }
-  .il-connector.is-active { animation: none; stroke-dasharray: none; }
+  .il-pill,
+  .il-pill > rect,
+  .il-pill > text,
+  .il-connector {
+    transition: none;
+  }
+  .il-pill:hover,
+  .il-pill.is-active,
+  .il-pill:active {
+    transform: none;
+  }
+  .il-connector.is-active {
+    animation: none;
+    stroke-dasharray: none;
+  }
 }
 
 /* ---------- About page animations ---------- */
 @keyframes star-twinkle {
-  0%, 100% { opacity: var(--o-min, 0.25); transform: scale(0.85); }
-  50%      { opacity: var(--o-max, 1);    transform: scale(1.2); }
+  0%,
+  100% {
+    opacity: var(--o-min, 0.25);
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: var(--o-max, 1);
+    transform: scale(1.2);
+  }
 }
 .twinkle-star {
   transform-origin: center;
@@ -501,9 +696,19 @@
 }
 
 @keyframes pattern-converge {
-  0%, 100% { transform: translate(0, 0); opacity: var(--o, 0.5); }
-  45%      { transform: translate(var(--dx, 0px), var(--dy, 0px)); opacity: calc(var(--o, 0.5) * 0.35); }
-  55%      { transform: translate(var(--dx, 0px), var(--dy, 0px)); opacity: calc(var(--o, 0.5) * 0.35); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: var(--o, 0.5);
+  }
+  45% {
+    transform: translate(var(--dx, 0px), var(--dy, 0px));
+    opacity: calc(var(--o, 0.5) * 0.35);
+  }
+  55% {
+    transform: translate(var(--dx, 0px), var(--dy, 0px));
+    opacity: calc(var(--o, 0.5) * 0.35);
+  }
 }
 .pattern-dot {
   transform-origin: center;
@@ -513,13 +718,24 @@
 }
 
 @keyframes path-march {
-  to { stroke-dashoffset: -9; }
+  to {
+    stroke-dashoffset: -9;
+  }
 }
-.path-march { animation: path-march 1.4s linear infinite; }
+.path-march {
+  animation: path-march 1.4s linear infinite;
+}
 
 @keyframes ring-breathe {
-  0%, 100% { transform: scale(1);    opacity: 0.55; }
-  50%      { transform: scale(1.12); opacity: 1; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
 }
 .ring-breathe {
   transform-origin: center;
@@ -529,8 +745,12 @@
 }
 
 @keyframes plane-trail-draw {
-  from { stroke-dashoffset: var(--len, 800); }
-  to   { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: var(--len, 800);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 .plane-trail {
   stroke-dasharray: 3 6;
@@ -561,46 +781,110 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .twinkle-star, .pattern-dot, .path-march, .ring-breathe { animation: none !important; transform: none !important; }
-  .plane-trail { stroke-dashoffset: 0 !important; animation: none !important; }
+  .twinkle-star,
+  .pattern-dot,
+  .path-march,
+  .ring-breathe {
+    animation: none !important;
+    transform: none !important;
+  }
+  .plane-trail {
+    stroke-dashoffset: 0 !important;
+    animation: none !important;
+  }
 }
 
 /* Reduced motion: short-circuit */
 @media (prefers-reduced-motion: reduce) {
-  [data-reveal] { opacity: 1 !important; transform: none !important; transition: none !important; }
-  .svg-reveal [data-anim] { opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; animation: none !important; }
-  .connector-grow { transform: scaleX(1) !important; transition: none !important; }
-  .drift, .pulse-dot { animation: none !important; }
-  .ambient-layer { display: none !important; }
-  .ms-detail > * { opacity: 1 !important; transform: none !important; transition: none !important; }
-  .path-active-marker circle { animation: none !important; }
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .svg-reveal [data-anim] {
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+    animation: none !important;
+  }
+  .connector-grow {
+    transform: scaleX(1) !important;
+    transition: none !important;
+  }
+  .drift,
+  .pulse-dot {
+    animation: none !important;
+  }
+  .ambient-layer {
+    display: none !important;
+  }
+  .ms-detail > * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .path-active-marker circle {
+    animation: none !important;
+  }
   .roadmap-rows[data-animate="true"] .roadmap-row,
-  .roadmap-rows[data-animate="true"] .roadmap-seg { opacity: 1 !important; transform: none !important; animation: none !important; }
-  .hero-hairline { transform: scaleX(1) !important; animation: none !important; }
-  .price-card-featured { transform: none !important; box-shadow: none !important; transition: none !important; }
-  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+  .roadmap-rows[data-animate="true"] .roadmap-seg {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  .hero-hairline {
+    transform: scaleX(1) !important;
+    animation: none !important;
+  }
+  .price-card-featured {
+    transform: none !important;
+    box-shadow: none !important;
+    transition: none !important;
+  }
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
-
-
-
 
 /* Roadmap canvas — premium motion tokens */
 @keyframes roadmap-active-pulse {
-  0%, 100% { opacity: 0.95; }
-  50% { opacity: 0.55; }
+  0%,
+  100% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
-.roadmap-active-segment { animation: roadmap-active-pulse 2.4s ease-in-out infinite; }
+.roadmap-active-segment {
+  animation: roadmap-active-pulse 2.4s ease-in-out infinite;
+}
 
 @keyframes roadmap-phase-glow-pulse {
-  0%, 100% { opacity: 0.06; }
-  50% { opacity: 0.12; }
+  0%,
+  100% {
+    opacity: 0.06;
+  }
+  50% {
+    opacity: 0.12;
+  }
 }
-.roadmap-phase-glow { animation: roadmap-phase-glow-pulse 4s ease-in-out infinite; }
+.roadmap-phase-glow {
+  animation: roadmap-phase-glow-pulse 4s ease-in-out infinite;
+}
 
 /* Calm breathing halo for in-progress milestone nodes. No rotation. */
 @keyframes roadmap-node-breathe {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50% { opacity: 0.75; transform: scale(1.14); }
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.14);
+  }
 }
 .roadmap-node-breathe {
   animation: roadmap-node-breathe 2.6s ease-in-out infinite;
@@ -609,29 +893,46 @@
 
 /* Slow shimmer along the current phase spine segment. */
 @keyframes roadmap-path-shimmer {
-  0% { stroke-dashoffset: 0; opacity: 0.55; }
-  50% { opacity: 0.9; }
-  100% { stroke-dashoffset: -80; opacity: 0.55; }
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    stroke-dashoffset: -80;
+    opacity: 0.55;
+  }
 }
 .roadmap-path-shimmer {
   animation: roadmap-path-shimmer 5.5s linear infinite;
 }
 
 /* Territory hover polish — subtle brighten. */
-.roadmap-territory { transition: opacity 320ms ease-out, background 320ms ease-out; }
-.roadmap-territory[data-hover="true"] { opacity: 1 !important; }
+.roadmap-territory {
+  transition:
+    opacity 320ms ease-out,
+    background 320ms ease-out;
+}
+.roadmap-territory[data-hover="true"] {
+  opacity: 1 !important;
+}
 
 /* Highlighted route segment — a bright warm shimmer that draws the eye
    to whatever the user just selected (marker click, mini-map click, drawer
    prev/next). Peaks brighter than the ambient active-segment pulse. */
 @keyframes roadmap-highlighted-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
-    filter: drop-shadow(0 0 12px rgba(255,211,122,0.7)) drop-shadow(0 0 4px rgba(255,255,255,0.5));
+    filter: drop-shadow(0 0 12px rgba(255, 211, 122, 0.7))
+      drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
   }
   50% {
     opacity: 0.85;
-    filter: drop-shadow(0 0 24px rgba(255,211,122,0.95)) drop-shadow(0 0 8px rgba(255,255,255,0.75));
+    filter: drop-shadow(0 0 24px rgba(255, 211, 122, 0.95))
+      drop-shadow(0 0 8px rgba(255, 255, 255, 0.75));
   }
 }
 .roadmap-highlighted-segment {
@@ -643,10 +944,10 @@
   .roadmap-phase-glow,
   .roadmap-node-breathe,
   .roadmap-path-shimmer,
-  .roadmap-highlighted-segment { animation: none !important; }
+  .roadmap-highlighted-segment {
+    animation: none !important;
+  }
 }
-
-
 
 /* ================================================================
  * Client roadmap presets (Spartan and future client preview pages).
@@ -656,12 +957,23 @@
   font-size: 12.75px;
   line-height: 1.55;
 }
+.spartan-deck h1,
+.spartan-deck h2,
+.spartan-deck h3,
+.spartan-deck h4 {
+  letter-spacing: 0;
+}
 .spartan-deck .slide-snap {
   min-height: 100dvh;
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
 @keyframes spartan-button-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.45); }
-  50% { box-shadow: 0 0 0 10px rgba(230, 57, 70, 0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(230, 57, 70, 0);
+  }
 }
