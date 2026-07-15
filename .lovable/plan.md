@@ -1,25 +1,37 @@
 ## Goal
 
-The `/clients/spartan` page was seeded from source project `b6eb7494…` but only 12 of the 30+ images the original roadmap uses were copied, and the route was trimmed from 1102 lines to 963. Pull the remaining images and restore full parity so the page matches the source.
+Make the sections below the hero on `/clients/spartan` feel consistent: a single shared max-width container and one typographic voice (Inter) across Point A, Market Gap, and Note from Tai.
 
-## Steps
+## Current inconsistency
 
-1. **Copy missing asset pointers** from source project into `src/assets/clients/spartan/` (`.asset.json` files are tiny CDN pointers — no re-upload needed):
-   - Hero variants: `spartan-hero.jpg`, `hero-suv.jpg`, `hero-officer.jpg`, `hero-officer-v2.jpg`, `hero-patch.jpg`, plus raw `hero-officer-skyline.jpg` and `hero-guard.jpg`
-   - Point A extras: `pointA-texture.png`, `pointA-letter.png`, `pointA-shape-frame.png`
-   - Hidden opportunities: `hidden-data.jpg`, `hidden-instructor.jpg`, `hidden-trainees.jpg`, `hidden-opportunities.jpg`, `hidden-opportunities-new.jpg`
-   - Investment icons: `inv-sneaker.png`, `inv-runner.png`, `inv-rocket.png`
-   - Destination: `destination-skyline.jpg`, `destination-pointc.jpg`
-   - Levers: `lever-01-pages.jpg`, `lever-02-ai.jpg`, `lever-03-content.jpg`, `lever-04-trust.jpg`
-   - Market-gap extras: `market-gap-google.png`, `market-gap-google-v2.png`, `market-gap-google-v3.png`, `website-security-feature.png`
-   - Build-path (new subdir `src/assets/clients/spartan/build-path/`): `m01-website-spartan-v4.png`, `m02-seo-dashboard.png`, `m03-content-new.png`, `m04-assistant-new.png`, `m05-academy-new.png`
-   - Raw `spartan-logo.png`
+- **Widths differ per section:**
+  - Point A: `max-w-[1400px]` with `px-5 → xl:px-28`
+  - Market Gap: no max-width wrapper on the section body (grid stretches edge-to-edge inside a full-bleed navy band)
+  - Note from Tai: `max-w-6xl` (1152px)
+- **Fonts differ per section:** Inter is used for the hero and most headings, but decorative pull-quotes, the Market Gap Q&A body, and the CTA hook use `'Instrument Serif' / Playfair / Georgia`, plus one `'IBM Plex Mono'` inline label. (Georgia/Arial Black also appear inside the fake-SERP mocks — leave those, they're intentional brand mimicry.)
 
-2. **Replace `src/routes/clients.spartan.tsx`** with the full source route body (all 1102 lines), rewriting every `@/assets/...` import to `@/assets/clients/spartan/...`. Keep the current wrapper additions (SiteHeader/SiteFooter, indexable head metadata, `.spartan-deck` scoping class).
+## Changes to `src/routes/clients.spartan.tsx`
 
-3. **Verify** with `bun run build:dev` and a Playwright screenshot pass to confirm every section renders images (hero, Point A, market gaps, hidden opportunities, investment stones, destination, build path modules, levers).
+1. **Shared container.** Standardize all three below-hero sections on the same inner wrapper: `mx-auto max-w-[1240px] px-5 sm:px-8 md:px-12 lg:px-16`.
+   - Point A: change `max-w-[1400px] … xl:px-28` → shared wrapper.
+   - Market Gap: wrap the grid in the shared container so it no longer bleeds full-width inside the navy band. Keep the navy background full-bleed; only constrain the content.
+   - Note from Tai: change `max-w-6xl` → shared wrapper.
+
+2. **Typography → Inter everywhere below the hero.** Remove serif/mono `fontFamily` overrides on:
+   - Point A pull-quote (~line 350)
+   - Market Gap red "Q." glyph (~line 842) and Q text (~line 848)
+   - Market Gap inline mono tag (~line 895)
+   - Note-from-Tai CTA hook line (~line 1048)
+   Replace with `fontFamily: "Inter, system-ui, sans-serif"` and use weight/size/italic/tracking to preserve editorial emphasis (e.g. italic + lighter weight for the pull-quote).
+   Leave the SERP mockup fonts (Georgia/Arial Black on lines 470, 493) untouched.
+
+3. **Preserve everything else** — no copy, layout/section, image, or hero changes.
+
+## Verification
+
+- Playwright screenshots at 1440px and 390px confirming shared gutters and no serif/mono type outside the intentional SERP mocks.
+- `bun run build:dev` clean.
 
 ## Out of scope
 
-- No changes to shared components, `SiteHeader`/`SiteFooter`, styles.css tokens, or any other route.
-- No content edits to the Spartan copy — pure asset + parity restore.
+- Hero section, SERP mockup typography, content/imagery/CTA behavior.

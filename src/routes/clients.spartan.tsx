@@ -285,7 +285,7 @@ function CurrentStateSection() {
       className="relative w-full overflow-hidden"
       style={{ backgroundColor: "#ffffff" }}
     >
-      <div className="mx-auto flex min-h-full max-w-[1400px] flex-col px-5 py-10 sm:px-8 sm:py-14 md:px-16 md:py-16 lg:px-24 lg:py-20 xl:px-28">
+      <div className="mx-auto flex min-h-full max-w-[1240px] flex-col px-5 py-10 sm:px-8 sm:py-14 md:px-12 md:py-16 lg:px-16 lg:py-20">
         <div className="mb-6 text-center sm:mb-10 md:mb-12">
           <div className="hidden items-center justify-center gap-3 md:flex">
             <span className="text-[11px] font-black tracking-[0.32em]" style={{ color: "#E63946" }}>
@@ -344,19 +344,20 @@ function CurrentStateSection() {
 
           <div className="flex h-full flex-col gap-8 sm:gap-10">
             <p
-              className="text-[20px] not-italic leading-[1.25] sm:text-[24px] md:text-[28px] lg:text-[32px]"
+              className="text-[20px] font-light italic leading-[1.3] sm:text-[22px] md:text-[26px] lg:text-[28px]"
               style={{
                 color: "#0B1B3A",
-                fontFamily: "'Instrument Serif', 'Playfair Display', Georgia, serif",
-                letterSpacing: "-0.005em",
+                fontFamily: "Inter, system-ui, sans-serif",
+                letterSpacing: "-0.01em",
               }}
             >
               Spartan already has a business{" "}
-              <span className="font-bold not-italic" style={{ color: "#E63946" }}>
+              <span className="font-semibold not-italic" style={{ color: "#E63946" }}>
                 worth making more visible
               </span>
               .
             </p>
+
 
             <div
               className="space-y-5 text-[14px] leading-[1.75] sm:space-y-6 sm:text-[15px] sm:leading-[1.8]"
@@ -691,12 +692,11 @@ function HiddenOpportunitiesSection() {
   return (
     <section
       id="section-2"
-      className="relative flex w-full flex-col"
-      style={{ backgroundColor: navy }}
+      className="relative flex w-full flex-col bg-white"
     >
 
       <div className="w-full bg-white">
-        <div className="flex flex-col items-center justify-center px-6 pt-8 pb-5 text-center sm:pt-14 sm:pb-8 md:pt-16 md:pb-10 lg:pt-20 lg:pb-12">
+        <div className="mx-auto flex max-w-[1240px] flex-col items-center justify-center px-5 pt-8 pb-5 text-center sm:px-8 sm:pt-14 sm:pb-8 md:px-12 md:pt-16 md:pb-10 lg:px-16 lg:pt-20 lg:pb-12">
           <div className="hidden items-center gap-3 md:flex">
             <span className="text-[11px] font-black tracking-[0.32em]" style={{ color: red }}>
               02
@@ -723,7 +723,8 @@ function HiddenOpportunitiesSection() {
         </div>
       </div>
 
-      <div className="grid w-full grid-cols-1 bg-white lg:grid-cols-12">
+      <div className="mx-auto grid w-full max-w-[1240px] grid-cols-1 bg-white lg:grid-cols-12">
+
         <div className="flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12">
           <div className="flex flex-1 flex-col">
             <div key={`h-${index}`} className="space-y-3">
@@ -838,17 +839,18 @@ function HiddenOpportunitiesSection() {
           <div key={`q-${index}`} className="relative mb-6 sm:mb-8">
             <span
               aria-hidden
-              className="absolute -left-3 -top-5 text-[48px] leading-none opacity-25 sm:-left-4 sm:-top-6 sm:text-[64px]"
-              style={{ color: red, fontFamily: "'Instrument Serif', Georgia, serif" }}
+              className="absolute -left-3 -top-5 text-[48px] font-light leading-none opacity-30 sm:-left-4 sm:-top-6 sm:text-[64px]"
+              style={{ color: red, fontFamily: "Inter, system-ui, sans-serif" }}
             >
               &ldquo;
             </span>
             <p
-              className="text-[15px] not-italic leading-[1.3] text-white sm:text-[19px] md:text-[21px] lg:text-[22px]"
-              style={{ fontFamily: "'Instrument Serif', 'Playfair Display', Georgia, serif" }}
+              className="text-[16px] font-light italic leading-[1.4] text-white sm:text-[19px] md:text-[21px] lg:text-[22px]"
+              style={{ fontFamily: "Inter, system-ui, sans-serif", letterSpacing: "-0.005em" }}
             >
               {slide.pullQuote}
             </p>
+
           </div>
 
           <div className="relative flex flex-col">
@@ -892,8 +894,9 @@ function HiddenOpportunitiesSection() {
                           {label ? (
                             <span
                               className="mr-1.5 font-bold"
-                              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                              style={{ fontFamily: "Inter, system-ui, sans-serif" }}
                             >
+
                               {label}
                             </span>
                           ) : null}
@@ -927,8 +930,9 @@ function NoteFromTaiSection() {
       className="relative flex w-full items-center bg-white"
     >
 
-      <div className="w-full px-5 py-8 sm:px-8 sm:py-14 md:px-14 md:py-20 lg:px-20 lg:py-24">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-8 sm:gap-10 lg:grid-cols-12 lg:gap-14">
+      <div className="w-full py-8 sm:py-14 md:py-20 lg:py-24">
+        <div className="mx-auto grid max-w-[1240px] grid-cols-1 items-start gap-8 px-5 sm:gap-10 sm:px-8 md:px-12 lg:grid-cols-12 lg:gap-14 lg:px-16">
+
           <div className="hidden lg:col-span-5 lg:block">
             <div
               className="mx-auto max-w-sm overflow-hidden rounded-2xl sm:max-w-md lg:max-w-none"
@@ -1042,14 +1046,16 @@ function NoteFromTaiSection() {
                 Next Step
               </div>
               <p
-                className="mt-3 text-[20px] leading-[1.25] sm:text-[24px] md:text-[26px]"
+                className="mt-3 text-[20px] font-light italic leading-[1.3] sm:text-[22px] md:text-[24px]"
                 style={{
                   color: navy,
-                  fontFamily: "'Instrument Serif', 'Playfair Display', Georgia, serif",
+                  fontFamily: "Inter, system-ui, sans-serif",
+                  letterSpacing: "-0.01em",
                 }}
               >
                 Let&rsquo;s walk through the full roadmap together.
               </p>
+
               <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
                 <button
                   type="button"
