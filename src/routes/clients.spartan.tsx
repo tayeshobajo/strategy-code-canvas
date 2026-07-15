@@ -621,7 +621,8 @@ function HiddenOpportunitiesSection() {
       </div>
 
       <div className="grid w-full grid-cols-1 bg-white lg:grid-cols-12">
-        <div className="relative flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12 xl:pl-32">
+        <div className="relative order-2 flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:order-none lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12 xl:pl-32">
+
           <div className="flex flex-1 flex-col">
             <div key={`h-${index}`} className="relative space-y-4">
               <span
@@ -743,8 +744,9 @@ function HiddenOpportunitiesSection() {
         </div>
 
         <div
-          className="relative flex flex-col justify-start overflow-hidden p-6 sm:p-8 md:p-10 lg:col-span-7 lg:p-10 xl:p-12"
+          className="relative order-1 flex flex-col justify-start overflow-hidden p-6 sm:p-8 md:p-10 lg:order-none lg:col-span-7 lg:p-10 xl:p-12"
           style={{ backgroundColor: navy }}
+
         >
           <div
             aria-hidden
