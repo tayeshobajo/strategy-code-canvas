@@ -622,21 +622,6 @@ function HiddenOpportunitiesSection() {
 
       <div className="grid w-full grid-cols-1 bg-white lg:grid-cols-12">
         <div className="relative flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12 xl:pl-32">
-          <div className="absolute left-8 top-24 hidden w-40 flex-col gap-2 xl:flex">
-            {slides.map((item, i) => (
-              <button
-                key={item.title}
-                type="button"
-                onClick={() => setIndex(i)}
-                className="flex items-center gap-2 text-left text-[10px] font-bold leading-tight transition-colors duration-200"
-                style={{ color: i === index ? red : "rgba(15,27,61,0.34)" }}
-              >
-                <span className="font-mono tabular-nums">{String(i + 1).padStart(2, "0")}</span>
-                <span>{item.title}</span>
-              </button>
-            ))}
-          </div>
-
           <div className="flex flex-1 flex-col">
             <div key={`h-${index}`} className="relative space-y-4">
               <span
