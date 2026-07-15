@@ -11,6 +11,7 @@ import {
   Calendar,
   Check,
   MapPin,
+  Target,
 } from "lucide-react";
 
 import { PopupModal } from "react-calendly";
@@ -494,7 +495,9 @@ type Slide = {
   title: string;
   lead: string;
   body: string;
-  unlock: string;
+  means: string;
+  unlockPayoff: string;
+  unlockSupport?: string;
   image: string;
   alt: string;
   urlBar: string;
@@ -515,7 +518,9 @@ function HiddenOpportunitiesSection() {
       title: "Being found first",
       lead: "When a Houston buyer searches, the first name they see gets the call.",
       body: "Buyers rarely start with a company name. They start with the problem, construction site security, warehouse patrol, a community that needs coverage overnight. Competitors are showing up first, and Spartan shows up strongest only when someone already knows to look for it. The credibility is there. Visibility is the gap, and it is the one that decides who gets the inquiry.",
-      unlock: "More qualified inquiries from buyers who did not already know the name.",
+      means: "Spartan can lose high-intent buyers before the website ever has a chance to convert them.",
+      unlockPayoff: "Capture demand before it reaches a competitor.",
+      unlockSupport: "More visibility in high-intent searches means more qualified Houston inquiries and a stronger pipeline.",
       urlBar: "google.com/search?q=security+guards+near+me",
       image: hiddenOppImg.url,
       alt: "Google search results for security services in Houston",
@@ -530,7 +535,9 @@ function HiddenOpportunitiesSection() {
       title: "Service pages",
       lead: "Buyers search the exact thing they need protected, not a company.",
       body: "A buyer is thinking about the site in front of them, a warehouse, a residential community, a retail property, an event. Spartan covers all of it. The site does not yet have a page for each, so a buyer who searches a specific need does not land on a page built for that need. A page per need is how a buyer knows, in seconds, that Spartan is the right call.",
-      unlock: "A clear path from each search straight to a page that speaks to that buyer.",
+      means: "A buyer searching a specific need lands on a general page, and a general page rarely feels like the right call.",
+      unlockPayoff: "Turn every search into the right first impression.",
+      unlockSupport: "A page built for each need, warehouse, retail, residential, event, so buyers see Spartan as the obvious fit in seconds.",
       urlBar: "competitor-security.com/services",
       image: mgServicesImg.url,
       alt: "Competitor security company website with specific service pages",
@@ -544,7 +551,9 @@ function HiddenOpportunitiesSection() {
       title: "Website security",
       lead: "The digital front door should feel as secure as the business behind it.",
       body: "Spartan protects properties, people, and operations in the real world. The website is the first thing a buyer touches, and it should carry the same standard, secure forms, backups, monitoring, and a process that catches issues early. For a security company, a site that feels unprotected is the one gap a buyer notices without being told.",
-      unlock: "A front door that reinforces the promise instead of quietly undercutting it.",
+      means: "For a security company, a site that feels unprotected quietly undercuts the one thing Spartan sells.",
+      unlockPayoff: "A front door that proves the promise.",
+      unlockSupport: "Secure forms, backups, and monitoring that make the website feel as protected as the business behind it.",
       urlBar: "spartan-security.com/website-security",
       image: websiteSecurityImg.url,
       alt: "Spartan Security Services website homepage showing professional security brand presence",
@@ -559,7 +568,9 @@ function HiddenOpportunitiesSection() {
       title: "SecureAI positioning",
       lead: "SecureAI is a reason to choose Spartan, not a footnote.",
       body: "SecureAI shows a buyer that Spartan thinks past basic coverage, that officers, patrol, and monitoring work as one. Right now it reads like a feature buried in the site. Positioned as the advantage it is, it becomes a reason a buyer picks Spartan over a cheaper name, and a path into higher-value contracts.",
-      unlock: "A premium differentiator buyers weigh before they ever compare on price.",
+      means: "Buried as a feature, SecureAI competes on price. Shown as an advantage, it competes on value.",
+      unlockPayoff: "A reason to choose Spartan over a cheaper name.",
+      unlockSupport: "Officers, patrol, and monitoring shown as one system, and a clear path into higher-value contracts.",
       urlBar: "spartan-security.com/secureai",
       image: mgSecureAIImg.url,
       alt: "SecureAI AI-powered security monitoring platform mockup",
@@ -574,7 +585,9 @@ function HiddenOpportunitiesSection() {
       title: "Trust proof",
       lead: "Costco, Greystar, Builders FirstSource. That proof should be doing more work.",
       body: "Spartan has earned names most security companies never will. Proof like that belongs on the front page, where a buyer sees it before they ever ask, showing that Spartan already handles real properties, real responsibility, and real pressure. Proof a buyer has to dig for is proof that is not yet paying its way.",
-      unlock: "Credibility that closes the buyer before the first call.",
+      means: "Proof a buyer has to dig for is proof that is not yet paying its way.",
+      unlockPayoff: "Close the buyer before the first call.",
+      unlockSupport: "Marquee clients on the front page, so credibility does the selling before anyone picks up the phone.",
       urlBar: "spartan-security.com/clients",
       image: mgTrustImg.url,
       alt: "Trust and client proof section with client logos and reviews",
@@ -588,7 +601,9 @@ function HiddenOpportunitiesSection() {
       title: "Content engine",
       lead: "Spartan already knows the market. The outside just cannot hear it yet.",
       body: "Years of field experience, Houston crime data, and a real point of view on what keeps a property safe. That knowledge is sitting in documents and in people's heads. A content engine turns it into the articles, guides, and posts buyers read and trust, built to run without adding to the team's week.",
-      unlock: "Authority that brings buyers and recruits in on their own.",
+      means: "Spartan's best knowledge sits in documents and in people's heads, where no buyer or recruit can find it.",
+      unlockPayoff: "Authority that brings buyers and recruits in on their own.",
+      unlockSupport: "Field experience and Houston data turned into content that runs without adding to the team's week.",
       urlBar: "spartan-security.com/insights",
       image: mgContentImg.url,
       alt: "Content and authority dashboard with blog and social posts",
@@ -680,20 +695,76 @@ function HiddenOpportunitiesSection() {
               <p>{slide.body}</p>
             </div>
 
-            <div className="mt-auto pt-8">
-              <div className="border-l-2 py-1 pl-4" style={{ borderColor: red }}>
-                <div className="text-[10px] font-black tracking-[0.2em]" style={{ color: red }}>
-                  What it unlocks
-                </div>
-                <p
-                  className="mt-2 text-[13px] font-semibold leading-[1.55] sm:text-[14px]"
-                  style={{ color: navy }}
+            <div className="mt-auto space-y-5 pt-8 sm:space-y-6">
+              {/* What this means — red-accented card */}
+              <div
+                key={`m-${index}`}
+                className="relative flex items-start gap-4 rounded-r-md border-l-[3px] p-4 sm:gap-5 sm:p-5"
+                style={{
+                  borderColor: red,
+                  backgroundColor: "rgba(230,57,70,0.045)",
+                }}
+              >
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12"
+                  style={{ backgroundColor: "rgba(230,57,70,0.12)" }}
                 >
-                  {slide.unlock}
-                </p>
+                  <TrendingUp className="h-5 w-5 sm:h-[22px] sm:w-[22px]" style={{ color: red }} />
+                </div>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <div
+                    className="text-[10px] font-black tracking-[0.22em] sm:text-[11px]"
+                    style={{ color: red }}
+                  >
+                    WHAT THIS MEANS
+                  </div>
+                  <p
+                    className="mt-1.5 text-[14px] font-semibold leading-[1.5] sm:text-[15px]"
+                    style={{ color: navy }}
+                  >
+                    {slide.means}
+                  </p>
+                </div>
+              </div>
+
+              {/* What it unlocks — blue-accented card */}
+              <div
+                key={`u-${index}`}
+                className="relative flex items-start gap-4 border-t pt-5 sm:gap-5 sm:pt-6"
+                style={{ borderColor: "rgba(15,27,61,0.10)" }}
+              >
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12"
+                  style={{ backgroundColor: "rgba(37,99,235,0.10)" }}
+                >
+                  <Target className="h-5 w-5 sm:h-[22px] sm:w-[22px]" style={{ color: "#2563EB" }} />
+                </div>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <div
+                    className="text-[10px] font-black tracking-[0.22em] sm:text-[11px]"
+                    style={{ color: "#2563EB" }}
+                  >
+                    WHAT IT UNLOCKS
+                  </div>
+                  <p
+                    className="mt-1.5 text-[14px] font-semibold leading-[1.5] sm:text-[15px]"
+                    style={{ color: navy }}
+                  >
+                    {slide.unlockPayoff}
+                  </p>
+                  {slide.unlockSupport ? (
+                    <p
+                      className="mt-1.5 text-[13px] leading-[1.6] sm:text-[13.5px]"
+                      style={{ color: muted }}
+                    >
+                      {slide.unlockSupport}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
+
 
           <div
             className="mt-6 flex items-center gap-3 rounded-lg border bg-white p-2 shadow-[0_8px_24px_-12px_rgba(15,27,61,0.15)] sm:gap-4"
