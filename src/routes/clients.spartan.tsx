@@ -719,7 +719,7 @@ function HiddenOpportunitiesSection() {
 
             <div
               key={`b-${index}`}
-              className="mt-6 text-[14px] leading-[1.68] sm:mt-7 sm:text-[15px] sm:leading-[1.72]"
+              className={`mt-6 text-[14px] leading-[1.68] sm:mt-7 sm:text-[15px] sm:leading-[1.72] animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}
               style={{ color: muted }}
             >
               <p>{slide.body}</p>
