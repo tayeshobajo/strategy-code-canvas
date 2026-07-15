@@ -102,18 +102,23 @@ import { Route as CheckoutWalkPaceRouteImport } from './routes/checkout.walk.$pa
 import { Route as ApiPublicSeedQaAccountRouteImport } from './routes/api/public/seed-qa-account'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as EngineProjectsProjectIdIndexRouteImport } from './routes/engine.projects.$projectId.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as EngineProjectsProjectIdWorkRouteImport } from './routes/engine.projects.$projectId.work'
 import { Route as EngineProjectsProjectIdUnderstandingRoomRouteImport } from './routes/engine.projects.$projectId.understanding-room'
 import { Route as EngineProjectsProjectIdSpiritFirstRouteImport } from './routes/engine.projects.$projectId.spirit-first'
 import { Route as EngineProjectsProjectIdSpineRouteImport } from './routes/engine.projects.$projectId.spine'
+import { Route as EngineProjectsProjectIdSourcesRouteImport } from './routes/engine.projects.$projectId.sources'
 import { Route as EngineProjectsProjectIdSolutionsRouteImport } from './routes/engine.projects.$projectId.solutions'
 import { Route as EngineProjectsProjectIdSignalRoomRouteImport } from './routes/engine.projects.$projectId.signal-room'
 import { Route as EngineProjectsProjectIdSequencingRouteImport } from './routes/engine.projects.$projectId.sequencing'
+import { Route as EngineProjectsProjectIdRoadmapRouteImport } from './routes/engine.projects.$projectId.roadmap'
 import { Route as EngineProjectsProjectIdQaFactoryRouteImport } from './routes/engine.projects.$projectId.qa-factory'
+import { Route as EngineProjectsProjectIdQaDeliveryRouteImport } from './routes/engine.projects.$projectId.qa-delivery'
 import { Route as EngineProjectsProjectIdPublishHistoryRouteImport } from './routes/engine.projects.$projectId.publish-history'
 import { Route as EngineProjectsProjectIdPreviewRouteImport } from './routes/engine.projects.$projectId.preview'
 import { Route as EngineProjectsProjectIdPointBRouteImport } from './routes/engine.projects.$projectId.point-b'
@@ -135,6 +140,7 @@ import { Route as EngineProjectsProjectIdEvidenceRouteImport } from './routes/en
 import { Route as EngineProjectsProjectIdEnginesRouteImport } from './routes/engine.projects.$projectId.engines'
 import { Route as EngineProjectsProjectIdDeliveryRouteImport } from './routes/engine.projects.$projectId.delivery'
 import { Route as EngineProjectsProjectIdDeadlinesRouteImport } from './routes/engine.projects.$projectId.deadlines'
+import { Route as EngineProjectsProjectIdClientViewRouteImport } from './routes/engine.projects.$projectId.client-view'
 import { Route as EngineProjectsProjectIdChatRouteImport } from './routes/engine.projects.$projectId.chat'
 import { Route as EngineProjectsProjectIdBuilderRouteImport } from './routes/engine.projects.$projectId.builder'
 import { Route as EngineProjectsProjectIdBuildExecutionRouteImport } from './routes/engine.projects.$projectId.build-execution'
@@ -627,6 +633,12 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngineProjectsProjectIdIndexRoute =
+  EngineProjectsProjectIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -655,6 +667,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngineProjectsProjectIdWorkRoute =
+  EngineProjectsProjectIdWorkRouteImport.update({
+    id: '/work',
+    path: '/work',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdUnderstandingRoomRoute =
   EngineProjectsProjectIdUnderstandingRoomRouteImport.update({
     id: '/understanding-room',
@@ -671,6 +689,12 @@ const EngineProjectsProjectIdSpineRoute =
   EngineProjectsProjectIdSpineRouteImport.update({
     id: '/spine',
     path: '/spine',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdSourcesRoute =
+  EngineProjectsProjectIdSourcesRouteImport.update({
+    id: '/sources',
+    path: '/sources',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
 const EngineProjectsProjectIdSolutionsRoute =
@@ -691,10 +715,22 @@ const EngineProjectsProjectIdSequencingRoute =
     path: '/sequencing',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdRoadmapRoute =
+  EngineProjectsProjectIdRoadmapRouteImport.update({
+    id: '/roadmap',
+    path: '/roadmap',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdQaFactoryRoute =
   EngineProjectsProjectIdQaFactoryRouteImport.update({
     id: '/qa-factory',
     path: '/qa-factory',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdQaDeliveryRoute =
+  EngineProjectsProjectIdQaDeliveryRouteImport.update({
+    id: '/qa-delivery',
+    path: '/qa-delivery',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
 const EngineProjectsProjectIdPublishHistoryRoute =
@@ -821,6 +857,12 @@ const EngineProjectsProjectIdDeadlinesRoute =
   EngineProjectsProjectIdDeadlinesRouteImport.update({
     id: '/deadlines',
     path: '/deadlines',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdClientViewRoute =
+  EngineProjectsProjectIdClientViewRouteImport.update({
+    id: '/client-view',
+    path: '/client-view',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
 const EngineProjectsProjectIdChatRoute =
@@ -1043,6 +1085,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
+  '/engine/projects/$projectId/client-view': typeof EngineProjectsProjectIdClientViewRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
@@ -1064,18 +1107,23 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
   '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
   '/engine/projects/$projectId/publish-history': typeof EngineProjectsProjectIdPublishHistoryRoute
+  '/engine/projects/$projectId/qa-delivery': typeof EngineProjectsProjectIdQaDeliveryRoute
   '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
+  '/engine/projects/$projectId/roadmap': typeof EngineProjectsProjectIdRoadmapRoute
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
+  '/engine/projects/$projectId/sources': typeof EngineProjectsProjectIdSourcesRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
+  '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/engine/projects/$projectId/': typeof EngineProjectsProjectIdIndexRoute
   '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
   '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
@@ -1165,7 +1213,6 @@ export interface FileRoutesByTo {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/seed-qa-account': typeof ApiPublicSeedQaAccountRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
-  '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
   '/engine/projects/new': typeof EngineProjectsNewRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/ops/editor/$id': typeof OpsEditorIdRoute
@@ -1184,6 +1231,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
+  '/engine/projects/$projectId/client-view': typeof EngineProjectsProjectIdClientViewRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
@@ -1205,18 +1253,23 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
   '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
   '/engine/projects/$projectId/publish-history': typeof EngineProjectsProjectIdPublishHistoryRoute
+  '/engine/projects/$projectId/qa-delivery': typeof EngineProjectsProjectIdQaDeliveryRoute
   '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
+  '/engine/projects/$projectId/roadmap': typeof EngineProjectsProjectIdRoadmapRoute
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
+  '/engine/projects/$projectId/sources': typeof EngineProjectsProjectIdSourcesRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
+  '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/engine/projects/$projectId': typeof EngineProjectsProjectIdIndexRoute
   '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
   '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
@@ -1332,6 +1385,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
   '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
   '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
+  '/engine/projects/$projectId/client-view': typeof EngineProjectsProjectIdClientViewRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
@@ -1353,18 +1407,23 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
   '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
   '/engine/projects/$projectId/publish-history': typeof EngineProjectsProjectIdPublishHistoryRoute
+  '/engine/projects/$projectId/qa-delivery': typeof EngineProjectsProjectIdQaDeliveryRoute
   '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
+  '/engine/projects/$projectId/roadmap': typeof EngineProjectsProjectIdRoadmapRoute
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
+  '/engine/projects/$projectId/sources': typeof EngineProjectsProjectIdSourcesRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
+  '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/engine/projects/$projectId/': typeof EngineProjectsProjectIdIndexRoute
   '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
   '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
@@ -1479,6 +1538,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/build-execution'
     | '/engine/projects/$projectId/builder'
     | '/engine/projects/$projectId/chat'
+    | '/engine/projects/$projectId/client-view'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
     | '/engine/projects/$projectId/engines'
@@ -1500,18 +1560,23 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/point-b'
     | '/engine/projects/$projectId/preview'
     | '/engine/projects/$projectId/publish-history'
+    | '/engine/projects/$projectId/qa-delivery'
     | '/engine/projects/$projectId/qa-factory'
+    | '/engine/projects/$projectId/roadmap'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/solutions'
+    | '/engine/projects/$projectId/sources'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
     | '/engine/projects/$projectId/understanding-room'
+    | '/engine/projects/$projectId/work'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/engine/projects/$projectId/'
     | '/engine/projects/$projectId/agent/costs'
     | '/engine/projects/$projectId/agent/permissions'
     | '/engine/projects/$projectId/agent/tasks'
@@ -1601,7 +1666,6 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/seed-qa-account'
     | '/checkout/walk/$pace'
-    | '/engine/projects/$projectId'
     | '/engine/projects/new'
     | '/lovable/email/suppression'
     | '/ops/editor/$id'
@@ -1620,6 +1684,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/build-execution'
     | '/engine/projects/$projectId/builder'
     | '/engine/projects/$projectId/chat'
+    | '/engine/projects/$projectId/client-view'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
     | '/engine/projects/$projectId/engines'
@@ -1641,18 +1706,23 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/point-b'
     | '/engine/projects/$projectId/preview'
     | '/engine/projects/$projectId/publish-history'
+    | '/engine/projects/$projectId/qa-delivery'
     | '/engine/projects/$projectId/qa-factory'
+    | '/engine/projects/$projectId/roadmap'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/solutions'
+    | '/engine/projects/$projectId/sources'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
     | '/engine/projects/$projectId/understanding-room'
+    | '/engine/projects/$projectId/work'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/engine/projects/$projectId'
     | '/engine/projects/$projectId/agent/costs'
     | '/engine/projects/$projectId/agent/permissions'
     | '/engine/projects/$projectId/agent/tasks'
@@ -1767,6 +1837,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/build-execution'
     | '/engine/projects/$projectId/builder'
     | '/engine/projects/$projectId/chat'
+    | '/engine/projects/$projectId/client-view'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
     | '/engine/projects/$projectId/engines'
@@ -1788,18 +1859,23 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/point-b'
     | '/engine/projects/$projectId/preview'
     | '/engine/projects/$projectId/publish-history'
+    | '/engine/projects/$projectId/qa-delivery'
     | '/engine/projects/$projectId/qa-factory'
+    | '/engine/projects/$projectId/roadmap'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/solutions'
+    | '/engine/projects/$projectId/sources'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
     | '/engine/projects/$projectId/understanding-room'
+    | '/engine/projects/$projectId/work'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/engine/projects/$projectId/'
     | '/engine/projects/$projectId/agent/costs'
     | '/engine/projects/$projectId/agent/permissions'
     | '/engine/projects/$projectId/agent/tasks'
@@ -2507,6 +2583,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engine/projects/$projectId/': {
+      id: '/engine/projects/$projectId/'
+      path: '/'
+      fullPath: '/engine/projects/$projectId/'
+      preLoaderRoute: typeof EngineProjectsProjectIdIndexRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -2542,6 +2625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engine/projects/$projectId/work': {
+      id: '/engine/projects/$projectId/work'
+      path: '/work'
+      fullPath: '/engine/projects/$projectId/work'
+      preLoaderRoute: typeof EngineProjectsProjectIdWorkRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/understanding-room': {
       id: '/engine/projects/$projectId/understanding-room'
       path: '/understanding-room'
@@ -2561,6 +2651,13 @@ declare module '@tanstack/react-router' {
       path: '/spine'
       fullPath: '/engine/projects/$projectId/spine'
       preLoaderRoute: typeof EngineProjectsProjectIdSpineRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/sources': {
+      id: '/engine/projects/$projectId/sources'
+      path: '/sources'
+      fullPath: '/engine/projects/$projectId/sources'
+      preLoaderRoute: typeof EngineProjectsProjectIdSourcesRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
     '/engine/projects/$projectId/solutions': {
@@ -2584,11 +2681,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdSequencingRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/roadmap': {
+      id: '/engine/projects/$projectId/roadmap'
+      path: '/roadmap'
+      fullPath: '/engine/projects/$projectId/roadmap'
+      preLoaderRoute: typeof EngineProjectsProjectIdRoadmapRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/qa-factory': {
       id: '/engine/projects/$projectId/qa-factory'
       path: '/qa-factory'
       fullPath: '/engine/projects/$projectId/qa-factory'
       preLoaderRoute: typeof EngineProjectsProjectIdQaFactoryRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/qa-delivery': {
+      id: '/engine/projects/$projectId/qa-delivery'
+      path: '/qa-delivery'
+      fullPath: '/engine/projects/$projectId/qa-delivery'
+      preLoaderRoute: typeof EngineProjectsProjectIdQaDeliveryRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
     '/engine/projects/$projectId/publish-history': {
@@ -2736,6 +2847,13 @@ declare module '@tanstack/react-router' {
       path: '/deadlines'
       fullPath: '/engine/projects/$projectId/deadlines'
       preLoaderRoute: typeof EngineProjectsProjectIdDeadlinesRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/client-view': {
+      id: '/engine/projects/$projectId/client-view'
+      path: '/client-view'
+      fullPath: '/engine/projects/$projectId/client-view'
+      preLoaderRoute: typeof EngineProjectsProjectIdClientViewRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
     '/engine/projects/$projectId/chat': {
@@ -3019,6 +3137,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdBuildExecutionRoute: typeof EngineProjectsProjectIdBuildExecutionRoute
   EngineProjectsProjectIdBuilderRoute: typeof EngineProjectsProjectIdBuilderRoute
   EngineProjectsProjectIdChatRoute: typeof EngineProjectsProjectIdChatRoute
+  EngineProjectsProjectIdClientViewRoute: typeof EngineProjectsProjectIdClientViewRoute
   EngineProjectsProjectIdDeadlinesRoute: typeof EngineProjectsProjectIdDeadlinesRoute
   EngineProjectsProjectIdDeliveryRoute: typeof EngineProjectsProjectIdDeliveryRoute
   EngineProjectsProjectIdEnginesRoute: typeof EngineProjectsProjectIdEnginesRouteWithChildren
@@ -3040,13 +3159,18 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdPointBRoute: typeof EngineProjectsProjectIdPointBRoute
   EngineProjectsProjectIdPreviewRoute: typeof EngineProjectsProjectIdPreviewRoute
   EngineProjectsProjectIdPublishHistoryRoute: typeof EngineProjectsProjectIdPublishHistoryRoute
+  EngineProjectsProjectIdQaDeliveryRoute: typeof EngineProjectsProjectIdQaDeliveryRoute
   EngineProjectsProjectIdQaFactoryRoute: typeof EngineProjectsProjectIdQaFactoryRoute
+  EngineProjectsProjectIdRoadmapRoute: typeof EngineProjectsProjectIdRoadmapRoute
   EngineProjectsProjectIdSequencingRoute: typeof EngineProjectsProjectIdSequencingRoute
   EngineProjectsProjectIdSignalRoomRoute: typeof EngineProjectsProjectIdSignalRoomRoute
   EngineProjectsProjectIdSolutionsRoute: typeof EngineProjectsProjectIdSolutionsRoute
+  EngineProjectsProjectIdSourcesRoute: typeof EngineProjectsProjectIdSourcesRoute
   EngineProjectsProjectIdSpineRoute: typeof EngineProjectsProjectIdSpineRoute
   EngineProjectsProjectIdSpiritFirstRoute: typeof EngineProjectsProjectIdSpiritFirstRoute
   EngineProjectsProjectIdUnderstandingRoomRoute: typeof EngineProjectsProjectIdUnderstandingRoomRoute
+  EngineProjectsProjectIdWorkRoute: typeof EngineProjectsProjectIdWorkRoute
+  EngineProjectsProjectIdIndexRoute: typeof EngineProjectsProjectIdIndexRoute
   EngineProjectsProjectIdVersionsCompareRoute: typeof EngineProjectsProjectIdVersionsCompareRoute
   EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
 }
@@ -3065,6 +3189,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
       EngineProjectsProjectIdBuildExecutionRoute,
     EngineProjectsProjectIdBuilderRoute: EngineProjectsProjectIdBuilderRoute,
     EngineProjectsProjectIdChatRoute: EngineProjectsProjectIdChatRoute,
+    EngineProjectsProjectIdClientViewRoute:
+      EngineProjectsProjectIdClientViewRoute,
     EngineProjectsProjectIdDeadlinesRoute:
       EngineProjectsProjectIdDeadlinesRoute,
     EngineProjectsProjectIdDeliveryRoute: EngineProjectsProjectIdDeliveryRoute,
@@ -3097,19 +3223,25 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdPreviewRoute: EngineProjectsProjectIdPreviewRoute,
     EngineProjectsProjectIdPublishHistoryRoute:
       EngineProjectsProjectIdPublishHistoryRoute,
+    EngineProjectsProjectIdQaDeliveryRoute:
+      EngineProjectsProjectIdQaDeliveryRoute,
     EngineProjectsProjectIdQaFactoryRoute:
       EngineProjectsProjectIdQaFactoryRoute,
+    EngineProjectsProjectIdRoadmapRoute: EngineProjectsProjectIdRoadmapRoute,
     EngineProjectsProjectIdSequencingRoute:
       EngineProjectsProjectIdSequencingRoute,
     EngineProjectsProjectIdSignalRoomRoute:
       EngineProjectsProjectIdSignalRoomRoute,
     EngineProjectsProjectIdSolutionsRoute:
       EngineProjectsProjectIdSolutionsRoute,
+    EngineProjectsProjectIdSourcesRoute: EngineProjectsProjectIdSourcesRoute,
     EngineProjectsProjectIdSpineRoute: EngineProjectsProjectIdSpineRoute,
     EngineProjectsProjectIdSpiritFirstRoute:
       EngineProjectsProjectIdSpiritFirstRoute,
     EngineProjectsProjectIdUnderstandingRoomRoute:
       EngineProjectsProjectIdUnderstandingRoomRoute,
+    EngineProjectsProjectIdWorkRoute: EngineProjectsProjectIdWorkRoute,
+    EngineProjectsProjectIdIndexRoute: EngineProjectsProjectIdIndexRoute,
     EngineProjectsProjectIdVersionsCompareRoute:
       EngineProjectsProjectIdVersionsCompareRoute,
     EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute:
