@@ -804,7 +804,8 @@ function HiddenOpportunitiesSection() {
               type="button"
               onClick={() => go(-1)}
               aria-label="Previous market gap"
-              className="group flex h-11 items-center gap-2 rounded-lg border bg-white px-3 transition-all duration-200 hover:-translate-y-0.5 sm:px-4"
+              aria-controls="market-gap-slider"
+              className="group flex h-11 items-center gap-2 rounded-lg border bg-white px-3 transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#E63946] sm:px-4"
               style={{ borderColor: "rgba(15,27,61,0.15)", color: "rgba(15,27,61,0.55)" }}
             >
               <ChevronLeft className="h-4 w-4" />
