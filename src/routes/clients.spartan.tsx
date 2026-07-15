@@ -188,18 +188,24 @@ function HeroSection() {
             </span>
           </div>
           <h1
-            className="font-black uppercase leading-[1.02] tracking-[-0.01em] text-white"
-            style={{ fontSize: "clamp(28px, 3.4vw, 62px)" }}
+            className="font-black uppercase leading-[0.92] tracking-tight text-white"
+            style={{
+              fontSize: "clamp(30px, 3.6vw, 64px)",
+              fontFamily: "Inter, system-ui, sans-serif",
+            }}
           >
             <span style={{ color: "#E63946" }}>Spartan</span> already does the work.
             <br />
-            This is the roadmap that makes
+            This is the roadmap that makes Houston
             <br />
-            Houston <span style={{ color: "#3B82F6" }}>see it.</span>
+            <span style={{ color: "#3B82F6" }}>see it.</span>
           </h1>
           <p
-            className="max-w-[600px] text-[14px] leading-[1.65] sm:text-[15.5px]"
-            style={{ color: "rgba(255,255,255,0.78)" }}
+            className="max-w-[640px] text-[14px] leading-[1.7] tracking-[-0.01em] sm:text-[15.5px] sm:leading-[1.75]"
+            style={{
+              color: "rgba(255,255,255,0.78)",
+              fontFamily: "Inter, system-ui, sans-serif",
+            }}
           >
             The credibility is already Spartan's. This is the plan that turns it into visibility, trust, and contracts that last, mapped from where Spartan stands today to where it could stand in Houston security.
           </p>
