@@ -30,6 +30,7 @@ import mgContentImg from "@/assets/clients/spartan/market-gap-content.png.asset.
 import websiteSecurityImg from "@/assets/clients/spartan/spartan-website-homepage.png.asset.json";
 import taiPortrait from "@/assets/clients/spartan/tai-portrait.png.asset.json";
 import signatureTai from "@/assets/clients/spartan/signature-tai.png.asset.json";
+import eagleSilhouette from "@/assets/clients/spartan/eagle-silhouette.png.asset.json";
 
 const CANONICAL = "https://trusttai.com/clients/spartan";
 
