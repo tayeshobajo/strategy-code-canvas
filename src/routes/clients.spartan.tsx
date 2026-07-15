@@ -1060,3 +1060,68 @@ function NoteFromTaiSection() {
     </section>
   );
 }
+
+/* ================== BRIDGE: POINT A → MARKET GAP ================== */
+
+function BridgeToGapSection() {
+  const navy = "#0B1B3A";
+  const red = "#E63946";
+  return (
+    <section className="relative w-full" style={{ backgroundColor: "#F7F5F1" }}>
+      <div className="mx-auto max-w-[1240px] px-5 py-10 sm:px-8 sm:py-14 md:px-12 md:py-16 lg:px-16">
+        <div className="flex flex-col items-center gap-5 text-center">
+          <div className="h-[2px] w-12" style={{ backgroundColor: red }} />
+          <p
+            className="max-w-[820px] text-[20px] font-light italic leading-[1.35] sm:text-[24px] md:text-[28px] lg:text-[30px]"
+            style={{ color: navy, fontFamily: "Inter, system-ui, sans-serif", letterSpacing: "-0.01em" }}
+          >
+            If Spartan&rsquo;s foundation is this strong, why does the market act like it{" "}
+            <span className="font-semibold not-italic" style={{ color: red }}>
+              doesn&rsquo;t know
+            </span>
+            ?
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ================== CLOSING: WHAT THIS MEANS ================== */
+
+function WhatThisMeansSection() {
+  const navy = "#0B1B3A";
+  const red = "#E63946";
+  const muted = "rgba(15,27,61,0.72)";
+  return (
+    <section className="relative w-full bg-white">
+      <div className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8 sm:py-16 md:px-12 md:py-20 lg:px-16 lg:py-24">
+        <div className="flex flex-col items-start gap-6 md:items-center md:text-center">
+          <div className="flex items-center gap-3">
+            <div className="h-px w-10" style={{ backgroundColor: "rgba(15,27,61,0.22)" }} />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.28em]" style={{ color: "rgba(15,27,61,0.55)" }}>
+              What this means
+            </span>
+            <div className="h-px w-10" style={{ backgroundColor: "rgba(15,27,61,0.22)" }} />
+          </div>
+          <h2
+            className="max-w-[900px] font-black leading-[1.05] tracking-tight"
+            style={{
+              color: navy,
+              fontFamily: "Inter, system-ui, sans-serif",
+              fontSize: "clamp(28px, 3.6vw, 52px)",
+            }}
+          >
+            The problem isn&rsquo;t <span style={{ color: red }}>Spartan</span>. It is what Houston can see of Spartan.
+          </h2>
+          <p
+            className="max-w-[760px] text-[15px] leading-[1.75] sm:text-[16px]"
+            style={{ color: muted, fontFamily: "Inter, system-ui, sans-serif" }}
+          >
+            Fix visibility, trust, and clarity of service, and the same company shows up in the market at the level it&rsquo;s already operating at internally. That is the shift this roadmap is built to make.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
