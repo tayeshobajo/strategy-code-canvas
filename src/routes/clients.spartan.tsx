@@ -617,6 +617,7 @@ function HiddenOpportunitiesSection() {
 
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [isNextInteracting, setIsNextInteracting] = useState(false);
   const total = slides.length;
   const slide = slides[index];
   const go = (dir: number) => {
