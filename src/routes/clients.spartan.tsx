@@ -1033,6 +1033,17 @@ function NoteFromTaiSection({
         </div>
 
       </div>
+
+      <img
+        src={eagleSilhouette.url}
+        alt=""
+        aria-hidden="true"
+        width={1024}
+        height={1280}
+        loading="lazy"
+        decoding="async"
+        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[90%] -translate-x-[18%] translate-y-[18%] rotate-[-10deg] opacity-90 md:block md:w-[70%] lg:w-[55%]"
+      />
     </section>
   );
 }
