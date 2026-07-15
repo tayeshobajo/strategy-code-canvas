@@ -948,18 +948,18 @@ function NoteFromTaiSection() {
 
             <div
               ref={calendlyRootRef}
-              className="mt-8 rounded-2xl border p-5 sm:mt-10 sm:p-6"
+              className="mt-8 rounded-2xl border p-6 sm:mt-10 sm:p-8"
               style={{
                 borderColor: "rgba(15,27,61,0.10)",
                 backgroundColor: "#ffffff",
               }}
             >
-              <div className="flex items-start gap-4 sm:gap-5">
+              <div className="flex items-start gap-5 sm:gap-7">
                 <div
-                  className="grid h-14 w-14 shrink-0 place-items-center rounded-full sm:h-16 sm:w-16"
+                  className="grid h-16 w-16 shrink-0 place-items-center rounded-full sm:h-20 sm:w-20"
                   style={{ backgroundColor: "rgba(230,57,70,0.08)" }}
                 >
-                  <MapPin className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: red }} />
+                  <MapPin className="h-7 w-7 sm:h-8 sm:w-8" style={{ color: red }} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3
@@ -975,29 +975,29 @@ function NoteFromTaiSection() {
                     In 30 minutes, I&rsquo;ll walk you through the complete roadmap, answer your
                     questions, and show you where Spartan&rsquo;s strongest opportunities are.
                   </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCalendlyOpen(true)}
+                    className="group mt-5 inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-lg bg-[#E63946] px-8 py-4 text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-14px_rgba(230,57,70,0.85)] sm:text-[13px] sm:tracking-[0.18em]"
+                  >
+                    Book the roadmap walkthrough
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  </button>
+
+                  <div
+                    className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-medium"
+                    style={{ color: muted }}
+                  >
+                    <span>Free</span>
+                    <span style={{ color: red }}>•</span>
+                    <span>30 minutes</span>
+                    <span style={{ color: red }}>•</span>
+                    <span>Zoom</span>
+                    <span style={{ color: red }}>•</span>
+                    <span>No pitch</span>
+                  </div>
                 </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsCalendlyOpen(true)}
-                className="group mt-5 inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-lg bg-[#E63946] px-8 py-4 text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:text-[13px] sm:tracking-[0.18em]"
-              >
-                Book the roadmap walkthrough
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </button>
-
-              <div
-                className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-medium"
-                style={{ color: muted }}
-              >
-                <span>Free</span>
-                <span style={{ color: red }}>•</span>
-                <span>30 minutes</span>
-                <span style={{ color: red }}>•</span>
-                <span>Zoom</span>
-                <span style={{ color: red }}>•</span>
-                <span>No pitch</span>
               </div>
 
               {calendlyRootRef.current && (
@@ -1009,6 +1009,7 @@ function NoteFromTaiSection() {
                 />
               )}
             </div>
+
           </div>
         </div>
 
