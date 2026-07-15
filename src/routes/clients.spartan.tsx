@@ -77,7 +77,9 @@ function SpartanRoadmap() {
       >
         <HeroSection />
         <CurrentStateSection />
+        <BridgeToGapSection />
         <HiddenOpportunitiesSection />
+        <WhatThisMeansSection />
         <NoteFromTaiSection />
       </main>
       <SiteFooter />
