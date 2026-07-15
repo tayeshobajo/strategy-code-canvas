@@ -894,8 +894,9 @@ function HiddenOpportunitiesSection() {
                           {label ? (
                             <span
                               className="mr-1.5 font-bold"
-                              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                              style={{ fontFamily: "Inter, system-ui, sans-serif" }}
                             >
+
                               {label}
                             </span>
                           ) : null}
