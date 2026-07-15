@@ -64,6 +64,9 @@ export const Route = createFileRoute("/clients/spartan")({
 });
 
 function SpartanRoadmap() {
+  const [isCalendlyOpen, setIsCalendlyOpen] = useState(false);
+  const calendlyRootRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -75,10 +78,14 @@ function SpartanRoadmap() {
           color: "#0B1B3A",
         }}
       >
-        <HeroSection />
+        <HeroSection setIsCalendlyOpen={setIsCalendlyOpen} />
         <CurrentStateSection />
         <HiddenOpportunitiesSection />
-        <NoteFromTaiSection />
+        <NoteFromTaiSection
+          isCalendlyOpen={isCalendlyOpen}
+          setIsCalendlyOpen={setIsCalendlyOpen}
+          calendlyRootRef={calendlyRootRef}
+        />
       </main>
       <SiteFooter />
     </div>
@@ -87,7 +94,11 @@ function SpartanRoadmap() {
 
 /* ================== SECTION 00: HERO ================== */
 
-function HeroSection() {
+function HeroSection({
+  setIsCalendlyOpen,
+}: {
+  setIsCalendlyOpen: (open: boolean) => void;
+}) {
   return (
     <section
       id="section-0"
@@ -224,14 +235,15 @@ function HeroSection() {
           </div>
 
           <div className="flex flex-col gap-3 pt-3 sm:flex-row sm:items-center sm:gap-5">
-            <a
-              href="#note-from-tai"
+            <button
+              type="button"
+              onClick={() => setIsCalendlyOpen(true)}
               className="group inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-4 text-[12px] font-bold tracking-[0.08em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:gap-3 hover:shadow-[0_22px_50px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:justify-start sm:whitespace-nowrap sm:text-[13px]"
               style={{ backgroundColor: "#E63946" }}
             >
               Book the roadmap walkthrough
               <ArrowRight size={16} strokeWidth={2.4} />
-            </a>
+            </button>
             <span className="text-[11px] font-medium tracking-[0.14em] text-white/55">
               Free · 30 minutes · No pitch
             </span>
@@ -844,12 +856,18 @@ function HiddenOpportunitiesSection() {
 
 /* ================== SECTION 03: A NOTE FROM TAI ================== */
 
-function NoteFromTaiSection() {
+function NoteFromTaiSection({
+  isCalendlyOpen,
+  setIsCalendlyOpen,
+  calendlyRootRef,
+}: {
+  isCalendlyOpen: boolean;
+  setIsCalendlyOpen: (open: boolean) => void;
+  calendlyRootRef: React.RefObject<HTMLDivElement | null>;
+}) {
   const navy = "#0B1B3A";
   const red = "#E63946";
   const muted = "rgba(15,27,61,0.72)";
-  const [isCalendlyOpen, setIsCalendlyOpen] = useState(false);
-  const calendlyRootRef = useRef<HTMLDivElement>(null);
 
   return (
     <section id="note-from-tai" className="relative flex w-full items-center bg-white">
