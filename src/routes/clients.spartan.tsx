@@ -941,61 +941,6 @@ function NoteFromTaiSection() {
               decoding="async"
               className="mt-6 h-auto w-36 max-w-[28%] object-contain sm:w-40 md:w-44 lg:w-48"
             />
-
-            <div
-              ref={calendlyRootRef}
-              className="mt-10 rounded-lg border p-6 sm:mt-14 sm:p-8"
-              style={{
-                borderColor: "rgba(15,27,61,0.08)",
-                background:
-                  "linear-gradient(135deg, rgba(230,57,70,0.04) 0%, rgba(15,27,61,0.03) 100%)",
-              }}
-            >
-              <div
-                className="text-[10px] font-black uppercase tracking-[0.28em]"
-                style={{ color: red }}
-              >
-                Next step
-              </div>
-              <p
-                className="mt-3 text-[20px] font-light italic leading-[1.3] sm:text-[22px] md:text-[24px]"
-                style={{
-                  color: navy,
-                  fontFamily: "Inter, system-ui, sans-serif",
-                  letterSpacing: "0",
-                }}
-              >
-                Let&rsquo;s walk the full roadmap together.
-              </p>
-
-              <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-                <button
-                  type="button"
-                  onClick={() => setIsCalendlyOpen(true)}
-                  className="group inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-lg bg-[#E63946] px-6 py-4 text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:gap-3 sm:px-8 sm:py-5 sm:text-[13px] sm:tracking-[0.18em]"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Book the walkthrough
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </button>
-                <div className="flex flex-col gap-1 text-[11px] font-medium tracking-[0.1em] text-[rgba(15,27,61,0.6)]">
-                  <span>Free · 30 minutes · Zoom · No pitch, just the full thinking.</span>
-                </div>
-              </div>
-
-              <p className="mt-8 max-w-[44rem] text-[12px] leading-relaxed text-[rgba(15,27,61,0.5)]">
-                If the timing is right, we should talk. If it is not, the work is here when it is.
-              </p>
-
-              {calendlyRootRef.current && (
-                <PopupModal
-                  url="https://calendly.com/taishobajo/strategy_and_clarity_session"
-                  rootElement={calendlyRootRef.current}
-                  open={isCalendlyOpen}
-                  onModalClose={() => setIsCalendlyOpen(false)}
-                />
-              )}
-            </div>
           </div>
         </div>
       </div>
