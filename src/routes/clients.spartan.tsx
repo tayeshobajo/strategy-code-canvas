@@ -715,20 +715,26 @@ function HiddenOpportunitiesSection() {
               className="text-[10px] font-semibold uppercase tracking-[0.28em]"
               style={{ color: "rgba(15,27,61,0.55)" }}
             >
-              What&apos;s Being Missed
+              The Market Gap
             </span>
           </div>
 
           <h2
-            className="mt-4 font-black uppercase leading-[0.98] tracking-tight sm:mt-5"
+            className="mt-4 font-black leading-[1.05] tracking-tight sm:mt-5"
             style={{
               color: navy,
               fontFamily: "Inter, system-ui, sans-serif",
               fontSize: "clamp(32px, 4.4vw, 64px)",
             }}
           >
-            THE MARKET <span style={{ color: red }}>GAP</span>
+            The four rooms Houston walks <span style={{ color: red }}>past</span>
           </h2>
+          <p
+            className="mt-5 max-w-[720px] text-[14px] leading-[1.7] sm:text-[15.5px]"
+            style={{ color: "rgba(15,27,61,0.7)", fontFamily: "Inter, system-ui, sans-serif" }}
+          >
+            These are the rooms where the sale happens or slips. Right now Spartan doesn&rsquo;t lose on capability. It loses on visibility.
+          </p>
         </div>
       </div>
 
