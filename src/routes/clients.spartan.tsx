@@ -1042,7 +1042,8 @@ function NoteFromTaiSection({
         height={1280}
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[90%] -translate-x-[18%] translate-y-[18%] rotate-[-10deg] opacity-90 md:block md:w-[70%] lg:w-[55%]"
+        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[85%] -translate-x-[12%] translate-y-[6%] rotate-[-8deg] md:block md:w-[68%] lg:w-[52%]"
+        style={{ filter: "drop-shadow(0 14px 44px rgba(11,27,58,0.12))" }}
       />
     </section>
   );
