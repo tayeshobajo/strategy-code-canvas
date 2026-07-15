@@ -23,6 +23,17 @@ export const ADMIN_EMAILS: ReadonlyArray<string> = [
   "henry@trust-tai.com",
 ];
 
+// Recipients for operator ALERT emails (intake submitted, cost autopause, …).
+// Deliberately narrower than ADMIN_EMAILS/OPERATOR_EMAILS: the access lists
+// include multiple aliases (tai@, hello@, henry@, legacy trust-tai.com
+// variants) that all forward to the same inbox, which caused duplicate
+// alerts. Alerts go to a single canonical address; internal forwarding rules
+// handle team distribution. Access control (who can open /ops) is
+// unaffected — that still uses ADMIN_EMAILS/OPERATOR_EMAILS.
+export const OPERATOR_NOTIFICATION_EMAILS: ReadonlyArray<string> = [
+  "hello@trusttai.com",
+];
+
 export function isOperatorEmail(email: string | null | undefined): boolean {
   if (!email) return false;
   return OPERATOR_EMAILS.includes(email.trim().toLowerCase());
