@@ -184,27 +184,20 @@ function HeroSection() {
               className="text-[10px] font-bold uppercase tracking-[0.32em]"
               style={{ color: "rgba(255,255,255,0.6)" }}
             >
-              Growth Roadmap · Houston
+              Growth roadmap · Houston
             </span>
           </div>
           <h1
-            className="font-black uppercase leading-[1.02] tracking-[-0.01em] text-white"
-            style={{ fontSize: "clamp(28px, 3.4vw, 62px)" }}
+            className="font-black leading-[1.05] tracking-[-0.01em] text-white"
+            style={{ fontSize: "clamp(28px, 3.4vw, 62px)", fontFamily: "Inter, system-ui, sans-serif" }}
           >
-            THE GROWTH&nbsp;ROADMAP
-            <br />
-            TO HELP <span style={{ color: "#E63946" }}>SPARTAN</span> WIN
-            <br />
-            MORE HOUSTON SECURITY
-            <br />
-            CONTRACT <span style={{ color: "#3B82F6" }}>OPPORTUNITIES.</span>
+            <span style={{ color: "#E63946" }}>Spartan</span> already does the work. This is the roadmap that makes Houston see it.
           </h1>
           <p
-            className="max-w-[520px] text-[14px] leading-[1.65] sm:text-[15.5px]"
+            className="max-w-[620px] text-[14px] leading-[1.65] sm:text-[15.5px]"
             style={{ color: "rgba(255,255,255,0.78)" }}
           >
-            A strategic plan to increase visibility, build trust,
-            <br className="hidden sm:inline" /> and turn opportunities into long-term contracts.
+            The credibility is already Spartan&rsquo;s. This is the plan that turns it into visibility, trust, and contracts that last, mapped from where Spartan stands today to where it could stand in Houston security.
           </p>
 
           <div className="flex items-center gap-3 pt-1">
@@ -217,9 +210,8 @@ function HeroSection() {
             >
               <ShieldCheck size={16} color="#E63946" strokeWidth={2.2} />
             </span>
-            <div className="text-[11px] font-bold uppercase leading-tight tracking-[0.18em]">
-              <div className="text-white">Stronger Presence. More Trust.</div>
-              <div style={{ color: "#E63946" }}>More Wins.</div>
+            <div className="text-[11px] font-bold uppercase leading-tight tracking-[0.18em] text-white">
+              Stronger presence. Deeper trust. Contracts that hold.
             </div>
           </div>
 
@@ -229,11 +221,11 @@ function HeroSection() {
               className="group inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-4 text-[13px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:gap-3 hover:shadow-[0_22px_50px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:justify-start"
               style={{ backgroundColor: "#E63946" }}
             >
-              Book Roadmap Walkthrough
+              Book the roadmap walkthrough
               <ArrowRight size={16} strokeWidth={2.4} />
             </a>
             <span className="text-[11px] font-medium tracking-[0.14em] text-white/55">
-              Free · 30&nbsp;min · No pitch
+              Free · 30&nbsp;minutes · No pitch
             </span>
           </div>
         </div>
