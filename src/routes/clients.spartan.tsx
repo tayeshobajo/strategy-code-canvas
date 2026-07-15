@@ -196,8 +196,7 @@ function HeroSection() {
           >
             <span style={{ color: "#E63946" }}>Spartan</span> already does the work.
             <br />
-            This is the roadmap that makes Houston
-            <br />
+            This is the roadmap that makes Houston{" "}
             <span style={{ color: "#3B82F6" }}>see it.</span>
           </h1>
           <p
