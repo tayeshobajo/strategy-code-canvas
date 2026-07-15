@@ -853,7 +853,8 @@ function HiddenOpportunitiesSection() {
               type="button"
               onClick={() => go(1)}
               aria-label="Next market gap"
-              className="group flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-8px_rgba(230,57,70,0.55)] sm:gap-2 sm:px-5"
+              aria-controls="market-gap-slider"
+              className="group flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-8px_rgba(230,57,70,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white sm:gap-2 sm:px-5"
               style={{
                 backgroundColor: red,
               }}
