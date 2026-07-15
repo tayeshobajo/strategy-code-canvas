@@ -263,6 +263,23 @@ function ProjectOverview() {
         <div className="xl:col-span-2 space-y-6 min-w-0">
           {/* CURRENT STAGE HERO */}
           <CurrentStageHero stage={stage} />
+          {nbaQ.isError ? (
+            <div
+              role="status"
+              className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+            >
+              Next-best action is temporarily unavailable — showing the last
+              known project state.{" "}
+              <button
+                type="button"
+                className="underline underline-offset-2 hover:text-amber-950"
+                onClick={() => nbaQ.refetch()}
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
+
 
           {/* SECONDARY METRICS ROW */}
           <SecondaryMetrics
