@@ -300,8 +300,11 @@ function CurrentStateSection() {
             </span>
           </div>
           <h2
-            className="mt-4 font-extrabold uppercase leading-[0.92] tracking-tight"
-            style={{ fontSize: "clamp(30px, 4.2vw, 56px)" }}
+            className="mt-4 font-black uppercase leading-[0.92] tracking-tight"
+            style={{
+              fontSize: "clamp(30px, 4.2vw, 56px)",
+              fontFamily: "Inter, system-ui, sans-serif",
+            }}
           >
             <span style={{ color: "#E63946" }}>POINT A:</span>
             <span style={{ color: "#0B1B3A" }}>&nbsp;CURRENT POSITION</span>
