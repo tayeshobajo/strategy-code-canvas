@@ -3,7 +3,7 @@ import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getProjectWorkspace } from "@/lib/engine.functions";
 import { WORKSPACE_STEPS } from "@/lib/engine-workspace";
-import { WorkspaceStepper } from "@/components/engine/WorkspaceStepper";
+import { ProjectTabs } from "@/components/engine/ProjectTabs";
 import {
   ProjectHeaderStrip,
   WorkspaceBreadcrumb,
