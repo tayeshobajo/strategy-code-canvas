@@ -495,7 +495,9 @@ type Slide = {
   title: string;
   lead: string;
   body: string;
-  unlock: string;
+  means: string;
+  unlockPayoff: string;
+  unlockSupport?: string;
   image: string;
   alt: string;
   urlBar: string;
