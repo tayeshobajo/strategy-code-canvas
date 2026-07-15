@@ -32,6 +32,19 @@ export const POINT_A_BASE_FIELD_KEYS = [
 export type PointABaseFieldKey = (typeof POINT_A_BASE_FIELD_KEYS)[number];
 
 /**
+ * Phase 1 (Spine 2.0) — Allowlists for additional Spine sections. These
+ * are TS-level guards for future writes into `engine_spine_field_truth`
+ * so a typo cannot silently persist against an unknown section key.
+ * No DB migration; mirrors the section catalogue in `src/lib/spine-contract.ts`.
+ */
+export const BUSINESS_CONTEXT_FIELD_KEYS = ["summary", "market", "operating_model", "team"] as const;
+export const CONSTRAINTS_RISKS_FIELD_KEYS = ["constraints", "risks", "dependencies"] as const;
+export const ASSETS_LEVERAGE_FIELD_KEYS = ["assets", "leverage_opportunities"] as const;
+export const APPROVED_SCOPE_FIELD_KEYS = ["in_scope", "out_of_scope", "exclusions"] as const;
+export const SUCCESS_MEASURES_FIELD_KEYS = ["metrics", "targets", "measurement_method"] as const;
+export const INVESTMENT_FIELD_KEYS = ["phase_ranges", "milestone_ranges", "deferred_reason"] as const;
+
+/**
  * Diagnosis card keys are dynamic and driven by the AI-generated card
  * title. We namespace them with the `diagnosis:` prefix so an allowlist
  * can validate them without enumerating every possible title.

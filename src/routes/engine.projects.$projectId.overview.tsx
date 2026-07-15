@@ -231,6 +231,22 @@ function ProjectOverview() {
 
   return (
     <div className="space-y-6">
+      <div
+        role="status"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        data-qa-role="overview-moved-banner"
+      >
+        <span>
+          Overview has moved. The Project Spine is now the primary view for this project.
+        </span>
+        <Link
+          to="/engine/projects/$projectId/spine"
+          params={{ projectId: p.id }}
+          className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-xs text-white hover:bg-ink/90"
+        >
+          Go to Spine
+        </Link>
+      </div>
       {/* Header */}
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between">
         <div className="min-w-0">

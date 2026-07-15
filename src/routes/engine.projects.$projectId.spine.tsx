@@ -9,6 +9,7 @@ import {
 } from "@/lib/engine.functions";
 import { EngineStatusBadge, formatDate } from "@/components/engine/primitives";
 import { SpineVersionHistory } from "@/components/engine/SpineVersionHistory";
+import { SpineReadinessPanel } from "@/components/engine/SpineReadinessPanel";
 import { Lock, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +84,10 @@ function ProjectSpine() {
           </div>
         </div>
       </header>
+
+      <SpineReadinessPanel />
+
+
 
       <div className="grid gap-4 lg:grid-cols-2">
         <TruthCard

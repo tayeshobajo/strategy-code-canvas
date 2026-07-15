@@ -233,6 +233,7 @@ const MORE_SECTIONS: Array<{
   {
     heading: "Tools",
     items: [
+      { label: "Sources & Intelligence", suffix: "sources", icon: Database },
       { label: "AI Workspace", suffix: "ai-workspace", icon: BrainCircuit },
     ],
   },
