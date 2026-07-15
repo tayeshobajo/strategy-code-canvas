@@ -44,7 +44,7 @@ export const Route = createFileRoute("/clients/spartan")({
       {
         property: "og:description",
         content:
-          "A revenue roadmap to help Spartan win more Houston security contract opportunities.",
+          "Spartan already does the work. This is the roadmap that makes Houston see it — turning credibility into visibility, trust, and long-term contracts.",
       },
       { property: "og:type", content: "article" },
       { property: "og:url", content: CANONICAL },
