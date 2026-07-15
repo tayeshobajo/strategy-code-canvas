@@ -432,9 +432,9 @@ function CurrentStateSection() {
                 obvious choice the moment a Houston buyer starts looking.
               </p>
               <p>
-                The conversation started with hosting and cost. Looking closer, at the website, the
-                training, the data, the relationships, there was a far larger opportunity sitting in
-                plain sight than a website refresh.
+                The opportunity here is bigger than a better website. It is taking everything Spartan
+                already has, the clients, the training, the data, the relationships, and making the
+                market see it as clearly as those clients already do.
               </p>
             </div>
           </div>
