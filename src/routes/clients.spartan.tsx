@@ -850,22 +850,30 @@ function HiddenOpportunitiesSection() {
             </div>
             <div className="flex-1 sm:hidden" />
 
-            <button
-              type="button"
-              onClick={() => go(1)}
-              aria-label="Next market gap"
-              aria-controls="market-gap-slider"
-              className="group flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-8px_rgba(230,57,70,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white sm:gap-2 sm:px-5"
-              style={{
-                backgroundColor: red,
-              }}
-
-            >
-              <span className="text-[11px] font-black uppercase tracking-[0.18em] sm:text-[12px] sm:tracking-[0.22em]">
-                Next
-              </span>
-              <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </button>
+            <span className="relative inline-flex shrink-0">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-lg animate-ping motion-reduce:hidden"
+                style={{ backgroundColor: red, opacity: 0.45, animationDuration: "1.8s" }}
+              />
+              <button
+                type="button"
+                onClick={() => go(1)}
+                aria-label="Next market gap"
+                aria-controls="market-gap-slider"
+                className="group relative flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-4 text-white transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white sm:gap-2 sm:px-6"
+                style={{
+                  backgroundImage: `linear-gradient(135deg, ${red} 0%, #C41E2E 100%)`,
+                  boxShadow:
+                    "0 10px 28px -8px rgba(230,57,70,0.65), 0 2px 6px -2px rgba(230,57,70,0.55), inset 0 1px 0 rgba(255,255,255,0.22)",
+                }}
+              >
+                <span className="text-[11px] font-black uppercase tracking-[0.2em] sm:text-[12px] sm:tracking-[0.24em]">
+                  Next gap
+                </span>
+                <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+              </button>
+            </span>
           </div>
         </div>
 
@@ -939,7 +947,7 @@ function HiddenOpportunitiesSection() {
                           className="h-px flex-1 lg:hidden"
                           style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
                         />
-                        <p className="max-w-[64ch] text-left text-[12px] leading-snug text-white/75 sm:text-[13px] lg:text-[13.5px]">
+                        <p className="w-full text-left text-[12px] leading-snug text-white/75 sm:text-[13px] lg:text-[13.5px]">
                           {label ? (
                             <span
                               className="mr-1.5 font-bold"
