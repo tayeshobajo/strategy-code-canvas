@@ -125,13 +125,20 @@ export const getIntelligentNextAction = createServerFn({ method: "POST" })
     const { data: projRows } = await sb
       .from("engine_projects")
       .select(
-        "name, engine_clients(company), status, current_phase, current_step, health_score, next_action, open_decisions, agent_status, source_count",
+        "name, engine_clients(company), status, current_phase, current_step, health_score, next_action, open_decisions, agent_status",
       )
       .eq("id", data.projectId);
     const proj =
       Array.isArray(projRows) && projRows.length > 0
         ? (projRows[0] as Record<string, unknown>)
         : null;
+
+    // Derive source_count via aggregation (column not present on engine_projects)
+    const { count: sourceCount } = await sb
+      .from("engine_sources")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", data.projectId);
+
 
     // ── 2. Load milestones ───────────────────────────────────────────────
     const { data: msRows } = await sb
@@ -188,7 +195,7 @@ export const getIntelligentNextAction = createServerFn({ method: "POST" })
       totalMilestones: milestones.length,
       completedMilestones: completedMs,
       overdueDates,
-      signalCount: (proj.source_count as number) ?? 0,
+      signalCount: sourceCount ?? 0,
       recentActivity: activity.slice(0, 5).map((a) => a.title ?? ""),
       openDecisions: (proj.open_decisions as number) ?? 0,
     });
