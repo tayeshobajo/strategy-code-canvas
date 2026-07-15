@@ -883,7 +883,7 @@ function HiddenOpportunitiesSection() {
             }}
           />
 
-          <div key={`q-${index}`} className="relative mb-6 sm:mb-8">
+          <div key={`q-${index}`} className={`relative mb-6 sm:mb-8 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}>
             <span
               aria-hidden
               className="absolute -left-3 -top-5 text-[48px] font-light leading-none opacity-30 sm:-left-4 sm:-top-6 sm:text-[64px]"
