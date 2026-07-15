@@ -616,10 +616,26 @@ function HiddenOpportunitiesSection() {
   ];
 
   const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
   const total = slides.length;
   const slide = slides[index];
-  const go = (dir: number) => setIndex((i) => (i + dir + total) % total);
+  const go = (dir: number) => {
+    setDirection(dir);
+    setIndex((i) => (i + dir + total) % total);
+  };
+  const jumpTo = (i: number) => {
+    setDirection(i >= index ? 1 : -1);
+    setIndex(i);
+  };
   const gapNum = String(index + 1).padStart(2, "0");
+  const slideInClass = direction >= 0 ? "slide-in-from-right-6" : "slide-in-from-left-6";
+  const onSliderKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowRight") { e.preventDefault(); go(1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+    else if (e.key === "Home") { e.preventDefault(); jumpTo(0); }
+    else if (e.key === "End") { e.preventDefault(); jumpTo(total - 1); }
+  };
+
 
   return (
     <section id="section-2" className="relative flex w-full flex-col bg-white">
@@ -650,11 +666,26 @@ function HiddenOpportunitiesSection() {
         </div>
       </div>
 
-      <div className="grid w-full grid-cols-1 bg-white lg:grid-cols-12">
-        <div className="relative order-2 flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:order-none lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12 xl:pl-32">
+      <div
+        id="market-gap-slider"
+        className="grid w-full grid-cols-1 bg-white lg:grid-cols-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E63946]/60"
+        role="region"
+        aria-roledescription="carousel"
+        aria-label="Market gap slider. Use left and right arrow keys to navigate."
+        tabIndex={0}
+        onKeyDown={onSliderKeyDown}
+      >
+
+        <div
+          className="relative order-2 flex flex-col gap-8 p-6 pb-6 sm:gap-10 sm:p-10 md:p-14 lg:order-none lg:col-span-5 lg:gap-10 lg:p-16 lg:pb-10 xl:gap-12 xl:p-20 xl:pb-12 xl:pl-32"
+          role="group"
+          aria-roledescription="slide"
+          aria-label={`Gap ${index + 1} of ${total}: ${slide.title}`}
+          aria-live="polite"
+        >
 
           <div className="flex flex-1 flex-col">
-            <div key={`h-${index}`} className="relative space-y-4">
+            <div key={`h-${index}`} className={`relative space-y-4 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}>
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute -left-3 -top-14 select-none text-[132px] font-black leading-none sm:-left-5 sm:text-[170px] xl:-left-10"
@@ -689,7 +720,7 @@ function HiddenOpportunitiesSection() {
 
             <div
               key={`b-${index}`}
-              className="mt-6 text-[14px] leading-[1.68] sm:mt-7 sm:text-[15px] sm:leading-[1.72]"
+              className={`mt-6 text-[14px] leading-[1.68] sm:mt-7 sm:text-[15px] sm:leading-[1.72] animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}
               style={{ color: muted }}
             >
               <p>{slide.body}</p>
@@ -699,7 +730,7 @@ function HiddenOpportunitiesSection() {
               {/* What this means — red-accented card */}
               <div
                 key={`m-${index}`}
-                className="relative flex items-start gap-4 rounded-r-md border-l-[3px] p-4 sm:gap-5 sm:p-5"
+                className={`relative flex items-start gap-4 rounded-r-md border-l-[3px] p-4 sm:gap-5 sm:p-5 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}
                 style={{
                   borderColor: red,
                   backgroundColor: "rgba(230,57,70,0.045)",
@@ -730,7 +761,7 @@ function HiddenOpportunitiesSection() {
               {/* What it unlocks — blue-accented card */}
               <div
                 key={`u-${index}`}
-                className="relative flex items-start gap-4 border-t pt-5 sm:gap-5 sm:pt-6"
+                className={`relative flex items-start gap-4 border-t pt-5 sm:gap-5 sm:pt-6 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}
                 style={{ borderColor: "rgba(15,27,61,0.10)" }}
               >
                 <div
@@ -774,7 +805,8 @@ function HiddenOpportunitiesSection() {
               type="button"
               onClick={() => go(-1)}
               aria-label="Previous market gap"
-              className="group flex h-11 items-center gap-2 rounded-lg border bg-white px-3 transition-all duration-200 hover:-translate-y-0.5 sm:px-4"
+              aria-controls="market-gap-slider"
+              className="group flex h-11 items-center gap-2 rounded-lg border bg-white px-3 transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#E63946] sm:px-4"
               style={{ borderColor: "rgba(15,27,61,0.15)", color: "rgba(15,27,61,0.55)" }}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -794,14 +826,21 @@ function HiddenOpportunitiesSection() {
               </span>
             </span>
 
-            <div className="hidden flex-1 items-center gap-2 sm:flex">
+            <div
+              className="hidden flex-1 items-center gap-2 sm:flex"
+              role="tablist"
+              aria-label="Select market gap"
+            >
               {slides.map((_, i) => (
                 <button
                   key={i}
                   type="button"
-                  onClick={() => setIndex(i)}
-                  aria-label={`Go to market gap ${i + 1}`}
-                  className="h-1.5 rounded-full transition-all duration-300"
+                  onClick={() => jumpTo(i)}
+                  role="tab"
+                  aria-selected={i === index}
+                  aria-label={`Go to market gap ${i + 1} of ${total}: ${slides[i].title}`}
+                  aria-controls="market-gap-slider"
+                  className="h-1.5 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#E63946]"
                   style={{
                     width: i === index ? 40 : 24,
                     backgroundColor: i === index ? red : "rgba(15,27,61,0.15)",
@@ -815,7 +854,8 @@ function HiddenOpportunitiesSection() {
               type="button"
               onClick={() => go(1)}
               aria-label="Next market gap"
-              className="group flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-8px_rgba(230,57,70,0.55)] sm:gap-2 sm:px-5"
+              aria-controls="market-gap-slider"
+              className="group flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-8px_rgba(230,57,70,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white sm:gap-2 sm:px-5"
               style={{
                 backgroundColor: red,
               }}
@@ -843,7 +883,7 @@ function HiddenOpportunitiesSection() {
             }}
           />
 
-          <div key={`q-${index}`} className="relative mb-6 sm:mb-8">
+          <div key={`q-${index}`} className={`relative mb-6 sm:mb-8 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}>
             <span
               aria-hidden
               className="absolute -left-3 -top-5 text-[48px] font-light leading-none opacity-30 sm:-left-4 sm:-top-6 sm:text-[64px]"
@@ -883,11 +923,11 @@ function HiddenOpportunitiesSection() {
                 height={1024}
                 loading="lazy"
                 decoding="async"
-                className="block h-[240px] w-full object-cover object-left-top sm:h-[420px] md:h-[520px] lg:h-[560px] xl:h-[640px]"
+                className={`block h-[240px] w-full object-cover object-left-top sm:h-[420px] md:h-[520px] lg:h-[560px] xl:h-[640px] animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}
               />
             </div>
 
-            <div key={`cap-${index}`} className="mt-4 flex min-h-[40px] items-center gap-3 sm:mt-5">
+            <div key={`cap-${index}`} className={`mt-4 flex min-h-[40px] items-center gap-3 sm:mt-5 animate-in fade-in ${slideInClass} duration-500 ease-out motion-reduce:animate-none`}>
               {slide.imageCaption
                 ? (() => {
                     const match = slide.imageCaption.match(/^(Image\s+\d+\.)\s*(.*)$/);
@@ -1113,11 +1153,11 @@ function NoteFromTaiSection({
         height={1280}
         loading="lazy"
         decoding="async"
-        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[78%] -translate-x-[22%] translate-y-[10%] rotate-[-6deg] md:block md:w-[62%] lg:w-[48%]"
+        className="pointer-events-none absolute bottom-0 left-0 hidden h-auto w-[78%] -translate-x-[22%] translate-y-[10%] rotate-[-6deg] opacity-25 md:block md:w-[62%] lg:w-[48%]"
         style={{
-          filter: "contrast(1.2) brightness(1.05) drop-shadow(0 16px 44px rgba(11,27,58,0.12))",
-          maskImage: "linear-gradient(90deg, transparent 0%, black 16%, black 78%, transparent 100%), linear-gradient(0deg, transparent 0%, black 12%, black 86%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(90deg, transparent 0%, black 16%, black 78%, transparent 100%), linear-gradient(0deg, transparent 0%, black 12%, black 86%, transparent 100%)",
+          filter: "grayscale(1) drop-shadow(0 12px 32px rgba(11,27,58,0.06))",
+          maskImage: "linear-gradient(90deg, transparent 0%, black 18%, black 78%, transparent 100%), linear-gradient(0deg, transparent 0%, black 14%, black 86%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(90deg, transparent 0%, black 18%, black 78%, transparent 100%), linear-gradient(0deg, transparent 0%, black 14%, black 86%, transparent 100%)",
           maskComposite: "intersect",
           WebkitMaskComposite: "source-in",
         }}
