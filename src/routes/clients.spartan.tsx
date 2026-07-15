@@ -734,8 +734,8 @@ function HiddenOpportunitiesSection() {
               className="group flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-8px_rgba(230,57,70,0.55)] sm:gap-2 sm:px-5"
               style={{
                 backgroundColor: red,
-                animation: "spartan-button-pulse 2s ease-in-out infinite",
               }}
+
             >
               <span className="text-[11px] font-black uppercase tracking-[0.18em] sm:text-[12px] sm:tracking-[0.22em]">
                 Next
