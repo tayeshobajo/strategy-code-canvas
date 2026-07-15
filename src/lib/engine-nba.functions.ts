@@ -106,6 +106,19 @@ async function getSQLFallback(sb: any, projectId: string): Promise<NextBestActio
   };
 }
 
+// ─── source_count derivation (extracted for unit testing) ───────────────────
+// engine_projects has no `source_count` column; it's computed by aggregating
+// engine_sources rows for the project. Exported so unit tests can assert the
+// query shape without spinning up the full server-fn handler.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function deriveSourceCount(sb: any, projectId: string): Promise<number> {
+  const { count } = await sb
+    .from("engine_sources")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId);
+  return count ?? 0;
+}
+
 // ─── main export ─────────────────────────────────────────────────────────────
 
 export const getIntelligentNextAction = createServerFn({ method: "POST" })
@@ -134,10 +147,9 @@ export const getIntelligentNextAction = createServerFn({ method: "POST" })
         : null;
 
     // Derive source_count via aggregation (column not present on engine_projects)
-    const { count: sourceCount } = await sb
-      .from("engine_sources")
-      .select("id", { count: "exact", head: true })
-      .eq("project_id", data.projectId);
+    const sourceCount = await deriveSourceCount(sb, data.projectId);
+
+
 
 
     // ── 2. Load milestones ───────────────────────────────────────────────
