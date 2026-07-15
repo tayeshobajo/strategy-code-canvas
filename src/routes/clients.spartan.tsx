@@ -77,9 +77,7 @@ function SpartanRoadmap() {
       >
         <HeroSection />
         <CurrentStateSection />
-        <BridgeToGapSection />
         <HiddenOpportunitiesSection />
-        <WhatThisMeansSection />
         <NoteFromTaiSection />
       </main>
       <SiteFooter />
@@ -186,20 +184,27 @@ function HeroSection() {
               className="text-[10px] font-bold uppercase tracking-[0.32em]"
               style={{ color: "rgba(255,255,255,0.6)" }}
             >
-              Growth roadmap · Houston
+              Growth Roadmap · Houston
             </span>
           </div>
           <h1
-            className="font-black leading-[1.05] tracking-[-0.01em] text-white"
-            style={{ fontSize: "clamp(28px, 3.4vw, 62px)", fontFamily: "Inter, system-ui, sans-serif" }}
+            className="font-black uppercase leading-[1.02] tracking-[-0.01em] text-white"
+            style={{ fontSize: "clamp(28px, 3.4vw, 62px)" }}
           >
-            <span style={{ color: "#E63946" }}>Spartan</span> already does the work. This is the roadmap that makes Houston see it.
+            THE GROWTH&nbsp;ROADMAP
+            <br />
+            TO HELP <span style={{ color: "#E63946" }}>SPARTAN</span> WIN
+            <br />
+            MORE HOUSTON SECURITY
+            <br />
+            CONTRACT <span style={{ color: "#3B82F6" }}>OPPORTUNITIES.</span>
           </h1>
           <p
-            className="max-w-[620px] text-[14px] leading-[1.65] sm:text-[15.5px]"
+            className="max-w-[520px] text-[14px] leading-[1.65] sm:text-[15.5px]"
             style={{ color: "rgba(255,255,255,0.78)" }}
           >
-            The credibility is already Spartan&rsquo;s. This is the plan that turns it into visibility, trust, and contracts that last, mapped from where Spartan stands today to where it could stand in Houston security.
+            A strategic plan to increase visibility, build trust,
+            <br className="hidden sm:inline" /> and turn opportunities into long-term contracts.
           </p>
 
           <div className="flex items-center gap-3 pt-1">
@@ -212,8 +217,9 @@ function HeroSection() {
             >
               <ShieldCheck size={16} color="#E63946" strokeWidth={2.2} />
             </span>
-            <div className="text-[11px] font-bold uppercase leading-tight tracking-[0.18em] text-white">
-              Stronger presence. Deeper trust. Contracts that hold.
+            <div className="text-[11px] font-bold uppercase leading-tight tracking-[0.18em]">
+              <div className="text-white">Stronger Presence. More Trust.</div>
+              <div style={{ color: "#E63946" }}>More Wins.</div>
             </div>
           </div>
 
@@ -223,11 +229,11 @@ function HeroSection() {
               className="group inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-4 text-[13px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_-16px_rgba(230,57,70,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:gap-3 hover:shadow-[0_22px_50px_-14px_rgba(230,57,70,0.85)] sm:w-auto sm:justify-start"
               style={{ backgroundColor: "#E63946" }}
             >
-              Book the roadmap walkthrough
+              Book Roadmap Walkthrough
               <ArrowRight size={16} strokeWidth={2.4} />
             </a>
             <span className="text-[11px] font-medium tracking-[0.14em] text-white/55">
-              Free · 30&nbsp;minutes · No pitch
+              Free · 30&nbsp;min · No pitch
             </span>
           </div>
         </div>
@@ -243,10 +249,10 @@ function HeroSection() {
             }}
           >
             {[
-              { Icon: Eye, title: "Get found", desc: "Show up first when Houston searches for security, not only when someone already knows the name." },
-              { Icon: Shield, title: "Earn the trust", desc: "Let buyers see the proof before they ever pick up the phone." },
-              { Icon: TrendingUp, title: "Win the work", desc: "Turn more of that attention into signed contracts." },
-              { Icon: ArrowRight, title: "Grow what recurs", desc: "Keep clients longer, and grow the value of each one." },
+              { Icon: TrendingUp, title: "Increase Visibility", desc: "Dominate local search and digital channels." },
+              { Icon: Shield, title: "Build Trust", desc: "Showcase what makes Spartan the right choice." },
+              { Icon: Eye, title: "Win More Contracts", desc: "Convert more opportunities into long-term clients." },
+              { Icon: ArrowRight, title: "Drive Recurring Revenue", desc: "Strengthen retention and grow account value." },
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="flex items-start gap-2.5 sm:gap-3">
                 <Icon size={20} color="#E63946" strokeWidth={1.6} className="mt-0.5 shrink-0 sm:h-[22px] sm:w-[22px]" />
@@ -290,18 +296,18 @@ function CurrentStateSection() {
               className="text-[10px] font-semibold uppercase tracking-[0.28em]"
               style={{ color: "rgba(15,27,61,0.55)" }}
             >
-              Where Spartan stands today
+              Where Spartan Stands
             </span>
           </div>
           <h2
-            className="mt-4 font-black leading-[1.05] tracking-tight"
+            className="mt-4 font-black uppercase leading-[0.92] tracking-tight"
             style={{
               fontSize: "clamp(30px, 4.2vw, 56px)",
               fontFamily: "Inter, system-ui, sans-serif",
             }}
           >
-            <span style={{ color: "#E63946" }}>Point A:</span>
-            <span style={{ color: "#0B1B3A" }}>&nbsp;the current position</span>
+            <span style={{ color: "#E63946" }}>POINT A:</span>
+            <span style={{ color: "#0B1B3A" }}>&nbsp;CURRENT POSITION</span>
           </h2>
         </div>
 
@@ -348,9 +354,9 @@ function CurrentStateSection() {
                 letterSpacing: "-0.01em",
               }}
             >
-              Spartan already runs a business{" "}
+              Spartan already has a business{" "}
               <span className="font-semibold not-italic" style={{ color: "#E63946" }}>
-                worth making visible
+                worth making more visible
               </span>
               .
             </p>
@@ -361,7 +367,8 @@ function CurrentStateSection() {
               style={{ color: "rgba(15,27,61,0.78)" }}
             >
               <p>
-                Spartan protects Costco, Greystar, Builders FirstSource, RPM, and Kaplan. That is not a starting line. That is proof most security companies never earn. The hard part is already done.
+                Spartan already has the hard, crucial pieces needed to become a stronger security
+                authority in Houston.
               </p>
               <div
                 className="rounded-xl border border-[rgba(15,27,61,0.08)] bg-[rgba(15,27,61,0.02)] p-5 sm:p-6"
@@ -378,12 +385,12 @@ function CurrentStateSection() {
                 </div>
                 <ul className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
                   {[
-                    "Marquee clients: Costco, Greystar, RPM",
-                    "SecureAI",
-                    "A training facility and the knowledge inside it",
+                    "Marquee clients (Costco, Greystar, RPM…)",
                     "Trained security officers",
+                    "SecureAI",
                     "Instructors and trainees",
-                    "Years of Houston security data",
+                    "Training facility and knowledge",
+                    "Massive Houston security data",
                   ].map((item) => (
                     <li
                       key={item}
@@ -401,33 +408,20 @@ function CurrentStateSection() {
                   ))}
                 </ul>
               </div>
+              <p>So the question was never whether Spartan has credibility.</p>
               <p>
-                So the question was never whether Spartan is credible. The market settled that a long time ago. The question is quieter.{" "}
                 <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  Why is a company with this record not the obvious choice the moment a Houston buyer starts looking.
+                  The question is why this level of credibility is not as visible&nbsp; online.
                 </mark>
               </p>
               <p>
-                The conversation started with hosting and cost.{" "}
+                The conversation started with a question about hosting and cost.{" "}
                 <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  Looking closer, at the website, the training, the data, the relationships, there was a far larger opportunity sitting in plain sight than a website refresh.
+                  I looked deeper: at the website, the business, the training, and the structure
+                  underneath everything, and I saw a larger opportunity than a website refresh
                 </mark>
+                .
               </p>
-
-              <div
-                className="mt-2 rounded-xl border p-4 sm:p-5"
-                style={{
-                  borderColor: "rgba(15,27,61,0.12)",
-                  background: "linear-gradient(135deg, rgba(230,57,70,0.05) 0%, rgba(15,27,61,0.03) 100%)",
-                }}
-              >
-                <div className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: "#E63946" }}>
-                  Assistant
-                </div>
-                <p className="mt-2 text-[14px] italic leading-[1.55] sm:text-[15px]" style={{ color: "#0B1B3A" }}>
-                  &ldquo;I&rsquo;ve reviewed everything you shared and the site. This is more than a website project.&rdquo;
-                </p>
-              </div>
             </div>
           </div>
         </div>
@@ -536,139 +530,161 @@ function HiddenOpportunitiesSection() {
   const red = "#E63946";
   const muted = "rgba(15,27,61,0.72)";
 
-  const fixListStyle = { color: "inherit" } as const;
-  const markStyle = { backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" } as const;
-
-  const renderGapBody = (
-    leftIntro: ReactNode,
-    rightIntro: ReactNode,
-    fixes: string[],
-  ) => (
-    <>
-      <p><mark style={markStyle}>{leftIntro}</mark></p>
-      <p>{rightIntro}</p>
-      <div className="mt-2">
-        <div className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: red }}>
-          The fix, from the roadmap
-        </div>
-        <ol className="mt-3 space-y-2 text-[14px] leading-[1.65] sm:text-[15px]" style={fixListStyle}>
-          {fixes.map((f, i) => (
-            <li key={i} className="flex gap-3">
-              <span
-                aria-hidden
-                className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black text-white"
-                style={{ backgroundColor: red }}
-              >
-                {i + 1}
-              </span>
-              <span>{f}</span>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </>
-  );
-
   const slides: Slide[] = [
     {
-      label: "Discovery",
+      label: "Search Engine Optimization",
       urlBar: "google.com/search?q=security+guards+near+me",
       image: hiddenOppImg.url,
       alt: "Google search results for security services in Houston",
-      captionTag: "Discovery",
-      captionText: "New buyers don't find Spartan first",
-      imageCaption: "Image 01. Real-time search. Spartan isn't visible when Houston buyers search for security.",
+      captionTag: "Market Reality",
+      captionText: "Competitors ranking · Spartan not yet visible",
+      imageCaption: "Image 01. Real-time search. Spartan isn't ranking well for some security keywords on Google.",
       pullQuote: (
         <>
-          The right buyers should see Spartan{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>first, not tenth</mark>.
+          Houston security buyers may be finding{" "}
+          <mark style={{ backgroundColor: "transparent", color: red }}>competitors first</mark>{" "}
+          when they search online.
         </>
       ),
-      body: renderGapBody(
-        "Buyers don't find Spartan first when they search for security in Houston.",
-        "Spartan comes up when someone already knows the name. New buyers see other companies first, and Spartan never gets the meeting.",
-        [
-          "Show up in Houston security search from the local level up.",
-          "Turn every service into its own page a buyer can land on.",
-          "Give the site the structure to be discoverable, not only visitable.",
-        ],
+      body: (
+        <>
+          <p>
+            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The image on the right is a real-time Google search, and this is how Houston buyers are likely searching for security help.</mark> They search by the problem they need solved, not the name of a company.
+          </p>
+          <p>
+            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>Competitors are showing up near the top for those searches, while Spartan seems to show up strongest when the search includes &ldquo;Spartan.&rdquo;</mark> That means Spartan is easier to find for people who already know the brand, but not visible enough for buyers who do not.
+          </p>
+          <p>
+            That is the bigger opportunity. <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>Spartan has the credibility to compete for that attention, and even win it.</mark> The digital structure just needs to make the business as visible as it deserves to be.
+          </p>
+        </>
       ),
     },
     {
-      label: "Content",
-      urlBar: "spartan-security.com",
+      label: "Service Pages",
+      urlBar: "competitor-security.com/services",
+      image: mgServicesImg.url,
+      alt: "Competitor security company website with specific service pages",
+      captionTag: "Service Gap",
+      captionText: "Broad pages · Buyers need specific paths",
+      imageCaption: "Image 02. A competitor's website showing dedicated service pages.",
+      pullQuote: (
+        <>
+          Buyers search the{" "}
+          <mark style={{ backgroundColor: "transparent", color: red }}>exact situation</mark>{" "}
+          they need protected, not a company.
+        </>
+      ),
+      body: (
+        <>
+          <p>
+            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>A buyer looking for security is usually thinking about the exact situation in front of them</mark>: a construction site, a warehouse, a residential community, a retail property, a high-rise, or an event that needs protection.
+          </p>
+          <p>
+            Spartan already serves these kinds of needs. <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The website needs clearer service pages that match how buyers are searching, so when they land there, they can quickly see Spartan as the solution they need.</mark>
+          </p>
+        </>
+      ),
+    },
+    {
+      label: "Website Security",
+      urlBar: "spartan-security.com/website-security",
       image: websiteSecurityImg.url,
-      alt: "Spartan Security Services website homepage",
-      captionTag: "Content",
-      captionText: "Presents the company · Doesn't build trust yet",
-      imageCaption: "Image 02. The site presents Spartan, but doesn't build trust before the meeting.",
+      alt: "Spartan Security Services website homepage showing professional security brand presence",
+      captionTag: "Website Security",
+      captionText: "Digital front door · Needs the same field standard",
+      imageCaption: "Image 03. Spartan's website is the digital front door. It needs the same protection standard the business is known for.",
       pullQuote: (
         <>
-          Show the depth.{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>That is what closes deals</mark>{" "}
-          before the call.
+          The digital front door needs to feel{" "}
+          <mark style={{ backgroundColor: "transparent", color: red }}>as secure as the business behind it</mark>.
         </>
       ),
-      body: renderGapBody(
-        "The site presents Spartan, it doesn't build trust before the meeting.",
-        "Buyers arrive with real questions. Coverage, response time, quality of officers, training standards, and get generic language, not proof.",
-        [
-          "Convert Spartan's training and standards into buyer-facing proof.",
-          "Publish Houston-market insight, not stock claims.",
-          "Speak in the language of enterprise buyers, not vendors.",
-        ],
+      body: (
+        <>
+          <p>
+            Spartan protects properties, people, and operations in the real world, so <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>the website should carry that same sense of care online.</mark>
+          </p>
+          <p>
+            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The same standard buyers expect from the company in the field should show up on the website too</mark>: secure forms, malware scanning, backups, hosting checks, safe redirects, monitoring, and a tight process for catching issues early. The website is the digital front door, and that front door needs to feel as secure as the business behind it.
+          </p>
+        </>
       ),
     },
     {
-      label: "Trust",
+      label: "SecureAI Positioning",
+      urlBar: "spartan-security.com/secureai",
+      image: mgSecureAIImg.url,
+      alt: "SecureAI AI-powered security monitoring platform mockup",
+      captionTag: "SecureAI Gap",
+      captionText: "Strong asset · Not yet positioned clearly enough",
+      imageCaption: "Image 04. SecureAI positioned as a real reason to choose Spartan, combining officers, AI and monitoring.",
+      pullQuote: (
+        <>
+          SecureAI is a{" "}
+          <mark style={{ backgroundColor: "transparent", color: red }}>reason to choose Spartan</mark>
+          &nbsp;,&nbsp;not a footnote.
+        </>
+      ),
+      body: (
+        <>
+          <p>
+            SecureAI makes Spartan&rsquo;s story stronger. <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>It shows buyers that the company is thinking beyond basic security coverage and looking at how people, patrol, and technology can work together to protect properties better.</mark>
+          </p>
+          <p>
+            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>That needs to come through more clearly on the website</mark>, so a buyer can quickly understand how Spartan&rsquo;s officers, patrol, and AI-powered monitoring fit together as one stronger security solution.
+          </p>
+        </>
+      ),
+    },
+    {
+      label: "Trust Proof",
       urlBar: "spartan-security.com/clients",
       image: mgTrustImg.url,
-      alt: "Trust and client proof section with client logos",
-      captionTag: "Trust",
-      captionText: "Real proof · Currently invisible",
-      imageCaption: "Image 03. Mockup home page showing marquee client proof on the front page.",
+      alt: "Trust and client proof section with client logos and reviews",
+      captionTag: "Trust Gap",
+      captionText: "Strong proof · Not working hard enough yet",
+      imageCaption: "Image 05. Mockup home page showing marquee client proof on the front page.",
       pullQuote: (
         <>
-          Buyers need to{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>see who you are</mark>, not read about it.
+          Costco, Greystar, Builders FirstSource ... That&nbsp;{" "}
+          <mark style={{ backgroundColor: "transparent", color: red }}>proof should be doing more work</mark>.
         </>
       ),
-      body: renderGapBody(
-        "The market can't see Spartan's proof yet.",
-        "Real relationships, real footage, real experience, invisible on the surface. Nothing on the site signals scale, longevity, or the caliber of client already served.",
-        [
-          "Bring the client roster into view once approved.",
-          "Present the leadership behind the company.",
-          "Show tenure, footprint, and depth of service.",
-        ],
+      body: (
+        <>
+          <p>
+            Spartan has worked with serious names like Costco, Greystar, Builders FirstSource, RPM, and Kaplan, and <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>that kind of proof should not be hidden. It should be on the front pages, showing buyers that Spartan already has the credibility to handle real properties, real responsibility, real operations, and real pressure.</mark>
+          </p>
+        </>
       ),
     },
     {
-      label: "Services",
-      urlBar: "spartan-security.com/services",
-      image: mgServicesImg.url,
-      alt: "Security services broken out into dedicated pages",
-      captionTag: "Services",
-      captionText: "Full range · Not visible or comparable",
-      imageCaption: "Image 04. Dedicated service pages so buyers can map their exact need to a Spartan service.",
+      label: "Content Engine",
+      urlBar: "spartan-security.com/insights",
+      image: mgContentImg.url,
+      alt: "Content and authority dashboard with blog and social posts",
+      captionTag: "Authority Gap",
+      captionText: "Knowledge inside · Not visible enough outside",
+      imageCaption: "Image 06. Mockup content engine dashboard turning Spartan's field knowledge into blog posts, articles and social posts.",
       pullQuote: (
         <>
-          When a buyer sees the range,{" "}
-          <mark style={{ backgroundColor: "transparent", color: red }}>budgets grow</mark>.
+          Spartan already knows the market ,&nbsp;{" "}
+          <mark style={{ backgroundColor: "transparent", color: red }}>the outside just can&rsquo;t hear it yet</mark>.
         </>
       ),
-      body: renderGapBody(
-        "The full range of Spartan's work isn't visible or comparable.",
-        "Officers, patrols, executive protection, event, retail loss prevention, training, and specialized security, live as one blur. Buyers can't map their need to a service.",
-        [
-          "Give each service a page and a story.",
-          "Explain when to choose which.",
-          "Show how they layer together for larger clients.",
-        ],
+      body: (
+        <>
+          <p>
+            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>Spartan already has the content assets it needs to build stronger social presence and authority online</mark>: years of security experience, real Houston crime data, field knowledge, training insight, and real opinions about what makes security work. Those assets should not sit dormant in documents.
+          </p>
+          <p>
+            <mark style={{ backgroundColor: "rgba(230,57,70,0.15)", color: "inherit", padding: "0 2px" }}>The content engine can use that knowledge base to create blog posts, articles, FAQs, short videos, and social media posts</mark> that make Spartan more visible and more trusted. Built to be automated, without adding extra workload for the team.
+          </p>
+        </>
       ),
     },
   ];
-
 
   const [index, setIndex] = useState(0);
   const total = slides.length;
@@ -693,26 +709,20 @@ function HiddenOpportunitiesSection() {
               className="text-[10px] font-semibold uppercase tracking-[0.28em]"
               style={{ color: "rgba(15,27,61,0.55)" }}
             >
-              The Market Gap
+              What&apos;s Being Missed
             </span>
           </div>
 
           <h2
-            className="mt-4 font-black leading-[1.05] tracking-tight sm:mt-5"
+            className="mt-4 font-black uppercase leading-[0.98] tracking-tight sm:mt-5"
             style={{
               color: navy,
               fontFamily: "Inter, system-ui, sans-serif",
               fontSize: "clamp(32px, 4.4vw, 64px)",
             }}
           >
-            The four rooms Houston walks <span style={{ color: red }}>past</span>
+            THE MARKET <span style={{ color: red }}>GAP</span>
           </h2>
-          <p
-            className="mt-5 max-w-[720px] text-[14px] leading-[1.7] sm:text-[15.5px]"
-            style={{ color: "rgba(15,27,61,0.7)", fontFamily: "Inter, system-ui, sans-serif" }}
-          >
-            These are the rooms where the sale happens or slips. Right now Spartan doesn&rsquo;t lose on capability. It loses on visibility.
-          </p>
         </div>
       </div>
 
@@ -972,24 +982,44 @@ function NoteFromTaiSection() {
               className="mt-6 space-y-4 text-[14px] leading-[1.7] sm:mt-8 sm:space-y-5 sm:text-[15px] sm:leading-[1.75]"
               style={{ color: muted }}
             >
+              <p>If we were sitting across the table, I would not start this conversation by talking about the website.</p>
+              <p>I would start with the business.</p>
               <p>
-                We didn&rsquo;t need to guess.{" "}
                 <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  Spartan&rsquo;s track record is already there
-                </mark>
-                , in real client relationships, in the training facility, in the officers already on the ground.
+                  Somewhere in Houston, someone is probably looking for security help right now.
+                </mark>{" "}
+                They are not loyal to a provider yet. They are comparing. They are checking who
+                looks credible, who can handle the pressure, and who seems worth calling.
               </p>
               <p>
-                What we needed to design was the version of Spartan that Houston can see, understand, and choose in the moment of decision.{" "}
+                They may not know Spartan yet, and that is not a problem.{" "}
                 <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
-                  That is what this roadmap is.
+                  That is an opening.
                 </mark>
               </p>
-              <p className="pt-2 text-[13px] font-semibold uppercase tracking-[0.18em]" style={{ color: navy }}>
-                Tai Wilkinson
-                <span className="ml-2 font-medium normal-case tracking-normal" style={{ color: muted }}>
-                  Founder, Trust Tai
-                </span>
+              <p>
+                There is a real opportunity here for Spartan to become the security authority the
+                market can&apos;t ignore.{" "}
+                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
+                  When someone searches for security in Houston, Spartan should be at the top of
+                  that search result.
+                </mark>
+              </p>
+              <p>That is what this roadmap is about. And more.</p>
+              <p>
+                This preview only shows the first layer.{" "}
+                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
+                  The full roadmap goes deeper into where Spartan is today, the underused assets
+                  already inside the business, where the business can move next, and how the pieces
+                  all connect into a stronger authority engine.
+                </mark>
+              </p>
+              <p>
+                <mark className="px-1" style={{ backgroundColor: "rgba(230, 57, 70, 0.15)" }}>
+                  The call is not a pitch. It is a conversation worth having.
+                </mark>{" "}
+                I&rsquo;ll walk you through the full thinking, answer your questions, and if you
+                feel it&apos;s the right next step, we can talk about execution.
               </p>
             </div>
 
@@ -1055,71 +1085,6 @@ function NoteFromTaiSection() {
               )}
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ================== BRIDGE: POINT A → MARKET GAP ================== */
-
-function BridgeToGapSection() {
-  const navy = "#0B1B3A";
-  const red = "#E63946";
-  return (
-    <section className="relative w-full" style={{ backgroundColor: "#F7F5F1" }}>
-      <div className="mx-auto max-w-[1240px] px-5 py-10 sm:px-8 sm:py-14 md:px-12 md:py-16 lg:px-16">
-        <div className="flex flex-col items-center gap-5 text-center">
-          <div className="h-[2px] w-12" style={{ backgroundColor: red }} />
-          <p
-            className="max-w-[820px] text-[20px] font-light italic leading-[1.35] sm:text-[24px] md:text-[28px] lg:text-[30px]"
-            style={{ color: navy, fontFamily: "Inter, system-ui, sans-serif", letterSpacing: "-0.01em" }}
-          >
-            If Spartan&rsquo;s foundation is this strong, why does the market act like it{" "}
-            <span className="font-semibold not-italic" style={{ color: red }}>
-              doesn&rsquo;t know
-            </span>
-            ?
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ================== CLOSING: WHAT THIS MEANS ================== */
-
-function WhatThisMeansSection() {
-  const navy = "#0B1B3A";
-  const red = "#E63946";
-  const muted = "rgba(15,27,61,0.72)";
-  return (
-    <section className="relative w-full bg-white">
-      <div className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8 sm:py-16 md:px-12 md:py-20 lg:px-16 lg:py-24">
-        <div className="flex flex-col items-start gap-6 md:items-center md:text-center">
-          <div className="flex items-center gap-3">
-            <div className="h-px w-10" style={{ backgroundColor: "rgba(15,27,61,0.22)" }} />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.28em]" style={{ color: "rgba(15,27,61,0.55)" }}>
-              What this means
-            </span>
-            <div className="h-px w-10" style={{ backgroundColor: "rgba(15,27,61,0.22)" }} />
-          </div>
-          <h2
-            className="max-w-[900px] font-black leading-[1.05] tracking-tight"
-            style={{
-              color: navy,
-              fontFamily: "Inter, system-ui, sans-serif",
-              fontSize: "clamp(28px, 3.6vw, 52px)",
-            }}
-          >
-            The problem isn&rsquo;t <span style={{ color: red }}>Spartan</span>. It is what Houston can see of Spartan.
-          </h2>
-          <p
-            className="max-w-[760px] text-[15px] leading-[1.75] sm:text-[16px]"
-            style={{ color: muted, fontFamily: "Inter, system-ui, sans-serif" }}
-          >
-            Fix visibility, trust, and clarity of service, and the same company shows up in the market at the level it&rsquo;s already operating at internally. That is the shift this roadmap is built to make.
-          </p>
         </div>
       </div>
     </section>
