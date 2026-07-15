@@ -871,7 +871,7 @@ function NoteFromTaiSection({
   const muted = "rgba(15,27,61,0.72)";
 
   return (
-    <section id="note-from-tai" className="relative flex w-full items-center bg-white">
+    <section id="note-from-tai" className="relative flex w-full items-center overflow-hidden bg-white">
       <div className="w-full py-8 sm:py-14 md:py-20 lg:py-24">
         <div className="mx-auto grid max-w-[1240px] grid-cols-1 items-start gap-8 px-5 sm:gap-10 sm:px-8 md:px-12 lg:grid-cols-12 lg:gap-14 lg:px-16">
           <div className="hidden lg:col-span-5 lg:block">
