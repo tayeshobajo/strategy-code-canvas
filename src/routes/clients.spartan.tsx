@@ -667,10 +667,11 @@ function HiddenOpportunitiesSection() {
       </div>
 
       <div
-        className="grid w-full grid-cols-1 bg-white lg:grid-cols-12"
+        id="market-gap-slider"
+        className="grid w-full grid-cols-1 bg-white lg:grid-cols-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E63946]/60"
         role="region"
         aria-roledescription="carousel"
-        aria-label="Market gap slider"
+        aria-label="Market gap slider. Use left and right arrow keys to navigate."
         tabIndex={0}
         onKeyDown={onSliderKeyDown}
       >
