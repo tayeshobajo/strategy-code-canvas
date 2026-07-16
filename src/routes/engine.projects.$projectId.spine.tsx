@@ -243,6 +243,13 @@ function ProjectSpine() {
         intelligenceConfidence={spine.intelligence.confidence}
       />
 
+      {/* ───── Working focus (merged from legacy Overview) ───── */}
+      <WorkingFocusStrip
+        projectId={projectId}
+        currentStepNum={spine.project.current_step_num}
+        totalSteps={14}
+      />
+
       {/* ───── Milestone approval history ───── */}
       <MilestoneApprovalHistoryCard
         rows={historyRows}
@@ -252,6 +259,7 @@ function ProjectSpine() {
         errorMessage={(historyQ.error as Error | null)?.message}
         onRetry={() => historyQ.refetch()}
       />
+
 
       {/* ───── Modules & Readiness (power-user view) ───── */}
       <details className="group rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
