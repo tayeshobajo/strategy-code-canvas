@@ -7,6 +7,8 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import type { WorkspaceProject } from "@/lib/engine-workspace";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdminEmail } from "@/lib/ops/access";
 import {
