@@ -46,6 +46,7 @@ export const proposeSpineFieldChange = createServerFn({ method: "POST" })
     const title = `Spine change · ${data.sectionKey} · ${data.fieldKey}`;
     const summary = data.changeReason?.slice(0, 300) ?? "Proposed change to approved spine statement.";
     const payload = {
+      kind: "spine_field_change",
       section_key: data.sectionKey,
       field_key: data.fieldKey,
       new_value: data.newValue,
@@ -57,7 +58,7 @@ export const proposeSpineFieldChange = createServerFn({ method: "POST" })
       .from("engine_project_chat_proposals")
       .insert({
         project_id: data.projectId,
-        proposal_type: "spine_field_change",
+        proposal_type: "review_item",
         title,
         summary,
         payload,
