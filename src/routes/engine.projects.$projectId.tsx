@@ -1,12 +1,10 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getProjectWorkspace } from "@/lib/engine.functions";
-import { WORKSPACE_STEPS } from "@/lib/engine-workspace";
 import { ProjectTabs } from "@/components/engine/ProjectTabs";
 import {
   ProjectHeaderStrip,
-  WorkspaceBreadcrumb,
   WorkspaceToolbar,
 } from "@/components/engine/WorkspaceHeader";
 
@@ -28,15 +26,11 @@ export const Route = createFileRoute("/engine/projects/$projectId")({
 
 function WorkspaceLayout() {
   const { projectId } = Route.useParams();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const fn = useServerFn(getProjectWorkspace);
   const { data, error, isError, isPending } = useQuery(
     workspaceQueryOptions(projectId, fn as unknown as (i: { data: { id: string } }) => Promise<unknown>),
   );
   const workspace = data as { project: import("@/lib/engine-workspace").WorkspaceProject };
-
-  const currentStep =
-    WORKSPACE_STEPS.find((s) => pathname.endsWith(`/${s.key}`))?.label ?? "Project Overview";
 
   if (isPending) {
     return (
@@ -66,22 +60,15 @@ function WorkspaceLayout() {
 
   return (
     <div className="space-y-5 max-w-[1500px]">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <WorkspaceBreadcrumb
-          projectId={projectId}
-          clientName={workspace.project.client_company}
-          stepLabel={currentStep}
-        />
-        <div className="flex items-center gap-2">
-          <Link
-            to="/engine/projects/$projectId/family"
-            params={{ projectId }}
-            className="rounded-md border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs text-[#0A0F1F] hover:bg-[#FBF9F4]"
-          >
-            Family
-          </Link>
-          <WorkspaceToolbar projectId={projectId} project={workspace.project} />
-        </div>
+      <div className="flex items-center justify-end gap-2 flex-wrap">
+        <Link
+          to="/engine/projects/$projectId/family"
+          params={{ projectId }}
+          className="rounded-md border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs text-[#0A0F1F] hover:bg-[#FBF9F4]"
+        >
+          Family
+        </Link>
+        <WorkspaceToolbar projectId={projectId} project={workspace.project} />
       </div>
       <ProjectHeaderStrip project={workspace.project} />
       <ProjectTabs projectId={projectId} />

@@ -7,6 +7,8 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import type { WorkspaceProject } from "@/lib/engine-workspace";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdminEmail } from "@/lib/ops/access";
 import {
@@ -102,7 +104,16 @@ function EngineLayout() {
     navigate({ to: "/auth", search: { email: undefined, redirect: "/" } });
   }
 
-  const crumbs = buildCrumbs(pathname);
+  const queryClient = useQueryClient();
+  const projectMatch = pathname.match(/^\/engine\/projects\/([^/]+)/);
+  const activeProjectId = projectMatch?.[1] && projectMatch[1] !== "new" ? projectMatch[1] : null;
+  const workspaceData = activeProjectId
+    ? (queryClient.getQueryData(["engine", "workspace", activeProjectId]) as
+        | { project?: WorkspaceProject }
+        | undefined)
+    : undefined;
+  const clientName = workspaceData?.project?.client_company;
+  const crumbs = buildCrumbs(pathname, { clientName });
   const currentNav = NAV.find((n) =>
     n.exact ? pathname === n.to : pathname === n.to || pathname.startsWith(n.to + "/"),
   );
@@ -264,7 +275,10 @@ function titleFromSlug(slug: string): string {
   );
 }
 
-function buildCrumbs(pathname: string): Array<{ label: string; to?: string }> {
+function buildCrumbs(
+  pathname: string,
+  opts: { clientName?: string } = {},
+): Array<{ label: string; to?: string }> {
   const out: Array<{ label: string; to?: string }> = [{ label: "Roadmap Engine", to: "/engine" }];
   if (pathname === "/engine") return out;
 
@@ -281,7 +295,10 @@ function buildCrumbs(pathname: string): Array<{ label: string; to?: string }> {
         out.push({ label: "New project" });
         return out;
       }
-      out.push({ label: "Project" });
+      out.push({
+        label: opts.clientName ?? "Project",
+        to: `/engine/projects/${projectId}/overview`,
+      });
       const sub = match[2];
       const subsub = match[3];
       if (sub) out.push({ label: titleFromSlug(sub) });
