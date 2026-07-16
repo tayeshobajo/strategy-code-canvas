@@ -2050,6 +2050,189 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       .limit(20);
     const audit = (auditRows ?? []) as ProjectSpinePayload["audit"];
 
+    // Phase 3 — Aggregated module outputs with per-section readiness.
+    // Direct modules read a jsonb column and pair it with the matching
+    // step_states approval. Derived modules (constraints/risks/success_metrics/
+    // decisions) do not have their own column and inherit the approval state
+    // of the parent module that houses them.
+    const stepStates =
+      (projRow.step_states as Record<
+        string,
+        { state?: "draft" | "review" | "approved" } | null
+      > | null) ?? {};
+    const hasKeysOrItems = (v: unknown): boolean => {
+      if (v == null) return false;
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === "string") return v.trim().length > 0;
+      if (typeof v === "object") return Object.keys(v as Record<string, unknown>).length > 0;
+      return false;
+    };
+    const stepStateOf = (stepKey: string): "draft" | "review" | "approved" | null =>
+      stepStates[stepKey]?.state ?? null;
+    const asRec = (v: unknown): Record<string, unknown> =>
+      v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+    const pickPath = (v: unknown, keys: readonly string[]): unknown => {
+      const rec = asRec(v);
+      for (const k of keys) {
+        if (rec[k] != null && hasKeysOrItems(rec[k])) return rec[k];
+      }
+      return null;
+    };
+    const buildDirect = (
+      key: SpineModuleKey,
+      label: string,
+      column: string,
+      stepKey: string,
+      deepLink: string,
+      value: unknown,
+    ): SpineModuleSection => {
+      const state = stepStateOf(stepKey);
+      const has_data = hasKeysOrItems(value);
+      const approved = state === "approved";
+      return {
+        key,
+        label,
+        source: `engine_projects.${column}`,
+        derived: false,
+        deep_link: deepLink,
+        data: (value ?? null) as import("@/lib/engine-workspace").Json,
+        readiness: {
+          has_data,
+          approved,
+          ready: has_data && approved,
+          approval_state: state,
+        },
+      };
+    };
+    const buildDerived = (
+      key: SpineModuleKey,
+      label: string,
+      parentColumn: string,
+      parentStepKey: string,
+      deepLink: string,
+      value: unknown,
+    ): SpineModuleSection => {
+      const state = stepStateOf(parentStepKey);
+      const has_data = hasKeysOrItems(value);
+      const approved = state === "approved";
+      return {
+        key,
+        label,
+        source: `engine_projects.${parentColumn} (derived)`,
+        derived: true,
+        deep_link: deepLink,
+        data: (value ?? null) as import("@/lib/engine-workspace").Json,
+        readiness: {
+          has_data,
+          approved,
+          ready: has_data && approved,
+          approval_state: state,
+        },
+      };
+    };
+
+    const linkFor = (suffix: string) => `/engine/projects/${data.id}/${suffix}`;
+    const gapMap = projRow.gap_map ?? null;
+    const blueprintVal = projRow.blueprint ?? null;
+    const pointBVal = projRow.point_b ?? null;
+    const roadmapVal = projRow.roadmap ?? null;
+
+    // Decisions: pending review items flagged as decision-shaped, plus the
+    // open_decisions counter for a lightweight aggregate.
+    const decisionReviews = (reviews ?? []).filter((r) =>
+      /decision/i.test(r.item_type ?? ""),
+    );
+    const decisionsPayload = {
+      open_decisions: (projRow.open_decisions as number | null) ?? 0,
+      pending: decisionReviews,
+    };
+    const decisionsHasData = decisionReviews.length > 0 || decisionsPayload.open_decisions > 0;
+
+    const modules: SpineModuleSection[] = [
+      buildDirect(
+        "hidden_assets",
+        "Hidden Assets",
+        "hidden_assets",
+        "hidden-assets",
+        linkFor("hidden-assets"),
+        projRow.hidden_assets,
+      ),
+      buildDirect("gaps", "Gap Map", "gap_map", "gap-map", linkFor("gap-map"), gapMap),
+      buildDirect(
+        "blueprint",
+        "System Blueprint",
+        "blueprint",
+        "blueprint",
+        linkFor("blueprint"),
+        blueprintVal,
+      ),
+      buildDirect(
+        "sequencing",
+        "Sequencing",
+        "sequencing",
+        "sequencing",
+        linkFor("sequencing"),
+        projRow.sequencing,
+      ),
+      buildDirect(
+        "deadlines",
+        "Deadlines",
+        "deadlines",
+        "deadlines",
+        linkFor("deadlines"),
+        projRow.deadlines,
+      ),
+      buildDirect(
+        "investment",
+        "Investment",
+        "investment",
+        "investment",
+        linkFor("investment"),
+        projRow.investment,
+      ),
+      buildDerived(
+        "constraints",
+        "Constraints",
+        "gap_map",
+        "gap-map",
+        linkFor("gap-map"),
+        pickPath(gapMap, ["constraints"]) ??
+          pickPath(projRow.point_a, ["constraints"]) ??
+          pickPath(blueprintVal, ["constraints"]),
+      ),
+      buildDerived(
+        "risks",
+        "Risks",
+        "gap_map",
+        "gap-map",
+        linkFor("gap-map"),
+        pickPath(gapMap, ["risks"]) ?? pickPath(projRow.point_a, ["risks"]),
+      ),
+      buildDerived(
+        "success_metrics",
+        "Success Metrics",
+        "point_b",
+        "point-b",
+        linkFor("point-b"),
+        pickPath(pointBVal, ["success_metrics", "metrics", "measures"]) ??
+          pickPath(roadmapVal, ["success_metrics"]),
+      ),
+      {
+        key: "decisions",
+        label: "Decisions",
+        source: "engine_projects.open_decisions + engine_review_items",
+        derived: true,
+        deep_link: linkFor("builder"),
+        data: decisionsPayload as unknown as import("@/lib/engine-workspace").Json,
+        readiness: {
+          has_data: decisionsHasData,
+          approved: false,
+          ready: false,
+          approval_state: null,
+        },
+      },
+    ];
+
     return {
       project: {
         id: projRow.id,
@@ -2076,8 +2259,10 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       activity,
       notifications,
       audit,
+      modules,
     };
   });
+
 
 // ─────────── Understanding Room ─────────────────────────────────
 export type UnderstandingState =
