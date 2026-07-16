@@ -49,13 +49,61 @@ const KNOWN_ENGINE_STATUS = new Set([
   "archived",
 ]);
 
+type ModuleReadinessFilter = "all" | "ready" | "review" | "draft" | "missing";
+type ModuleCategoryFilter = "all" | "direct" | "derived";
+type ModuleSort = "label" | "readiness";
+
 function ProjectSpine() {
   const { projectId } = Route.useParams();
   const spineFn = useServerFn(getProjectSpine);
+  const historyFn = useServerFn(listMilestoneApprovalHistory);
+  const approveFn = useServerFn(approveMilestone);
+  const rejectFn = useServerFn(rejectMilestone);
+  const queryClient = useQueryClient();
+
   const spineQ = useQuery({
     queryKey: ["engine", "spine", projectId],
     queryFn: () => spineFn({ data: { id: projectId } }),
     staleTime: 60_000,
+  });
+  const historyQ = useQuery({
+    queryKey: ["engine", "spine-approval-history", projectId],
+    queryFn: () => historyFn({ data: { project_id: projectId } }),
+    staleTime: 30_000,
+    enabled: !!spineQ.data,
+  });
+
+  const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<ModuleCategoryFilter>("all");
+  const [moduleSort, setModuleSort] = useState<ModuleSort>("readiness");
+  const [evidenceSearch, setEvidenceSearch] = useState("");
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+
+  const approveMut = useMutation({
+    mutationFn: (id: string) => approveFn({ data: { id } }),
+    onSuccess: async () => {
+      setApprovalError(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["engine", "spine", projectId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["engine", "spine-approval-history", projectId],
+        }),
+      ]);
+    },
+    onError: (e: unknown) => setApprovalError((e as Error)?.message ?? "Approval failed"),
+  });
+  const rejectMut = useMutation({
+    mutationFn: (id: string) => rejectFn({ data: { id } }),
+    onSuccess: async () => {
+      setApprovalError(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["engine", "spine", projectId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["engine", "spine-approval-history", projectId],
+        }),
+      ]);
+    },
+    onError: (e: unknown) => setApprovalError((e as Error)?.message ?? "Rejection failed"),
   });
 
   if (spineQ.isPending) {
@@ -64,15 +112,14 @@ function ProjectSpine() {
 
   if (spineQ.isError || !spineQ.data) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-900">
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-red-700/70">
-          Spine unavailable
-        </div>
-        <p className="mt-2">
-          {(spineQ.error as Error | null)?.message ??
-            "The protected project spine could not be loaded."}
-        </p>
-      </div>
+      <ErrorBanner
+        title="Spine unavailable"
+        message={
+          (spineQ.error as Error | null)?.message ??
+          "The protected project spine could not be loaded."
+        }
+        onRetry={() => spineQ.refetch()}
+      />
     );
   }
 
@@ -82,10 +129,17 @@ function ProjectSpine() {
   const scopeItems = collectScope(spine.version?.payload);
   const groupedMilestones = groupMilestones(spine.milestones);
   const sourceTotal = Math.max(spine.sources.total, 1);
+  const historyRows = historyQ.data ?? [];
+  const pendingMilestoneId =
+    approveMut.isPending
+      ? (approveMut.variables as string | undefined) ?? null
+      : rejectMut.isPending
+        ? (rejectMut.variables as string | undefined) ?? null
+        : null;
 
   return (
     <div className="space-y-8 text-[#0A0F1F]">
-      {/* Header */}
+      {/* Header + toolbar */}
       <header className="space-y-3">
         <Link
           to="/engine/projects/$projectId/overview"
@@ -95,20 +149,38 @@ function ProjectSpine() {
           <ChevronLeft className="h-4 w-4" />
           Back to Overview
         </Link>
-        <div className="space-y-2">
-          <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#667085]">
-            Project Spine · Approved Truth
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2 min-w-0">
+            <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#667085]">
+              Project Spine · Approved Truth
+            </div>
+            <h1 className="font-display text-3xl text-[#0A0F1F]">{spine.project.name}</h1>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-[#667085]">
+              <span>{spine.project.client_company || "No client company"}</span>
+              <span>·</span>
+              <ProjectStatusBadge status={spine.project.status} />
+              <span>·</span>
+              <span>Last updated {formatDateTime(spine.project.updated_at)}</span>
+            </div>
           </div>
-          <h1 className="font-display text-3xl text-[#0A0F1F]">{spine.project.name}</h1>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-[#667085]">
-            <span>{spine.project.client_company || "No client company"}</span>
-            <span>·</span>
-            <ProjectStatusBadge status={spine.project.status} />
-            <span>·</span>
-            <span>Last updated {formatDateTime(spine.project.updated_at)}</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => exportSpinePdf(spine, historyRows)}
+            className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440]"
+          >
+            <Download className="h-4 w-4" />
+            Export PDF
+          </button>
         </div>
       </header>
+
+      {approvalError ? (
+        <ErrorBanner
+          title="Approval action failed"
+          message={approvalError}
+          onDismiss={() => setApprovalError(null)}
+        />
+      ) : null}
 
       {/* 1. Next Best Action — hero */}
       <NextBestActionCard nba={spine.nba} projectId={projectId} />
@@ -155,7 +227,7 @@ function ProjectSpine() {
         </div>
       </section>
 
-      {/* 3. Roadmap summary */}
+      {/* 3. Roadmap summary — with interactive approvals */}
       <section aria-labelledby="spine-roadmap-heading" className="space-y-3">
         <SectionHeading
           id="spine-roadmap-heading"
@@ -177,17 +249,35 @@ function ProjectSpine() {
           milestones={spine.milestones}
           groupedMilestones={groupedMilestones}
           scopeItems={scopeItems}
+          onApprove={(id) => approveMut.mutate(id)}
+          onReject={(id) => rejectMut.mutate(id)}
+          pendingMilestoneId={pendingMilestoneId}
         />
       </section>
 
-      {/* 4. Milestone / module readiness */}
+      {/* 4. Milestone / module readiness with filters + sort */}
       <section aria-labelledby="spine-readiness-modules-heading" className="space-y-3">
         <SectionHeading
           id="spine-readiness-modules-heading"
           eyebrow="Readiness"
           title="Milestone & module readiness"
         />
-        <ModuleReadinessGrid modules={spine.modules} projectId={projectId} />
+        <ModuleGridControls
+          readiness={moduleFilter}
+          onReadinessChange={setModuleFilter}
+          category={categoryFilter}
+          onCategoryChange={setCategoryFilter}
+          sort={moduleSort}
+          onSortChange={setModuleSort}
+          modules={spine.modules}
+        />
+        <ModuleReadinessGrid
+          modules={spine.modules}
+          projectId={projectId}
+          filter={moduleFilter}
+          category={categoryFilter}
+          sort={moduleSort}
+        />
       </section>
 
       {/* 4b. Module contents — approved outputs with deep links */}
@@ -200,7 +290,7 @@ function ProjectSpine() {
         <ModuleContentsList modules={spine.modules} projectId={projectId} />
       </section>
 
-      {/* 5. Approvals */}
+      {/* 5. Approvals + history */}
       <section aria-labelledby="spine-approvals-heading" className="space-y-3">
         <SectionHeading
           id="spine-approvals-heading"
@@ -211,16 +301,47 @@ function ProjectSpine() {
           <ApprovalsCard reviews={spine.reviews} />
           <NotificationsCard notifications={spine.notifications} />
         </div>
+        <MilestoneApprovalHistoryCard
+          rows={historyRows}
+          milestones={spine.milestones}
+          isLoading={historyQ.isPending}
+          isError={historyQ.isError}
+          errorMessage={(historyQ.error as Error | null)?.message}
+          onRetry={() => historyQ.refetch()}
+        />
       </section>
 
-      {/* 6. Evidence & History (collapsed) */}
+      {/* 6. Evidence & history — searchable, collapsed */}
       <section aria-labelledby="spine-evidence-heading" className="space-y-3">
         <SectionHeading
           id="spine-evidence-heading"
           eyebrow="Reference"
           title="Evidence & history"
+          action={
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#667085]" />
+              <input
+                type="search"
+                placeholder="Search evidence & history…"
+                value={evidenceSearch}
+                onChange={(e) => setEvidenceSearch(e.target.value)}
+                className="w-64 rounded-full border border-[#E8E1D6] bg-white py-1.5 pl-8 pr-3 text-xs text-[#0A0F1F] placeholder:text-[#667085] focus:border-[#3E68B2] focus:outline-none"
+              />
+            </div>
+          }
         />
-        <CollapsedBlock title="Sources & portal publish" subtitle={`${spine.sources.processed}/${spine.sources.total} processed`}>
+
+        <SearchableBlock
+          title="Sources & portal publish"
+          subtitle={`${spine.sources.processed}/${spine.sources.total} processed`}
+          search={evidenceSearch}
+          haystack={[
+            "sources",
+            "portal",
+            spine.portal_publish?.status ?? "not_published",
+            spine.sources.last_run?.status ?? "",
+          ].join(" ")}
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-xl border border-[#E8E1D6] bg-white p-4">
               <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
@@ -264,37 +385,61 @@ function ProjectSpine() {
               </div>
             </div>
           </div>
-        </CollapsedBlock>
+        </SearchableBlock>
 
-        <CollapsedBlock title="Recent activity" subtitle={`${spine.activity.length} events`}>
+        <SearchableBlock
+          title="Recent activity"
+          subtitle={`${spine.activity.length} events`}
+          search={evidenceSearch}
+          haystack={spine.activity
+            .map((i) => `${i.title} ${i.kind} ${i.body ?? ""}`)
+            .join(" ")}
+        >
           <ListCard
             title="Activity"
-            items={spine.activity.slice(0, 15).map((item) => ({
-              id: item.id,
-              title: item.title,
-              meta: `${humanize(item.kind)} · ${formatDateTime(item.created_at)}`,
-              body: item.body,
-            }))}
+            items={filterListItems(
+              spine.activity.slice(0, 15).map((item) => ({
+                id: item.id,
+                title: item.title,
+                meta: `${humanize(item.kind)} · ${formatDateTime(item.created_at)}`,
+                body: item.body,
+              })),
+              evidenceSearch,
+            )}
             empty="No recent activity."
           />
-        </CollapsedBlock>
+        </SearchableBlock>
 
-        <CollapsedBlock title="Audit trail" subtitle={`${spine.audit.length} entries`}>
+        <SearchableBlock
+          title="Audit trail"
+          subtitle={`${spine.audit.length} entries`}
+          search={evidenceSearch}
+          haystack={spine.audit
+            .map((i) => `${i.action} ${i.actor_email ?? ""} ${i.summary ?? ""}`)
+            .join(" ")}
+        >
           <ListCard
             title="Audit"
-            items={spine.audit.slice(0, 15).map((item) => ({
-              id: item.id,
-              title: humanize(item.action),
-              meta: `${item.actor_email ?? "system"} · ${formatDateTime(item.created_at)}`,
-              body: item.summary,
-            }))}
+            items={filterListItems(
+              spine.audit.slice(0, 15).map((item) => ({
+                id: item.id,
+                title: humanize(item.action),
+                meta: `${item.actor_email ?? "system"} · ${formatDateTime(item.created_at)}`,
+                body: item.summary,
+              })),
+              evidenceSearch,
+            )}
             empty="No audit entries."
           />
-        </CollapsedBlock>
+        </SearchableBlock>
 
-        <CollapsedBlock
+        <SearchableBlock
           title="Task ledger"
           subtitle={`${spine.tasks.length} task${spine.tasks.length === 1 ? "" : "s"}`}
+          search={evidenceSearch}
+          haystack={spine.tasks
+            .map((t) => `${t.name} ${t.phase ?? ""} ${t.status} ${t.owner_email ?? ""}`)
+            .join(" ")}
         >
           {spine.tasks.length ? (
             <div className="overflow-x-auto">
@@ -309,32 +454,49 @@ function ProjectSpine() {
                   </tr>
                 </thead>
                 <tbody>
-                  {spine.tasks.map((task) => (
-                    <tr key={task.id} className="border-b border-[#F3EEE6] align-top">
-                      <td className="py-3 pr-4 text-[#0A0F1F]">{task.name}</td>
-                      <td className="py-3 pr-4 text-[#667085]">{task.phase ? humanize(task.phase) : "—"}</td>
-                      <td className="py-3 pr-4">
-                        <GenericBadge tone={toneForStatus(task.status)}>{humanize(task.status)}</GenericBadge>
-                      </td>
-                      <td className="py-3 pr-4 text-[#667085]">{task.owner_email || "—"}</td>
-                      <td className="py-3 text-[#667085]">{task.due_date ? formatDate(task.due_date) : "—"}</td>
-                    </tr>
-                  ))}
+                  {spine.tasks
+                    .filter((task) =>
+                      matchesSearch(
+                        `${task.name} ${task.phase ?? ""} ${task.status} ${task.owner_email ?? ""}`,
+                        evidenceSearch,
+                      ),
+                    )
+                    .map((task) => (
+                      <tr key={task.id} className="border-b border-[#F3EEE6] align-top">
+                        <td className="py-3 pr-4 text-[#0A0F1F]">{task.name}</td>
+                        <td className="py-3 pr-4 text-[#667085]">{task.phase ? humanize(task.phase) : "—"}</td>
+                        <td className="py-3 pr-4">
+                          <GenericBadge tone={toneForStatus(task.status)}>{humanize(task.status)}</GenericBadge>
+                        </td>
+                        <td className="py-3 pr-4 text-[#667085]">{task.owner_email || "—"}</td>
+                        <td className="py-3 text-[#667085]">{task.due_date ? formatDate(task.due_date) : "—"}</td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
           ) : (
             <p className="text-sm text-[#667085]">No tasks have been approved into the spine.</p>
           )}
-        </CollapsedBlock>
+        </SearchableBlock>
 
-        <CollapsedBlock title="Version history" subtitle="Approved roadmap versions">
+        <SearchableBlock
+          title="Version history"
+          subtitle="Approved roadmap versions"
+          search={evidenceSearch}
+          haystack={`versions ${spine.version?.label ?? ""}`}
+        >
           <SpineVersionHistory projectId={projectId} currentVersionLabel={spine.version?.label ?? null} />
-        </CollapsedBlock>
+        </SearchableBlock>
 
-        <CollapsedBlock title="Readiness contract" subtitle="14 canonical checks (advisory)">
+        <SearchableBlock
+          title="Readiness contract"
+          subtitle="14 canonical checks (advisory)"
+          search={evidenceSearch}
+          haystack="readiness contract checks advisory"
+        >
           <SpineReadinessPanel />
-        </CollapsedBlock>
+        </SearchableBlock>
       </section>
     </div>
   );
