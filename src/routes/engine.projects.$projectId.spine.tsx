@@ -623,12 +623,14 @@ function SpinePageHeader({
   status,
   pendingApprovalsCount,
   onExportPdf,
+  exportDisabled = false,
 }: {
   projectId: string;
   projectName: string;
   status: string;
   pendingApprovalsCount: number;
   onExportPdf: () => void;
+  exportDisabled?: boolean;
 }) {
   return (
     <header className="space-y-3">
@@ -675,7 +677,8 @@ function SpinePageHeader({
             type="button"
             onClick={onExportPdf}
             data-qa-action="export-roadmap"
-            className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440]"
+            disabled={exportDisabled}
+            className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Download className="h-4 w-4" />
             Export Client Roadmap
