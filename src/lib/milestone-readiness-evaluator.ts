@@ -65,7 +65,8 @@ export type MilestoneGateState =
   | "in_progress"
   | "blocked"
   | "not_started"
-  | "not_configured";
+  | "not_configured"
+  | "not_applicable";
 
 export type MilestoneGates = {
   criteria: MilestoneGateState;
@@ -86,6 +87,12 @@ export type MilestoneInput = {
   due_date?: string | null;
   acceptance_criteria?: unknown;
   dependencies?: unknown;
+  /**
+   * When explicitly false, the mockups gate is N/A unless mockup records
+   * exist. Undefined / true keeps the default behaviour (records drive it,
+   * absence → not_configured).
+   */
+  mockups_required?: boolean | null;
 };
 
 export type FrameLike = { status?: string | null; approved_at?: string | null };
@@ -210,7 +217,9 @@ export function deriveMilestoneGatesFromRecords(
   let mockups: MilestoneGateState;
   const anyMockup = records.mockups.length > 0;
   const mockupsDone = records.mockups.some(isApprovedFrame);
-  if (isBlocked && !mockupsDone && anyMockup) mockups = "blocked";
+  const mockupsRequired = milestone.mockups_required !== false;
+  if (!anyMockup && !mockupsRequired) mockups = "not_applicable";
+  else if (isBlocked && !mockupsDone && anyMockup) mockups = "blocked";
   else if (mockupsDone) mockups = "done";
   else if (anyMockup) mockups = "review";
   else mockups = "not_configured";
@@ -257,6 +266,47 @@ export function deriveMilestoneGatesFromRecords(
 
   // Blockers — done ("no blockers") vs blocked
   const blockers: MilestoneGateState = isBlocked ? "blocked" : "done";
+
+  // ---------- Predecessor ordering ----------
+  //
+  // Downstream completion cannot appear before required predecessors.
+  // Chain:  criteria → mockups (if required) → build → evidence → QA
+  //
+  // A gate is "satisfied" for ordering when its state is `done` or
+  // `not_applicable`. Anything else means the predecessor is incomplete
+  // and downstream `done` must be downgraded so the UI cannot claim work
+  // finished ahead of its prerequisites.
+  const satisfied = (s: MilestoneGateState) => s === "done" || s === "not_applicable";
+  const cap = (s: MilestoneGateState): MilestoneGateState => {
+    // Only downgrade completion signals. Preserve blocked / not_applicable
+    // and keep in-flight signals visible.
+    if (s === "done") return "review";
+    if (s === "in_progress") return "in_progress";
+    return s;
+  };
+
+  if (!satisfied(criteria)) {
+    mockups = cap(mockups);
+    build = cap(build);
+    evidence = cap(evidence);
+    qa_auto = cap(qa_auto);
+    qa_human = cap(qa_human);
+  }
+  if (!satisfied(mockups)) {
+    build = cap(build);
+    evidence = cap(evidence);
+    qa_auto = cap(qa_auto);
+    qa_human = cap(qa_human);
+  }
+  if (!satisfied(build)) {
+    evidence = cap(evidence);
+    qa_auto = cap(qa_auto);
+    qa_human = cap(qa_human);
+  }
+  if (!satisfied(evidence)) {
+    qa_auto = cap(qa_auto);
+    qa_human = cap(qa_human);
+  }
 
   return {
     criteria,

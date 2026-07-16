@@ -3,6 +3,7 @@ import {
   deriveMilestoneGatesFromRecords,
   payloadMatchesMilestone,
   type MilestoneDurableRecords,
+  type MilestoneInput,
 } from "./milestone-readiness-evaluator";
 
 const empty: MilestoneDurableRecords = {
@@ -13,6 +14,15 @@ const empty: MilestoneDurableRecords = {
   qa_plans: [],
   qa_reviews: [],
 };
+
+// Base milestone with all predecessors satisfied so isolated gate tests
+// are not capped by predecessor ordering.
+const ready: MilestoneInput = {
+  acceptance_criteria: ["a"],
+  approval_status: "approved",
+  mockups_required: false,
+};
+
 
 describe("deriveMilestoneGatesFromRecords — defaults", () => {
   it("renders not_configured for every backing-record gate on a bare milestone", () => {
@@ -62,7 +72,10 @@ describe("design & mockups gates", () => {
   });
   it("mockups tracked separately from frames", () => {
     const withMock = { ...empty, mockups: [{ approved_at: "2026-01-01" }] };
-    const g = deriveMilestoneGatesFromRecords({}, withMock);
+    const g = deriveMilestoneGatesFromRecords(
+      { acceptance_criteria: ["a"], approval_status: "approved" },
+      withMock,
+    );
     expect(g.mockups).toBe("done");
     expect(g.design).toBe("not_configured");
   });
@@ -74,42 +87,49 @@ describe("build & evidence gates", () => {
   });
   it("build in_progress with any packet, done when all accepted", () => {
     expect(
-      deriveMilestoneGatesFromRecords({}, { ...empty, packets: [{ status: "in_review" }] }).build,
+      deriveMilestoneGatesFromRecords(ready, { ...empty, packets: [{ status: "in_review" }] }).build,
     ).toBe("in_progress");
     expect(
-      deriveMilestoneGatesFromRecords({}, { ...empty, packets: [{ status: "accepted" }] }).build,
+      deriveMilestoneGatesFromRecords(ready, { ...empty, packets: [{ status: "accepted" }] }).build,
     ).toBe("done");
   });
   it("evidence: not_started when packets exist but no evidence; done with any evidence", () => {
-    const packetsOnly: MilestoneDurableRecords = { ...empty, packets: [{ status: "in_review" }] };
-    expect(deriveMilestoneGatesFromRecords({}, packetsOnly).evidence).toBe("not_started");
+    const packetsOnly: MilestoneDurableRecords = { ...empty, packets: [{ status: "accepted" }] };
+    expect(deriveMilestoneGatesFromRecords(ready, packetsOnly).evidence).toBe("not_started");
     const withEv: MilestoneDurableRecords = {
       ...packetsOnly,
       evidence: [{ evidence_type: "screenshot" }],
     };
-    expect(deriveMilestoneGatesFromRecords({}, withEv).evidence).toBe("done");
+    expect(deriveMilestoneGatesFromRecords(ready, withEv).evidence).toBe("done");
   });
 });
 
 describe("automated vs human QA gates", () => {
+  // QA gate mapping is independent of build/evidence — assert the raw
+  // classification by pairing reviews with satisfied predecessors.
+  const qaReady: MilestoneDurableRecords = {
+    ...empty,
+    packets: [{ status: "accepted" }],
+    evidence: [{ evidence_type: "screenshot" }],
+  };
   it("splits reviews by generator", () => {
     const rec: MilestoneDurableRecords = {
-      ...empty,
+      ...qaReady,
       qa_reviews: [
         { verdict: "pass", generated_by: "ai" },
         { verdict: "fail", generated_by: "human" },
       ],
     };
-    const g = deriveMilestoneGatesFromRecords({}, rec);
+    const g = deriveMilestoneGatesFromRecords(ready, rec);
     expect(g.qa_auto).toBe("done");
     expect(g.qa_human).toBe("review");
   });
   it("openclaw_run_id classifies as automated", () => {
     const rec: MilestoneDurableRecords = {
-      ...empty,
+      ...qaReady,
       qa_reviews: [{ verdict: "pass", openclaw_run_id: "r_1" }],
     };
-    expect(deriveMilestoneGatesFromRecords({}, rec).qa_auto).toBe("done");
+    expect(deriveMilestoneGatesFromRecords(ready, rec).qa_auto).toBe("done");
   });
   it("qa_human review when only a plan exists", () => {
     const rec: MilestoneDurableRecords = { ...empty, qa_plans: [{ status: "draft" }] };
@@ -142,10 +162,136 @@ describe("due_date, dependencies, blockers", () => {
       mockups: [{ status: "approved" }],
       packets: [{ status: "in_review" }],
     };
-    const g = deriveMilestoneGatesFromRecords({ status: "blocked" }, rec);
+    const g = deriveMilestoneGatesFromRecords(
+      { status: "blocked", acceptance_criteria: ["a"], approval_status: "approved" },
+      rec,
+    );
     expect(g.design).toBe("blocked");
     expect(g.mockups).toBe("done");
     expect(g.build).toBe("blocked");
+  });
+});
+
+describe("mockups N/A when not required", () => {
+  it("renders not_applicable when mockups_required=false and no mockup records", () => {
+    const g = deriveMilestoneGatesFromRecords({ mockups_required: false }, empty);
+    expect(g.mockups).toBe("not_applicable");
+  });
+  it("still evaluates records when mockups_required=false but records exist", () => {
+    const g = deriveMilestoneGatesFromRecords(
+      { mockups_required: false, acceptance_criteria: ["a"], approval_status: "approved" },
+      { ...empty, mockups: [{ status: "approved" }] },
+    );
+    expect(g.mockups).toBe("done");
+  });
+  it("not_applicable satisfies predecessor ordering for downstream build", () => {
+    const g = deriveMilestoneGatesFromRecords(
+      {
+        acceptance_criteria: ["a"],
+        approval_status: "approved",
+        mockups_required: false,
+      },
+      { ...empty, packets: [{ status: "accepted" }] },
+    );
+    expect(g.mockups).toBe("not_applicable");
+    expect(g.build).toBe("done");
+  });
+});
+
+describe("predecessor ordering — downstream cannot complete before prerequisites", () => {
+  const approvedCriteria = {
+    acceptance_criteria: ["a"],
+    approval_status: "approved",
+  };
+
+  it("caps mockups/build/QA when criteria is not done", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      mockups: [{ status: "approved" }],
+      packets: [{ status: "accepted" }],
+      evidence: [{ evidence_type: "screenshot" }],
+      qa_reviews: [
+        { verdict: "pass", generated_by: "ai" },
+        { verdict: "pass", generated_by: "human" },
+      ],
+    };
+    // criteria missing → not_configured
+    const g = deriveMilestoneGatesFromRecords({}, rec);
+    expect(g.criteria).toBe("not_configured");
+    expect(g.mockups).not.toBe("done");
+    expect(g.build).not.toBe("done");
+    expect(g.evidence).not.toBe("done");
+    expect(g.qa_auto).not.toBe("done");
+    expect(g.qa_human).not.toBe("done");
+  });
+
+  it("caps build/evidence/QA when required mockups are not done", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      mockups: [{ status: "draft" }], // review, not done
+      packets: [{ status: "accepted" }],
+      evidence: [{ evidence_type: "screenshot" }],
+      qa_reviews: [{ verdict: "pass", generated_by: "ai" }],
+    };
+    const g = deriveMilestoneGatesFromRecords(approvedCriteria, rec);
+    expect(g.mockups).toBe("review");
+    expect(g.build).not.toBe("done");
+    expect(g.evidence).not.toBe("done");
+    expect(g.qa_auto).not.toBe("done");
+  });
+
+  it("caps QA when build is incomplete", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      packets: [{ status: "in_review" }],
+      evidence: [{ evidence_type: "screenshot" }],
+      qa_reviews: [
+        { verdict: "pass", generated_by: "ai" },
+        { verdict: "pass", generated_by: "human" },
+      ],
+    };
+    const g = deriveMilestoneGatesFromRecords(
+      { ...approvedCriteria, mockups_required: false },
+      rec,
+    );
+    expect(g.build).toBe("in_progress");
+    expect(g.qa_auto).not.toBe("done");
+    expect(g.qa_human).not.toBe("done");
+  });
+
+  it("caps QA when evidence is missing even though build is done", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      packets: [{ status: "accepted" }],
+      qa_reviews: [{ verdict: "pass", generated_by: "ai" }],
+    };
+    const g = deriveMilestoneGatesFromRecords(
+      { ...approvedCriteria, mockups_required: false },
+      rec,
+    );
+    expect(g.build).toBe("done");
+    expect(g.evidence).toBe("not_started");
+    expect(g.qa_auto).not.toBe("done");
+  });
+
+  it("allows the full chain to be done when every predecessor is satisfied", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      mockups: [{ status: "approved" }],
+      packets: [{ status: "accepted" }],
+      evidence: [{ evidence_type: "screenshot" }],
+      qa_reviews: [
+        { verdict: "pass", generated_by: "ai" },
+        { verdict: "pass", generated_by: "human" },
+      ],
+    };
+    const g = deriveMilestoneGatesFromRecords(approvedCriteria, rec);
+    expect(g.criteria).toBe("done");
+    expect(g.mockups).toBe("done");
+    expect(g.build).toBe("done");
+    expect(g.evidence).toBe("done");
+    expect(g.qa_auto).toBe("done");
+    expect(g.qa_human).toBe("done");
   });
 });
 
