@@ -111,6 +111,7 @@ function EngineLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [email, setEmail] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
@@ -153,34 +154,41 @@ function EngineLayout() {
         </div>
       </div>
       <nav aria-label="Engine navigation" className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-        {NAV.map((item) => {
-          const active = item.exact
-            ? pathname === item.to
-            : pathname === item.to || pathname.startsWith(item.to + "/");
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              aria-current={active ? "page" : undefined}
-              onClick={() => setMobileOpen(false)}
-              className={`group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                active
-                  ? "bg-white/10 text-white"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <span
-                aria-hidden
-                className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
-                  active ? "bg-royal opacity-100" : "bg-white opacity-0 group-hover:opacity-40"
-                }`}
+        {PRIMARY_NAV.map((item) => (
+          <SidebarLink
+            key={item.to}
+            item={item}
+            pathname={pathname}
+            onNavigate={() => setMobileOpen(false)}
+          />
+        ))}
+
+        <button
+          type="button"
+          onClick={() => setMoreOpen((v) => !v)}
+          aria-expanded={moreOpen}
+          className="mt-3 flex w-full items-center justify-between rounded-md px-3 py-2 text-[11px] uppercase tracking-[0.22em] font-mono text-white/40 hover:text-white/70"
+        >
+          <span>More</span>
+          {moreOpen ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </button>
+
+        {moreOpen ? (
+          <div className="space-y-0.5">
+            {SECONDARY_NAV.map((item) => (
+              <SidebarLink
+                key={item.to}
+                item={item}
+                pathname={pathname}
+                onNavigate={() => setMobileOpen(false)}
               />
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          );
-        })}
+            ))}
+          </div>
+        ) : null}
       </nav>
       <div className="border-t border-white/10 px-4 py-4 text-xs text-white/60">
         <div className="mb-2 truncate">{email}</div>
