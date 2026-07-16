@@ -642,6 +642,8 @@ function ProjectSnapshotCard({
   approvedMilestones,
   totalMilestones,
   nextMilestoneDue,
+  healthScore,
+  ownerEmail,
 }: {
   project: ProjectSpinePayload["project"];
   version: ProjectSpinePayload["version"];
@@ -650,9 +652,15 @@ function ProjectSnapshotCard({
   approvedMilestones: number;
   totalMilestones: number;
   nextMilestoneDue: string | null;
+  healthScore: number;
+  ownerEmail: string | null;
 }) {
-  const health = deriveHealth(project.status, blockedItems);
+  const health =
+    healthScore > 0
+      ? healthFromScore(healthScore)
+      : deriveHealth(project.status, blockedItems);
   const currentPhase = humanize(project.current_step || "—");
+  const ownerDisplay = ownerEmail ?? project.client_company ?? "—";
 
   return (
     <section
@@ -669,7 +677,7 @@ function ProjectSnapshotCard({
           value={
             <span className="inline-flex items-center gap-1.5">
               <span className={cn("h-2 w-2 rounded-full", health.dot)} />
-              {health.label}
+              {healthScore > 0 ? `${healthScore} · ${health.label}` : health.label}
             </span>
           }
         />
@@ -677,7 +685,7 @@ function ProjectSnapshotCard({
           label="Target Date"
           value={nextMilestoneDue ? formatDate(nextMilestoneDue) : "—"}
         />
-        <SnapshotCell label="Project Owner" value={project.client_company || "Tai"} />
+        <SnapshotCell label="Project Owner" value={ownerDisplay} />
         <SnapshotCell label="Captain" value="Captain AI" />
         <SnapshotCell label="Roadmap Version" value={version?.label ?? "—"} />
         <SnapshotCell label="Pending Approvals" value={String(pendingApprovals)} />
@@ -696,6 +704,12 @@ function ProjectSnapshotCard({
       </div>
     </section>
   );
+}
+
+function healthFromScore(score: number): { label: string; dot: string } {
+  if (score >= 80) return { label: "On Track", dot: "bg-[#1f6b3b]" };
+  if (score >= 60) return { label: "Watch", dot: "bg-[#8a6713]" };
+  return { label: "At Risk", dot: "bg-[#a4283c]" };
 }
 
 function SnapshotCell({ label, value }: { label: string; value: ReactNode }) {
