@@ -137,42 +137,29 @@ function ProjectSpine() {
         ? (rejectMut.variables as string | undefined) ?? null
         : null;
 
+  const pendingApprovalsCount = spine.reviews.length;
+  const approvedMilestoneCount = spine.milestones.filter(
+    (m) => m.approval_status === "approved",
+  ).length;
+  const blockedItemsCount =
+    spine.milestones.filter((m) => m.status === "blocked" || m.approval_status === "rejected")
+      .length +
+    spine.activity.filter((a) => a.severity === "critical").length;
+  const nextMilestone = [...spine.milestones]
+    .filter((m) => m.due_date)
+    .sort(
+      (a, b) => new Date(a.due_date as string).getTime() - new Date(b.due_date as string).getTime(),
+    )[0];
+
   return (
-    <div className="space-y-8 text-[#0A0F1F]">
-      {/* Header + toolbar */}
-      <header className="space-y-3">
-        <Link
-          to="/engine/projects/$projectId/overview"
-          params={{ projectId }}
-          className="inline-flex items-center gap-2 text-sm text-[#3E68B2] transition hover:text-[#284f93]"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to Overview
-        </Link>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2 min-w-0">
-            <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#667085]">
-              Project Spine · Approved Truth
-            </div>
-            <h1 className="font-display text-3xl text-[#0A0F1F]">{spine.project.name}</h1>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-[#667085]">
-              <span>{spine.project.client_company || "No client company"}</span>
-              <span>·</span>
-              <ProjectStatusBadge status={spine.project.status} />
-              <span>·</span>
-              <span>Last updated {formatDateTime(spine.project.updated_at)}</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => exportSpinePdf(spine, historyRows)}
-            className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440]"
-          >
-            <Download className="h-4 w-4" />
-            Export PDF
-          </button>
-        </div>
-      </header>
+    <div className="space-y-6 text-[#0A0F1F]">
+      {/* ───── Header row ───── */}
+      <SpinePageHeader
+        projectName={spine.project.name}
+        status={spine.project.status}
+        pendingApprovalsCount={pendingApprovalsCount}
+        onExportPdf={() => exportSpinePdf(spine, historyRows)}
+      />
 
       {approvalError ? (
         <ErrorBanner
@@ -182,136 +169,130 @@ function ProjectSpine() {
         />
       ) : null}
 
-      {/* 1. Next Best Action — hero */}
-      <NextBestActionCard nba={spine.nba} projectId={projectId} />
-
-      {/* 2. Point A / Point B */}
-      <section aria-labelledby="spine-truth-heading" className="space-y-3">
-        <SectionHeading id="spine-truth-heading" eyebrow="Approved Truth" title="Point A · Point B" />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <TruthCard
-            label="POINT A — WHERE WE ARE"
-            sections={extractNamedSections(pointA, [
-              "current_state",
-              "challenges",
-              "summary",
-              "description",
-            ])}
-            emptyLabel="Not yet defined."
-            footer={
-              hasMeaningfulValue(spine.project.point_a) ? (
-                <div className="inline-flex items-center gap-2 text-xs text-[#667085]">
-                  <Lock className="h-3.5 w-3.5" />
-                  Approved truth — locked
-                </div>
-              ) : null
-            }
-          />
-          <TruthCard
-            label="POINT B — WHERE WE'RE GOING"
-            sections={extractNamedSections(pointB, [
-              "destination",
-              "goal",
-              "vision",
-              "frame",
-              "success_looks_like",
-            ])}
-            emptyLabel="Destination not yet approved."
-            footer={
-              <div className="flex flex-wrap gap-2">
-                {spine.project.frame ? <MetaChip label="Frame" value={spine.project.frame} /> : null}
-                {spine.project.goal ? <MetaChip label="Goal" value={spine.project.goal} /> : null}
-              </div>
-            }
-          />
-        </div>
-      </section>
-
-      {/* 3. Roadmap summary — with interactive approvals */}
-      <section aria-labelledby="spine-roadmap-heading" className="space-y-3">
-        <SectionHeading
-          id="spine-roadmap-heading"
-          eyebrow="Roadmap"
-          title="Latest approved roadmap"
-          action={
-            <Link
-              to="/engine/projects/$projectId/roadmap"
-              params={{ projectId }}
-              className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
-            >
-              Open roadmap
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          }
-        />
-        <RoadmapSummaryCard
-          version={spine.version}
-          milestones={spine.milestones}
-          groupedMilestones={groupedMilestones}
-          scopeItems={scopeItems}
-          onApprove={(id) => approveMut.mutate(id)}
-          onReject={(id) => rejectMut.mutate(id)}
-          pendingMilestoneId={pendingMilestoneId}
-        />
-      </section>
-
-      {/* 4. Milestone / module readiness with filters + sort */}
-      <section aria-labelledby="spine-readiness-modules-heading" className="space-y-3">
-        <SectionHeading
-          id="spine-readiness-modules-heading"
-          eyebrow="Readiness"
-          title="Milestone & module readiness"
-        />
-        <ModuleGridControls
-          readiness={moduleFilter}
-          onReadinessChange={setModuleFilter}
-          category={categoryFilter}
-          onCategoryChange={setCategoryFilter}
-          sort={moduleSort}
-          onSortChange={setModuleSort}
-          modules={spine.modules}
-        />
-        <ModuleReadinessGrid
-          modules={spine.modules}
+      {/* ───── Hero row: NBA + Snapshot ───── */}
+      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+        <HeroNextBestActionCard
+          nba={spine.nba}
+          nextMilestone={nextMilestone ?? null}
           projectId={projectId}
-          filter={moduleFilter}
-          category={categoryFilter}
-          sort={moduleSort}
         />
-      </section>
+        <ProjectSnapshotCard
+          project={spine.project}
+          version={spine.version}
+          pendingApprovals={pendingApprovalsCount}
+          blockedItems={blockedItemsCount}
+          approvedMilestones={approvedMilestoneCount}
+          totalMilestones={spine.milestones.length}
+          nextMilestoneDue={nextMilestone?.due_date ?? null}
+        />
+      </div>
 
-      {/* 4b. Module contents — approved outputs with deep links */}
-      <section aria-labelledby="spine-module-contents-heading" className="space-y-3">
-        <SectionHeading
-          id="spine-module-contents-heading"
-          eyebrow="Approved outputs"
-          title="Module contents"
+      {/* ───── Truth row: Point A / Point B ───── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <TruthCardV2
+          point="A"
+          projectId={projectId}
+          approvedFlag={hasMeaningfulValue(spine.project.point_a)}
+          bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
+          sourceCount={spine.sources.total}
+          approvedAt={spine.version?.approved_at ?? null}
         />
-        <ModuleContentsList modules={spine.modules} projectId={projectId} />
-      </section>
+        <TruthCardV2
+          point="B"
+          projectId={projectId}
+          approvedFlag={hasMeaningfulValue(spine.project.point_b)}
+          bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
+          sourceCount={spine.sources.total}
+          approvedAt={spine.version?.approved_at ?? null}
+        />
+      </div>
 
-      {/* 5. Approvals + history */}
-      <section aria-labelledby="spine-approvals-heading" className="space-y-3">
-        <SectionHeading
-          id="spine-approvals-heading"
-          eyebrow="Approvals"
-          title="Pending decisions & operator notifications"
-        />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ApprovalsCard reviews={spine.reviews} />
-          <NotificationsCard notifications={spine.notifications} />
-        </div>
-        <MilestoneApprovalHistoryCard
-          rows={historyRows}
+      {/* ───── Milestone Readiness matrix ───── */}
+      <MilestoneReadinessMatrix
+        projectId={projectId}
+        milestones={spine.milestones}
+      />
+
+      {/* ───── Lower row: Approvals + Foundation + Captain Brief ───── */}
+      <div className="grid gap-4 xl:grid-cols-3">
+        <ApprovalsInlineCard reviews={spine.reviews} />
+        <ProjectFoundationCard
+          projectId={projectId}
+          modules={spine.modules}
+          pointA={pointA}
+          pointB={pointB}
           milestones={spine.milestones}
-          isLoading={historyQ.isPending}
-          isError={historyQ.isError}
-          errorMessage={(historyQ.error as Error | null)?.message}
-          onRetry={() => historyQ.refetch()}
         />
-      </section>
+        <CaptainBriefCard
+          nba={spine.nba}
+          latestActivity={spine.activity[0] ?? null}
+          version={spine.version}
+        />
+      </div>
 
-      {/* 6. Evidence & history — searchable, collapsed */}
+      {/* ───── Footer stats bar ───── */}
+      <FooterStatsBar
+        sourcesProcessed={spine.sources.processed}
+        sourcesTotal={spine.sources.total}
+        lastRunAt={spine.sources.last_run?.finished_at ?? spine.sources.last_run?.started_at ?? null}
+        projectCreatedAt={null}
+        lastUpdatedAt={spine.project.updated_at}
+      />
+
+      {/* ───── Milestone approval history ───── */}
+      <MilestoneApprovalHistoryCard
+        rows={historyRows}
+        milestones={spine.milestones}
+        isLoading={historyQ.isPending}
+        isError={historyQ.isError}
+        errorMessage={(historyQ.error as Error | null)?.message}
+        onRetry={() => historyQ.refetch()}
+      />
+
+      {/* ───── Modules & Readiness (power-user view) ───── */}
+      <details className="group rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
+        <summary className="cursor-pointer list-none px-5 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-display text-base text-[#0A0F1F]">Modules &amp; readiness</div>
+              <div className="mt-0.5 text-xs text-[#667085]">
+                Detailed per-module state across the 10 spine modules
+              </div>
+            </div>
+            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#667085] group-open:text-[#3E68B2]">
+              <span className="group-open:hidden">Expand</span>
+              <span className="hidden group-open:inline">Collapse</span>
+            </div>
+          </div>
+        </summary>
+        <div className="space-y-4 border-t border-[#E8E1D6] px-5 py-5">
+          <ModuleGridControls
+            readiness={moduleFilter}
+            onReadinessChange={setModuleFilter}
+            category={categoryFilter}
+            onCategoryChange={setCategoryFilter}
+            sort={moduleSort}
+            onSortChange={setModuleSort}
+            modules={spine.modules}
+          />
+          <ModuleReadinessGrid
+            modules={spine.modules}
+            projectId={projectId}
+            filter={moduleFilter}
+            category={categoryFilter}
+            sort={moduleSort}
+          />
+          <ModuleContentsList modules={spine.modules} projectId={projectId} />
+          <ApproveRejectMilestonesList
+            milestones={spine.milestones}
+            onApprove={(id) => approveMut.mutate(id)}
+            onReject={(id) => rejectMut.mutate(id)}
+            pendingId={pendingMilestoneId}
+          />
+        </div>
+      </details>
+
+      {/* ───── Reference & Evidence (searchable, collapsed) ───── */}
       <section aria-labelledby="spine-evidence-heading" className="space-y-3">
         <SectionHeading
           id="spine-evidence-heading"
@@ -498,6 +479,793 @@ function ProjectSpine() {
           <SpineReadinessPanel />
         </SearchableBlock>
       </section>
+
+      <NotificationsCard notifications={spine.notifications} />
+    </div>
+  );
+}
+
+/* ─────────────────── New Spine 2.0 layout components ─────────────────── */
+
+function SpinePageHeader({
+  projectName,
+  status,
+  pendingApprovalsCount,
+  onExportPdf,
+}: {
+  projectName: string;
+  status: string;
+  pendingApprovalsCount: number;
+  onExportPdf: () => void;
+}) {
+  return (
+    <header className="space-y-3">
+      <Link
+        to="/engine/projects"
+        className="inline-flex items-center gap-1.5 text-sm text-[#3E68B2] transition hover:text-[#284f93]"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Back to Projects
+      </Link>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-3xl leading-tight text-[#0A0F1F]">
+              Project Spine
+            </h1>
+            <ProjectStatusBadge status={status} />
+          </div>
+          <p className="text-sm text-[#667085]">
+            {projectName} — the central nervous system of your project. Live truth. Approved direction. Next best move.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="#spine-approvals"
+            className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
+          >
+            Pending Approvals
+            <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#3E68B2] px-1.5 text-[11px] font-semibold text-white">
+              {pendingApprovalsCount}
+            </span>
+            <ArrowRight className="h-3.5 w-3.5 text-[#667085]" />
+          </a>
+          <button
+            type="button"
+            onClick={onExportPdf}
+            className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440]"
+          >
+            <Download className="h-4 w-4" />
+            Export Client Roadmap
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function HeroNextBestActionCard({
+  nba,
+  nextMilestone,
+  projectId: _projectId,
+}: {
+  nba: ProjectSpinePayload["nba"];
+  nextMilestone: ProjectSpinePayload["milestones"][number] | null;
+  projectId: string;
+}) {
+  const tone = nba.severity ?? "info";
+  const toneClasses: Record<"critical" | "warning" | "info", string> = {
+    critical: "border-[#f3ced5] bg-gradient-to-br from-[#fbe9ec] via-white to-white",
+    warning: "border-[#f1e3b9] bg-gradient-to-br from-[#fbf3e0] via-white to-white",
+    info: "border-[#cdd6f3] bg-gradient-to-br from-[#eef3fd] via-white to-white",
+  };
+  const glyphTone: Record<"critical" | "warning" | "info", string> = {
+    critical: "border-[#f3ced5] text-[#a4283c]",
+    warning: "border-[#f1e3b9] text-[#8a6713]",
+    info: "border-[#cdd6f3] text-[#3E68B2]",
+  };
+
+  return (
+    <section
+      aria-labelledby="spine-nba-heading"
+      className={cn("rounded-2xl border p-6 shadow-sm", toneClasses[tone] ?? toneClasses.info)}
+    >
+      <div className="flex items-start justify-between gap-6">
+        <div className="min-w-0 flex-1 space-y-4">
+          <div className="inline-flex items-center gap-2 text-xs font-medium text-[#3E68B2]">
+            <Sparkles className="h-4 w-4" />
+            Next Best Action
+          </div>
+          <div className="space-y-2">
+            <h2
+              id="spine-nba-heading"
+              className="font-display text-2xl leading-tight text-[#0A0F1F]"
+            >
+              {nba.action}
+            </h2>
+            {nba.reason ? (
+              <p className="text-sm leading-6 text-[#3f4a5e]">{nba.reason}</p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-[#667085]">
+            <MetaKV label="Unlocks" value={nextMilestone?.phase ? humanize(nextMilestone.phase) : "Next phase"} />
+            <MetaKV label="Due" value={nextMilestone?.due_date ? formatDate(nextMilestone.due_date) : "—"} />
+            <MetaKV label="Owner" value="Tai" />
+          </div>
+          {nba.href ? (
+            <a
+              href={nba.href}
+              className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440]"
+            >
+              Review Now
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          ) : null}
+        </div>
+        <div
+          className={cn(
+            "hidden shrink-0 items-center justify-center rounded-full border-2 bg-white/70 shadow-inner sm:flex",
+            glyphTone[tone] ?? glyphTone.info,
+          )}
+          style={{ width: 96, height: 96 }}
+        >
+          {tone === "critical" ? (
+            <AlertTriangle className="h-8 w-8" />
+          ) : tone === "warning" ? (
+            <Clock className="h-8 w-8" />
+          ) : (
+            <ArrowRight className="h-8 w-8" />
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MetaKV({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">{label}:</span>
+      <span className="text-[#0A0F1F]">{value}</span>
+    </div>
+  );
+}
+
+function ProjectSnapshotCard({
+  project,
+  version,
+  pendingApprovals,
+  blockedItems,
+  approvedMilestones,
+  totalMilestones,
+  nextMilestoneDue,
+}: {
+  project: ProjectSpinePayload["project"];
+  version: ProjectSpinePayload["version"];
+  pendingApprovals: number;
+  blockedItems: number;
+  approvedMilestones: number;
+  totalMilestones: number;
+  nextMilestoneDue: string | null;
+}) {
+  const health = deriveHealth(project.status, blockedItems);
+  const currentPhase = humanize(project.current_step || "—");
+
+  return (
+    <section
+      aria-labelledby="spine-snapshot-heading"
+      className="rounded-2xl border border-[#E8E1D6] bg-white p-6 shadow-sm"
+    >
+      <h2 id="spine-snapshot-heading" className="font-display text-lg text-[#0A0F1F]">
+        Project Snapshot
+      </h2>
+      <div className="mt-4 grid grid-cols-3 gap-x-4 gap-y-5">
+        <SnapshotCell label="Current Phase" value={currentPhase} />
+        <SnapshotCell
+          label="Health"
+          value={
+            <span className="inline-flex items-center gap-1.5">
+              <span className={cn("h-2 w-2 rounded-full", health.dot)} />
+              {health.label}
+            </span>
+          }
+        />
+        <SnapshotCell
+          label="Target Date"
+          value={nextMilestoneDue ? formatDate(nextMilestoneDue) : "—"}
+        />
+        <SnapshotCell label="Project Owner" value={project.client_company || "Tai"} />
+        <SnapshotCell label="Captain" value="Captain AI" />
+        <SnapshotCell label="Roadmap Version" value={version?.label ?? "—"} />
+        <SnapshotCell label="Pending Approvals" value={String(pendingApprovals)} />
+        <SnapshotCell
+          label="Blocked Items"
+          value={
+            <span className={cn(blockedItems > 0 ? "text-[#a4283c]" : "text-[#0A0F1F]")}>
+              {blockedItems}
+            </span>
+          }
+        />
+        <SnapshotCell
+          label="Active Milestones"
+          value={`${approvedMilestones} of ${totalMilestones}`}
+        />
+      </div>
+    </section>
+  );
+}
+
+function SnapshotCell({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+        {label}
+      </div>
+      <div className="mt-1 truncate text-sm font-medium text-[#0A0F1F]">{value}</div>
+    </div>
+  );
+}
+
+function deriveHealth(
+  status: string,
+  blockedItems: number,
+): { label: string; dot: string } {
+  if (blockedItems > 0) return { label: "At Risk", dot: "bg-[#a4283c]" };
+  if (["blocked", "rejected"].includes(status)) return { label: "Blocked", dot: "bg-[#a4283c]" };
+  if (["delivered", "in_execution", "approved", "active"].includes(status))
+    return { label: "On Track", dot: "bg-[#1f6b3b]" };
+  if (["needs_review", "draft"].includes(status))
+    return { label: "Watch", dot: "bg-[#8a6713]" };
+  return { label: humanize(status), dot: "bg-[#667085]" };
+}
+
+function TruthCardV2({
+  point,
+  projectId,
+  approvedFlag,
+  bullets,
+  sourceCount,
+  approvedAt,
+}: {
+  point: "A" | "B";
+  projectId: string;
+  approvedFlag: boolean;
+  bullets: string[];
+  sourceCount: number;
+  approvedAt: string | null;
+}) {
+  const label = point === "A" ? "Point A" : "Point B";
+  const subtitle =
+    point === "A" ? "Where the business is today." : "Where the business is going.";
+  const badgeTone = approvedFlag ? "approved" : "pending";
+  const badgeLabel = approvedFlag ? "APPROVED" : "DRAFT";
+
+  return (
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="rounded-full border border-[#E8E1D6] bg-[#FBF9F4] p-1.5 text-[#3E68B2]">
+            <CheckCircle2 className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="font-display text-base text-[#0A0F1F]">{label}</div>
+            <div className="text-xs text-[#667085]">{subtitle}</div>
+          </div>
+        </div>
+        <GenericBadge tone={badgeTone}>{badgeLabel}</GenericBadge>
+      </div>
+      <ul className="mt-4 space-y-2 text-sm text-[#0A0F1F]">
+        {bullets.length ? (
+          bullets.slice(0, 3).map((b, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#1f6b3b]" />
+              <span className="min-w-0 break-words">{b}</span>
+            </li>
+          ))
+        ) : (
+          <li className="text-sm text-[#667085]">Not yet defined.</li>
+        )}
+      </ul>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-[#F3EEE6] pt-3 text-xs text-[#667085]">
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <span>Sources: {sourceCount}</span>
+          <span>Approved: {approvedAt ? formatDate(approvedAt) : "—"}</span>
+        </div>
+        <Link
+          to={point === "A" ? "/engine/projects/$projectId/point-a" : "/engine/projects/$projectId/point-b"}
+          params={{ projectId }}
+          className="inline-flex items-center gap-1 font-medium text-[#3E68B2] hover:text-[#284f93]"
+        >
+          View details
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function collectTruthBullets(
+  record: Record<string, unknown> | null,
+  keys: string[],
+): string[] {
+  if (!record) return [];
+  const out: string[] = [];
+  for (const k of keys) {
+    const v = record[k];
+    if (v == null) continue;
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        const s = stringifyValue(item);
+        if (s) out.push(s);
+        if (out.length >= 6) break;
+      }
+    } else {
+      const s = stringifyValue(v);
+      if (s) out.push(s);
+    }
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+
+type GateState = "done" | "review" | "blocked" | "in_progress" | "not_started" | "not_ready" | "na";
+
+function MilestoneReadinessMatrix({
+  projectId,
+  milestones,
+}: {
+  projectId: string;
+  milestones: ProjectSpinePayload["milestones"];
+}) {
+  const rows = milestones.slice(0, 6);
+  return (
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-display text-lg text-[#0A0F1F]">Milestone Readiness</h2>
+        <Link
+          to="/engine/projects/$projectId/roadmap"
+          params={{ projectId }}
+          className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+        >
+          View all <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+      {rows.length === 0 ? (
+        <p className="mt-4 text-sm text-[#667085]">No milestones captured yet.</p>
+      ) : (
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-[#E8E1D6] text-[#667085]">
+                <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Milestone</th>
+                <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Criteria</th>
+                <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Design</th>
+                <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Build</th>
+                <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">QA</th>
+                <th className="py-2 font-mono text-[10px] uppercase tracking-[0.22em]">Due</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((m) => {
+                const gates = deriveGates(m);
+                return (
+                  <tr key={m.id} className="border-b border-[#F3EEE6] align-middle">
+                    <td className="py-3 pr-4 text-[#0A0F1F]">
+                      <Link
+                        to="/engine/projects/$projectId/milestones/$milestoneId/brief"
+                        params={{ projectId, milestoneId: m.id }}
+                        className="hover:text-[#3E68B2]"
+                      >
+                        {m.name}
+                      </Link>
+                    </td>
+                    <td className="py-3 pr-4"><GateChip state={gates.criteria} /></td>
+                    <td className="py-3 pr-4"><GateChip state={gates.design} /></td>
+                    <td className="py-3 pr-4"><GateChip state={gates.build} /></td>
+                    <td className="py-3 pr-4"><GateChip state={gates.qa} /></td>
+                    <td className="py-3 text-[#667085] whitespace-nowrap">
+                      {m.due_date ? formatDate(m.due_date) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function deriveGates(m: ProjectSpinePayload["milestones"][number]): {
+  criteria: GateState;
+  design: GateState;
+  build: GateState;
+  qa: GateState;
+} {
+  // Criteria: driven directly by approval_status
+  const criteria: GateState =
+    m.approval_status === "approved"
+      ? "done"
+      : m.approval_status === "rejected"
+        ? "blocked"
+        : m.approval_status === "pending" || m.approval_status === "needs_review"
+          ? "review"
+          : "not_started";
+
+  // Downstream gates progress with the milestone's own status/phase.
+  const phase = (m.phase ?? "").toLowerCase();
+  const status = (m.status ?? "").toLowerCase();
+  const isDone = ["done", "completed", "approved", "delivered"].includes(status);
+  const isBlocked = status === "blocked";
+  const isInProgress = ["in_progress", "running", "active", "in_execution"].includes(status);
+
+  const gateAt = (target: "design" | "build" | "qa"): GateState => {
+    if (criteria !== "done") return "not_ready";
+    if (isBlocked) return "blocked";
+    if (isDone) return "done";
+    const order = ["criteria", "design", "build", "qa"];
+    const cur = order.indexOf(phase);
+    const t = order.indexOf(target);
+    if (cur === -1) return isInProgress && target === "design" ? "in_progress" : "not_started";
+    if (cur > t) return "done";
+    if (cur === t) return isInProgress ? "in_progress" : "review";
+    return "not_started";
+  };
+
+  return {
+    criteria,
+    design: gateAt("design"),
+    build: gateAt("build"),
+    qa: gateAt("qa"),
+  };
+}
+
+function GateChip({ state }: { state: GateState }) {
+  if (state === "done")
+    return <CheckCircle2 className="h-4 w-4 text-[#1f6b3b]" aria-label="Done" />;
+  if (state === "review")
+    return <GenericBadge tone="pending">Review</GenericBadge>;
+  if (state === "blocked")
+    return <GenericBadge tone="blocked">Blocked</GenericBadge>;
+  if (state === "in_progress")
+    return <GenericBadge tone="info">In Progress</GenericBadge>;
+  if (state === "not_ready")
+    return <GenericBadge tone="neutral">Not Ready</GenericBadge>;
+  if (state === "not_started")
+    return <GenericBadge tone="neutral">Not Started</GenericBadge>;
+  return <span className="text-[#667085]">—</span>;
+}
+
+function ApprovalsInlineCard({ reviews }: { reviews: ProjectSpinePayload["reviews"] }) {
+  return (
+    <section
+      id="spine-approvals"
+      className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm"
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-display text-lg text-[#0A0F1F]">Approvals &amp; Decisions</h2>
+        <a
+          href="#milestone-approval-history"
+          className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+        >
+          View all <ArrowRight className="h-3 w-3" />
+        </a>
+      </div>
+      {reviews.length === 0 ? (
+        <p className="mt-4 text-sm text-[#667085]">No pending review items.</p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {reviews.slice(0, 5).map((r) => {
+            const dotClass =
+              r.impact === "high"
+                ? "bg-[#a4283c]"
+                : r.impact === "medium"
+                  ? "bg-[#8a6713]"
+                  : "bg-[#3E68B2]";
+            return (
+              <li
+                key={r.id}
+                className="flex items-start justify-between gap-3 rounded-lg border border-[#F3EEE6] p-3"
+              >
+                <div className="flex min-w-0 gap-2">
+                  <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dotClass)} />
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-[#0A0F1F]">{r.title}</div>
+                    <div className="mt-0.5 text-xs text-[#667085]">
+                      {r.status === "pending" || r.status === "needs_review"
+                        ? "Needs your approval"
+                        : "Awaiting decision"}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-full border border-[#E8E1D6] bg-white px-3 py-1 text-xs font-medium text-[#3E68B2] hover:border-[#3E68B2]/60"
+                >
+                  Review
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function ProjectFoundationCard({
+  projectId,
+  modules,
+  pointA,
+  pointB,
+  milestones,
+}: {
+  projectId: string;
+  modules: SpineModuleSection[];
+  pointA: Record<string, unknown> | null;
+  pointB: Record<string, unknown> | null;
+  milestones: ProjectSpinePayload["milestones"];
+}) {
+  const byKey = (k: string) => modules.find((m) => m.key === k);
+  const dataCount = (m?: SpineModuleSection): number => {
+    if (!m) return 0;
+    const d = m.data;
+    if (Array.isArray(d)) return d.length;
+    if (d && typeof d === "object") {
+      const rec = d as Record<string, unknown>;
+      for (const key of ["categories", "items", "phases", "milestones", "list"]) {
+        const v = rec[key];
+        if (Array.isArray(v)) return v.length;
+      }
+      return Object.keys(rec).length;
+    }
+    return 0;
+  };
+  const contextStrength = hasMeaningfulValue(pointA) && hasMeaningfulValue(pointB)
+    ? "Strong"
+    : hasMeaningfulValue(pointA) || hasMeaningfulValue(pointB)
+      ? "Partial"
+      : "Missing";
+  const hidden = byKey("hidden_assets");
+  const scope = byKey("blueprint");
+  const scopeReady = scope?.readiness.approved ? "Defined" : scope?.readiness.has_data ? "Draft" : "Missing";
+  const successMetrics = byKey("success_metrics");
+  const constraints = byKey("constraints");
+  const decisions = byKey("decisions");
+  const risks = byKey("risks");
+  const highRisks = (() => {
+    const d = risks?.data;
+    if (Array.isArray(d)) {
+      return d.filter((r) => {
+        if (!r || typeof r !== "object") return false;
+        const sev = ((r as Record<string, unknown>).severity ?? (r as Record<string, unknown>).level) as string | undefined;
+        return typeof sev === "string" && /high|critical/i.test(sev);
+      }).length;
+    }
+    return dataCount(risks);
+  })();
+  const alignment = milestones.some((m) => m.status === "blocked" || m.approval_status === "rejected")
+    ? "Watch"
+    : "On Track";
+
+  const rows: Array<{ label: string; value: string; icon: ReactNode; link: SpineModuleKeyOrHome | null }> = [
+    { label: "Business Context", value: contextStrength, icon: <Sparkles className="h-3.5 w-3.5" />, link: "point_b" },
+    { label: "Assets & Leverage", value: `${dataCount(hidden)} Identified`, icon: <CheckCircle2 className="h-3.5 w-3.5" />, link: "hidden_assets" },
+    { label: "Approved Scope", value: scopeReady, icon: <CheckCircle2 className="h-3.5 w-3.5" />, link: "blueprint" },
+    { label: "Success Metrics", value: `${dataCount(successMetrics)} Defined`, icon: <CheckCircle2 className="h-3.5 w-3.5" />, link: "success_metrics" },
+    { label: "Constraints", value: `${dataCount(constraints)} Active`, icon: <AlertTriangle className="h-3.5 w-3.5" />, link: "constraints" },
+    { label: "Key Decisions", value: `${dataCount(decisions)} Made`, icon: <CheckCircle2 className="h-3.5 w-3.5" />, link: "decisions" },
+    { label: "Risks", value: `${highRisks} High`, icon: <AlertTriangle className="h-3.5 w-3.5" />, link: "risks" },
+    { label: "Team Alignment", value: alignment, icon: <CheckCircle2 className="h-3.5 w-3.5" />, link: null },
+  ];
+
+  return (
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-display text-lg text-[#0A0F1F]">Project Foundation</h2>
+        <Link
+          to="/engine/projects/$projectId/spine"
+          params={{ projectId }}
+          className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+        >
+          View all <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+      <ul className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+        {rows.map((r) => (
+          <li key={r.label} className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2 text-sm text-[#0A0F1F]">
+              <span className="text-[#667085]">{r.icon}</span>
+              {r.link ? (
+                <ModuleLink
+                  moduleKey={r.link as SpineModuleKey}
+                  projectId={projectId}
+                  className="truncate hover:text-[#3E68B2]"
+                >
+                  {r.label}
+                </ModuleLink>
+              ) : (
+                <span className="truncate">{r.label}</span>
+              )}
+            </div>
+            <span className="shrink-0 text-sm font-medium text-[#0A0F1F]">{r.value}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+type SpineModuleKeyOrHome = SpineModuleKey;
+
+function CaptainBriefCard({
+  nba,
+  latestActivity,
+  version,
+}: {
+  nba: ProjectSpinePayload["nba"];
+  latestActivity: ProjectSpinePayload["activity"][number] | null;
+  version: ProjectSpinePayload["version"];
+}) {
+  const rows = [
+    {
+      label: "What changed",
+      value: latestActivity
+        ? `${latestActivity.title}${latestActivity.body ? ` — ${latestActivity.body}` : ""}`
+        : version
+          ? `Roadmap ${version.label ?? "version"} ${humanize(version.status)}`
+          : "No recent changes recorded.",
+    },
+    { label: "What matters now", value: nba.action },
+    { label: "Recommendation", value: nba.reason || "Continue current phase and clear pending approvals." },
+    {
+      label: "Watch for",
+      value:
+        nba.severity === "critical"
+          ? "Critical items blocking downstream work."
+          : nba.severity === "warning"
+            ? "Items approaching their commitment date."
+            : "New review items landing over the next 48h.",
+    },
+  ];
+  return (
+    <section className="rounded-2xl border border-[#cdd6f3] bg-gradient-to-br from-[#eef3fd] via-white to-white p-5 shadow-sm">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="inline-flex items-center gap-2 font-display text-lg text-[#0A0F1F]">
+          <Sparkles className="h-4 w-4 text-[#3E68B2]" />
+          Captain Brief
+        </h2>
+        <a
+          href="#spine-approvals"
+          className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+        >
+          View all <ArrowRight className="h-3 w-3" />
+        </a>
+      </div>
+      <dl className="mt-4 space-y-3">
+        {rows.map((r) => (
+          <div key={r.label} className="grid grid-cols-[7.5rem_1fr] gap-3">
+            <dt className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+              {r.label}
+            </dt>
+            <dd className="text-sm leading-6 text-[#0A0F1F]">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function FooterStatsBar({
+  sourcesProcessed,
+  sourcesTotal,
+  lastRunAt,
+  projectCreatedAt,
+  lastUpdatedAt,
+}: {
+  sourcesProcessed: number;
+  sourcesTotal: number;
+  lastRunAt: string | null;
+  projectCreatedAt: string | null;
+  lastUpdatedAt: string;
+}) {
+  const confidence = sourcesTotal > 0
+    ? `${Math.min(99, Math.round((sourcesProcessed / sourcesTotal) * 100))}%`
+    : "—";
+  return (
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
+      <div className="grid grid-cols-2 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
+        <FooterStat label="Sources Processed" value={String(sourcesProcessed)} />
+        <FooterStat label="Last Intelligence Run" value={lastRunAt ? formatDateTime(lastRunAt) : "—"} />
+        <FooterStat label="Intelligence Confidence" value={confidence} />
+        <FooterStat label="Project Created" value={projectCreatedAt ? formatDate(projectCreatedAt) : "—"} />
+        <FooterStat label="Last Updated" value={formatDateTime(lastUpdatedAt)} />
+        <div className="flex items-center justify-end gap-2 text-xs text-[#667085]">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#1f6b3b]" />
+            <span className="text-[#0A0F1F]">Auto-saved</span>
+          </span>
+          <span>· Just now</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FooterStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">{label}</div>
+      <div className="mt-0.5 text-sm font-medium text-[#0A0F1F]">{value}</div>
+    </div>
+  );
+}
+
+function ApproveRejectMilestonesList({
+  milestones,
+  onApprove,
+  onReject,
+  pendingId,
+}: {
+  milestones: ProjectSpinePayload["milestones"];
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  pendingId: string | null;
+}) {
+  if (milestones.length === 0) return null;
+  return (
+    <div id="milestone-approval-history" className="rounded-2xl border border-[#E8E1D6] bg-[#FBF9F4] p-4">
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+        Milestone approvals
+      </div>
+      <ul className="mt-3 space-y-2">
+        {milestones.slice(0, 20).map((m) => {
+          const isPending = pendingId === m.id;
+          const isApproved = m.approval_status === "approved";
+          const isRejected = m.approval_status === "rejected";
+          return (
+            <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E8E1D6] bg-white px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm text-[#0A0F1F]">{m.name}</div>
+                <div className="text-xs text-[#667085]">
+                  {m.phase ? humanize(m.phase) : "Unphased"} · {humanize(m.approval_status)}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={isPending || isApproved}
+                  onClick={() => onApprove(m.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition",
+                    isApproved
+                      ? "border-[#c4e6d2] bg-[#e6f5ec] text-[#1f6b3b] cursor-default"
+                      : "border-[#c4e6d2] bg-white text-[#1f6b3b] hover:bg-[#e6f5ec] disabled:opacity-50",
+                  )}
+                >
+                  <Check className="h-3 w-3" />
+                  {isPending ? "…" : "Approve"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending || isRejected}
+                  onClick={() => onReject(m.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition",
+                    isRejected
+                      ? "border-[#f3ced5] bg-[#fbe9ec] text-[#a4283c] cursor-default"
+                      : "border-[#f3ced5] bg-white text-[#a4283c] hover:bg-[#fbe9ec] disabled:opacity-50",
+                  )}
+                >
+                  <X className="h-3 w-3" />
+                  {isPending ? "…" : "Reject"}
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
