@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { useSourceInspector } from "@/hooks/use-source-inspector";
 import jsPDF from "jspdf";
 
 
