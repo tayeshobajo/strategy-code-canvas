@@ -38,6 +38,32 @@ import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useSourceInspector } from "@/hooks/use-source-inspector";
 import jsPDF from "jspdf";
+import type { SpineFieldStatus } from "@/lib/spine-contract";
+import {
+  presentationFor,
+  isApprovedTruth,
+  type SpineStatusPresentation,
+} from "@/lib/spine-truth-status";
+
+/**
+ * Map the richer 7-tone `SpineStatusPresentation` palette onto the 5
+ * tones supported by the existing `GenericBadge` primitive. Keeps the
+ * visual language identical to today's badges (approved = green,
+ * blocked = red, etc.) while letting the presentation module stay pure.
+ */
+function badgeToneFor(
+  tone: SpineStatusPresentation["tone"],
+): "neutral" | "approved" | "pending" | "blocked" | "info" {
+  switch (tone) {
+    case "approved":       return "approved";
+    case "verified":       return "info";
+    case "assumption":     return "info";
+    case "contradiction":  return "blocked";
+    case "review":         return "pending";
+    case "draft":          return "neutral";
+    case "history":        return "neutral";
+  }
+}
 
 
 export const Route = createFileRoute("/engine/projects/$projectId/spine")({
@@ -208,8 +234,8 @@ function ProjectSpine() {
     )[0];
 
   const variant = deriveSpineVariant(
-    hasMeaningfulValue(spine.project.point_a),
-    hasMeaningfulValue(spine.project.point_b),
+    isApprovedTruth(spine.project.point_a_status),
+    isApprovedTruth(spine.project.point_b_status),
     spine.milestones,
     spine.portal_publish,
   );
@@ -302,7 +328,7 @@ function ProjectSpine() {
         <TruthCardV2
           point="A"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_a)}
+          status={spine.project.point_a_status}
           bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
@@ -312,7 +338,7 @@ function ProjectSpine() {
         <TruthCardV2
           point="B"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_b)}
+          status={spine.project.point_b_status}
           bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
@@ -881,7 +907,7 @@ function deriveHealth(
 function TruthCardV2({
   point,
   projectId,
-  approvedFlag,
+  status,
   bullets,
   sourceCount,
   approvedAt,
@@ -890,7 +916,7 @@ function TruthCardV2({
 }: {
   point: "A" | "B";
   projectId: string;
-  approvedFlag: boolean;
+  status: SpineFieldStatus | null;
   bullets: string[];
   sourceCount: number;
   approvedAt: string | null;
@@ -901,8 +927,9 @@ function TruthCardV2({
   const label = point === "A" ? "Point A" : "Point B";
   const subtitle =
     point === "A" ? "Where the business is today." : "Where the business is going.";
-  const badgeTone = approvedFlag ? "approved" : "pending";
-  const badgeLabel = approvedFlag ? "APPROVED" : "DRAFT";
+  const presentation = presentationFor(status);
+  const badgeTone = badgeToneFor(presentation.tone);
+  const badgeLabel = presentation.label;
 
   return (
     <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
@@ -3248,8 +3275,8 @@ function SpineVariantBanner({
 }) {
   if (variant === "incomplete") {
     const missing: string[] = [];
-    if (!hasMeaningfulValue(spine.project.point_a)) missing.push("Point A");
-    if (!hasMeaningfulValue(spine.project.point_b)) missing.push("Point B");
+    if (!isApprovedTruth(spine.project.point_a_status)) missing.push("Point A");
+    if (!isApprovedTruth(spine.project.point_b_status)) missing.push("Point B");
     const contradictions = spine.notifications.filter(
       (n) => n.kind === "contradiction" || n.kind === "warning" || n.kind === "critical",
     ).length;
@@ -3403,7 +3430,7 @@ function SpineIncompleteBody({
         <TruthCardV2
           point="A"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_a)}
+          status={spine.project.point_a_status}
           bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
@@ -3413,7 +3440,7 @@ function SpineIncompleteBody({
         <TruthCardV2
           point="B"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_b)}
+          status={spine.project.point_b_status}
           bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
@@ -3501,7 +3528,7 @@ function SpineClientReadyBody({
         <TruthCardV2
           point="A"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_a)}
+          status={spine.project.point_a_status}
           bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
@@ -3511,7 +3538,7 @@ function SpineClientReadyBody({
         <TruthCardV2
           point="B"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_b)}
+          status={spine.project.point_b_status}
           bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
