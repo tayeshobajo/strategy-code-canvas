@@ -203,66 +203,105 @@ function EngineLayout() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper-soft lg:flex-row">
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-ink text-white lg:flex">
-        {sidebarBody}
-      </aside>
+    <SourceInspectorProvider>
+      <div className="flex min-h-screen flex-col bg-paper-soft lg:flex-row">
+        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-ink text-white lg:flex">
+          {sidebarBody}
+        </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-ink px-4 py-3 text-white lg:hidden">
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <button
-                type="button"
-                aria-label="Open engine menu"
-                className="inline-flex h-9 w-9 items-center justify-center rounded border border-white/10 text-white/80 hover:bg-white/5"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-            </SheetTrigger>
-            <SheetContent side="left" className="flex w-72 flex-col border-white/10 bg-ink p-0 text-white">
-              <VisuallyHidden>
-                <SheetTitle>Engine navigation</SheetTitle>
-              </VisuallyHidden>
-              {sidebarBody}
-            </SheetContent>
-          </Sheet>
-          <div className="min-w-0 flex-1">
-            <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
-              Roadmap Engine
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-ink px-4 py-3 text-white lg:hidden">
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Open engine menu"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded border border-white/10 text-white/80 hover:bg-white/5"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" className="flex w-72 flex-col border-white/10 bg-ink p-0 text-white">
+                <VisuallyHidden>
+                  <SheetTitle>Engine navigation</SheetTitle>
+                </VisuallyHidden>
+                {sidebarBody}
+              </SheetContent>
+            </Sheet>
+            <div className="min-w-0 flex-1">
+              <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
+                Roadmap Engine
+              </div>
+              <div className="truncate text-sm">{currentNav?.label ?? "Engine"}</div>
             </div>
-            <div className="truncate text-sm">{currentNav?.label ?? "Engine"}</div>
           </div>
+
+          <header className="hidden border-b border-border bg-card lg:block">
+            <div className="flex items-center justify-between gap-4 px-8 py-3">
+              <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm text-ink/60">
+                {crumbs.map((c, i) => (
+                  <span key={c.to ?? c.label} className="flex min-w-0 items-center gap-2">
+                    {i > 0 ? <span className="text-ink/30">/</span> : null}
+                    {c.to ? (
+                      <Link to={c.to} className="truncate hover:text-ink">
+                        {c.label}
+                      </Link>
+                    ) : (
+                      <span className="truncate text-ink">{c.label}</span>
+                    )}
+                  </span>
+                ))}
+              </nav>
+              <div className="font-mono text-xs uppercase tracking-[0.2em] text-ink/50">
+                Trust Tai Internal
+              </div>
+            </div>
+          </header>
+          <main className="app-shell-main flex-1">
+            <div className="min-w-0">
+              <Outlet />
+            </div>
+          </main>
         </div>
-
-        <header className="hidden border-b border-border bg-card lg:block">
-          <div className="flex items-center justify-between gap-4 px-8 py-3">
-            <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm text-ink/60">
-              {crumbs.map((c, i) => (
-                <span key={c.to ?? c.label} className="flex min-w-0 items-center gap-2">
-                  {i > 0 ? <span className="text-ink/30">/</span> : null}
-                  {c.to ? (
-                    <Link to={c.to} className="truncate hover:text-ink">
-                      {c.label}
-                    </Link>
-                  ) : (
-                    <span className="truncate text-ink">{c.label}</span>
-                  )}
-                </span>
-              ))}
-            </nav>
-            <div className="font-mono text-xs uppercase tracking-[0.2em] text-ink/50">
-              Trust Tai Internal
-            </div>
-          </div>
-        </header>
-        <main className="app-shell-main flex-1">
-          <div className="min-w-0">
-            <Outlet />
-          </div>
-        </main>
       </div>
-    </div>
+      <SourceTruthInspector />
+    </SourceInspectorProvider>
+  );
+}
+
+function SidebarLink({
+  item,
+  pathname,
+  onNavigate,
+}: {
+  item: NavItem;
+  pathname: string;
+  onNavigate: () => void;
+}) {
+  const active = item.exact
+    ? pathname === item.to
+    : pathname === item.to || pathname.startsWith(item.to + "/");
+  const Icon = item.icon;
+  return (
+    <Link
+      to={item.to}
+      aria-current={active ? "page" : undefined}
+      onClick={onNavigate}
+      className={`group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+        active
+          ? "bg-white/10 text-white"
+          : "text-white/70 hover:bg-white/5 hover:text-white"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
+          active ? "bg-royal opacity-100" : "bg-white opacity-0 group-hover:opacity-40"
+        }`}
+      />
+      <Icon className="h-4 w-4 shrink-0" />
+      <span className="truncate">{item.label}</span>
+    </Link>
   );
 }
 
