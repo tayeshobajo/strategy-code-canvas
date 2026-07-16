@@ -6,6 +6,12 @@ import type { WorkspaceProject, WorkspaceStepKey } from "@/lib/engine-workspace"
 import { WORKSPACE_STEPS } from "@/lib/engine-workspace";
 import { aggregateSpineStatus } from "@/lib/spine-truth-status";
 import type { SpineFieldStatus } from "@/lib/spine-contract";
+import {
+  deriveMilestoneGatesFromRecords,
+  payloadMatchesMilestone,
+  type MilestoneDurableRecords,
+  type MilestoneGates,
+} from "@/lib/milestone-readiness-evaluator";
 
 const databaseUuid = z
   .string()
@@ -1697,6 +1703,23 @@ export type SpineMilestone = {
   sort_index: number;
   due_date: string | null;
   brief_md: string | null;
+  /**
+   * Phase 1A follow-up — durable readiness gates for the Milestone
+   * Readiness matrix. Computed from real records
+   * (frames / mockups / build packets / build evidence / QA plans /
+   * QA evidence reviews) scoped to this milestone, NOT from phase/status
+   * heuristics. See `deriveMilestoneGatesFromRecords`.
+   */
+  readiness: MilestoneGates & {
+    counts: {
+      frames: number;
+      mockups: number;
+      packets: number;
+      evidence: number;
+      qa_plans: number;
+      qa_reviews: number;
+    };
+  };
 };
 
 export type ProjectSpinePayload = {
@@ -2045,7 +2068,88 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       .select("id,name,phase,status,approval_status,sort_index,due_date,brief_md")
       .eq("project_id", data.id)
       .order("sort_index", { ascending: true });
-    const milestones = (msRows ?? []) as SpineMilestone[];
+    const rawMilestones = (msRows ?? []) as Array<Omit<SpineMilestone, "readiness">>;
+
+    // Phase 1A follow-up — load durable records used by the Milestone
+    // Readiness matrix. All are project-scoped; the evaluator filters by
+    // `payload.milestone_id`.
+    const [
+      { data: frameRows },
+      { data: mockupRows },
+      { data: packetRows },
+      { data: qaPlanRows },
+      { data: qaReviewRows },
+    ] = await Promise.all([
+      sb
+        .from("engine_project_frames")
+        .select("id,status,approved_at,payload")
+        .eq("project_id", data.id),
+      sb
+        .from("engine_project_mockups")
+        .select("id,status,approved_at,payload")
+        .eq("project_id", data.id),
+      sb
+        .from("engine_project_build_packets")
+        .select("id,status,accepted_at,handed_off_at,payload")
+        .eq("project_id", data.id),
+      sb
+        .from("engine_project_qa_plans")
+        .select("id,status,approved_at,payload")
+        .eq("project_id", data.id),
+      sb
+        .from("engine_project_qa_evidence_reviews")
+        .select("id,status,verdict,approved_at,build_packet_id,payload")
+        .eq("project_id", data.id),
+    ]);
+
+    const projectPackets = (packetRows ?? []) as Array<{
+      id: string;
+      status: string | null;
+      accepted_at: string | null;
+      handed_off_at: string | null;
+      payload: unknown;
+    }>;
+    const packetIds = projectPackets.map((p) => p.id);
+    let projectEvidence: Array<{ id: string; build_packet_id: string; evidence_type: string | null }> = [];
+    if (packetIds.length > 0) {
+      const { data: evRows } = await sb
+        .from("engine_project_build_evidence")
+        .select("id,build_packet_id,evidence_type")
+        .in("build_packet_id", packetIds);
+      projectEvidence = (evRows ?? []) as typeof projectEvidence;
+    }
+    const packetIdToMilestone = new Map<string, string | null>();
+    for (const p of projectPackets) {
+      const rec = (p.payload && typeof p.payload === "object" ? (p.payload as Record<string, unknown>) : {}) as Record<string, unknown>;
+      const mid = (rec.milestone_id as string | undefined) ?? (rec.milestoneId as string | undefined) ?? null;
+      packetIdToMilestone.set(p.id, mid ?? null);
+    }
+
+    const milestones: SpineMilestone[] = rawMilestones.map((m) => {
+      const rec: MilestoneDurableRecords = {
+        frames: (frameRows ?? []).filter((r: { payload: unknown }) => payloadMatchesMilestone(r.payload, m.id)),
+        mockups: (mockupRows ?? []).filter((r: { payload: unknown }) => payloadMatchesMilestone(r.payload, m.id)),
+        packets: projectPackets.filter((r) => payloadMatchesMilestone(r.payload, m.id)),
+        evidence: projectEvidence.filter((e) => packetIdToMilestone.get(e.build_packet_id) === m.id),
+        qa_plans: (qaPlanRows ?? []).filter((r: { payload: unknown }) => payloadMatchesMilestone(r.payload, m.id)),
+        qa_reviews: (qaReviewRows ?? []).filter((r: { payload: unknown }) => payloadMatchesMilestone(r.payload, m.id)),
+      };
+      const gates = deriveMilestoneGatesFromRecords(m, rec);
+      return {
+        ...m,
+        readiness: {
+          ...gates,
+          counts: {
+            frames: rec.frames.length,
+            mockups: rec.mockups.length,
+            packets: rec.packets.length,
+            evidence: rec.evidence.length,
+            qa_plans: rec.qa_plans.length,
+            qa_reviews: rec.qa_reviews.length,
+          },
+        },
+      };
+    });
 
     const { data: taskRows } = await sb
       .from("engine_tasks")
