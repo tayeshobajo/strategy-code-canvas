@@ -1770,7 +1770,52 @@ export type ProjectSpinePayload = {
     actor_email: string | null;
     created_at: string;
   }>;
+  modules: SpineModuleSection[];
 };
+
+/**
+ * Phase 3 — Aggregated module outputs surfaced on the Project Spine.
+ *
+ * Each entry represents an approvable module output (hidden_assets, gaps,
+ * blueprint, sequencing, deadlines, investment) or a derived section that
+ * lives inside another jsonb blob (constraints, risks, success_metrics,
+ * decisions). Every entry carries per-section readiness so the Spine UI
+ * can render advisory status without re-querying.
+ */
+export type SpineModuleKey =
+  | "hidden_assets"
+  | "gaps"
+  | "blueprint"
+  | "sequencing"
+  | "deadlines"
+  | "investment"
+  | "constraints"
+  | "risks"
+  | "success_metrics"
+  | "decisions";
+
+export type SpineModuleReadiness = {
+  has_data: boolean;
+  approved: boolean;
+  /** True when the section has data AND its parent module is approved. */
+  ready: boolean;
+  /** step_states value from the parent module ("draft"|"review"|"approved"|null). */
+  approval_state: "draft" | "review" | "approved" | null;
+};
+
+export type SpineModuleSection = {
+  key: SpineModuleKey;
+  label: string;
+  /** Source jsonb blob or table this module reads from. */
+  source: string;
+  /** Whether this module has its own approval state (direct) or inherits (derived). */
+  derived: boolean;
+  /** Deep link into the workspace editor for this module. */
+  deep_link: string;
+  data: import("@/lib/engine-workspace").Json;
+  readiness: SpineModuleReadiness;
+};
+
 
 // Phase 4B: field-level history reader for approved spine changes.
 // Reads from engine_audit_log filtered to action='spine_field_changed',
