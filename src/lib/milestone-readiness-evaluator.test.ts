@@ -3,6 +3,7 @@ import {
   deriveMilestoneGatesFromRecords,
   payloadMatchesMilestone,
   type MilestoneDurableRecords,
+  type MilestoneInput,
 } from "./milestone-readiness-evaluator";
 
 const empty: MilestoneDurableRecords = {
@@ -13,6 +14,15 @@ const empty: MilestoneDurableRecords = {
   qa_plans: [],
   qa_reviews: [],
 };
+
+// Base milestone with all predecessors satisfied so isolated gate tests
+// are not capped by predecessor ordering.
+const ready: MilestoneInput = {
+  acceptance_criteria: ["a"],
+  approval_status: "approved",
+  mockups_required: false,
+};
+
 
 describe("deriveMilestoneGatesFromRecords — defaults", () => {
   it("renders not_configured for every backing-record gate on a bare milestone", () => {
