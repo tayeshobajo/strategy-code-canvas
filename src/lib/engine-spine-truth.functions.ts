@@ -21,6 +21,8 @@ export type SpineFieldHistoryEntry = {
   new_value: string | null;
   change_reason: string | null;
   actor_email: string | null;
+  section_key: string | null;
+  field_key: string | null;
   created_at: string;
   source: "proposal" | "truth";
 };
@@ -42,9 +44,12 @@ export const proposeSpineFieldChange = createServerFn({ method: "POST" })
     const supabase = (context as { supabase: Sb; userId: string; claims: any }).supabase;
     const actor = ((context as any).claims?.email as string | undefined) ?? null;
     const userId = (context as any).userId as string;
+    const submittedAt = new Date().toISOString();
 
     const title = `Spine change · ${data.sectionKey} · ${data.fieldKey}`;
     const summary = data.changeReason?.slice(0, 300) ?? "Proposed change to approved spine statement.";
+    // Full attribution lives in the payload so the history strip can render
+    // "by <email> on <date>" without a users-table join.
     const payload = {
       kind: "spine_field_change",
       section_key: data.sectionKey,
@@ -52,6 +57,9 @@ export const proposeSpineFieldChange = createServerFn({ method: "POST" })
       new_value: data.newValue,
       change_reason: data.changeReason ?? null,
       submitted_via: "source_truth_inspector",
+      submitted_by_user_id: userId,
+      submitted_by_email: actor,
+      submitted_at: submittedAt,
     };
 
     const { data: inserted, error } = await supabase
@@ -72,15 +80,16 @@ export const proposeSpineFieldChange = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     // Best-effort audit; ignore failures so the proposal still lands.
+    // engine_activity has no actor_email column — embed the actor in the body.
     await supabase.from("engine_activity").insert({
       project_id: data.projectId,
       kind: "spine_field_proposed",
       title,
       body:
+        (actor ? `Proposed by ${actor}. ` : "") +
         (data.changeReason ? `${data.changeReason}\n\n` : "") +
         `New value: ${data.newValue.slice(0, 400)}`,
       severity: "info",
-      actor_email: actor,
     });
 
     return { ok: true, proposalId: inserted.id, createdAt: inserted.created_at };
@@ -119,7 +128,9 @@ export const getSpineFieldHistory = createServerFn({ method: "GET" })
         status: String(row.status ?? "pending"),
         new_value: typeof p.new_value === "string" ? p.new_value : null,
         change_reason: typeof p.change_reason === "string" ? p.change_reason : null,
-        actor_email: null,
+        actor_email: typeof p.submitted_by_email === "string" ? p.submitted_by_email : null,
+        section_key: typeof p.section_key === "string" ? p.section_key : null,
+        field_key: typeof p.field_key === "string" ? p.field_key : null,
         created_at: String(row.created_at),
         source: "proposal",
       });
