@@ -519,55 +519,142 @@ function RoadmapSummaryCard({
   );
 }
 
-function ModuleReadinessGrid({ modules }: { modules: SpineModuleSection[] }) {
+function ModuleReadinessGrid({
+  modules,
+  projectId,
+}: {
+  modules: SpineModuleSection[];
+  projectId: string;
+}) {
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       {modules.map((m) => (
-        <ModuleReadinessTile key={m.key} module={m} />
+        <ModuleReadinessTile key={m.key} module={m} projectId={projectId} />
       ))}
     </div>
   );
 }
 
-function ModuleReadinessTile({ module: m }: { module: SpineModuleSection }) {
-  const { has_data, approved, ready, approval_state } = m.readiness;
-  const state: "ready" | "approved-no-data" | "review" | "draft" | "missing" = ready
-    ? "ready"
-    : approved && !has_data
-      ? "approved-no-data"
-      : approval_state === "review"
-        ? "review"
-        : has_data
-          ? "draft"
-          : "missing";
+type ModuleUiState = "ready" | "approved-no-data" | "review" | "draft" | "missing";
 
-  const iconMap = {
-    ready: <CheckCircle2 className="h-4 w-4 text-[#1f6b3b]" />,
-    "approved-no-data": <AlertTriangle className="h-4 w-4 text-[#8a6713]" />,
-    review: <Clock className="h-4 w-4 text-[#8a6713]" />,
-    draft: <CircleDashed className="h-4 w-4 text-[#3E68B2]" />,
-    missing: <CircleDashed className="h-4 w-4 text-[#667085]" />,
-  };
-  const labelMap = {
-    ready: "Approved",
-    "approved-no-data": "Approved · empty",
-    review: "In review",
-    draft: "Draft",
-    missing: "Not started",
-  };
-  const toneMap: Record<string, "approved" | "pending" | "info" | "neutral"> = {
-    ready: "approved",
-    "approved-no-data": "pending",
-    review: "pending",
-    draft: "info",
-    missing: "neutral",
-  };
+function deriveModuleState(m: SpineModuleSection): ModuleUiState {
+  const { has_data, approved, ready, approval_state } = m.readiness;
+  if (ready) return "ready";
+  if (approved && !has_data) return "approved-no-data";
+  if (approval_state === "review") return "review";
+  if (has_data) return "draft";
+  return "missing";
+}
+
+const MODULE_STATE_ICON: Record<ModuleUiState, ReactNode> = {
+  ready: <CheckCircle2 className="h-4 w-4 text-[#1f6b3b]" />,
+  "approved-no-data": <AlertTriangle className="h-4 w-4 text-[#8a6713]" />,
+  review: <Clock className="h-4 w-4 text-[#8a6713]" />,
+  draft: <CircleDashed className="h-4 w-4 text-[#3E68B2]" />,
+  missing: <CircleDashed className="h-4 w-4 text-[#667085]" />,
+};
+const MODULE_STATE_LABEL: Record<ModuleUiState, string> = {
+  ready: "Approved",
+  "approved-no-data": "Approved · empty",
+  review: "In review",
+  draft: "Draft",
+  missing: "Not started",
+};
+const MODULE_STATE_TONE: Record<ModuleUiState, "approved" | "pending" | "info" | "neutral"> = {
+  ready: "approved",
+  "approved-no-data": "pending",
+  review: "pending",
+  draft: "info",
+  missing: "neutral",
+};
+
+/**
+ * Typed deep link to a module's workspace route. Keeps navigation SPA-native
+ * (preloading + type checks) instead of full-page reloads via <a href>.
+ */
+function ModuleLink({
+  moduleKey,
+  projectId,
+  className,
+  children,
+}: {
+  moduleKey: import("@/lib/engine.functions").SpineModuleKey;
+  projectId: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const params = { projectId };
+  switch (moduleKey) {
+    case "hidden_assets":
+      return (
+        <Link to="/engine/projects/$projectId/hidden-assets" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "gaps":
+    case "constraints":
+    case "risks":
+      return (
+        <Link to="/engine/projects/$projectId/gap-map" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "blueprint":
+      return (
+        <Link to="/engine/projects/$projectId/blueprint" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "sequencing":
+      return (
+        <Link to="/engine/projects/$projectId/sequencing" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "deadlines":
+      return (
+        <Link to="/engine/projects/$projectId/deadlines" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "investment":
+      return (
+        <Link to="/engine/projects/$projectId/investment" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "success_metrics":
+      return (
+        <Link to="/engine/projects/$projectId/point-b" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "decisions":
+      return (
+        <Link to="/engine/projects/$projectId/builder" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    default:
+      return <span className={className}>{children}</span>;
+  }
+}
+
+function ModuleReadinessTile({
+  module: m,
+  projectId,
+}: {
+  module: SpineModuleSection;
+  projectId: string;
+}) {
+  const state = deriveModuleState(m);
 
   return (
-    <a
-      href={m.deep_link}
+    <ModuleLink
+      moduleKey={m.key}
+      projectId={projectId}
       className={cn(
-        "group rounded-xl border p-4 shadow-sm transition hover:shadow-md",
+        "group block rounded-xl border p-4 shadow-sm transition hover:shadow-md",
         state === "ready"
           ? "border-[#c4e6d2] bg-[#f4faf6]"
           : "border-[#E8E1D6] bg-white hover:border-[#3E68B2]/40",
@@ -575,10 +662,10 @@ function ModuleReadinessTile({ module: m }: { module: SpineModuleSection }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          {iconMap[state]}
+          {MODULE_STATE_ICON[state]}
           <div className="text-sm font-medium text-[#0A0F1F]">{m.label}</div>
         </div>
-        <GenericBadge tone={toneMap[state]}>{labelMap[state]}</GenericBadge>
+        <GenericBadge tone={MODULE_STATE_TONE[state]}>{MODULE_STATE_LABEL[state]}</GenericBadge>
       </div>
       <div className="mt-3 flex items-center justify-between text-xs text-[#667085]">
         <span>{m.derived ? "Derived" : "Module"}</span>
@@ -586,8 +673,140 @@ function ModuleReadinessTile({ module: m }: { module: SpineModuleSection }) {
           Open <ArrowRight className="h-3 w-3" />
         </span>
       </div>
-    </a>
+    </ModuleLink>
   );
+}
+
+/* ─────────────────── Per-module content sections ─────────────────── */
+
+function ModuleContentsList({
+  modules,
+  projectId,
+}: {
+  modules: SpineModuleSection[];
+  projectId: string;
+}) {
+  return (
+    <div className="space-y-3">
+      {modules.map((m) => (
+        <ModuleContentCard key={m.key} module={m} projectId={projectId} />
+      ))}
+    </div>
+  );
+}
+
+function ModuleContentCard({
+  module: m,
+  projectId,
+}: {
+  module: SpineModuleSection;
+  projectId: string;
+}) {
+  const state = deriveModuleState(m);
+  const approvalLabel = m.readiness.approved
+    ? "Approved"
+    : m.readiness.approval_state
+      ? humanize(m.readiness.approval_state)
+      : "Not submitted";
+  const preview = summarizeModuleData(m.data);
+
+  return (
+    <details
+      className={cn(
+        "group rounded-2xl border shadow-sm transition",
+        state === "ready" ? "border-[#c4e6d2] bg-[#f9fcfa]" : "border-[#E8E1D6] bg-white",
+      )}
+    >
+      <summary className="cursor-pointer list-none px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            {MODULE_STATE_ICON[state]}
+            <div className="min-w-0">
+              <div className="font-display text-base text-[#0A0F1F]">{m.label}</div>
+              <div className="mt-0.5 text-xs text-[#667085]">
+                {m.derived ? "Derived · " : ""}
+                {m.source}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <GenericBadge tone={MODULE_STATE_TONE[state]}>{MODULE_STATE_LABEL[state]}</GenericBadge>
+            <GenericBadge tone={m.readiness.approved ? "approved" : "neutral"}>
+              {approvalLabel}
+            </GenericBadge>
+            <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#667085] group-open:text-[#3E68B2]">
+              <span className="group-open:hidden">Expand</span>
+              <span className="hidden group-open:inline">Collapse</span>
+            </span>
+          </div>
+        </div>
+      </summary>
+      <div className="border-t border-[#E8E1D6] px-5 py-4 space-y-3">
+        {preview.length ? (
+          <ul className="space-y-2 text-sm text-[#0A0F1F]">
+            {preview.map((line, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="text-[#3E68B2]">•</span>
+                <span className="min-w-0 break-words">{line}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-[#667085]">
+            No {m.label.toLowerCase()} content has been captured yet.
+          </p>
+        )}
+        <div className="flex items-center justify-between pt-2">
+          <div className="text-xs text-[#667085]">
+            {m.readiness.has_data ? "Content present" : "No content yet"} ·{" "}
+            {m.readiness.approved ? "approval on file" : "awaiting approval"}
+          </div>
+          <ModuleLink
+            moduleKey={m.key}
+            projectId={projectId}
+            className="inline-flex items-center gap-1 rounded-full border border-[#E8E1D6] bg-white px-3 py-1 text-xs font-medium text-[#3E68B2] hover:border-[#3E68B2]/60 hover:text-[#284f93]"
+          >
+            Open module
+            <ArrowRight className="h-3 w-3" />
+          </ModuleLink>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function summarizeModuleData(data: unknown): string[] {
+  if (data == null) return [];
+  if (typeof data === "string") {
+    const t = data.trim();
+    return t ? [t] : [];
+  }
+  if (typeof data === "number" || typeof data === "boolean") return [String(data)];
+  if (Array.isArray(data)) {
+    return data
+      .slice(0, 8)
+      .map((item) => {
+        if (item == null) return null;
+        if (typeof item === "string") return item.trim() || null;
+        if (typeof item === "number" || typeof item === "boolean") return String(item);
+        if (typeof item === "object") {
+          return compactObjectSummary(item as Record<string, unknown>);
+        }
+        return null;
+      })
+      .filter((v): v is string => Boolean(v));
+  }
+  if (typeof data === "object") {
+    const rec = data as Record<string, unknown>;
+    return Object.entries(rec)
+      .slice(0, 8)
+      .map(([k, v]) => {
+        const text = stringifyValue(v);
+        return text ? `${humanize(k)}: ${text}` : null;
+      })
+      .filter((v): v is string => Boolean(v));
+  }
+  return [];
 }
 
 function ApprovalsCard({ reviews }: { reviews: ProjectSpinePayload["reviews"] }) {
