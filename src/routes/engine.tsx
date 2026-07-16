@@ -107,14 +107,17 @@ function EngineLayout() {
     navigate({ to: "/auth", search: { email: undefined, redirect: "/" } });
   }
 
-  const queryClient = useQueryClient();
   const projectMatch = pathname.match(/^\/engine\/projects\/([^/]+)/);
   const activeProjectId = projectMatch?.[1] && projectMatch[1] !== "new" ? projectMatch[1] : null;
-  const workspaceData = activeProjectId
-    ? (queryClient.getQueryData(["engine", "workspace", activeProjectId]) as
-        | { project?: WorkspaceProject }
-        | undefined)
-    : undefined;
+  const workspaceFn = useServerFn(getProjectWorkspace);
+  const workspaceQuery = useQuery({
+    ...workspaceQueryOptions(
+      activeProjectId ?? "__none__",
+      workspaceFn as unknown as (i: { data: { id: string } }) => Promise<unknown>,
+    ),
+    enabled: !!activeProjectId,
+  });
+  const workspaceData = workspaceQuery.data as { project?: WorkspaceProject } | undefined;
   const clientName = workspaceData?.project?.client_company;
   const crumbs = buildCrumbs(pathname, { clientName });
   const currentNav = NAV.find((n) =>
