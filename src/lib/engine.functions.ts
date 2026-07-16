@@ -1893,10 +1893,11 @@ export const getProjectSpine = createServerFn({ method: "GET" })
     const { data: projRow, error: projErr } = await sb
       .from("engine_projects")
       .select(
-        "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,point_a,point_b,roadmap,blueprint, engine_clients(company)",
+        "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,point_a,point_b,roadmap,blueprint,hidden_assets,gap_map,sequencing,deadlines,investment,client_preview,step_states,open_decisions, engine_clients(company)",
       )
       .eq("id", data.id)
       .maybeSingle();
+
     if (projErr) throw new Error((projErr as { message?: string }).message ?? "project not found");
     if (!projRow) throw new Error(`Project not found: ${data.id}`);
 
