@@ -2008,6 +2008,25 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       .limit(1);
     const version = verRows && verRows[0] ? verRows[0] : null;
 
+    // Phase 1A — Durable Point A / Point B status from engine_spine_field_truth.
+    // Aggregated per §3 of PROJECT_SPINE_CONTRACT.md. Only `approved_truth`
+    // counts as approved anywhere downstream.
+    let point_a_status: SpineFieldStatus | null = null;
+    let point_b_status: SpineFieldStatus | null = null;
+    try {
+      const { data: truthRows, error: truthErr } = await sb
+        .from("engine_spine_field_truth")
+        .select("spine,status")
+        .eq("project_id", data.id);
+      if (!truthErr) {
+        const rows = (truthRows ?? []) as Array<{ spine: string; status: string }>;
+        point_a_status = aggregateSpineStatus(rows.filter((r) => r.spine === "point-a"));
+        point_b_status = aggregateSpineStatus(rows.filter((r) => r.spine === "point-b"));
+      }
+    } catch {
+      // Table read failed — leave statuses null so callers render "not started".
+    }
+
     // Portal publish status
     let portal_publish: ProjectSpinePayload["portal_publish"] = null;
     if (projRow.client_portal_project_id) {
