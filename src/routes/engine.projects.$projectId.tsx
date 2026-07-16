@@ -60,22 +60,15 @@ function WorkspaceLayout() {
 
   return (
     <div className="space-y-5 max-w-[1500px]">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <WorkspaceBreadcrumb
-          projectId={projectId}
-          clientName={workspace.project.client_company}
-          stepLabel={currentStep}
-        />
-        <div className="flex items-center gap-2">
-          <Link
-            to="/engine/projects/$projectId/family"
-            params={{ projectId }}
-            className="rounded-md border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs text-[#0A0F1F] hover:bg-[#FBF9F4]"
-          >
-            Family
-          </Link>
-          <WorkspaceToolbar projectId={projectId} project={workspace.project} />
-        </div>
+      <div className="flex items-center justify-end gap-2 flex-wrap">
+        <Link
+          to="/engine/projects/$projectId/family"
+          params={{ projectId }}
+          className="rounded-md border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs text-[#0A0F1F] hover:bg-[#FBF9F4]"
+        >
+          Family
+        </Link>
+        <WorkspaceToolbar projectId={projectId} project={workspace.project} />
       </div>
       <ProjectHeaderStrip project={workspace.project} />
       <ProjectTabs projectId={projectId} />
