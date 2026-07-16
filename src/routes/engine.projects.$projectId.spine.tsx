@@ -32,6 +32,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/hooks/use-workspace";
 import jsPDF from "jspdf";
 
 
@@ -243,6 +244,13 @@ function ProjectSpine() {
         intelligenceConfidence={spine.intelligence.confidence}
       />
 
+      {/* ───── Working focus (merged from legacy Overview) ───── */}
+      <WorkingFocusStrip
+        projectId={projectId}
+        currentStepNum={spine.project.current_step_num}
+        totalSteps={14}
+      />
+
       {/* ───── Milestone approval history ───── */}
       <MilestoneApprovalHistoryCard
         rows={historyRows}
@@ -252,6 +260,7 @@ function ProjectSpine() {
         errorMessage={(historyQ.error as Error | null)?.message}
         onRetry={() => historyQ.refetch()}
       />
+
 
       {/* ───── Modules & Readiness (power-user view) ───── */}
       <details className="group rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
@@ -2470,6 +2479,104 @@ function exportSpinePdf(
   doc.save(`spine-${slug || "report"}-${date}.pdf`);
 }
 
+
+
+/* ─────────── Working focus strip (merged from legacy Overview) ─────────── */
+function WorkingFocusStrip({
+  projectId,
+  currentStepNum,
+  totalSteps,
+}: {
+  projectId: string;
+  currentStepNum: number;
+  totalSteps: number;
+}) {
+  const { dates } = useWorkspace(projectId);
+  const pct = Math.min(100, Math.max(0, Math.round((currentStepNum / totalSteps) * 100)));
+  const upcoming = [...dates]
+    .filter((d) => !!d.due_on)
+    .sort((a, b) => new Date(a.due_on).getTime() - new Date(b.due_on).getTime())
+    .slice(0, 4);
+
+  const shortcuts: Array<{
+    to:
+      | "/engine/projects/$projectId/builder"
+      | "/engine/projects/$projectId/plans"
+      | "/engine/projects/$projectId/evidence"
+      | "/engine/projects/$projectId/understanding-room"
+      | "/engine/projects/$projectId/intelligence"
+      | "/engine/projects/$projectId/chat"
+      | "/engine/projects/$projectId/preview";
+    label: string;
+  }> = [
+    { to: "/engine/projects/$projectId/builder", label: "Roadmap" },
+    { to: "/engine/projects/$projectId/plans", label: "Plans & Specs" },
+    { to: "/engine/projects/$projectId/evidence", label: "Evidence & QA" },
+    { to: "/engine/projects/$projectId/understanding-room", label: "Understanding" },
+    { to: "/engine/projects/$projectId/intelligence", label: "Intelligence" },
+    { to: "/engine/projects/$projectId/chat", label: "Captain Chat" },
+    { to: "/engine/projects/$projectId/preview", label: "Client Preview" },
+  ];
+
+  return (
+    <section
+      aria-labelledby="working-focus-heading"
+      className="grid gap-4 xl:grid-cols-3 rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm"
+      data-qa-role="working-focus"
+    >
+      <div className="xl:col-span-1">
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+          Workflow progress
+        </div>
+        <div id="working-focus-heading" className="mt-1 text-lg font-medium text-[#0A0F1F]">
+          Step {currentStepNum} of {totalSteps}
+        </div>
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#F3EEE6]">
+          <div className="h-full bg-[#3E68B2] transition-all" style={{ width: `${Math.max(2, pct)}%` }} />
+        </div>
+        <div className="mt-1 text-[11px] text-[#667085] tabular-nums">{pct}%</div>
+      </div>
+
+      <div className="xl:col-span-1">
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+          Upcoming dates
+        </div>
+        {upcoming.length === 0 ? (
+          <div className="mt-2 text-sm text-[#667085] italic">No dates set.</div>
+        ) : (
+          <ul className="mt-2 space-y-2 text-sm">
+            {upcoming.map((d) => (
+              <li key={d.id} className="flex items-baseline justify-between gap-3">
+                <span className="truncate text-[#0A0F1F]">{d.label}</span>
+                <span className="whitespace-nowrap text-xs text-[#667085]">
+                  {new Date(d.due_on).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="xl:col-span-1">
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+          Shortcuts
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {shortcuts.map((s) => (
+            <Link
+              key={s.to}
+              to={s.to}
+              params={{ projectId }}
+              className="rounded-lg border border-[#E8E1D6] px-3 py-2 text-xs text-[#0A0F1F] hover:border-[#3E68B2]/50 hover:bg-[#FBF9F4] transition"
+            >
+              {s.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 
 function SpineLoading() {
