@@ -1,12 +1,10 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getProjectWorkspace } from "@/lib/engine.functions";
-import { WORKSPACE_STEPS } from "@/lib/engine-workspace";
 import { ProjectTabs } from "@/components/engine/ProjectTabs";
 import {
   ProjectHeaderStrip,
-  WorkspaceBreadcrumb,
   WorkspaceToolbar,
 } from "@/components/engine/WorkspaceHeader";
 
