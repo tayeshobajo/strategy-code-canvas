@@ -4,6 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import type { WorkspaceProject, WorkspaceStepKey } from "@/lib/engine-workspace";
 import { WORKSPACE_STEPS } from "@/lib/engine-workspace";
+import { aggregateSpineStatus } from "@/lib/spine-truth-status";
+import type { SpineFieldStatus } from "@/lib/spine-contract";
 
 const databaseUuid = z
   .string()
