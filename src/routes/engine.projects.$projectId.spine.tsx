@@ -2343,7 +2343,7 @@ function ErrorBanner({
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#a4283c]/80">
             {title}
           </div>
-          <p className="mt-1 text-[#7a1e2d]">{message}</p>
+          <p className="mt-1 whitespace-pre-line text-[#7a1e2d]">{message}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {onRetry ? (
