@@ -17,7 +17,6 @@ import {
   Wrench,
   Package,
   Compass,
-  LayoutDashboard,
   Map,
   Truck,
   ChevronDown,
