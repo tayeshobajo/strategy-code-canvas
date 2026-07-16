@@ -234,8 +234,8 @@ function ProjectSpine() {
     )[0];
 
   const variant = deriveSpineVariant(
-    hasMeaningfulValue(spine.project.point_a),
-    hasMeaningfulValue(spine.project.point_b),
+    isApprovedTruth(spine.project.point_a_status),
+    isApprovedTruth(spine.project.point_b_status),
     spine.milestones,
     spine.portal_publish,
   );
