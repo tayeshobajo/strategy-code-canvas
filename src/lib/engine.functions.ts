@@ -1770,7 +1770,52 @@ export type ProjectSpinePayload = {
     actor_email: string | null;
     created_at: string;
   }>;
+  modules: SpineModuleSection[];
 };
+
+/**
+ * Phase 3 — Aggregated module outputs surfaced on the Project Spine.
+ *
+ * Each entry represents an approvable module output (hidden_assets, gaps,
+ * blueprint, sequencing, deadlines, investment) or a derived section that
+ * lives inside another jsonb blob (constraints, risks, success_metrics,
+ * decisions). Every entry carries per-section readiness so the Spine UI
+ * can render advisory status without re-querying.
+ */
+export type SpineModuleKey =
+  | "hidden_assets"
+  | "gaps"
+  | "blueprint"
+  | "sequencing"
+  | "deadlines"
+  | "investment"
+  | "constraints"
+  | "risks"
+  | "success_metrics"
+  | "decisions";
+
+export type SpineModuleReadiness = {
+  has_data: boolean;
+  approved: boolean;
+  /** True when the section has data AND its parent module is approved. */
+  ready: boolean;
+  /** step_states value from the parent module ("draft"|"review"|"approved"|null). */
+  approval_state: "draft" | "review" | "approved" | null;
+};
+
+export type SpineModuleSection = {
+  key: SpineModuleKey;
+  label: string;
+  /** Source jsonb blob or table this module reads from. */
+  source: string;
+  /** Whether this module has its own approval state (direct) or inherits (derived). */
+  derived: boolean;
+  /** Deep link into the workspace editor for this module. */
+  deep_link: string;
+  data: import("@/lib/engine-workspace").Json;
+  readiness: SpineModuleReadiness;
+};
+
 
 // Phase 4B: field-level history reader for approved spine changes.
 // Reads from engine_audit_log filtered to action='spine_field_changed',
@@ -1848,10 +1893,11 @@ export const getProjectSpine = createServerFn({ method: "GET" })
     const { data: projRow, error: projErr } = await sb
       .from("engine_projects")
       .select(
-        "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,point_a,point_b,roadmap,blueprint, engine_clients(company)",
+        "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,point_a,point_b,roadmap,blueprint,hidden_assets,gap_map,sequencing,deadlines,investment,client_preview,step_states,open_decisions, engine_clients(company)",
       )
       .eq("id", data.id)
       .maybeSingle();
+
     if (projErr) throw new Error((projErr as { message?: string }).message ?? "project not found");
     if (!projRow) throw new Error(`Project not found: ${data.id}`);
 
@@ -2004,6 +2050,189 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       .limit(20);
     const audit = (auditRows ?? []) as ProjectSpinePayload["audit"];
 
+    // Phase 3 — Aggregated module outputs with per-section readiness.
+    // Direct modules read a jsonb column and pair it with the matching
+    // step_states approval. Derived modules (constraints/risks/success_metrics/
+    // decisions) do not have their own column and inherit the approval state
+    // of the parent module that houses them.
+    const stepStates =
+      (projRow.step_states as Record<
+        string,
+        { state?: "draft" | "review" | "approved" } | null
+      > | null) ?? {};
+    const hasKeysOrItems = (v: unknown): boolean => {
+      if (v == null) return false;
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === "string") return v.trim().length > 0;
+      if (typeof v === "object") return Object.keys(v as Record<string, unknown>).length > 0;
+      return false;
+    };
+    const stepStateOf = (stepKey: string): "draft" | "review" | "approved" | null =>
+      stepStates[stepKey]?.state ?? null;
+    const asRec = (v: unknown): Record<string, unknown> =>
+      v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+    const pickPath = (v: unknown, keys: readonly string[]): unknown => {
+      const rec = asRec(v);
+      for (const k of keys) {
+        if (rec[k] != null && hasKeysOrItems(rec[k])) return rec[k];
+      }
+      return null;
+    };
+    const buildDirect = (
+      key: SpineModuleKey,
+      label: string,
+      column: string,
+      stepKey: string,
+      deepLink: string,
+      value: unknown,
+    ): SpineModuleSection => {
+      const state = stepStateOf(stepKey);
+      const has_data = hasKeysOrItems(value);
+      const approved = state === "approved";
+      return {
+        key,
+        label,
+        source: `engine_projects.${column}`,
+        derived: false,
+        deep_link: deepLink,
+        data: (value ?? null) as import("@/lib/engine-workspace").Json,
+        readiness: {
+          has_data,
+          approved,
+          ready: has_data && approved,
+          approval_state: state,
+        },
+      };
+    };
+    const buildDerived = (
+      key: SpineModuleKey,
+      label: string,
+      parentColumn: string,
+      parentStepKey: string,
+      deepLink: string,
+      value: unknown,
+    ): SpineModuleSection => {
+      const state = stepStateOf(parentStepKey);
+      const has_data = hasKeysOrItems(value);
+      const approved = state === "approved";
+      return {
+        key,
+        label,
+        source: `engine_projects.${parentColumn} (derived)`,
+        derived: true,
+        deep_link: deepLink,
+        data: (value ?? null) as import("@/lib/engine-workspace").Json,
+        readiness: {
+          has_data,
+          approved,
+          ready: has_data && approved,
+          approval_state: state,
+        },
+      };
+    };
+
+    const linkFor = (suffix: string) => `/engine/projects/${data.id}/${suffix}`;
+    const gapMap = projRow.gap_map ?? null;
+    const blueprintVal = projRow.blueprint ?? null;
+    const pointBVal = projRow.point_b ?? null;
+    const roadmapVal = projRow.roadmap ?? null;
+
+    // Decisions: pending review items flagged as decision-shaped, plus the
+    // open_decisions counter for a lightweight aggregate.
+    const decisionReviews = (reviews ?? []).filter((r) =>
+      /decision/i.test(r.item_type ?? ""),
+    );
+    const decisionsPayload = {
+      open_decisions: (projRow.open_decisions as number | null) ?? 0,
+      pending: decisionReviews,
+    };
+    const decisionsHasData = decisionReviews.length > 0 || decisionsPayload.open_decisions > 0;
+
+    const modules: SpineModuleSection[] = [
+      buildDirect(
+        "hidden_assets",
+        "Hidden Assets",
+        "hidden_assets",
+        "hidden-assets",
+        linkFor("hidden-assets"),
+        projRow.hidden_assets,
+      ),
+      buildDirect("gaps", "Gap Map", "gap_map", "gap-map", linkFor("gap-map"), gapMap),
+      buildDirect(
+        "blueprint",
+        "System Blueprint",
+        "blueprint",
+        "blueprint",
+        linkFor("blueprint"),
+        blueprintVal,
+      ),
+      buildDirect(
+        "sequencing",
+        "Sequencing",
+        "sequencing",
+        "sequencing",
+        linkFor("sequencing"),
+        projRow.sequencing,
+      ),
+      buildDirect(
+        "deadlines",
+        "Deadlines",
+        "deadlines",
+        "deadlines",
+        linkFor("deadlines"),
+        projRow.deadlines,
+      ),
+      buildDirect(
+        "investment",
+        "Investment",
+        "investment",
+        "investment",
+        linkFor("investment"),
+        projRow.investment,
+      ),
+      buildDerived(
+        "constraints",
+        "Constraints",
+        "gap_map",
+        "gap-map",
+        linkFor("gap-map"),
+        pickPath(gapMap, ["constraints"]) ??
+          pickPath(projRow.point_a, ["constraints"]) ??
+          pickPath(blueprintVal, ["constraints"]),
+      ),
+      buildDerived(
+        "risks",
+        "Risks",
+        "gap_map",
+        "gap-map",
+        linkFor("gap-map"),
+        pickPath(gapMap, ["risks"]) ?? pickPath(projRow.point_a, ["risks"]),
+      ),
+      buildDerived(
+        "success_metrics",
+        "Success Metrics",
+        "point_b",
+        "point-b",
+        linkFor("point-b"),
+        pickPath(pointBVal, ["success_metrics", "metrics", "measures"]) ??
+          pickPath(roadmapVal, ["success_metrics"]),
+      ),
+      {
+        key: "decisions",
+        label: "Decisions",
+        source: "engine_projects.open_decisions + engine_review_items",
+        derived: true,
+        deep_link: linkFor("builder"),
+        data: decisionsPayload as unknown as import("@/lib/engine-workspace").Json,
+        readiness: {
+          has_data: decisionsHasData,
+          approved: false,
+          ready: false,
+          approval_state: null,
+        },
+      },
+    ];
+
     return {
       project: {
         id: projRow.id,
@@ -2030,8 +2259,10 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       activity,
       notifications,
       audit,
+      modules,
     };
   });
+
 
 // ─────────── Understanding Room ─────────────────────────────────
 export type UnderstandingState =
