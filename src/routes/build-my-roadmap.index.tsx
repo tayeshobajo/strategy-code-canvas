@@ -1480,10 +1480,8 @@ function QuestionPanel({
         </p>
         <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
       </div>
-      {/* Quiet phase line — replaces the old "0N of 09" counter. */}
-      <p className="mt-3 text-center font-display italic text-[13px] leading-[1.65] text-ink/50">
-        {phaseLine}
-      </p>
+
+
 
 
       <h2 className="mx-auto mt-6 max-w-[760px] text-center font-display text-[clamp(1.55rem,2.4vw,1.95rem)] leading-[1.3] tracking-[-0.015em] text-ink">
