@@ -65,7 +65,8 @@ export type MilestoneGateState =
   | "in_progress"
   | "blocked"
   | "not_started"
-  | "not_configured";
+  | "not_configured"
+  | "not_applicable";
 
 export type MilestoneGates = {
   criteria: MilestoneGateState;
@@ -86,6 +87,12 @@ export type MilestoneInput = {
   due_date?: string | null;
   acceptance_criteria?: unknown;
   dependencies?: unknown;
+  /**
+   * When explicitly false, the mockups gate is N/A unless mockup records
+   * exist. Undefined / true keeps the default behaviour (records drive it,
+   * absence → not_configured).
+   */
+  mockups_required?: boolean | null;
 };
 
 export type FrameLike = { status?: string | null; approved_at?: string | null };
