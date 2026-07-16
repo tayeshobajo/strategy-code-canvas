@@ -14,6 +14,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import {
+  Activity,
   AlertOctagon,
   AlertTriangle,
   ArrowRight,
@@ -22,7 +23,6 @@ import {
   Clock,
   DollarSign,
   ExternalLink,
-  Flame,
   History,
   Radio,
   ShieldAlert,
@@ -49,7 +49,6 @@ export const Route = createFileRoute("/engine/")({
 // ─── types ───────────────────────────────────────────────────────────────────
 
 type Severity = "critical" | "warning" | "info";
-
 type ChangeEntry = { id: string; title: string; at: string; kind: string };
 
 type Decision = {
@@ -58,19 +57,19 @@ type Decision = {
   projectId: string | null;
   projectName: string;
   clientCompany: string;
-  what: string;             // headline
-  why: string;              // why it matters
-  owner: string;            // who owns the next step
-  recommended: string;      // recommended action
-  href: string;             // CTA target
+  what: string;
+  why: string;
+  owner: string;
+  recommended: string;
+  href: string;
   severity: Severity;
-  createdAt: string;        // when the decision entered the queue
-  due?: string | null;      // explicit deadline if any
-  deadlineAt: string;       // effective SLA deadline (due ?? createdAt + SLA hours)
-  riskDrivers: string[];    // why this needs attention (bulleted context)
-  requiredFields: string[]; // what's needed to resolve
-  changes: ChangeEntry[];   // material changes since last check
-  rank: number;             // sort key (higher = more urgent)
+  createdAt: string;
+  due?: string | null;
+  deadlineAt: string;
+  riskDrivers: string[];
+  requiredFields: string[];
+  changes: ChangeEntry[];
+  rank: number;
 };
 
 const SLA_HOURS: Record<Decision["kind"], number> = {
@@ -81,6 +80,18 @@ const SLA_HOURS: Record<Decision["kind"], number> = {
   client_decision: 72,
   budget: 24,
 };
+
+// canonical journey stage order
+const JOURNEY_STAGES = [
+  "intake",
+  "understanding",
+  "spine approval",
+  "roadmap",
+  "mockups",
+  "build",
+  "qa",
+  "delivery",
+] as const;
 
 // ─── page ────────────────────────────────────────────────────────────────────
 
@@ -99,12 +110,6 @@ function CommandCenter() {
   const selected = decisions.find((d) => d.id === selectedId) ?? null;
 
   const attentionGroups = useMemo(() => buildAttentionGroups(data), [data]);
-  const attentionCount = attentionGroups.reduce((n, g) => n + g.rows.length, 0);
-
-  const criticalAlerts =
-    (data.agent_ops?.failures_24h ?? 0) +
-    (data.metrics.system_health === "red" ? 1 : 0) +
-    decisions.filter((d) => d.severity === "critical").length;
 
   const changesSinceLast = useMemo(() => {
     const cutoffMs = lastChecked ? new Date(lastChecked).getTime() : 0;
@@ -113,55 +118,54 @@ function CommandCenter() {
 
   return (
     <div className="-mx-4 -my-7 min-h-full bg-[#FBF9F4] text-[#0A0F1F] sm:-mx-6 sm:-my-8 lg:-mx-8 lg:-my-10">
-      <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <CommandStrip
+      <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <HeaderRow
           systemHealth={data.metrics.system_health}
-          criticalAlerts={criticalAlerts}
           topDecision={top}
           onOpenTop={() => top && setSelectedId(top.id)}
-          changesSinceLast={changesSinceLast}
           lastChecked={lastChecked}
+          changesSinceLast={changesSinceLast}
         />
 
-        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          {/* Main column */}
-          <div className="space-y-6">
-            <RequiresDecisionQueue decisions={decisions} now={now} onSelect={setSelectedId} />
-            <AttentionSection groups={attentionGroups} total={attentionCount} />
-          </div>
+        <InstrumentRow data={data} />
 
-          {/* Right rail */}
-          <SystemIntelligenceRail data={data} lastChecked={lastChecked} />
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <NeedsAttention
+            decisions={decisions}
+            groups={attentionGroups}
+            now={now}
+            onSelect={setSelectedId}
+          />
+          <CaptainBrief data={data} decisions={decisions} groups={attentionGroups} />
         </div>
 
-        <SupportingContext data={data} />
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <ProjectJourney data={data} />
+          <UpcomingDeliveries data={data} />
+        </div>
 
-        <DecisionDrawer
-          decision={selected}
-          now={now}
-          onClose={() => setSelectedId(null)}
-        />
+        <BottomTelemetry data={data} changesSinceLast={changesSinceLast} />
+
+        <DecisionDrawer decision={selected} now={now} onClose={() => setSelectedId(null)} />
       </div>
     </div>
   );
 }
 
-// ─── command strip ───────────────────────────────────────────────────────────
+// ─── header ──────────────────────────────────────────────────────────────────
 
-function CommandStrip({
+function HeaderRow({
   systemHealth,
-  criticalAlerts,
   topDecision,
   onOpenTop,
-  changesSinceLast,
   lastChecked,
+  changesSinceLast,
 }: {
   systemHealth: "green" | "amber" | "red";
-  criticalAlerts: number;
   topDecision: Decision | null;
   onOpenTop: () => void;
-  changesSinceLast: number;
   lastChecked: string | null;
+  changesSinceLast: number;
 }) {
   const now = new Date();
   const healthTone =
@@ -170,115 +174,829 @@ function CommandStrip({
       : systemHealth === "amber"
         ? "border-amber-300 bg-amber-50 text-amber-800"
         : "border-emerald-300 bg-emerald-50 text-emerald-700";
-  const healthLabel = systemHealth === "green" ? "Nominal" : systemHealth === "amber" ? "Elevated" : "Critical";
+  const healthLabel =
+    systemHealth === "green" ? "System nominal" : systemHealth === "amber" ? "System elevated" : "System critical";
 
   return (
-    <header className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.28em] text-[#8A94A6]">
-            <Radio className="h-3 w-3 text-emerald-600" /> Today’s Command Center
-          </div>
-          <h1 className="mt-1 font-display text-2xl leading-tight text-[#0A0F1F] sm:text-[28px]">
-            {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-            <span className="ml-2 text-[#98A2B3]">
-              · {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-            </span>
-          </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5", healthTone)}>
-              <span className="h-1.5 w-1.5 rounded-full bg-current" /> System {healthLabel}
-            </span>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5",
-                criticalAlerts > 0
-                  ? "border-rose-300 bg-rose-50 text-rose-700"
-                  : "border-[#E8E1D6] bg-[#F5F1E8] text-[#667085]",
-              )}
-            >
-              <AlertOctagon className="h-3 w-3" /> {criticalAlerts} critical alert{criticalAlerts === 1 ? "" : "s"}
-            </span>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5",
-                changesSinceLast > 0
-                  ? "border-sky-300 bg-sky-50 text-sky-800"
-                  : "border-[#E8E1D6] bg-[#F5F1E8] text-[#667085]",
-              )}
-              title={lastChecked ? `Since ${new Date(lastChecked).toLocaleString()}` : "First visit — no baseline yet."}
-            >
+    <header className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+      <div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#8A94A6]">
+          Command center
+        </div>
+        <h1 className="mt-1 font-display text-3xl leading-tight text-[#0A0F1F] sm:text-[36px]">
+          Command Center
+        </h1>
+        <div className="mt-1 text-sm text-[#667085]">
+          {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          <span className="mx-1.5 text-[#C8CFD9]">·</span>
+          {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+          <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5", healthTone)}>
+            <span className="h-1.5 w-1.5 rounded-full bg-current" /> {healthLabel}
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E1D6] bg-[#F5F1E8] px-2 py-0.5 text-[#667085]">
+            <Radio className="h-3 w-3" />
+            Last sync {lastChecked ? new Date(lastChecked).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "now"}
+          </span>
+          {changesSinceLast > 0 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-sky-800">
               <History className="h-3 w-3" />
               {changesSinceLast} change{changesSinceLast === 1 ? "" : "s"} since last check
             </span>
-          </div>
+          )}
         </div>
-
-        {topDecision ? (
-          <button
-            type="button"
-            onClick={onOpenTop}
-            className="group inline-flex max-w-full items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-left text-amber-900 transition hover:bg-amber-100"
-          >
-            <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-widest text-amber-700/80">
-                Review highest-priority decision
-              </div>
-              <div className="mt-0.5 truncate text-sm font-medium">{topDecision.what}</div>
-            </div>
-            <ArrowRight className="h-4 w-4 shrink-0 transition group-hover:translate-x-0.5" />
-          </button>
-        ) : (
-          <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-emerald-700">
-            <CheckCircle2 className="h-4 w-4" />
-            <span className="text-sm">No decisions waiting. All clear.</span>
-          </div>
-        )}
+        <p className="mt-3 max-w-xl text-sm text-[#667085]">
+          Your operating cockpit. Live truth. Intelligent focus. Next best move.
+        </p>
       </div>
+
+      <HighestLeverageCard decision={topDecision} onOpen={onOpenTop} />
     </header>
   );
 }
 
-// ─── requires decision queue ─────────────────────────────────────────────────
+function HighestLeverageCard({ decision, onOpen }: { decision: Decision | null; onOpen: () => void }) {
+  if (!decision) {
+    return (
+      <div className="flex flex-col justify-between rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
+        <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-emerald-700">
+          Highest-leverage action
+        </div>
+        <div className="mt-3 flex items-center gap-2 text-emerald-800">
+          <CheckCircle2 className="h-5 w-5" />
+          <span className="text-sm">No decisions waiting. All clear.</span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col justify-between rounded-2xl border border-[#0A0F1F]/10 bg-[#0A0F1F] p-5 text-white shadow-md">
+      <div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-white/60">
+          Highest-leverage action
+        </div>
+        <div className="mt-2 text-base font-medium leading-snug">{decision.what}</div>
+        <div className="mt-1 text-xs text-white/70">
+          <span className="text-white/50">Why: </span>
+          {decision.why}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5 text-[10px]">
+          <MetaChip label="Impact" value={decision.severity === "critical" ? "High" : decision.severity === "warning" ? "Medium" : "Review"} />
+          <MetaChip label="Blocks" value={kindLabel(decision.kind)} />
+          <MetaChip label="Owner" value={decision.owner} />
+          <MetaChip label="Due" value={decision.due ? formatDate(decision.due) : new Date(decision.deadlineAt).toLocaleDateString()} />
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-[#0A0F1F] transition hover:bg-[#F5F1E8]"
+      >
+        Review and decide <ArrowRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
 
-function RequiresDecisionQueue({
+function MetaChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded border border-white/15 bg-white/5 px-1.5 py-0.5 uppercase tracking-widest text-white/70">
+      <span className="text-white/50">{label}</span>
+      <span className="text-white">{value}</span>
+    </span>
+  );
+}
+
+// ─── instrument row ─────────────────────────────────────────────────────────
+
+type Slice = { label: string; value: number; color: string };
+
+function InstrumentRow({ data }: { data: CommandCenterPayload }) {
+  const hb = data.health_breakdown;
+  const portfolioSlices: Slice[] = [
+    { label: "On track", value: hb.on_track, color: "#10b981" },
+    { label: "Needs attention", value: hb.needs_attention, color: "#f59e0b" },
+    { label: "At risk", value: hb.at_risk, color: "#f43f5e" },
+    { label: "Blocked", value: hb.blocked, color: "#7f1d1d" },
+  ];
+
+  const stageCount = (name: string) =>
+    data.stage_breakdown.find((s) => s.stage.toLowerCase() === name)?.count ?? 0;
+
+  const spineSlices: Slice[] = [
+    { label: "Intake", value: stageCount("intake"), color: "#94a3b8" },
+    { label: "Understanding", value: stageCount("understanding"), color: "#38bdf8" },
+    { label: "Spine approval", value: stageCount("spine approval"), color: "#6366f1" },
+    { label: "Roadmap", value: stageCount("roadmap"), color: "#10b981" },
+  ];
+
+  const deliverySlices: Slice[] = [
+    { label: "Mockups", value: stageCount("mockups"), color: "#a78bfa" },
+    { label: "Build", value: stageCount("build"), color: "#38bdf8" },
+    { label: "QA", value: stageCount("qa"), color: "#f59e0b" },
+    { label: "Delivery", value: stageCount("delivery"), color: "#10b981" },
+  ];
+
+  const cac = data.client_action_counts;
+  const budget = data.metrics.agent_budget_cents;
+  const spend = data.metrics.agent_spend_cents;
+  const budgetPct = budget > 0 ? Math.round((spend / budget) * 100) : 0;
+  const budgetTone = budgetPct > 90 ? "critical" : budgetPct > 70 ? "warning" : "info";
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <InstrumentCard
+        eyebrow="Portfolio health"
+        primary={<Donut slices={portfolioSlices} centerLabel={String(data.metrics.active_projects)} centerHint="active" />}
+        footer={
+          <Legend slices={portfolioSlices} />
+        }
+        link={{ to: "/engine/projects", label: "View portfolio" }}
+      />
+      <InstrumentCard
+        eyebrow="Spine readiness"
+        note="Stage distribution before delivery."
+        primary={<Donut slices={spineSlices} centerLabel={String(spineSlices.reduce((n, s) => n + s.value, 0))} centerHint="projects" />}
+        footer={<Legend slices={spineSlices} />}
+        link={{ to: "/engine/projects", label: "View spines" }}
+      />
+      <InstrumentCard
+        eyebrow="Delivery readiness"
+        note="Stage distribution in delivery."
+        primary={<Donut slices={deliverySlices} centerLabel={String(deliverySlices.reduce((n, s) => n + s.value, 0))} centerHint="projects" />}
+        footer={<Legend slices={deliverySlices} />}
+        link={{ to: "/engine/projects", label: "View pipeline" }}
+      />
+      <InstrumentCard
+        eyebrow="Client momentum"
+        note="This week."
+        primary={
+          <div className="grid grid-cols-3 gap-2 py-4 text-center">
+            <BigStat label="Decisions" value={cac.decisions_needed} />
+            <BigStat label="Info req." value={cac.info_requests} />
+            <BigStat label="Feedback" value={cac.feedback_pending} />
+          </div>
+        }
+        link={{ to: "/engine/projects", label: "View clients" }}
+      />
+      <InstrumentCard
+        eyebrow="Value and cost exposure"
+        primary={
+          <div className="py-2">
+            <div className="text-2xl font-semibold text-[#0A0F1F]">
+              {formatCents(spend)}
+              <span className="ml-1 text-sm font-normal text-[#98A2B3]">of {formatCents(budget)}</span>
+            </div>
+            <div className="mt-2 h-1.5 rounded bg-[#F5F1E8]">
+              <div
+                className={cn(
+                  "h-full rounded",
+                  budgetTone === "critical" ? "bg-rose-500" : budgetTone === "warning" ? "bg-amber-500" : "bg-[#98A2B3]",
+                )}
+                style={{ width: `${Math.min(100, budgetPct)}%` }}
+              />
+            </div>
+            <div className="mt-2 text-xs text-[#667085]">
+              {budgetPct}% of monthly agent spend consumed.
+            </div>
+          </div>
+        }
+        link={{ to: "/engine/operations", label: "View spend" }}
+      />
+    </div>
+  );
+}
+
+function InstrumentCard({
+  eyebrow,
+  note,
+  primary,
+  footer,
+  link,
+}: {
+  eyebrow: string;
+  note?: string;
+  primary: ReactNode;
+  footer?: ReactNode;
+  link: { to: string; label: string };
+}) {
+  return (
+    <div className="flex flex-col rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
+      <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#8A94A6]">{eyebrow}</div>
+      {note && <div className="mt-1 text-[11px] text-[#98A2B3]">{note}</div>}
+      <div className="flex-1">{primary}</div>
+      {footer && <div className="mt-2">{footer}</div>}
+      <Link
+        to={link.to}
+        className="mt-3 inline-flex items-center gap-1 text-[11px] uppercase tracking-widest text-[#8A94A6] hover:text-[#0A0F1F]"
+      >
+        {link.label} <ArrowUpRight className="h-3 w-3" />
+      </Link>
+    </div>
+  );
+}
+
+function BigStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="text-xl font-semibold text-[#0A0F1F]">{value}</div>
+      <div className="text-[10px] uppercase tracking-widest text-[#8A94A6]">{label}</div>
+    </div>
+  );
+}
+
+// ─── donut ──────────────────────────────────────────────────────────────────
+
+function Donut({ slices, centerLabel, centerHint }: { slices: Slice[]; centerLabel: string; centerHint?: string }) {
+  const total = slices.reduce((n, s) => n + s.value, 0);
+  const size = 112;
+  const stroke = 14;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <div className="flex items-center justify-center py-2">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#EFE9DC" strokeWidth={stroke} />
+          {total > 0 &&
+            slices.map((s, i) => {
+              if (s.value === 0) return null;
+              const len = (s.value / total) * c;
+              const el = (
+                <circle
+                  key={i}
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={r}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={stroke}
+                  strokeDasharray={`${len} ${c - len}`}
+                  strokeDashoffset={-offset}
+                  strokeLinecap="butt"
+                />
+              );
+              offset += len;
+              return el;
+            })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className="font-display text-xl text-[#0A0F1F]">{centerLabel}</div>
+          {centerHint && (
+            <div className="font-mono text-[9px] uppercase tracking-widest text-[#98A2B3]">{centerHint}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Legend({ slices }: { slices: Slice[] }) {
+  return (
+    <ul className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
+      {slices.map((s) => (
+        <li key={s.label} className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
+          <span className="truncate text-[#667085]">{s.label}</span>
+          <span className="ml-auto text-[#0A0F1F]">{s.value}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ─── needs your attention ───────────────────────────────────────────────────
+
+type AttentionTab = "decisions" | "risk" | "readiness" | "aging";
+
+function NeedsAttention({
   decisions,
+  groups,
   now,
   onSelect,
 }: {
   decisions: Decision[];
+  groups: AttentionGroup[];
   now: number;
   onSelect: (id: string) => void;
 }) {
+  const [tab, setTab] = useState<AttentionTab>("decisions");
+  const risk = groups.filter((g) => g.key === "blocked" || g.key === "at_risk" || g.key === "needs_review");
+  const readiness = groups.filter((g) => g.tone === "critical");
+  const overdue = decisions.filter((d) => new Date(d.deadlineAt).getTime() < now);
+
+  const counts = {
+    decisions: decisions.length,
+    risk: risk.reduce((n, g) => n + g.rows.length, 0),
+    readiness: readiness.reduce((n, g) => n + g.rows.length, 0),
+    aging: overdue.length,
+  };
+
   return (
     <section className="rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
-      <SectionHeader
-        icon={<Target className="h-4 w-4" />}
-        title="Requires decision"
-        subtitle={`${decisions.length} open`}
-        right={
+      <div className="flex items-center justify-between gap-3 border-b border-[#EFE9DC] px-5 py-3">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="h-4 w-4 text-[#667085]" />
+          <h2 className="text-sm font-semibold text-[#0A0F1F]">Needs your attention</h2>
+        </div>
+        <Link to="/engine/approvals" className="text-[11px] uppercase tracking-widest text-[#8A94A6] hover:text-[#0A0F1F]">
+          Open queue →
+        </Link>
+      </div>
+      <div className="flex flex-wrap gap-1 border-b border-[#EFE9DC] px-3 py-2">
+        <TabButton active={tab === "decisions"} onClick={() => setTab("decisions")} label="Decisions" count={counts.decisions} />
+        <TabButton active={tab === "risk"} onClick={() => setTab("risk")} label="Projects at risk" count={counts.risk} />
+        <TabButton active={tab === "readiness"} onClick={() => setTab("readiness")} label="Readiness blockers" count={counts.readiness} />
+        <TabButton active={tab === "aging"} onClick={() => setTab("aging")} label="Overdue and aging" count={counts.aging} />
+      </div>
+
+      {tab === "decisions" &&
+        (decisions.length === 0 ? (
+          <EmptyState icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}>
+            Nothing awaiting a decision. Healthy silence.
+          </EmptyState>
+        ) : (
+          <ul className="divide-y divide-[#EFE9DC]">
+            {decisions.slice(0, 8).map((d) => (
+              <DecisionRow key={d.id} d={d} now={now} onSelect={onSelect} />
+            ))}
+          </ul>
+        ))}
+
+      {tab === "risk" && <AttentionGroupsList groups={risk} />}
+      {tab === "readiness" && <AttentionGroupsList groups={readiness} />}
+      {tab === "aging" &&
+        (overdue.length === 0 ? (
+          <EmptyState icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}>
+            Nothing overdue. Countdown is quiet.
+          </EmptyState>
+        ) : (
+          <ul className="divide-y divide-[#EFE9DC]">
+            {overdue.slice(0, 8).map((d) => (
+              <DecisionRow key={d.id} d={d} now={now} onSelect={onSelect} />
+            ))}
+          </ul>
+        ))}
+    </section>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition",
+        active ? "bg-[#0A0F1F] text-white" : "text-[#667085] hover:bg-[#F5F1E8] hover:text-[#0A0F1F]",
+      )}
+    >
+      {label}
+      <span
+        className={cn(
+          "inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px]",
+          active ? "bg-white/15 text-white" : "bg-[#F5F1E8] text-[#667085]",
+        )}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function AttentionGroupsList({ groups }: { groups: AttentionGroup[] }) {
+  const total = groups.reduce((n, g) => n + g.rows.length, 0);
+  if (total === 0) {
+    return (
+      <EmptyState icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}>
+        No exceptions in this view.
+      </EmptyState>
+    );
+  }
+  return (
+    <div className="divide-y divide-[#EFE9DC]">
+      {groups.map((g) => (
+        <div key={g.key} className="px-5 py-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-widest",
+                g.tone === "critical"
+                  ? "border-rose-300 bg-rose-50 text-rose-700"
+                  : g.tone === "warning"
+                    ? "border-amber-300 bg-amber-50 text-amber-800"
+                    : "border-[#E8E1D6] bg-[#F5F1E8] text-[#334155]",
+              )}
+            >
+              {g.label}
+            </span>
+            <span className="text-[11px] text-[#98A2B3]">{g.rows.length}</span>
+          </div>
+          <ul className="space-y-1.5">
+            {g.rows.slice(0, 5).map((r) => (
+              <li
+                key={r.id}
+                className="grid grid-cols-1 items-center gap-2 rounded-lg border border-[#EFE9DC] bg-[#FBF9F4] px-3 py-2 md:grid-cols-[minmax(0,1fr)_auto]"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-2 truncate">
+                    <span className="truncate text-sm text-[#0A0F1F]">{r.name}</span>
+                    <span className="truncate text-xs text-[#98A2B3]">· {r.client_company}</span>
+                  </div>
+                  <div className="mt-0.5 truncate text-xs text-[#667085]">{g.reason(r)}</div>
+                </div>
+                <Link
+                  to="/engine/projects/$projectId/overview"
+                  params={{ projectId: r.id }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-[#EFE9DC] bg-[#F5F1E8] px-2.5 py-1 text-[11px] text-[#0A0F1F] hover:bg-[#EFE9DC]"
+                >
+                  Review <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── captain brief ──────────────────────────────────────────────────────────
+
+function CaptainBrief({
+  data,
+  decisions,
+  groups,
+}: {
+  data: CommandCenterPayload;
+  decisions: Decision[];
+  groups: AttentionGroup[];
+}) {
+  const top = decisions[0] ?? null;
+  const riskCount = groups
+    .filter((g) => g.key === "blocked" || g.key === "at_risk")
+    .reduce((n, g) => n + g.rows.length, 0);
+  const approvalCount = data.approval_breakdown?.total ?? 0;
+  const clientPending = data.client_action_counts.decisions_needed;
+  const nba = data.next_best_actions_v2?.[0] ?? data.next_best_actions?.[0] ?? null;
+
+  const bullets: string[] = [];
+  if (top) {
+    bullets.push(
+      `Top decision is "${top.what}". Resolving it unblocks ${kindLabel(top.kind).toLowerCase()} work on ${top.projectName}.`,
+    );
+  }
+  if (riskCount > 0) {
+    const firstRisk = groups.find((g) => g.key === "blocked" || g.key === "at_risk")?.rows[0];
+    bullets.push(
+      `${riskCount} project${riskCount === 1 ? "" : "s"} at risk${firstRisk ? `, starting with ${firstRisk.name}` : ""}.`,
+    );
+  }
+  if (approvalCount > 0) {
+    bullets.push(`${approvalCount} artifact${approvalCount === 1 ? "" : "s"} sitting in review awaiting sign-off.`);
+  }
+  if (clientPending > 0) {
+    bullets.push(`${clientPending} decision${clientPending === 1 ? "" : "s"} waiting on clients this week.`);
+  }
+  if (bullets.length === 0) {
+    bullets.push("All queues are quiet. No open decisions, no risk signals, no client blockers right now.");
+  }
+
+  const posture =
+    approvalCount >= Math.max(riskCount, 1)
+      ? "approvals dominate, clear the queue before starting new work"
+      : riskCount > 0
+        ? "risk dominates, unblock at-risk projects first"
+        : "all clear, invest in the next best action";
+
+  return (
+    <section className="flex h-full flex-col rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+      <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#8A94A6]">Captain brief</div>
+      <div className="mt-1 font-display text-lg text-[#0A0F1F]">Here is what matters most right now.</div>
+      <ul className="mt-3 space-y-2 text-sm text-[#334155]">
+        {bullets.slice(0, 4).map((b, i) => (
+          <li key={i} className="flex gap-2">
+            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#98A2B3]" />
+            <span>{b}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 rounded-xl border border-[#EFE9DC] bg-[#FBF9F4] p-3 text-sm text-[#0A0F1F]">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[#8A94A6]">Recommended posture: </span>
+        {posture}.
+      </div>
+      {nba && (
+        <div className="mt-3">
+          <div className="text-xs text-[#667085]">{nba.action}</div>
           <Link
-            to="/engine/approvals"
-            className="text-[11px] uppercase tracking-widest text-[#8A94A6] hover:text-[#0A0F1F]"
+            to="/engine/projects/$projectId/overview"
+            params={{ projectId: nba.project_id }}
+            className="mt-1 inline-flex items-center gap-1.5 text-xs text-sky-700 hover:text-sky-800"
           >
-            Open queue →
+            Open next best action <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
-        }
-      />
-      {decisions.length === 0 ? (
-        <EmptyState icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}>
-          Nothing awaiting a decision. Healthy silence.
-        </EmptyState>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ─── project journey strip ──────────────────────────────────────────────────
+
+function ProjectJourney({ data }: { data: CommandCenterPayload }) {
+  const byStage = new Map<string, { count: number; projects: { id: string; name: string }[] }>();
+  for (const s of data.stage_breakdown ?? []) {
+    byStage.set(s.stage.toLowerCase(), {
+      count: s.count,
+      projects: (s.projects ?? []).map((p) => ({ id: p.id, name: p.name })),
+    });
+  }
+  return (
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#8A94A6]">Project journey</div>
+          <div className="mt-1 font-display text-lg text-[#0A0F1F]">Pipeline by stage</div>
+        </div>
+        <Link to="/engine/projects" className="text-[11px] uppercase tracking-widest text-[#8A94A6] hover:text-[#0A0F1F]">
+          View pipeline →
+        </Link>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+        {JOURNEY_STAGES.map((stage) => {
+          const s = byStage.get(stage);
+          const muted = !s || s.count === 0;
+          return (
+            <div
+              key={stage}
+              className={cn(
+                "rounded-xl border p-3 text-xs",
+                muted ? "border-[#EFE9DC] bg-[#FBF9F4] text-[#98A2B3]" : "border-[#E8E1D6] bg-white text-[#334155]",
+              )}
+            >
+              <div className="font-mono text-[9px] uppercase tracking-widest">{stage}</div>
+              <div className={cn("mt-1 font-display text-2xl", muted ? "text-[#C8CFD9]" : "text-[#0A0F1F]")}>
+                {s?.count ?? 0}
+              </div>
+              <ul className="mt-2 space-y-0.5">
+                {(s?.projects ?? []).slice(0, 3).map((p) => (
+                  <li key={p.id} className="truncate">
+                    <Link
+                      to="/engine/projects/$projectId/overview"
+                      params={{ projectId: p.id }}
+                      className="hover:text-[#0A0F1F]"
+                    >
+                      {p.name}
+                    </Link>
+                  </li>
+                ))}
+                {s && s.projects.length > 3 && (
+                  <li className="text-[#98A2B3]">+{s.projects.length - 3} more</li>
+                )}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ─── upcoming deliveries ────────────────────────────────────────────────────
+
+function UpcomingDeliveries({ data }: { data: CommandCenterPayload }) {
+  const statusById = new Map<string, EngineProjectRow>();
+  for (const p of data.active_projects ?? []) statusById.set(p.id, p);
+  return (
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-2">
+        <Clock className="h-4 w-4 text-amber-700" />
+        <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#8A94A6]">Upcoming deliveries</div>
+      </div>
+      {data.upcoming_deadlines.length === 0 ? (
+        <div className="mt-3 text-sm text-[#8A94A6]">No upcoming deliveries in the current window.</div>
       ) : (
-        <ul className="divide-y divide-[#EFE9DC]">
-          {decisions.slice(0, 8).map((d) => (
-            <DecisionRow key={d.id} d={d} now={now} onSelect={onSelect} />
-          ))}
+        <ul className="mt-3 space-y-3">
+          {data.upcoming_deadlines.slice(0, 6).map((d) => {
+            const proj = statusById.get(d.project_id);
+            const tone: Severity =
+              proj?.status === "blocked"
+                ? "critical"
+                : proj?.status === "needs_review"
+                  ? "warning"
+                  : "info";
+            const cls =
+              tone === "critical"
+                ? "border-rose-300 bg-rose-50 text-rose-700"
+                : tone === "warning"
+                  ? "border-amber-300 bg-amber-50 text-amber-800"
+                  : "border-emerald-300 bg-emerald-50 text-emerald-700";
+            const label = tone === "critical" ? "At risk" : tone === "warning" ? "Watch" : "On track";
+            return (
+              <li key={`${d.project_id}-${d.label}`} className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm text-[#0A0F1F]">{d.label}</div>
+                  <div className="truncate text-xs text-[#8A94A6]">
+                    {d.project_name} · due {formatDate(d.due_on)}
+                  </div>
+                </div>
+                <span className={cn("inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest", cls)}>
+                  {label}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
   );
 }
+
+// ─── bottom telemetry ───────────────────────────────────────────────────────
+
+function BottomTelemetry({ data, changesSinceLast }: { data: CommandCenterPayload; changesSinceLast: number }) {
+  const cac = data.client_action_counts;
+  const ops = data.agent_ops;
+  const spend = data.metrics.agent_spend_cents;
+  const budget = data.metrics.agent_budget_cents;
+  const budgetPct = budget > 0 ? Math.round((spend / budget) * 100) : 0;
+  const healthLabel =
+    data.metrics.system_health === "green" ? "Nominal" : data.metrics.system_health === "amber" ? "Elevated" : "Critical";
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <TelemetryCard
+        icon={<Users className="h-3.5 w-3.5" />}
+        eyebrow="Client actions"
+        rows={[
+          { label: "Decisions", value: cac.decisions_needed },
+          { label: "Info req.", value: cac.info_requests },
+          { label: "Feedback", value: cac.feedback_pending },
+        ]}
+        link={{ to: "/engine/projects", label: "View clients" }}
+      />
+      <TelemetryCard
+        icon={<Activity className="h-3.5 w-3.5" />}
+        eyebrow="Agent operations"
+        rows={[
+          { label: "Active", value: ops?.runs_in_progress ?? 0 },
+          { label: "Waiting", value: ops?.needs_attention ?? 0 },
+          { label: "Failed 24h", value: ops?.failures_24h ?? 0 },
+        ]}
+        link={{ to: "/engine/operations", label: "View operations" }}
+      />
+      <TelemetryCard
+        icon={<DollarSign className="h-3.5 w-3.5" />}
+        eyebrow="Cost and efficiency"
+        rows={[
+          { label: "Spend", value: formatCents(spend) },
+          { label: "Budget", value: formatCents(budget) },
+          { label: "% used", value: `${budgetPct}%` },
+        ]}
+        link={{ to: "/engine/operations", label: "View spend" }}
+      />
+      <TelemetryCard
+        icon={<Zap className="h-3.5 w-3.5" />}
+        eyebrow="Change intelligence"
+        rows={[
+          { label: "Since last check", value: changesSinceLast },
+          { label: "Recent items", value: data.recent_activity?.length ?? 0 },
+        ]}
+        link={{ to: "/engine/projects", label: "View activity" }}
+      />
+      <TelemetryCard
+        icon={<ShieldAlert className="h-3.5 w-3.5" />}
+        eyebrow="System integrity"
+        rows={[
+          { label: "Health", value: healthLabel },
+          { label: "Active projects", value: data.metrics.active_projects },
+        ]}
+        link={{ to: "/admin/command-center", label: "View integrity" }}
+      />
+    </div>
+  );
+}
+
+function TelemetryCard({
+  icon,
+  eyebrow,
+  rows,
+  link,
+}: {
+  icon: ReactNode;
+  eyebrow: string;
+  rows: Array<{ label: string; value: number | string }>;
+  link: { to: string; label: string };
+}) {
+  return (
+    <div className="flex flex-col rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.24em] text-[#8A94A6]">
+        {icon}
+        {eyebrow}
+      </div>
+      <div className="mt-3 space-y-1.5">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-baseline justify-between gap-2">
+            <span className="text-[11px] uppercase tracking-widest text-[#98A2B3]">{r.label}</span>
+            <span className="font-display text-base text-[#0A0F1F]">{r.value}</span>
+          </div>
+        ))}
+      </div>
+      <Link
+        to={link.to}
+        className="mt-3 inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-[#8A94A6] hover:text-[#0A0F1F]"
+      >
+        {link.label} <ArrowUpRight className="h-3 w-3" />
+      </Link>
+    </div>
+  );
+}
+
+// ─── projects needing attention (data build) ───────────────────────────────
+
+type AttentionGroup = {
+  key: string;
+  label: string;
+  tone: "critical" | "warning" | "info";
+  reason: (r: EngineProjectRow) => string;
+  rows: EngineProjectRow[];
+};
+
+function buildAttentionGroups(data: CommandCenterPayload): AttentionGroup[] {
+  const rows = data.active_projects ?? [];
+  const overBudget = rows.filter(
+    (r) => r.agent_budget_monthly_cents > 0 && r.agent_spend_month_cents / r.agent_budget_monthly_cents > 0.85,
+  );
+  const waitingClient = rows.filter((r) => r.open_decisions > 0);
+
+  const groups: AttentionGroup[] = [
+    {
+      key: "blocked",
+      label: "Blocked",
+      tone: "critical",
+      reason: (r) => r.next_action ?? "Blocked. Unblock or reassign.",
+      rows: rows.filter((r) => r.status === "blocked"),
+    },
+    {
+      key: "at_risk",
+      label: "At risk",
+      tone: "warning",
+      reason: (r) => r.next_action ?? "Signals of slippage detected.",
+      rows: rows.filter((r) => r.status === "needs_review" && (r.open_decisions > 0 || r.next_critical_date)),
+    },
+    {
+      key: "needs_review",
+      label: "Needs review",
+      tone: "warning",
+      reason: (r) => r.next_action ?? "Draft awaiting operator review.",
+      rows: rows.filter((r) => r.status === "needs_review"),
+    },
+    {
+      key: "waiting_client",
+      label: "Waiting on client",
+      tone: "info",
+      reason: (r) => `${r.open_decisions} open decision${r.open_decisions === 1 ? "" : "s"} on client side.`,
+      rows: waitingClient,
+    },
+    {
+      key: "over_budget",
+      label: "Over budget",
+      tone: "warning",
+      reason: (r) => `Spend ${formatCents(r.agent_spend_month_cents)} of ${formatCents(r.agent_budget_monthly_cents)}.`,
+      rows: overBudget,
+    },
+  ];
+
+  const seen = new Set<string>();
+  return groups
+    .map((g) => ({
+      ...g,
+      rows: g.rows.filter((r) => {
+        const k = `${g.key}:${r.id}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        const anyKey = `p:${r.id}`;
+        if (seen.has(anyKey)) return false;
+        seen.add(anyKey);
+        return true;
+      }),
+    }))
+    .filter((g) => g.rows.length > 0);
+}
+
+// ─── decision row ───────────────────────────────────────────────────────────
 
 function SlaBadge({ deadlineAt, now }: { deadlineAt: string; now: number }) {
   const { label, tone, overdue } = formatCountdown(deadlineAt, now);
@@ -350,7 +1068,7 @@ function DecisionRow({ d, now, onSelect }: { d: Decision; now: number; onSelect:
         </div>
         <div className="flex items-center gap-2 md:pt-1">
           <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E8E1D6] bg-[#F5F1E8] px-3 py-1.5 text-xs font-medium text-[#0A0F1F]">
-            Open details <ArrowUpRight className="h-3.5 w-3.5" />
+            Review <ArrowUpRight className="h-3.5 w-3.5" />
           </span>
         </div>
       </button>
@@ -358,340 +1076,7 @@ function DecisionRow({ d, now, onSelect }: { d: Decision; now: number; onSelect:
   );
 }
 
-// ─── projects needing attention ──────────────────────────────────────────────
-
-type AttentionGroup = {
-  key: string;
-  label: string;
-  tone: "critical" | "warning" | "info";
-  reason: (r: EngineProjectRow) => string;
-  rows: EngineProjectRow[];
-};
-
-function buildAttentionGroups(data: CommandCenterPayload): AttentionGroup[] {
-  const rows = data.active_projects ?? [];
-  const overBudget = rows.filter(
-    (r) => r.agent_budget_monthly_cents > 0 && r.agent_spend_month_cents / r.agent_budget_monthly_cents > 0.85,
-  );
-  const waitingClient = rows.filter((r) => r.open_decisions > 0);
-
-  const groups: AttentionGroup[] = [
-    {
-      key: "blocked",
-      label: "Blocked",
-      tone: "critical",
-      reason: (r) => r.next_action ?? "Blocked — unblock or reassign.",
-      rows: rows.filter((r) => r.status === "blocked"),
-    },
-    {
-      key: "at_risk",
-      label: "At risk",
-      tone: "warning",
-      reason: (r) => r.next_action ?? "Signals of slippage detected.",
-      rows: rows.filter((r) => r.status === "needs_review" && (r.open_decisions > 0 || r.next_critical_date)),
-    },
-    {
-      key: "needs_review",
-      label: "Needs review",
-      tone: "warning",
-      reason: (r) => r.next_action ?? "Draft awaiting operator review.",
-      rows: rows.filter((r) => r.status === "needs_review"),
-    },
-    {
-      key: "waiting_client",
-      label: "Waiting on client",
-      tone: "info",
-      reason: (r) => `${r.open_decisions} open decision${r.open_decisions === 1 ? "" : "s"} on client side.`,
-      rows: waitingClient,
-    },
-    {
-      key: "over_budget",
-      label: "Over budget",
-      tone: "warning",
-      reason: (r) => `Spend ${formatCents(r.agent_spend_month_cents)} of ${formatCents(r.agent_budget_monthly_cents)}.`,
-      rows: overBudget,
-    },
-  ];
-
-  // dedupe blocked from needs_review; needs_review keeps only those not already in at_risk
-  const seen = new Set<string>();
-  return groups
-    .map((g) => ({
-      ...g,
-      rows: g.rows.filter((r) => {
-        const k = `${g.key}:${r.id}`;
-        if (seen.has(k)) return false;
-        seen.add(k);
-        // avoid duplicate same project in later groups
-        const anyKey = `p:${r.id}`;
-        if (seen.has(anyKey)) return false;
-        seen.add(anyKey);
-        return true;
-      }),
-    }))
-    .filter((g) => g.rows.length > 0);
-}
-
-function AttentionSection({ groups, total }: { groups: AttentionGroup[]; total: number }) {
-  return (
-    <section className="rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
-      <SectionHeader
-        icon={<ShieldAlert className="h-4 w-4" />}
-        title="Projects needing attention"
-        subtitle={`${total} exception${total === 1 ? "" : "s"}`}
-        right={
-          <Link to="/engine/projects" className="text-[11px] uppercase tracking-widest text-[#8A94A6] hover:text-[#0A0F1F]">
-            All projects →
-          </Link>
-        }
-      />
-      {total === 0 ? (
-        <EmptyState icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}>
-          No exceptions. Every project is healthy.
-        </EmptyState>
-      ) : (
-        <div className="divide-y divide-[#EFE9DC]">
-          {groups.map((g) => (
-            <div key={g.key} className="px-5 py-4">
-              <div className="mb-2 flex items-center gap-2">
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-widest",
-                    g.tone === "critical"
-                      ? "border-rose-300 bg-rose-50 text-rose-700"
-                      : g.tone === "warning"
-                        ? "border-amber-300 bg-amber-50 text-amber-800"
-                        : "border-[#E8E1D6] bg-[#F5F1E8] text-[#334155]",
-                  )}
-                >
-                  {g.label}
-                </span>
-                <span className="text-[11px] text-[#98A2B3]">{g.rows.length}</span>
-              </div>
-              <ul className="space-y-1.5">
-                {g.rows.slice(0, 5).map((r) => (
-                  <li
-                    key={r.id}
-                    className="grid grid-cols-1 items-center gap-2 rounded-lg border border-[#EFE9DC] bg-[#FBF9F4] px-3 py-2 md:grid-cols-[minmax(0,1fr)_auto]"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-baseline gap-2 truncate">
-                        <span className="truncate text-sm text-[#0A0F1F]">{r.name}</span>
-                        <span className="truncate text-xs text-[#98A2B3]">· {r.client_company}</span>
-                      </div>
-                      <div className="mt-0.5 truncate text-xs text-[#667085]">{g.reason(r)}</div>
-                    </div>
-                    <Link
-                      to="/engine/projects/$projectId/overview"
-                      params={{ projectId: r.id }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#EFE9DC] bg-[#F5F1E8] px-2.5 py-1 text-[11px] text-[#0A0F1F] hover:bg-[#EFE9DC]"
-                    >
-                      Review <ArrowUpRight className="h-3 w-3" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ─── system intelligence rail ────────────────────────────────────────────────
-
-function SystemIntelligenceRail({ data, lastChecked }: { data: CommandCenterPayload; lastChecked: string | null }) {
-  const nba = data.next_best_actions_v2?.[0] ?? data.next_best_actions?.[0] ?? null;
-  const budgetRatio = data.metrics.agent_budget_cents
-    ? data.metrics.agent_spend_cents / data.metrics.agent_budget_cents
-    : 0;
-  const budgetTone =
-    budgetRatio > 0.9 ? "critical" : budgetRatio > 0.7 ? "warning" : "info";
-  const cutoffMs = lastChecked ? new Date(lastChecked).getTime() : 0;
-  const materialActivity = (data.recent_activity ?? [])
-    .filter((a) => /approv|reject|block|risk|deliver|complete|escalat|fail/i.test(`${a.kind} ${a.title}`))
-    .slice(0, 6);
-
-
-  return (
-    <aside className="space-y-4">
-      <RailCard
-        icon={<Sparkles className="h-4 w-4 text-sky-700" />}
-        title="Next best action"
-      >
-        {nba ? (
-          <div>
-            <div className="text-sm text-[#0A0F1F]">{nba.action}</div>
-            <div className="mt-1 text-xs text-[#667085]">{nba.reason}</div>
-            <div className="mt-2 text-[11px] text-[#8A94A6]">
-              {nba.client_company} · {nba.project_name}
-            </div>
-            <Link
-              to="/engine/projects/$projectId/overview"
-              params={{ projectId: nba.project_id }}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs text-sky-700 hover:text-sky-800"
-            >
-              Open project <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        ) : (
-          <div className="text-xs text-[#8A94A6]">Captain has no new recommendations.</div>
-        )}
-      </RailCard>
-
-      <RailCard
-        icon={<DollarSign className={cn("h-4 w-4", budgetTone === "critical" ? "text-rose-600" : budgetTone === "warning" ? "text-amber-700" : "text-[#667085]")} />}
-        title="Cost / budget"
-      >
-        <div className="text-sm text-[#0A0F1F]">
-          {formatCents(data.metrics.agent_spend_cents)}{" "}
-          <span className="text-[#98A2B3]">of {formatCents(data.metrics.agent_budget_cents)}</span>
-        </div>
-        <div className="mt-2 h-1.5 rounded bg-[#F5F1E8]">
-          <div
-            className={cn(
-              "h-full rounded",
-              budgetTone === "critical" ? "bg-rose-500" : budgetTone === "warning" ? "bg-amber-500" : "bg-[#98A2B3]",
-            )}
-            style={{ width: `${Math.min(100, budgetRatio * 100)}%` }}
-          />
-        </div>
-        {budgetTone !== "info" && (
-          <div className="mt-2 text-xs text-[#667085]">
-            {Math.round(budgetRatio * 100)}% of monthly agent spend consumed.
-          </div>
-        )}
-      </RailCard>
-
-      <RailCard icon={<Flame className="h-4 w-4 text-rose-600" />} title="Agent failures (24h)">
-        <div className="text-2xl font-semibold text-[#0A0F1F]">{data.agent_ops?.failures_24h ?? 0}</div>
-        <div className="mt-1 text-xs text-[#8A94A6]">
-          Runs in progress: <span className="text-[#334155]">{data.agent_ops?.runs_in_progress ?? 0}</span>
-          {" · "}Needs attention: <span className="text-[#334155]">{data.agent_ops?.needs_attention ?? 0}</span>
-        </div>
-      </RailCard>
-
-      <RailCard icon={<Clock className="h-4 w-4 text-amber-700" />} title="Upcoming deadlines">
-        {data.upcoming_deadlines.length === 0 ? (
-          <div className="text-xs text-[#8A94A6]">None in the next window.</div>
-        ) : (
-          <ul className="space-y-2">
-            {data.upcoming_deadlines.slice(0, 4).map((d) => (
-              <li key={`${d.project_id}-${d.label}`} className="text-xs">
-                <div className="text-[#0A0F1F]">{d.label}</div>
-                <div className="text-[#8A94A6]">
-                  {d.project_name} · due {formatDate(d.due_on)}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </RailCard>
-
-      <RailCard icon={<Zap className="h-4 w-4 text-[#667085]" />} title="Changed since last check">
-        {materialActivity.length === 0 ? (
-          <div className="text-xs text-[#8A94A6]">Nothing material since last check.</div>
-        ) : (
-          <ul className="space-y-2">
-            {materialActivity.map((a) => {
-              const isNew = new Date(a.created_at).getTime() > cutoffMs;
-              return (
-                <li key={a.id} className="text-xs">
-                  <div className="flex items-baseline gap-1.5">
-                    {isNew && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500" title="New since last check" />}
-                    <span className="text-[#0A0F1F]">{a.title}</span>
-                  </div>
-                  <div className="pl-3 text-[#8A94A6]">
-                    {a.project_name ?? "—"} · {new Date(a.created_at).toLocaleString()}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </RailCard>
-
-
-      <RailCard icon={<Users className="h-4 w-4 text-[#667085]" />} title="Client actions">
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <MiniStat label="Decisions" value={data.client_action_counts.decisions_needed} />
-          <MiniStat label="Info req." value={data.client_action_counts.info_requests} />
-          <MiniStat label="Feedback" value={data.client_action_counts.feedback_pending} />
-        </div>
-      </RailCard>
-    </aside>
-  );
-}
-
-// ─── supporting context (demoted) ────────────────────────────────────────────
-
-function SupportingContext({ data }: { data: CommandCenterPayload }) {
-  const total = data.stage_breakdown.reduce((n, s) => n + s.count, 0);
-  const hb = data.health_breakdown;
-  return (
-    <section className="mt-8 rounded-2xl border border-[#E8E1D6] bg-white px-5 py-4 shadow-sm">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-xs">
-        <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#98A2B3]">Portfolio context</div>
-        <MutedCounter label="Total" value={total} />
-        <MutedCounter label="Active" value={data.metrics.active_projects} />
-        <MutedCounter label="Approved" value={data.metrics.approved} />
-        <MutedCounter label="In execution" value={data.metrics.in_execution} />
-        <div className="mx-2 h-4 w-px bg-[#EFE9DC]" />
-        <HealthChip color="bg-emerald-500" label="On track" value={hb.on_track} />
-        <HealthChip color="bg-amber-500" label="Needs attn" value={hb.needs_attention} />
-        <HealthChip color="bg-rose-500" label="At risk" value={hb.at_risk} />
-        <HealthChip color="bg-rose-500" label="Blocked" value={hb.blocked} />
-        <HealthChip color="bg-[#98A2B3]" label="Planning" value={hb.planning} />
-        <div className="ml-auto flex items-center gap-2 text-[#98A2B3]">
-          <span>Stages:</span>
-          {data.stage_breakdown.map((s) => (
-            <span key={s.stage} className="text-[#667085]">
-              {s.stage} <span className="text-[#98A2B3]">{s.count}</span>
-            </span>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── small primitives ────────────────────────────────────────────────────────
-
-function SectionHeader({
-  icon,
-  title,
-  subtitle,
-  right,
-}: {
-  icon: ReactNode;
-  title: string;
-  subtitle?: string;
-  right?: ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-[#EFE9DC] px-5 py-3">
-      <div className="flex items-center gap-2">
-        <span className="text-[#667085]">{icon}</span>
-        <h2 className="text-sm font-semibold text-[#0A0F1F]">{title}</h2>
-        {subtitle && <span className="text-[11px] text-[#98A2B3]">· {subtitle}</span>}
-      </div>
-      {right}
-    </div>
-  );
-}
-
-function RailCard({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-widest text-[#8A94A6]">
-        {icon}
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}
+// ─── small primitives ──────────────────────────────────────────────────────
 
 function EmptyState({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
@@ -702,35 +1087,7 @@ function EmptyState({ icon, children }: { icon: ReactNode; children: ReactNode }
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-[#EFE9DC] bg-[#FBF9F4] py-2">
-      <div className="text-lg font-semibold text-[#0A0F1F]">{value}</div>
-      <div className="text-[10px] uppercase tracking-widest text-[#8A94A6]">{label}</div>
-    </div>
-  );
-}
-
-function MutedCounter({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-baseline gap-1.5">
-      <span className="text-[#98A2B3]">{label}</span>
-      <span className="font-medium text-[#0A0F1F]">{value}</span>
-    </div>
-  );
-}
-
-function HealthChip({ color, label, value }: { color: string; label: string; value: number }) {
-  return (
-    <div className="inline-flex items-center gap-1.5">
-      <span className={cn("h-1.5 w-1.5 rounded-full", color)} />
-      <span className="text-[#8A94A6]">{label}</span>
-      <span className="text-[#0A0F1F]">{value}</span>
-    </div>
-  );
-}
-
-// ─── decision building ───────────────────────────────────────────────────────
+// ─── decision building ─────────────────────────────────────────────────────
 
 function severityTone(s: Severity) {
   if (s === "critical") {
@@ -788,7 +1145,6 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
   const nbaByProject = new Map<string, string>();
   for (const n of data.next_best_actions_v2 ?? []) nbaByProject.set(n.project_id, n.action);
 
-  // Approvals — highest impact first
   for (const item of data.approval_breakdown?.items ?? []) {
     const severity: Severity = item.impact === "high" ? "critical" : "warning";
     const createdAt = item.created_at ?? nowIso;
@@ -817,7 +1173,6 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
     });
   }
 
-  // Blocked projects
   for (const p of data.active_projects ?? []) {
     if (p.status !== "blocked") continue;
     const createdAt = p.last_activity_at ?? nowIso;
@@ -838,13 +1193,13 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
       deadlineAt: computeDeadline("blocked", createdAt, p.next_critical_date?.due_on ?? null),
       riskDrivers: [
         `Status: ${p.status}.`,
-        p.open_decisions > 0 ? `${p.open_decisions} open decision(s) on client side.` : "Owner is Operator; internal blocker.",
+        p.open_decisions > 0 ? `${p.open_decisions} open decision(s) on client side.` : "Owner is Operator. Internal blocker.",
         p.next_critical_date ? `${p.next_critical_date.label} due ${formatDate(p.next_critical_date.due_on)}.` : "No hard deadline set.",
         `Agent status: ${p.agent_status}.`,
       ],
       requiredFields: [
         "Identify blocker root cause",
-        "Reassign owner if stalled >4h",
+        "Reassign owner if stalled over 4h",
         "Update next_action or clear status",
       ],
       changes: [],
@@ -852,7 +1207,6 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
     });
   }
 
-  // Agent failures
   const failures = data.agent_ops?.failures_24h ?? 0;
   if (failures > 0) {
     out.push({
@@ -880,7 +1234,6 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
     });
   }
 
-  // Client decisions
   const clientDecisions = data.client_action_counts.decisions_needed;
   if (clientDecisions > 0) {
     out.push({
@@ -902,13 +1255,12 @@ function buildDecisions(data: CommandCenterPayload): Decision[] {
         `${data.client_action_counts.info_requests} info request(s) outstanding.`,
         `${data.client_action_counts.feedback_pending} feedback item(s) pending.`,
       ],
-      requiredFields: ["Send reminder", "Escalate to call if >72h", "Log outcome in project chat"],
+      requiredFields: ["Send reminder", "Escalate to call if over 72h", "Log outcome in project chat"],
       changes: [],
       rank: 55,
     });
   }
 
-  // Budget overrun (portfolio)
   const budget = data.metrics.agent_budget_cents;
   const spend = data.metrics.agent_spend_cents;
   if (budget > 0 && spend / budget > 0.9) {
@@ -952,11 +1304,7 @@ function formatCountdown(deadlineIso: string, nowMs: number): { label: string; t
   const mins = Math.floor((abs % 3_600_000) / 60_000);
   const parts = days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   const label = overdue ? `Overdue ${parts}` : `Due in ${parts}`;
-  const tone: Severity = overdue
-    ? "critical"
-    : diff < 4 * 3_600_000
-      ? "warning"
-      : "info";
+  const tone: Severity = overdue ? "critical" : diff < 4 * 3_600_000 ? "warning" : "info";
   return { label, tone, overdue };
 }
 
@@ -971,7 +1319,6 @@ function useNowTick(intervalMs = 60_000) {
 
 const LAST_CHECK_KEY = "engine:command-center:last-checked";
 
-/** Reads previous last-checked cutoff and writes a fresh one on mount. */
 function useLastChecked(): string | null {
   const [cutoff, setCutoff] = useState<string | null>(null);
   const wrote = useRef(false);
@@ -997,7 +1344,6 @@ function enrichWithChanges(decisions: Decision[], data: CommandCenterPayload, cu
       .filter((a) => {
         if (d.projectId && a.project_id === d.projectId) return true;
         if (a.project_name && d.projectName && a.project_name === d.projectName) return true;
-        // system-scoped decisions match failure/budget activity kinds
         if (d.kind === "agent_failure" && /fail|error|retry/i.test(`${a.kind} ${a.title}`)) return true;
         if (d.kind === "budget" && /budget|spend|cost/i.test(`${a.kind} ${a.title}`)) return true;
         return false;
@@ -1166,4 +1512,5 @@ function SeverityChip({ severity }: { severity: Severity }) {
   );
 }
 
-
+// keep Target import used to preserve tree-shaking hint
+void Target;
