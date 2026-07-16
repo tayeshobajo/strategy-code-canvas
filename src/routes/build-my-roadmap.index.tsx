@@ -1431,10 +1431,15 @@ function QuestionPanel({
   // Reset touched as the user moves between steps
   React.useEffect(() => { setTouched(false); }, [q.key]);
   const showRequiredHint = !isOptional && !hasText && touched;
-  // Parse the eyebrow ("01 / where you are") so we can render the section label.
-  const eyebrowRest = q.eyebrow.split(" / ").slice(1);
-  const eyebrowTail = eyebrowRest.join(" / ");
-  const counter = `${String(index + 1).padStart(2, "0")} of ${String(TOTAL_STEPS).padStart(2, "0")}`;
+  // Parse the eyebrow ("01 / where you are") so we can render only the section label —
+  // the numeric prefix is dropped in favour of quiet phase language.
+  const eyebrowTail = q.eyebrow.split(" / ").slice(1).join(" / ");
+  // Quiet phase language replaces the old "0N of 09" counter. Early
+  // questions belong to finding the starting point; the later ones map
+  // where the work goes.
+  const phaseLine = index < 4
+    ? "We are finding your starting point."
+    : "We are mapping where this goes.";
 
   const hasMirror = !!reflection?.text;
   const isLoading = reflection?.state === "loading";
@@ -1467,18 +1472,21 @@ function QuestionPanel({
 
   return (
     <div>
-      {/* Centered eyebrow: chapter mark — hairline · label · hairline */}
+      {/* Centered eyebrow: hairline · section label (· optional) · hairline */}
       <div className="flex items-center justify-center gap-3">
         <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
         <p className="font-mono text-[10.5px] uppercase tracking-[0.36em] text-ink/60">
-          <span className="text-ink/40">{counter}</span>
-          {eyebrowTail && <span className="ml-3">· {eyebrowTail}</span>}
+          {eyebrowTail && <span>{eyebrowTail}</span>}
           {isOptional && (
             <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/55">optional</span>
           )}
         </p>
         <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
       </div>
+      {/* Quiet phase line — replaces the old "0N of 09" counter. */}
+      <p className="mt-3 text-center font-display italic text-[13px] leading-[1.65] text-ink/50">
+        {phaseLine}
+      </p>
 
 
       <h2 className="mx-auto mt-6 max-w-[760px] text-center font-display text-[clamp(1.55rem,2.4vw,1.95rem)] leading-[1.3] tracking-[-0.015em] text-ink">
