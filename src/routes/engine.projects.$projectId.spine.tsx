@@ -328,7 +328,7 @@ function ProjectSpine() {
         <TruthCardV2
           point="A"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_a)}
+          status={spine.project.point_a_status}
           bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
@@ -338,7 +338,7 @@ function ProjectSpine() {
         <TruthCardV2
           point="B"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_b)}
+          status={spine.project.point_b_status}
           bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
@@ -3430,7 +3430,7 @@ function SpineIncompleteBody({
         <TruthCardV2
           point="A"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_a)}
+          status={spine.project.point_a_status}
           bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
@@ -3440,7 +3440,7 @@ function SpineIncompleteBody({
         <TruthCardV2
           point="B"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_b)}
+          status={spine.project.point_b_status}
           bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
@@ -3528,7 +3528,7 @@ function SpineClientReadyBody({
         <TruthCardV2
           point="A"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_a)}
+          status={spine.project.point_a_status}
           bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
@@ -3538,7 +3538,7 @@ function SpineClientReadyBody({
         <TruthCardV2
           point="B"
           projectId={projectId}
-          approvedFlag={hasMeaningfulValue(spine.project.point_b)}
+          status={spine.project.point_b_status}
           bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
