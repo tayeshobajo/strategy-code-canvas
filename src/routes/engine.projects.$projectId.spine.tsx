@@ -1030,31 +1030,41 @@ type GateState =
   | "not_ready"
   | "na";
 
-const GATE_COLUMNS: Array<{
-  key:
-    | "criteria"
-    | "design"
-    | "mockups"
-    | "build"
-    | "evidence"
-    | "qa_auto"
-    | "qa_human"
-    | "due_date"
-    | "dependencies"
-    | "blockers";
+const DEFAULT_GATE_COLUMNS: Array<{
+  key: "criteria" | "mockups" | "build" | "qa" | "due_date";
   label: string;
 }> = [
   { key: "criteria", label: "Criteria" },
-  { key: "design", label: "Design" },
   { key: "mockups", label: "Mockups" },
   { key: "build", label: "Build" },
-  { key: "evidence", label: "Evidence" },
-  { key: "qa_auto", label: "QA · Auto" },
-  { key: "qa_human", label: "QA · Human" },
+  { key: "qa", label: "QA" },
   { key: "due_date", label: "Due" },
-  { key: "dependencies", label: "Deps" },
+];
+
+const DETAIL_GATE_COLUMNS: Array<{
+  key: "design" | "evidence" | "qa_auto" | "qa_human" | "dependencies" | "blockers";
+  label: string;
+}> = [
+  { key: "design", label: "Design" },
+  { key: "evidence", label: "Evidence" },
+  { key: "qa_auto", label: "Automated QA" },
+  { key: "qa_human", label: "Human QA" },
+  { key: "dependencies", label: "Dependencies" },
   { key: "blockers", label: "Blockers" },
 ];
+
+function combineQaState(auto: GateState, human: GateState): GateState {
+  const states = [auto, human].filter(
+    (s): s is GateState => s !== "na" && s !== "not_configured",
+  );
+  if (states.length === 0) return "not_configured";
+  if (states.some((s) => s === "blocked")) return "blocked";
+  if (states.some((s) => s === "review")) return "review";
+  if (states.every((s) => s === "done")) return "done";
+  if (states.some((s) => s === "in_progress")) return "in_progress";
+  if (states.some((s) => s === "not_ready")) return "not_ready";
+  return "not_started";
+}
 
 function MilestoneReadinessMatrix({
   projectId,
