@@ -50,7 +50,7 @@ export function SpineReadinessPanel({ projectId }: { projectId?: string }) {
             ? query.isLoading
               ? "Evaluating…"
               : result
-                ? `${result.passed}/${result.total} passing · ${result.failed} failing · ${result.unknown} unknown`
+                ? `${result.passed}/${result.total} passing · ${result.blockers.length} blocker${result.blockers.length === 1 ? "" : "s"}`
                 : "Unable to evaluate"
             : "Advisory · pass a projectId to evaluate"}
         </span>
