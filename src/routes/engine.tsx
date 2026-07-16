@@ -368,7 +368,7 @@ function buildCrumbs(
       }
       out.push({
         label: opts.clientName ?? "Project",
-        to: `/engine/projects/${projectId}/overview`,
+        to: `/engine/projects/${projectId}/spine`,
       });
       const sub = match[2];
       const subsub = match[3];
