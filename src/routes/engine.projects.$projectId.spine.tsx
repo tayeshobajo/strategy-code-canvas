@@ -2501,10 +2501,14 @@ function WorkingFocusStrip({
   projectId,
   currentStepNum,
   totalSteps,
+  nextMilestoneId,
+  nextMilestoneName,
 }: {
   projectId: string;
   currentStepNum: number;
   totalSteps: number;
+  nextMilestoneId: string | null;
+  nextMilestoneName: string | null;
 }) {
   const { dates } = useWorkspace(projectId);
   const pct = Math.min(100, Math.max(0, Math.round((currentStepNum / totalSteps) * 100)));
@@ -2513,24 +2517,27 @@ function WorkingFocusStrip({
     .sort((a, b) => new Date(a.due_on).getTime() - new Date(b.due_on).getTime())
     .slice(0, 4);
 
-  const shortcuts: Array<{
-    to:
-      | "/engine/projects/$projectId/builder"
-      | "/engine/projects/$projectId/plans"
-      | "/engine/projects/$projectId/evidence"
-      | "/engine/projects/$projectId/understanding-room"
-      | "/engine/projects/$projectId/intelligence"
-      | "/engine/projects/$projectId/chat"
-      | "/engine/projects/$projectId/preview";
-    label: string;
-  }> = [
-    { to: "/engine/projects/$projectId/builder", label: "Roadmap" },
-    { to: "/engine/projects/$projectId/plans", label: "Plans & Specs" },
-    { to: "/engine/projects/$projectId/evidence", label: "Evidence & QA" },
-    { to: "/engine/projects/$projectId/understanding-room", label: "Understanding" },
-    { to: "/engine/projects/$projectId/intelligence", label: "Intelligence" },
-    { to: "/engine/projects/$projectId/chat", label: "Captain Chat" },
-    { to: "/engine/projects/$projectId/preview", label: "Client Preview" },
+  // Spine deep links — in-page anchors for spine subviews, and typed
+  // Link entries for tab siblings + the milestone workspace brief.
+  type TabTo =
+    | "/engine/projects/$projectId/roadmap"
+    | "/engine/projects/$projectId/work"
+    | "/engine/projects/$projectId/qa-delivery"
+    | "/engine/projects/$projectId/client-view"
+    | "/engine/projects/$projectId/chat";
+
+  const anchorShortcuts: Array<{ href: string; label: string }> = [
+    { href: "#spine-approvals", label: "Approvals" },
+    { href: "#spine-milestones", label: "Milestone matrix" },
+    { href: "#spine-evidence-heading", label: "Evidence & history" },
+  ];
+
+  const tabShortcuts: Array<{ to: TabTo; label: string }> = [
+    { to: "/engine/projects/$projectId/roadmap", label: "Roadmap" },
+    { to: "/engine/projects/$projectId/work", label: "Work" },
+    { to: "/engine/projects/$projectId/qa-delivery", label: "QA & Delivery" },
+    { to: "/engine/projects/$projectId/client-view", label: "Client view" },
+    { to: "/engine/projects/$projectId/chat", label: "Ask Captain" },
   ];
 
   return (
@@ -2576,22 +2583,46 @@ function WorkingFocusStrip({
         <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
           Shortcuts
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {shortcuts.map((s) => (
+        <div className="mt-2 grid grid-cols-2 gap-2" data-qa-role="workflow-shortcuts">
+          {anchorShortcuts.map((s) => (
+            <a
+              key={s.href}
+              href={s.href}
+              data-qa-shortcut={s.label}
+              className="rounded-lg border border-[#E8E1D6] px-3 py-2 text-xs text-[#0A0F1F] hover:border-[#3E68B2]/50 hover:bg-[#FBF9F4] transition"
+            >
+              {s.label}
+            </a>
+          ))}
+          {tabShortcuts.map((s) => (
             <Link
               key={s.to}
               to={s.to}
               params={{ projectId }}
+              data-qa-shortcut={s.label}
               className="rounded-lg border border-[#E8E1D6] px-3 py-2 text-xs text-[#0A0F1F] hover:border-[#3E68B2]/50 hover:bg-[#FBF9F4] transition"
             >
               {s.label}
             </Link>
           ))}
+          {nextMilestoneId ? (
+            <Link
+              to="/engine/projects/$projectId/milestones/$milestoneId/brief"
+              params={{ projectId, milestoneId: nextMilestoneId }}
+              data-qa-shortcut="next-milestone-brief"
+              title={nextMilestoneName ?? "Next milestone brief"}
+              className="col-span-2 rounded-lg border border-[#3E68B2]/30 bg-[#F5F8FE] px-3 py-2 text-xs font-medium text-[#0A0F1F] hover:border-[#3E68B2]/60 transition truncate"
+            >
+              Next milestone brief{nextMilestoneName ? ` — ${nextMilestoneName}` : ""}
+            </Link>
+          ) : null}
         </div>
       </div>
     </section>
   );
 }
+
+
 
 
 function SpineLoading() {
