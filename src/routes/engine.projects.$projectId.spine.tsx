@@ -185,6 +185,8 @@ function ProjectSpine() {
           approvedMilestones={approvedMilestoneCount}
           totalMilestones={spine.milestones.length}
           nextMilestoneDue={nextMilestone?.due_date ?? null}
+          healthScore={spine.project.health_score}
+          ownerEmail={spine.project.client_owner_email}
         />
       </div>
 
