@@ -488,7 +488,7 @@ function Donut({ slices, centerLabel, centerHint }: { slices: Slice[]; centerLab
             })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="font-display text-xl text-[#0A0F1F]">{centerLabel}</div>
+          <div className={cn("font-display text-xl", total > 0 ? "text-[#0A0F1F]" : "text-[#C8CFD9]")}>{centerLabel}</div>
           {centerHint && (
             <div className="font-mono text-[9px] uppercase tracking-widest text-[#98A2B3]">{centerHint}</div>
           )}
