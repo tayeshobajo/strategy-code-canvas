@@ -1057,7 +1057,7 @@ function MilestoneReadinessMatrix({
             </thead>
             <tbody>
               {rows.map((m) => {
-                const gates = deriveGates(m);
+                const gates = m.readiness;
                 return (
                   <tr key={m.id} className="border-b border-[#F3EEE6] align-middle">
                     <td className="py-3 pr-4 text-[#0A0F1F]">
