@@ -53,6 +53,8 @@ import { Route as OpsEmailsRouteImport } from './routes/ops/emails'
 import { Route as OpsAccessEventsRouteImport } from './routes/ops/access-events'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as EngineTemplatesRouteImport } from './routes/engine.templates'
+import { Route as EngineStrategicSalesRouteImport } from './routes/engine.strategic-sales'
+import { Route as EngineSettingsRouteImport } from './routes/engine.settings'
 import { Route as EngineReviewRouteImport } from './routes/engine.review'
 import { Route as EngineOperationsRouteImport } from './routes/engine.operations'
 import { Route as EngineIntelligenceRouteImport } from './routes/engine.intelligence'
@@ -378,6 +380,16 @@ const InsightsSlugRoute = InsightsSlugRouteImport.update({
 const EngineTemplatesRoute = EngineTemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
+  getParentRoute: () => EngineRoute,
+} as any)
+const EngineStrategicSalesRoute = EngineStrategicSalesRouteImport.update({
+  id: '/strategic-sales',
+  path: '/strategic-sales',
+  getParentRoute: () => EngineRoute,
+} as any)
+const EngineSettingsRoute = EngineSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => EngineRoute,
 } as any)
 const EngineReviewRoute = EngineReviewRouteImport.update({
@@ -1035,6 +1047,8 @@ export interface FileRoutesByFullPath {
   '/engine/intelligence': typeof EngineIntelligenceRoute
   '/engine/operations': typeof EngineOperationsRoute
   '/engine/review': typeof EngineReviewRoute
+  '/engine/settings': typeof EngineSettingsRoute
+  '/engine/strategic-sales': typeof EngineStrategicSalesRoute
   '/engine/templates': typeof EngineTemplatesRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/ops/access-events': typeof OpsAccessEventsRoute
@@ -1183,6 +1197,8 @@ export interface FileRoutesByTo {
   '/engine/intelligence': typeof EngineIntelligenceRoute
   '/engine/operations': typeof EngineOperationsRoute
   '/engine/review': typeof EngineReviewRoute
+  '/engine/settings': typeof EngineSettingsRoute
+  '/engine/strategic-sales': typeof EngineStrategicSalesRoute
   '/engine/templates': typeof EngineTemplatesRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/ops/access-events': typeof OpsAccessEventsRoute
@@ -1335,6 +1351,8 @@ export interface FileRoutesById {
   '/engine/intelligence': typeof EngineIntelligenceRoute
   '/engine/operations': typeof EngineOperationsRoute
   '/engine/review': typeof EngineReviewRoute
+  '/engine/settings': typeof EngineSettingsRoute
+  '/engine/strategic-sales': typeof EngineStrategicSalesRoute
   '/engine/templates': typeof EngineTemplatesRoute
   '/insights_/$slug': typeof InsightsSlugRoute
   '/ops/access-events': typeof OpsAccessEventsRoute
@@ -1488,6 +1506,8 @@ export interface FileRouteTypes {
     | '/engine/intelligence'
     | '/engine/operations'
     | '/engine/review'
+    | '/engine/settings'
+    | '/engine/strategic-sales'
     | '/engine/templates'
     | '/insights/$slug'
     | '/ops/access-events'
@@ -1636,6 +1656,8 @@ export interface FileRouteTypes {
     | '/engine/intelligence'
     | '/engine/operations'
     | '/engine/review'
+    | '/engine/settings'
+    | '/engine/strategic-sales'
     | '/engine/templates'
     | '/insights/$slug'
     | '/ops/access-events'
@@ -1787,6 +1809,8 @@ export interface FileRouteTypes {
     | '/engine/intelligence'
     | '/engine/operations'
     | '/engine/review'
+    | '/engine/settings'
+    | '/engine/strategic-sales'
     | '/engine/templates'
     | '/insights_/$slug'
     | '/ops/access-events'
@@ -2238,6 +2262,20 @@ declare module '@tanstack/react-router' {
       path: '/templates'
       fullPath: '/engine/templates'
       preLoaderRoute: typeof EngineTemplatesRouteImport
+      parentRoute: typeof EngineRoute
+    }
+    '/engine/strategic-sales': {
+      id: '/engine/strategic-sales'
+      path: '/strategic-sales'
+      fullPath: '/engine/strategic-sales'
+      preLoaderRoute: typeof EngineStrategicSalesRouteImport
+      parentRoute: typeof EngineRoute
+    }
+    '/engine/settings': {
+      id: '/engine/settings'
+      path: '/settings'
+      fullPath: '/engine/settings'
+      preLoaderRoute: typeof EngineSettingsRouteImport
       parentRoute: typeof EngineRoute
     }
     '/engine/review': {
@@ -3260,6 +3298,8 @@ interface EngineRouteChildren {
   EngineIntelligenceRoute: typeof EngineIntelligenceRoute
   EngineOperationsRoute: typeof EngineOperationsRoute
   EngineReviewRoute: typeof EngineReviewRoute
+  EngineSettingsRoute: typeof EngineSettingsRoute
+  EngineStrategicSalesRoute: typeof EngineStrategicSalesRoute
   EngineTemplatesRoute: typeof EngineTemplatesRoute
   EngineIndexRoute: typeof EngineIndexRoute
   EngineProjectsProjectIdRoute: typeof EngineProjectsProjectIdRouteWithChildren
@@ -3274,6 +3314,8 @@ const EngineRouteChildren: EngineRouteChildren = {
   EngineIntelligenceRoute: EngineIntelligenceRoute,
   EngineOperationsRoute: EngineOperationsRoute,
   EngineReviewRoute: EngineReviewRoute,
+  EngineSettingsRoute: EngineSettingsRoute,
+  EngineStrategicSalesRoute: EngineStrategicSalesRoute,
   EngineTemplatesRoute: EngineTemplatesRoute,
   EngineIndexRoute: EngineIndexRoute,
   EngineProjectsProjectIdRoute: EngineProjectsProjectIdRouteWithChildren,
