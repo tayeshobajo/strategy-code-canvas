@@ -177,7 +177,17 @@ function ProjectSpine() {
           eyebrow="Readiness"
           title="Milestone & module readiness"
         />
-        <ModuleReadinessGrid modules={spine.modules} />
+        <ModuleReadinessGrid modules={spine.modules} projectId={projectId} />
+      </section>
+
+      {/* 4b. Module contents — approved outputs with deep links */}
+      <section aria-labelledby="spine-module-contents-heading" className="space-y-3">
+        <SectionHeading
+          id="spine-module-contents-heading"
+          eyebrow="Approved outputs"
+          title="Module contents"
+        />
+        <ModuleContentsList modules={spine.modules} projectId={projectId} />
       </section>
 
       {/* 5. Approvals */}
