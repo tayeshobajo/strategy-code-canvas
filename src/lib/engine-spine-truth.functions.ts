@@ -46,6 +46,7 @@ export const proposeSpineFieldChange = createServerFn({ method: "POST" })
     const title = `Spine change · ${data.sectionKey} · ${data.fieldKey}`;
     const summary = data.changeReason?.slice(0, 300) ?? "Proposed change to approved spine statement.";
     const payload = {
+      kind: "spine_field_change",
       section_key: data.sectionKey,
       field_key: data.fieldKey,
       new_value: data.newValue,
@@ -57,11 +58,11 @@ export const proposeSpineFieldChange = createServerFn({ method: "POST" })
       .from("engine_project_chat_proposals")
       .insert({
         project_id: data.projectId,
-        proposal_type: "spine_field_change",
+        proposal_type: "review_item",
         title,
         summary,
         payload,
-        status: "pending",
+        status: "submitted_for_review",
         target_route: `/engine/projects/${data.projectId}/spine`,
         created_by: userId,
       })
@@ -103,14 +104,15 @@ export const getSpineFieldHistory = createServerFn({ method: "GET" })
     // Proposals originated from the inspector.
     const { data: proposals } = await supabase
       .from("engine_project_chat_proposals")
-      .select("id,payload,status,summary,created_at,created_by")
+      .select("id,payload,status,summary,created_at,created_by,proposal_type")
       .eq("project_id", data.projectId)
-      .eq("proposal_type", "spine_field_change")
+      .eq("proposal_type", "review_item")
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(50);
 
     for (const row of proposals ?? []) {
       const p = (row.payload ?? {}) as Record<string, unknown>;
+      if (p.kind !== "spine_field_change") continue;
       if (p.section_key !== data.sectionKey || p.field_key !== data.fieldKey) continue;
       out.push({
         id: String(row.id),
