@@ -1,118 +1,71 @@
 
-# Project Spine 2.0 — Phase 1 & 2
+# Plan — Align Spine 2.0 to reference design
 
-Scope frozen to **Phase 1 (contract)** and **Phase 2 (shell simplification)**. Spine 2.0 UI (Phase 4), read-model expansion (Phase 3), Milestone Workspaces (5), Client Roadmap Studio (6) and cleanup (7) are explicitly out of scope for this plan and will each get their own plan after this ships.
+Scope: presentational rework of `src/routes/engine.projects.$projectId.spine.tsx` only. No server function or schema changes. Reuse existing `getProjectSpine` payload, milestone approval mutations, and history query already wired up. Deep links, filters/sort, search, mutations, PDF export, and skeleton/error handling all remain — they'll be re-homed inside the new layout (some behind "View all" affordances) so nothing regresses.
 
-## Outcomes
+## 1. Page header row
 
-1. A single, versioned contract file defines what the Project Spine is — its sections, statuses, and readiness rules — before we touch any UI beyond navigation.
-2. Opening a project lands on the Spine, not the Overview. The 14-step stepper stops dominating every page.
-3. Project-level navigation collapses from 14 workflow rooms to **5 primary tabs** plus a **More** menu. Every existing route keeps working.
-4. Readiness is **advisory only** in this phase — displayed, never blocking.
+- Left: `Back to Projects` chevron link → `/engine/projects`; title `Project Spine` + status badge (existing `EngineStatusBadge`); one-line tagline "The central nervous system of your project. Live truth. Approved direction. Next best move."
+- Right cluster: `Pending Approvals (n) →` pill (scrolls to Approvals & Decisions), `Export Client Roadmap` (dark, wires to existing `exportSpinePdf`), `Project Actions ▾` (menu stub — Duplicate/Archive/Rename disabled placeholders), `More ▾` (stub).
+- Remove the current single-line header/back link + inline Export button.
 
-## Phase 1 — Freeze the Project Spine Contract
+## 2. Hero row (2-column, 2fr / 1fr)
 
-Deliverable: one authoritative TypeScript module + one doctrine doc. No UI changes in this phase.
+**Next Best Action card (left)**
+- Keep existing NBA data + severity tone but restyle: title "Next Best Action" with sparkle icon, big headline = `nba.title`, description = `nba.body`, meta row of `Unlocks`, `Due`, `Owner`, primary CTA `Review Now →` linking to `nba.deep_link` (or Approvals section fallback). Decorative compass/arrow disc on the right.
 
-### 1a. Contract module — `src/lib/spine-contract.ts`
+**Project Snapshot card (right)**
+- Grid of 3×3 label/value cells derived from spine payload:
+  - Current Phase (from project.current_phase / stage), Health (with dot), Target Date (nearest milestone or project target)
+  - Project Owner, Captain, Roadmap Version (`v{n}`)
+  - Pending Approvals count, Blocked Items count (accent red if >0), Active Milestones (`x of y`)
+- All values derived from existing payload; when unknown, show `—`.
 
-Exports (types + const arrays, no runtime behaviour):
+## 3. Truth row (Point A / Point B)
 
-- `SPINE_SECTIONS` — canonical section list with `key`, `label`, `required`, `client_safe`, `deep_link_pattern`:
-  - `point_a`, `point_b`, `business_context`, `constraints_risks`, `assets_leverage`, `approved_scope`, `success_measures`, `decisions_pending`, `roadmap`, `milestone_readiness`, `investment`, `client_acknowledgment`.
-- `SpineFieldStatus` union: `"draft" | "inferred" | "needs_confirmation" | "contradictory" | "accepted_assumption" | "verified" | "approved_truth" | "superseded"`.
-- `SpineFieldProvenance` type: `{ status, source_refs[], confidence, version, updated_by, updated_at, approved_by?, approved_at?, change_reason? }`.
-- `SPINE_READINESS_CHECKS` — the 14-item checklist from the frame, each `{ id, label, section_key, evaluator_id }`. Evaluator wiring lands in Phase 3.
-- `CLIENT_SAFE_SECTION_KEYS` — subset of `SPINE_SECTIONS` marked `client_safe: true`.
+- Two equal cards (existing data) restyled: header row = icon + `Point A|B` + `APPROVED|DRAFT|REVIEW` badge; subtitle "Where the business is today." / "…is going."; up to 3 bullet points with check dots; footer row `Sources: N · Approved: date · View details →` linking to `/engine/projects/$projectId/spine-a` and `.../spine-b` (existing routes).
 
-### 1b. Doctrine doc — `doctrine/PROJECT_SPINE_CONTRACT.md`
+## 4. Milestone Readiness matrix (replaces current RoadmapSummaryCard tile)
 
-Human-readable mirror of the module: section definitions, state machine, readiness gate rules, "advisory vs blocking" policy for this release, and the rule that raw AI drafts never auto-promote into the Spine.
+- Card titled `Milestone Readiness` with `View all →` (jumps to `/engine/projects/$projectId/roadmap`).
+- Table columns: `MILESTONE`, `CRITERIA`, `DESIGN`, `BUILD`, `QA`, `DUE`.
+- One row per milestone from `spine.roadmap.milestones` (cap to first 5, remainder behind View all).
+- Cell renders a compact status chip derived from milestone gate/phase state: green check, `Review` (amber), `Blocked` (red), `In Progress` (blue), `Not Started` / `Not Ready` (grey), `—` when N/A.
+- Row click → milestone detail deep link. Keep approve/reject buttons available inside expanded milestone drawer or under the existing Approvals & Decisions card below (moved out of this table to match reference).
 
-### 1c. Section-key allowlist extension
+## 5. Lower row (3 columns on xl, stacked below)
 
-`src/lib/engine-spine-fields.ts` currently allowlists only Point A / Point B keys. Add sibling allowlists for the new sections (`business_context`, `constraints_risks`, `assets_leverage`, `approved_scope`, `success_measures`, `investment`) so future writes into `engine_spine_field_truth` can be validated. **No DB migration** — this is a TS-level guard only.
+**Approvals & Decisions (left)**
+- List of pending review items (existing data), each row: colored dot (severity), title, subtitle "Needs your approval / Awaiting decision", `Review` button that fires existing approve/reject mutations via a small inline drawer. `View all →` opens Approvals route.
 
-Nothing in Phase 1 changes existing behaviour; it locks the vocabulary before UI work.
+**Project Foundation (middle)**
+- 4×2 grid of foundation summary rows derived from aggregated modules already in payload:
+  - Business Context (strength label), Assets & Leverage (`N Identified`), Approved Scope (`Defined/Draft`), Success Metrics (`N Defined`), Constraints (`N Active`), Key Decisions (`N Made`), Risks (`N High`), Team Alignment (`On Track/Watch`).
+- Each row: icon + label + value; `View all →` jumps to the underlying module deep link (reuses existing `ModuleLink` mapping).
 
-## Phase 2 — Simplify the Project Shell
+**Captain Brief (right)**
+- Card with sparkle header + 4 labelled rows (`What changed`, `What matters now`, `Recommendation`, `Watch for`) sourced from `spine.captain_brief` if present; otherwise derived from NBA + last activity entry. `View all →` opens the full brief details panel.
 
-### 2a. Land on Spine
+## 6. Footer stats bar
 
-- `src/routes/engine.projects.$projectId.index.tsx` (new): `beforeLoad` redirects to `/engine/projects/$projectId/spine`.
-- `src/routes/engine.projects.$projectId.overview.tsx`: keep the file so deep links still resolve, but its component renders a small banner ("Overview has moved to Spine — [Go to Spine]") plus the existing content collapsed below. No content deletion in this phase.
+- Full-width thin card with 5 stats: Sources Processed, Last Intelligence Run (`date · time`), Intelligence Confidence (`NN%`), Project Created, Last Updated (`date · time by owner`), plus right-aligned `● Auto-saved / Just now` indicator. Values from `spine.meta` (fallback `—`).
 
-### 2b. Replace WorkspaceStepper with 5-tab navigation
+## 7. Re-home existing features (no functionality loss)
 
-New component `src/components/engine/ProjectTabs.tsx` renders 5 tabs, each a TanStack `<Link>` with `activeProps`:
+- Module Readiness Grid + filters/sort/contents: move into a collapsed `Modules & Readiness` section below the footer stats (kept for power users).
+- Evidence search box + `SearchableBlock` panels (Sources, Activity, Audit, Task Ledger, Version History, Readiness Contract): keep as a collapsed `Reference & Evidence` section at the bottom.
+- Milestone approval history: rendered inside the Approvals & Decisions "View all" drawer.
+- PDF export helper unchanged; wired to the new header button.
+- Error banners + skeletons: re-applied to each new card region.
 
-| Tab            | Route slug         | Notes                                  |
-| -------------- | ------------------ | -------------------------------------- |
-| Spine          | `/spine`           | Landing tab                            |
-| Roadmap        | `/roadmap`         | New thin route — see 2c                |
-| Work           | `/work`            | New thin route — see 2c                |
-| QA & Delivery  | `/qa-delivery`     | New thin route — see 2c                |
-| Client View    | `/client-view`     | New thin route — see 2c                |
+## Technical notes
 
-In `src/routes/engine.projects.$projectId.tsx`:
-- Remove `<WorkspaceStepper />` from the layout render.
-- Insert `<ProjectTabs projectId={projectId} />` under `<ProjectHeaderStrip />`.
-- Keep `WorkspaceStepper.tsx` and `WORKSPACE_STEPS` in the codebase (still used by Sources & Intelligence hub — 2d).
+- All changes limited to `src/routes/engine.projects.$projectId.spine.tsx` plus small presentational sub-components colocated in the same file (or extracted to `src/components/engine/spine/` if the file grows past ~2500 lines).
+- No new server functions. Where the reference shows fields not yet in the payload (e.g. Health, Intelligence Confidence, Captain Brief 4 fields), render best-effort from existing fields and fall back to `—`; a follow-up plan can extend `getProjectSpine`.
+- Styling: existing Tailwind + design tokens (`ink`, `royal`, `border`, `card`, `paper-soft`). Chips use existing tone maps; add small `StatusChip` and `MetaCell` primitives inline.
+- Verify with `tsgo` after implementation.
 
-### 2c. Thin landing routes for the four new tabs
+## Out of scope
 
-Each is a placeholder page that composes what already exists so the tab is never dead:
-
-- `roadmap.tsx` → renders the existing Roadmap Builder summary (`builder`) preview + link to full builder.
-- `work.tsx` → milestone list (from existing workspace data) with links to `milestones/$milestoneId/brief`.
-- `qa-delivery.tsx` → composes `evidence` + `delivery` summaries in read-only tiles.
-- `client-view.tsx` → composes `preview` + `publish-history` summaries with an "Open Client Portal" link.
-
-These are intentionally thin in Phase 2. Rich versions come in Phases 4–6.
-
-### 2d. Sources & Intelligence hub
-
-New route `src/routes/engine.projects.$projectId.sources.tsx`:
-- Grid of 14 cards, one per existing `WORKSPACE_STEPS` entry, each linking to its current route unchanged.
-- Groups: **Intelligence** (steps 1–3), **Diagnosis** (4–8), **Roadmap Construction** (9–12), **Delivery Prep** (13–14).
-- Reachable from a **More** menu button in the header (`src/components/engine/WorkspaceHeader.tsx` — `WorkspaceToolbar`).
-
-### 2e. More menu
-
-Extend `WorkspaceToolbar` with a dropdown "More" containing: Sources & Intelligence, Decisions & History (existing versions/publish-history routes), AI Workspace (`/ai-workspace`), Costs (`/agent/costs`), Project Family (`/family`), Settings.
-
-### 2f. Persistent actions in header
-
-Already partially present; ensure header shows: **Ask Captain** (existing chat entry), **Approvals** button with pending count (existing review-item count from workspace query), **Export Client Roadmap** (links to `/client-view` in this phase — Studio comes in Phase 6), **Project Actions** (existing toolbar).
-
-### 2g. Spine page — read-only augmentation only
-
-`src/routes/engine.projects.$projectId.spine.tsx` already exists. In this phase we do **not** rebuild it. We only:
-- Add a `<SpineReadinessPanel />` component showing the 14 checks from `SPINE_READINESS_CHECKS` as advisory (all items rendered "Not yet evaluated" placeholders until Phase 3 wires evaluators). This proves the contract is visible without pretending we've computed it.
-- Add a top banner if `pathname === '/overview'` referrer, guiding operators to Spine.
-
-Full Spine 2.0 layout (Next Best Action hero, Foundation grid, Milestone Readiness table, Captain Brief) is Phase 4.
-
-## Out of scope for this plan (explicitly deferred)
-
-- Extending `getProjectSpine` payload with hidden_assets/gaps/blueprint/etc. → **Phase 3**.
-- Building the new Spine 2.0 page layout described in the frame's wireframe → **Phase 4**.
-- Milestone workspace tabs (Brief / Plan & Acceptance / Mockups / Build / QA / History) → **Phase 5**.
-- Client Roadmap Studio and Spartan renderer → **Phase 6**.
-- Route redirects, deprecation, migration, data backfill → **Phase 7**.
-- Any DB migration. Phase 1+2 is TS + routes + components only.
-- Any change to `WORKSPACE_STEPS` values, approval ceremonies, or provenance in `engine_spine_field_truth`.
-
-## Verification
-
-- `tsgo` clean.
-- Manual: open a project → lands on `/spine`. Header shows 5 tabs; stepper is gone. `/overview` still resolves and shows the "moved" banner. Every URL in `WORKSPACE_STEPS` still 200s from the Sources & Intelligence hub. Readiness panel renders the 14 advisory rows.
-- Playwright smoke: navigate to `/engine/projects/:id`, assert redirect to `/spine`, assert 5 tab links present, assert stepper absent, assert `/engine/projects/:id/intelligence-layer` still renders.
-
-## Technical Notes
-
-- No changes to `src/routeTree.gen.ts` by hand — the Vite plugin regenerates from the new route files.
-- No changes to auto-generated Supabase clients or auth middleware.
-- Existing `WORKSPACE_STEPS` array stays put; only its rendering surface (`WorkspaceStepper` on the layout) is removed. Sources hub imports it as-is.
-- `ProjectTabs` uses `<Link activeProps={{ 'data-active': 'true' }}>` so styling reads `data-status="active"` without pathname math.
-- Contract module has zero runtime imports from server code — safe to import from both client and server surfaces later.
+- Left/global sidebar navigation ("Command Center / Projects / Approvals / Operations / Strategic Sales / Settings") shown in the reference — that is app chrome, not the Spine page.
+- Extending `getProjectSpine` payload (Captain Brief, health, confidence, phase labels). Tracked as follow-up.
