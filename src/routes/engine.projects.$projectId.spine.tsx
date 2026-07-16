@@ -1087,49 +1087,9 @@ function MilestoneReadinessMatrix({
   );
 }
 
-function deriveGates(m: ProjectSpinePayload["milestones"][number]): {
-  criteria: GateState;
-  design: GateState;
-  build: GateState;
-  qa: GateState;
-} {
-  // Criteria: driven directly by approval_status
-  const criteria: GateState =
-    m.approval_status === "approved"
-      ? "done"
-      : m.approval_status === "rejected"
-        ? "blocked"
-        : m.approval_status === "pending" || m.approval_status === "needs_review"
-          ? "review"
-          : "not_started";
+// deriveGates removed — Milestone Readiness now uses durable records
+// via `SpineMilestone.readiness` computed in `getProjectSpine`.
 
-  // Downstream gates progress with the milestone's own status/phase.
-  const phase = (m.phase ?? "").toLowerCase();
-  const status = (m.status ?? "").toLowerCase();
-  const isDone = ["done", "completed", "approved", "delivered"].includes(status);
-  const isBlocked = status === "blocked";
-  const isInProgress = ["in_progress", "running", "active", "in_execution"].includes(status);
-
-  const gateAt = (target: "design" | "build" | "qa"): GateState => {
-    if (criteria !== "done") return "not_ready";
-    if (isBlocked) return "blocked";
-    if (isDone) return "done";
-    const order = ["criteria", "design", "build", "qa"];
-    const cur = order.indexOf(phase);
-    const t = order.indexOf(target);
-    if (cur === -1) return isInProgress && target === "design" ? "in_progress" : "not_started";
-    if (cur > t) return "done";
-    if (cur === t) return isInProgress ? "in_progress" : "review";
-    return "not_started";
-  };
-
-  return {
-    criteria,
-    design: gateAt("design"),
-    build: gateAt("build"),
-    qa: gateAt("qa"),
-  };
-}
 
 function GateChip({ state }: { state: GateState }) {
   if (state === "done")
