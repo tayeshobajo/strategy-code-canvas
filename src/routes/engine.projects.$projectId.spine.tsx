@@ -240,6 +240,7 @@ function ProjectSpine() {
         lastRunAt={spine.sources.last_run?.finished_at ?? spine.sources.last_run?.started_at ?? null}
         projectCreatedAt={null}
         lastUpdatedAt={spine.project.updated_at}
+        intelligenceConfidence={spine.intelligence.confidence}
       />
 
       {/* ───── Milestone approval history ───── */}
