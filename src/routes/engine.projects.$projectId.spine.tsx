@@ -250,6 +250,8 @@ function ProjectSpine() {
         projectId={projectId}
         currentStepNum={spine.project.current_step_num}
         totalSteps={14}
+        nextMilestoneId={nextMilestone?.id ?? spine.milestones[0]?.id ?? null}
+        nextMilestoneName={nextMilestone?.name ?? spine.milestones[0]?.name ?? null}
       />
 
       {/* ───── Milestone approval history ───── */}
