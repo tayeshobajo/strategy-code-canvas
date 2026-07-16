@@ -1074,6 +1074,8 @@ function MilestoneReadinessMatrix({
   milestones: ProjectSpinePayload["milestones"];
 }) {
   const rows = milestones.slice(0, 6);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
   return (
     <section id="spine-milestones" className="scroll-mt-4 rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
       <div className="flex items-baseline justify-between gap-3">
@@ -1097,33 +1099,86 @@ function MilestoneReadinessMatrix({
             <thead>
               <tr className="border-b border-[#E8E1D6] text-[#667085]">
                 <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Milestone</th>
-                {GATE_COLUMNS.map((c) => (
+                {DEFAULT_GATE_COLUMNS.map((c) => (
                   <th key={c.key} className="py-2 pr-3 font-mono text-[10px] uppercase tracking-[0.22em]">
                     {c.label}
                   </th>
                 ))}
+                <th className="py-2 pr-3 font-mono text-[10px] uppercase tracking-[0.22em]">Details</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((m) => {
                 const gates = m.readiness;
+                const qaCombined = combineQaState(
+                  gates.qa_auto as GateState,
+                  gates.qa_human as GateState,
+                );
+                const isOpen = !!expanded[m.id];
                 return (
-                  <tr key={m.id} className="border-b border-[#F3EEE6] align-middle">
-                    <td className="py-3 pr-4 text-[#0A0F1F]">
-                      <Link
-                        to="/engine/projects/$projectId/milestones/$milestoneId/brief"
-                        params={{ projectId, milestoneId: m.id }}
-                        className="hover:text-[#3E68B2]"
-                      >
-                        {m.name}
-                      </Link>
-                    </td>
-                    {GATE_COLUMNS.map((c) => (
-                      <td key={c.key} className="py-3 pr-3">
-                        <GateChip state={gates[c.key] as GateState} />
+                  <>
+                    <tr key={m.id} className="border-b border-[#F3EEE6] align-middle">
+                      <td className="py-3 pr-4 text-[#0A0F1F]">
+                        <Link
+                          to="/engine/projects/$projectId/milestones/$milestoneId/brief"
+                          params={{ projectId, milestoneId: m.id }}
+                          className="hover:text-[#3E68B2]"
+                        >
+                          {m.name}
+                        </Link>
                       </td>
-                    ))}
-                  </tr>
+                      {DEFAULT_GATE_COLUMNS.map((c) => {
+                        const state: GateState =
+                          c.key === "qa" ? qaCombined : (gates[c.key] as GateState);
+                        return (
+                          <td key={c.key} className="py-3 pr-3">
+                            <GateChip state={state} />
+                          </td>
+                        );
+                      })}
+                      <td className="py-3 pr-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpanded((prev) => ({ ...prev, [m.id]: !prev[m.id] }))
+                          }
+                          className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+                          aria-expanded={isOpen}
+                          aria-controls={`milestone-details-${m.id}`}
+                        >
+                          {isOpen ? (
+                            <>
+                              Less <ChevronUp className="h-3 w-3" />
+                            </>
+                          ) : (
+                            <>
+                              More <ChevronDown className="h-3 w-3" />
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                    {isOpen && (
+                      <tr
+                        id={`milestone-details-${m.id}`}
+                        className="border-b border-[#F3EEE6] bg-[#FAF8F5] align-middle"
+                      >
+                        <td colSpan={DEFAULT_GATE_COLUMNS.length + 2} className="py-3 pr-4">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-xs font-medium text-[#667085]">All gates:</span>
+                            {DETAIL_GATE_COLUMNS.map((c) => (
+                              <div key={c.key} className="flex items-center gap-1.5 rounded-md border border-[#E8E1D6] bg-white px-2 py-1">
+                                <span className="text-[10px] uppercase tracking-wide text-[#667085]">
+                                  {c.label}
+                                </span>
+                                <GateChip state={gates[c.key] as GateState} />
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 );
               })}
             </tbody>
