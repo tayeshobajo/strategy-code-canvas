@@ -76,23 +76,35 @@ type NavItem = {
     | "/engine/delivery"
     | "/engine/execution"
     | "/engine/operations"
-    | "/engine/intelligence";
+    | "/engine/intelligence"
+    | "/engine/strategic-sales"
+    | "/engine/settings";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
 };
 
-const NAV: NavItem[] = [
+// Sprint 1 · Wave 1 — the six-item global shell from the design brief.
+const PRIMARY_NAV: NavItem[] = [
   { to: "/engine", label: "Command Center", icon: LayoutDashboard, exact: true },
   { to: "/engine/projects", label: "Projects", icon: FolderKanban },
   { to: "/engine/approvals", label: "Approvals", icon: ClipboardCheck },
+  { to: "/engine/operations", label: "Operations", icon: Globe2 },
+  { to: "/engine/strategic-sales", label: "Strategic Sales", icon: TrendingUp },
+  { to: "/engine/settings", label: "Settings", icon: Settings },
+];
+
+// Existing surfaces still live in the engine — collapsed into a secondary
+// group so the primary shell stays clean.
+const SECONDARY_NAV: NavItem[] = [
   { to: "/engine/templates", label: "Templates", icon: FileStack },
   { to: "/engine/review", label: "Review & Approvals", icon: ClipboardCheck },
   { to: "/engine/delivery", label: "Delivery Room", icon: PackageCheck },
   { to: "/engine/execution", label: "Execution Tracker", icon: Activity },
-  { to: "/engine/operations", label: "Global Operations", icon: Globe2 },
   { to: "/engine/intelligence", label: "Intelligence Memory", icon: BrainCircuit },
 ];
+
+const NAV: NavItem[] = [...PRIMARY_NAV, ...SECONDARY_NAV];
 
 function EngineLayout() {
   const navigate = useNavigate();
