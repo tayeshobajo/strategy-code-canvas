@@ -308,6 +308,7 @@ export const listMilestoneApprovalHistory = createServerFn({ method: "GET" })
       created_at: string;
       metadata: Record<string, unknown> | null;
     }>;
+  });
 
 export const sendMilestoneToTasks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
