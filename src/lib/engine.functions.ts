@@ -1716,6 +1716,13 @@ export type ProjectSpinePayload = {
     health_score: number;
     updated_at: string;
     client_portal_project_id: string | null;
+    /**
+     * Phase 1A — durable truth status per Spine section, aggregated from
+     * `engine_spine_field_truth`. Null when no field-truth rows exist.
+     * Only `approved_truth` counts as approved anywhere in the app.
+     */
+    point_a_status: SpineFieldStatus | null;
+    point_b_status: SpineFieldStatus | null;
   };
   nba: NextBestAction;
   sources: {
