@@ -1003,6 +1003,12 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           }}
           atReview={step >= STEP_REVIEW}
         />
+        {/* Quiet phase line under the path — reads as understanding, not a counter. */}
+        {step >= 0 && step < STEP_REVIEW && (
+          <p className="mx-auto mt-4 max-w-[520px] text-center font-display italic text-[13px] leading-[1.65] text-ink/50">
+            {progress < 0.5 ? "We are finding your starting point" : "Mapping where you need to be"}
+          </p>
+        )}
 
 
 
