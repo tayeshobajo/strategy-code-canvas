@@ -779,42 +779,51 @@ function ProjectJourney({ data }: { data: CommandCenterPayload }) {
           View pipeline →
         </Link>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
-        {JOURNEY_STAGES.map((stage) => {
-          const s = byStage.get(stage);
-          const muted = !s || s.count === 0;
-          return (
-            <div
-              key={stage}
-              className={cn(
-                "rounded-xl border p-3 text-xs",
-                muted ? "border-[#EFE9DC] bg-[#FBF9F4] text-[#98A2B3]" : "border-[#E8E1D6] bg-white text-[#334155]",
-              )}
-            >
-              <div className="font-mono text-[9px] uppercase tracking-widest">{stage}</div>
-              <div className={cn("mt-1 font-display text-2xl", muted ? "text-[#C8CFD9]" : "text-[#0A0F1F]")}>
-                {s?.count ?? 0}
-              </div>
-              <ul className="mt-2 space-y-0.5">
-                {(s?.projects ?? []).slice(0, 3).map((p) => (
-                  <li key={p.id} className="truncate">
-                    <Link
-                      to="/engine/projects/$projectId/overview"
-                      params={{ projectId: p.id }}
-                      className="hover:text-[#0A0F1F]"
-                    >
-                      {p.name}
-                    </Link>
-                  </li>
-                ))}
-                {s && s.projects.length > 3 && (
-                  <li className="text-[#98A2B3]">+{s.projects.length - 3} more</li>
+      {Array.from(byStage.values()).reduce((n, s) => n + s.count, 0) === 0 ? (
+        <div className="mt-4 rounded-xl border border-dashed border-[#E8E1D6] bg-[#FBF9F4] px-4 py-6 text-center text-sm text-[#8A94A6]">
+          No projects in the pipeline yet. Once intakes land they show up here by stage.
+        </div>
+      ) : (
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+          {JOURNEY_STAGES.map((stage) => {
+            const s = byStage.get(stage);
+            const muted = !s || s.count === 0;
+            return (
+              <div
+                key={stage}
+                className={cn(
+                  "rounded-xl border p-3 text-xs",
+                  muted ? "border-[#EFE9DC] bg-[#FBF9F4] text-[#98A2B3]" : "border-[#E8E1D6] bg-white text-[#334155]",
                 )}
-              </ul>
-            </div>
-          );
-        })}
-      </div>
+              >
+                <div className="font-mono text-[9px] uppercase tracking-widest">{stage}</div>
+                <div className={cn("mt-1 font-display text-2xl", muted ? "text-[#C8CFD9]" : "text-[#0A0F1F]")}>
+                  {s?.count ?? 0}
+                </div>
+                <ul className="mt-2 space-y-0.5">
+                  {(s?.projects ?? []).slice(0, 3).map((p) => (
+                    <li key={p.id} className="truncate">
+                      <Link
+                        to="/engine/projects/$projectId/overview"
+                        params={{ projectId: p.id }}
+                        className="hover:text-[#0A0F1F]"
+                      >
+                        {p.name}
+                      </Link>
+                    </li>
+                  ))}
+                  {s && s.projects.length > 3 && (
+                    <li className="text-[#98A2B3]">+{s.projects.length - 3} more</li>
+                  )}
+                  {!muted && (s?.projects.length ?? 0) === 0 && (
+                    <li className="text-[#98A2B3]">Count only. Project names unavailable.</li>
+                  )}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
