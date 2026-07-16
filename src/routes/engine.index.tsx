@@ -41,10 +41,37 @@ const commandOpts = (fn: ReturnType<typeof useServerFn<typeof getCommandCenter>>
 export const Route = createFileRoute("/engine/")({
   head: () => ({ meta: [{ title: "Command Center — Trust Tai" }, { name: "robots", content: "noindex" }] }),
   component: CommandCenter,
+  pendingComponent: CommandCenterSkeleton,
   errorComponent: ({ error }) => (
     <div className="p-6 text-rose-600">Failed to load Command Center: {(error as Error).message}</div>
   ),
 });
+
+function CommandCenterSkeleton() {
+  return (
+    <div className="-mx-4 -my-7 min-h-full bg-[#FBF9F4] text-[#0A0F1F] sm:-mx-6 sm:-my-8 lg:-mx-8 lg:-my-10" aria-busy="true">
+      <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+          <div className="space-y-3">
+            <div className="h-3 w-24 animate-pulse rounded bg-[#EFE9DC]" />
+            <div className="h-8 w-64 animate-pulse rounded bg-[#EFE9DC]" />
+            <div className="h-4 w-48 animate-pulse rounded bg-[#EFE9DC]" />
+          </div>
+          <div className="h-40 animate-pulse rounded-2xl border border-[#E8E1D6] bg-white" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-48 animate-pulse rounded-2xl border border-[#E8E1D6] bg-white" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="h-72 animate-pulse rounded-2xl border border-[#E8E1D6] bg-white" />
+          <div className="h-72 animate-pulse rounded-2xl border border-[#E8E1D6] bg-white" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
