@@ -6,12 +6,23 @@ import {
   getProjectSpine,
   type EngineProjectStatus,
   type ProjectSpinePayload,
+  type SpineModuleSection,
 } from "@/lib/engine.functions";
 import { EngineStatusBadge, formatDate } from "@/components/engine/primitives";
 import { SpineVersionHistory } from "@/components/engine/SpineVersionHistory";
 import { SpineReadinessPanel } from "@/components/engine/SpineReadinessPanel";
-import { Lock, ChevronLeft } from "lucide-react";
+import {
+  Lock,
+  ChevronLeft,
+  ArrowRight,
+  CheckCircle2,
+  CircleDashed,
+  AlertTriangle,
+  Clock,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/engine/projects/$projectId/spine")({
   component: ProjectSpine,
