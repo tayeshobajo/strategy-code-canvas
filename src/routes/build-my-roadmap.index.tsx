@@ -1434,12 +1434,9 @@ function QuestionPanel({
   // Parse the eyebrow ("01 / where you are") so we can render only the section label —
   // the numeric prefix is dropped in favour of quiet phase language.
   const eyebrowTail = q.eyebrow.split(" / ").slice(1).join(" / ");
-  // Quiet phase language replaces the old "0N of 09" counter. Early
-  // questions belong to finding the starting point; the later ones map
-  // where the work goes.
-  const phaseLine = index < 4
-    ? "We are finding your starting point."
-    : "We are mapping where this goes.";
+  // Phase language lives under the Point A → Point B path (rendered by the
+  // parent), not here. Nothing counter-shaped appears above the question.
+
 
   const hasMirror = !!reflection?.text;
   const isLoading = reflection?.state === "loading";
