@@ -782,6 +782,8 @@ function TruthCardV2({
   bullets,
   sourceCount,
   approvedAt,
+  inspectorKey,
+  inspectorLabel,
 }: {
   point: "A" | "B";
   projectId: string;
@@ -789,7 +791,10 @@ function TruthCardV2({
   bullets: string[];
   sourceCount: number;
   approvedAt: string | null;
+  inspectorKey: string;
+  inspectorLabel: string;
 }) {
+  const { open } = useSourceInspector();
   const label = point === "A" ? "Point A" : "Point B";
   const subtitle =
     point === "A" ? "Where the business is today." : "Where the business is going.";
@@ -827,14 +832,33 @@ function TruthCardV2({
           <span>Sources: {sourceCount}</span>
           <span>Approved: {approvedAt ? formatDate(approvedAt) : "—"}</span>
         </div>
-        <Link
-          to={point === "A" ? "/engine/projects/$projectId/point-a" : "/engine/projects/$projectId/point-b"}
-          params={{ projectId }}
-          className="inline-flex items-center gap-1 font-medium text-[#3E68B2] hover:text-[#284f93]"
-        >
-          View details
-          <ArrowRight className="h-3 w-3" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            data-qa-role="inspect-source"
+            data-inspect-key={inspectorKey}
+            onClick={() =>
+              open({
+                projectId,
+                sectionKey: inspectorKey,
+                fieldKey: "summary",
+                label: inspectorLabel,
+                statement: bullets[0] ?? null,
+              })
+            }
+            className="inline-flex items-center gap-1 font-medium text-[#3E68B2] hover:text-[#284f93]"
+          >
+            Inspect sources
+            <ArrowRight className="h-3 w-3" />
+          </button>
+          <Link
+            to={point === "A" ? "/engine/projects/$projectId/point-a" : "/engine/projects/$projectId/point-b"}
+            params={{ projectId }}
+            className="inline-flex items-center gap-1 font-medium text-[#0A0F1F] hover:text-[#3E68B2]"
+          >
+            Open room
+          </Link>
+        </div>
       </div>
     </section>
   );
