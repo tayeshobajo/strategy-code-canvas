@@ -17,7 +17,6 @@ import {
   Wrench,
   Package,
   Compass,
-  LayoutDashboard,
   Map,
   Truck,
   ChevronDown,
@@ -54,7 +53,7 @@ export function WorkspaceBreadcrumb({
       </Link>
       <span className="text-ink/30">/</span>
       <Link
-        to="/engine/projects/$projectId/overview"
+        to="/engine/projects/$projectId/spine"
         params={{ projectId }}
         className="hover:text-ink"
       >
@@ -168,7 +167,7 @@ type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type NavEntry = { key: string; label: string; suffix: string; icon: Icon };
 
 const ALL_NAV: Record<string, NavEntry> = {
-  overview: { key: "overview", label: "Overview", suffix: "overview", icon: LayoutDashboard },
+  spine: { key: "spine", label: "Spine", suffix: "spine", icon: Network },
   intelligence: {
     key: "intelligence",
     label: "Intelligence",
@@ -258,7 +257,7 @@ function primaryNavFor(project: WorkspaceProject): NavEntry[] {
           ? 2
           : 1;
 
-  const items: NavEntry[] = [ALL_NAV.overview, ALL_NAV.intelligence];
+  const items: NavEntry[] = [ALL_NAV.spine, ALL_NAV.intelligence];
   if (stage >= 2) items.push(ALL_NAV.understanding);
   if (stage >= 3) items.push(ALL_NAV.roadmap);
   if (stage >= 4) items.push(ALL_NAV.delivery);
