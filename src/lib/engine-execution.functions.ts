@@ -243,6 +243,72 @@ export const approveMilestone = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const rejectMilestone = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({ id: z.string().uuid(), reason: z.string().max(500).optional() })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const email = (context as any).claims?.email ?? null;
+    const { data: m } = await sb
+      .from("engine_milestones")
+      .select("project_id,name")
+      .eq("id", data.id)
+      .single();
+    const { error } = await sb
+      .from("engine_milestones")
+      .update({
+        approval_status: "rejected",
+        approved_at: null,
+        approved_by_email: null,
+        status: "blocked",
+      })
+      .eq("id", data.id);
+    if (error) throwGeneric(error, "Operation failed");
+    if (m?.project_id) {
+      await sb.from("engine_audit_log").insert({
+        project_id: m.project_id,
+        actor_email: email,
+        action: "milestone_rejected",
+        summary: `Rejected milestone "${m.name}".${data.reason ? ` Reason: ${data.reason}` : ""}`,
+        affected_modules: ["milestones"],
+        target_id: data.id,
+        metadata: { reason: data.reason ?? null },
+      });
+    }
+    return { ok: true as const };
+  });
+
+export const listMilestoneApprovalHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ project_id: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = context.supabase as any;
+    const { data: rows, error } = await sb
+      .from("engine_audit_log")
+      .select("id,actor_email,action,summary,target_id,created_at,metadata")
+      .eq("project_id", data.project_id)
+      .in("action", ["milestone_approved", "milestone_rejected"])
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throwGeneric(error, "Operation failed");
+    return (rows ?? []) as Array<{
+      id: string;
+      actor_email: string | null;
+      action: "milestone_approved" | "milestone_rejected";
+      summary: string | null;
+      target_id: string | null;
+      created_at: string;
+      metadata: Record<string, unknown> | null;
+    }>;
+
 export const sendMilestoneToTasks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
