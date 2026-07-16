@@ -251,6 +251,8 @@ function HighestLeverageCard({ decision, onOpen }: { decision: Decision | null; 
       <button
         type="button"
         onClick={onOpen}
+        data-decision-id={decision.id}
+        aria-label={`Open decision: ${decision.what}`}
         className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-[#0A0F1F] transition hover:bg-[#F5F1E8]"
       >
         Review and decide <ArrowRight className="h-4 w-4" />
