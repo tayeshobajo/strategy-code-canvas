@@ -1703,6 +1703,23 @@ export type SpineMilestone = {
   sort_index: number;
   due_date: string | null;
   brief_md: string | null;
+  /**
+   * Phase 1A follow-up — durable readiness gates for the Milestone
+   * Readiness matrix. Computed from real records
+   * (frames / mockups / build packets / build evidence / QA plans /
+   * QA evidence reviews) scoped to this milestone, NOT from phase/status
+   * heuristics. See `deriveMilestoneGatesFromRecords`.
+   */
+  readiness: MilestoneGates & {
+    counts: {
+      frames: number;
+      mockups: number;
+      packets: number;
+      evidence: number;
+      qa_plans: number;
+      qa_reviews: number;
+    };
+  };
 };
 
 export type ProjectSpinePayload = {
