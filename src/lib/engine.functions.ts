@@ -1710,6 +1710,8 @@ export type ProjectSpinePayload = {
     point_b: import("@/lib/engine-workspace").Json;
     roadmap: import("@/lib/engine-workspace").Json;
     client_company: string;
+    client_owner_email: string | null;
+    health_score: number;
     updated_at: string;
     client_portal_project_id: string | null;
   };
@@ -1727,6 +1729,10 @@ export type ProjectSpinePayload = {
       started_at: string | null;
       finished_at: string | null;
     } | null;
+  };
+  intelligence: {
+    confidence: number | null;
+    signal_count: number;
   };
   version: {
     id: string;
