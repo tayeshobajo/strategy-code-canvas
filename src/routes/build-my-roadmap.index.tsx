@@ -1003,6 +1003,12 @@ function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRe
           }}
           atReview={step >= STEP_REVIEW}
         />
+        {/* Quiet phase line under the path — reads as understanding, not a counter. */}
+        {step >= 0 && step < STEP_REVIEW && (
+          <p className="mx-auto mt-4 max-w-[520px] text-center font-display italic text-[13px] leading-[1.65] text-ink/50">
+            {progress < 0.5 ? "We are finding your starting point" : "Mapping where you need to be"}
+          </p>
+        )}
 
 
 
@@ -1434,12 +1440,9 @@ function QuestionPanel({
   // Parse the eyebrow ("01 / where you are") so we can render only the section label —
   // the numeric prefix is dropped in favour of quiet phase language.
   const eyebrowTail = q.eyebrow.split(" / ").slice(1).join(" / ");
-  // Quiet phase language replaces the old "0N of 09" counter. Early
-  // questions belong to finding the starting point; the later ones map
-  // where the work goes.
-  const phaseLine = index < 4
-    ? "We are finding your starting point."
-    : "We are mapping where this goes.";
+  // Phase language lives under the Point A → Point B path (rendered by the
+  // parent), not here. Nothing counter-shaped appears above the question.
+
 
   const hasMirror = !!reflection?.text;
   const isLoading = reflection?.state === "loading";
@@ -1483,10 +1486,8 @@ function QuestionPanel({
         </p>
         <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
       </div>
-      {/* Quiet phase line — replaces the old "0N of 09" counter. */}
-      <p className="mt-3 text-center font-display italic text-[13px] leading-[1.65] text-ink/50">
-        {phaseLine}
-      </p>
+
+
 
 
       <h2 className="mx-auto mt-6 max-w-[760px] text-center font-display text-[clamp(1.55rem,2.4vw,1.95rem)] leading-[1.3] tracking-[-0.015em] text-ink">
