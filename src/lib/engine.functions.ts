@@ -2104,7 +2104,7 @@ export const getProjectSpine = createServerFn({ method: "GET" })
         .eq("project_id", data.id),
       sb
         .from("engine_project_qa_evidence_reviews")
-        .select("id,status,verdict,approved_at,build_packet_id,payload")
+        .select("id,status,verdict,approved_at,generated_by,openclaw_run_id,build_packet_id,payload")
         .eq("project_id", data.id),
     ]);
 
