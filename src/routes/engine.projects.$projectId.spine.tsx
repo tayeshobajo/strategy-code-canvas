@@ -1051,7 +1051,7 @@ function ProjectFoundationCard({
     : "On Track";
 
   const rows: Array<{ label: string; value: string; icon: ReactNode; link: SpineModuleKeyOrHome | null }> = [
-    { label: "Business Context", value: contextStrength, icon: <Sparkles className="h-3.5 w-3.5" />, link: "point_b" },
+    { label: "Business Context", value: contextStrength, icon: <Sparkles className="h-3.5 w-3.5" />, link: null },
     { label: "Assets & Leverage", value: `${dataCount(hidden)} Identified`, icon: <CheckCircle2 className="h-3.5 w-3.5" />, link: "hidden_assets" },
     { label: "Approved Scope", value: scopeReady, icon: <CheckCircle2 className="h-3.5 w-3.5" />, link: "blueprint" },
     { label: "Success Metrics", value: `${dataCount(successMetrics)} Defined`, icon: <CheckCircle2 className="h-3.5 w-3.5" />, link: "success_metrics" },
