@@ -356,22 +356,20 @@ function NextBestActionCard({
   projectId: string;
 }) {
   const tone = nba.severity ?? "info";
-  const toneClasses: Record<string, string> = {
+  const toneClasses: Record<"critical" | "warning" | "info", string> = {
     critical: "border-[#f3ced5] bg-gradient-to-br from-[#fbe9ec] to-white",
     warning: "border-[#f1e3b9] bg-gradient-to-br from-[#fbf3e0] to-white",
     info: "border-[#cdd6f3] bg-gradient-to-br from-[#e9eefb] to-white",
-    success: "border-[#c4e6d2] bg-gradient-to-br from-[#e6f5ec] to-white",
   };
   const icon =
     tone === "critical" ? (
       <AlertTriangle className="h-5 w-5 text-[#a4283c]" />
     ) : tone === "warning" ? (
       <Clock className="h-5 w-5 text-[#8a6713]" />
-    ) : tone === "success" ? (
-      <CheckCircle2 className="h-5 w-5 text-[#1f6b3b]" />
     ) : (
       <Sparkles className="h-5 w-5 text-[#3E68B2]" />
     );
+
 
   return (
     <section
