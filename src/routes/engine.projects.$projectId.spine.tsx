@@ -1181,20 +1181,28 @@ function FooterStatsBar({
   lastRunAt,
   projectCreatedAt,
   lastUpdatedAt,
+  intelligenceConfidence,
 }: {
   sourcesProcessed: number;
   sourcesTotal: number;
   lastRunAt: string | null;
   projectCreatedAt: string | null;
   lastUpdatedAt: string;
+  intelligenceConfidence: number | null;
 }) {
-  const confidence = sourcesTotal > 0
-    ? `${Math.min(99, Math.round((sourcesProcessed / sourcesTotal) * 100))}%`
-    : "—";
+  const confidence =
+    intelligenceConfidence !== null
+      ? `${intelligenceConfidence}%`
+      : sourcesTotal > 0
+        ? `${Math.min(99, Math.round((sourcesProcessed / sourcesTotal) * 100))}%`
+        : "—";
   return (
     <section className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
       <div className="grid grid-cols-2 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
-        <FooterStat label="Sources Processed" value={String(sourcesProcessed)} />
+        <FooterStat
+          label="Sources Processed"
+          value={sourcesTotal > 0 ? `${sourcesProcessed} of ${sourcesTotal}` : String(sourcesProcessed)}
+        />
         <FooterStat label="Last Intelligence Run" value={lastRunAt ? formatDateTime(lastRunAt) : "—"} />
         <FooterStat label="Intelligence Confidence" value={confidence} />
         <FooterStat label="Project Created" value={projectCreatedAt ? formatDate(projectCreatedAt) : "—"} />
