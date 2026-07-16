@@ -3422,7 +3422,7 @@ function SpineIncompleteBody({
         />
       </div>
 
-      <SpineReadinessPanel />
+      <SpineReadinessPanel projectId={projectId} />
 
       {contradictions.length ? (
         <section className="rounded-2xl border border-[#f1e3b9] bg-[#fbf6e4] p-5 shadow-sm">
