@@ -4,11 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
 import {
   getProjectSpine,
+  getProjectWorkspace,
   type EngineProjectStatus,
   type ProjectSpinePayload,
   type SpineModuleSection,
   type SpineModuleKey,
 } from "@/lib/engine.functions";
+import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
+import type { WorkspaceProject } from "@/lib/engine-workspace";
 import {
   approveMilestone,
   rejectMilestone,
