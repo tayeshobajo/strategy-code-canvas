@@ -59,6 +59,45 @@ type ModuleReadinessFilter = "all" | "ready" | "review" | "draft" | "missing";
 type ModuleCategoryFilter = "all" | "direct" | "derived";
 type ModuleSort = "label" | "readiness";
 
+/**
+ * Preflight for Export Client Roadmap.
+ *
+ * The client-facing PDF renders Point A, Point B, phased roadmap, blueprint
+ * nodes, and milestones with `client_facing` copy. If any of those are
+ * missing the operator would ship a hollow file to the client, so we block
+ * export and surface exactly what to fix.
+ */
+export function validateClientRoadmapExport(project: WorkspaceProject): {
+  ok: boolean;
+  missing: string[];
+} {
+  const missing: string[] = [];
+  const pointA = (project.point_a ?? {}) as { key_diagnosis?: string };
+  const pointB = (project.point_b ?? {}) as Record<string, string | undefined>;
+  const phases =
+    ((project.investment as { phases?: Array<{ name: string; client_facing?: string }> })?.phases) ??
+    [];
+  const nodes =
+    ((project.blueprint as { nodes?: Array<{ name: string }> })?.nodes) ?? [];
+  const milestones =
+    ((project.roadmap as {
+      milestones?: Array<{ name: string; client_facing?: string }>;
+    })?.milestones) ?? [];
+
+  if (!pointA.key_diagnosis?.trim()) missing.push("Point A · executive diagnosis is empty");
+  if (!pointB["24_month_destination"]?.trim())
+    missing.push("Point B · 24-month destination is empty");
+  if (phases.length === 0) missing.push("No investment phases have been defined");
+  if (nodes.length === 0) missing.push("System blueprint has no nodes");
+  if (milestones.length === 0) missing.push("Roadmap has no milestones");
+  else if (!milestones.some((m) => m.client_facing?.trim()))
+    missing.push(
+      `No milestones have client-facing copy (${milestones.length} internal-only)`,
+    );
+
+  return { ok: missing.length === 0, missing };
+}
+
 function ProjectSpine() {
   const { projectId } = Route.useParams();
   const spineFn = useServerFn(getProjectSpine);
