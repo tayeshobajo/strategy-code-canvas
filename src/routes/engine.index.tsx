@@ -1030,6 +1030,8 @@ function DecisionRow({ d, now, onSelect }: { d: Decision; now: number; onSelect:
       <button
         type="button"
         onClick={() => onSelect(d.id)}
+        data-decision-id={d.id}
+        aria-label={`Open decision: ${d.what}`}
         className="grid w-full grid-cols-1 items-start gap-3 px-5 py-4 text-left transition hover:bg-[#FBF9F4] md:grid-cols-[minmax(0,1fr)_auto] md:gap-6"
       >
         <div className="min-w-0">
