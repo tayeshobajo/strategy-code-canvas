@@ -597,11 +597,17 @@ function RoadmapSummaryCard({
   milestones,
   groupedMilestones,
   scopeItems,
+  onApprove,
+  onReject,
+  pendingMilestoneId,
 }: {
   version: ProjectSpinePayload["version"];
   milestones: ProjectSpinePayload["milestones"];
   groupedMilestones: Array<[string, ProjectSpinePayload["milestones"]]>;
   scopeItems: string[];
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  pendingMilestoneId: string | null;
 }) {
   const approvedCount = milestones.filter((m) => m.approval_status === "approved").length;
   const totalMilestones = milestones.length;
@@ -653,14 +659,51 @@ function RoadmapSummaryCard({
                 {phase}
               </div>
               <ul className="mt-2 space-y-2 text-sm text-[#0A0F1F]">
-                {list.slice(0, 5).map((m) => (
-                  <li key={m.id} className="flex items-start justify-between gap-3">
-                    <span className="truncate">{m.name}</span>
-                    <GenericBadge tone={toneForApproval(m.approval_status)}>
-                      {humanize(m.approval_status)}
-                    </GenericBadge>
-                  </li>
-                ))}
+                {list.slice(0, 5).map((m) => {
+                  const isPending = pendingMilestoneId === m.id;
+                  const isApproved = m.approval_status === "approved";
+                  const isRejected = m.approval_status === "rejected";
+                  return (
+                    <li key={m.id} className="flex flex-col gap-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="truncate">{m.name}</span>
+                        <GenericBadge tone={toneForApproval(m.approval_status)}>
+                          {humanize(m.approval_status)}
+                        </GenericBadge>
+                      </div>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          disabled={isPending || isApproved}
+                          onClick={() => onApprove(m.id)}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition",
+                            isApproved
+                              ? "border-[#c4e6d2] bg-[#e6f5ec] text-[#1f6b3b] cursor-default"
+                              : "border-[#c4e6d2] bg-white text-[#1f6b3b] hover:bg-[#e6f5ec] disabled:opacity-50",
+                          )}
+                        >
+                          <Check className="h-3 w-3" />
+                          {isPending ? "…" : "Approve"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isPending || isRejected}
+                          onClick={() => onReject(m.id)}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition",
+                            isRejected
+                              ? "border-[#f3ced5] bg-[#fbe9ec] text-[#a4283c] cursor-default"
+                              : "border-[#f3ced5] bg-white text-[#a4283c] hover:bg-[#fbe9ec] disabled:opacity-50",
+                          )}
+                        >
+                          <X className="h-3 w-3" />
+                          {isPending ? "…" : "Reject"}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
                 {list.length > 5 ? (
                   <li className="text-xs text-[#667085]">+{list.length - 5} more</li>
                 ) : null}
@@ -691,16 +734,161 @@ function RoadmapSummaryCard({
   );
 }
 
+function ModuleGridControls({
+  readiness,
+  onReadinessChange,
+  category,
+  onCategoryChange,
+  sort,
+  onSortChange,
+  modules,
+}: {
+  readiness: ModuleReadinessFilter;
+  onReadinessChange: (v: ModuleReadinessFilter) => void;
+  category: ModuleCategoryFilter;
+  onCategoryChange: (v: ModuleCategoryFilter) => void;
+  sort: ModuleSort;
+  onSortChange: (v: ModuleSort) => void;
+  modules: SpineModuleSection[];
+}) {
+  const counts = useMemo(() => {
+    const c = { all: modules.length, ready: 0, review: 0, draft: 0, missing: 0 };
+    for (const m of modules) {
+      const s = deriveModuleState(m);
+      if (s === "ready") c.ready++;
+      else if (s === "review") c.review++;
+      else if (s === "draft" || s === "approved-no-data") c.draft++;
+      else c.missing++;
+    }
+    return c;
+  }, [modules]);
+
+  const readinessOptions: Array<{ key: ModuleReadinessFilter; label: string; count: number }> = [
+    { key: "all", label: "All", count: counts.all },
+    { key: "ready", label: "Approved", count: counts.ready },
+    { key: "review", label: "In review", count: counts.review },
+    { key: "draft", label: "Draft", count: counts.draft },
+    { key: "missing", label: "Missing", count: counts.missing },
+  ];
+  const categoryOptions: Array<{ key: ModuleCategoryFilter; label: string }> = [
+    { key: "all", label: "All" },
+    { key: "direct", label: "Module" },
+    { key: "derived", label: "Derived" },
+  ];
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#E8E1D6] bg-[#FBF9F4] p-3">
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+          Readiness
+        </span>
+        {readinessOptions.map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            onClick={() => onReadinessChange(opt.key)}
+            className={cn(
+              "rounded-full border px-2.5 py-1 text-xs transition",
+              readiness === opt.key
+                ? "border-[#0A0F1F] bg-[#0A0F1F] text-white"
+                : "border-[#E8E1D6] bg-white text-[#0A0F1F] hover:border-[#0A0F1F]/40",
+            )}
+          >
+            {opt.label} <span className="opacity-70">({opt.count})</span>
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+          Category
+        </span>
+        {categoryOptions.map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            onClick={() => onCategoryChange(opt.key)}
+            className={cn(
+              "rounded-full border px-2.5 py-1 text-xs transition",
+              category === opt.key
+                ? "border-[#0A0F1F] bg-[#0A0F1F] text-white"
+                : "border-[#E8E1D6] bg-white text-[#0A0F1F] hover:border-[#0A0F1F]/40",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <div className="ml-auto flex items-center gap-2 text-xs text-[#667085]">
+        <label htmlFor="module-sort" className="font-mono text-[10px] uppercase tracking-[0.22em]">
+          Sort
+        </label>
+        <select
+          id="module-sort"
+          value={sort}
+          onChange={(e) => onSortChange(e.target.value as ModuleSort)}
+          className="rounded-md border border-[#E8E1D6] bg-white px-2 py-1 text-xs text-[#0A0F1F] focus:border-[#3E68B2] focus:outline-none"
+        >
+          <option value="readiness">Readiness (approved first)</option>
+          <option value="label">Name (A → Z)</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+const READINESS_RANK: Record<ModuleUiState, number> = {
+  ready: 0,
+  review: 1,
+  "approved-no-data": 2,
+  draft: 3,
+  missing: 4,
+};
+
 function ModuleReadinessGrid({
   modules,
   projectId,
+  filter,
+  category,
+  sort,
 }: {
   modules: SpineModuleSection[];
   projectId: string;
+  filter: ModuleReadinessFilter;
+  category: ModuleCategoryFilter;
+  sort: ModuleSort;
 }) {
+  const filtered = useMemo(() => {
+    const list = modules.filter((m) => {
+      if (category === "direct" && m.derived) return false;
+      if (category === "derived" && !m.derived) return false;
+      if (filter === "all") return true;
+      const s = deriveModuleState(m);
+      if (filter === "ready") return s === "ready";
+      if (filter === "review") return s === "review";
+      if (filter === "draft") return s === "draft" || s === "approved-no-data";
+      if (filter === "missing") return s === "missing";
+      return true;
+    });
+    return list.sort((a, b) => {
+      if (sort === "label") return a.label.localeCompare(b.label);
+      return (
+        READINESS_RANK[deriveModuleState(a)] - READINESS_RANK[deriveModuleState(b)] ||
+        a.label.localeCompare(b.label)
+      );
+    });
+  }, [modules, filter, category, sort]);
+
+  if (filtered.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[#E8E1D6] bg-white p-6 text-center text-sm text-[#667085]">
+        No modules match the current filters.
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {modules.map((m) => (
+      {filtered.map((m) => (
         <ModuleReadinessTile key={m.key} module={m} projectId={projectId} />
       ))}
     </div>
