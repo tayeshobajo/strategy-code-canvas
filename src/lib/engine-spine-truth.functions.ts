@@ -153,6 +153,8 @@ export const getSpineFieldHistory = createServerFn({ method: "GET" })
         new_value: null,
         change_reason: (t.stale_reason as string | null) ?? null,
         actor_email: (t.updated_by_email as string | null) ?? null,
+        section_key: (t.spine as string | null) ?? data.sectionKey,
+        field_key: (t.field_key as string | null) ?? data.fieldKey,
         created_at: String(t.updated_at),
         source: "truth",
       });
