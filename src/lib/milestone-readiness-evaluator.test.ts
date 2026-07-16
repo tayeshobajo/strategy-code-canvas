@@ -72,7 +72,10 @@ describe("design & mockups gates", () => {
   });
   it("mockups tracked separately from frames", () => {
     const withMock = { ...empty, mockups: [{ approved_at: "2026-01-01" }] };
-    const g = deriveMilestoneGatesFromRecords({}, withMock);
+    const g = deriveMilestoneGatesFromRecords(
+      { acceptance_criteria: ["a"], approval_status: "approved" },
+      withMock,
+    );
     expect(g.mockups).toBe("done");
     expect(g.design).toBe("not_configured");
   });
@@ -84,42 +87,49 @@ describe("build & evidence gates", () => {
   });
   it("build in_progress with any packet, done when all accepted", () => {
     expect(
-      deriveMilestoneGatesFromRecords({}, { ...empty, packets: [{ status: "in_review" }] }).build,
+      deriveMilestoneGatesFromRecords(ready, { ...empty, packets: [{ status: "in_review" }] }).build,
     ).toBe("in_progress");
     expect(
-      deriveMilestoneGatesFromRecords({}, { ...empty, packets: [{ status: "accepted" }] }).build,
+      deriveMilestoneGatesFromRecords(ready, { ...empty, packets: [{ status: "accepted" }] }).build,
     ).toBe("done");
   });
   it("evidence: not_started when packets exist but no evidence; done with any evidence", () => {
-    const packetsOnly: MilestoneDurableRecords = { ...empty, packets: [{ status: "in_review" }] };
-    expect(deriveMilestoneGatesFromRecords({}, packetsOnly).evidence).toBe("not_started");
+    const packetsOnly: MilestoneDurableRecords = { ...empty, packets: [{ status: "accepted" }] };
+    expect(deriveMilestoneGatesFromRecords(ready, packetsOnly).evidence).toBe("not_started");
     const withEv: MilestoneDurableRecords = {
       ...packetsOnly,
       evidence: [{ evidence_type: "screenshot" }],
     };
-    expect(deriveMilestoneGatesFromRecords({}, withEv).evidence).toBe("done");
+    expect(deriveMilestoneGatesFromRecords(ready, withEv).evidence).toBe("done");
   });
 });
 
 describe("automated vs human QA gates", () => {
+  // QA gate mapping is independent of build/evidence — assert the raw
+  // classification by pairing reviews with satisfied predecessors.
+  const qaReady: MilestoneDurableRecords = {
+    ...empty,
+    packets: [{ status: "accepted" }],
+    evidence: [{ evidence_type: "screenshot" }],
+  };
   it("splits reviews by generator", () => {
     const rec: MilestoneDurableRecords = {
-      ...empty,
+      ...qaReady,
       qa_reviews: [
         { verdict: "pass", generated_by: "ai" },
         { verdict: "fail", generated_by: "human" },
       ],
     };
-    const g = deriveMilestoneGatesFromRecords({}, rec);
+    const g = deriveMilestoneGatesFromRecords(ready, rec);
     expect(g.qa_auto).toBe("done");
     expect(g.qa_human).toBe("review");
   });
   it("openclaw_run_id classifies as automated", () => {
     const rec: MilestoneDurableRecords = {
-      ...empty,
+      ...qaReady,
       qa_reviews: [{ verdict: "pass", openclaw_run_id: "r_1" }],
     };
-    expect(deriveMilestoneGatesFromRecords({}, rec).qa_auto).toBe("done");
+    expect(deriveMilestoneGatesFromRecords(ready, rec).qa_auto).toBe("done");
   });
   it("qa_human review when only a plan exists", () => {
     const rec: MilestoneDurableRecords = { ...empty, qa_plans: [{ status: "draft" }] };
