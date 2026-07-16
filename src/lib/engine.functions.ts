@@ -6,6 +6,12 @@ import type { WorkspaceProject, WorkspaceStepKey } from "@/lib/engine-workspace"
 import { WORKSPACE_STEPS } from "@/lib/engine-workspace";
 import { aggregateSpineStatus } from "@/lib/spine-truth-status";
 import type { SpineFieldStatus } from "@/lib/spine-contract";
+import {
+  deriveMilestoneGatesFromRecords,
+  payloadMatchesMilestone,
+  type MilestoneDurableRecords,
+  type MilestoneGates,
+} from "@/lib/milestone-readiness-evaluator";
 
 const databaseUuid = z
   .string()
