@@ -183,6 +183,7 @@ function ProjectSpine() {
         />
       ) : null}
 
+      {variant === "active" ? (<>
       {/* ───── Hero row: NBA + Snapshot ───── */}
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <HeroNextBestActionCard
@@ -512,6 +513,11 @@ function ProjectSpine() {
       </section>
 
       <NotificationsCard notifications={spine.notifications} />
+      </>) : variant === "incomplete" ? (
+        <SpineIncompleteBody spine={spine} projectId={projectId} />
+      ) : (
+        <SpineClientReadyBody spine={spine} projectId={projectId} />
+      )}
     </div>
   );
 }
@@ -3264,6 +3270,197 @@ function SpineVariantBanner({
         </div>
       </div>
     </section>
+  );
+}
+
+/* ─────────────── Wave 2 · Body variants ─────────────── */
+
+function SpineIncompleteBody({
+  spine,
+  projectId,
+}: {
+  spine: ProjectSpinePayload;
+  projectId: string;
+}) {
+  const pointA = asRecord(spine.project.point_a);
+  const pointB = asRecord(spine.project.point_b);
+  const contradictions = spine.notifications.filter(
+    (n) => n.kind === "contradiction" || n.kind === "warning" || n.kind === "critical",
+  );
+  return (
+    <div className="space-y-6" data-qa-body="incomplete">
+      <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#8a6713]">
+          Focus · Resolve understanding
+        </div>
+        <h2 className="mt-1 font-display text-xl leading-tight text-[#0A0F1F]">
+          The spine needs approved truth before delivery can start.
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-[#3f4a63]">
+          Work here until Point A and Point B are approved. Operational surfaces
+          (milestones, approvals, delivery) unlock automatically once the
+          understanding gate closes.
+        </p>
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <TruthCardV2
+          point="A"
+          projectId={projectId}
+          approvedFlag={hasMeaningfulValue(spine.project.point_a)}
+          bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
+          sourceCount={spine.sources.total}
+          approvedAt={spine.version?.approved_at ?? null}
+          inspectorKey="point_a"
+          inspectorLabel="Point A — Current Reality"
+        />
+        <TruthCardV2
+          point="B"
+          projectId={projectId}
+          approvedFlag={hasMeaningfulValue(spine.project.point_b)}
+          bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
+          sourceCount={spine.sources.total}
+          approvedAt={spine.version?.approved_at ?? null}
+          inspectorKey="point_b"
+          inspectorLabel="Point B — Desired Future"
+        />
+      </div>
+
+      <SpineReadinessPanel />
+
+      {contradictions.length ? (
+        <section className="rounded-2xl border border-[#f1e3b9] bg-[#fbf6e4] p-5 shadow-sm">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#8a6713]">
+            Open questions & contradictions ({contradictions.length})
+          </div>
+          <ul className="mt-3 space-y-2 text-sm text-[#3f4a63]">
+            {contradictions.slice(0, 8).map((n) => (
+              <li key={n.id} className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8a6713]" />
+                <div>
+                  <div className="font-medium text-[#0A0F1F]">{n.title}</div>
+                  {n.body ? <div className="text-xs text-[#667085]">{n.body}</div> : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <NotificationsCard notifications={spine.notifications} />
+    </div>
+  );
+}
+
+function SpineClientReadyBody({
+  spine,
+  projectId,
+}: {
+  spine: ProjectSpinePayload;
+  projectId: string;
+}) {
+  const pointA = asRecord(spine.project.point_a);
+  const pointB = asRecord(spine.project.point_b);
+  const approvedMilestones = spine.milestones.filter((m) => m.approval_status === "approved");
+  const publish = spine.portal_publish;
+  return (
+    <div className="space-y-6" data-qa-body="client-ready">
+      <section className="rounded-2xl border border-[#c9e6d3] bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#1f6b3b]">
+              Portal publish
+            </div>
+            <h2 className="mt-1 font-display text-xl leading-tight text-[#0A0F1F]">
+              {publish ? humanize(publish.status) : "Not yet published"}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-[#3f4a63]">
+              {publish?.published_at
+                ? `Last published ${formatDateTime(publish.published_at)}.`
+                : "Nothing has reached the client portal yet. Publish when ready."}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/engine/projects/$projectId/preview"
+              params={{ projectId }}
+              className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-white px-4 py-2 text-sm font-medium text-[#0A0F1F] transition hover:bg-[#FBF9F4]"
+            >
+              Open portal preview
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              to="/engine/projects/$projectId/publish-history"
+              params={{ projectId }}
+              className="inline-flex items-center gap-2 rounded-full bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440]"
+            >
+              Re-publish
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <TruthCardV2
+          point="A"
+          projectId={projectId}
+          approvedFlag={hasMeaningfulValue(spine.project.point_a)}
+          bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
+          sourceCount={spine.sources.total}
+          approvedAt={spine.version?.approved_at ?? null}
+          inspectorKey="point_a"
+          inspectorLabel="Point A — Current Reality"
+        />
+        <TruthCardV2
+          point="B"
+          projectId={projectId}
+          approvedFlag={hasMeaningfulValue(spine.project.point_b)}
+          bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
+          sourceCount={spine.sources.total}
+          approvedAt={spine.version?.approved_at ?? null}
+          inspectorKey="point_b"
+          inspectorLabel="Point B — Desired Future"
+        />
+      </div>
+
+      <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+              Approved milestones ({approvedMilestones.length})
+            </div>
+            <div className="text-sm text-[#3f4a63]">
+              Client-facing roll-up. Everything below is safe to send.
+            </div>
+          </div>
+        </div>
+        {approvedMilestones.length ? (
+          <ul className="mt-4 divide-y divide-[#F3EEE6]">
+            {approvedMilestones.map((m, i) => (
+              <li key={m.id} className="py-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="font-display text-[15px] text-[#0A0F1F]">
+                    {i + 1}. {m.name}
+                  </div>
+                  <div className="text-[11px] text-[#667085]">
+                    {m.phase ? humanize(m.phase) : ""}
+                    {m.due_date ? ` · ${formatDate(m.due_date)}` : ""}
+                  </div>
+                </div>
+                {m.brief_md ? (
+                  <p className="mt-1 text-sm text-[#3f4a63]">{m.brief_md}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-[#667085]">No milestones approved yet.</p>
+        )}
+      </section>
+
+      <NotificationsCard notifications={spine.notifications} />
+    </div>
   );
 }
 

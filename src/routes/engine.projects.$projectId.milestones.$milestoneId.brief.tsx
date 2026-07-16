@@ -17,6 +17,7 @@ import {
 } from "@/lib/engine-execution.functions";
 import { recordIntelligenceDecision } from "@/lib/engine-intelligence.functions";
 import { useEngineRole } from "@/hooks/useEngineRole";
+import { MilestoneTabs } from "@/components/engine/MilestoneTabs";
 
 export const Route = createFileRoute("/engine/projects/$projectId/milestones/$milestoneId/brief")({
   component: MilestoneBriefPage,
@@ -130,6 +131,7 @@ function MilestoneBriefPage() {
 
   return (
     <div className="space-y-5 max-w-[1500px]">
+      <MilestoneTabs projectId={projectId} milestoneId={milestoneId} milestoneName={m?.name ?? null} />
       {/* Breadcrumb */}
       <nav className="text-xs text-ink/60 flex items-center gap-1.5">
         <Link to="/engine/projects" className="hover:text-ink">Projects</Link>
