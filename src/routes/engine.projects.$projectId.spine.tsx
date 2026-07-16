@@ -38,6 +38,32 @@ import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useSourceInspector } from "@/hooks/use-source-inspector";
 import jsPDF from "jspdf";
+import type { SpineFieldStatus } from "@/lib/spine-contract";
+import {
+  presentationFor,
+  isApprovedTruth,
+  type SpineStatusPresentation,
+} from "@/lib/spine-truth-status";
+
+/**
+ * Map the richer 7-tone `SpineStatusPresentation` palette onto the 5
+ * tones supported by the existing `GenericBadge` primitive. Keeps the
+ * visual language identical to today's badges (approved = green,
+ * blocked = red, etc.) while letting the presentation module stay pure.
+ */
+function badgeToneFor(
+  tone: SpineStatusPresentation["tone"],
+): "neutral" | "approved" | "pending" | "blocked" | "info" {
+  switch (tone) {
+    case "approved":       return "approved";
+    case "verified":       return "info";
+    case "assumption":     return "info";
+    case "contradiction":  return "blocked";
+    case "review":         return "pending";
+    case "draft":          return "neutral";
+    case "history":        return "neutral";
+  }
+}
 
 
 export const Route = createFileRoute("/engine/projects/$projectId/spine")({
