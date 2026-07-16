@@ -861,7 +861,7 @@ function MilestoneReadinessMatrix({
 }) {
   const rows = milestones.slice(0, 6);
   return (
-    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+    <section id="spine-milestones" className="scroll-mt-4 rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="font-display text-lg text-[#0A0F1F]">Milestone Readiness</h2>
         <Link
