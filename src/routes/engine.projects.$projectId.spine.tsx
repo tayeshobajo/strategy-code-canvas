@@ -211,6 +211,8 @@ function ProjectSpine() {
           bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
+          inspectorKey="point_a"
+          inspectorLabel="Point A — Current Reality"
         />
         <TruthCardV2
           point="B"
@@ -219,6 +221,8 @@ function ProjectSpine() {
           bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
+          inspectorKey="point_b"
+          inspectorLabel="Point B — Desired Future"
         />
       </div>
 
