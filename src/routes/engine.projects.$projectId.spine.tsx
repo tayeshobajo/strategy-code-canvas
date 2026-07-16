@@ -3149,7 +3149,7 @@ function SpineVariantBanner({
     if (!hasMeaningfulValue(spine.project.point_a)) missing.push("Point A");
     if (!hasMeaningfulValue(spine.project.point_b)) missing.push("Point B");
     const contradictions = spine.notifications.filter(
-      (n) => n.severity === "critical" || n.severity === "warning",
+      (n) => n.kind === "contradiction" || n.kind === "warning" || n.kind === "critical",
     ).length;
     return (
       <section
