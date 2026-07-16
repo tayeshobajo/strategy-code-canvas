@@ -14,130 +14,147 @@ const empty: MilestoneDurableRecords = {
   qa_reviews: [],
 };
 
-describe("deriveMilestoneGatesFromRecords", () => {
-  it("returns all not_started + criteria not_started for a bare milestone", () => {
+describe("deriveMilestoneGatesFromRecords — defaults", () => {
+  it("renders not_configured for every backing-record gate on a bare milestone", () => {
     const g = deriveMilestoneGatesFromRecords({}, empty);
     expect(g).toEqual({
-      criteria: "not_started",
-      design: "not_started",
-      build: "not_started",
-      qa: "not_started",
+      criteria: "not_configured",
+      design: "not_configured",
+      mockups: "not_configured",
+      build: "not_configured",
+      evidence: "not_configured",
+      qa_auto: "not_configured",
+      qa_human: "not_configured",
+      due_date: "not_configured",
+      dependencies: "not_configured",
+      blockers: "done",
     });
   });
+});
 
-  it("maps milestone.approval_status onto criteria", () => {
+describe("criteria gate", () => {
+  it("stays not_configured until acceptance_criteria has content", () => {
     expect(
       deriveMilestoneGatesFromRecords({ approval_status: "approved" }, empty).criteria,
+    ).toBe("not_configured");
+  });
+  it("done only when approved with content", () => {
+    expect(
+      deriveMilestoneGatesFromRecords(
+        { acceptance_criteria: ["a"], approval_status: "approved" },
+        empty,
+      ).criteria,
     ).toBe("done");
-    expect(
-      deriveMilestoneGatesFromRecords({ approval_status: "pending" }, empty).criteria,
-    ).toBe("review");
-    expect(
-      deriveMilestoneGatesFromRecords({ approval_status: "needs_review" }, empty).criteria,
-    ).toBe("review");
-    expect(
-      deriveMilestoneGatesFromRecords({ approval_status: "rejected" }, empty).criteria,
-    ).toBe("blocked");
   });
-
-  it("design: any frame → review; approved frame → done", () => {
-    const withDraftFrame = { ...empty, frames: [{ status: "draft" }] };
-    expect(deriveMilestoneGatesFromRecords({}, withDraftFrame).design).toBe("review");
-
-    const withApprovedFrame = { ...empty, frames: [{ status: "approved" }] };
-    expect(deriveMilestoneGatesFromRecords({}, withApprovedFrame).design).toBe("done");
-
-    const withApprovedAt = { ...empty, mockups: [{ approved_at: "2026-07-16T00:00:00Z" }] };
-    expect(deriveMilestoneGatesFromRecords({}, withApprovedAt).design).toBe("done");
+  it("maps pending/needs_review/rejected", () => {
+    const ac = { acceptance_criteria: ["a"] };
+    expect(deriveMilestoneGatesFromRecords({ ...ac, approval_status: "pending" }, empty).criteria).toBe("review");
+    expect(deriveMilestoneGatesFromRecords({ ...ac, approval_status: "needs_review" }, empty).criteria).toBe("review");
+    expect(deriveMilestoneGatesFromRecords({ ...ac, approval_status: "rejected" }, empty).criteria).toBe("blocked");
+    expect(deriveMilestoneGatesFromRecords({ ...ac }, empty).criteria).toBe("not_started");
   });
+});
 
-  it("build: any packet/evidence → in_progress; all accepted → done", () => {
-    const anyPacket: MilestoneDurableRecords = {
-      ...empty,
-      packets: [{ status: "in_review" }],
-    };
-    expect(deriveMilestoneGatesFromRecords({}, anyPacket).build).toBe("in_progress");
+describe("design & mockups gates", () => {
+  it("design: not_configured → review → done", () => {
+    expect(deriveMilestoneGatesFromRecords({}, { ...empty, frames: [{ status: "draft" }] }).design).toBe("review");
+    expect(deriveMilestoneGatesFromRecords({}, { ...empty, frames: [{ status: "approved" }] }).design).toBe("done");
+  });
+  it("mockups tracked separately from frames", () => {
+    const withMock = { ...empty, mockups: [{ approved_at: "2026-01-01" }] };
+    const g = deriveMilestoneGatesFromRecords({}, withMock);
+    expect(g.mockups).toBe("done");
+    expect(g.design).toBe("not_configured");
+  });
+});
 
-    const allAccepted: MilestoneDurableRecords = {
-      ...empty,
-      packets: [{ status: "accepted" }, { accepted_at: "2026-07-16T00:00:00Z" }],
-    };
-    expect(deriveMilestoneGatesFromRecords({}, allAccepted).build).toBe("done");
-
-    const mixed: MilestoneDurableRecords = {
-      ...empty,
-      packets: [{ status: "accepted" }, { status: "in_review" }],
-    };
-    expect(deriveMilestoneGatesFromRecords({}, mixed).build).toBe("in_progress");
-
-    const evidenceOnly: MilestoneDurableRecords = {
-      ...empty,
+describe("build & evidence gates", () => {
+  it("build not_configured when no packets", () => {
+    expect(deriveMilestoneGatesFromRecords({}, empty).build).toBe("not_configured");
+  });
+  it("build in_progress with any packet, done when all accepted", () => {
+    expect(
+      deriveMilestoneGatesFromRecords({}, { ...empty, packets: [{ status: "in_review" }] }).build,
+    ).toBe("in_progress");
+    expect(
+      deriveMilestoneGatesFromRecords({}, { ...empty, packets: [{ status: "accepted" }] }).build,
+    ).toBe("done");
+  });
+  it("evidence: not_started when packets exist but no evidence; done with any evidence", () => {
+    const packetsOnly: MilestoneDurableRecords = { ...empty, packets: [{ status: "in_review" }] };
+    expect(deriveMilestoneGatesFromRecords({}, packetsOnly).evidence).toBe("not_started");
+    const withEv: MilestoneDurableRecords = {
+      ...packetsOnly,
       evidence: [{ evidence_type: "screenshot" }],
     };
-    expect(deriveMilestoneGatesFromRecords({}, evidenceOnly).build).toBe("in_progress");
+    expect(deriveMilestoneGatesFromRecords({}, withEv).evidence).toBe("done");
   });
+});
 
-  it("qa: passing review → done; any plan/review → review", () => {
-    const passing: MilestoneDurableRecords = {
+describe("automated vs human QA gates", () => {
+  it("splits reviews by generator", () => {
+    const rec: MilestoneDurableRecords = {
       ...empty,
-      qa_reviews: [{ verdict: "pass" }],
+      qa_reviews: [
+        { verdict: "pass", generated_by: "ai" },
+        { verdict: "fail", generated_by: "human" },
+      ],
     };
-    expect(deriveMilestoneGatesFromRecords({}, passing).qa).toBe("done");
-
-    const planOnly: MilestoneDurableRecords = {
-      ...empty,
-      qa_plans: [{ status: "draft" }],
-    };
-    expect(deriveMilestoneGatesFromRecords({}, planOnly).qa).toBe("review");
-
-    const reviewNoVerdict: MilestoneDurableRecords = {
-      ...empty,
-      qa_reviews: [{ verdict: "fail" }],
-    };
-    expect(deriveMilestoneGatesFromRecords({}, reviewNoVerdict).qa).toBe("review");
+    const g = deriveMilestoneGatesFromRecords({}, rec);
+    expect(g.qa_auto).toBe("done");
+    expect(g.qa_human).toBe("review");
   });
+  it("openclaw_run_id classifies as automated", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      qa_reviews: [{ verdict: "pass", openclaw_run_id: "r_1" }],
+    };
+    expect(deriveMilestoneGatesFromRecords({}, rec).qa_auto).toBe("done");
+  });
+  it("qa_human review when only a plan exists", () => {
+    const rec: MilestoneDurableRecords = { ...empty, qa_plans: [{ status: "draft" }] };
+    expect(deriveMilestoneGatesFromRecords({}, rec).qa_human).toBe("review");
+  });
+});
 
-  it("blocked milestone forces gates to blocked when work is not done", () => {
+describe("due_date, dependencies, blockers", () => {
+  it("due_date done when set, else not_configured", () => {
+    expect(deriveMilestoneGatesFromRecords({ due_date: "2026-08-01" }, empty).due_date).toBe("done");
+    expect(deriveMilestoneGatesFromRecords({ due_date: null }, empty).due_date).toBe("not_configured");
+  });
+  it("dependencies: empty→not_configured, all satisfied→done, else review", () => {
+    expect(deriveMilestoneGatesFromRecords({ dependencies: [] }, empty).dependencies).toBe("not_configured");
+    expect(
+      deriveMilestoneGatesFromRecords({ dependencies: [{ status: "done" }, { satisfied: true }] }, empty).dependencies,
+    ).toBe("done");
+    expect(
+      deriveMilestoneGatesFromRecords({ dependencies: [{ status: "waiting" }] }, empty).dependencies,
+    ).toBe("review");
+  });
+  it("blockers reflects milestone.status=blocked", () => {
+    expect(deriveMilestoneGatesFromRecords({}, empty).blockers).toBe("done");
+    expect(deriveMilestoneGatesFromRecords({ status: "blocked" }, empty).blockers).toBe("blocked");
+  });
+  it("blocked milestone flips in-flight artifact gates to blocked but leaves done gates alone", () => {
     const rec: MilestoneDurableRecords = {
       ...empty,
       frames: [{ status: "draft" }],
+      mockups: [{ status: "approved" }],
       packets: [{ status: "in_review" }],
-      qa_plans: [{ status: "draft" }],
     };
     const g = deriveMilestoneGatesFromRecords({ status: "blocked" }, rec);
     expect(g.design).toBe("blocked");
+    expect(g.mockups).toBe("done");
     expect(g.build).toBe("blocked");
-    expect(g.qa).toBe("blocked");
-  });
-
-  it("blocked milestone keeps 'done' when durable evidence proves the gate is complete", () => {
-    const rec: MilestoneDurableRecords = {
-      ...empty,
-      frames: [{ status: "approved" }],
-      packets: [{ status: "accepted" }],
-      qa_reviews: [{ verdict: "pass" }],
-    };
-    const g = deriveMilestoneGatesFromRecords(
-      { status: "blocked", approval_status: "rejected" },
-      rec,
-    );
-    expect(g.criteria).toBe("blocked");
-    expect(g.design).toBe("done");
-    expect(g.build).toBe("done");
-    expect(g.qa).toBe("done");
   });
 });
 
 describe("payloadMatchesMilestone", () => {
   const id = "11111111-1111-1111-1111-111111111111";
-  it("matches milestone_id", () => {
+  it("matches milestone_id / milestoneId / milestone_ids", () => {
     expect(payloadMatchesMilestone({ milestone_id: id }, id)).toBe(true);
-  });
-  it("matches camelCase milestoneId", () => {
     expect(payloadMatchesMilestone({ milestoneId: id }, id)).toBe(true);
-  });
-  it("matches milestone_ids array", () => {
-    expect(payloadMatchesMilestone({ milestone_ids: ["other", id] }, id)).toBe(true);
+    expect(payloadMatchesMilestone({ milestone_ids: ["x", id] }, id)).toBe(true);
   });
   it("rejects unrelated payloads", () => {
     expect(payloadMatchesMilestone(null, id)).toBe(false);

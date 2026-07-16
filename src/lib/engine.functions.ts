@@ -2065,10 +2065,16 @@ export const getProjectSpine = createServerFn({ method: "GET" })
     // Milestones + tasks
     const { data: msRows } = await sb
       .from("engine_milestones")
-      .select("id,name,phase,status,approval_status,sort_index,due_date,brief_md")
+      .select(
+        "id,name,phase,status,approval_status,sort_index,due_date,brief_md,acceptance_criteria,dependencies",
+      )
       .eq("project_id", data.id)
       .order("sort_index", { ascending: true });
-    const rawMilestones = (msRows ?? []) as Array<Omit<SpineMilestone, "readiness">>;
+    type MilestoneRow = Omit<SpineMilestone, "readiness"> & {
+      acceptance_criteria: unknown;
+      dependencies: unknown;
+    };
+    const rawMilestones = (msRows ?? []) as Array<MilestoneRow>;
 
     // Phase 1A follow-up — load durable records used by the Milestone
     // Readiness matrix. All are project-scoped; the evaluator filters by
@@ -2098,7 +2104,7 @@ export const getProjectSpine = createServerFn({ method: "GET" })
         .eq("project_id", data.id),
       sb
         .from("engine_project_qa_evidence_reviews")
-        .select("id,status,verdict,approved_at,build_packet_id,payload")
+        .select("id,status,verdict,approved_at,generated_by,openclaw_run_id,build_packet_id,payload")
         .eq("project_id", data.id),
     ]);
 
