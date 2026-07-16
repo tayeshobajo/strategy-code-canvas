@@ -26,15 +26,11 @@ export const Route = createFileRoute("/engine/projects/$projectId")({
 
 function WorkspaceLayout() {
   const { projectId } = Route.useParams();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const fn = useServerFn(getProjectWorkspace);
   const { data, error, isError, isPending } = useQuery(
     workspaceQueryOptions(projectId, fn as unknown as (i: { data: { id: string } }) => Promise<unknown>),
   );
   const workspace = data as { project: import("@/lib/engine-workspace").WorkspaceProject };
-
-  const currentStep =
-    WORKSPACE_STEPS.find((s) => pathname.endsWith(`/${s.key}`))?.label ?? "Project Overview";
 
   if (isPending) {
     return (
