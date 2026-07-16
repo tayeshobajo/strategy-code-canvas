@@ -46,6 +46,7 @@ import {
   isApprovedTruth,
   type SpineStatusPresentation,
 } from "@/lib/spine-truth-status";
+import type { SpineVariant } from "@/lib/spine-variant";
 
 /**
  * Map the richer 7-tone `SpineStatusPresentation` palette onto the 5
@@ -212,7 +213,21 @@ function ProjectSpine() {
   const pointB = asRecord(spine.project.point_b);
   const scopeItems = collectScope(spine.version?.payload);
   const groupedMilestones = groupMilestones(spine.milestones);
-  const sourceTotal = Math.max(spine.sources.total, 1);
+  // Server-owned read model (see src/lib/spine-variant.ts). Doctrine lives
+  // on the server; the route just reads.
+  const view = spine.view;
+  const variant = view.variant;
+  const pendingApprovalsCount = view.counts.pending_approvals;
+  const approvedMilestoneCount = view.counts.approved_milestones;
+  const blockedItemsCount = view.counts.blocked_items;
+  const sourceTotal = view.counts.source_total_safe;
+  // `next_milestone` in the view carries just id/name/due_date. Some
+  // downstream cards want the full milestone row (`.phase`, `.brief_md`,
+  // etc.) so we re-hydrate against the milestones array here.
+  const nextMilestone = view.next_milestone
+    ? spine.milestones.find((m) => m.id === view.next_milestone!.id) ?? null
+    : null;
+
   const historyRows = historyQ.data ?? [];
   const pendingMilestoneId =
     approveMut.isPending
@@ -220,27 +235,6 @@ function ProjectSpine() {
       : rejectMut.isPending
         ? (rejectMut.variables as string | undefined) ?? null
         : null;
-
-  const pendingApprovalsCount = spine.reviews.length;
-  const approvedMilestoneCount = spine.milestones.filter(
-    (m) => m.approval_status === "approved",
-  ).length;
-  const blockedItemsCount =
-    spine.milestones.filter((m) => m.status === "blocked" || m.approval_status === "rejected")
-      .length +
-    spine.activity.filter((a) => a.severity === "critical").length;
-  const nextMilestone = [...spine.milestones]
-    .filter((m) => m.due_date)
-    .sort(
-      (a, b) => new Date(a.due_date as string).getTime() - new Date(b.due_date as string).getTime(),
-    )[0];
-
-  const variant = deriveSpineVariant(
-    isApprovedTruth(spine.project.point_a_status),
-    isApprovedTruth(spine.project.point_b_status),
-    spine.milestones,
-    spine.portal_publish,
-  );
 
   const handleExportClientRoadmap = () => {
     const workspace = workspaceQ.data as
@@ -3305,28 +3299,10 @@ function onlyUnique(value: string, index: number, array: string[]) {
 
 /* ────────────── Sprint 1 · Wave 1 — Spine variant selector ──────────────
  *
- * The same Spine page renders three variants depending on where the
- * project stands. The variant selector switches only the top banner and
- * the primary CTA — all downstream cards (NBA, snapshot, foundation,
- * milestones, evidence) stay in place so context never resets between
- * variants. Contract mirrors `doctrine/PROJECT_SPINE_CONTRACT.md` §5.
+ * The variant is selected server-side inside `getProjectSpine` and exposed
+ * as `spine.view.variant`. Doctrine mirror:
+ * `doctrine/PROJECT_SPINE_CONTRACT.md` §5 and `src/lib/spine-variant.ts`.
  */
-type SpineVariant = "incomplete" | "active" | "client_ready";
-
-function deriveSpineVariant(
-  pointAApproved: boolean,
-  pointBApproved: boolean,
-  milestones: ProjectSpinePayload["milestones"],
-  publish: ProjectSpinePayload["portal_publish"],
-): SpineVariant {
-  if (!pointAApproved || !pointBApproved) return "incomplete";
-  const allMilestonesApproved =
-    milestones.length > 0 && milestones.every((m) => m.approval_status === "approved");
-  const publishedOrReady =
-    !!publish && ["published", "ready_to_publish", "acknowledged"].includes(publish.status);
-  if (allMilestonesApproved || publishedOrReady) return "client_ready";
-  return "active";
-}
 
 function SpineVariantBanner({
   variant,

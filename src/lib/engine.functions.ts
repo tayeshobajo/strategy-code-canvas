@@ -4,8 +4,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import type { WorkspaceProject, WorkspaceStepKey } from "@/lib/engine-workspace";
 import { WORKSPACE_STEPS } from "@/lib/engine-workspace";
-import { aggregateSpineStatus } from "@/lib/spine-truth-status";
+import { aggregateSpineStatus, isApprovedTruth } from "@/lib/spine-truth-status";
 import type { SpineFieldStatus } from "@/lib/spine-contract";
+import { composeSpineView } from "@/lib/spine-variant";
 import {
   deriveMilestoneGatesFromRecords,
   payloadMatchesMilestone,
@@ -1809,6 +1810,13 @@ export type ProjectSpinePayload = {
     created_at: string;
   }>;
   modules: SpineModuleSection[];
+  /**
+   * Server-owned read model — variant selection, section ordering, and
+   * derived counts. Consumers must read from `view` instead of
+   * recomputing these client-side. Doctrine: PROJECT_SPINE_CONTRACT.md §5.
+   * See `src/lib/spine-variant.ts`.
+   */
+  view: import("@/lib/spine-variant").SpineView;
 };
 
 /**
@@ -2432,6 +2440,21 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       notifications,
       audit,
       modules,
+      view: composeSpineView({
+        pointAApproved: isApprovedTruth(point_a_status),
+        pointBApproved: isApprovedTruth(point_b_status),
+        milestones: milestones.map((m) => ({
+          id: m.id,
+          name: m.name,
+          approval_status: m.approval_status,
+          status: m.status,
+          due_date: m.due_date,
+        })),
+        portal_publish,
+        reviews,
+        activity,
+        sources,
+      }),
     };
   });
 
