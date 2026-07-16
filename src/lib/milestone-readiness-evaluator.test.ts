@@ -149,6 +149,129 @@ describe("due_date, dependencies, blockers", () => {
   });
 });
 
+describe("mockups N/A when not required", () => {
+  it("renders not_applicable when mockups_required=false and no mockup records", () => {
+    const g = deriveMilestoneGatesFromRecords({ mockups_required: false }, empty);
+    expect(g.mockups).toBe("not_applicable");
+  });
+  it("still evaluates records when mockups_required=false but records exist", () => {
+    const g = deriveMilestoneGatesFromRecords(
+      { mockups_required: false },
+      { ...empty, mockups: [{ status: "approved" }] },
+    );
+    expect(g.mockups).toBe("done");
+  });
+  it("not_applicable satisfies predecessor ordering for downstream build", () => {
+    const g = deriveMilestoneGatesFromRecords(
+      {
+        acceptance_criteria: ["a"],
+        approval_status: "approved",
+        mockups_required: false,
+      },
+      { ...empty, packets: [{ status: "accepted" }] },
+    );
+    expect(g.mockups).toBe("not_applicable");
+    expect(g.build).toBe("done");
+  });
+});
+
+describe("predecessor ordering — downstream cannot complete before prerequisites", () => {
+  const approvedCriteria = {
+    acceptance_criteria: ["a"],
+    approval_status: "approved",
+  };
+
+  it("caps mockups/build/QA when criteria is not done", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      mockups: [{ status: "approved" }],
+      packets: [{ status: "accepted" }],
+      evidence: [{ evidence_type: "screenshot" }],
+      qa_reviews: [
+        { verdict: "pass", generated_by: "ai" },
+        { verdict: "pass", generated_by: "human" },
+      ],
+    };
+    // criteria missing → not_configured
+    const g = deriveMilestoneGatesFromRecords({}, rec);
+    expect(g.criteria).toBe("not_configured");
+    expect(g.mockups).not.toBe("done");
+    expect(g.build).not.toBe("done");
+    expect(g.evidence).not.toBe("done");
+    expect(g.qa_auto).not.toBe("done");
+    expect(g.qa_human).not.toBe("done");
+  });
+
+  it("caps build/evidence/QA when required mockups are not done", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      mockups: [{ status: "draft" }], // review, not done
+      packets: [{ status: "accepted" }],
+      evidence: [{ evidence_type: "screenshot" }],
+      qa_reviews: [{ verdict: "pass", generated_by: "ai" }],
+    };
+    const g = deriveMilestoneGatesFromRecords(approvedCriteria, rec);
+    expect(g.mockups).toBe("review");
+    expect(g.build).not.toBe("done");
+    expect(g.evidence).not.toBe("done");
+    expect(g.qa_auto).not.toBe("done");
+  });
+
+  it("caps QA when build is incomplete", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      packets: [{ status: "in_review" }],
+      evidence: [{ evidence_type: "screenshot" }],
+      qa_reviews: [
+        { verdict: "pass", generated_by: "ai" },
+        { verdict: "pass", generated_by: "human" },
+      ],
+    };
+    const g = deriveMilestoneGatesFromRecords(
+      { ...approvedCriteria, mockups_required: false },
+      rec,
+    );
+    expect(g.build).toBe("in_progress");
+    expect(g.qa_auto).not.toBe("done");
+    expect(g.qa_human).not.toBe("done");
+  });
+
+  it("caps QA when evidence is missing even though build is done", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      packets: [{ status: "accepted" }],
+      qa_reviews: [{ verdict: "pass", generated_by: "ai" }],
+    };
+    const g = deriveMilestoneGatesFromRecords(
+      { ...approvedCriteria, mockups_required: false },
+      rec,
+    );
+    expect(g.build).toBe("done");
+    expect(g.evidence).toBe("not_started");
+    expect(g.qa_auto).not.toBe("done");
+  });
+
+  it("allows the full chain to be done when every predecessor is satisfied", () => {
+    const rec: MilestoneDurableRecords = {
+      ...empty,
+      mockups: [{ status: "approved" }],
+      packets: [{ status: "accepted" }],
+      evidence: [{ evidence_type: "screenshot" }],
+      qa_reviews: [
+        { verdict: "pass", generated_by: "ai" },
+        { verdict: "pass", generated_by: "human" },
+      ],
+    };
+    const g = deriveMilestoneGatesFromRecords(approvedCriteria, rec);
+    expect(g.criteria).toBe("done");
+    expect(g.mockups).toBe("done");
+    expect(g.build).toBe("done");
+    expect(g.evidence).toBe("done");
+    expect(g.qa_auto).toBe("done");
+    expect(g.qa_human).toBe("done");
+  });
+});
+
 describe("payloadMatchesMilestone", () => {
   const id = "11111111-1111-1111-1111-111111111111";
   it("matches milestone_id / milestoneId / milestone_ids", () => {
