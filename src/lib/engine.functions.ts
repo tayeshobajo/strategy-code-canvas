@@ -1989,6 +1989,12 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       confidence: intelligenceConfidence,
       signal_count: sigConfArr.length,
     };
+
+    // Latest roadmap version
+    const { data: verRows } = await sb
+      .from("engine_roadmap_versions")
+      .select("id,label,status,created_at,approved_at,payload")
+      .eq("project_id", data.id)
       .order("created_at", { ascending: false })
       .limit(1);
     const version = verRows && verRows[0] ? verRows[0] : null;
