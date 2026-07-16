@@ -1,123 +1,120 @@
-# Project Spine 2.0 — 7-Phase Build Plan
+# Sprint 1 — Project Spine 2.0: eight wired frames
 
-Freezes the product frame you defined before Strategic Sales is added. Each phase ends with a commit and a `.orchestrator/phase-X-output.md` note. Nothing is merged that leaves the app broken.
+Real routes, using live spine data, styled in the existing Trust Tai token system (royal / paper / ink, font-display + font-mono, rounded-2xl cards). No throwaway mockups. Each frame consumes the same approved project truth so the operating model validates end-to-end.
 
-## Ground truth we're building on
+## The eight frames
 
-The repo is already closer than it looks:
-- `/engine/projects/$projectId/` **already redirects to `/spine`** (`engine.projects.$projectId.index.tsx`).
-- `ProjectTabs.tsx` already renders exactly the five tabs you specified (Spine / Roadmap / Work / QA & Delivery / Client View).
-- `WorkspaceStepper.tsx` exists but is **not mounted** anywhere.
-- `WorkspaceToolbar` (in `WorkspaceHeader.tsx`) still renders a second, stage-derived primary nav (Overview / Intelligence / Understanding / Roadmap / Delivery / Chat) alongside a `More` menu with 30+ processing rooms. This is the visible "14-step" surface today.
-- `engine.projects.$projectId.overview.tsx` (738 lines) is still reachable as its own tab.
-- `spine.tsx` (2919 lines) already has ~90% of Spine 2.0's regions; missing pieces are Foundation strip, Milestone Readiness matrix polish, Captain Brief real content, and Client Export readiness.
-- `getProjectSpine` in `src/lib/engine.functions.ts` is the correct read-model to extend.
+1. **Project Shell & Navigation** — global chrome + project chrome
+2. **Project Spine — Incomplete** (state A)
+3. **Project Spine — Active** (state B)
+4. **Project Spine — Client Ready** (state C)
+5. **Source & Truth Inspector** — global drawer
+6. **Milestone Brief & Acceptance** — workspace tab
+7. **Milestone Mockups & Design Review** — workspace tab
+8. **Milestone Build + QA overview** — workspace tab
 
-## Phase 1 — Freeze the Spine contract (doctrine only)
+## Frame-by-frame
 
-**Deliverable:** `doctrine/PROJECT_SPINE_CONTRACT.md`. No code.
+### 1 — Project Shell
+- Global sidebar (`AppSidebar` under a `SidebarProvider` in `__root.tsx`): Command Center, Projects, Approvals, Operations, Strategic Sales, Settings. Collapsible to icons; persistent trigger in top bar.
+- Project sub-nav (`ProjectTabs`) keeps the five tabs already in place; polish only.
+- Persistent project actions in `SpinePageHeader` and reused on every project tab: **Ask Captain** (Link → `/chat`), **Pending Approvals** (count badge, anchor → `#spine-approvals` or global drawer), **Export Client Roadmap** (PDF), **Project Actions** menu with Sources & Intelligence, Decisions & History, AI Workspace, Project Family, Costs, Settings.
+- States: active / needs review / blocked / client-ready / parent-with-children / read-only / admin. Status chip on the project chrome; `EngineRoleGate` hides admin-only actions.
 
-Sections written:
-1. Canonical Spine sections (Header, NBA, Point A, Point B, Foundation {Business Context, Constraints & Risks, Assets & Leverage, Approved Scope, Success Measures, Decisions Pending}, Roadmap, Milestone Readiness, Approvals & Blockers, Captain Brief, Collapsed Detail).
-2. Per-field record shape: `status`, `source_refs[]`, `confidence`, `version`, `updated_by`, `approved_by`, `approved_at`, `change_reason`.
-3. State machine: `draft → inferred → needs_confirmation → contradictory → accepted_assumption → verified → approved_truth → superseded`.
-4. Spine Readiness gate — the 14 conditions you listed, expressed as booleans over the read model.
-5. Client-safe field list (which Spine fields cross into Client Roadmap Studio, which never do).
-6. Milestone Readiness row schema (Criteria / Mockups / Build / QA / Due + conditional-tab flags).
-7. Explicit rule: subsystems produce drafts; only approved values populate Spine cards.
+### 2 — Spine Incomplete (state A)
+- Chooses this variant when `spine_readiness.point_a.approved === false` OR `spine_readiness.point_b.approved === false`.
+- Suppresses empty foundation cards. Instead:
+  - Identity header (name / owner / captain / target).
+  - "Understanding progress" bar: sources processed, signals extracted, confidence.
+  - **What is known** vs **What remains missing** — driven by `SPINE_READINESS_CHECKS` (already exported from `src/lib/spine-contract.ts`) and the readiness helper in `src/lib/engine-spine-readiness.functions.ts`.
+  - Point A / Point B readiness cards with **missing keys** list from `spine_points_approved` RPC.
+  - Material contradictions surfaced from `spine.notifications` where severity=critical.
+  - Single Captain recommendation → primary CTA **Resolve Understanding Gaps** deep-linking to the first blocking evaluator's `deep_link_pattern`.
 
-This doc is the reference every later phase points at. No DB or UI changes.
+### 3 — Spine Active (state B)
+- Refines the existing `ProjectSpine` component. Same structural regions as today; tightened:
+  - Header strip: client · phase · health · owner · captain · target · roadmap version · pending approval count.
+  - Hero NBA card unchanged.
+  - Point A / Point B as concise cards: approved statement, 3–5 material truths, success direction, source count, approval, deep link.
+  - Foundation strip (2×3): Business Context, Approved Scope, Constraints, Risks, Assets & Leverage, Success Metrics + Important Decisions.
+  - Business Roadmap Summary strip (phase list with health dots).
+  - Milestone Readiness Matrix (already present) — add "Mockups" column between Criteria and Build, keep gate chips.
+  - Approvals + Captain Brief cards.
+  - Working Focus strip stays for progress + upcoming dates + deep links.
 
-## Phase 2 — Simplify the project shell
+### 4 — Spine Client Ready (state C)
+- Chooses this variant when `spine_readiness.ready === true` AND client-safe fields whitelist is complete.
+- Replaces the Foundation strip with a **Client Export Readiness** panel:
+  - Roadmap completeness ✓
+  - Milestone rationale complete ✓
+  - Investment ranges ✓
+  - Timeline ✓
+  - Client-safe summary ready ✓
+  - Publication status (current published version, client acknowledgment)
+- Primary CTA becomes **Export Client Roadmap** (already wired) + secondary **Open Roadmap Studio** (Sprint 3 placeholder route — stub link acceptable).
 
-**Deliverable:** the operator sees exactly one project nav.
+State selector: a small `deriveSpineVariant(readiness, publish)` helper returns `'incomplete' | 'active' | 'client_ready'`. Rendered variant swaps the two variable regions only — header, NBA, milestone matrix, evidence rail, footer are shared.
 
-- `WorkspaceToolbar` in `src/components/engine/WorkspaceHeader.tsx`: remove the stage-derived primary nav row (Overview/Intelligence/Understanding/Roadmap/Delivery/Chat). Keep the toolbar's persistent actions (Ask Captain, Approvals count, Export Client Roadmap, Project Actions).
-- Collapse `MORE_SECTIONS` from four groups into the doctrine-defined single "Project Actions" menu: `Sources & Intelligence` (fronts the whole Intelligence group), `Decisions & History`, `AI Workspace`, `Costs`, `Project Family`, `Settings`. Deep routes stay reachable via `Sources & Intelligence` submenu.
-- Confirm `ProjectTabs` (five tabs) is the only primary nav in `engine.projects.$projectId.tsx`.
-- Route mapping (reuse existing routes; no new empty shells):
-  - Spine → `spine.tsx` (existing)
-  - Roadmap → `roadmap.tsx` / `builder.tsx` (pick `roadmap.tsx` as the tab target; keep `builder.tsx` as its detail)
-  - Work → `sequencing.tsx` composed with `deadlines.tsx` links
-  - QA & Delivery → `qa-delivery.tsx` (already exists)
-  - Client View → `client-view.tsx` (already exists)
-- **Overview page:** delete `engine.projects.$projectId.overview.tsx`, replace with a `beforeLoad` redirect file → `/spine`. Any inbound `/overview` link keeps working.
-- Remove `WorkspaceStepper.tsx` (dead file).
+### 5 — Source & Truth Inspector
+- Global drawer (`Sheet` from shadcn). Trigger: any approved Spine statement gets `role="button"` + `data-inspect-key`.
+- Opens with: approved statement, truth status, confidence, source list, original excerpts, Captain interpretation, assumptions, contradictions, changed by, approved by, version history, related roadmap items, **Edit / Propose Change** action.
+- New server function `getSourceInspection({ projectId, sectionKey, fieldKey })` in `src/lib/engine-source-inspection.functions.ts` — auth-gated via `requireSupabaseAuth`, reads from existing tables (sources, extraction, engine_activity, engine_review_items). No schema migration.
+- Two-click rule: Spine statement → drawer → source excerpt jump.
 
-## Phase 3 — Expand the Spine read model
+### 6 — Milestone Brief & Acceptance
+- Extends existing `engine.projects.$projectId.milestones.$milestoneId.brief.tsx`.
+- Brief section: what was found, why it matters, what it unlocks, business outcome, scope, exclusions, dependencies, risks, owner, timeline, investment.
+- Acceptance section: table of criteria (requirement · test method · evidence required · reviewer · approval authority · status). Row-level actions.
+- Primary action: **Approve Criteria and Unlock Design** (only visible with admin/reviewer role).
+- Reads from `engine_milestones` + a new `engine_milestone_criteria` shape — **schema addition needed**; written to `.orchestrator/PENDING_MIGRATIONS.md` and left unimplemented. Frontend renders a computed shim from milestone JSON in the meantime so the page is not blocked.
 
-**Deliverable:** `getProjectSpine` returns everything the Spine 2.0 page needs; no card renders placeholder data unless the underlying record truly doesn't exist.
+### 7 — Milestone Mockups & Design Review
+- New tab route: `milestones.$milestoneId.mockups.tsx`.
+- Only mounts when milestone `requires_design === true`; otherwise the tab is hidden.
+- Current approved mockup, version list, desktop/mobile toggles, comments, requested changes, client feedback, approval history, brand references, related acceptance criteria, compare-versions view. Actions: Approve / Approve with conditions / Request revision.
+- Reads from existing mockup builder tables where present; unknown fields shim to empty state.
 
-Extend `ProjectSpinePayload` (`src/lib/engine.functions.ts`) with — all as approved-only projections:
+### 8 — Milestone Build + QA overview
+- New tab routes: `milestones.$milestoneId.build.tsx` and `milestones.$milestoneId.qa.tsx` (shared shell, split content).
+- Build view: execution packets, human/agent assignments, approved inputs, do-not-touch boundaries, progress, dependencies, cost, agent runs, failed runs, returned work, next execution move. Packet opens a context-chain sheet (client statement → Point B → milestone → criterion → execution instruction).
+- QA view: acceptance criteria results, required evidence, uploaded evidence, automated tests, human QA status, rejected evidence, revision requests, completion gate, delivery readiness. Guardrail line at top: *Output is not proof. Evidence is not acceptance. Review is not delivery.*
 
-- `foundation`: `{ business_context, constraints, risks, assets, scope, success_measures, decisions_pending }` each `{ summary, status, source_count, approved_by, approved_at, deep_link }`.
-- `hidden_assets`, `gaps`, `blueprint`, `sequencing`, `deadlines`, `investment` — same envelope shape.
-- `spine_readiness`: `{ ready: boolean, checks: Array<{ id, label, passed, blocker_ref? }> }` computed against Phase-1 gate rules.
-- `milestone_readiness`: per-milestone `{ id, name, criteria, mockups, build, qa, due, deep_link, conditional_tabs }`.
-- `client_export_readiness`: `{ ready, missing_items[] }`.
-- `next_best_action`: replace current fallback with a computed choice from `engine_review_items` + readiness gate blockers.
+## Cross-cutting
 
-Reuse existing tables: `engine_review_items`, `engine_milestones`, `engine_activity`, `engine_audit_log`, `engine_extraction_facts`, `engine_spine_field_truth`. **No schema migration in this phase.** If a field genuinely needs a new column (e.g. Point B `client_acknowledged_at` isn't already durable), it goes in `.orchestrator/PENDING_MIGRATIONS.md` for Tai, not applied.
+- **Design tokens** — extend `src/styles.css` only where needed: new semantic tokens for `--color-gate-approved / pending / blocked / stale / rereview`, `--shadow-inspector`, one new `@utility` `scroll-strip` variant. No new palette, no new font.
+- **Motion** — respect `use-reduced-motion`. Drawer open, hero NBA glow, gate chip transitions only.
+- **Role gating** — every state-changing action wrapped in `hasRoleForEmail` check (existing `@/lib/ops/access`). Read-only viewers see a grey "read only" chip.
+- **Data** — all frames read from `getProjectSpine`, `getSpineReadiness`, `getCeremonySummary`, `getIntelligentNextAction`, `listReviewQueue`, `listMilestoneApprovalHistory`, and the new `getSourceInspection`. No frame invents data.
+- **Schema** — no migrations applied. Any new table/column proposed by these frames (milestone criteria, mockup versions, execution packets) is written to `.orchestrator/PENDING_MIGRATIONS.md` and the UI degrades to a shim until Tai approves.
+- **Client Roadmap Studio, Completeness Gate, Spartan preview, Client Portal frames** — deferred to Sprint 3 as originally scoped. Sprint 1 lands the operating model only.
 
-Payload stays additive so existing consumers keep compiling.
+## Route map (files touched or created)
 
-## Phase 4 — Build Project Spine 2.0
+- **Edit** `src/routes/__root.tsx` — global sidebar + `SidebarProvider`.
+- **Edit** `src/components/engine/WorkspaceHeader.tsx` — collapse "More" menu into Project Actions grouping matching the brief.
+- **Edit** `src/routes/engine.projects.$projectId.spine.tsx` — add `deriveSpineVariant`; extract `<SpineIncomplete />`, `<SpineActive />`, `<SpineClientReady />`.
+- **Create** `src/components/engine/SourceTruthInspector.tsx` (drawer) + `src/hooks/use-source-inspector.tsx` (context).
+- **Create** `src/lib/engine-source-inspection.functions.ts` (auth-gated server fn).
+- **Edit** `src/routes/engine.projects.$projectId.milestones.$milestoneId.brief.tsx` — full brief + acceptance table.
+- **Create** `src/routes/engine.projects.$projectId.milestones.$milestoneId.mockups.tsx`.
+- **Create** `src/routes/engine.projects.$projectId.milestones.$milestoneId.build.tsx`.
+- **Create** `src/routes/engine.projects.$projectId.milestones.$milestoneId.qa.tsx`.
+- **Create** `src/components/engine/MilestoneTabs.tsx` — sibling to `ProjectTabs`, mounted inside the milestone route.
+- **Append** `.orchestrator/PENDING_MIGRATIONS.md` — schema proposals for milestone_criteria, mockup_versions, execution_packets.
+- **Write** `.orchestrator/phase-spine2-sprint1-output.md` after each frame lands.
 
-**Deliverable:** `engine.projects.$projectId.spine.tsx` renders exactly the wireframe you specified.
+## Design gate (must pass before Sprint 2)
 
-- Header strip (existing) + persistent actions row (Ask Captain, Approvals(n), Export Client Roadmap, Project Actions).
-- Next Best Action card — driven by `spine.next_best_action` from Phase 3.
-- Point A / Point B two-column truth cards (existing, verify status + source count + approved-by chips).
-- **Foundation strip** — new 2×3 grid of `Business Context / Constraints & Risks / Assets & Leverage / Approved Scope / Success Measures / Decisions Pending`, each a summary card with `View details` deep link.
-- Business Roadmap horizontal strip — Point A → phases → Point B with current-phase marker and `Open Full Roadmap` link into Roadmap tab.
-- Milestone Readiness matrix — real DESIGN/BUILD/QA gate values from `milestone_readiness`, row click routes into that milestone workspace.
-- Approvals & Blockers card + Captain Brief card side-by-side, both from real data.
-- Collapsed detail: Decisions & Version History | Sources & Evidence | Recent Activity accordions.
+1. Operator understands the project in < 10 seconds on Spine Active.
+2. Any approved Spine conclusion → source excerpt in ≤ 2 clicks (inspector).
+3. A milestone moves Brief → Mockups → Build → QA without losing context chain.
+4. Operator always sees what blocks the next stage (readiness checks + gate chips).
+5. Client-Ready state confirms every input the Studio will need (even though the Studio itself is Sprint 3).
 
-The current spine page is refactored, not rewritten from scratch — existing subcomponents (`ProjectSnapshotCard`, `FooterStatsBar`, truth cards) are kept where they already do the right thing.
+## Execution order
 
-## Phase 5 — Milestone Workspaces
+Wave 1 (foundation, blocks nothing else): Project Shell, Spine Active refactor, Source & Truth Inspector.
+Wave 2 (branches on Wave 1): Spine Incomplete, Spine Client Ready.
+Wave 3 (milestone workspace, independent): Milestone Brief, Mockups, Build, QA.
 
-**Deliverable:** clicking any milestone row opens a dedicated workspace.
-
-New route tree under existing `engine.projects.$projectId.milestones.$milestoneId.*`:
-
-- `.brief.tsx` (exists — extend to full doctrine shape)
-- `.plan.tsx` — Plan & Acceptance
-- `.mockups.tsx` — **conditional**, only rendered when milestone's `conditional_tabs.mockups === true`
-- `.build.tsx` — Build & Execution (composes existing `build-execution` view scoped to milestone)
-- `.qa.tsx` — QA & Evidence (composes existing `evidence` / `qa-factory` scoped to milestone)
-- `.history.tsx` — scope/decision/version/drift audit
-
-Layout route `.milestones.$milestoneId.tsx` renders the milestone tab bar, deciding which tabs to show from milestone type (website / analytics / brand / integration → different minimum-sufficient gate paths). Gates enforce ordering: no Mockups approval before Criteria; no Build packet before Mockups (when applicable); no Delivery ready before QA passed.
-
-## Phase 6 — Client Roadmap Studio
-
-**Deliverable:** header's `Export Client Roadmap` opens a studio, not a download.
-
-- New route `engine.projects.$projectId.client-roadmap-studio.tsx`.
-- Studio flow: pick client-safe sections (from Phase-1 whitelist) → generate strategic narrative via `callLovableAi` → branding controls → image selection → preview desktop + PDF → run `client_export_readiness` gate → publish to portal / PDF / present.
-- Spartan template (`clients.spartan.tsx`) is refactored into a **renderer** that consumes the studio's output packet; it stops being a parallel data source.
-- Portal publish continues to go through existing approval boundary (Phase 13B) — the studio produces the approved packet, doesn't bypass the gate.
-
-## Phase 7 — Migration & cleanup
-
-- Redirect all deprecated deep links (`/overview`, individual intelligence rooms if they're moved) with `beforeLoad` redirects; preserve URL history.
-- Remove now-orphaned components after grepping references (`WorkspaceStepper`, stage-derived nav helper, any Overview-only subcomponents).
-- Playwright pass on `/spine`, one milestone workspace, and Client Roadmap Studio end-to-end.
-- Migrate one real project (Trust Tai's own) through the full flow to prove parity before broad rollout.
-- Update `.orchestrator/BUILD_STATE.md` marking Spine 2.0 frame frozen.
-
-## Guardrails carried through every phase
-
-- No schema migrations applied. Anything new goes to `.orchestrator/PENDING_MIGRATIONS.md`.
-- Existing subsystem routes stay reachable via `Sources & Intelligence` — nothing is deleted unless it has zero inbound references.
-- After each phase: `tsgo` clean, commit `feat(spine2-phaseN): …`, write `.orchestrator/phase-spine2-N-output.md`.
-- Client portal remains downstream-only of approved Spine state — Phase 6 does not weaken that boundary.
-
-## Technical notes
-
-- Extending `getProjectSpine` is preferred over a new server function so the whole Spine page stays one query — matches the existing loader pattern with TanStack Query (`ensureQueryData` + `useSuspenseQuery`).
-- Milestone workspace routes will use TanStack Start's file-based nested routing (`milestones.$milestoneId.tsx` as layout with `<Outlet />`).
-- Foundation and Milestone Readiness sections need `engine_spine_field_truth` generalized beyond Point A/B — Phase 3 reads whatever's there today and marks the rest `needs_confirmation`; a follow-up migration to persist truth for the other sections is queued in Phase 3's PENDING_MIGRATIONS entry.
-- Client Roadmap Studio's AI generation calls `callLovableAi` from `@/lib/engine-ai.server` — no new provider connectors.
+Each wave commits separately and lands with a `.orchestrator/phase-spine2-sprint1-*.md` output, per the CLAUDE.md doctrine.

@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { useSourceInspector } from "@/hooks/use-source-inspector";
 import jsPDF from "jspdf";
 
 
@@ -153,6 +154,13 @@ function ProjectSpine() {
       (a, b) => new Date(a.due_date as string).getTime() - new Date(b.due_date as string).getTime(),
     )[0];
 
+  const variant = deriveSpineVariant(
+    hasMeaningfulValue(spine.project.point_a),
+    hasMeaningfulValue(spine.project.point_b),
+    spine.milestones,
+    spine.portal_publish,
+  );
+
   return (
     <div className="space-y-6 text-[#0A0F1F]">
       {/* ───── Header row ───── */}
@@ -163,6 +171,9 @@ function ProjectSpine() {
         pendingApprovalsCount={pendingApprovalsCount}
         onExportPdf={() => exportSpinePdf(spine, historyRows)}
       />
+
+      {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
+      <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
 
       {approvalError ? (
         <ErrorBanner
@@ -201,6 +212,8 @@ function ProjectSpine() {
           bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
+          inspectorKey="point_a"
+          inspectorLabel="Point A — Current Reality"
         />
         <TruthCardV2
           point="B"
@@ -209,6 +222,8 @@ function ProjectSpine() {
           bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
+          inspectorKey="point_b"
+          inspectorLabel="Point B — Desired Future"
         />
       </div>
 
@@ -768,6 +783,8 @@ function TruthCardV2({
   bullets,
   sourceCount,
   approvedAt,
+  inspectorKey,
+  inspectorLabel,
 }: {
   point: "A" | "B";
   projectId: string;
@@ -775,7 +792,10 @@ function TruthCardV2({
   bullets: string[];
   sourceCount: number;
   approvedAt: string | null;
+  inspectorKey: string;
+  inspectorLabel: string;
 }) {
+  const { open } = useSourceInspector();
   const label = point === "A" ? "Point A" : "Point B";
   const subtitle =
     point === "A" ? "Where the business is today." : "Where the business is going.";
@@ -813,14 +833,33 @@ function TruthCardV2({
           <span>Sources: {sourceCount}</span>
           <span>Approved: {approvedAt ? formatDate(approvedAt) : "—"}</span>
         </div>
-        <Link
-          to={point === "A" ? "/engine/projects/$projectId/point-a" : "/engine/projects/$projectId/point-b"}
-          params={{ projectId }}
-          className="inline-flex items-center gap-1 font-medium text-[#3E68B2] hover:text-[#284f93]"
-        >
-          View details
-          <ArrowRight className="h-3 w-3" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            data-qa-role="inspect-source"
+            data-inspect-key={inspectorKey}
+            onClick={() =>
+              open({
+                projectId,
+                sectionKey: inspectorKey,
+                fieldKey: "summary",
+                label: inspectorLabel,
+                statement: bullets[0] ?? null,
+              })
+            }
+            className="inline-flex items-center gap-1 font-medium text-[#3E68B2] hover:text-[#284f93]"
+          >
+            Inspect sources
+            <ArrowRight className="h-3 w-3" />
+          </button>
+          <Link
+            to={point === "A" ? "/engine/projects/$projectId/point-a" : "/engine/projects/$projectId/point-b"}
+            params={{ projectId }}
+            className="inline-flex items-center gap-1 font-medium text-[#0A0F1F] hover:text-[#3E68B2]"
+          >
+            Open room
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -3070,3 +3109,161 @@ function formatDateTime(value: string | null | undefined): string {
 function onlyUnique(value: string, index: number, array: string[]) {
   return array.indexOf(value) === index;
 }
+
+/* ────────────── Sprint 1 · Wave 1 — Spine variant selector ──────────────
+ *
+ * The same Spine page renders three variants depending on where the
+ * project stands. The variant selector switches only the top banner and
+ * the primary CTA — all downstream cards (NBA, snapshot, foundation,
+ * milestones, evidence) stay in place so context never resets between
+ * variants. Contract mirrors `doctrine/PROJECT_SPINE_CONTRACT.md` §5.
+ */
+type SpineVariant = "incomplete" | "active" | "client_ready";
+
+function deriveSpineVariant(
+  pointAApproved: boolean,
+  pointBApproved: boolean,
+  milestones: ProjectSpinePayload["milestones"],
+  publish: ProjectSpinePayload["portal_publish"],
+): SpineVariant {
+  if (!pointAApproved || !pointBApproved) return "incomplete";
+  const allMilestonesApproved =
+    milestones.length > 0 && milestones.every((m) => m.approval_status === "approved");
+  const publishedOrReady =
+    !!publish && ["published", "ready_to_publish", "acknowledged"].includes(publish.status);
+  if (allMilestonesApproved || publishedOrReady) return "client_ready";
+  return "active";
+}
+
+function SpineVariantBanner({
+  variant,
+  projectId,
+  spine,
+}: {
+  variant: SpineVariant;
+  projectId: string;
+  spine: ProjectSpinePayload;
+}) {
+  if (variant === "incomplete") {
+    const missing: string[] = [];
+    if (!hasMeaningfulValue(spine.project.point_a)) missing.push("Point A");
+    if (!hasMeaningfulValue(spine.project.point_b)) missing.push("Point B");
+    const contradictions = spine.notifications.filter(
+      (n) => n.kind === "contradiction" || n.kind === "warning" || n.kind === "critical",
+    ).length;
+    return (
+      <section
+        data-qa-variant="incomplete"
+        className="rounded-2xl border border-[#f1e3b9] bg-[#fbf6e4] p-5 shadow-sm"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#8a6713]">
+              Spine · Incomplete
+            </div>
+            <h2 className="mt-1 font-display text-xl leading-tight text-[#0A0F1F]">
+              Understanding is still being resolved.
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-[#3f4a63]">
+              This Spine cannot be approved yet. {missing.length
+                ? `${missing.join(" and ")} ${missing.length === 1 ? "is" : "are"} not approved.`
+                : "Material questions remain open."}
+              {contradictions > 0
+                ? ` ${contradictions} unresolved contradiction${contradictions === 1 ? "" : "s"} in the record.`
+                : ""}
+            </p>
+          </div>
+          <Link
+            to="/engine/projects/$projectId/understanding-room"
+            params={{ projectId }}
+            data-qa-action="resolve-gaps"
+            className="inline-flex items-center gap-2 rounded-full bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440]"
+          >
+            Resolve Understanding Gaps
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  if (variant === "client_ready") {
+    const publish = spine.portal_publish;
+    return (
+      <section
+        data-qa-variant="client-ready"
+        className="rounded-2xl border border-[#c9e6d3] bg-[#eaf6ef] p-5 shadow-sm"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#1f6b3b]">
+              Spine · Client-Ready
+            </div>
+            <h2 className="mt-1 font-display text-xl leading-tight text-[#0A0F1F]">
+              This project is ready to speak to the client.
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-[#3f4a63]">
+              Point A, Point B, milestone rationale, and investment ranges are all
+              approved. {publish?.published_at
+                ? `Currently published: ${new Date(publish.published_at).toLocaleDateString()}.`
+                : "Nothing has been published to the client portal yet."}
+            </p>
+            <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-[#3f4a63] sm:grid-cols-3">
+              <li>· Roadmap completeness</li>
+              <li>· Milestone rationale</li>
+              <li>· Investment ranges</li>
+              <li>· Timeline</li>
+              <li>· Client-safe summary</li>
+              <li>· Client acknowledgment</li>
+            </ul>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="#spine-approvals"
+              className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-white px-4 py-2 text-sm font-medium text-[#0A0F1F] transition hover:bg-[#FBF9F4]"
+            >
+              Open Roadmap Studio
+              <ArrowRight className="h-3.5 w-3.5" />
+            </a>
+            <span
+              data-qa-hint="export-lives-in-header"
+              className="text-[11px] text-[#3f4a63]"
+            >
+              Export lives in the header ↑
+            </span>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Active — a lightweight confirmation strip so the operator sees which
+  // variant is in effect and how far they are from the next state gate.
+  const missingForClient: string[] = [];
+  if (spine.milestones.some((m) => m.approval_status !== "approved"))
+    missingForClient.push("all milestones approved");
+  if (!spine.portal_publish) missingForClient.push("portal publish check");
+  return (
+    <section
+      data-qa-variant="active"
+      className="rounded-2xl border border-[#d5e0f2] bg-[#eef3fb] p-4 shadow-sm"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#3E68B2]">
+            Spine · Active
+          </div>
+          <div className="mt-0.5 text-sm text-[#0A0F1F]">
+            Point A and Point B approved. Delivering against the roadmap.
+          </div>
+        </div>
+        <div className="text-[11px] text-[#3f4a63]">
+          {missingForClient.length
+            ? `To reach client-ready: ${missingForClient.join(", ")}.`
+            : "Ready to switch to client-ready on the next milestone approval."}
+        </div>
+      </div>
+    </section>
+  );
+}
+
