@@ -153,6 +153,13 @@ function ProjectSpine() {
       (a, b) => new Date(a.due_date as string).getTime() - new Date(b.due_date as string).getTime(),
     )[0];
 
+  const variant = deriveSpineVariant(
+    hasMeaningfulValue(spine.project.point_a),
+    hasMeaningfulValue(spine.project.point_b),
+    spine.milestones,
+    spine.portal_publish,
+  );
+
   return (
     <div className="space-y-6 text-[#0A0F1F]">
       {/* ───── Header row ───── */}
@@ -163,6 +170,9 @@ function ProjectSpine() {
         pendingApprovalsCount={pendingApprovalsCount}
         onExportPdf={() => exportSpinePdf(spine, historyRows)}
       />
+
+      {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
+      <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
 
       {approvalError ? (
         <ErrorBanner
