@@ -306,7 +306,7 @@ export const listMilestoneApprovalHistory = createServerFn({ method: "GET" })
       summary: string | null;
       target_id: string | null;
       created_at: string;
-      metadata: Record<string, unknown> | null;
+      metadata: unknown;
     }>;
   });
 
