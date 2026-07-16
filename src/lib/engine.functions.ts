@@ -1967,11 +1967,28 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       .limit(1);
     if (runRows && runRows[0]) sources.last_run = runRows[0];
 
-    // Latest roadmap version
-    const { data: verRows } = await sb
-      .from("engine_roadmap_versions")
-      .select("id,label,status,created_at,approved_at,payload")
-      .eq("project_id", data.id)
+    // Intelligence confidence — avg over extracted signals for this project
+    const { data: sigConfRows } = await sb
+      .from("engine_extracted_signals")
+      .select("confidence")
+      .eq("project_id", data.id);
+    const sigConfArr = (sigConfRows ?? []) as Array<{ confidence: number | null }>;
+    let intelligenceConfidence: number | null = null;
+    if (sigConfArr.length > 0) {
+      const nums = sigConfArr
+        .map((r) => (typeof r.confidence === "number" ? r.confidence : null))
+        .filter((n): n is number => n !== null);
+      if (nums.length > 0) {
+        const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+        // Values may be stored 0-1 or 0-100; normalize to 0-100.
+        const max = Math.max(...nums);
+        intelligenceConfidence = Math.round(max <= 1 ? mean * 100 : mean);
+      }
+    }
+    const intelligence = {
+      confidence: intelligenceConfidence,
+      signal_count: sigConfArr.length,
+    };
       .order("created_at", { ascending: false })
       .limit(1);
     const version = verRows && verRows[0] ? verRows[0] : null;
