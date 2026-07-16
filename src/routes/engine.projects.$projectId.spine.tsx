@@ -157,6 +157,7 @@ function ProjectSpine() {
     <div className="space-y-6 text-[#0A0F1F]">
       {/* ───── Header row ───── */}
       <SpinePageHeader
+        projectId={projectId}
         projectName={spine.project.name}
         status={spine.project.status}
         pendingApprovalsCount={pendingApprovalsCount}
@@ -501,11 +502,13 @@ function ProjectSpine() {
 /* ─────────────────── New Spine 2.0 layout components ─────────────────── */
 
 function SpinePageHeader({
+  projectId,
   projectName,
   status,
   pendingApprovalsCount,
   onExportPdf,
 }: {
+  projectId: string;
   projectName: string;
   status: string;
   pendingApprovalsCount: number;
@@ -532,20 +535,30 @@ function SpinePageHeader({
             {projectName} — the central nervous system of your project. Live truth. Approved direction. Next best move.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" data-qa-role="spine-header-actions">
           <a
             href="#spine-approvals"
+            data-qa-action="approvals"
             className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
           >
-            Pending Approvals
+            Approvals
             <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#3E68B2] px-1.5 text-[11px] font-semibold text-white">
               {pendingApprovalsCount}
             </span>
-            <ArrowRight className="h-3.5 w-3.5 text-[#667085]" />
           </a>
+          <Link
+            to="/engine/projects/$projectId/chat"
+            params={{ projectId }}
+            data-qa-action="ask-captain"
+            className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-[#3E68B2]" />
+            Ask Captain
+          </Link>
           <button
             type="button"
             onClick={onExportPdf}
+            data-qa-action="export-roadmap"
             className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440]"
           >
             <Download className="h-4 w-4" />
