@@ -17,11 +17,15 @@ import { isAdminEmail } from "@/lib/ops/access";
 import {
   LayoutDashboard,
   FolderKanban,
-  FileStack,
   ClipboardCheck,
+  Globe2,
+  TrendingUp,
+  Settings,
+  ChevronDown,
+  ChevronRight,
+  FileStack,
   PackageCheck,
   Activity,
-  Globe2,
   BrainCircuit,
   LogOut,
   Menu,
@@ -34,6 +38,8 @@ import {
 } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
+import { SourceInspectorProvider } from "@/hooks/use-source-inspector";
+import { SourceTruthInspector } from "@/components/engine/SourceTruthInspector";
 
 export const Route = createFileRoute("/engine")({
   ssr: false,
