@@ -1272,6 +1272,411 @@ function CollapsedBlock({
   );
 }
 
+/* ─────────── Searchable block: auto-expands on matching search ─────────── */
+
+function matchesSearch(haystack: string, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return haystack.toLowerCase().includes(q);
+}
+
+function filterListItems<T extends { title: string; body: string | null; meta: string }>(
+  items: T[],
+  query: string,
+): T[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return items;
+  return items.filter((it) =>
+    `${it.title} ${it.body ?? ""} ${it.meta}`.toLowerCase().includes(q),
+  );
+}
+
+function SearchableBlock({
+  title,
+  subtitle,
+  search,
+  haystack,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  search: string;
+  haystack: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  const [manuallyToggled, setManuallyToggled] = useState(false);
+  const active = search.trim().length > 0;
+  const isMatch = matchesSearch(`${title} ${subtitle ?? ""} ${haystack}`, search);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    if (!active) {
+      setManuallyToggled(false);
+      return;
+    }
+    // Auto-expand on match, auto-collapse when it no longer matches — but do
+    // not fight the user if they manually toggled it while a search is active.
+    if (!manuallyToggled) {
+      ref.current.open = isMatch;
+    }
+  }, [active, isMatch, manuallyToggled]);
+
+  if (active && !isMatch) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[#E8E1D6] bg-[#FBF9F4] px-5 py-3 text-xs text-[#667085]">
+        <span className="font-display text-sm text-[#0A0F1F]">{title}</span>
+        <span className="ml-2">— no match for “{search}”.</span>
+      </div>
+    );
+  }
+
+  return (
+    <details
+      ref={ref}
+      onToggle={() => {
+        if (active) setManuallyToggled(true);
+      }}
+      className={cn(
+        "group rounded-2xl border bg-white shadow-sm transition",
+        active && isMatch ? "border-[#cdd6f3] ring-1 ring-[#3E68B2]/20" : "border-[#E8E1D6]",
+      )}
+    >
+      <summary className="cursor-pointer list-none px-5 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="font-display text-base text-[#0A0F1F]">{title}</div>
+            {subtitle ? (
+              <div className="mt-0.5 text-xs text-[#667085]">{subtitle}</div>
+            ) : null}
+          </div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#667085] transition group-open:text-[#3E68B2]">
+            <span className="group-open:hidden">Expand</span>
+            <span className="hidden group-open:inline">Collapse</span>
+          </div>
+        </div>
+      </summary>
+      <div className="border-t border-[#E8E1D6] px-5 py-4">{children}</div>
+    </details>
+  );
+}
+
+/* ─────────── Error banner used for spine + sub-query failures ─────────── */
+
+function ErrorBanner({
+  title,
+  message,
+  onRetry,
+  onDismiss,
+}: {
+  title: string;
+  message: string;
+  onRetry?: () => void;
+  onDismiss?: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="rounded-2xl border border-[#f3ced5] bg-[#fbe9ec] p-4 text-sm text-[#a4283c]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#a4283c]/80">
+            {title}
+          </div>
+          <p className="mt-1 text-[#7a1e2d]">{message}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="rounded-full border border-[#a4283c]/50 bg-white px-3 py-1 text-xs font-medium text-[#a4283c] hover:bg-[#fbe9ec]"
+            >
+              Retry
+            </button>
+          ) : null}
+          {onDismiss ? (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="rounded-full border border-transparent px-3 py-1 text-xs text-[#a4283c] hover:bg-white"
+            >
+              Dismiss
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────── Milestone approval history ─────────── */
+
+type MilestoneApprovalRow = {
+  id: string;
+  actor_email: string | null;
+  action: "milestone_approved" | "milestone_rejected";
+  summary: string | null;
+  target_id: string | null;
+  created_at: string;
+};
+
+function MilestoneApprovalHistoryCard({
+  rows,
+  milestones,
+  isLoading,
+  isError,
+  errorMessage,
+  onRetry,
+}: {
+  rows: MilestoneApprovalRow[];
+  milestones: ProjectSpinePayload["milestones"];
+  isLoading: boolean;
+  isError: boolean;
+  errorMessage?: string;
+  onRetry: () => void;
+}) {
+  const nameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const m of milestones) map.set(m.id, m.name);
+    return map;
+  }, [milestones]);
+
+  return (
+    <div className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+            Milestone approval history
+          </div>
+          <div className="mt-1 font-display text-base text-[#0A0F1F]">
+            {rows.length} recent decision{rows.length === 1 ? "" : "s"}
+          </div>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="mt-4 space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-10 animate-pulse rounded-lg bg-[#F3EEE6]" />
+          ))}
+        </div>
+      ) : isError ? (
+        <div className="mt-4">
+          <ErrorBanner
+            title="Could not load approval history"
+            message={errorMessage ?? "Please retry."}
+            onRetry={onRetry}
+          />
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="mt-3 text-sm text-[#667085]">
+          No milestone approvals or rejections have been recorded yet.
+        </p>
+      ) : (
+        <ol className="mt-4 space-y-2">
+          {rows.map((row) => {
+            const isApproved = row.action === "milestone_approved";
+            const name = row.target_id ? nameById.get(row.target_id) : null;
+            return (
+              <li
+                key={row.id}
+                className="flex items-start justify-between gap-3 rounded-lg border border-[#F3EEE6] p-3"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-sm text-[#0A0F1F]">
+                    {isApproved ? (
+                      <Check className="h-3.5 w-3.5 text-[#1f6b3b]" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 text-[#a4283c]" />
+                    )}
+                    <span className="truncate font-medium">{name ?? "Milestone"}</span>
+                  </div>
+                  {row.summary ? (
+                    <div className="mt-1 text-xs text-[#667085]">{row.summary}</div>
+                  ) : null}
+                  <div className="mt-1 text-[11px] text-[#667085]">
+                    {row.actor_email ?? "system"} · {formatDateTime(row.created_at)}
+                  </div>
+                </div>
+                <GenericBadge tone={isApproved ? "approved" : "blocked"}>
+                  {isApproved ? "Approved" : "Rejected"}
+                </GenericBadge>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+/* ─────────── PDF export ─────────── */
+
+function exportSpinePdf(
+  spine: ProjectSpinePayload,
+  history: MilestoneApprovalRow[],
+): void {
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const marginX = 48;
+  const marginBottom = 56;
+  const maxWidth = pageWidth - marginX * 2;
+  let y = 56;
+
+  const ensureRoom = (needed: number) => {
+    if (y + needed > pageHeight - marginBottom) {
+      doc.addPage();
+      y = 56;
+    }
+  };
+  const writeText = (
+    text: string,
+    opts: { size?: number; style?: "normal" | "bold"; gap?: number } = {},
+  ) => {
+    const size = opts.size ?? 10;
+    doc.setFont("helvetica", opts.style ?? "normal");
+    doc.setFontSize(size);
+    const lines = doc.splitTextToSize(text, maxWidth);
+    for (const line of lines) {
+      ensureRoom(size + 2);
+      doc.text(line, marginX, y);
+      y += size + 2;
+    }
+    y += opts.gap ?? 4;
+  };
+  const writeHeading = (text: string) => {
+    ensureRoom(24);
+    y += 6;
+    writeText(text, { size: 13, style: "bold", gap: 6 });
+  };
+  const writeMeta = (text: string) => writeText(text, { size: 9, gap: 2 });
+
+  const stripHtml = (v: unknown): string => {
+    if (v == null) return "";
+    if (typeof v === "string") return v.replace(/\s+/g, " ").trim();
+    if (typeof v === "number" || typeof v === "boolean") return String(v);
+    return JSON.stringify(v).slice(0, 400);
+  };
+
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text("Project Spine", marginX, y);
+  y += 22;
+  writeText(spine.project.name, { size: 14, style: "bold" });
+  writeMeta(
+    `${spine.project.client_company || "No client"} · Status: ${humanize(
+      spine.project.status,
+    )} · Updated ${formatDateTime(spine.project.updated_at)}`,
+  );
+
+  // NBA
+  writeHeading("Next Best Action");
+  writeText(spine.nba.action, { style: "bold" });
+  if (spine.nba.reason) writeText(spine.nba.reason);
+  writeMeta(`Severity: ${humanize(spine.nba.severity ?? "info")}`);
+
+  // Point A / Point B
+  writeHeading("Point A — Where we are");
+  const pointA = asRecord(spine.project.point_a);
+  const aSections = extractNamedSections(pointA, [
+    "current_state",
+    "challenges",
+    "summary",
+    "description",
+  ]);
+  if (aSections.length === 0) writeText("Not yet defined.");
+  else for (const s of aSections) writeText(`${s.label}: ${s.value}`);
+
+  writeHeading("Point B — Where we're going");
+  const pointB = asRecord(spine.project.point_b);
+  const bSections = extractNamedSections(pointB, [
+    "destination",
+    "goal",
+    "vision",
+    "frame",
+    "success_looks_like",
+  ]);
+  if (bSections.length === 0) writeText("Destination not yet approved.");
+  else for (const s of bSections) writeText(`${s.label}: ${s.value}`);
+
+  // Roadmap summary
+  writeHeading("Roadmap");
+  writeText(`Latest version: ${spine.version?.label || "None"}`);
+  if (spine.version) {
+    writeMeta(
+      `Created ${formatDateTime(spine.version.created_at)}${
+        spine.version.approved_at
+          ? ` · Approved ${formatDateTime(spine.version.approved_at)}`
+          : ""
+      } · Status ${humanize(spine.version.status)}`,
+    );
+  }
+  const approvedMs = spine.milestones.filter((m) => m.approval_status === "approved").length;
+  writeText(`Milestones approved: ${approvedMs}/${spine.milestones.length}`);
+  for (const m of spine.milestones.slice(0, 25)) {
+    writeText(
+      `  • [${humanize(m.approval_status)}] ${m.name}${m.phase ? ` (${humanize(m.phase)})` : ""}`,
+      { size: 9, gap: 1 },
+    );
+  }
+  if (spine.milestones.length > 25) {
+    writeMeta(`  … and ${spine.milestones.length - 25} more`);
+  }
+
+  // Readiness
+  writeHeading("Module readiness");
+  for (const m of spine.modules) {
+    const state = deriveModuleState(m);
+    writeText(
+      `${m.label}: ${MODULE_STATE_LABEL[state]} — approval ${
+        m.readiness.approval_state ? humanize(m.readiness.approval_state) : "not submitted"
+      }${m.readiness.has_data ? "" : " · no content"}${m.derived ? " · derived" : ""}`,
+      { size: 9, gap: 1 },
+    );
+  }
+
+  // Approvals: pending reviews
+  writeHeading("Pending approvals");
+  if (spine.reviews.length === 0) writeText("No pending review items.");
+  else
+    for (const r of spine.reviews.slice(0, 15)) {
+      writeText(
+        `• [${humanize(r.impact)}] ${r.title} — ${humanize(r.item_type)} · ${formatDateTime(
+          r.created_at,
+        )}`,
+        { size: 9, gap: 1 },
+      );
+    }
+
+  // Approval history
+  writeHeading("Milestone approval history");
+  if (history.length === 0) writeText("No milestone approvals or rejections recorded.");
+  else
+    for (const h of history.slice(0, 25)) {
+      writeText(
+        `• ${h.action === "milestone_approved" ? "APPROVED" : "REJECTED"} — ${
+          h.summary ?? "Milestone"
+        } · ${h.actor_email ?? "system"} · ${formatDateTime(h.created_at)}`,
+        { size: 9, gap: 1 },
+      );
+    }
+  // Silence "possibly unused" for the stripHtml helper (kept for future rich fields).
+  void stripHtml;
+
+  const slug = (spine.project.name || "project")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+  const date = new Date().toISOString().slice(0, 10);
+  doc.save(`spine-${slug || "report"}-${date}.pdf`);
+}
+
+
 
 function SpineLoading() {
   return (
