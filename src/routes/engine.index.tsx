@@ -282,6 +282,7 @@ function InstrumentRow({ data }: { data: CommandCenterPayload }) {
     { label: "At risk", value: hb.at_risk, color: "#f43f5e" },
     { label: "Blocked", value: hb.blocked, color: "#7f1d1d" },
   ];
+  const portfolioTotal = portfolioSlices.reduce((n, s) => n + s.value, 0);
 
   const stageCount = (name: string) =>
     data.stage_breakdown.find((s) => s.stage.toLowerCase() === name)?.count ?? 0;
@@ -292,6 +293,7 @@ function InstrumentRow({ data }: { data: CommandCenterPayload }) {
     { label: "Spine approval", value: stageCount("spine approval"), color: "#6366f1" },
     { label: "Roadmap", value: stageCount("roadmap"), color: "#10b981" },
   ];
+  const spineTotal = spineSlices.reduce((n, s) => n + s.value, 0);
 
   const deliverySlices: Slice[] = [
     { label: "Mockups", value: stageCount("mockups"), color: "#a78bfa" },
@@ -299,46 +301,71 @@ function InstrumentRow({ data }: { data: CommandCenterPayload }) {
     { label: "QA", value: stageCount("qa"), color: "#f59e0b" },
     { label: "Delivery", value: stageCount("delivery"), color: "#10b981" },
   ];
+  const deliveryTotal = deliverySlices.reduce((n, s) => n + s.value, 0);
 
   const cac = data.client_action_counts;
+  const clientTotal = cac.decisions_needed + cac.info_requests + cac.feedback_pending;
   const budget = data.metrics.agent_budget_cents;
   const spend = data.metrics.agent_spend_cents;
-  const budgetPct = budget > 0 ? Math.round((spend / budget) * 100) : 0;
+  const hasBudget = budget > 0;
+  const budgetPct = hasBudget ? Math.round((spend / budget) * 100) : 0;
   const budgetTone = budgetPct > 90 ? "critical" : budgetPct > 70 ? "warning" : "info";
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       <InstrumentCard
         eyebrow="Portfolio health"
-        primary={<Donut slices={portfolioSlices} centerLabel={String(data.metrics.active_projects)} centerHint="active" />}
-        footer={
-          <Legend slices={portfolioSlices} />
+        primary={
+          <Donut
+            slices={portfolioSlices}
+            centerLabel={portfolioTotal > 0 ? String(data.metrics.active_projects) : "—"}
+            centerHint={portfolioTotal > 0 ? "active" : "no data"}
+          />
         }
+        footer={portfolioTotal > 0 ? <Legend slices={portfolioSlices} /> : <EmptyNote>No active projects yet.</EmptyNote>}
         link={{ to: "/engine/projects", label: "View portfolio" }}
       />
       <InstrumentCard
         eyebrow="Spine readiness"
         note="Stage distribution before delivery."
-        primary={<Donut slices={spineSlices} centerLabel={String(spineSlices.reduce((n, s) => n + s.value, 0))} centerHint="projects" />}
-        footer={<Legend slices={spineSlices} />}
+        primary={
+          <Donut
+            slices={spineSlices}
+            centerLabel={spineTotal > 0 ? String(spineTotal) : "—"}
+            centerHint={spineTotal > 0 ? "projects" : "no data"}
+          />
+        }
+        footer={spineTotal > 0 ? <Legend slices={spineSlices} /> : <EmptyNote>No projects in pre-delivery stages.</EmptyNote>}
         link={{ to: "/engine/projects", label: "View spines" }}
       />
       <InstrumentCard
         eyebrow="Delivery readiness"
         note="Stage distribution in delivery."
-        primary={<Donut slices={deliverySlices} centerLabel={String(deliverySlices.reduce((n, s) => n + s.value, 0))} centerHint="projects" />}
-        footer={<Legend slices={deliverySlices} />}
+        primary={
+          <Donut
+            slices={deliverySlices}
+            centerLabel={deliveryTotal > 0 ? String(deliveryTotal) : "—"}
+            centerHint={deliveryTotal > 0 ? "projects" : "no data"}
+          />
+        }
+        footer={deliveryTotal > 0 ? <Legend slices={deliverySlices} /> : <EmptyNote>No projects in delivery stages.</EmptyNote>}
         link={{ to: "/engine/projects", label: "View pipeline" }}
       />
       <InstrumentCard
         eyebrow="Client momentum"
         note="This week."
         primary={
-          <div className="grid grid-cols-3 gap-2 py-4 text-center">
-            <BigStat label="Decisions" value={cac.decisions_needed} />
-            <BigStat label="Info req." value={cac.info_requests} />
-            <BigStat label="Feedback" value={cac.feedback_pending} />
-          </div>
+          clientTotal > 0 ? (
+            <div className="grid grid-cols-3 gap-2 py-4 text-center">
+              <BigStat label="Decisions" value={cac.decisions_needed} />
+              <BigStat label="Info req." value={cac.info_requests} />
+              <BigStat label="Feedback" value={cac.feedback_pending} />
+            </div>
+          ) : (
+            <div className="flex h-full min-h-[104px] items-center justify-center">
+              <EmptyNote>No client actions pending.</EmptyNote>
+            </div>
+          )
         }
         link={{ to: "/engine/projects", label: "View clients" }}
       />
@@ -346,22 +373,33 @@ function InstrumentRow({ data }: { data: CommandCenterPayload }) {
         eyebrow="Value and cost exposure"
         primary={
           <div className="py-2">
-            <div className="text-2xl font-semibold text-[#0A0F1F]">
-              {formatCents(spend)}
-              <span className="ml-1 text-sm font-normal text-[#98A2B3]">of {formatCents(budget)}</span>
-            </div>
-            <div className="mt-2 h-1.5 rounded bg-[#F5F1E8]">
-              <div
-                className={cn(
-                  "h-full rounded",
-                  budgetTone === "critical" ? "bg-rose-500" : budgetTone === "warning" ? "bg-amber-500" : "bg-[#98A2B3]",
-                )}
-                style={{ width: `${Math.min(100, budgetPct)}%` }}
-              />
-            </div>
-            <div className="mt-2 text-xs text-[#667085]">
-              {budgetPct}% of monthly agent spend consumed.
-            </div>
+            {hasBudget ? (
+              <>
+                <div className="text-2xl font-semibold text-[#0A0F1F]">
+                  {formatCents(spend)}
+                  <span className="ml-1 text-sm font-normal text-[#98A2B3]">of {formatCents(budget)}</span>
+                </div>
+                <div className="mt-2 h-1.5 rounded bg-[#F5F1E8]">
+                  <div
+                    className={cn(
+                      "h-full rounded",
+                      budgetTone === "critical" ? "bg-rose-500" : budgetTone === "warning" ? "bg-amber-500" : "bg-[#98A2B3]",
+                    )}
+                    style={{ width: `${Math.min(100, budgetPct)}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-xs text-[#667085]">
+                  {budgetPct}% of monthly agent spend consumed.
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-semibold text-[#0A0F1F]">{formatCents(spend)}</div>
+                <div className="mt-2 text-xs text-[#98A2B3]">
+                  No monthly budget configured. Spend shown without a cap.
+                </div>
+              </>
+            )}
           </div>
         }
         link={{ to: "/engine/operations", label: "View spend" }}
@@ -369,6 +407,11 @@ function InstrumentRow({ data }: { data: CommandCenterPayload }) {
     </div>
   );
 }
+
+function EmptyNote({ children }: { children: ReactNode }) {
+  return <div className="text-[11px] text-[#98A2B3]">{children}</div>;
+}
+
 
 function InstrumentCard({
   eyebrow,
