@@ -65,6 +65,7 @@ function ProjectSpine() {
   const historyFn = useServerFn(listMilestoneApprovalHistory);
   const approveFn = useServerFn(approveMilestone);
   const rejectFn = useServerFn(rejectMilestone);
+  const workspaceFn = useServerFn(getProjectWorkspace);
   const queryClient = useQueryClient();
 
   const spineQ = useQuery({
@@ -78,12 +79,22 @@ function ProjectSpine() {
     staleTime: 30_000,
     enabled: !!spineQ.data,
   });
+  // Workspace project — needed by exportClientRoadmapPdf (uses investment /
+  // blueprint / roadmap.client_facing shapes not present on the spine
+  // payload). Kept as a non-suspense sibling of spineQ so header render is
+  // never blocked on it.
+  const workspaceQ = useQuery({
+    queryKey: ["engine", "workspace", projectId],
+    queryFn: () => workspaceFn({ data: { id: projectId } }),
+    staleTime: 60_000,
+  });
 
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<ModuleCategoryFilter>("all");
   const [moduleSort, setModuleSort] = useState<ModuleSort>("readiness");
   const [evidenceSearch, setEvidenceSearch] = useState("");
   const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<{ title: string; missing: string[] } | null>(null);
 
   const approveMut = useMutation({
     mutationFn: (id: string) => approveFn({ data: { id } }),
