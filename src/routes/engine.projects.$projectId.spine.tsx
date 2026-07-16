@@ -3275,8 +3275,8 @@ function SpineVariantBanner({
 }) {
   if (variant === "incomplete") {
     const missing: string[] = [];
-    if (!hasMeaningfulValue(spine.project.point_a)) missing.push("Point A");
-    if (!hasMeaningfulValue(spine.project.point_b)) missing.push("Point B");
+    if (!isApprovedTruth(spine.project.point_a_status)) missing.push("Point A");
+    if (!isApprovedTruth(spine.project.point_b_status)) missing.push("Point B");
     const contradictions = spine.notifications.filter(
       (n) => n.kind === "contradiction" || n.kind === "warning" || n.kind === "critical",
     ).length;
