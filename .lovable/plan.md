@@ -1,43 +1,21 @@
 ## Problem
 
-Two breadcrumb trails render on every project page:
+On the Spine page the breadcrumb still reads `Roadmap Engine / Projects / Project / Project Spine`, while on Overview it correctly reads `… / cakepro / Overview`.
 
-1. Top page header (from `src/routes/engine.tsx`): `Roadmap Engine / Projects / Project / Overview`
-   - "Project" is a hardcoded placeholder — never shows the real client name.
-   - Subpage labels come from a hand-maintained slug map (`PROJECT_SUBPAGE_LABELS`).
-   - Only "Roadmap Engine" and "Projects" are actual links; "Project" and the subpage are dead text with no `to`.
-2. Workspace header (from `src/routes/engine.projects.$projectId.tsx` via `WorkspaceBreadcrumb`): `Projects / cakepro / Roadmap Workspace / Project Overview`
-   - Invents a "Roadmap Workspace" hop that has no route.
-   - Duplicates the trail already shown above.
+Root cause: in `src/routes/engine.tsx` the client name is read via `queryClient.getQueryData(["engine","workspace", projectId])`. `getQueryData` is a one-shot read — it does not subscribe. The engine layout renders once with an empty cache and never re-renders when the child project layout's `useQuery` resolves. On Overview the crumb happens to look right because that route triggers an engine-layout re-render for other reasons; on Spine it doesn't, so the placeholder `"Project"` sticks.
 
-Result: redundancy, an invented hop, and a "Project" crumb that never resolves to a name or link.
+## Fix
 
-## Fix — single breadcrumb, real data, real links
+Subscribe to the workspace cache from the engine layout so it re-renders when the client name lands.
 
-Keep the global breadcrumb in the engine layout as the single source of truth. Remove the duplicate local one. Wire the project crumb to the actual client name via the React Query cache the workspace loader already populates.
+### `src/routes/engine.tsx`
+- Import `useQuery` from `@tanstack/react-query`, `useServerFn` from `@tanstack/react-start`, `getProjectWorkspace` from `@/lib/engine.functions`, and `workspaceQueryOptions` from `@/routes/engine.projects.$projectId`.
+- Replace the `queryClient.getQueryData(...)` read with a `useQuery(workspaceQueryOptions(activeProjectId ?? "__none__", fn))` call, gated with `enabled: !!activeProjectId`. Deduped with the project layout's own query.
+- Derive `clientName` from that query's `data.project.client_company` and pass into `buildCrumbs` as today.
+- Keep the `useQueryClient` import removed (no longer needed).
 
-### 1. `src/routes/engine.tsx` — enrich `buildCrumbs`
-
-- Replace the hardcoded `{ label: "Project" }` crumb with the real client name from the React Query cache using the existing `["engine", "workspace", projectId]` key. Read via `useQueryClient().getQueryData(...)` inside `EngineLayout` and pass into `buildCrumbs`. Fallback to `"Project"` while the query is loading.
-- Make the project crumb link to `/engine/projects/$projectId/overview`.
-- Keep subpage crumbs as leaf text (no link), driven by `PROJECT_SUBPAGE_LABELS`.
-- Drop the invented "Roadmap Workspace" concept entirely — it does not exist in the routing tree.
-
-Resulting trail on the overview page: `Roadmap Engine / Projects / cakepro / Overview` (each of the first three is a link; last is text).
-
-### 2. `src/routes/engine.projects.$projectId.tsx` — remove duplicate
-
-- Delete the `<WorkspaceBreadcrumb ... />` render and the `WorkspaceBreadcrumb` import.
-- Keep the `Family` link + `WorkspaceToolbar` on the same row where the local breadcrumb used to sit, right-aligned as today (the header row becomes toolbar-only).
-- Do not delete the `WorkspaceBreadcrumb` component export from `WorkspaceHeader.tsx` in this pass (avoid touching unrelated call sites); it simply stops being used by the project layout.
-
-### 3. Verify
-
-- `tsgo` typecheck.
-- Visit `/engine/projects/{id}/overview`, `/spine`, `/intelligence-layer`, `/milestones/{id}/brief` and confirm exactly one breadcrumb renders with: real client name, working links on `Roadmap Engine`, `Projects`, and the client name, and the correct leaf label.
+No other files change. Verify with `tsgo` and by loading `/engine/projects/{id}/spine`, `/overview`, `/intelligence-layer` — the crumb should show the client name on all of them once the workspace query resolves (with a brief "Project" flash on first paint).
 
 ## Out of scope
-
-- Sidebar and top-of-page global nav visual changes.
-- Refactoring the subpage label map or replacing it with route metadata.
-- Removing `WorkspaceBreadcrumb` from `WorkspaceHeader.tsx` entirely.
+- Changing the fallback label or adding a skeleton for the crumb.
+- Touching the project layout, WorkspaceHeader, or other pages.
