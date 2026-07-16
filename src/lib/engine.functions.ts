@@ -2307,6 +2307,8 @@ export const getProjectSpine = createServerFn({ method: "GET" })
         health_score: (projRow.health_score as number | null) ?? 0,
         updated_at: projRow.updated_at,
         client_portal_project_id: projRow.client_portal_project_id ?? null,
+        point_a_status,
+        point_b_status,
       },
       nba,
       sources,
