@@ -5,7 +5,15 @@ const INK: [number, number, number] = [23, 26, 35];
 const ROYAL: [number, number, number] = [37, 55, 145];
 const MUTED: [number, number, number] = [110, 116, 130];
 
-export function exportClientRoadmapPdf(project: WorkspaceProject) {
+export type ClientRoadmapExportMeta = {
+  /** Approved milestones — surfaced in the Milestones section as "Approved: N/M". */
+  approvals?: { approved: number; total: number };
+};
+
+export function exportClientRoadmapPdf(
+  project: WorkspaceProject,
+  meta: ClientRoadmapExportMeta = {},
+) {
   const doc = new jsPDF({ unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -109,6 +117,14 @@ export function exportClientRoadmapPdf(project: WorkspaceProject) {
   rule();
 
   kicker("Milestones");
+  if (meta.approvals) {
+    para(
+      `Approved: ${meta.approvals.approved} of ${meta.approvals.total}`,
+      10,
+      MUTED,
+    );
+  }
+
   roadmap.forEach((m, i) => {
     // Skip milestones that have no explicit client-facing copy — never fall
     // back to the internal `purpose` field, which can contain internal notes,

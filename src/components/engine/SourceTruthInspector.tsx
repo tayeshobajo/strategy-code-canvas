@@ -436,9 +436,14 @@ function ProposeChangePanel({
                 {h.change_reason ? (
                   <div className="mt-0.5 text-[#667085] line-clamp-2">{h.change_reason}</div>
                 ) : null}
-                {h.actor_email ? (
-                  <div className="mt-0.5 text-[10px] text-[#667085]">by {h.actor_email}</div>
-                ) : null}
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[#667085]">
+                  {h.actor_email ? <span>by {h.actor_email}</span> : <span>by unknown</span>}
+                  {h.section_key || h.field_key ? (
+                    <span className="font-mono uppercase tracking-wider">
+                      · {h.section_key ?? "?"} / {h.field_key ?? "?"}
+                    </span>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>

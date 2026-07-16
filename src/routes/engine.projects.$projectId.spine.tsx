@@ -4,11 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
 import {
   getProjectSpine,
+  getProjectWorkspace,
   type EngineProjectStatus,
   type ProjectSpinePayload,
   type SpineModuleSection,
   type SpineModuleKey,
 } from "@/lib/engine.functions";
+import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
+import type { WorkspaceProject } from "@/lib/engine-workspace";
 import {
   approveMilestone,
   rejectMilestone,
@@ -56,12 +59,52 @@ type ModuleReadinessFilter = "all" | "ready" | "review" | "draft" | "missing";
 type ModuleCategoryFilter = "all" | "direct" | "derived";
 type ModuleSort = "label" | "readiness";
 
+/**
+ * Preflight for Export Client Roadmap.
+ *
+ * The client-facing PDF renders Point A, Point B, phased roadmap, blueprint
+ * nodes, and milestones with `client_facing` copy. If any of those are
+ * missing the operator would ship a hollow file to the client, so we block
+ * export and surface exactly what to fix.
+ */
+export function validateClientRoadmapExport(project: WorkspaceProject): {
+  ok: boolean;
+  missing: string[];
+} {
+  const missing: string[] = [];
+  const pointA = (project.point_a ?? {}) as { key_diagnosis?: string };
+  const pointB = (project.point_b ?? {}) as Record<string, string | undefined>;
+  const phases =
+    ((project.investment as { phases?: Array<{ name: string; client_facing?: string }> })?.phases) ??
+    [];
+  const nodes =
+    ((project.blueprint as { nodes?: Array<{ name: string }> })?.nodes) ?? [];
+  const milestones =
+    ((project.roadmap as {
+      milestones?: Array<{ name: string; client_facing?: string }>;
+    })?.milestones) ?? [];
+
+  if (!pointA.key_diagnosis?.trim()) missing.push("Point A · executive diagnosis is empty");
+  if (!pointB["24_month_destination"]?.trim())
+    missing.push("Point B · 24-month destination is empty");
+  if (phases.length === 0) missing.push("No investment phases have been defined");
+  if (nodes.length === 0) missing.push("System blueprint has no nodes");
+  if (milestones.length === 0) missing.push("Roadmap has no milestones");
+  else if (!milestones.some((m) => m.client_facing?.trim()))
+    missing.push(
+      `No milestones have client-facing copy (${milestones.length} internal-only)`,
+    );
+
+  return { ok: missing.length === 0, missing };
+}
+
 function ProjectSpine() {
   const { projectId } = Route.useParams();
   const spineFn = useServerFn(getProjectSpine);
   const historyFn = useServerFn(listMilestoneApprovalHistory);
   const approveFn = useServerFn(approveMilestone);
   const rejectFn = useServerFn(rejectMilestone);
+  const workspaceFn = useServerFn(getProjectWorkspace);
   const queryClient = useQueryClient();
 
   const spineQ = useQuery({
@@ -75,12 +118,22 @@ function ProjectSpine() {
     staleTime: 30_000,
     enabled: !!spineQ.data,
   });
+  // Workspace project — needed by exportClientRoadmapPdf (uses investment /
+  // blueprint / roadmap.client_facing shapes not present on the spine
+  // payload). Kept as a non-suspense sibling of spineQ so header render is
+  // never blocked on it.
+  const workspaceQ = useQuery({
+    queryKey: ["engine", "workspace", projectId],
+    queryFn: () => workspaceFn({ data: { id: projectId } }),
+    staleTime: 60_000,
+  });
 
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<ModuleCategoryFilter>("all");
   const [moduleSort, setModuleSort] = useState<ModuleSort>("readiness");
   const [evidenceSearch, setEvidenceSearch] = useState("");
   const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<{ title: string; missing: string[] } | null>(null);
 
   const approveMut = useMutation({
     mutationFn: (id: string) => approveFn({ data: { id } }),
@@ -161,6 +214,34 @@ function ProjectSpine() {
     spine.portal_publish,
   );
 
+  const handleExportClientRoadmap = () => {
+    const workspace = workspaceQ.data as
+      | { project: WorkspaceProject }
+      | undefined;
+    if (!workspace) {
+      setExportError({
+        title: "Roadmap data still loading",
+        missing: ["Project workspace has not finished loading. Try again in a moment."],
+      });
+      return;
+    }
+    const check = validateClientRoadmapExport(workspace.project);
+    if (!check.ok) {
+      setExportError({
+        title: "Client Roadmap is not ready to export",
+        missing: check.missing,
+      });
+      return;
+    }
+    setExportError(null);
+    exportClientRoadmapPdf(workspace.project, {
+      approvals: {
+        approved: approvedMilestoneCount,
+        total: spine.milestones.length,
+      },
+    });
+  };
+
   return (
     <div className="space-y-6 text-[#0A0F1F]">
       {/* ───── Header row ───── */}
@@ -169,11 +250,23 @@ function ProjectSpine() {
         projectName={spine.project.name}
         status={spine.project.status}
         pendingApprovalsCount={pendingApprovalsCount}
-        onExportPdf={() => exportSpinePdf(spine, historyRows)}
+        onExportPdf={handleExportClientRoadmap}
+        exportDisabled={workspaceQ.isPending}
       />
 
       {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
+
+      {exportError ? (
+        <ErrorBanner
+          title={exportError.title}
+          message={
+            "Fix the following before exporting a client-safe roadmap:\n• " +
+            exportError.missing.join("\n• ")
+          }
+          onDismiss={() => setExportError(null)}
+        />
+      ) : null}
 
       {approvalError ? (
         <ErrorBanner
@@ -530,12 +623,14 @@ function SpinePageHeader({
   status,
   pendingApprovalsCount,
   onExportPdf,
+  exportDisabled = false,
 }: {
   projectId: string;
   projectName: string;
   status: string;
   pendingApprovalsCount: number;
   onExportPdf: () => void;
+  exportDisabled?: boolean;
 }) {
   return (
     <header className="space-y-3">
@@ -582,7 +677,8 @@ function SpinePageHeader({
             type="button"
             onClick={onExportPdf}
             data-qa-action="export-roadmap"
-            className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440]"
+            disabled={exportDisabled}
+            className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Download className="h-4 w-4" />
             Export Client Roadmap
@@ -2247,7 +2343,7 @@ function ErrorBanner({
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#a4283c]/80">
             {title}
           </div>
-          <p className="mt-1 text-[#7a1e2d]">{message}</p>
+          <p className="mt-1 whitespace-pre-line text-[#7a1e2d]">{message}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {onRetry ? (
