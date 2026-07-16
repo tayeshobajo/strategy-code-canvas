@@ -1,13 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import type { ReactNode } from "react";
+import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
 import {
   getProjectSpine,
   type EngineProjectStatus,
   type ProjectSpinePayload,
   type SpineModuleSection,
 } from "@/lib/engine.functions";
+import {
+  approveMilestone,
+  rejectMilestone,
+  listMilestoneApprovalHistory,
+} from "@/lib/engine-execution.functions";
 import { EngineStatusBadge, formatDate } from "@/components/engine/primitives";
 import { SpineVersionHistory } from "@/components/engine/SpineVersionHistory";
 import { SpineReadinessPanel } from "@/components/engine/SpineReadinessPanel";
@@ -20,8 +25,13 @@ import {
   AlertTriangle,
   Clock,
   Sparkles,
+  Search,
+  Download,
+  Check,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import jsPDF from "jspdf";
 
 
 export const Route = createFileRoute("/engine/projects/$projectId/spine")({
