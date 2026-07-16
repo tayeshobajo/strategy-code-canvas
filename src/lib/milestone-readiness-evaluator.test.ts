@@ -142,7 +142,10 @@ describe("due_date, dependencies, blockers", () => {
       mockups: [{ status: "approved" }],
       packets: [{ status: "in_review" }],
     };
-    const g = deriveMilestoneGatesFromRecords({ status: "blocked" }, rec);
+    const g = deriveMilestoneGatesFromRecords(
+      { status: "blocked", acceptance_criteria: ["a"], approval_status: "approved" },
+      rec,
+    );
     expect(g.design).toBe("blocked");
     expect(g.mockups).toBe("done");
     expect(g.build).toBe("blocked");
@@ -156,7 +159,7 @@ describe("mockups N/A when not required", () => {
   });
   it("still evaluates records when mockups_required=false but records exist", () => {
     const g = deriveMilestoneGatesFromRecords(
-      { mockups_required: false },
+      { mockups_required: false, acceptance_criteria: ["a"], approval_status: "approved" },
       { ...empty, mockups: [{ status: "approved" }] },
     );
     expect(g.mockups).toBe("done");
