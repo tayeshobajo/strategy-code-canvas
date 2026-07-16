@@ -175,6 +175,34 @@ function ProjectSpine() {
     spine.portal_publish,
   );
 
+  const handleExportClientRoadmap = () => {
+    const workspace = workspaceQ.data as
+      | { project: WorkspaceProject }
+      | undefined;
+    if (!workspace) {
+      setExportError({
+        title: "Roadmap data still loading",
+        missing: ["Project workspace has not finished loading. Try again in a moment."],
+      });
+      return;
+    }
+    const check = validateClientRoadmapExport(workspace.project);
+    if (!check.ok) {
+      setExportError({
+        title: "Client Roadmap is not ready to export",
+        missing: check.missing,
+      });
+      return;
+    }
+    setExportError(null);
+    exportClientRoadmapPdf(workspace.project, {
+      approvals: {
+        approved: approvedMilestoneCount,
+        total: spine.milestones.length,
+      },
+    });
+  };
+
   return (
     <div className="space-y-6 text-[#0A0F1F]">
       {/* ───── Header row ───── */}
@@ -183,11 +211,23 @@ function ProjectSpine() {
         projectName={spine.project.name}
         status={spine.project.status}
         pendingApprovalsCount={pendingApprovalsCount}
-        onExportPdf={() => exportSpinePdf(spine, historyRows)}
+        onExportPdf={handleExportClientRoadmap}
+        exportDisabled={workspaceQ.isPending}
       />
 
       {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
+
+      {exportError ? (
+        <ErrorBanner
+          title={exportError.title}
+          message={
+            "Fix the following before exporting a client-safe roadmap:\n• " +
+            exportError.missing.join("\n• ")
+          }
+          onDismiss={() => setExportError(null)}
+        />
+      ) : null}
 
       {approvalError ? (
         <ErrorBanner
