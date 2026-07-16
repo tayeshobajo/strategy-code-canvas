@@ -41,10 +41,37 @@ const commandOpts = (fn: ReturnType<typeof useServerFn<typeof getCommandCenter>>
 export const Route = createFileRoute("/engine/")({
   head: () => ({ meta: [{ title: "Command Center — Trust Tai" }, { name: "robots", content: "noindex" }] }),
   component: CommandCenter,
+  pendingComponent: CommandCenterSkeleton,
   errorComponent: ({ error }) => (
     <div className="p-6 text-rose-600">Failed to load Command Center: {(error as Error).message}</div>
   ),
 });
+
+function CommandCenterSkeleton() {
+  return (
+    <div className="-mx-4 -my-7 min-h-full bg-[#FBF9F4] text-[#0A0F1F] sm:-mx-6 sm:-my-8 lg:-mx-8 lg:-my-10" aria-busy="true">
+      <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+          <div className="space-y-3">
+            <div className="h-3 w-24 animate-pulse rounded bg-[#EFE9DC]" />
+            <div className="h-8 w-64 animate-pulse rounded bg-[#EFE9DC]" />
+            <div className="h-4 w-48 animate-pulse rounded bg-[#EFE9DC]" />
+          </div>
+          <div className="h-40 animate-pulse rounded-2xl border border-[#E8E1D6] bg-white" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-48 animate-pulse rounded-2xl border border-[#E8E1D6] bg-white" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="h-72 animate-pulse rounded-2xl border border-[#E8E1D6] bg-white" />
+          <div className="h-72 animate-pulse rounded-2xl border border-[#E8E1D6] bg-white" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -251,6 +278,8 @@ function HighestLeverageCard({ decision, onOpen }: { decision: Decision | null; 
       <button
         type="button"
         onClick={onOpen}
+        data-decision-id={decision.id}
+        aria-label={`Open decision: ${decision.what}`}
         className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-[#0A0F1F] transition hover:bg-[#F5F1E8]"
       >
         Review and decide <ArrowRight className="h-4 w-4" />
@@ -280,6 +309,7 @@ function InstrumentRow({ data }: { data: CommandCenterPayload }) {
     { label: "At risk", value: hb.at_risk, color: "#f43f5e" },
     { label: "Blocked", value: hb.blocked, color: "#7f1d1d" },
   ];
+  const portfolioTotal = portfolioSlices.reduce((n, s) => n + s.value, 0);
 
   const stageCount = (name: string) =>
     data.stage_breakdown.find((s) => s.stage.toLowerCase() === name)?.count ?? 0;
@@ -290,6 +320,7 @@ function InstrumentRow({ data }: { data: CommandCenterPayload }) {
     { label: "Spine approval", value: stageCount("spine approval"), color: "#6366f1" },
     { label: "Roadmap", value: stageCount("roadmap"), color: "#10b981" },
   ];
+  const spineTotal = spineSlices.reduce((n, s) => n + s.value, 0);
 
   const deliverySlices: Slice[] = [
     { label: "Mockups", value: stageCount("mockups"), color: "#a78bfa" },
@@ -297,46 +328,71 @@ function InstrumentRow({ data }: { data: CommandCenterPayload }) {
     { label: "QA", value: stageCount("qa"), color: "#f59e0b" },
     { label: "Delivery", value: stageCount("delivery"), color: "#10b981" },
   ];
+  const deliveryTotal = deliverySlices.reduce((n, s) => n + s.value, 0);
 
   const cac = data.client_action_counts;
+  const clientTotal = cac.decisions_needed + cac.info_requests + cac.feedback_pending;
   const budget = data.metrics.agent_budget_cents;
   const spend = data.metrics.agent_spend_cents;
-  const budgetPct = budget > 0 ? Math.round((spend / budget) * 100) : 0;
+  const hasBudget = budget > 0;
+  const budgetPct = hasBudget ? Math.round((spend / budget) * 100) : 0;
   const budgetTone = budgetPct > 90 ? "critical" : budgetPct > 70 ? "warning" : "info";
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       <InstrumentCard
         eyebrow="Portfolio health"
-        primary={<Donut slices={portfolioSlices} centerLabel={String(data.metrics.active_projects)} centerHint="active" />}
-        footer={
-          <Legend slices={portfolioSlices} />
+        primary={
+          <Donut
+            slices={portfolioSlices}
+            centerLabel={portfolioTotal > 0 ? String(data.metrics.active_projects) : "—"}
+            centerHint={portfolioTotal > 0 ? "active" : "no data"}
+          />
         }
+        footer={portfolioTotal > 0 ? <Legend slices={portfolioSlices} /> : <EmptyNote>No active projects yet.</EmptyNote>}
         link={{ to: "/engine/projects", label: "View portfolio" }}
       />
       <InstrumentCard
         eyebrow="Spine readiness"
         note="Stage distribution before delivery."
-        primary={<Donut slices={spineSlices} centerLabel={String(spineSlices.reduce((n, s) => n + s.value, 0))} centerHint="projects" />}
-        footer={<Legend slices={spineSlices} />}
+        primary={
+          <Donut
+            slices={spineSlices}
+            centerLabel={spineTotal > 0 ? String(spineTotal) : "—"}
+            centerHint={spineTotal > 0 ? "projects" : "no data"}
+          />
+        }
+        footer={spineTotal > 0 ? <Legend slices={spineSlices} /> : <EmptyNote>No projects in pre-delivery stages.</EmptyNote>}
         link={{ to: "/engine/projects", label: "View spines" }}
       />
       <InstrumentCard
         eyebrow="Delivery readiness"
         note="Stage distribution in delivery."
-        primary={<Donut slices={deliverySlices} centerLabel={String(deliverySlices.reduce((n, s) => n + s.value, 0))} centerHint="projects" />}
-        footer={<Legend slices={deliverySlices} />}
+        primary={
+          <Donut
+            slices={deliverySlices}
+            centerLabel={deliveryTotal > 0 ? String(deliveryTotal) : "—"}
+            centerHint={deliveryTotal > 0 ? "projects" : "no data"}
+          />
+        }
+        footer={deliveryTotal > 0 ? <Legend slices={deliverySlices} /> : <EmptyNote>No projects in delivery stages.</EmptyNote>}
         link={{ to: "/engine/projects", label: "View pipeline" }}
       />
       <InstrumentCard
         eyebrow="Client momentum"
         note="This week."
         primary={
-          <div className="grid grid-cols-3 gap-2 py-4 text-center">
-            <BigStat label="Decisions" value={cac.decisions_needed} />
-            <BigStat label="Info req." value={cac.info_requests} />
-            <BigStat label="Feedback" value={cac.feedback_pending} />
-          </div>
+          clientTotal > 0 ? (
+            <div className="grid grid-cols-3 gap-2 py-4 text-center">
+              <BigStat label="Decisions" value={cac.decisions_needed} />
+              <BigStat label="Info req." value={cac.info_requests} />
+              <BigStat label="Feedback" value={cac.feedback_pending} />
+            </div>
+          ) : (
+            <div className="flex h-full min-h-[104px] items-center justify-center">
+              <EmptyNote>No client actions pending.</EmptyNote>
+            </div>
+          )
         }
         link={{ to: "/engine/projects", label: "View clients" }}
       />
@@ -344,22 +400,33 @@ function InstrumentRow({ data }: { data: CommandCenterPayload }) {
         eyebrow="Value and cost exposure"
         primary={
           <div className="py-2">
-            <div className="text-2xl font-semibold text-[#0A0F1F]">
-              {formatCents(spend)}
-              <span className="ml-1 text-sm font-normal text-[#98A2B3]">of {formatCents(budget)}</span>
-            </div>
-            <div className="mt-2 h-1.5 rounded bg-[#F5F1E8]">
-              <div
-                className={cn(
-                  "h-full rounded",
-                  budgetTone === "critical" ? "bg-rose-500" : budgetTone === "warning" ? "bg-amber-500" : "bg-[#98A2B3]",
-                )}
-                style={{ width: `${Math.min(100, budgetPct)}%` }}
-              />
-            </div>
-            <div className="mt-2 text-xs text-[#667085]">
-              {budgetPct}% of monthly agent spend consumed.
-            </div>
+            {hasBudget ? (
+              <>
+                <div className="text-2xl font-semibold text-[#0A0F1F]">
+                  {formatCents(spend)}
+                  <span className="ml-1 text-sm font-normal text-[#98A2B3]">of {formatCents(budget)}</span>
+                </div>
+                <div className="mt-2 h-1.5 rounded bg-[#F5F1E8]">
+                  <div
+                    className={cn(
+                      "h-full rounded",
+                      budgetTone === "critical" ? "bg-rose-500" : budgetTone === "warning" ? "bg-amber-500" : "bg-[#98A2B3]",
+                    )}
+                    style={{ width: `${Math.min(100, budgetPct)}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-xs text-[#667085]">
+                  {budgetPct}% of monthly agent spend consumed.
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-semibold text-[#0A0F1F]">{formatCents(spend)}</div>
+                <div className="mt-2 text-xs text-[#98A2B3]">
+                  No monthly budget configured. Spend shown without a cap.
+                </div>
+              </>
+            )}
           </div>
         }
         link={{ to: "/engine/operations", label: "View spend" }}
@@ -367,6 +434,11 @@ function InstrumentRow({ data }: { data: CommandCenterPayload }) {
     </div>
   );
 }
+
+function EmptyNote({ children }: { children: ReactNode }) {
+  return <div className="text-[11px] text-[#98A2B3]">{children}</div>;
+}
+
 
 function InstrumentCard({
   eyebrow,
@@ -443,7 +515,7 @@ function Donut({ slices, centerLabel, centerHint }: { slices: Slice[]; centerLab
             })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="font-display text-xl text-[#0A0F1F]">{centerLabel}</div>
+          <div className={cn("font-display text-xl", total > 0 ? "text-[#0A0F1F]" : "text-[#C8CFD9]")}>{centerLabel}</div>
           {centerHint && (
             <div className="font-mono text-[9px] uppercase tracking-widest text-[#98A2B3]">{centerHint}</div>
           )}
@@ -734,42 +806,51 @@ function ProjectJourney({ data }: { data: CommandCenterPayload }) {
           View pipeline →
         </Link>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
-        {JOURNEY_STAGES.map((stage) => {
-          const s = byStage.get(stage);
-          const muted = !s || s.count === 0;
-          return (
-            <div
-              key={stage}
-              className={cn(
-                "rounded-xl border p-3 text-xs",
-                muted ? "border-[#EFE9DC] bg-[#FBF9F4] text-[#98A2B3]" : "border-[#E8E1D6] bg-white text-[#334155]",
-              )}
-            >
-              <div className="font-mono text-[9px] uppercase tracking-widest">{stage}</div>
-              <div className={cn("mt-1 font-display text-2xl", muted ? "text-[#C8CFD9]" : "text-[#0A0F1F]")}>
-                {s?.count ?? 0}
-              </div>
-              <ul className="mt-2 space-y-0.5">
-                {(s?.projects ?? []).slice(0, 3).map((p) => (
-                  <li key={p.id} className="truncate">
-                    <Link
-                      to="/engine/projects/$projectId/overview"
-                      params={{ projectId: p.id }}
-                      className="hover:text-[#0A0F1F]"
-                    >
-                      {p.name}
-                    </Link>
-                  </li>
-                ))}
-                {s && s.projects.length > 3 && (
-                  <li className="text-[#98A2B3]">+{s.projects.length - 3} more</li>
+      {Array.from(byStage.values()).reduce((n, s) => n + s.count, 0) === 0 ? (
+        <div className="mt-4 rounded-xl border border-dashed border-[#E8E1D6] bg-[#FBF9F4] px-4 py-6 text-center text-sm text-[#8A94A6]">
+          No projects in the pipeline yet. Once intakes land they show up here by stage.
+        </div>
+      ) : (
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+          {JOURNEY_STAGES.map((stage) => {
+            const s = byStage.get(stage);
+            const muted = !s || s.count === 0;
+            return (
+              <div
+                key={stage}
+                className={cn(
+                  "rounded-xl border p-3 text-xs",
+                  muted ? "border-[#EFE9DC] bg-[#FBF9F4] text-[#98A2B3]" : "border-[#E8E1D6] bg-white text-[#334155]",
                 )}
-              </ul>
-            </div>
-          );
-        })}
-      </div>
+              >
+                <div className="font-mono text-[9px] uppercase tracking-widest">{stage}</div>
+                <div className={cn("mt-1 font-display text-2xl", muted ? "text-[#C8CFD9]" : "text-[#0A0F1F]")}>
+                  {s?.count ?? 0}
+                </div>
+                <ul className="mt-2 space-y-0.5">
+                  {(s?.projects ?? []).slice(0, 3).map((p) => (
+                    <li key={p.id} className="truncate">
+                      <Link
+                        to="/engine/projects/$projectId/overview"
+                        params={{ projectId: p.id }}
+                        className="hover:text-[#0A0F1F]"
+                      >
+                        {p.name}
+                      </Link>
+                    </li>
+                  ))}
+                  {s && s.projects.length > 3 && (
+                    <li className="text-[#98A2B3]">+{s.projects.length - 3} more</li>
+                  )}
+                  {!muted && (s?.projects.length ?? 0) === 0 && (
+                    <li className="text-[#98A2B3]">Count only. Project names unavailable.</li>
+                  )}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
@@ -1028,6 +1109,8 @@ function DecisionRow({ d, now, onSelect }: { d: Decision; now: number; onSelect:
       <button
         type="button"
         onClick={() => onSelect(d.id)}
+        data-decision-id={d.id}
+        aria-label={`Open decision: ${d.what}`}
         className="grid w-full grid-cols-1 items-start gap-3 px-5 py-4 text-left transition hover:bg-[#FBF9F4] md:grid-cols-[minmax(0,1fr)_auto] md:gap-6"
       >
         <div className="min-w-0">
