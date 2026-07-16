@@ -23,6 +23,8 @@ import { SpineReadinessPanel } from "@/components/engine/SpineReadinessPanel";
 import {
   Lock,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   ArrowRight,
   CheckCircle2,
   CircleDashed,
