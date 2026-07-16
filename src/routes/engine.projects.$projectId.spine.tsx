@@ -601,7 +601,7 @@ function ProjectSpine() {
           search={evidenceSearch}
           haystack="readiness contract checks advisory"
         >
-          <SpineReadinessPanel />
+          <SpineReadinessPanel projectId={projectId} />
         </SearchableBlock>
       </section>
 
