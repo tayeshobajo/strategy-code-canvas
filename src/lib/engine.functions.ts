@@ -1710,6 +1710,8 @@ export type ProjectSpinePayload = {
     point_b: import("@/lib/engine-workspace").Json;
     roadmap: import("@/lib/engine-workspace").Json;
     client_company: string;
+    client_owner_email: string | null;
+    health_score: number;
     updated_at: string;
     client_portal_project_id: string | null;
   };
@@ -1727,6 +1729,10 @@ export type ProjectSpinePayload = {
       started_at: string | null;
       finished_at: string | null;
     } | null;
+  };
+  intelligence: {
+    confidence: number | null;
+    signal_count: number;
   };
   version: {
     id: string;
@@ -1893,7 +1899,7 @@ export const getProjectSpine = createServerFn({ method: "GET" })
     const { data: projRow, error: projErr } = await sb
       .from("engine_projects")
       .select(
-        "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,point_a,point_b,roadmap,blueprint,hidden_assets,gap_map,sequencing,deadlines,investment,client_preview,step_states,open_decisions, engine_clients(company)",
+        "id,name,status,current_step,current_step_num,updated_at,client_portal_project_id,health_score,point_a,point_b,roadmap,blueprint,hidden_assets,gap_map,sequencing,deadlines,investment,client_preview,step_states,open_decisions, engine_clients(company,owner_email)",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -1960,6 +1966,29 @@ export const getProjectSpine = createServerFn({ method: "GET" })
       .order("started_at", { ascending: false, nullsFirst: false })
       .limit(1);
     if (runRows && runRows[0]) sources.last_run = runRows[0];
+
+    // Intelligence confidence — avg over extracted signals for this project
+    const { data: sigConfRows } = await sb
+      .from("engine_extracted_signals")
+      .select("confidence")
+      .eq("project_id", data.id);
+    const sigConfArr = (sigConfRows ?? []) as Array<{ confidence: number | null }>;
+    let intelligenceConfidence: number | null = null;
+    if (sigConfArr.length > 0) {
+      const nums = sigConfArr
+        .map((r) => (typeof r.confidence === "number" ? r.confidence : null))
+        .filter((n): n is number => n !== null);
+      if (nums.length > 0) {
+        const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+        // Values may be stored 0-1 or 0-100; normalize to 0-100.
+        const max = Math.max(...nums);
+        intelligenceConfidence = Math.round(max <= 1 ? mean * 100 : mean);
+      }
+    }
+    const intelligence = {
+      confidence: intelligenceConfidence,
+      signal_count: sigConfArr.length,
+    };
 
     // Latest roadmap version
     const { data: verRows } = await sb
@@ -2246,11 +2275,14 @@ export const getProjectSpine = createServerFn({ method: "GET" })
         point_b: projRow.point_b ?? null,
         roadmap: projRow.roadmap ?? null,
         client_company: projRow.engine_clients?.company ?? "—",
+        client_owner_email: (projRow.engine_clients?.owner_email as string | null) ?? null,
+        health_score: (projRow.health_score as number | null) ?? 0,
         updated_at: projRow.updated_at,
         client_portal_project_id: projRow.client_portal_project_id ?? null,
       },
       nba,
       sources,
+      intelligence,
       version,
       portal_publish,
       milestones,
