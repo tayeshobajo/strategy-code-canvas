@@ -1,13 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useSourceInspector } from "@/hooks/use-source-inspector";
 import {
   getSourceInspection,
   type SourceInspectionPayload,
 } from "@/lib/engine-source-inspection.functions";
-import { ArrowRight, FileText, ShieldCheck, AlertTriangle, Clock, Sparkles } from "lucide-react";
+import {
+  proposeSpineFieldChange,
+  getSpineFieldHistory,
+  type SpineFieldHistoryEntry,
+} from "@/lib/engine-spine-truth.functions";
+import { ArrowRight, FileText, ShieldCheck, AlertTriangle, Clock, Sparkles, PencilLine } from "lucide-react";
 
 /**
  * Sprint 1 · Wave 1 — Global Source & Truth Inspector drawer.
@@ -68,7 +74,12 @@ export function SourceTruthInspector() {
             Could not load evidence for this statement.
           </div>
         ) : (
-          <InspectorBody payload={payload} projectId={target.projectId} />
+          <InspectorBody
+            payload={payload}
+            projectId={target.projectId}
+            sectionKey={target.sectionKey}
+            fieldKey={target.fieldKey}
+          />
         )}
       </SheetContent>
     </Sheet>
@@ -78,14 +89,24 @@ export function SourceTruthInspector() {
 function InspectorBody({
   payload,
   projectId,
+  sectionKey,
+  fieldKey,
 }: {
   payload: SourceInspectionPayload;
   projectId: string;
+  sectionKey: string;
+  fieldKey: string;
 }) {
-  void projectId;
   return (
     <div className="space-y-5 p-5">
       <StatusStrip payload={payload} />
+      <ProposeChangePanel
+        projectId={projectId}
+        sectionKey={sectionKey}
+        fieldKey={fieldKey}
+        currentStatement={payload.statement ?? ""}
+      />
+
 
       <Card icon={<FileText className="h-3.5 w-3.5 text-[#3E68B2]" />} title="Source excerpts">
         {payload.excerpts.length === 0 ? (
@@ -258,3 +279,172 @@ function Card({
 function EmptyLine({ text }: { text: string }) {
   return <div className="text-sm italic text-[#667085]">{text}</div>;
 }
+
+/* ─────── Wave 2 · Propose change to a spine statement ─────── */
+
+function ProposeChangePanel({
+  projectId,
+  sectionKey,
+  fieldKey,
+  currentStatement,
+}: {
+  projectId: string;
+  sectionKey: string;
+  fieldKey: string;
+  currentStatement: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(currentStatement);
+  const [reason, setReason] = useState("");
+  const [flash, setFlash] = useState<null | { kind: "ok" | "err"; msg: string }>(null);
+  const proposeFn = useServerFn(proposeSpineFieldChange);
+  const historyFn = useServerFn(getSpineFieldHistory);
+  const qc = useQueryClient();
+
+  const historyKey = ["engine", "spine-field-history", projectId, sectionKey, fieldKey];
+  const historyQ = useQuery({
+    queryKey: historyKey,
+    queryFn: () =>
+      historyFn({ data: { projectId, sectionKey, fieldKey } }),
+    staleTime: 15_000,
+  });
+
+  const propose = useMutation({
+    mutationFn: (input: { newValue: string; changeReason: string }) =>
+      proposeFn({
+        data: {
+          projectId,
+          sectionKey,
+          fieldKey,
+          newValue: input.newValue,
+          changeReason: input.changeReason || null,
+        },
+      }),
+    onSuccess: async () => {
+      setFlash({ kind: "ok", msg: "Change proposed — appears in the Approvals Queue." });
+      setReason("");
+      setOpen(false);
+      await qc.invalidateQueries({ queryKey: historyKey });
+    },
+    onError: (e: unknown) =>
+      setFlash({ kind: "err", msg: (e as Error)?.message ?? "Could not submit proposal." }),
+  });
+
+  const history = (historyQ.data as { history: SpineFieldHistoryEntry[] } | undefined)?.history ?? [];
+
+  return (
+    <section className="rounded-xl border border-[#E8E1D6] bg-white p-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+          <PencilLine className="h-3.5 w-3.5 text-[#3E68B2]" />
+          Propose a change
+        </div>
+        {!open ? (
+          <button
+            type="button"
+            onClick={() => {
+              setValue(currentStatement);
+              setOpen(true);
+              setFlash(null);
+            }}
+            className="rounded-full border border-[#0A0F1F] px-3 py-1 text-xs font-medium text-[#0A0F1F] hover:bg-[#FBF9F4]"
+          >
+            Propose edit
+          </button>
+        ) : null}
+      </div>
+
+      {flash ? (
+        <div
+          className={
+            flash.kind === "ok"
+              ? "mb-2 rounded-md bg-[#e9f5ee] px-2 py-1 text-xs text-[#1f6b3b]"
+              : "mb-2 rounded-md bg-[#fbe9ec] px-2 py-1 text-xs text-[#a4283c]"
+          }
+        >
+          {flash.msg}
+        </div>
+      ) : null}
+
+      {open ? (
+        <div className="space-y-2">
+          <label className="block text-[11px] font-mono uppercase tracking-[0.22em] text-[#667085]">
+            Revised statement
+          </label>
+          <textarea
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            rows={4}
+            className="w-full rounded-md border border-[#E8E1D6] bg-white p-2 text-sm text-[#0A0F1F] focus:border-[#3E68B2] focus:outline-none"
+            placeholder="Type the revised approved statement…"
+          />
+          <label className="block text-[11px] font-mono uppercase tracking-[0.22em] text-[#667085]">
+            Reason for change (optional)
+          </label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={2}
+            className="w-full rounded-md border border-[#E8E1D6] bg-white p-2 text-sm text-[#3f4a63] focus:border-[#3E68B2] focus:outline-none"
+            placeholder="Why does this change?"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={propose.isPending || !value.trim() || value.trim() === currentStatement.trim()}
+              onClick={() => propose.mutate({ newValue: value.trim(), changeReason: reason.trim() })}
+              className="inline-flex items-center rounded-full bg-[#0A0F1F] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#1c2440] disabled:opacity-50"
+            >
+              {propose.isPending ? "Submitting…" : "Submit for approval"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="text-xs text-[#667085] hover:text-[#0A0F1F]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-4">
+        <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+          Change history
+        </div>
+        {historyQ.isPending ? (
+          <div className="text-xs text-[#667085]">Loading history…</div>
+        ) : history.length === 0 ? (
+          <div className="text-xs italic text-[#667085]">
+            No proposed changes recorded for this statement.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {history.slice(0, 6).map((h) => (
+              <li key={`${h.source}-${h.id}`} className="rounded-md border border-[#E8E1D6] bg-[#FBF9F4] p-2 text-xs text-[#3f4a63]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono uppercase tracking-wider text-[10px] text-[#667085]">
+                    {h.status}
+                  </span>
+                  <span className="text-[10px] text-[#667085]">
+                    {new Date(h.created_at).toLocaleString()}
+                  </span>
+                </div>
+                {h.new_value ? (
+                  <div className="mt-1 text-[#0A0F1F] line-clamp-3">{h.new_value}</div>
+                ) : null}
+                {h.change_reason ? (
+                  <div className="mt-0.5 text-[#667085] line-clamp-2">{h.change_reason}</div>
+                ) : null}
+                {h.actor_email ? (
+                  <div className="mt-0.5 text-[10px] text-[#667085]">by {h.actor_email}</div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+

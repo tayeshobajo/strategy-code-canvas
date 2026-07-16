@@ -160,6 +160,9 @@ import { Route as EngineProjectsProjectIdVersionsCompareRouteImport } from './ro
 import { Route as EngineProjectsProjectIdAgentTasksRouteImport } from './routes/engine.projects.$projectId.agent.tasks'
 import { Route as EngineProjectsProjectIdAgentPermissionsRouteImport } from './routes/engine.projects.$projectId.agent.permissions'
 import { Route as EngineProjectsProjectIdAgentCostsRouteImport } from './routes/engine.projects.$projectId.agent.costs'
+import { Route as EngineProjectsProjectIdMilestonesMilestoneIdQaRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.qa'
+import { Route as EngineProjectsProjectIdMilestonesMilestoneIdMockupsRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.mockups'
+import { Route as EngineProjectsProjectIdMilestonesMilestoneIdBuildRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.build'
 import { Route as EngineProjectsProjectIdMilestonesMilestoneIdBriefRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.brief'
 import { Route as EngineProjectsProjectIdEnginesRunsRunIdRouteImport } from './routes/engine.projects.$projectId.engines.runs.$runId'
 
@@ -979,6 +982,24 @@ const EngineProjectsProjectIdAgentCostsRoute =
     path: '/costs',
     getParentRoute: () => EngineProjectsProjectIdAgentRoute,
   } as any)
+const EngineProjectsProjectIdMilestonesMilestoneIdQaRoute =
+  EngineProjectsProjectIdMilestonesMilestoneIdQaRouteImport.update({
+    id: '/milestones/$milestoneId/qa',
+    path: '/milestones/$milestoneId/qa',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute =
+  EngineProjectsProjectIdMilestonesMilestoneIdMockupsRouteImport.update({
+    id: '/milestones/$milestoneId/mockups',
+    path: '/milestones/$milestoneId/mockups',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
+const EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute =
+  EngineProjectsProjectIdMilestonesMilestoneIdBuildRouteImport.update({
+    id: '/milestones/$milestoneId/build',
+    path: '/milestones/$milestoneId/build',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute =
   EngineProjectsProjectIdMilestonesMilestoneIdBriefRouteImport.update({
     id: '/milestones/$milestoneId/brief',
@@ -1144,6 +1165,9 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
   '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
   '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/mockups': typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/qa': typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1292,6 +1316,9 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
   '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
   '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/mockups': typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/qa': typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1448,6 +1475,9 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
   '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
   '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/mockups': typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/qa': typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1603,6 +1633,9 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/versions/compare'
     | '/engine/projects/$projectId/engines/runs/$runId'
     | '/engine/projects/$projectId/milestones/$milestoneId/brief'
+    | '/engine/projects/$projectId/milestones/$milestoneId/build'
+    | '/engine/projects/$projectId/milestones/$milestoneId/mockups'
+    | '/engine/projects/$projectId/milestones/$milestoneId/qa'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1751,6 +1784,9 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/versions/compare'
     | '/engine/projects/$projectId/engines/runs/$runId'
     | '/engine/projects/$projectId/milestones/$milestoneId/brief'
+    | '/engine/projects/$projectId/milestones/$milestoneId/build'
+    | '/engine/projects/$projectId/milestones/$milestoneId/mockups'
+    | '/engine/projects/$projectId/milestones/$milestoneId/qa'
   id:
     | '__root__'
     | '/'
@@ -1906,6 +1942,9 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/versions/compare'
     | '/engine/projects/$projectId/engines/runs/$runId'
     | '/engine/projects/$projectId/milestones/$milestoneId/brief'
+    | '/engine/projects/$projectId/milestones/$milestoneId/build'
+    | '/engine/projects/$projectId/milestones/$milestoneId/mockups'
+    | '/engine/projects/$projectId/milestones/$milestoneId/qa'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -3013,6 +3052,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdAgentCostsRouteImport
       parentRoute: typeof EngineProjectsProjectIdAgentRoute
     }
+    '/engine/projects/$projectId/milestones/$milestoneId/qa': {
+      id: '/engine/projects/$projectId/milestones/$milestoneId/qa'
+      path: '/milestones/$milestoneId/qa'
+      fullPath: '/engine/projects/$projectId/milestones/$milestoneId/qa'
+      preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/milestones/$milestoneId/mockups': {
+      id: '/engine/projects/$projectId/milestones/$milestoneId/mockups'
+      path: '/milestones/$milestoneId/mockups'
+      fullPath: '/engine/projects/$projectId/milestones/$milestoneId/mockups'
+      preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
+    '/engine/projects/$projectId/milestones/$milestoneId/build': {
+      id: '/engine/projects/$projectId/milestones/$milestoneId/build'
+      path: '/milestones/$milestoneId/build'
+      fullPath: '/engine/projects/$projectId/milestones/$milestoneId/build'
+      preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/milestones/$milestoneId/brief': {
       id: '/engine/projects/$projectId/milestones/$milestoneId/brief'
       path: '/milestones/$milestoneId/brief'
@@ -3211,6 +3271,9 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdIndexRoute: typeof EngineProjectsProjectIdIndexRoute
   EngineProjectsProjectIdVersionsCompareRoute: typeof EngineProjectsProjectIdVersionsCompareRoute
   EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
+  EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
+  EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
+  EngineProjectsProjectIdMilestonesMilestoneIdQaRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
 }
 
 const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren =
@@ -3284,6 +3347,12 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
       EngineProjectsProjectIdVersionsCompareRoute,
     EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute:
       EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute,
+    EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute:
+      EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute,
+    EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute:
+      EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute,
+    EngineProjectsProjectIdMilestonesMilestoneIdQaRoute:
+      EngineProjectsProjectIdMilestonesMilestoneIdQaRoute,
   }
 
 const EngineProjectsProjectIdRouteWithChildren =
