@@ -1018,7 +1018,41 @@ function collectTruthBullets(
   return out;
 }
 
-type GateState = "done" | "review" | "blocked" | "in_progress" | "not_started" | "not_ready" | "na";
+type GateState =
+  | "done"
+  | "review"
+  | "blocked"
+  | "in_progress"
+  | "not_started"
+  | "not_configured"
+  | "not_ready"
+  | "na";
+
+const GATE_COLUMNS: Array<{
+  key:
+    | "criteria"
+    | "design"
+    | "mockups"
+    | "build"
+    | "evidence"
+    | "qa_auto"
+    | "qa_human"
+    | "due_date"
+    | "dependencies"
+    | "blockers";
+  label: string;
+}> = [
+  { key: "criteria", label: "Criteria" },
+  { key: "design", label: "Design" },
+  { key: "mockups", label: "Mockups" },
+  { key: "build", label: "Build" },
+  { key: "evidence", label: "Evidence" },
+  { key: "qa_auto", label: "QA · Auto" },
+  { key: "qa_human", label: "QA · Human" },
+  { key: "due_date", label: "Due" },
+  { key: "dependencies", label: "Deps" },
+  { key: "blockers", label: "Blockers" },
+];
 
 function MilestoneReadinessMatrix({
   projectId,
@@ -1040,6 +1074,9 @@ function MilestoneReadinessMatrix({
           View all <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
+      <p className="mt-1 text-xs text-[#667085]">
+        Every gate is derived from durable project records. Missing backing records render as “Not configured”.
+      </p>
       {rows.length === 0 ? (
         <p className="mt-4 text-sm text-[#667085]">No milestones captured yet.</p>
       ) : (
@@ -1048,11 +1085,11 @@ function MilestoneReadinessMatrix({
             <thead>
               <tr className="border-b border-[#E8E1D6] text-[#667085]">
                 <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Milestone</th>
-                <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Criteria</th>
-                <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Design</th>
-                <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Build</th>
-                <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">QA</th>
-                <th className="py-2 font-mono text-[10px] uppercase tracking-[0.22em]">Due</th>
+                {GATE_COLUMNS.map((c) => (
+                  <th key={c.key} className="py-2 pr-3 font-mono text-[10px] uppercase tracking-[0.22em]">
+                    {c.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -1069,13 +1106,11 @@ function MilestoneReadinessMatrix({
                         {m.name}
                       </Link>
                     </td>
-                    <td className="py-3 pr-4"><GateChip state={gates.criteria} /></td>
-                    <td className="py-3 pr-4"><GateChip state={gates.design} /></td>
-                    <td className="py-3 pr-4"><GateChip state={gates.build} /></td>
-                    <td className="py-3 pr-4"><GateChip state={gates.qa} /></td>
-                    <td className="py-3 text-[#667085] whitespace-nowrap">
-                      {m.due_date ? formatDate(m.due_date) : "—"}
-                    </td>
+                    {GATE_COLUMNS.map((c) => (
+                      <td key={c.key} className="py-3 pr-3">
+                        <GateChip state={gates[c.key] as GateState} />
+                      </td>
+                    ))}
                   </tr>
                 );
               })}
@@ -1100,6 +1135,8 @@ function GateChip({ state }: { state: GateState }) {
     return <GenericBadge tone="blocked">Blocked</GenericBadge>;
   if (state === "in_progress")
     return <GenericBadge tone="info">In Progress</GenericBadge>;
+  if (state === "not_configured")
+    return <GenericBadge tone="neutral">Not configured</GenericBadge>;
   if (state === "not_ready")
     return <GenericBadge tone="neutral">Not Ready</GenericBadge>;
   if (state === "not_started")
