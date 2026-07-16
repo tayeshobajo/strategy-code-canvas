@@ -881,7 +881,7 @@ function deriveHealth(
 function TruthCardV2({
   point,
   projectId,
-  approvedFlag,
+  status,
   bullets,
   sourceCount,
   approvedAt,
@@ -890,7 +890,7 @@ function TruthCardV2({
 }: {
   point: "A" | "B";
   projectId: string;
-  approvedFlag: boolean;
+  status: SpineFieldStatus | null;
   bullets: string[];
   sourceCount: number;
   approvedAt: string | null;
@@ -901,8 +901,9 @@ function TruthCardV2({
   const label = point === "A" ? "Point A" : "Point B";
   const subtitle =
     point === "A" ? "Where the business is today." : "Where the business is going.";
-  const badgeTone = approvedFlag ? "approved" : "pending";
-  const badgeLabel = approvedFlag ? "APPROVED" : "DRAFT";
+  const presentation = presentationFor(status);
+  const badgeTone = badgeToneFor(presentation.tone);
+  const badgeLabel = presentation.label;
 
   return (
     <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
