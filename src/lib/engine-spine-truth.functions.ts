@@ -61,7 +61,7 @@ export const proposeSpineFieldChange = createServerFn({ method: "POST" })
         title,
         summary,
         payload,
-        status: "pending",
+        status: "submitted_for_review",
         target_route: `/engine/projects/${data.projectId}/spine`,
         created_by: userId,
       })
