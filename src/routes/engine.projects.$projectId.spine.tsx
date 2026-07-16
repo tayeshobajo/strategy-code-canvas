@@ -6,12 +6,23 @@ import {
   getProjectSpine,
   type EngineProjectStatus,
   type ProjectSpinePayload,
+  type SpineModuleSection,
 } from "@/lib/engine.functions";
 import { EngineStatusBadge, formatDate } from "@/components/engine/primitives";
 import { SpineVersionHistory } from "@/components/engine/SpineVersionHistory";
 import { SpineReadinessPanel } from "@/components/engine/SpineReadinessPanel";
-import { Lock, ChevronLeft } from "lucide-react";
+import {
+  Lock,
+  ChevronLeft,
+  ArrowRight,
+  CheckCircle2,
+  CircleDashed,
+  AlertTriangle,
+  Clock,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/engine/projects/$projectId/spine")({
   component: ProjectSpine,
@@ -63,7 +74,8 @@ function ProjectSpine() {
   const sourceTotal = Math.max(spine.sources.total, 1);
 
   return (
-    <div className="space-y-6 text-[#0A0F1F]">
+    <div className="space-y-8 text-[#0A0F1F]">
+      {/* Header */}
       <header className="space-y-3">
         <Link
           to="/engine/projects/$projectId/overview"
@@ -74,6 +86,9 @@ function ProjectSpine() {
           Back to Overview
         </Link>
         <div className="space-y-2">
+          <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#667085]">
+            Project Spine · Approved Truth
+          </div>
           <h1 className="font-display text-3xl text-[#0A0F1F]">{spine.project.name}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-[#667085]">
             <span>{spine.project.client_company || "No client company"}</span>
@@ -85,194 +100,108 @@ function ProjectSpine() {
         </div>
       </header>
 
-      <SpineReadinessPanel />
+      {/* 1. Next Best Action — hero */}
+      <NextBestActionCard nba={spine.nba} projectId={projectId} />
 
-
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <TruthCard
-          label="POINT A — WHERE WE ARE"
-          sections={extractNamedSections(pointA, [
-            "current_state",
-            "challenges",
-            "summary",
-            "description",
-          ])}
-          emptyLabel="Not yet defined."
-          footer={
-            hasMeaningfulValue(spine.project.point_a) ? (
-              <div className="inline-flex items-center gap-2 text-xs text-[#667085]">
-                <Lock className="h-3.5 w-3.5" />
-                Approved truth — locked
+      {/* 2. Point A / Point B */}
+      <section aria-labelledby="spine-truth-heading" className="space-y-3">
+        <SectionHeading id="spine-truth-heading" eyebrow="Approved Truth" title="Point A · Point B" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <TruthCard
+            label="POINT A — WHERE WE ARE"
+            sections={extractNamedSections(pointA, [
+              "current_state",
+              "challenges",
+              "summary",
+              "description",
+            ])}
+            emptyLabel="Not yet defined."
+            footer={
+              hasMeaningfulValue(spine.project.point_a) ? (
+                <div className="inline-flex items-center gap-2 text-xs text-[#667085]">
+                  <Lock className="h-3.5 w-3.5" />
+                  Approved truth — locked
+                </div>
+              ) : null
+            }
+          />
+          <TruthCard
+            label="POINT B — WHERE WE'RE GOING"
+            sections={extractNamedSections(pointB, [
+              "destination",
+              "goal",
+              "vision",
+              "frame",
+              "success_looks_like",
+            ])}
+            emptyLabel="Destination not yet approved."
+            footer={
+              <div className="flex flex-wrap gap-2">
+                {spine.project.frame ? <MetaChip label="Frame" value={spine.project.frame} /> : null}
+                {spine.project.goal ? <MetaChip label="Goal" value={spine.project.goal} /> : null}
               </div>
-            ) : null
+            }
+          />
+        </div>
+      </section>
+
+      {/* 3. Roadmap summary */}
+      <section aria-labelledby="spine-roadmap-heading" className="space-y-3">
+        <SectionHeading
+          id="spine-roadmap-heading"
+          eyebrow="Roadmap"
+          title="Latest approved roadmap"
+          action={
+            <Link
+              to="/engine/projects/$projectId/roadmap"
+              params={{ projectId }}
+              className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+            >
+              Open roadmap
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           }
         />
-
-        <TruthCard
-          label="POINT B — WHERE WE'RE GOING"
-          sections={extractNamedSections(pointB, [
-            "destination",
-            "goal",
-            "vision",
-            "frame",
-            "success_looks_like",
-          ])}
-          emptyLabel="Destination not yet approved."
-          footer={
-            <div className="flex flex-wrap gap-2">
-              {spine.project.frame ? <MetaChip label="Frame" value={spine.project.frame} /> : null}
-              {spine.project.goal ? <MetaChip label="Goal" value={spine.project.goal} /> : null}
-            </div>
-          }
+        <RoadmapSummaryCard
+          version={spine.version}
+          milestones={spine.milestones}
+          groupedMilestones={groupedMilestones}
+          scopeItems={scopeItems}
         />
-      </div>
+      </section>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <section className="space-y-4">
-          <ColumnCard title="Project Foundation">
-            <FoundationSection
-              title="Business Context"
-              items={buildBusinessContext(pointA, pointB)}
-              empty="Not captured"
-            />
-            <FoundationSection
-              title="Approved Scope"
-              items={scopeItems}
-              empty={
-                spine.milestones.length
-                  ? `${spine.milestones.length} milestone${
-                      spine.milestones.length === 1 ? "" : "s"
-                    } approved into the roadmap spine.`
-                  : "Not captured"
-              }
-            />
-            <FoundationSection
-              title="Constraints"
-              items={extractValueList(pointA?.constraints)}
-              empty="Not captured"
-            />
-            <FoundationSection
-              title="Success Metrics"
-              items={extractValueList(pointB?.success_metrics ?? pointB?.kpis ?? pointB?.metrics)}
-              empty="Not captured"
-            />
-          </ColumnCard>
-        </section>
+      {/* 4. Milestone / module readiness */}
+      <section aria-labelledby="spine-readiness-modules-heading" className="space-y-3">
+        <SectionHeading
+          id="spine-readiness-modules-heading"
+          eyebrow="Readiness"
+          title="Milestone & module readiness"
+        />
+        <ModuleReadinessGrid modules={spine.modules} />
+      </section>
 
-        <section className="space-y-4">
-          <ColumnCard title="Roadmap & Decisions">
-            <div className="rounded-xl border border-[#E8E1D6] bg-white p-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
-                Latest version
-              </div>
-              {spine.version ? (
-                <div className="mt-3 space-y-2 text-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium text-[#0A0F1F]">
-                        {spine.version.label || "Unlabeled version"}
-                      </div>
-                      <div className="mt-1 text-[#667085]">
-                        Created {formatDateTime(spine.version.created_at)}
-                      </div>
-                    </div>
-                    <GenericBadge tone={toneForStatus(spine.version.status)}>
-                      {humanize(spine.version.status)}
-                    </GenericBadge>
-                  </div>
-                  <div className="text-[#667085]">
-                    Approved{" "}
-                    {spine.version.approved_at ? formatDateTime(spine.version.approved_at) : "—"}
-                  </div>
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-[#667085]">No roadmap version approved yet.</p>
-              )}
-            </div>
+      {/* 5. Approvals */}
+      <section aria-labelledby="spine-approvals-heading" className="space-y-3">
+        <SectionHeading
+          id="spine-approvals-heading"
+          eyebrow="Approvals"
+          title="Pending decisions & operator notifications"
+        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ApprovalsCard reviews={spine.reviews} />
+          <NotificationsCard notifications={spine.notifications} />
+        </div>
+      </section>
 
-            <div className="rounded-xl border border-[#E8E1D6] bg-white p-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
-                Milestones by phase
-              </div>
-              {groupedMilestones.length ? (
-                <div className="mt-3 space-y-4">
-                  {groupedMilestones.map(([phase, milestones]) => (
-                    <div key={phase} className="space-y-2">
-                      <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#667085]">
-                        {phase}
-                      </div>
-                      {milestones.map((milestone) => (
-                        <div
-                          key={milestone.id}
-                          className="rounded-lg border border-[#E8E1D6] bg-[#FBF9F4] p-3"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium text-[#0A0F1F]">
-                                {milestone.name}
-                              </div>
-                              {milestone.brief_md ? (
-                                <div className="mt-1 line-clamp-2 text-xs text-[#667085]">
-                                  {milestone.brief_md}
-                                </div>
-                              ) : null}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              <GenericBadge tone={toneForStatus(milestone.status)}>
-                                {humanize(milestone.status)}
-                              </GenericBadge>
-                              <GenericBadge tone={toneForApproval(milestone.approval_status)}>
-                                {humanize(milestone.approval_status)}
-                              </GenericBadge>
-                            </div>
-                          </div>
-                          {milestone.due_date ? (
-                            <div className="mt-2 text-xs text-[#667085]">
-                              Due {formatDate(milestone.due_date)}
-                            </div>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-[#667085]">No milestones captured yet.</p>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-[#E8E1D6] bg-white p-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
-                Pending reviews
-              </div>
-              {spine.reviews.length ? (
-                <div className="mt-3 space-y-3">
-                  {spine.reviews.map((review) => (
-                    <div key={review.id} className="rounded-lg border border-[#E8E1D6] p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium text-[#0A0F1F]">{review.title}</div>
-                          <div className="mt-1 text-xs text-[#667085]">
-                            {humanize(review.item_type)} · {formatDateTime(review.created_at)}
-                          </div>
-                        </div>
-                        <GenericBadge tone={toneForImpact(review.impact)}>
-                          {humanize(review.impact)}
-                        </GenericBadge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-[#667085]">No pending review items.</p>
-              )}
-            </div>
-          </ColumnCard>
-        </section>
-
-        <section className="space-y-4">
-          <ColumnCard title="Evidence & Activity">
+      {/* 6. Evidence & History (collapsed) */}
+      <section aria-labelledby="spine-evidence-heading" className="space-y-3">
+        <SectionHeading
+          id="spine-evidence-heading"
+          eyebrow="Reference"
+          title="Evidence & history"
+        />
+        <CollapsedBlock title="Sources & portal publish" subtitle={`${spine.sources.processed}/${spine.sources.total} processed`}>
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-xl border border-[#E8E1D6] bg-white p-4">
               <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
                 Sources summary
@@ -283,24 +212,9 @@ function ProjectSpine() {
                 <Stat label="Failed" value={spine.sources.failed} tone="blocked" />
               </div>
               <div className="mt-4 space-y-3">
-                <ProgressRow
-                  label="Processed"
-                  value={spine.sources.processed}
-                  max={sourceTotal}
-                  color="bg-[#1f6b3b]"
-                />
-                <ProgressRow
-                  label="Queued"
-                  value={spine.sources.queued}
-                  max={sourceTotal}
-                  color="bg-[#8a6713]"
-                />
-                <ProgressRow
-                  label="Failed"
-                  value={spine.sources.failed}
-                  max={sourceTotal}
-                  color="bg-[#a4283c]"
-                />
+                <ProgressRow label="Processed" value={spine.sources.processed} max={sourceTotal} color="bg-[#1f6b3b]" />
+                <ProgressRow label="Queued" value={spine.sources.queued} max={sourceTotal} color="bg-[#8a6713]" />
+                <ProgressRow label="Failed" value={spine.sources.failed} max={sourceTotal} color="bg-[#a4283c]" />
               </div>
               <div className="mt-3 text-xs text-[#667085]">
                 Last run{" "}
@@ -311,7 +225,6 @@ function ProjectSpine() {
                   : "not available"}
               </div>
             </div>
-
             <div className="rounded-xl border border-[#E8E1D6] bg-white p-4">
               <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
                 Portal publish
@@ -330,104 +243,61 @@ function ProjectSpine() {
                   : "No publish timestamp recorded."}
               </div>
             </div>
-
-            {spine.notifications.length ? (
-              <div className="rounded-xl border border-[#E8E1D6] bg-white p-4">
-                <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
-                  Operator notifications
-                </div>
-                <div className="mt-3 space-y-3">
-                  {spine.notifications.slice(0, 5).map((notification) => (
-                    <div key={notification.id} className="text-sm">
-                      <div className="font-medium text-[#0A0F1F]">{notification.title}</div>
-                      {notification.body ? (
-                        <div className="mt-1 text-xs text-[#667085]">{notification.body}</div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            <ListCard
-              title="Recent activity"
-              items={spine.activity.slice(0, 5).map((item) => ({
-                id: item.id,
-                title: item.title,
-                meta: `${humanize(item.kind)} · ${formatDateTime(item.created_at)}`,
-                body: item.body,
-              }))}
-              empty="No recent activity."
-            />
-
-            <ListCard
-              title="Recent audit"
-              items={spine.audit.slice(0, 5).map((item) => ({
-                id: item.id,
-                title: humanize(item.action),
-                meta: `${item.actor_email ?? "system"} · ${formatDateTime(item.created_at)}`,
-                body: item.summary,
-              }))}
-              empty="No audit entries."
-            />
-          </ColumnCard>
-        </section>
-      </div>
-
-      <details className="rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
-        <summary className="cursor-pointer list-none px-5 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="font-display text-lg text-[#0A0F1F]">Task Ledger</div>
-              <div className="mt-1 text-sm text-[#667085]">
-                {spine.tasks.length} task{spine.tasks.length === 1 ? "" : "s"} in the protected
-                spine
-              </div>
-            </div>
-            <div className="text-xs uppercase tracking-[0.22em] text-[#667085]">
-              Click to expand
-            </div>
           </div>
-        </summary>
-        <div className="border-t border-[#E8E1D6] px-5 py-4">
+        </CollapsedBlock>
+
+        <CollapsedBlock title="Recent activity" subtitle={`${spine.activity.length} events`}>
+          <ListCard
+            title="Activity"
+            items={spine.activity.slice(0, 15).map((item) => ({
+              id: item.id,
+              title: item.title,
+              meta: `${humanize(item.kind)} · ${formatDateTime(item.created_at)}`,
+              body: item.body,
+            }))}
+            empty="No recent activity."
+          />
+        </CollapsedBlock>
+
+        <CollapsedBlock title="Audit trail" subtitle={`${spine.audit.length} entries`}>
+          <ListCard
+            title="Audit"
+            items={spine.audit.slice(0, 15).map((item) => ({
+              id: item.id,
+              title: humanize(item.action),
+              meta: `${item.actor_email ?? "system"} · ${formatDateTime(item.created_at)}`,
+              body: item.summary,
+            }))}
+            empty="No audit entries."
+          />
+        </CollapsedBlock>
+
+        <CollapsedBlock
+          title="Task ledger"
+          subtitle={`${spine.tasks.length} task${spine.tasks.length === 1 ? "" : "s"}`}
+        >
           {spine.tasks.length ? (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-[#E8E1D6] text-[#667085]">
-                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">
-                      Name
-                    </th>
-                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">
-                      Phase
-                    </th>
-                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">
-                      Status
-                    </th>
-                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">
-                      Owner
-                    </th>
-                    <th className="py-2 font-mono text-[10px] uppercase tracking-[0.22em]">
-                      Due Date
-                    </th>
+                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Name</th>
+                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Phase</th>
+                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Status</th>
+                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Owner</th>
+                    <th className="py-2 font-mono text-[10px] uppercase tracking-[0.22em]">Due Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {spine.tasks.map((task) => (
                     <tr key={task.id} className="border-b border-[#F3EEE6] align-top">
                       <td className="py-3 pr-4 text-[#0A0F1F]">{task.name}</td>
-                      <td className="py-3 pr-4 text-[#667085]">
-                        {task.phase ? humanize(task.phase) : "—"}
-                      </td>
+                      <td className="py-3 pr-4 text-[#667085]">{task.phase ? humanize(task.phase) : "—"}</td>
                       <td className="py-3 pr-4">
-                        <GenericBadge tone={toneForStatus(task.status)}>
-                          {humanize(task.status)}
-                        </GenericBadge>
+                        <GenericBadge tone={toneForStatus(task.status)}>{humanize(task.status)}</GenericBadge>
                       </td>
                       <td className="py-3 pr-4 text-[#667085]">{task.owner_email || "—"}</td>
-                      <td className="py-3 text-[#667085]">
-                        {task.due_date ? formatDate(task.due_date) : "—"}
-                      </td>
+                      <td className="py-3 text-[#667085]">{task.due_date ? formatDate(task.due_date) : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -436,16 +306,383 @@ function ProjectSpine() {
           ) : (
             <p className="text-sm text-[#667085]">No tasks have been approved into the spine.</p>
           )}
-        </div>
-      </details>
+        </CollapsedBlock>
 
-      <SpineVersionHistory
-        projectId={projectId}
-        currentVersionLabel={spine.version?.label ?? null}
-      />
+        <CollapsedBlock title="Version history" subtitle="Approved roadmap versions">
+          <SpineVersionHistory projectId={projectId} currentVersionLabel={spine.version?.label ?? null} />
+        </CollapsedBlock>
+
+        <CollapsedBlock title="Readiness contract" subtitle="14 canonical checks (advisory)">
+          <SpineReadinessPanel />
+        </CollapsedBlock>
+      </section>
     </div>
   );
 }
+
+/* ─────────────────────────── Layout primitives ─────────────────────────── */
+
+function SectionHeading({
+  id,
+  eyebrow,
+  title,
+  action,
+}: {
+  id: string;
+  eyebrow: string;
+  title: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex items-end justify-between gap-4">
+      <div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#667085]">
+          {eyebrow}
+        </div>
+        <h2 id={id} className="mt-1 font-display text-xl text-[#0A0F1F]">
+          {title}
+        </h2>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function NextBestActionCard({
+  nba,
+  projectId: _projectId,
+}: {
+  nba: ProjectSpinePayload["nba"];
+  projectId: string;
+}) {
+  const tone = nba.severity ?? "info";
+  const toneClasses: Record<"critical" | "warning" | "info", string> = {
+    critical: "border-[#f3ced5] bg-gradient-to-br from-[#fbe9ec] to-white",
+    warning: "border-[#f1e3b9] bg-gradient-to-br from-[#fbf3e0] to-white",
+    info: "border-[#cdd6f3] bg-gradient-to-br from-[#e9eefb] to-white",
+  };
+  const icon =
+    tone === "critical" ? (
+      <AlertTriangle className="h-5 w-5 text-[#a4283c]" />
+    ) : tone === "warning" ? (
+      <Clock className="h-5 w-5 text-[#8a6713]" />
+    ) : (
+      <Sparkles className="h-5 w-5 text-[#3E68B2]" />
+    );
+
+
+  return (
+    <section
+      aria-labelledby="spine-nba-heading"
+      className={cn(
+        "rounded-2xl border p-6 shadow-sm",
+        toneClasses[tone] ?? toneClasses.info,
+      )}
+    >
+      <div className="flex items-start justify-between gap-6">
+        <div className="flex items-start gap-4 min-w-0">
+          <div className="mt-1 rounded-full border border-white bg-white/70 p-2 shadow-sm">
+            {icon}
+          </div>
+          <div className="min-w-0 space-y-2">
+            <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#667085]">
+              Next Best Action
+            </div>
+            <h2 id="spine-nba-heading" className="font-display text-2xl leading-tight text-[#0A0F1F]">
+              {nba.action}
+            </h2>
+            {nba.reason ? (
+              <p className="text-sm leading-6 text-[#3f4a5e]">{nba.reason}</p>
+            ) : null}
+          </div>
+        </div>
+        {nba.href ? (
+          <a
+            href={nba.href}
+            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440]"
+          >
+            Take action
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function RoadmapSummaryCard({
+  version,
+  milestones,
+  groupedMilestones,
+  scopeItems,
+}: {
+  version: ProjectSpinePayload["version"];
+  milestones: ProjectSpinePayload["milestones"];
+  groupedMilestones: Array<[string, ProjectSpinePayload["milestones"]]>;
+  scopeItems: string[];
+}) {
+  const approvedCount = milestones.filter((m) => m.approval_status === "approved").length;
+  const totalMilestones = milestones.length;
+  const progressPct = totalMilestones
+    ? Math.round((approvedCount / totalMilestones) * 100)
+    : 0;
+
+  return (
+    <div className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+            Latest version
+          </div>
+          <div className="mt-1 text-lg font-medium text-[#0A0F1F]">
+            {version?.label || "No approved version"}
+          </div>
+          <div className="mt-1 text-xs text-[#667085]">
+            {version
+              ? `Created ${formatDateTime(version.created_at)}${
+                  version.approved_at ? ` · Approved ${formatDateTime(version.approved_at)}` : ""
+                }`
+              : "No roadmap version approved yet."}
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          {version ? (
+            <GenericBadge tone={toneForStatus(version.status)}>
+              {humanize(version.status)}
+            </GenericBadge>
+          ) : null}
+          <div className="text-xs text-[#667085]">
+            {approvedCount}/{totalMilestones} milestones approved
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <div className="h-2 rounded-full bg-[#F3EEE6]">
+          <div className="h-2 rounded-full bg-[#1f6b3b]" style={{ width: `${progressPct}%` }} />
+        </div>
+      </div>
+
+      {groupedMilestones.length ? (
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {groupedMilestones.map(([phase, list]) => (
+            <div key={phase} className="rounded-xl border border-[#E8E1D6] bg-[#FBF9F4] p-3">
+              <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#667085]">
+                {phase}
+              </div>
+              <ul className="mt-2 space-y-2 text-sm text-[#0A0F1F]">
+                {list.slice(0, 5).map((m) => (
+                  <li key={m.id} className="flex items-start justify-between gap-3">
+                    <span className="truncate">{m.name}</span>
+                    <GenericBadge tone={toneForApproval(m.approval_status)}>
+                      {humanize(m.approval_status)}
+                    </GenericBadge>
+                  </li>
+                ))}
+                {list.length > 5 ? (
+                  <li className="text-xs text-[#667085]">+{list.length - 5} more</li>
+                ) : null}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-[#667085]">No milestones captured yet.</p>
+      )}
+
+      {scopeItems.length ? (
+        <div className="mt-5 rounded-xl border border-[#E8E1D6] bg-[#FBF9F4] p-4">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+            Approved scope
+          </div>
+          <ul className="mt-2 space-y-1 text-sm text-[#0A0F1F]">
+            {scopeItems.slice(0, 6).map((s, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="text-[#3E68B2]">•</span>
+                <span>{s}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ModuleReadinessGrid({ modules }: { modules: SpineModuleSection[] }) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {modules.map((m) => (
+        <ModuleReadinessTile key={m.key} module={m} />
+      ))}
+    </div>
+  );
+}
+
+function ModuleReadinessTile({ module: m }: { module: SpineModuleSection }) {
+  const { has_data, approved, ready, approval_state } = m.readiness;
+  const state: "ready" | "approved-no-data" | "review" | "draft" | "missing" = ready
+    ? "ready"
+    : approved && !has_data
+      ? "approved-no-data"
+      : approval_state === "review"
+        ? "review"
+        : has_data
+          ? "draft"
+          : "missing";
+
+  const iconMap = {
+    ready: <CheckCircle2 className="h-4 w-4 text-[#1f6b3b]" />,
+    "approved-no-data": <AlertTriangle className="h-4 w-4 text-[#8a6713]" />,
+    review: <Clock className="h-4 w-4 text-[#8a6713]" />,
+    draft: <CircleDashed className="h-4 w-4 text-[#3E68B2]" />,
+    missing: <CircleDashed className="h-4 w-4 text-[#667085]" />,
+  };
+  const labelMap = {
+    ready: "Approved",
+    "approved-no-data": "Approved · empty",
+    review: "In review",
+    draft: "Draft",
+    missing: "Not started",
+  };
+  const toneMap: Record<string, "approved" | "pending" | "info" | "neutral"> = {
+    ready: "approved",
+    "approved-no-data": "pending",
+    review: "pending",
+    draft: "info",
+    missing: "neutral",
+  };
+
+  return (
+    <a
+      href={m.deep_link}
+      className={cn(
+        "group rounded-xl border p-4 shadow-sm transition hover:shadow-md",
+        state === "ready"
+          ? "border-[#c4e6d2] bg-[#f4faf6]"
+          : "border-[#E8E1D6] bg-white hover:border-[#3E68B2]/40",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {iconMap[state]}
+          <div className="text-sm font-medium text-[#0A0F1F]">{m.label}</div>
+        </div>
+        <GenericBadge tone={toneMap[state]}>{labelMap[state]}</GenericBadge>
+      </div>
+      <div className="mt-3 flex items-center justify-between text-xs text-[#667085]">
+        <span>{m.derived ? "Derived" : "Module"}</span>
+        <span className="inline-flex items-center gap-1 text-[#3E68B2] opacity-0 transition group-hover:opacity-100">
+          Open <ArrowRight className="h-3 w-3" />
+        </span>
+      </div>
+    </a>
+  );
+}
+
+function ApprovalsCard({ reviews }: { reviews: ProjectSpinePayload["reviews"] }) {
+  return (
+    <div className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+        Pending reviews
+      </div>
+      {reviews.length ? (
+        <div className="mt-3 space-y-3">
+          {reviews.slice(0, 6).map((review) => (
+            <div key={review.id} className="rounded-lg border border-[#E8E1D6] p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-[#0A0F1F]">{review.title}</div>
+                  <div className="mt-1 text-xs text-[#667085]">
+                    {humanize(review.item_type)} · {formatDateTime(review.created_at)}
+                  </div>
+                </div>
+                <GenericBadge tone={toneForImpact(review.impact)}>
+                  {humanize(review.impact)}
+                </GenericBadge>
+              </div>
+            </div>
+          ))}
+          {reviews.length > 6 ? (
+            <div className="text-xs text-[#667085]">+{reviews.length - 6} more pending</div>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-[#667085]">No pending review items.</p>
+      )}
+    </div>
+  );
+}
+
+function NotificationsCard({
+  notifications,
+}: {
+  notifications: ProjectSpinePayload["notifications"];
+}) {
+  return (
+    <div className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+        Operator notifications
+      </div>
+      {notifications.length ? (
+        <div className="mt-3 space-y-3">
+          {notifications.slice(0, 6).map((n) => (
+            <div key={n.id} className="rounded-lg border border-[#F3EEE6] p-3">
+              <div className="text-sm font-medium text-[#0A0F1F]">{n.title}</div>
+              {n.body ? <div className="mt-1 text-xs text-[#667085]">{n.body}</div> : null}
+              <div className="mt-2 flex items-center justify-between text-xs text-[#667085]">
+                <span>
+                  {humanize(n.kind)} · {formatDateTime(n.created_at)}
+                </span>
+                {n.href ? (
+                  <a
+                    href={n.href}
+                    className="inline-flex items-center gap-1 text-[#3E68B2] hover:text-[#284f93]"
+                  >
+                    Open <ArrowRight className="h-3 w-3" />
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-[#667085]">No operator notifications.</p>
+      )}
+    </div>
+  );
+}
+
+function CollapsedBlock({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className="group rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
+      <summary className="cursor-pointer list-none px-5 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="font-display text-base text-[#0A0F1F]">{title}</div>
+            {subtitle ? (
+              <div className="mt-0.5 text-xs text-[#667085]">{subtitle}</div>
+            ) : null}
+          </div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#667085] transition group-open:text-[#3E68B2]">
+            <span className="group-open:hidden">Expand</span>
+            <span className="hidden group-open:inline">Collapse</span>
+          </div>
+        </div>
+      </summary>
+      <div className="border-t border-[#E8E1D6] px-5 py-4">{children}</div>
+    </details>
+  );
+}
+
 
 function SpineLoading() {
   return (
