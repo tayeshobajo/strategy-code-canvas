@@ -1,12 +1,17 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { Menu } from "lucide-react";
 import { getProjectWorkspace } from "@/lib/engine.functions";
-import { ProjectTabs } from "@/components/engine/ProjectTabs";
 import {
   ProjectHeaderStrip,
   WorkspaceToolbar,
 } from "@/components/engine/WorkspaceHeader";
+import {
+  LeftProjectRail,
+  MobileRailDrawer,
+} from "@/components/engine/LeftProjectRail";
 
 export const workspaceQueryOptions = (
   projectId: string,
@@ -27,6 +32,7 @@ export const Route = createFileRoute("/engine/projects/$projectId")({
 function WorkspaceLayout() {
   const { projectId } = Route.useParams();
   const fn = useServerFn(getProjectWorkspace);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { data, error, isError, isPending } = useQuery(
     workspaceQueryOptions(projectId, fn as unknown as (i: { data: { id: string } }) => Promise<unknown>),
   );
@@ -61,6 +67,15 @@ function WorkspaceLayout() {
   return (
     <div className="space-y-5 max-w-[1500px]">
       <div className="flex items-center justify-end gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(true)}
+          aria-label="Open project navigation"
+          className="inline-flex items-center gap-1.5 rounded-md border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs text-[#0A0F1F] hover:bg-[#FBF9F4] xl:hidden"
+        >
+          <Menu className="h-3.5 w-3.5" />
+          Rooms
+        </button>
         <Link
           to="/engine/projects/$projectId/family"
           params={{ projectId }}
@@ -71,8 +86,21 @@ function WorkspaceLayout() {
         <WorkspaceToolbar projectId={projectId} project={workspace.project} />
       </div>
       <ProjectHeaderStrip project={workspace.project} />
-      <ProjectTabs projectId={projectId} />
-      <Outlet />
+
+      <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="hidden xl:block">
+          <LeftProjectRail projectId={projectId} />
+        </div>
+        <div className="min-w-0">
+          <Outlet />
+        </div>
+      </div>
+
+      <MobileRailDrawer
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        projectId={projectId}
+      />
     </div>
   );
 }
