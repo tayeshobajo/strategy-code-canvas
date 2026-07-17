@@ -49,7 +49,11 @@ import {
   Eye,
   FileText,
   Activity,
+  Menu,
+  Send,
+  Loader2,
 } from "lucide-react";
+import { askProjectIntelligence } from "@/lib/engine-chat.functions";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useSourceInspector } from "@/hooks/use-source-inspector";
