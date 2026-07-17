@@ -4233,7 +4233,7 @@ function SpineStatusStrip({
     {
       label: "Health",
       render: (
-        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0A0F1F]">
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink">
           <span className={cn("h-2 w-2 rounded-full", health.dot)} />
           {project.health_score > 0 ? `${project.health_score} · ${health.label}` : health.label}
         </span>
@@ -4242,16 +4242,16 @@ function SpineStatusStrip({
     {
       label: "Current Phase",
       render: (
-        <span className="text-sm font-medium text-[#0A0F1F] truncate">
+        <span className="block truncate text-[13px] font-semibold text-ink">
           {humanize(project.current_step || "—")}
         </span>
       ),
     },
-    { label: "Captain", render: <span className="text-sm font-medium text-[#0A0F1F]">Tai · Active</span> },
-    { label: "Last Update", render: <span className="text-sm font-medium text-[#0A0F1F]">{lastUpdate}</span> },
+    { label: "Captain", render: <span className="text-[13px] font-semibold text-ink">Tai · Active</span> },
+    { label: "Last Update", render: <span className="text-[13px] font-semibold text-ink">{lastUpdate}</span> },
     {
       label: "Version",
-      render: <span className="text-sm font-medium text-[#0A0F1F]">{spine.version?.label ?? "Draft"}</span>,
+      render: <span className="text-[13px] font-semibold text-ink">{spine.version?.label ?? "Draft"}</span>,
     },
     { label: "Readiness", render: <StatusChip label={readinessLabel} tone={readinessTone} /> },
   ];
@@ -4259,19 +4259,18 @@ function SpineStatusStrip({
   return (
     <section
       aria-label="Project status strip"
-      className="rounded-2xl border border-[#E8E1D6] bg-white px-5 py-4 shadow-sm ring-1 ring-black/[0.02]"
+      className="rounded-2xl border border-rule bg-white px-6 py-4 shadow-sm ring-1 ring-black/[0.02]"
     >
-      <ul className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4 lg:grid-cols-7 lg:divide-x lg:divide-[#F3EEE6]">
+      <ul className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4 lg:grid-cols-7 lg:divide-x lg:divide-rule">
         {cells.map((c, i) => (
           <li
             key={c.label}
-            className={cn(
-              "min-w-0",
-              i > 0 && "lg:pl-5",
-            )}
+            className={cn("min-w-0", i > 0 && "lg:pl-6")}
           >
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">{c.label}</div>
-            <div className="mt-1.5 truncate">{c.render}</div>
+            <div className="font-mono text-[10px] font-medium uppercase tracking-[0.24em] text-ink/50">
+              {c.label}
+            </div>
+            <div className="mt-2 truncate leading-tight">{c.render}</div>
           </li>
         ))}
       </ul>

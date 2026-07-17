@@ -41,6 +41,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import logoWhite from "@/assets/trust-tai-logo-white.png.asset.json";
 import { SourceInspectorProvider } from "@/hooks/use-source-inspector";
 import { SourceTruthInspector } from "@/components/engine/SourceTruthInspector";
+import { ActivityDriftBanner } from "@/components/engine/ActivityDriftBanner";
 
 export const Route = createFileRoute("/engine")({
   ssr: false,
@@ -156,6 +157,7 @@ function EngineLayout() {
   return (
     <SourceInspectorProvider>
       <div className="engine-theme flex min-h-screen flex-col bg-paper text-ink">
+        <ActivityDriftBanner />
         {/* Top nav — white bar, matches the cockpit reference. */}
         <header className="sticky top-0 z-40 border-b border-rule bg-white/95 backdrop-blur">
           <div className="flex h-14 items-center gap-3 px-4 lg:px-6">
