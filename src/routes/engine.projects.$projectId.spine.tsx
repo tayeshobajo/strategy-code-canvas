@@ -4785,10 +4785,100 @@ function AskCaptainModal({
   projectId: string;
 }) {
   const askFn = useServerFn(askProjectIntelligence);
+  const listThreadsFn = useServerFn(listChatThreads);
+  const getThreadFn = useServerFn(getChatThread);
   const [input, setInput] = useState("");
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [turns, setTurns] = useState<AskCaptainTurn[]>([]);
   const [busy, setBusy] = useState(false);
+  const [hydrating, setHydrating] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, open && !busy);
+
+  // Persist / restore: on open, load the most-recent thread for this project
+  // and hydrate its messages into turns. Runs once per open.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setHydrating(true);
+    (async () => {
+      try {
+        const { threads } = (await listThreadsFn({ data: { projectId } })) as {
+          threads: Array<{ id: string }>;
+        };
+        const latest = threads[0];
+        if (!latest) return;
+        const { messages } = (await getThreadFn({ data: { threadId: latest.id } })) as {
+          messages: Array<{
+            id: string;
+            role: "user" | "assistant" | "system_note";
+            content: string;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            metadata: any;
+          }>;
+        };
+        if (cancelled) return;
+        setThreadId(latest.id);
+        // Pair user → assistant messages into turns.
+        const restored: AskCaptainTurn[] = [];
+        let pendingUser: { id: string; question: string } | null = null;
+        for (const m of messages) {
+          if (m.role === "user") {
+            if (pendingUser) {
+              restored.push({
+                id: pendingUser.id,
+                question: pendingUser.question,
+                answer: null,
+                citations: [],
+                suggestedLinks: [],
+                error: null,
+              });
+            }
+            pendingUser = { id: m.id, question: m.content };
+          } else if (m.role === "assistant" && pendingUser) {
+            const meta = m.metadata ?? {};
+            const answer = meta?.answer ?? null;
+            const summary: string = answer?.summary ?? m.content ?? "";
+            const citations: string[] = Array.isArray(answer?.citations) ? answer.citations : [];
+            const links: AskCaptainSuggestedLink[] = Array.isArray(answer?.suggested_links)
+              ? answer.suggested_links.filter(
+                  (l: unknown): l is AskCaptainSuggestedLink =>
+                    !!l && typeof (l as AskCaptainSuggestedLink).to === "string",
+                )
+              : [];
+            restored.push({
+              id: pendingUser.id,
+              question: pendingUser.question,
+              answer: summary,
+              citations,
+              suggestedLinks: links,
+              error: meta?.success === false ? meta?.error_code ?? "AI error" : null,
+            });
+            pendingUser = null;
+          }
+        }
+        if (pendingUser) {
+          restored.push({
+            id: pendingUser.id,
+            question: pendingUser.question,
+            answer: null,
+            citations: [],
+            suggestedLinks: [],
+            error: null,
+          });
+        }
+        setTurns(restored);
+      } catch {
+        // Best-effort restore; leave the thread empty on failure.
+      } finally {
+        if (!cancelled) setHydrating(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, projectId, listThreadsFn, getThreadFn]);
 
   useEffect(() => {
     if (!open) return;
@@ -4803,6 +4893,12 @@ function AskCaptainModal({
     };
   }, [open, onClose, busy]);
 
+  useEffect(() => {
+    if (!open) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [turns, open]);
+
   if (!open) return null;
 
   const submit = async (e: FormEvent) => {
@@ -4810,17 +4906,32 @@ function AskCaptainModal({
     const question = input.trim();
     if (!question || busy) return;
     const turnId = crypto.randomUUID();
-    setTurns((prev) => [...prev, { id: turnId, question, answer: null, error: null }]);
+    setTurns((prev) => [
+      ...prev,
+      { id: turnId, question, answer: null, citations: [], suggestedLinks: [], error: null },
+    ]);
     setInput("");
     setBusy(true);
     try {
       const res = (await askFn({ data: { projectId, threadId, message: question } })) as {
         thread: { id: string };
-        answer: { summary: string };
+        answer: {
+          summary: string;
+          citations?: string[];
+          suggested_links?: AskCaptainSuggestedLink[];
+        };
       };
       setThreadId(res.thread.id);
+      const citations = Array.isArray(res.answer.citations) ? res.answer.citations : [];
+      const suggestedLinks = Array.isArray(res.answer.suggested_links)
+        ? res.answer.suggested_links.filter(
+            (l): l is AskCaptainSuggestedLink => !!l && typeof l.to === "string",
+          )
+        : [];
       setTurns((prev) =>
-        prev.map((t) => (t.id === turnId ? { ...t, answer: res.answer.summary } : t)),
+        prev.map((t) =>
+          t.id === turnId ? { ...t, answer: res.answer.summary, citations, suggestedLinks } : t,
+        ),
       );
     } catch (err) {
       setTurns((prev) =>
@@ -4836,11 +4947,19 @@ function AskCaptainModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Ask Captain">
       <div className="absolute inset-0 bg-black/50" onClick={busy ? undefined : onClose} />
-      <div className="relative flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:h-[70vh] sm:rounded-2xl">
+      <div
+        ref={containerRef}
+        className="relative flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl outline-none sm:h-[70vh] sm:rounded-2xl"
+      >
         <div className="flex items-center justify-between border-b border-[#E8E1D6] px-5 py-3">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-[#3E68B2]" />
             <div className="font-display text-base text-[#0A0F1F]">Ask Captain</div>
+            {hydrating ? (
+              <span className="ml-2 inline-flex items-center gap-1 text-[11px] text-[#667085]">
+                <Loader2 className="h-3 w-3 animate-spin" /> Restoring
+              </span>
+            ) : null}
           </div>
           <button
             type="button"
@@ -4852,8 +4971,8 @@ function AskCaptainModal({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          {turns.length === 0 ? (
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
+          {turns.length === 0 && !hydrating ? (
             <div className="mt-6 text-sm text-[#667085]">
               Ask a question about this project. Captain reads the full spine — Point A, Point B, milestones, evidence, and approvals.
             </div>
@@ -4869,8 +4988,40 @@ function AskCaptainModal({
                       {t.error}
                     </div>
                   ) : t.answer ? (
-                    <div className="mr-6 whitespace-pre-wrap rounded-2xl border border-[#E8E1D6] bg-[#FBF9F4] px-4 py-2 text-sm text-[#0A0F1F]">
-                      {t.answer}
+                    <div className="mr-6 space-y-2">
+                      <div className="whitespace-pre-wrap rounded-2xl border border-[#E8E1D6] bg-[#FBF9F4] px-4 py-2 text-sm text-[#0A0F1F]">
+                        {t.answer}
+                      </div>
+                      {t.citations.length > 0 ? (
+                        <div className="rounded-xl border border-dashed border-[#E8E1D6] bg-white px-3 py-2 text-xs text-[#667085]">
+                          <div className="mb-1 font-mono uppercase tracking-[0.18em] text-[10px] text-[#667085]">
+                            Sources used
+                          </div>
+                          <ul className="flex flex-wrap gap-1.5">
+                            {t.citations.map((c, i) => (
+                              <li
+                                key={`${t.id}-cite-${i}`}
+                                className="rounded-full border border-[#E8E1D6] bg-[#FBF9F4] px-2 py-0.5 font-mono text-[10px] text-[#0A0F1F]"
+                              >
+                                {c}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {t.suggestedLinks.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {t.suggestedLinks.map((l, i) => (
+                            <a
+                              key={`${t.id}-link-${i}`}
+                              href={l.to}
+                              className="inline-flex items-center gap-1 rounded-full border border-[#E8E1D6] bg-white px-2 py-0.5 text-[11px] text-[#3E68B2] hover:bg-[#FBF9F4]"
+                            >
+                              {l.label}
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <div className="mr-6 inline-flex items-center gap-2 rounded-2xl border border-[#E8E1D6] bg-[#FBF9F4] px-4 py-2 text-sm text-[#667085]">
@@ -4883,6 +5034,7 @@ function AskCaptainModal({
             </ul>
           )}
         </div>
+
         <form onSubmit={submit} className="border-t border-[#E8E1D6] px-4 py-3">
           <div className="flex items-end gap-2">
             <textarea
