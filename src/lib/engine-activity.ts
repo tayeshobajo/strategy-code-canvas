@@ -99,19 +99,7 @@ function safeJson(v: unknown): unknown {
 export const listActivityDriftAlerts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const sb = (context as unknown as { supabase: MinimalClient & {
-      from: (t: string) => {
-        select: (c: string) => {
-          eq: (col: string, val: string) => {
-            gte: (col: string, val: string) => {
-              order: (col: string, opts: { ascending: boolean }) => {
-                limit: (n: number) => Promise<{ data: unknown; error: unknown }>;
-              };
-            };
-          };
-        };
-      };
-    } }).supabase;
+    const sb = (context as unknown as { supabase: { from: (t: string) => any } }).supabase;
     const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await sb
       .from("operator_notifications")
