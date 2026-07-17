@@ -793,9 +793,10 @@ function HeroNextBestActionCard({
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-[#667085]">
+            <MetaKV label="Impact" value={tone === "critical" ? "High" : tone === "warning" ? "Medium" : "Standard"} />
             <MetaKV label="Unlocks" value={nextMilestone?.phase ? humanize(nextMilestone.phase) : "Next phase"} />
-            <MetaKV label="Due" value={nextMilestone?.due_date ? formatDate(nextMilestone.due_date) : "—"} />
             <MetaKV label="Owner" value="Tai" />
+            <MetaKV label="Due" value={nextMilestone?.due_date ? formatDate(nextMilestone.due_date) : "Today"} />
           </div>
           {nba.href ? (
             <a
