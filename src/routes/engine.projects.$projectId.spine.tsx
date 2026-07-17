@@ -1255,10 +1255,35 @@ function GateChip({ state }: { state: GateState }) {
 }
 
 function ApprovalsInlineCard({ reviews }: { reviews: ProjectSpinePayload["reviews"] }) {
+  const [impact, setImpact] = useState<"all" | "high" | "medium" | "low">("all");
+  const [expanded, setExpanded] = useState(false);
+  const filtered = reviews.filter((r) => impact === "all" || r.impact === impact);
+  const visible = expanded ? filtered : filtered.slice(0, 5);
+  const counts = {
+    all: reviews.length,
+    high: reviews.filter((r) => r.impact === "high").length,
+    medium: reviews.filter((r) => r.impact === "medium").length,
+    low: reviews.filter((r) => r.impact === "low").length,
+  };
+  const chip = (key: "all" | "high" | "medium" | "low", label: string) => (
+    <button
+      key={key}
+      type="button"
+      onClick={() => setImpact(key)}
+      className={cn(
+        "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition",
+        impact === key
+          ? "border-[#3E68B2] bg-[#3E68B2] text-white"
+          : "border-[#E8E1D6] bg-white text-[#667085] hover:border-[#3E68B2]/60 hover:text-[#3E68B2]",
+      )}
+    >
+      {label} <span className="opacity-70">· {counts[key]}</span>
+    </button>
+  );
   return (
     <section
       id="spine-approvals"
-      className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm"
+      className="scroll-mt-4 rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm"
     >
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="font-display text-lg text-[#0A0F1F]">Approvals &amp; Decisions</h2>
@@ -1269,43 +1294,67 @@ function ApprovalsInlineCard({ reviews }: { reviews: ProjectSpinePayload["review
           View all <ArrowRight className="h-3 w-3" />
         </a>
       </div>
-      {reviews.length === 0 ? (
-        <p className="mt-4 text-sm text-[#667085]">No pending review items.</p>
+      {reviews.length > 0 ? (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {chip("all", "All")}
+          {chip("high", "High impact")}
+          {chip("medium", "Medium")}
+          {chip("low", "Low")}
+        </div>
+      ) : null}
+      {filtered.length === 0 ? (
+        <p className="mt-4 text-sm text-[#667085]">
+          {reviews.length === 0 ? "No pending review items." : "No items match this filter."}
+        </p>
       ) : (
-        <ul className="mt-4 space-y-3">
-          {reviews.slice(0, 5).map((r) => {
-            const dotClass =
-              r.impact === "high"
-                ? "bg-[#a4283c]"
-                : r.impact === "medium"
-                  ? "bg-[#8a6713]"
-                  : "bg-[#3E68B2]";
-            return (
-              <li
-                key={r.id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-[#F3EEE6] p-3"
-              >
-                <div className="flex min-w-0 gap-2">
-                  <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dotClass)} />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-[#0A0F1F]">{r.title}</div>
-                    <div className="mt-0.5 text-xs text-[#667085]">
-                      {r.status === "pending" || r.status === "needs_review"
-                        ? "Needs your approval"
-                        : "Awaiting decision"}
+        <>
+          <ul className="mt-4 space-y-3">
+            {visible.map((r) => {
+              const dotClass =
+                r.impact === "high"
+                  ? "bg-[#a4283c]"
+                  : r.impact === "medium"
+                    ? "bg-[#8a6713]"
+                    : "bg-[#3E68B2]";
+              return (
+                <li
+                  key={r.id}
+                  className="flex items-start justify-between gap-3 rounded-lg border border-[#F3EEE6] p-3 hover:border-[#3E68B2]/40"
+                >
+                  <div className="flex min-w-0 gap-2">
+                    <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dotClass)} />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-[#0A0F1F]">{r.title}</div>
+                      <div className="mt-0.5 text-xs text-[#667085]">
+                        {humanize(r.item_type)} · {formatRelative(r.created_at)} ·{" "}
+                        {r.status === "pending" || r.status === "needs_review"
+                          ? "Needs your approval"
+                          : "Awaiting decision"}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  className="shrink-0 rounded-full border border-[#E8E1D6] bg-white px-3 py-1 text-xs font-medium text-[#3E68B2] hover:border-[#3E68B2]/60"
-                >
-                  Review
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  <Link
+                    to="/engine/approvals"
+                    search={{ id: r.id } as never}
+                    className="shrink-0 rounded-full border border-[#E8E1D6] bg-white px-3 py-1 text-xs font-medium text-[#3E68B2] hover:border-[#3E68B2]/60"
+                  >
+                    Review
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          {filtered.length > 5 ? (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+            >
+              {expanded ? "Show fewer" : `Show all ${filtered.length}`}
+              {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+          ) : null}
+        </>
       )}
     </section>
   );
