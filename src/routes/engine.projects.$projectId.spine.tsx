@@ -364,9 +364,11 @@ function ProjectSpine() {
         />
       ) : null}
 
-      {variant === "active" ? (
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
         <div className="min-w-0 space-y-6">
+      {variant === "active" ? (
+        <>
+
       {/* ───── Hero row: NBA + Snapshot ───── */}
       <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] xl:gap-6">
         <HeroNextBestActionCard
@@ -707,19 +709,23 @@ function ProjectSpine() {
       </section>
 
       <NotificationsCard notifications={spine.notifications} />
+        </>
+      ) : variant === "incomplete" ? (
+        <SpineIncompleteBody spine={spine} projectId={projectId} />
+      ) : (
+        <SpineClientReadyBody spine={spine} projectId={projectId} />
+      )}
         </div>
         <SpineRightRail
           spine={spine}
           projectId={projectId}
           pendingApprovals={pendingApprovalsCount}
         />
-      </div>) : variant === "incomplete" ? (
-        <SpineIncompleteBody spine={spine} projectId={projectId} />
-      ) : (
-        <SpineClientReadyBody spine={spine} projectId={projectId} />
-      )}
       </div>
+      </div>
+
       <AskCaptainModal
+
         open={askCaptainOpen}
         onClose={() => setAskCaptainOpen(false)}
         projectId={projectId}
