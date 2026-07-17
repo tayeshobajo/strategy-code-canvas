@@ -318,10 +318,10 @@ function ProjectSpine() {
       ) : null}
 
       {variant === "active" ? (
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
         <div className="min-w-0 space-y-6">
       {/* ───── Hero row: NBA + Snapshot ───── */}
-      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] xl:gap-6">
         <HeroNextBestActionCard
           nba={spine.nba}
           nextMilestone={nextMilestone ?? null}
