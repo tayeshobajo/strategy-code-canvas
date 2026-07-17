@@ -1,75 +1,94 @@
-## Goal
+## Reference read-out
 
-Reshape the active-variant Project Spine (`src/routes/engine.projects.$projectId.spine.tsx`) to match the uploaded cockpit reference. Presentation only — no schema, no server-function shape changes, no changes to Incomplete/Client-Ready variants beyond reusing the new header/status strip.
+The uploaded mockup differs from the current engine in five specific ways:
 
-## Reference layout (top → bottom, main + right rail)
+1. **Palette** — Page background is a cool cloud-blue-gray (`#F5F7FA` / `#EEF1F6`), not the warm cream `#FBF9F4` we use today. Borders are a cool neutral (`#E5E9F0`) instead of beige `#E8E1D6`. Ink and royal stay.
+2. **Type system** — Headings, body, and labels are all sans-serif (a clean neo-grotesque like Inter/Söhne). The engine currently uses `Cormorant Garamond` (serif) for `font-display`, which reads as marketing/editorial. Only the engine should change — the public Trust Tai site keeps the serif.
+3. **Global chrome** — Reference shows a **white top nav bar** (Command Center · Projects · Approvals · Operations · Strategic Sales · Settings, Ask Captain + bell + user chip on the right) instead of today's dark left sidebar. A second, lighter **left project rail** hosts the per-project navigation (already in place on the Spine page).
+4. **Spine page structure** — Same section order as today (you confirmed the positioning is right), but visually tighter: 7-cell status strip on a single card, Next Best Action highlighted in soft royal-tinted card, Point A/B as equal cards with a connecting arrow, Project Foundation as 6 evenly-spaced tiles, Business Roadmap preview as a 5-node timeline (Point A → Phase 1/2/3 → Point B) with the current phase highlighted.
+5. **Right rail** — Captain Brief, Approvals & Blockers, Material Changes, Active Agents — order preserved, spacing tightened, agent status uses colored dot + label (Working / Waiting for approval / Blocked).
 
-```text
-┌───────────────────────── Header ─────────────────────────┐  ┌── right rail ──┐
-│ Project Spine  [Needs Review]     Approvals · Project    │  │ CAPTAIN BRIEF  │
-│ subtitle                          Actions · Export       │  │ (moved from    │
-├── Status strip (7 cells) ────────────────────────────────┤  │  lower row)    │
-│ STATUS│HEALTH│PHASE│CAPTAIN│LAST UPD│VERSION│READINESS  │  │                │
-├── NEXT BEST ACTION (2fr) ── PROJECT SNAPSHOT (1fr) ─────┤  │ APPROVALS &    │
-│                                                          │  │  BLOCKERS      │
-├── POINT A ─────────────── POINT B ──────────────────────┤  │                │
-├── PROJECT FOUNDATION (6 tiles) ─────────────────────────┤  │ MATERIAL       │
-├── BUSINESS ROADMAP (PREVIEW) ───────────────────────────┤  │  CHANGES       │
-│  Milestone matrix, footer stats, working focus,          │  │                │
-│  history, modules details keep rendering below           │  │ ACTIVE AGENTS  │
-└──────────────────────────────────────────────────────────┘  └────────────────┘
+## What this plan does
+
+Scope is deliberately limited to the engine surface (`/engine/*`). The marketing site, portal, and intake flows are not touched.
+
+### 1. Engine-scoped theme (new tokens, not a global swap)
+
+- Add a `.engine-theme` class on the engine layout root (`src/routes/engine.tsx` line 207 wrapper).
+- In `src/styles.css`, add a `.engine-theme` block that overrides `--paper`, `--paper-soft`, `--rule`, `--rule-soft`, and `--font-display` to the cool palette + sans-serif. Nothing outside `/engine` sees this.
+- Load Inter (or agreed sans) via `<link>` in `src/routes/__root.tsx` so `--font-display` inside engine resolves properly.
+
+New engine tokens:
+
+```
+--paper:        #F5F7FA   (page bg)
+--paper-soft:   #EEF1F6   (card wells, inline surfaces)
+--rule:         #E5E9F0   (borders, dividers)
+--rule-soft:    #EEF1F6
+--font-display: "Inter", system-ui, sans-serif
 ```
 
-Layout wrapper (active only): `grid xl:grid-cols-[minmax(0,1fr)_320px] gap-6`. Right rail is `sticky top-4` and stacks the four cards. Below `xl`, rail collapses under the main column.
+### 2. Global hex → token sweep inside engine files
 
-## Changes
+There are ~226 literal `#FBF9F4` / `#E8E1D6` / `#FAF8F5` usages across engine files (spine, projects list, command center, ops, engine components). Each becomes the matching Tailwind token class:
 
-1. **New `SpineStatusStrip` component** — one card, 7 stat cells separated by dividers. Data:
-   - Project Status: `spine.project.status` + step label (`current_step`).
-   - Health: `spine.project.health_score` → "Healthy / Needs Attention / At Risk" + blockers count from `blockedItemsCount`.
-   - Current Phase: derived from `spine.project.current_step` / current milestone `phase` (`Phase N of M`).
-   - Captain: static "Captain AI" + `Active` chip (no new data).
-   - Last Updated: `spine.project.updated_at` (relative + absolute).
-   - Roadmap Version: `spine.version?.label ?? "Draft"` + published/not-published.
-   - Spine Readiness: reuse existing `useSpineReadiness` query already wired in this file — show `passed/total` + percent.
+- `bg-[#FBF9F4]` → `bg-paper-soft`
+- `bg-[#FAF8F5]` → `bg-paper`
+- `border-[#E8E1D6]` → `border-rule` (or `border-border`)
+- `text-[#0A0F1F]` → `text-ink`
+- `text-[#667085]` → `text-ink/60`
 
-2. **Redesign `HeroNextBestActionCard`** to match the compass-icon card style (small eyebrow, big title, description, meta chips `Impact / Unlocks / Owner / Due`, primary CTA). Keep existing NBA data props.
+Because these all resolve through the `.engine-theme` overrides, the cream reads as cool blue-gray inside `/engine` and nothing changes elsewhere.
 
-3. **Redesign `ProjectSnapshotCard`** as a 2-column key/value grid: Client, Project Type, Parent Project, Target Date | Open Approvals, Blocked Items, Active Milestones, Client Portal. Use existing props already passed in.
+### 3. Engine top-nav chrome (matches reference)
 
-4. **Redesign `ProjectFoundationCard`** to a horizontal 6-tile strip (icon + label + one-line status): Business Context, Constraints & Risks, Assets & Leverage, Approved Scope, Success Measures, Decisions Pending. Derive counts from existing `modules` / `pointA` / `pointB` / `milestones` props already passed. Add "View all foundation →" link (keeps current `Link` target).
+Rework `src/routes/engine.tsx`:
 
-5. **Right rail** (`SpineRightRail`) — new component composing:
-   - Existing `CaptainBriefCard` (moved out of lower row).
-   - New `ApprovalsBlockersRail` — top 2–3 items from `spine.reviews` + blocked milestones (`m.status === "blocked" || approval_status === "rejected"`), with existing review-action link.
-   - New `MaterialChangesRail` — top 3 items from `spine.activity` filtered to version/truth changes; date on right.
-   - New `ActiveAgentsRail` — from `spine.modules` (fallback list if absent): Product Manager / Project Manager / Design / Developer, status chip derived from module `status`/`readiness` fields already present; if a field is missing render `—`, never fabricated. "View all →" links to existing Agent Workspace room if present, otherwise omitted.
+- Replace the sticky dark left sidebar with a **white top bar** containing the 6 primary nav items, a right-aligned "Ask Captain" pill, notification bell, and user chip.
+- The existing per-project left rail on the Spine page (already built) becomes the only vertical navigation; it stays scoped to project routes.
+- Preserve the mobile Sheet drawer (same items, opens from a hamburger in the top bar).
+- Keep all auth, breadcrumb, and role-check logic intact.
 
-6. **Reorganize main column** to the order above. Remove `ApprovalsInlineCard` + `CaptainBriefCard` from the lower 3-col row (they now live in the rail / are represented by the new foundation strip). Keep `MilestoneReadinessMatrix`, `FooterStatsBar`, `WorkingFocusStrip`, `MilestoneApprovalHistoryCard`, and the "Modules & readiness" details block untouched below the roadmap preview.
+### 4. Project Spine visual pass
 
-7. **Header polish** — `SpinePageHeader` gets `Approvals` pill button + `Project Actions` dropdown (reusing existing menu if present, otherwise a simple `DetailsMenu`) alongside the existing Export button; underline the status chip beside the title using existing variant colors.
+File: `src/routes/engine.projects.$projectId.spine.tsx`. No layout reordering (per your instruction); tighten what's there:
 
-8. **Incomplete / Client-Ready bodies** — wrap in the same 2-col shell so the rail is consistent, but inside the rail only render `CaptainBriefCard` + `ApprovalsBlockersRail` (skip Material Changes / Active Agents when the data isn't meaningful yet).
+- **Status strip** — collapse the 7 cells onto a single card, uppercase micro-labels, single-value + one-line qualifier, small progress bar under "Spine Readiness".
+- **Next Best Action** — soft royal tint background (`bg-royal/5` inside engine theme), compass/anchor icon on the right, meta chips row (`Impact · Unlocks · Owner · Due`).
+- **Point A / Point B cards** — equal columns, small icon + label + subtitle header, 3-line summary, meta grid (Sources · Confidence · Approved By · Approved On or Last Updated · Needs Approval), links row (View details / Open intelligence room). Arrow between the two cards on desktop.
+- **Project Foundation** — 6 evenly-spaced tiles in one horizontal row with an icon, label, and one metric line per tile; "View all foundation" link on the right.
+- **Business Roadmap Preview** — 5 nodes (Point A · Phase 1 · Phase 2 · Phase 3 · Point B) with connector lines, current phase highlighted with royal ring; footer summary shows Current Phase, Target Completion, View full roadmap link.
+- **Right rail** — same components as now; tighten padding, remove border weight, agent list uses colored dot + status label.
 
-## Non-goals
+Preserved as-is per your note: card order, Ask Captain modal, Source Inspector, thread persistence, focus trap, deep-link validation.
 
-- No changes to server functions, queries, or DB.
-- No changes to Incomplete "Resolve these first" card behavior.
-- No changes to Export logic, milestone workspace, or client portal.
-- No new mock data — any missing field renders "—" or "Not configured".
+### 5. Sanity check other engine pages
 
-## Files touched
+Because the sweep and the theme layer are engine-wide, the Command Center, Projects list, Approvals, Operations pages inherit the new palette + sans-serif automatically. I'll do a quick pass on those three to fix anything that visually breaks (e.g. white-on-cream badges that need re-tuning against blue-gray).
 
-- `src/routes/engine.projects.$projectId.spine.tsx` — new inline components (`SpineStatusStrip`, `SpineRightRail`, `ApprovalsBlockersRail`, `MaterialChangesRail`, `ActiveAgentsRail`) + reworked `HeroNextBestActionCard`, `ProjectSnapshotCard`, `ProjectFoundationCard`, `SpinePageHeader`, and active-body JSX.
+## Files to change
+
+- `src/styles.css` — add `.engine-theme` block with engine tokens.
+- `src/routes/__root.tsx` — add Inter `<link>` (public font, single stylesheet).
+- `src/routes/engine.tsx` — swap dark left sidebar for white top nav, wrap with `.engine-theme`.
+- `src/routes/engine.projects.$projectId.spine.tsx` — visual pass on status strip, NBA card, Point A/B, Foundation strip, Roadmap preview, right rail.
+- 20 engine route/component files — mass replace hardcoded cream/beige hex values with tokens.
+
+## Not in scope
+
+- No changes to marketing site, portal, intake, auth pages.
+- No new server functions, no schema changes.
+- No changes to card ordering on the Spine page (you confirmed positioning is right).
+- No changes to Ask Captain, Source Inspector, thread persistence, focus trap, or deep-link validation shipped last turn.
+
+## Risks / assumptions
+
+- **Font choice**: I'll use **Inter** unless you'd rather Söhne, Manrope, or another sans. Inter is free, close in feeling to the reference, and pairs cleanly with the geometric icons.
+- **Top-nav swap** is the biggest structural change. If you'd rather keep the current dark left sidebar and only re-skin the palette/font, tell me and I'll drop step 3.
+- Some engine pages have inline badge tones tuned for cream (soft green/red). Against cool blue-gray those may look chalky; I'll retune contrast on the pass in step 5.
 
 ## Verification
 
-- `tsgo` typecheck.
-- Existing vitest suites (`spine-variant.test.ts`, `spine-readiness-evaluator.test.ts`, `milestone-readiness-evaluator.test.ts`) must still pass — pure modules aren't touched.
-- Playwright screenshot of `/engine/projects/1c0aaa36-…/spine` at 1480px viewport; compare structure against reference (7-cell strip, NBA+snapshot row, right rail with 4 stacked cards).
-
-## Risks & rollback
-
-- Risk: right rail crowds narrow viewports — mitigated by `xl:` breakpoint collapse.
-- Risk: Active Agents / Material Changes data thinner than reference — mitigated by honest empty labels, no fabrication.
-- Rollback: single-file change; revert `spine.tsx` to restore previous cockpit.
+- Spine page at 1440px, 1024px, 375px against the reference — colors, spacing, card composition.
+- Marketing home page unchanged (serif + cream preserved).
+- Typecheck + preview walkthrough of Command Center, Projects list, Approvals to confirm nothing regressed visually.

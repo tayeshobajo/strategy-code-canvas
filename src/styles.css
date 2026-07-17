@@ -114,6 +114,48 @@
   }
 }
 
+/* ============================================================================
+ * Engine theme scope (/engine/*)
+ * Overrides the warm marketing tokens with a cool "cockpit" palette + sans
+ * headings. Nothing outside .engine-theme is affected, so the public Trust
+ * Tai site keeps its cream + Cormorant identity.
+ * ========================================================================= */
+.engine-theme {
+  --paper: oklch(0.972 0.006 250);       /* ~#F5F7FA cool cloud */
+  --paper-soft: oklch(0.955 0.009 250);  /* ~#EEF1F6 well surface */
+  --rule: oklch(0.905 0.010 250);        /* ~#E5E9F0 border */
+  --rule-soft: oklch(0.945 0.009 250);
+  --font-display: "Inter", system-ui, sans-serif;
+}
+
+/* Headings inside the engine drop the marketing serif for a functional
+ * neo-grotesque. Weight lifts to 600 so hierarchy still reads. */
+.engine-theme h1,
+.engine-theme h2,
+.engine-theme h3,
+.engine-theme h4,
+.engine-theme .font-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Remap the cream/beige arbitrary-value Tailwind classes still baked into
+ * ~20 engine files. Overriding here avoids a 760+ literal sweep and keeps
+ * the marketing site rendering the original warm palette. */
+.engine-theme .bg-\[\#FBF9F4\],
+.engine-theme .bg-\[\#FAF8F5\],
+.engine-theme .bg-\[\#F5F0E8\] {
+  background-color: var(--paper) !important;
+}
+.engine-theme .bg-\[\#E8E1D6\] {
+  background-color: var(--paper-soft) !important;
+}
+.engine-theme .border-\[\#E8E1D6\],
+.engine-theme .border-\[\#EDE6D8\] {
+  border-color: var(--rule) !important;
+}
+
 /* Shared responsive shell padding for authenticated app main regions
    (portal, admin, engine, operator). Keeps top spacing consistent so
    headings never sit under the fixed mobile header, and unifies horizontal
