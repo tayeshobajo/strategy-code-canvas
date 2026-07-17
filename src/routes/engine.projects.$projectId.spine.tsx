@@ -4677,3 +4677,212 @@ function ActiveAgentsLive({ projectId }: { projectId: string }) {
     </>
   );
 }
+
+/* ─────────────────── Mobile navigation drawer ─────────────────── */
+
+function MobileRailDrawer({
+  open,
+  onClose,
+  projectId,
+  projectName,
+  clientCompany,
+  status,
+}: {
+  open: boolean;
+  onClose: () => void;
+  projectId: string;
+  projectName: string;
+  clientCompany: string | null;
+  status: string;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label="Project navigation">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-y-0 left-0 w-[min(320px,85vw)] overflow-y-auto bg-[#FBF9F4] p-4 shadow-xl">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+            Project navigation
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close navigation"
+            className="rounded-full border border-[#E8E1D6] bg-white p-1.5 text-[#0A0F1F]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div onClick={onClose}>
+          <LeftProjectRail
+            projectId={projectId}
+            projectName={projectName}
+            clientCompany={clientCompany}
+            status={status}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────── Ask Captain modal ─────────────────── */
+
+type AskCaptainTurn = {
+  id: string;
+  question: string;
+  answer: string | null;
+  error: string | null;
+};
+
+function AskCaptainModal({
+  open,
+  onClose,
+  projectId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  projectId: string;
+}) {
+  const askFn = useServerFn(askProjectIntelligence);
+  const [input, setInput] = useState("");
+  const [threadId, setThreadId] = useState<string | undefined>(undefined);
+  const [turns, setTurns] = useState<AskCaptainTurn[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busy) onClose();
+    };
+    window.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+    };
+  }, [open, onClose, busy]);
+
+  if (!open) return null;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const question = input.trim();
+    if (!question || busy) return;
+    const turnId = crypto.randomUUID();
+    setTurns((prev) => [...prev, { id: turnId, question, answer: null, error: null }]);
+    setInput("");
+    setBusy(true);
+    try {
+      const res = (await askFn({ data: { projectId, threadId, message: question } })) as {
+        thread: { id: string };
+        answer: { summary: string };
+      };
+      setThreadId(res.thread.id);
+      setTurns((prev) =>
+        prev.map((t) => (t.id === turnId ? { ...t, answer: res.answer.summary } : t)),
+      );
+    } catch (err) {
+      setTurns((prev) =>
+        prev.map((t) =>
+          t.id === turnId ? { ...t, error: (err as Error).message || "Ask failed" } : t,
+        ),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Ask Captain">
+      <div className="absolute inset-0 bg-black/50" onClick={busy ? undefined : onClose} />
+      <div className="relative flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:h-[70vh] sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-[#E8E1D6] px-5 py-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[#3E68B2]" />
+            <div className="font-display text-base text-[#0A0F1F]">Ask Captain</div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            aria-label="Close"
+            className="rounded-full border border-[#E8E1D6] bg-white p-1.5 text-[#0A0F1F] disabled:opacity-50"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {turns.length === 0 ? (
+            <div className="mt-6 text-sm text-[#667085]">
+              Ask a question about this project. Captain reads the full spine — Point A, Point B, milestones, evidence, and approvals.
+            </div>
+          ) : (
+            <ul className="space-y-4">
+              {turns.map((t) => (
+                <li key={t.id} className="space-y-2">
+                  <div className="ml-6 rounded-2xl bg-[#3E68B2] px-4 py-2 text-sm text-white">
+                    {t.question}
+                  </div>
+                  {t.error ? (
+                    <div className="mr-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-800">
+                      {t.error}
+                    </div>
+                  ) : t.answer ? (
+                    <div className="mr-6 whitespace-pre-wrap rounded-2xl border border-[#E8E1D6] bg-[#FBF9F4] px-4 py-2 text-sm text-[#0A0F1F]">
+                      {t.answer}
+                    </div>
+                  ) : (
+                    <div className="mr-6 inline-flex items-center gap-2 rounded-2xl border border-[#E8E1D6] bg-[#FBF9F4] px-4 py-2 text-sm text-[#667085]">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Captain is thinking...
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <form onSubmit={submit} className="border-t border-[#E8E1D6] px-4 py-3">
+          <div className="flex items-end gap-2">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void submit(e as unknown as React.FormEvent);
+                }
+              }}
+              rows={2}
+              placeholder="Ask about status, blockers, risks, next steps..."
+              className="min-h-[44px] flex-1 resize-none rounded-xl border border-[#E8E1D6] bg-white px-3 py-2 text-sm text-[#0A0F1F] focus:border-[#3E68B2] focus:outline-none"
+              disabled={busy}
+            />
+            <button
+              type="submit"
+              disabled={busy || !input.trim()}
+              className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-[#0A0F1F] px-4 text-sm font-medium text-white transition hover:bg-[#1c2440] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Send
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
