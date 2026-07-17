@@ -3499,6 +3499,15 @@ function SpineIncompleteBody({
         />
       </div>
 
+      <BusinessRoadmapPreview
+        projectId={projectId}
+        milestones={spine.milestones}
+        currentStep={spine.project.current_step}
+        pointAApproved={isApprovedTruth(spine.project.point_a_status)}
+        pointBApproved={isApprovedTruth(spine.project.point_b_status)}
+        draft
+      />
+
       <SpineReadinessPanel projectId={projectId} />
 
       {contradictions.length ? (
