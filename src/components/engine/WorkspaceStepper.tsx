@@ -121,7 +121,14 @@ export function WorkspaceStepper({
 
         {WORKSPACE_STEPS.map((s, i) => {
           const to = s.to;
-          const isActive = pathname.endsWith(`/${s.key}`);
+          // Match by step key OR the last segment of the step's `to` path.
+          // Some steps route to slugs that differ from their key (e.g.
+          // key "intelligence" → "/intelligence-layer"), so a key-only
+          // endsWith check silently deactivates them.
+          const toSuffix = s.to.split("/").pop() ?? "";
+          const isActive =
+            pathname.endsWith(`/${s.key}`) ||
+            (toSuffix !== "" && pathname.endsWith(`/${toSuffix}`));
           const isDone = s.num < currentStepNum;
           const isCurrent = s.num === currentStepNum;
           const summary = badgeFor(s.key);
