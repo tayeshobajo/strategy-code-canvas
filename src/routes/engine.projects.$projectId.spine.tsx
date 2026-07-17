@@ -709,18 +709,20 @@ function ProjectSpine() {
       </section>
 
       <NotificationsCard notifications={spine.notifications} />
+        </>
+      ) : variant === "incomplete" ? (
+        <SpineIncompleteBody spine={spine} projectId={projectId} />
+      ) : (
+        <SpineClientReadyBody spine={spine} projectId={projectId} />
+      )}
         </div>
         <SpineRightRail
           spine={spine}
           projectId={projectId}
           pendingApprovals={pendingApprovalsCount}
         />
-      </div>) : variant === "incomplete" ? (
-        <SpineIncompleteBody spine={spine} projectId={projectId} />
-      ) : (
-        <SpineClientReadyBody spine={spine} projectId={projectId} />
-      )}
       </div>
+
       <AskCaptainModal
         open={askCaptainOpen}
         onClose={() => setAskCaptainOpen(false)}
