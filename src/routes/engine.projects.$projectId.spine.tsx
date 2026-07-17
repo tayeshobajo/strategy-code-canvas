@@ -294,7 +294,19 @@ function ProjectSpine() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
-      <LeftProjectRail
+      {/* Desktop rail */}
+      <div className="hidden xl:block">
+        <LeftProjectRail
+          projectId={projectId}
+          projectName={spine.project.name}
+          clientCompany={spine.project.client_company}
+          status={spine.project.status}
+        />
+      </div>
+      {/* Mobile drawer */}
+      <MobileRailDrawer
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
         projectId={projectId}
         projectName={spine.project.name}
         clientCompany={spine.project.client_company}
@@ -309,10 +321,13 @@ function ProjectSpine() {
         pendingApprovalsCount={pendingApprovalsCount}
         onExportPdf={handleExportClientRoadmap}
         exportDisabled={workspaceQ.isPending}
+        onOpenMobileNav={() => setMobileNavOpen(true)}
+        onAskCaptain={() => setAskCaptainOpen(true)}
       />
 
       {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
+
 
       {/* ───── Status strip (7 cells) ───── */}
       <SpineStatusStrip
