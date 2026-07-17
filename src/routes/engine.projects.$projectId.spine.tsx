@@ -158,6 +158,15 @@ function ProjectSpine() {
     queryFn: () => workspaceFn({ data: { id: projectId } }),
     staleTime: 60_000,
   });
+  // Hoisted so the top-of-page Status Strip and the Incomplete body share
+  // the same query cache (readiness is expensive to recompute).
+  const readinessFn = useServerFn(evaluateProjectSpineReadiness);
+  const readinessQ = useQuery({
+    queryKey: ["engine", "spine-readiness", projectId],
+    queryFn: () => readinessFn({ data: { projectId } }),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
 
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<ModuleCategoryFilter>("all");
