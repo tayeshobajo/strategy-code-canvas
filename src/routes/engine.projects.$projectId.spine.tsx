@@ -4149,15 +4149,49 @@ function formatRelative(iso: string): string {
   return formatDate(iso);
 }
 
-function RailCard({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+function RailCard({
+  title,
+  anchor,
+  action,
+  children,
+}: {
+  title: string;
+  anchor?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="font-display text-sm text-[#0A0F1F]">{title}</h3>
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm ring-1 ring-black/[0.02]">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        {anchor ? (
+          <a
+            href={anchor}
+            className="group inline-flex items-center gap-1 font-display text-sm text-[#0A0F1F] hover:text-[#3E68B2]"
+          >
+            {title}
+            <ArrowRight className="h-3 w-3 opacity-0 transition group-hover:opacity-100" />
+          </a>
+        ) : (
+          <h3 className="font-display text-sm text-[#0A0F1F]">{title}</h3>
+        )}
         {action}
       </div>
       {children}
     </section>
+  );
+}
+
+function RailLinkAction({ to, params, label }: { to: string; params?: Record<string, string>; label: string }) {
+  return (
+    <Link
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      to={to as any}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      params={params as any}
+      className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#3E68B2] hover:text-[#284f93]"
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -4170,13 +4204,44 @@ function SpineRightRail({
   projectId: string;
   pendingApprovals: number;
 }) {
-  const reviews = spine.reviews.slice(0, 4);
-  const material = spine.activity.filter((a) => a.severity === "critical" || a.severity === "warning").slice(0, 4);
+  const [approvalImpact, setApprovalImpact] = useState<"all" | "high" | "medium" | "low">("all");
+  const [approvalsExpanded, setApprovalsExpanded] = useState(false);
+  const [changesExpanded, setChangesExpanded] = useState(false);
+
+  const filteredReviews = spine.reviews.filter(
+    (r) => approvalImpact === "all" || r.impact === approvalImpact,
+  );
+  const visibleReviews = approvalsExpanded ? filteredReviews : filteredReviews.slice(0, 4);
+
+  const material = spine.activity.filter(
+    (a) => a.severity === "critical" || a.severity === "warning",
+  );
+  const visibleMaterial = changesExpanded ? material : material.slice(0, 4);
   const recent = spine.activity.slice(0, 4);
+
+  const chip = (key: "all" | "high" | "medium" | "low", label: string) => (
+    <button
+      key={key}
+      type="button"
+      onClick={() => setApprovalImpact(key)}
+      className={cn(
+        "rounded-full border px-2 py-0.5 text-[10px] font-medium transition",
+        approvalImpact === key
+          ? "border-[#3E68B2] bg-[#3E68B2] text-white"
+          : "border-[#E8E1D6] bg-white text-[#667085] hover:border-[#3E68B2]/60 hover:text-[#3E68B2]",
+      )}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
-      <RailCard title="Captain Brief">
+      <RailCard
+        title="Captain Brief"
+        anchor="#spine-nba-heading"
+        action={<RailLinkAction to="/engine/projects/$projectId/chat" params={{ projectId }} label="Open chat" />}
+      >
         <p className="text-sm text-[#0A0F1F] leading-relaxed">{spine.nba.action}</p>
         {spine.nba.reason ? (
           <p className="mt-2 text-xs text-[#667085] leading-relaxed">{spine.nba.reason}</p>
@@ -4185,55 +4250,115 @@ function SpineRightRail({
 
       <RailCard
         title="Approvals & Blockers"
+        anchor="#spine-approvals"
         action={
           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
             {pendingApprovals} pending
           </span>
         }
       >
-        {reviews.length === 0 ? (
-          <p className="text-xs text-[#667085]">Nothing waiting on you.</p>
+        {spine.reviews.length > 0 ? (
+          <div className="mb-2 flex flex-wrap items-center gap-1">
+            {chip("all", "All")}
+            {chip("high", "High")}
+            {chip("medium", "Med")}
+            {chip("low", "Low")}
+          </div>
+        ) : null}
+        {filteredReviews.length === 0 ? (
+          <p className="text-xs text-[#667085]">
+            {spine.reviews.length === 0 ? "Nothing waiting on you." : "None at this impact level."}
+          </p>
         ) : (
-          <ul className="space-y-2">
-            {reviews.map((r) => (
-              <li key={r.id} className="flex items-start gap-2 text-sm text-[#0A0F1F]">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                <span className="min-w-0 truncate">{r.title}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="space-y-2">
+              {visibleReviews.map((r) => {
+                const dotClass =
+                  r.impact === "high"
+                    ? "bg-[#a4283c]"
+                    : r.impact === "medium"
+                      ? "bg-[#8a6713]"
+                      : "bg-[#3E68B2]";
+                return (
+                  <li key={r.id}>
+                    <a
+                      href={`/engine/approvals#${r.id}`}
+                      className="flex items-start gap-2 rounded-md p-1 -m-1 text-sm text-[#0A0F1F] hover:bg-[#F5EFE4]"
+                    >
+                      <span className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", dotClass)} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{r.title}</span>
+                        <span className="mt-0.5 block text-[10px] text-[#667085]">
+                          {humanize(r.item_type)} · {formatRelative(r.created_at)}
+                        </span>
+                      </span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+            {filteredReviews.length > 4 ? (
+              <button
+                type="button"
+                onClick={() => setApprovalsExpanded((v) => !v)}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-[#3E68B2] hover:text-[#284f93]"
+              >
+                {approvalsExpanded ? "Show fewer" : `Show all ${filteredReviews.length}`}
+                {approvalsExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </button>
+            ) : null}
+          </>
         )}
       </RailCard>
 
-      <RailCard title="Material Changes">
+      <RailCard
+        title="Material Changes"
+        anchor="#spine-evidence-heading"
+        action={
+          material.length > 0 ? (
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+              {material.length}
+            </span>
+          ) : undefined
+        }
+      >
         {material.length === 0 ? (
           <p className="text-xs text-[#667085]">No material changes recorded.</p>
         ) : (
-          <ul className="space-y-2">
-            {material.map((a) => (
-              <li key={a.id} className="text-sm text-[#0A0F1F]">
-                <div className="flex items-center gap-2">
-                  <span className={cn("h-1.5 w-1.5 rounded-full", a.severity === "critical" ? "bg-rose-500" : "bg-amber-500")} />
-                  <span className="truncate">{a.title}</span>
-                </div>
-                <div className="ml-3.5 text-[11px] text-[#667085]">{formatRelative(a.created_at)}</div>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="space-y-2">
+              {visibleMaterial.map((a) => (
+                <li key={a.id} className="text-sm text-[#0A0F1F]">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        a.severity === "critical" ? "bg-rose-500" : "bg-amber-500",
+                      )}
+                    />
+                    <span className="truncate">{a.title}</span>
+                  </div>
+                  <div className="ml-3.5 text-[11px] text-[#667085]">{formatRelative(a.created_at)}</div>
+                </li>
+              ))}
+            </ul>
+            {material.length > 4 ? (
+              <button
+                type="button"
+                onClick={() => setChangesExpanded((v) => !v)}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-[#3E68B2] hover:text-[#284f93]"
+              >
+                {changesExpanded ? "Show fewer" : `Show all ${material.length}`}
+                {changesExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </button>
+            ) : null}
+          </>
         )}
       </RailCard>
 
       <RailCard
         title="Active Agents"
-        action={
-          <Link
-            to="/engine/projects/$projectId/spine"
-            params={{ projectId }}
-            className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#3E68B2] hover:text-[#284f93]"
-          >
-            View all
-          </Link>
-        }
+        action={<RailLinkAction to="/engine/projects/$projectId/agent" params={{ projectId }} label="Open room" />}
       >
         <ul className="space-y-2 text-sm">
           <li className="flex items-center justify-between gap-2">
