@@ -3637,3 +3637,126 @@ function SpineClientReadyBody({
   );
 }
 
+/**
+ * Business Roadmap preview — horizontal Point A → Phase 1 … Phase N → Point B
+ * strip required by PROJECT_SPINE_CONTRACT.md §5. Phases are derived from
+ * approved milestones grouped by `phase`. The current phase is inferred from
+ * `project.current_step` when it matches a phase key. Purely presentational:
+ * consumes existing spine payload, no new data fetch.
+ */
+function BusinessRoadmapPreview({
+  projectId,
+  milestones,
+  currentStep,
+  pointAApproved,
+  pointBApproved,
+}: {
+  projectId: string;
+  milestones: ProjectSpinePayload["milestones"];
+  currentStep: string | null;
+  pointAApproved: boolean;
+  pointBApproved: boolean;
+}) {
+  const grouped = groupMilestones(milestones);
+  const currentPhaseLabel = currentStep ? humanize(currentStep) : null;
+  return (
+    <section
+      aria-labelledby="spine-roadmap-preview-heading"
+      className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm"
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+            Business roadmap
+          </div>
+          <h2 id="spine-roadmap-preview-heading" className="font-display text-base text-[#0A0F1F]">
+            Point A → phases → Point B
+          </h2>
+        </div>
+        <Link
+          to="/engine/projects/$projectId/roadmap"
+          params={{ projectId }}
+          className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+        >
+          Open full roadmap <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      {grouped.length === 0 ? (
+        <p className="mt-4 text-sm text-[#667085]">
+          No phases captured yet. Approve milestones to see the phased path.
+        </p>
+      ) : (
+        <ol className="mt-4 flex items-stretch gap-2 overflow-x-auto pb-1">
+          <li className="flex min-w-[8rem] flex-col items-center justify-center rounded-xl border border-[#E8E1D6] bg-[#FBF9F4] px-3 py-3 text-center">
+            <span
+              className={cn(
+                "inline-flex h-2.5 w-2.5 rounded-full",
+                pointAApproved ? "bg-[#1f6b3b]" : "bg-[#c9b78a]",
+              )}
+              aria-hidden
+            />
+            <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+              Point A
+            </div>
+            <div className="mt-0.5 text-xs text-[#0A0F1F]">
+              {pointAApproved ? "Approved" : "Not approved"}
+            </div>
+          </li>
+          {grouped.map(([phase, list], idx) => {
+            const approved = list.filter((m) => m.approval_status === "approved").length;
+            const isCurrent =
+              !!currentPhaseLabel && phase.toLowerCase() === currentPhaseLabel.toLowerCase();
+            return (
+              <li key={phase} className="flex items-center gap-2">
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#c9b78a]" aria-hidden />
+                <div
+                  className={cn(
+                    "min-w-[10rem] rounded-xl border px-3 py-3",
+                    isCurrent
+                      ? "border-[#3E68B2] bg-[#eef3fd] shadow-sm"
+                      : "border-[#E8E1D6] bg-white",
+                  )}
+                >
+                  <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+                    Phase {idx + 1}
+                  </div>
+                  <div className="mt-0.5 truncate text-sm font-medium text-[#0A0F1F]">
+                    {phase}
+                  </div>
+                  <div className="mt-1 text-[11px] text-[#667085]">
+                    {approved}/{list.length} milestone{list.length === 1 ? "" : "s"} approved
+                  </div>
+                  {isCurrent ? (
+                    <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[#3E68B2]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#3E68B2]" /> Current
+                    </div>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+          <li className="flex items-center gap-2">
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#c9b78a]" aria-hidden />
+            <div className="flex min-w-[8rem] flex-col items-center justify-center rounded-xl border border-[#E8E1D6] bg-[#FBF9F4] px-3 py-3 text-center">
+              <span
+                className={cn(
+                  "inline-flex h-2.5 w-2.5 rounded-full",
+                  pointBApproved ? "bg-[#1f6b3b]" : "bg-[#c9b78a]",
+                )}
+                aria-hidden
+              />
+              <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+                Point B
+              </div>
+              <div className="mt-0.5 text-xs text-[#0A0F1F]">
+                {pointBApproved ? "Approved" : "Not approved"}
+              </div>
+            </div>
+          </li>
+        </ol>
+      )}
+    </section>
+  );
+}
+
