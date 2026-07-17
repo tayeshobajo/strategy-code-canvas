@@ -11,6 +11,7 @@ import {
   type SpineModuleKey,
 } from "@/lib/engine.functions";
 import { evaluateProjectSpineReadiness } from "@/lib/engine-spine-readiness-eval.functions";
+import { listAgentTasks, type EngineAgentTask } from "@/lib/engine-agent.functions";
 import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import {
