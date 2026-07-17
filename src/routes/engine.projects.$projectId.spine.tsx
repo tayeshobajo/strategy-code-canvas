@@ -197,8 +197,8 @@ function ProjectSpine() {
   const [evidenceSearch, setEvidenceSearch] = useState("");
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<{ title: string; missing: string[] } | null>(null);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [askCaptainOpen, setAskCaptainOpen] = useState(false);
+
 
   const approveMut = useMutation({
     mutationFn: (id: string) => approveFn({ data: { id } }),
@@ -301,35 +301,13 @@ function ProjectSpine() {
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
-      {/* Desktop rail */}
-      <div className="hidden xl:block">
-        <LeftProjectRail
-          projectId={projectId}
-          projectName={spine.project.name}
-          clientCompany={spine.project.client_company}
-          status={spine.project.status}
-        />
-      </div>
-      {/* Mobile drawer */}
-      <MobileRailDrawer
-        open={mobileNavOpen}
-        onClose={() => setMobileNavOpen(false)}
-        projectId={projectId}
-        projectName={spine.project.name}
-        clientCompany={spine.project.client_company}
-        status={spine.project.status}
-      />
-      <div className="min-w-0 space-y-6 text-[#0A0F1F]">
+    <div className="min-w-0 space-y-6 text-[#0A0F1F]">
       {/* ───── Header row ───── */}
       <SpinePageHeader
         projectId={projectId}
-        projectName={spine.project.name}
-        status={spine.project.status}
         pendingApprovalsCount={pendingApprovalsCount}
         onExportPdf={handleExportClientRoadmap}
         exportDisabled={workspaceQ.isPending}
-        onOpenMobileNav={() => setMobileNavOpen(true)}
         onAskCaptain={() => setAskCaptainOpen(true)}
       />
 
@@ -366,6 +344,7 @@ function ProjectSpine() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
         <div className="min-w-0 space-y-6">
+
       {variant === "active" ? (
         <>
 
@@ -722,7 +701,6 @@ function ProjectSpine() {
           pendingApprovals={pendingApprovalsCount}
         />
       </div>
-      </div>
 
       <AskCaptainModal
 
@@ -731,6 +709,7 @@ function ProjectSpine() {
         projectId={projectId}
       />
     </div>
+
   );
 }
 
@@ -738,93 +717,63 @@ function ProjectSpine() {
 
 function SpinePageHeader({
   projectId: _projectId,
-  projectName,
-  status,
   pendingApprovalsCount,
   onExportPdf,
   exportDisabled = false,
-  onOpenMobileNav,
   onAskCaptain,
 }: {
   projectId: string;
-  projectName: string;
-  status: string;
   pendingApprovalsCount: number;
   onExportPdf: () => void;
   exportDisabled?: boolean;
-  onOpenMobileNav?: () => void;
   onAskCaptain?: () => void;
 }) {
   return (
-    <header className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <Link
-          to="/engine/projects"
-          className="inline-flex items-center gap-1.5 text-sm text-[#3E68B2] transition hover:text-[#284f93]"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to Projects
-        </Link>
-        {onOpenMobileNav ? (
-          <button
-            type="button"
-            onClick={onOpenMobileNav}
-            aria-label="Open project navigation"
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs font-medium text-[#0A0F1F] xl:hidden"
-          >
-            <Menu className="h-4 w-4" />
-            Rooms
-          </button>
-        ) : null}
+    <header className="flex flex-wrap items-start justify-between gap-4">
+      <div className="min-w-0 space-y-1">
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+          Project Spine
+        </div>
+        <p className="text-sm text-[#667085]">
+          The central nervous system of your project. Live truth. Approved direction. Next best move.
+        </p>
       </div>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-display text-3xl leading-tight text-[#0A0F1F]">
-              Project Spine
-            </h1>
-            <ProjectStatusBadge status={status} />
-          </div>
-          <p className="text-sm text-[#667085]">
-            {projectName} — the central nervous system of your project. Live truth. Approved direction. Next best move.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2" data-qa-role="spine-header-actions">
-          <a
-            href="#spine-approvals"
-            data-qa-action="approvals"
-            className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
-          >
-            Approvals
-            <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#3E68B2] px-1.5 text-[11px] font-semibold text-white">
-              {pendingApprovalsCount}
-            </span>
-          </a>
-          <button
-            type="button"
-            onClick={onAskCaptain}
-            data-qa-action="ask-captain"
-            className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-[#3E68B2]" />
-            Ask Captain
-          </button>
+      <div className="flex flex-wrap items-center gap-2" data-qa-role="spine-header-actions">
+        <a
+          href="#spine-approvals"
+          data-qa-action="approvals"
+          className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
+        >
+          Approvals
+          <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#3E68B2] px-1.5 text-[11px] font-semibold text-white">
+            {pendingApprovalsCount}
+          </span>
+        </a>
+        <button
+          type="button"
+          onClick={onAskCaptain}
+          data-qa-action="ask-captain"
+          className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
+        >
+          <Sparkles className="h-3.5 w-3.5 text-[#3E68B2]" />
+          Ask Captain
+        </button>
 
-          <button
-            type="button"
-            onClick={onExportPdf}
-            data-qa-action="export-roadmap"
-            disabled={exportDisabled}
-            className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Download className="h-4 w-4" />
-            Export Client Roadmap
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onExportPdf}
+          data-qa-action="export-roadmap"
+          disabled={exportDisabled}
+          className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Download className="h-4 w-4" />
+          Export Client Roadmap
+        </button>
       </div>
     </header>
   );
 }
+
 
 function HeroNextBestActionCard({
   nba,
@@ -4515,122 +4464,8 @@ function SpineRightRail({
   );
 }
 
-/* ─────────────────── Left project rail (persistent sidebar) ─────────────────── */
 
-type RailNavItem = {
-  label: string;
-  to: string;
-  icon: typeof MapPin;
-  exact?: boolean;
-};
 
-const PROJECT_NAV_ITEMS: RailNavItem[] = [
-  { label: "Spine", to: "/engine/projects/$projectId/spine", icon: Layers },
-  { label: "Roadmap", to: "/engine/projects/$projectId/roadmap", icon: MapPin },
-  { label: "Work", to: "/engine/projects/$projectId/work", icon: Activity },
-  { label: "QA & Delivery", to: "/engine/projects/$projectId/qa-delivery", icon: ClipboardCheck },
-  { label: "Client View", to: "/engine/projects/$projectId/client-view", icon: Eye },
-];
-
-const PROJECT_ROOM_ITEMS: RailNavItem[] = [
-  { label: "Sources & Signal", to: "/engine/projects/$projectId/signal-room", icon: Radio },
-  { label: "Understanding", to: "/engine/projects/$projectId/understanding-room", icon: Compass },
-  { label: "Point A", to: "/engine/projects/$projectId/point-a", icon: MapPin },
-  { label: "Point B", to: "/engine/projects/$projectId/point-b", icon: Flag },
-  { label: "Chat with Captain", to: "/engine/projects/$projectId/chat", icon: MessageSquare },
-  { label: "Agent Room", to: "/engine/projects/$projectId/agent", icon: Bot },
-  { label: "Intelligence", to: "/engine/projects/$projectId/intelligence", icon: Brain },
-  { label: "Evidence", to: "/engine/projects/$projectId/evidence", icon: FileText },
-];
-
-function LeftProjectRail({
-  projectId,
-  projectName,
-  clientCompany,
-  status,
-}: {
-  projectId: string;
-  projectName: string;
-  clientCompany: string | null;
-  status: string;
-}) {
-  const dotTone =
-    status === "active" ? "bg-emerald-500"
-      : status === "blocked" ? "bg-rose-500"
-      : status === "at_risk" ? "bg-amber-500"
-      : "bg-[#c9b78a]";
-  return (
-    <aside
-      aria-label="Project navigation"
-      className="space-y-3 xl:sticky xl:top-4 xl:self-start"
-      data-qa-role="left-project-rail"
-    >
-      <div className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
-          Project
-        </div>
-        <div className="mt-1 truncate font-display text-sm text-[#0A0F1F]" title={projectName}>
-          {projectName}
-        </div>
-        {clientCompany ? (
-          <div className="mt-0.5 truncate text-[11px] text-[#667085]" title={clientCompany}>
-            {clientCompany}
-          </div>
-        ) : null}
-        <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-[#0A0F1F]">
-          <span className={cn("h-1.5 w-1.5 rounded-full", dotTone)} aria-hidden />
-          {humanize(status)}
-        </div>
-      </div>
-
-      <RailNavSection heading="Project Navigation" items={PROJECT_NAV_ITEMS} projectId={projectId} />
-      <RailNavSection heading="Project Rooms" items={PROJECT_ROOM_ITEMS} projectId={projectId} />
-    </aside>
-  );
-}
-
-function RailNavSection({
-  heading,
-  items,
-  projectId,
-}: {
-  heading: string;
-  items: RailNavItem[];
-  projectId: string;
-}) {
-  return (
-    <nav className="rounded-2xl border border-[#E8E1D6] bg-white p-3 shadow-sm">
-      <div className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
-        {heading}
-      </div>
-      <ul className="space-y-0.5">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <li key={item.to}>
-              <Link
-                to={item.to}
-                params={{ projectId }}
-                activeOptions={{ exact: item.exact ?? false }}
-                activeProps={{
-                  className:
-                    "flex items-center gap-2 rounded-lg bg-[#eef3fd] px-2 py-1.5 text-[13px] font-medium text-[#3E68B2]",
-                }}
-                inactiveProps={{
-                  className:
-                    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-[#0A0F1F] hover:bg-[#F5EFE4]",
-                }}
-              >
-                <Icon className="h-3.5 w-3.5 text-[#667085]" />
-                <span className="truncate">{item.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
-}
 
 /* ─────────────────── Active Agents (live) ─────────────────── */
 
@@ -4699,71 +4534,8 @@ function ActiveAgentsLive({ projectId }: { projectId: string }) {
   );
 }
 
-/* ─────────────────── Mobile navigation drawer ─────────────────── */
 
-function MobileRailDrawer({
-  open,
-  onClose,
-  projectId,
-  projectName,
-  clientCompany,
-  status,
-}: {
-  open: boolean;
-  onClose: () => void;
-  projectId: string;
-  projectName: string;
-  clientCompany: string | null;
-  status: string;
-}) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  useFocusTrap(containerRef, open);
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", handler);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
 
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label="Project navigation">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div
-        ref={containerRef}
-        className="absolute inset-y-0 left-0 w-[min(320px,85vw)] overflow-y-auto bg-[#FBF9F4] p-4 shadow-xl outline-none"
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
-            Project navigation
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close navigation"
-            className="rounded-full border border-[#E8E1D6] bg-white p-1.5 text-[#0A0F1F]"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div onClick={onClose}>
-          <LeftProjectRail
-            projectId={projectId}
-            projectName={projectName}
-            clientCompany={clientCompany}
-            status={status}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ─────────────────── Ask Captain modal ─────────────────── */
 
