@@ -37,6 +37,18 @@ import {
   Download,
   Check,
   X,
+  Radio,
+  Compass,
+  MapPin,
+  Flag,
+  MessageSquare,
+  Bot,
+  Brain,
+  Layers,
+  ClipboardCheck,
+  Eye,
+  FileText,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/use-workspace";
