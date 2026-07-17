@@ -142,6 +142,11 @@ function IntelligenceLayerPage() {
           </div>
         </div>
 
+        {/* Deep-link anchors for TruthCard "Open intelligence room" links.
+            Kept in sync with src/lib/intelligence-room-links.ts. */}
+        <section id="point-a" aria-label="Point A intelligence" className="scroll-mt-20" />
+        <section id="point-b" aria-label="Point B intelligence" className="scroll-mt-20" />
+
         <InputHub
           projectId={projectId}
           sources={sources}
