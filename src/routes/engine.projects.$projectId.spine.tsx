@@ -722,8 +722,10 @@ function ProjectSpine() {
           pendingApprovals={pendingApprovalsCount}
         />
       </div>
+      </div>
 
       <AskCaptainModal
+
         open={askCaptainOpen}
         onClose={() => setAskCaptainOpen(false)}
         projectId={projectId}
