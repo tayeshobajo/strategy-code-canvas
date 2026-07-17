@@ -10,6 +10,7 @@ import {
   type SpineModuleSection,
   type SpineModuleKey,
 } from "@/lib/engine.functions";
+import { evaluateProjectSpineReadiness } from "@/lib/engine-spine-readiness-eval.functions";
 import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import {
@@ -40,7 +41,8 @@ import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useSourceInspector } from "@/hooks/use-source-inspector";
 import jsPDF from "jspdf";
-import type { SpineFieldStatus } from "@/lib/spine-contract";
+import { getSpineSection, type SpineFieldStatus } from "@/lib/spine-contract";
+import type { SpineReadinessCheckResult } from "@/lib/spine-readiness-evaluator";
 import {
   presentationFor,
   isApprovedTruth,
@@ -3448,6 +3450,111 @@ function SpineVariantBanner({
 
 /* ─────────────── Wave 2 · Body variants ─────────────── */
 
+const BLOCKER_PRIORITY_ORDER: readonly string[] = [
+  "point_a_approved",
+  "point_b_approved",
+  "constraints_named",
+  "gaps_classified",
+  "roadmap_rationale_approved",
+  "critical_dates_captured",
+];
+
+function deriveTopBlockers(
+  checks: readonly SpineReadinessCheckResult[],
+): SpineReadinessCheckResult[] {
+  const failing = checks.filter((c) => c.state !== "pass");
+  const ordered = BLOCKER_PRIORITY_ORDER.map((id) =>
+    failing.find((c) => c.id === id),
+  ).filter((c): c is SpineReadinessCheckResult => !!c);
+  const rest = failing.filter((c) => !BLOCKER_PRIORITY_ORDER.includes(c.id));
+  return [...ordered, ...rest].slice(0, 5);
+}
+
+function resolveLinkForCheck(check: SpineReadinessCheckResult): string | null {
+  const section = getSpineSection(check.section_key);
+  if (section.key === "point_a") return "point-a";
+  if (section.key === "point_b") return "point-b";
+  return section.deep_link_pattern;
+}
+
+function RoomLink({
+  projectId,
+  link,
+  children,
+}: {
+  projectId: string;
+  link: string;
+  children: ReactNode;
+}) {
+  const params = { projectId };
+  const className =
+    "inline-flex shrink-0 items-center gap-1 text-xs font-medium text-[#0A0F1F] transition hover:underline";
+  if (link === "point-a") {
+    return (
+      <Link to="/engine/projects/$projectId/point-a" params={params} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  if (link === "point-b") {
+    return (
+      <Link to="/engine/projects/$projectId/point-b" params={params} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  if (link === "understanding-room") {
+    return (
+      <Link to="/engine/projects/$projectId/understanding-room" params={params} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  if (link === "gap-map") {
+    return (
+      <Link to="/engine/projects/$projectId/gap-map" params={params} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  if (link === "hidden-assets") {
+    return (
+      <Link to="/engine/projects/$projectId/hidden-assets" params={params} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  if (link === "builder") {
+    return (
+      <Link to="/engine/projects/$projectId/builder" params={params} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  if (link === "sequencing") {
+    return (
+      <Link to="/engine/projects/$projectId/sequencing" params={params} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  if (link === "investment") {
+    return (
+      <Link to="/engine/projects/$projectId/investment" params={params} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  if (link === "preview") {
+    return (
+      <Link to="/engine/projects/$projectId/preview" params={params} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return null;
+}
+
 function SpineIncompleteBody({
   spine,
   projectId,
@@ -3460,6 +3567,20 @@ function SpineIncompleteBody({
   const contradictions = spine.notifications.filter(
     (n) => n.kind === "contradiction" || n.kind === "warning" || n.kind === "critical",
   );
+
+  const readinessFn = useServerFn(evaluateProjectSpineReadiness);
+  const readinessQ = useQuery({
+    queryKey: ["engine", "spine-readiness", projectId],
+    queryFn: () => readinessFn({ data: { projectId } }),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+
+  const readinessResult = readinessQ.data?.result;
+  const topBlockers: SpineReadinessCheckResult[] = readinessResult
+    ? deriveTopBlockers(readinessResult.checks)
+    : [];
+
   return (
     <div className="space-y-6" data-qa-body="incomplete">
       <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
@@ -3508,7 +3629,54 @@ function SpineIncompleteBody({
         draft
       />
 
-      <SpineReadinessPanel projectId={projectId} />
+      {topBlockers.length > 0 ? (
+        <section className="rounded-2xl border border-[#f1e3b9] bg-[#fbf6e4] p-5 shadow-sm">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#8a6713]">
+            Resolve these first
+          </div>
+          <ul className="mt-3 space-y-2">
+            {topBlockers.map((check) => {
+              const link = resolveLinkForCheck(check);
+              return (
+                <li key={check.id} className="flex items-start gap-3 text-sm">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#8a6713]" />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[#0A0F1F]">{check.label}</span>
+                    {check.note ? (
+                      <div className="text-xs text-[#667085]">{check.note}</div>
+                    ) : null}
+                  </div>
+                  {link ? (
+                    <RoomLink projectId={projectId} link={link}>
+                      Go to room
+                      <ArrowRight className="h-3 w-3" />
+                    </RoomLink>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
+      <details className="group rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between p-5">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#8a6713]">
+              View all readiness checks
+            </div>
+            <div className="mt-1 text-xs text-[#667085]">
+              {readinessResult
+                ? `${readinessResult.passed} of ${readinessResult.total} passing`
+                : "Loading readiness checks..."}
+            </div>
+          </div>
+          <ChevronDown className="h-4 w-4 text-[#667085] transition group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-[#E8E1D6] p-5">
+          <SpineReadinessPanel projectId={projectId} />
+        </div>
+      </details>
 
       {contradictions.length ? (
         <section className="rounded-2xl border border-[#f1e3b9] bg-[#fbf6e4] p-5 shadow-sm">
