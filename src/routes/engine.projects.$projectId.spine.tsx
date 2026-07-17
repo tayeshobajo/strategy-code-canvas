@@ -289,7 +289,14 @@ function ProjectSpine() {
   };
 
   return (
-    <div className="space-y-6 text-[#0A0F1F]">
+    <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
+      <LeftProjectRail
+        projectId={projectId}
+        projectName={spine.project.name}
+        clientCompany={spine.project.client_company}
+        status={spine.project.status}
+      />
+      <div className="min-w-0 space-y-6 text-[#0A0F1F]">
       {/* ───── Header row ───── */}
       <SpinePageHeader
         projectId={projectId}
