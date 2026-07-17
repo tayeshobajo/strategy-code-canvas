@@ -4054,9 +4054,62 @@ function BusinessRoadmapPreview({
           </li>
         </ol>
       )}
+      {milestones.length > 0 ? <RoadmapFooterSummary milestones={milestones} /> : null}
     </section>
   );
 }
+
+function RoadmapFooterSummary({
+  milestones,
+}: {
+  milestones: ProjectSpinePayload["milestones"];
+}) {
+  const total = milestones.length;
+  const approved = milestones.filter((m) => m.approval_status === "approved").length;
+  const inProgress = milestones.filter(
+    (m) => m.status === "active" || m.status === "in_progress",
+  ).length;
+  const blocked = milestones.filter(
+    (m) => m.status === "blocked" || m.approval_status === "rejected",
+  ).length;
+  const dated = milestones
+    .filter((m): m is typeof m & { due_date: string } => !!m.due_date)
+    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+  const nextDue = dated[0]?.due_date ?? null;
+  const finalDue = dated[dated.length - 1]?.due_date ?? null;
+
+  const cells: Array<[string, string]> = [
+    ["Total milestones", String(total)],
+    ["Approved", `${approved} of ${total}`],
+    ["In progress", String(inProgress)],
+    ["Blocked", String(blocked)],
+    ["Next due", nextDue ? formatDate(nextDue) : "—"],
+    ["Target date", finalDue ? formatDate(finalDue) : "—"],
+  ];
+
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-dashed border-[#E8E1D6] bg-[#FBF9F4] px-4 py-3 sm:grid-cols-3 lg:grid-cols-6">
+      {cells.map(([label, value]) => (
+        <div key={label} className="min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+            {label}
+          </div>
+          <div
+            className={cn(
+              "mt-0.5 truncate text-sm font-medium",
+              label === "Blocked" && Number(value) > 0
+                ? "text-[#a4283c]"
+                : "text-[#0A0F1F]",
+            )}
+          >
+            {value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 
 /* ─────────────────── Status strip + right rail ─────────────────── */
