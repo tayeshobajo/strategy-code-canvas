@@ -3650,12 +3650,14 @@ function BusinessRoadmapPreview({
   currentStep,
   pointAApproved,
   pointBApproved,
+  draft = false,
 }: {
   projectId: string;
   milestones: ProjectSpinePayload["milestones"];
   currentStep: string | null;
   pointAApproved: boolean;
   pointBApproved: boolean;
+  draft?: boolean;
 }) {
   const grouped = groupMilestones(milestones);
   const currentPhaseLabel = currentStep ? humanize(currentStep) : null;
