@@ -343,11 +343,21 @@ function ProjectSpine() {
         />
       </div>
 
+      {/* ───── Business Roadmap preview strip (Point A → phases → Point B) ───── */}
+      <BusinessRoadmapPreview
+        projectId={projectId}
+        milestones={spine.milestones}
+        currentStep={spine.project.current_step}
+        pointAApproved={isApprovedTruth(spine.project.point_a_status)}
+        pointBApproved={isApprovedTruth(spine.project.point_b_status)}
+      />
+
       {/* ───── Milestone Readiness matrix ───── */}
       <MilestoneReadinessMatrix
         projectId={projectId}
         milestones={spine.milestones}
       />
+
 
       {/* ───── Lower row: Approvals + Foundation + Captain Brief ───── */}
       <div className="grid gap-4 xl:grid-cols-3">
