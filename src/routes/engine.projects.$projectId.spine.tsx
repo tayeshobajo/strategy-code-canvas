@@ -342,7 +342,7 @@ function ProjectSpine() {
         />
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-8">
         <div className="min-w-0 space-y-6">
 
       {variant === "active" ? (
