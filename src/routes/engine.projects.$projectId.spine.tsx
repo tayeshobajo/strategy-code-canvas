@@ -660,7 +660,13 @@ function ProjectSpine() {
       </section>
 
       <NotificationsCard notifications={spine.notifications} />
-      </>) : variant === "incomplete" ? (
+        </div>
+        <SpineRightRail
+          spine={spine}
+          projectId={projectId}
+          pendingApprovals={pendingApprovalsCount}
+        />
+      </div>) : variant === "incomplete" ? (
         <SpineIncompleteBody spine={spine} projectId={projectId} />
       ) : (
         <SpineClientReadyBody spine={spine} projectId={projectId} />
