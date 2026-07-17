@@ -197,8 +197,8 @@ function ProjectSpine() {
   const [evidenceSearch, setEvidenceSearch] = useState("");
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<{ title: string; missing: string[] } | null>(null);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [askCaptainOpen, setAskCaptainOpen] = useState(false);
+
 
   const approveMut = useMutation({
     mutationFn: (id: string) => approveFn({ data: { id } }),
