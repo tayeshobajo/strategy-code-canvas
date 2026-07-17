@@ -3674,6 +3674,11 @@ function BusinessRoadmapPreview({
           <h2 id="spine-roadmap-preview-heading" className="font-display text-base text-[#0A0F1F]">
             Point A → phases → Point B
           </h2>
+          {draft ? (
+            <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[#8a6713]">
+              Draft roadmap direction, generated from current understanding
+            </div>
+          ) : null}
         </div>
         <Link
           to="/engine/projects/$projectId/roadmap"
