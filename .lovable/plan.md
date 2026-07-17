@@ -1,69 +1,75 @@
-# Replace the old Project Spine page
-
-The current `src/routes/engine.projects.$projectId.spine.tsx` is 3762 lines of accumulated waves. It still renders, but it is the "old" page: inconsistent variant flow, hand-derived counts, duplicated section chrome, and hard to change safely. We already have a clean server read model (`getProjectSpine` returns `view.variant`, `view.counts`, `view.sections`, `next_milestone`, `missing_for_client_ready`) and durable inputs (Point A/B status, milestone readiness, spine readiness). This plan swaps the route to a fresh, small implementation built on that read model.
-
 ## Goal
 
-One Spine route, driven by the server `view`, that satisfies the five gate points:
+Reshape the active-variant Project Spine (`src/routes/engine.projects.$projectId.spine.tsx`) to match the uploaded cockpit reference. Presentation only — no schema, no server-function shape changes, no changes to Incomplete/Client-Ready variants beyond reusing the new header/status strip.
 
-1. Understand the project within 10 seconds (header + variant banner + snapshot).
-2. Any conclusion traces to its source within 2 clicks (Inspect sources on every truth block).
-3. Milestone context visible from acceptance criteria through QA (readiness matrix + next best action).
-4. The blocker to the next stage is always named (variant-specific focus card).
-5. Client roadmap generates entirely from approved Spine data (Export button preflighted against `missing_for_client_ready`).
+## Reference layout (top → bottom, main + right rail)
 
-## What renders
+```text
+┌───────────────────────── Header ─────────────────────────┐  ┌── right rail ──┐
+│ Project Spine  [Needs Review]     Approvals · Project    │  │ CAPTAIN BRIEF  │
+│ subtitle                          Actions · Export       │  │ (moved from    │
+├── Status strip (7 cells) ────────────────────────────────┤  │  lower row)    │
+│ STATUS│HEALTH│PHASE│CAPTAIN│LAST UPD│VERSION│READINESS  │  │                │
+├── NEXT BEST ACTION (2fr) ── PROJECT SNAPSHOT (1fr) ─────┤  │ APPROVALS &    │
+│                                                          │  │  BLOCKERS      │
+├── POINT A ─────────────── POINT B ──────────────────────┤  │                │
+├── PROJECT FOUNDATION (6 tiles) ─────────────────────────┤  │ MATERIAL       │
+├── BUSINESS ROADMAP (PREVIEW) ───────────────────────────┤  │  CHANGES       │
+│  Milestone matrix, footer stats, working focus,          │  │                │
+│  history, modules details keep rendering below           │  │ ACTIVE AGENTS  │
+└──────────────────────────────────────────────────────────┘  └────────────────┘
+```
 
-Header (always)
-- Title, variant chip (Incomplete / Active / Client Ready), one-line description
-- Actions: Approvals count, Ask Captain, Export Client Roadmap (disabled + reason when preflight fails)
+Layout wrapper (active only): `grid xl:grid-cols-[minmax(0,1fr)_320px] gap-6`. Right rail is `sticky top-4` and stacks the four cards. Below `xl`, rail collapses under the main column.
 
-Variant banner (always) — copy driven by `view.variant`
+## Changes
 
-Body (switches on `view.variant`):
+1. **New `SpineStatusStrip` component** — one card, 7 stat cells separated by dividers. Data:
+   - Project Status: `spine.project.status` + step label (`current_step`).
+   - Health: `spine.project.health_score` → "Healthy / Needs Attention / At Risk" + blockers count from `blockedItemsCount`.
+   - Current Phase: derived from `spine.project.current_step` / current milestone `phase` (`Phase N of M`).
+   - Captain: static "Captain AI" + `Active` chip (no new data).
+   - Last Updated: `spine.project.updated_at` (relative + absolute).
+   - Roadmap Version: `spine.version?.label ?? "Draft"` + published/not-published.
+   - Spine Readiness: reuse existing `useSpineReadiness` query already wired in this file — show `passed/total` + percent.
 
-- Incomplete: Focus card ("Resolve understanding"), Point A / Point B truth cards, Spine Readiness list (blockers first)
-- Active: Snapshot strip (counts), Next Best Action card, Point A / Point B truth cards, Milestone Readiness matrix, Spine Readiness (collapsed), Business Roadmap preview strip, Approvals inline
-- Client Ready: Client Roadmap preview strip, Approved Milestones list, Point A / Point B truth cards, Publish status
+2. **Redesign `HeroNextBestActionCard`** to match the compass-icon card style (small eyebrow, big title, description, meta chips `Impact / Unlocks / Owner / Due`, primary CTA). Keep existing NBA data props.
 
-Every truth card and matrix row keeps its existing "Inspect sources" link (unchanged provenance flow).
+3. **Redesign `ProjectSnapshotCard`** as a 2-column key/value grid: Client, Project Type, Parent Project, Target Date | Open Approvals, Blocked Items, Active Milestones, Client Portal. Use existing props already passed in.
 
-## Files
+4. **Redesign `ProjectFoundationCard`** to a horizontal 6-tile strip (icon + label + one-line status): Business Context, Constraints & Risks, Assets & Leverage, Approved Scope, Success Measures, Decisions Pending. Derive counts from existing `modules` / `pointA` / `pointB` / `milestones` props already passed. Add "View all foundation →" link (keeps current `Link` target).
 
-New (small, focused):
-- `src/components/engine/spine/SpineHeader.tsx`
-- `src/components/engine/spine/VariantBanner.tsx`
-- `src/components/engine/spine/FocusCard.tsx`
-- `src/components/engine/spine/SnapshotStrip.tsx`
-- `src/components/engine/spine/NextBestAction.tsx`
-- `src/components/engine/spine/TruthCard.tsx` (Point A / Point B, reused)
-- `src/components/engine/spine/MilestoneReadinessMatrix.tsx` (extract existing 10-gate matrix as-is)
-- `src/components/engine/spine/SpineReadinessList.tsx` (wrap existing `SpineReadinessPanel`)
-- `src/components/engine/spine/RoadmapPreviewStrip.tsx` (Point A → phases → Point B, extract existing)
-- `src/components/engine/spine/ApprovedMilestonesList.tsx`
+5. **Right rail** (`SpineRightRail`) — new component composing:
+   - Existing `CaptainBriefCard` (moved out of lower row).
+   - New `ApprovalsBlockersRail` — top 2–3 items from `spine.reviews` + blocked milestones (`m.status === "blocked" || approval_status === "rejected"`), with existing review-action link.
+   - New `MaterialChangesRail` — top 3 items from `spine.activity` filtered to version/truth changes; date on right.
+   - New `ActiveAgentsRail` — from `spine.modules` (fallback list if absent): Product Manager / Project Manager / Design / Developer, status chip derived from module `status`/`readiness` fields already present; if a field is missing render `—`, never fabricated. "View all →" links to existing Agent Workspace room if present, otherwise omitted.
 
-Replaced:
-- `src/routes/engine.projects.$projectId.spine.tsx` — reduced to route wiring + a ~150-line component that reads `spine.view.sections` and renders the right pieces per variant.
+6. **Reorganize main column** to the order above. Remove `ApprovalsInlineCard` + `CaptainBriefCard` from the lower 3-col row (they now live in the rail / are represented by the new foundation strip). Keep `MilestoneReadinessMatrix`, `FooterStatsBar`, `WorkingFocusStrip`, `MilestoneApprovalHistoryCard`, and the "Modules & readiness" details block untouched below the roadmap preview.
 
-Untouched:
-- `getProjectSpine` and every other server function
-- `spine-variant.ts`, `spine-truth-status.ts`, `milestone-readiness-evaluator.ts`, `spine-readiness-evaluator.ts`
-- Export Client Roadmap handler + preflight
-- Source & Truth Inspector, propose-change flow, activity/audit trail
-- Milestone workspace routes, ProjectTabs, WorkspaceHeader
+7. **Header polish** — `SpinePageHeader` gets `Approvals` pill button + `Project Actions` dropdown (reusing existing menu if present, otherwise a simple `DetailsMenu`) alongside the existing Export button; underline the status chip beside the title using existing variant colors.
+
+8. **Incomplete / Client-Ready bodies** — wrap in the same 2-col shell so the rail is consistent, but inside the rail only render `CaptainBriefCard` + `ApprovalsBlockersRail` (skip Material Changes / Active Agents when the data isn't meaningful yet).
 
 ## Non-goals
 
-- No schema changes, no new server functions, no publishing changes.
-- No new copy beyond what the existing sections already show.
-- No visual system changes outside existing Trust Tai tokens.
+- No changes to server functions, queries, or DB.
+- No changes to Incomplete "Resolve these first" card behavior.
+- No changes to Export logic, milestone workspace, or client portal.
+- No new mock data — any missing field renders "—" or "Not configured".
+
+## Files touched
+
+- `src/routes/engine.projects.$projectId.spine.tsx` — new inline components (`SpineStatusStrip`, `SpineRightRail`, `ApprovalsBlockersRail`, `MaterialChangesRail`, `ActiveAgentsRail`) + reworked `HeroNextBestActionCard`, `ProjectSnapshotCard`, `ProjectFoundationCard`, `SpinePageHeader`, and active-body JSX.
 
 ## Verification
 
-- Typecheck clean.
-- Playwright screenshot pass across three real projects covering each variant (Incomplete, Active, Client Ready) — confirm variant banner, focus/NBA, truth cards, readiness matrix, and Export state each render.
-- Existing unit tests (`spine-variant`, `spine-truth-status`, `milestone-readiness-evaluator`, `spine-readiness-evaluator`) still pass unchanged.
+- `tsgo` typecheck.
+- Existing vitest suites (`spine-variant.test.ts`, `spine-readiness-evaluator.test.ts`, `milestone-readiness-evaluator.test.ts`) must still pass — pure modules aren't touched.
+- Playwright screenshot of `/engine/projects/1c0aaa36-…/spine` at 1480px viewport; compare structure against reference (7-cell strip, NBA+snapshot row, right rail with 4 stacked cards).
 
-## Rollback
+## Risks & rollback
 
-Keep the previous file at `src/routes/engine.projects.$projectId.spine.old.tsx.bak` (untracked by router since it doesn't match the route filename pattern) for one turn; delete after verification.
+- Risk: right rail crowds narrow viewports — mitigated by `xl:` breakpoint collapse.
+- Risk: Active Agents / Material Changes data thinner than reference — mitigated by honest empty labels, no fabrication.
+- Rollback: single-file change; revert `spine.tsx` to restore previous cockpit.

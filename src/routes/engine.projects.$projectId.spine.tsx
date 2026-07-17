@@ -158,6 +158,15 @@ function ProjectSpine() {
     queryFn: () => workspaceFn({ data: { id: projectId } }),
     staleTime: 60_000,
   });
+  // Hoisted so the top-of-page Status Strip and the Incomplete body share
+  // the same query cache (readiness is expensive to recompute).
+  const readinessFn = useServerFn(evaluateProjectSpineReadiness);
+  const readinessQ = useQuery({
+    queryKey: ["engine", "spine-readiness", projectId],
+    queryFn: () => readinessFn({ data: { projectId } }),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
 
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<ModuleCategoryFilter>("all");
@@ -281,6 +290,14 @@ function ProjectSpine() {
       {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
 
+      {/* ───── Status strip (7 cells) ───── */}
+      <SpineStatusStrip
+        spine={spine}
+        blockedItems={blockedItemsCount}
+        readinessPassed={readinessQ.data?.result?.passed ?? null}
+        readinessTotal={readinessQ.data?.result?.total ?? 14}
+      />
+
       {exportError ? (
         <ErrorBanner
           title={exportError.title}
@@ -300,7 +317,9 @@ function ProjectSpine() {
         />
       ) : null}
 
-      {variant === "active" ? (<>
+      {variant === "active" ? (
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-6">
       {/* ───── Hero row: NBA + Snapshot ───── */}
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <HeroNextBestActionCard
@@ -318,6 +337,7 @@ function ProjectSpine() {
           nextMilestoneDue={nextMilestone?.due_date ?? null}
           healthScore={spine.project.health_score}
           ownerEmail={spine.project.client_owner_email}
+          portalPublish={spine.portal_publish}
         />
       </div>
 
@@ -640,7 +660,13 @@ function ProjectSpine() {
       </section>
 
       <NotificationsCard notifications={spine.notifications} />
-      </>) : variant === "incomplete" ? (
+        </div>
+        <SpineRightRail
+          spine={spine}
+          projectId={projectId}
+          pendingApprovals={pendingApprovalsCount}
+        />
+      </div>) : variant === "incomplete" ? (
         <SpineIncompleteBody spine={spine} projectId={projectId} />
       ) : (
         <SpineClientReadyBody spine={spine} projectId={projectId} />
@@ -767,9 +793,10 @@ function HeroNextBestActionCard({
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-[#667085]">
+            <MetaKV label="Impact" value={tone === "critical" ? "High" : tone === "warning" ? "Medium" : "Standard"} />
             <MetaKV label="Unlocks" value={nextMilestone?.phase ? humanize(nextMilestone.phase) : "Next phase"} />
-            <MetaKV label="Due" value={nextMilestone?.due_date ? formatDate(nextMilestone.due_date) : "—"} />
             <MetaKV label="Owner" value="Tai" />
+            <MetaKV label="Due" value={nextMilestone?.due_date ? formatDate(nextMilestone.due_date) : "Today"} />
           </div>
           {nba.href ? (
             <a
@@ -818,8 +845,9 @@ function ProjectSnapshotCard({
   approvedMilestones,
   totalMilestones,
   nextMilestoneDue,
-  healthScore,
+  healthScore: _healthScore,
   ownerEmail,
+  portalPublish,
 }: {
   project: ProjectSpinePayload["project"];
   version: ProjectSpinePayload["version"];
@@ -830,53 +858,62 @@ function ProjectSnapshotCard({
   nextMilestoneDue: string | null;
   healthScore: number;
   ownerEmail: string | null;
+  portalPublish: ProjectSpinePayload["portal_publish"];
 }) {
-  const health =
-    healthScore > 0
-      ? healthFromScore(healthScore)
-      : deriveHealth(project.status, blockedItems);
-  const currentPhase = humanize(project.current_step || "—");
-  const ownerDisplay = ownerEmail ?? project.client_company ?? "—";
+  const clientPortal = portalPublish
+    ? humanize(portalPublish.status)
+    : "Not Published";
+  const projectType = project.frame ? humanize(project.frame) : "—";
+  const parentProject = project.client_company || "—";
+  const client = project.client_company || "—";
+  const ownerLine = ownerEmail ?? "—";
+
+  const left: Array<[string, ReactNode]> = [
+    ["Client", client],
+    ["Project Type", projectType],
+    ["Parent Project", parentProject],
+    ["Target Date", nextMilestoneDue ? formatDate(nextMilestoneDue) : "—"],
+    ["Roadmap Version", version?.label ?? "Draft"],
+  ];
+  const right: Array<[string, ReactNode]> = [
+    ["Open Approvals", String(pendingApprovals)],
+    [
+      "Blocked Items",
+      <span key="b" className={cn(blockedItems > 0 ? "text-[#a4283c]" : "text-[#0A0F1F]")}>
+        {blockedItems}
+      </span>,
+    ],
+    ["Active Milestones", `${approvedMilestones} of ${totalMilestones}`],
+    ["Client Portal", clientPortal],
+    ["Owner", ownerLine],
+  ];
 
   return (
     <section
       aria-labelledby="spine-snapshot-heading"
       className="rounded-2xl border border-[#E8E1D6] bg-white p-6 shadow-sm"
     >
-      <h2 id="spine-snapshot-heading" className="font-display text-lg text-[#0A0F1F]">
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
         Project Snapshot
-      </h2>
-      <div className="mt-4 grid grid-cols-3 gap-x-4 gap-y-5">
-        <SnapshotCell label="Current Phase" value={currentPhase} />
-        <SnapshotCell
-          label="Health"
-          value={
-            <span className="inline-flex items-center gap-1.5">
-              <span className={cn("h-2 w-2 rounded-full", health.dot)} />
-              {healthScore > 0 ? `${healthScore} · ${health.label}` : health.label}
-            </span>
-          }
-        />
-        <SnapshotCell
-          label="Target Date"
-          value={nextMilestoneDue ? formatDate(nextMilestoneDue) : "—"}
-        />
-        <SnapshotCell label="Project Owner" value={ownerDisplay} />
-        <SnapshotCell label="Captain" value="Captain AI" />
-        <SnapshotCell label="Roadmap Version" value={version?.label ?? "—"} />
-        <SnapshotCell label="Pending Approvals" value={String(pendingApprovals)} />
-        <SnapshotCell
-          label="Blocked Items"
-          value={
-            <span className={cn(blockedItems > 0 ? "text-[#a4283c]" : "text-[#0A0F1F]")}>
-              {blockedItems}
-            </span>
-          }
-        />
-        <SnapshotCell
-          label="Active Milestones"
-          value={`${approvedMilestones} of ${totalMilestones}`}
-        />
+      </div>
+      <h2 id="spine-snapshot-heading" className="sr-only">Project Snapshot</h2>
+      <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-4">
+        <dl className="space-y-3">
+          {left.map(([k, v]) => (
+            <div key={k} className="flex items-baseline justify-between gap-3">
+              <dt className="text-xs text-[#667085]">{k}</dt>
+              <dd className="text-sm font-medium text-[#0A0F1F] text-right truncate">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <dl className="space-y-3">
+          {right.map(([k, v]) => (
+            <div key={k} className="flex items-baseline justify-between gap-3">
+              <dt className="text-xs text-[#667085]">{k}</dt>
+              <dd className="text-sm font-medium text-[#0A0F1F] text-right truncate">{v}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   );
@@ -1352,11 +1389,11 @@ function ProjectFoundationCard({
           View all <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
-      <ul className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+      <ul className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         {rows.map((r) => (
-          <li key={r.label} className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2 text-sm text-[#0A0F1F]">
-              <span className="text-[#667085]">{r.icon}</span>
+          <li key={r.label} className="rounded-xl border border-[#F3EEE6] bg-[#FBF7F0]/60 p-3">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.18em] text-[#667085]">
+              <span>{r.icon}</span>
               {r.link ? (
                 <ModuleLink
                   moduleKey={r.link as SpineModuleKey}
@@ -1369,7 +1406,7 @@ function ProjectFoundationCard({
                 <span className="truncate">{r.label}</span>
               )}
             </div>
-            <span className="shrink-0 text-sm font-medium text-[#0A0F1F]">{r.value}</span>
+            <div className="mt-2 text-sm font-semibold text-[#0A0F1F] leading-tight">{r.value}</div>
           </li>
         ))}
       </ul>
@@ -3952,3 +3989,217 @@ function BusinessRoadmapPreview({
   );
 }
 
+
+/* ─────────────────── Status strip + right rail ─────────────────── */
+
+function StatusChip({ label, tone }: { label: string; tone: "ok" | "warn" | "bad" | "neutral" }) {
+  const cls =
+    tone === "ok" ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+      : tone === "warn" ? "bg-amber-50 text-amber-800 border-amber-200"
+      : tone === "bad" ? "bg-rose-50 text-rose-800 border-rose-200"
+      : "bg-[#F5EFE4] text-[#0A0F1F] border-[#E8E1D6]";
+  return (
+    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium", cls)}>
+      {label}
+    </span>
+  );
+}
+
+function SpineStatusStrip({
+  spine,
+  blockedItems,
+  readinessPassed,
+  readinessTotal,
+}: {
+  spine: ProjectSpinePayload;
+  blockedItems: number;
+  readinessPassed: number | null;
+  readinessTotal: number;
+}) {
+  const project = spine.project;
+  const health = project.health_score > 0
+    ? healthFromScore(project.health_score)
+    : deriveHealth(project.status, blockedItems);
+  const healthTone: "ok" | "warn" | "bad" = /green|good|on/i.test(health.label)
+    ? "ok" : /red|risk|off/i.test(health.label) ? "bad" : "warn";
+  const statusTone: "ok" | "warn" | "bad" | "neutral" =
+    project.status === "active" ? "ok"
+      : project.status === "at_risk" ? "warn"
+      : project.status === "blocked" ? "bad"
+      : "neutral";
+  const readinessLabel =
+    readinessPassed === null ? "Evaluating…" : `${readinessPassed}/${readinessTotal}`;
+  const readinessTone: "ok" | "warn" | "bad" | "neutral" =
+    readinessPassed === null ? "neutral"
+      : readinessPassed >= readinessTotal ? "ok"
+      : readinessPassed >= Math.ceil(readinessTotal * 0.6) ? "warn"
+      : "bad";
+  const lastUpdate = project.updated_at ? formatRelative(project.updated_at) : "—";
+
+  const cells: Array<{ label: string; render: ReactNode }> = [
+    { label: "Status", render: <StatusChip label={humanize(project.status)} tone={statusTone} /> },
+    {
+      label: "Health",
+      render: (
+        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0A0F1F]">
+          <span className={cn("h-2 w-2 rounded-full", health.dot)} />
+          {project.health_score > 0 ? `${project.health_score} · ${health.label}` : health.label}
+        </span>
+      ),
+    },
+    {
+      label: "Current Phase",
+      render: (
+        <span className="text-sm font-medium text-[#0A0F1F] truncate">
+          {humanize(project.current_step || "—")}
+        </span>
+      ),
+    },
+    { label: "Captain", render: <span className="text-sm font-medium text-[#0A0F1F]">Tai · Active</span> },
+    { label: "Last Update", render: <span className="text-sm font-medium text-[#0A0F1F]">{lastUpdate}</span> },
+    {
+      label: "Version",
+      render: <span className="text-sm font-medium text-[#0A0F1F]">{spine.version?.label ?? "Draft"}</span>,
+    },
+    { label: "Readiness", render: <StatusChip label={readinessLabel} tone={readinessTone} /> },
+  ];
+
+  return (
+    <section
+      aria-label="Project status strip"
+      className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm"
+    >
+      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
+        {cells.map((c) => (
+          <li key={c.label} className="min-w-0">
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">{c.label}</div>
+            <div className="mt-1 truncate">{c.render}</div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function formatRelative(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "—";
+  const diff = Date.now() - t;
+  const mins = Math.round(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.round(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return formatDate(iso);
+}
+
+function RailCard({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h3 className="font-display text-sm text-[#0A0F1F]">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function SpineRightRail({
+  spine,
+  projectId,
+  pendingApprovals,
+}: {
+  spine: ProjectSpinePayload;
+  projectId: string;
+  pendingApprovals: number;
+}) {
+  const reviews = spine.reviews.slice(0, 4);
+  const material = spine.activity.filter((a) => a.severity === "critical" || a.severity === "warning").slice(0, 4);
+  const recent = spine.activity.slice(0, 4);
+
+  return (
+    <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+      <RailCard title="Captain Brief">
+        <p className="text-sm text-[#0A0F1F] leading-relaxed">{spine.nba.action}</p>
+        {spine.nba.reason ? (
+          <p className="mt-2 text-xs text-[#667085] leading-relaxed">{spine.nba.reason}</p>
+        ) : null}
+      </RailCard>
+
+      <RailCard
+        title="Approvals & Blockers"
+        action={
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+            {pendingApprovals} pending
+          </span>
+        }
+      >
+        {reviews.length === 0 ? (
+          <p className="text-xs text-[#667085]">Nothing waiting on you.</p>
+        ) : (
+          <ul className="space-y-2">
+            {reviews.map((r) => (
+              <li key={r.id} className="flex items-start gap-2 text-sm text-[#0A0F1F]">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                <span className="min-w-0 truncate">{r.title}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </RailCard>
+
+      <RailCard title="Material Changes">
+        {material.length === 0 ? (
+          <p className="text-xs text-[#667085]">No material changes recorded.</p>
+        ) : (
+          <ul className="space-y-2">
+            {material.map((a) => (
+              <li key={a.id} className="text-sm text-[#0A0F1F]">
+                <div className="flex items-center gap-2">
+                  <span className={cn("h-1.5 w-1.5 rounded-full", a.severity === "critical" ? "bg-rose-500" : "bg-amber-500")} />
+                  <span className="truncate">{a.title}</span>
+                </div>
+                <div className="ml-3.5 text-[11px] text-[#667085]">{formatRelative(a.created_at)}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </RailCard>
+
+      <RailCard
+        title="Active Agents"
+        action={
+          <Link
+            to="/engine/projects/$projectId/spine"
+            params={{ projectId }}
+            className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#3E68B2] hover:text-[#284f93]"
+          >
+            View all
+          </Link>
+        }
+      >
+        <ul className="space-y-2 text-sm">
+          <li className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-2 text-[#0A0F1F]">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Captain
+            </span>
+            <span className="text-[11px] text-[#667085]">Monitoring</span>
+          </li>
+          {recent.length > 0 ? (
+            <li className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-2 text-[#0A0F1F]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#3E68B2]" />
+                Activity feed
+              </span>
+              <span className="text-[11px] text-[#667085]">{formatRelative(recent[0].created_at)}</span>
+            </li>
+          ) : null}
+        </ul>
+      </RailCard>
+    </aside>
+  );
+}
