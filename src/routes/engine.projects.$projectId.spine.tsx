@@ -713,6 +713,11 @@ function ProjectSpine() {
         <SpineClientReadyBody spine={spine} projectId={projectId} />
       )}
       </div>
+      <AskCaptainModal
+        open={askCaptainOpen}
+        onClose={() => setAskCaptainOpen(false)}
+        projectId={projectId}
+      />
     </div>
   );
 }
