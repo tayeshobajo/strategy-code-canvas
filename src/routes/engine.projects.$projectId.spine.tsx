@@ -4648,71 +4648,8 @@ function ActiveAgentsLive({ projectId }: { projectId: string }) {
   );
 }
 
-/* ─────────────────── Mobile navigation drawer ─────────────────── */
 
-function MobileRailDrawer({
-  open,
-  onClose,
-  projectId,
-  projectName,
-  clientCompany,
-  status,
-}: {
-  open: boolean;
-  onClose: () => void;
-  projectId: string;
-  projectName: string;
-  clientCompany: string | null;
-  status: string;
-}) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  useFocusTrap(containerRef, open);
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", handler);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
 
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label="Project navigation">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div
-        ref={containerRef}
-        className="absolute inset-y-0 left-0 w-[min(320px,85vw)] overflow-y-auto bg-[#FBF9F4] p-4 shadow-xl outline-none"
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
-            Project navigation
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close navigation"
-            className="rounded-full border border-[#E8E1D6] bg-white p-1.5 text-[#0A0F1F]"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div onClick={onClose}>
-          <LeftProjectRail
-            projectId={projectId}
-            projectName={projectName}
-            clientCompany={clientCompany}
-            status={status}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ─────────────────── Ask Captain modal ─────────────────── */
 
