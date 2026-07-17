@@ -4381,24 +4381,7 @@ function SpineRightRail({
         title="Active Agents"
         action={<RailLinkAction to="/engine/projects/$projectId/agent" params={{ projectId }} label="Open room" />}
       >
-        <ul className="space-y-2 text-sm">
-          <li className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-2 text-[#0A0F1F]">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Captain
-            </span>
-            <span className="text-[11px] text-[#667085]">Monitoring</span>
-          </li>
-          {recent.length > 0 ? (
-            <li className="flex items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-2 text-[#0A0F1F]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#3E68B2]" />
-                Activity feed
-              </span>
-              <span className="text-[11px] text-[#667085]">{formatRelative(recent[0].created_at)}</span>
-            </li>
-          ) : null}
-        </ul>
+        <ActiveAgentsLive projectId={projectId} />
       </RailCard>
     </aside>
   );
