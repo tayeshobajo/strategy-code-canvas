@@ -66,6 +66,12 @@ import {
   type SpineStatusPresentation,
 } from "@/lib/spine-truth-status";
 import type { SpineVariant } from "@/lib/spine-variant";
+import {
+  getIntelligenceRoomLink,
+  validateIntelligenceAnchor,
+} from "@/lib/intelligence-room-links";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { listChatThreads, getChatThread } from "@/lib/engine-chat.functions";
 
 /**
  * Map the richer 7-tone `SpineStatusPresentation` palette onto the 5
