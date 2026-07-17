@@ -4711,6 +4711,8 @@ function MobileRailDrawer({
   clientCompany: string | null;
   status: string;
 }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, open);
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -4728,7 +4730,10 @@ function MobileRailDrawer({
   return (
     <div className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label="Project navigation">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute inset-y-0 left-0 w-[min(320px,85vw)] overflow-y-auto bg-[#FBF9F4] p-4 shadow-xl">
+      <div
+        ref={containerRef}
+        className="absolute inset-y-0 left-0 w-[min(320px,85vw)] overflow-y-auto bg-[#FBF9F4] p-4 shadow-xl outline-none"
+      >
         <div className="mb-3 flex items-center justify-between">
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
             Project navigation
@@ -4757,12 +4762,18 @@ function MobileRailDrawer({
 
 /* ─────────────────── Ask Captain modal ─────────────────── */
 
+type AskCaptainCitation = string;
+type AskCaptainSuggestedLink = { label: string; to: string };
+
 type AskCaptainTurn = {
   id: string;
   question: string;
   answer: string | null;
+  citations: AskCaptainCitation[];
+  suggestedLinks: AskCaptainSuggestedLink[];
   error: string | null;
 };
+
 
 function AskCaptainModal({
   open,
