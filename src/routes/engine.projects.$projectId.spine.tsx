@@ -3606,6 +3606,14 @@ function SpineClientReadyBody({
         />
       </div>
 
+      <BusinessRoadmapPreview
+        projectId={projectId}
+        milestones={spine.milestones}
+        currentStep={spine.project.current_step}
+        pointAApproved={isApprovedTruth(spine.project.point_a_status)}
+        pointBApproved={isApprovedTruth(spine.project.point_b_status)}
+      />
+
       <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
