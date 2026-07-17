@@ -364,10 +364,9 @@ function ProjectSpine() {
         />
       ) : null}
 
+      {variant === "active" ? (
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
         <div className="min-w-0 space-y-6">
-      {variant === "active" ? (
-        <>
       {/* ───── Hero row: NBA + Snapshot ───── */}
       <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] xl:gap-6">
         <HeroNextBestActionCard
@@ -388,7 +387,7 @@ function ProjectSpine() {
           portalPublish={spine.portal_publish}
         />
       </div>
-{(() => { const _kept = () => (<>
+
       {/* ───── Truth row: Point A / Point B ───── */}
       <div className="grid gap-4 lg:grid-cols-2">
         <TruthCardV2
@@ -399,7 +398,327 @@ function ProjectSpine() {
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
           inspectorKey="point_a"
+          inspectorLabel="Point A — Current Reality"
+        />
+        <TruthCardV2
+          point="B"
+          projectId={projectId}
+          status={spine.project.point_b_status}
+          bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
+          sourceCount={spine.sources.total}
+          approvedAt={spine.version?.approved_at ?? null}
+          inspectorKey="point_b"
+          inspectorLabel="Point B — Desired Future"
+        />
+      </div>
 
+      {/* ───── Business Roadmap preview strip (Point A → phases → Point B) ───── */}
+      <BusinessRoadmapPreview
+        projectId={projectId}
+        milestones={spine.milestones}
+        currentStep={spine.project.current_step}
+        pointAApproved={isApprovedTruth(spine.project.point_a_status)}
+        pointBApproved={isApprovedTruth(spine.project.point_b_status)}
+      />
+
+      {/* ───── Milestone Readiness matrix ───── */}
+      <MilestoneReadinessMatrix
+        projectId={projectId}
+        milestones={spine.milestones}
+      />
+
+
+      {/* ───── Lower row: Approvals + Foundation + Captain Brief ───── */}
+      <div className="grid gap-4 xl:grid-cols-3">
+        <ApprovalsInlineCard reviews={spine.reviews} />
+        <ProjectFoundationCard
+          projectId={projectId}
+          modules={spine.modules}
+          pointA={pointA}
+          pointB={pointB}
+          milestones={spine.milestones}
+        />
+        <CaptainBriefCard
+          nba={spine.nba}
+          latestActivity={spine.activity[0] ?? null}
+          version={spine.version}
+        />
+      </div>
+
+      {/* ───── Footer stats bar ───── */}
+      <FooterStatsBar
+        sourcesProcessed={spine.sources.processed}
+        sourcesTotal={spine.sources.total}
+        lastRunAt={spine.sources.last_run?.finished_at ?? spine.sources.last_run?.started_at ?? null}
+        projectCreatedAt={null}
+        lastUpdatedAt={spine.project.updated_at}
+        intelligenceConfidence={spine.intelligence.confidence}
+      />
+
+      {/* ───── Working focus (merged from legacy Overview) ───── */}
+      <WorkingFocusStrip
+        projectId={projectId}
+        currentStepNum={spine.project.current_step_num}
+        totalSteps={14}
+        nextMilestoneId={nextMilestone?.id ?? spine.milestones[0]?.id ?? null}
+        nextMilestoneName={nextMilestone?.name ?? spine.milestones[0]?.name ?? null}
+      />
+
+      {/* ───── Milestone approval history ───── */}
+      <MilestoneApprovalHistoryCard
+        rows={historyRows}
+        milestones={spine.milestones}
+        isLoading={historyQ.isPending}
+        isError={historyQ.isError}
+        errorMessage={(historyQ.error as Error | null)?.message}
+        onRetry={() => historyQ.refetch()}
+      />
+
+
+      {/* ───── Modules & Readiness (power-user view) ───── */}
+      <details className="group rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
+        <summary className="cursor-pointer list-none px-5 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-display text-base text-[#0A0F1F]">Modules &amp; readiness</div>
+              <div className="mt-0.5 text-xs text-[#667085]">
+                Detailed per-module state across the 10 spine modules
+              </div>
+            </div>
+            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#667085] group-open:text-[#3E68B2]">
+              <span className="group-open:hidden">Expand</span>
+              <span className="hidden group-open:inline">Collapse</span>
+            </div>
+          </div>
+        </summary>
+        <div className="space-y-4 border-t border-[#E8E1D6] px-5 py-5">
+          <ModuleGridControls
+            readiness={moduleFilter}
+            onReadinessChange={setModuleFilter}
+            category={categoryFilter}
+            onCategoryChange={setCategoryFilter}
+            sort={moduleSort}
+            onSortChange={setModuleSort}
+            modules={spine.modules}
+          />
+          <ModuleReadinessGrid
+            modules={spine.modules}
+            projectId={projectId}
+            filter={moduleFilter}
+            category={categoryFilter}
+            sort={moduleSort}
+          />
+          <ModuleContentsList modules={spine.modules} projectId={projectId} />
+          <ApproveRejectMilestonesList
+            milestones={spine.milestones}
+            onApprove={(id) => approveMut.mutate(id)}
+            onReject={(id) => rejectMut.mutate(id)}
+            pendingId={pendingMilestoneId}
+          />
+        </div>
+      </details>
+
+      {/* ───── Reference & Evidence (searchable, collapsed) ───── */}
+      <section aria-labelledby="spine-evidence-heading" className="space-y-3">
+        <SectionHeading
+          id="spine-evidence-heading"
+          eyebrow="Reference"
+          title="Evidence & history"
+          action={
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#667085]" />
+              <input
+                type="search"
+                placeholder="Search evidence & history…"
+                value={evidenceSearch}
+                onChange={(e) => setEvidenceSearch(e.target.value)}
+                className="w-64 rounded-full border border-[#E8E1D6] bg-white py-1.5 pl-8 pr-3 text-xs text-[#0A0F1F] placeholder:text-[#667085] focus:border-[#3E68B2] focus:outline-none"
+              />
+            </div>
+          }
+        />
+
+        <SearchableBlock
+          title="Sources & portal publish"
+          subtitle={`${spine.sources.processed}/${spine.sources.total} processed`}
+          search={evidenceSearch}
+          haystack={[
+            "sources",
+            "portal",
+            spine.portal_publish?.status ?? "not_published",
+            spine.sources.last_run?.status ?? "",
+          ].join(" ")}
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-[#E8E1D6] bg-white p-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+                Sources summary
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                <Stat label="Total" value={spine.sources.total} />
+                <Stat label="Processed" value={spine.sources.processed} tone="approved" />
+                <Stat label="Failed" value={spine.sources.failed} tone="blocked" />
+              </div>
+              <div className="mt-4 space-y-3">
+                <ProgressRow label="Processed" value={spine.sources.processed} max={sourceTotal} color="bg-[#1f6b3b]" />
+                <ProgressRow label="Queued" value={spine.sources.queued} max={sourceTotal} color="bg-[#8a6713]" />
+                <ProgressRow label="Failed" value={spine.sources.failed} max={sourceTotal} color="bg-[#a4283c]" />
+              </div>
+              <div className="mt-3 text-xs text-[#667085]">
+                Last run{" "}
+                {spine.sources.last_run
+                  ? `${humanize(spine.sources.last_run.status)} · ${formatDateTime(
+                      spine.sources.last_run.finished_at ?? spine.sources.last_run.started_at,
+                    )}`
+                  : "not available"}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#E8E1D6] bg-white p-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+                Portal publish
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <div className="text-sm text-[#0A0F1F]">
+                  {spine.portal_publish ? humanize(spine.portal_publish.status) : "Not published"}
+                </div>
+                <GenericBadge tone={toneForStatus(spine.portal_publish?.status ?? "not_published")}>
+                  {humanize(spine.portal_publish?.status ?? "not_published")}
+                </GenericBadge>
+              </div>
+              <div className="mt-2 text-xs text-[#667085]">
+                {spine.portal_publish?.published_at
+                  ? `Published ${formatDateTime(spine.portal_publish.published_at)}`
+                  : "No publish timestamp recorded."}
+              </div>
+            </div>
+          </div>
+        </SearchableBlock>
+
+        <SearchableBlock
+          title="Recent activity"
+          subtitle={`${spine.activity.length} events`}
+          search={evidenceSearch}
+          haystack={spine.activity
+            .map((i) => `${i.title} ${i.kind} ${i.body ?? ""}`)
+            .join(" ")}
+        >
+          <ListCard
+            title="Activity"
+            items={filterListItems(
+              spine.activity.slice(0, 15).map((item) => ({
+                id: item.id,
+                title: item.title,
+                meta: `${humanize(item.kind)} · ${formatDateTime(item.created_at)}`,
+                body: item.body,
+              })),
+              evidenceSearch,
+            )}
+            empty="No recent activity."
+          />
+        </SearchableBlock>
+
+        <SearchableBlock
+          title="Audit trail"
+          subtitle={`${spine.audit.length} entries`}
+          search={evidenceSearch}
+          haystack={spine.audit
+            .map((i) => `${i.action} ${i.actor_email ?? ""} ${i.summary ?? ""}`)
+            .join(" ")}
+        >
+          <ListCard
+            title="Audit"
+            items={filterListItems(
+              spine.audit.slice(0, 15).map((item) => ({
+                id: item.id,
+                title: humanize(item.action),
+                meta: `${item.actor_email ?? "system"} · ${formatDateTime(item.created_at)}`,
+                body: item.summary,
+              })),
+              evidenceSearch,
+            )}
+            empty="No audit entries."
+          />
+        </SearchableBlock>
+
+        <SearchableBlock
+          title="Task ledger"
+          subtitle={`${spine.tasks.length} task${spine.tasks.length === 1 ? "" : "s"}`}
+          search={evidenceSearch}
+          haystack={spine.tasks
+            .map((t) => `${t.name} ${t.phase ?? ""} ${t.status} ${t.owner_email ?? ""}`)
+            .join(" ")}
+        >
+          {spine.tasks.length ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[#E8E1D6] text-[#667085]">
+                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Name</th>
+                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Phase</th>
+                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Status</th>
+                    <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Owner</th>
+                    <th className="py-2 font-mono text-[10px] uppercase tracking-[0.22em]">Due Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {spine.tasks
+                    .filter((task) =>
+                      matchesSearch(
+                        `${task.name} ${task.phase ?? ""} ${task.status} ${task.owner_email ?? ""}`,
+                        evidenceSearch,
+                      ),
+                    )
+                    .map((task) => (
+                      <tr key={task.id} className="border-b border-[#F3EEE6] align-top">
+                        <td className="py-3 pr-4 text-[#0A0F1F]">{task.name}</td>
+                        <td className="py-3 pr-4 text-[#667085]">{task.phase ? humanize(task.phase) : "—"}</td>
+                        <td className="py-3 pr-4">
+                          <GenericBadge tone={toneForStatus(task.status)}>{humanize(task.status)}</GenericBadge>
+                        </td>
+                        <td className="py-3 pr-4 text-[#667085]">{task.owner_email || "—"}</td>
+                        <td className="py-3 text-[#667085]">{task.due_date ? formatDate(task.due_date) : "—"}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-[#667085]">No tasks have been approved into the spine.</p>
+          )}
+        </SearchableBlock>
+
+        <SearchableBlock
+          title="Version history"
+          subtitle="Approved roadmap versions"
+          search={evidenceSearch}
+          haystack={`versions ${spine.version?.label ?? ""}`}
+        >
+          <SpineVersionHistory projectId={projectId} currentVersionLabel={spine.version?.label ?? null} />
+        </SearchableBlock>
+
+        <SearchableBlock
+          title="Readiness contract"
+          subtitle="14 canonical checks (advisory)"
+          search={evidenceSearch}
+          haystack="readiness contract checks advisory"
+        >
+          <SpineReadinessPanel projectId={projectId} />
+        </SearchableBlock>
+      </section>
+
+      <NotificationsCard notifications={spine.notifications} />
+        </div>
+        <SpineRightRail
+          spine={spine}
+          projectId={projectId}
+          pendingApprovals={pendingApprovalsCount}
+        />
+      </div>) : variant === "incomplete" ? (
+        <SpineIncompleteBody spine={spine} projectId={projectId} />
+      ) : (
+        <SpineClientReadyBody spine={spine} projectId={projectId} />
+      )}
+      </div>
       <AskCaptainModal
         open={askCaptainOpen}
         onClose={() => setAskCaptainOpen(false)}
