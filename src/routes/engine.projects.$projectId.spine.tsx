@@ -11,6 +11,7 @@ import {
   type SpineModuleKey,
 } from "@/lib/engine.functions";
 import { evaluateProjectSpineReadiness } from "@/lib/engine-spine-readiness-eval.functions";
+import { listAgentTasks, type EngineAgentTask } from "@/lib/engine-agent.functions";
 import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import {
@@ -36,6 +37,18 @@ import {
   Download,
   Check,
   X,
+  Radio,
+  Compass,
+  MapPin,
+  Flag,
+  MessageSquare,
+  Bot,
+  Brain,
+  Layers,
+  ClipboardCheck,
+  Eye,
+  FileText,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -276,7 +289,14 @@ function ProjectSpine() {
   };
 
   return (
-    <div className="space-y-6 text-[#0A0F1F]">
+    <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
+      <LeftProjectRail
+        projectId={projectId}
+        projectName={spine.project.name}
+        clientCompany={spine.project.client_company}
+        status={spine.project.status}
+      />
+      <div className="min-w-0 space-y-6 text-[#0A0F1F]">
       {/* ───── Header row ───── */}
       <SpinePageHeader
         projectId={projectId}
@@ -671,6 +691,7 @@ function ProjectSpine() {
       ) : (
         <SpineClientReadyBody spine={spine} projectId={projectId} />
       )}
+      </div>
     </div>
   );
 }
@@ -4033,9 +4054,62 @@ function BusinessRoadmapPreview({
           </li>
         </ol>
       )}
+      {milestones.length > 0 ? <RoadmapFooterSummary milestones={milestones} /> : null}
     </section>
   );
 }
+
+function RoadmapFooterSummary({
+  milestones,
+}: {
+  milestones: ProjectSpinePayload["milestones"];
+}) {
+  const total = milestones.length;
+  const approved = milestones.filter((m) => m.approval_status === "approved").length;
+  const inProgress = milestones.filter(
+    (m) => m.status === "active" || m.status === "in_progress",
+  ).length;
+  const blocked = milestones.filter(
+    (m) => m.status === "blocked" || m.approval_status === "rejected",
+  ).length;
+  const dated = milestones
+    .filter((m): m is typeof m & { due_date: string } => !!m.due_date)
+    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+  const nextDue = dated[0]?.due_date ?? null;
+  const finalDue = dated[dated.length - 1]?.due_date ?? null;
+
+  const cells: Array<[string, string]> = [
+    ["Total milestones", String(total)],
+    ["Approved", `${approved} of ${total}`],
+    ["In progress", String(inProgress)],
+    ["Blocked", String(blocked)],
+    ["Next due", nextDue ? formatDate(nextDue) : "—"],
+    ["Target date", finalDue ? formatDate(finalDue) : "—"],
+  ];
+
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-dashed border-[#E8E1D6] bg-[#FBF9F4] px-4 py-3 sm:grid-cols-3 lg:grid-cols-6">
+      {cells.map(([label, value]) => (
+        <div key={label} className="min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+            {label}
+          </div>
+          <div
+            className={cn(
+              "mt-0.5 truncate text-sm font-medium",
+              label === "Blocked" && Number(value) > 0
+                ? "text-[#a4283c]"
+                : "text-[#0A0F1F]",
+            )}
+          >
+            {value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 
 /* ─────────────────── Status strip + right rail ─────────────────── */
@@ -4360,25 +4434,192 @@ function SpineRightRail({
         title="Active Agents"
         action={<RailLinkAction to="/engine/projects/$projectId/agent" params={{ projectId }} label="Open room" />}
       >
-        <ul className="space-y-2 text-sm">
-          <li className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-2 text-[#0A0F1F]">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Captain
-            </span>
-            <span className="text-[11px] text-[#667085]">Monitoring</span>
-          </li>
-          {recent.length > 0 ? (
-            <li className="flex items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-2 text-[#0A0F1F]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#3E68B2]" />
-                Activity feed
-              </span>
-              <span className="text-[11px] text-[#667085]">{formatRelative(recent[0].created_at)}</span>
-            </li>
-          ) : null}
-        </ul>
+        <ActiveAgentsLive projectId={projectId} />
       </RailCard>
     </aside>
+  );
+}
+
+/* ─────────────────── Left project rail (persistent sidebar) ─────────────────── */
+
+type RailNavItem = {
+  label: string;
+  to: string;
+  icon: typeof MapPin;
+  exact?: boolean;
+};
+
+const PROJECT_NAV_ITEMS: RailNavItem[] = [
+  { label: "Spine", to: "/engine/projects/$projectId/spine", icon: Layers },
+  { label: "Roadmap", to: "/engine/projects/$projectId/roadmap", icon: MapPin },
+  { label: "Work", to: "/engine/projects/$projectId/work", icon: Activity },
+  { label: "QA & Delivery", to: "/engine/projects/$projectId/qa-delivery", icon: ClipboardCheck },
+  { label: "Client View", to: "/engine/projects/$projectId/client-view", icon: Eye },
+];
+
+const PROJECT_ROOM_ITEMS: RailNavItem[] = [
+  { label: "Sources & Signal", to: "/engine/projects/$projectId/signal-room", icon: Radio },
+  { label: "Understanding", to: "/engine/projects/$projectId/understanding-room", icon: Compass },
+  { label: "Point A", to: "/engine/projects/$projectId/point-a", icon: MapPin },
+  { label: "Point B", to: "/engine/projects/$projectId/point-b", icon: Flag },
+  { label: "Chat with Captain", to: "/engine/projects/$projectId/chat", icon: MessageSquare },
+  { label: "Agent Room", to: "/engine/projects/$projectId/agent", icon: Bot },
+  { label: "Intelligence", to: "/engine/projects/$projectId/intelligence", icon: Brain },
+  { label: "Evidence", to: "/engine/projects/$projectId/evidence", icon: FileText },
+];
+
+function LeftProjectRail({
+  projectId,
+  projectName,
+  clientCompany,
+  status,
+}: {
+  projectId: string;
+  projectName: string;
+  clientCompany: string | null;
+  status: string;
+}) {
+  const dotTone =
+    status === "active" ? "bg-emerald-500"
+      : status === "blocked" ? "bg-rose-500"
+      : status === "at_risk" ? "bg-amber-500"
+      : "bg-[#c9b78a]";
+  return (
+    <aside
+      aria-label="Project navigation"
+      className="space-y-3 xl:sticky xl:top-4 xl:self-start"
+      data-qa-role="left-project-rail"
+    >
+      <div className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+          Project
+        </div>
+        <div className="mt-1 truncate font-display text-sm text-[#0A0F1F]" title={projectName}>
+          {projectName}
+        </div>
+        {clientCompany ? (
+          <div className="mt-0.5 truncate text-[11px] text-[#667085]" title={clientCompany}>
+            {clientCompany}
+          </div>
+        ) : null}
+        <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-[#0A0F1F]">
+          <span className={cn("h-1.5 w-1.5 rounded-full", dotTone)} aria-hidden />
+          {humanize(status)}
+        </div>
+      </div>
+
+      <RailNavSection heading="Project Navigation" items={PROJECT_NAV_ITEMS} projectId={projectId} />
+      <RailNavSection heading="Project Rooms" items={PROJECT_ROOM_ITEMS} projectId={projectId} />
+    </aside>
+  );
+}
+
+function RailNavSection({
+  heading,
+  items,
+  projectId,
+}: {
+  heading: string;
+  items: RailNavItem[];
+  projectId: string;
+}) {
+  return (
+    <nav className="rounded-2xl border border-[#E8E1D6] bg-white p-3 shadow-sm">
+      <div className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+        {heading}
+      </div>
+      <ul className="space-y-0.5">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <li key={item.to}>
+              <Link
+                to={item.to}
+                params={{ projectId }}
+                activeOptions={{ exact: item.exact ?? false }}
+                activeProps={{
+                  className:
+                    "flex items-center gap-2 rounded-lg bg-[#eef3fd] px-2 py-1.5 text-[13px] font-medium text-[#3E68B2]",
+                }}
+                inactiveProps={{
+                  className:
+                    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-[#0A0F1F] hover:bg-[#F5EFE4]",
+                }}
+              >
+                <Icon className="h-3.5 w-3.5 text-[#667085]" />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+/* ─────────────────── Active Agents (live) ─────────────────── */
+
+function ActiveAgentsLive({ projectId }: { projectId: string }) {
+  const fn = useServerFn(listAgentTasks);
+  const q = useQuery({
+    queryKey: ["engine", "spine-active-agents", projectId],
+    queryFn: () => fn({ data: { projectId } }),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
+  const rows: EngineAgentTask[] = (q.data as { rows?: EngineAgentTask[] } | undefined)?.rows ?? [];
+  const recent = rows.slice(0, 5);
+
+  const toneFor = (t: EngineAgentTask): string => {
+    if (t.error) return "bg-rose-500";
+    if (t.pending_approval) return "bg-amber-500";
+    if (t.status === "applied") return "bg-emerald-500";
+    if (t.status === "rejected") return "bg-[#667085]";
+    return "bg-[#3E68B2]";
+  };
+  const statusLabel = (t: EngineAgentTask): string => {
+    if (t.error) return "Error";
+    if (t.pending_approval) return "Awaiting approval";
+    return humanize(t.status);
+  };
+
+  return (
+    <>
+      <ul className="space-y-2 text-sm">
+        <li className="flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-2 text-[#0A0F1F]">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Captain
+          </span>
+          <span className="text-[11px] text-[#667085]">Monitoring</span>
+        </li>
+        {q.isPending ? (
+          <li className="text-[11px] text-[#667085]">Loading agent activity…</li>
+        ) : q.isError ? (
+          <li className="text-[11px] text-rose-700">Failed to load agent activity.</li>
+        ) : recent.length === 0 ? (
+          <li className="text-[11px] text-[#667085]">No agent runs in the last window.</li>
+        ) : (
+          recent.map((t) => (
+            <li key={t.id} className="min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex min-w-0 items-center gap-2 text-[#0A0F1F]">
+                  <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", toneFor(t))} />
+                  <span className="truncate">{humanize(t.kind)}</span>
+                </span>
+                <span className="shrink-0 text-[11px] text-[#667085]">
+                  {formatRelative(t.updated_at ?? t.created_at)}
+                </span>
+              </div>
+              <div className="ml-3.5 text-[11px] text-[#667085]">
+                {statusLabel(t)}
+                {t.confidence > 0 ? ` · ${Math.round(t.confidence * 100)}% conf` : ""}
+              </div>
+            </li>
+          ))
+        )}
+      </ul>
+    </>
   );
 }
