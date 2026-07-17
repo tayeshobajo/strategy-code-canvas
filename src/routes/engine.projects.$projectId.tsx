@@ -12,6 +12,8 @@ import {
   LeftProjectRail,
   MobileRailDrawer,
 } from "@/components/engine/LeftProjectRail";
+import { useRoomScrollRestoration } from "@/hooks/use-room-scroll-restoration";
+
 
 export const workspaceQueryOptions = (
   projectId: string,
