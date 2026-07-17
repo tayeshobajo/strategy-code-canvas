@@ -79,7 +79,8 @@ function RailNavSection({
               <Link
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 to={item.to as any}
-                params={{ projectId }}
+                params={{ projectId } as never}
+
                 activeOptions={{ exact: item.exact ?? false }}
                 activeProps={{
                   className:
