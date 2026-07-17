@@ -4778,7 +4778,7 @@ function AskCaptainModal({
 
   if (!open) return null;
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     const question = input.trim();
     if (!question || busy) return;
@@ -4864,7 +4864,7 @@ function AskCaptainModal({
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  void submit(e as unknown as React.FormEvent);
+                  void submit(e as unknown as FormEvent);
                 }
               }}
               rows={2}
