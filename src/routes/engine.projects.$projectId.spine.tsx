@@ -1389,11 +1389,11 @@ function ProjectFoundationCard({
           View all <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
-      <ul className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+      <ul className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         {rows.map((r) => (
-          <li key={r.label} className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2 text-sm text-[#0A0F1F]">
-              <span className="text-[#667085]">{r.icon}</span>
+          <li key={r.label} className="rounded-xl border border-[#F3EEE6] bg-[#FBF7F0]/60 p-3">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.18em] text-[#667085]">
+              <span>{r.icon}</span>
               {r.link ? (
                 <ModuleLink
                   moduleKey={r.link as SpineModuleKey}
@@ -1406,7 +1406,7 @@ function ProjectFoundationCard({
                 <span className="truncate">{r.label}</span>
               )}
             </div>
-            <span className="shrink-0 text-sm font-medium text-[#0A0F1F]">{r.value}</span>
+            <div className="mt-2 text-sm font-semibold text-[#0A0F1F] leading-tight">{r.value}</div>
           </li>
         ))}
       </ul>
