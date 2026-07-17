@@ -701,7 +701,6 @@ function ProjectSpine() {
           pendingApprovals={pendingApprovalsCount}
         />
       </div>
-      </div>
 
       <AskCaptainModal
 
@@ -710,6 +709,7 @@ function ProjectSpine() {
         projectId={projectId}
       />
     </div>
+
   );
 }
 
