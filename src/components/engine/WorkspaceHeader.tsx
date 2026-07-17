@@ -68,66 +68,50 @@ export function WorkspaceBreadcrumb({
 }
 
 export function ProjectHeaderStrip({ project }: { project: WorkspaceProject }) {
+  const updated = new Date(project.last_activity_at).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm p-5">
-      <div className="flex items-start justify-between gap-6 flex-wrap">
-        <div className="flex items-start gap-4 min-w-0">
-          <div className="w-11 h-11 rounded-lg bg-ink text-white flex items-center justify-center font-display text-lg shrink-0">
+    <div className="rounded-xl border border-border bg-card shadow-sm px-4 py-3">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-lg bg-ink text-white flex items-center justify-center font-display text-sm shrink-0">
             {project.name.charAt(0)}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="font-display text-2xl md:text-3xl text-ink leading-tight">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <h1 className="font-display text-lg md:text-xl text-ink leading-tight truncate max-w-[46ch]">
                 {project.name}
               </h1>
               <EngineStatusBadge status={project.status as "active"} />
             </div>
-            <div className="text-xs text-ink/60 mt-1">
+            <div className="text-[11px] text-ink/55 mt-0.5 truncate">
               {project.client_company}
               {project.client_owner_email ? (
                 <>
-                  {" "}
-                  · Project Owner: <span className="text-ink/80">{project.client_owner_email}</span>
+                  {" · "}
+                  <span className="text-ink/70">{project.client_owner_email}</span>
                 </>
               ) : null}
-              <>
-                {" "}
-                · Last updated:{" "}
-                {new Date(project.last_activity_at).toLocaleString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </>
+              {" · Updated "}
+              {updated}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-6 flex-wrap">
-          <Metric
-            label="Signals"
-            value={project.signal_count.toString()}
-            hint="All sources"
-            tone="blue"
-          />
-          <Metric
-            label="Health Score"
-            value={`${project.health_score}`}
-            hint="Out of 100"
-            tone="amber"
-          />
-          <Metric
-            label="Progress"
-            value={`${project.progress_pct}%`}
-            hint="Complete"
-            tone="green"
-          />
+        <div className="flex items-center gap-2 flex-wrap">
+          <MetricPill label="Signals" value={project.signal_count.toString()} tone="blue" />
+          <MetricPill label="Health" value={`${project.health_score}`} tone="amber" />
+          <MetricPill label="Progress" value={`${project.progress_pct}%`} tone="green" />
           <button
             type="button"
-            className="inline-flex items-center gap-2 text-sm text-ink border border-border rounded-md px-3 py-1.5 hover:border-royal/50"
+            aria-label="Project settings"
+            title="Project settings"
+            className="inline-flex items-center justify-center h-8 w-8 text-ink/70 border border-border rounded-md hover:border-royal/50 hover:text-ink"
           >
-            <Settings className="w-3.5 h-3.5" /> Project Settings
+            <Settings className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -135,15 +119,13 @@ export function ProjectHeaderStrip({ project }: { project: WorkspaceProject }) {
   );
 }
 
-function Metric({
+function MetricPill({
   label,
   value,
-  hint,
   tone,
 }: {
   label: string;
   value: string;
-  hint: string;
   tone: "blue" | "amber" | "green";
 }) {
   const dot: Record<string, string> = {
@@ -152,16 +134,14 @@ function Metric({
     green: "bg-[#1f6b3b]",
   };
   return (
-    <div className="flex items-center gap-2">
-      <span className={cn("w-2 h-2 rounded-full shrink-0", dot[tone])} />
-      <div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/50">{label}</div>
-        <div className="text-lg font-display text-ink leading-none">{value}</div>
-        <div className="text-[10px] text-ink/50 mt-0.5">{hint}</div>
-      </div>
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper/60 px-2.5 py-1">
+      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dot[tone])} />
+      <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink/55">{label}</span>
+      <span className="text-[13px] font-medium text-ink leading-none tabular-nums">{value}</span>
     </div>
   );
 }
+
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type NavEntry = { key: string; label: string; suffix: string; icon: Icon };

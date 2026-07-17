@@ -729,23 +729,23 @@ function SpinePageHeader({
   onAskCaptain?: () => void;
 }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
-      <div className="min-w-0 space-y-1">
+    <header className="flex flex-wrap items-center justify-between gap-3">
+      <div className="min-w-0">
         <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
           Project Spine
         </div>
-        <p className="text-sm text-[#667085]">
-          The central nervous system of your project. Live truth. Approved direction. Next best move.
+        <p className="mt-0.5 text-[13px] text-[#667085] leading-snug">
+          Live truth · approved direction · next best move.
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2" data-qa-role="spine-header-actions">
+      <div className="flex flex-wrap items-center gap-1.5" data-qa-role="spine-header-actions">
         <a
           href="#spine-approvals"
           data-qa-action="approvals"
-          className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E1D6] bg-white px-3 py-1.5 text-[13px] text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
         >
           Approvals
-          <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#3E68B2] px-1.5 text-[11px] font-semibold text-white">
+          <span className="inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[#3E68B2] px-1 text-[10px] font-semibold text-white">
             {pendingApprovalsCount}
           </span>
         </a>
@@ -753,26 +753,26 @@ function SpinePageHeader({
           type="button"
           onClick={onAskCaptain}
           data-qa-action="ask-captain"
-          className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E1D6] bg-white px-3 py-1.5 text-[13px] text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
         >
           <Sparkles className="h-3.5 w-3.5 text-[#3E68B2]" />
           Ask Captain
         </button>
-
         <button
           type="button"
           onClick={onExportPdf}
           data-qa-action="export-roadmap"
           disabled={exportDisabled}
-          className="inline-flex items-center gap-2 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1c2440] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-3.5 py-1.5 text-[13px] font-medium text-white transition hover:bg-[#1c2440] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Download className="h-4 w-4" />
-          Export Client Roadmap
+          <Download className="h-3.5 w-3.5" />
+          Export Roadmap
         </button>
       </div>
     </header>
   );
 }
+
 
 
 function HeroNextBestActionCard({
