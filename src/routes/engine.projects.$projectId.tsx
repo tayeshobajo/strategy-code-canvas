@@ -33,8 +33,10 @@ export const Route = createFileRoute("/engine/projects/$projectId")({
 
 function WorkspaceLayout() {
   const { projectId } = Route.useParams();
+  useRoomScrollRestoration(`project:${projectId}`);
   const fn = useServerFn(getProjectWorkspace);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   const { data, error, isError, isPending } = useQuery(
     workspaceQueryOptions(projectId, fn as unknown as (i: { data: { id: string } }) => Promise<unknown>),
   );
