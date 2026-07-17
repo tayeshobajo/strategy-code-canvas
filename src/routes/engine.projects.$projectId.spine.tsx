@@ -3499,6 +3499,15 @@ function SpineIncompleteBody({
         />
       </div>
 
+      <BusinessRoadmapPreview
+        projectId={projectId}
+        milestones={spine.milestones}
+        currentStep={spine.project.current_step}
+        pointAApproved={isApprovedTruth(spine.project.point_a_status)}
+        pointBApproved={isApprovedTruth(spine.project.point_b_status)}
+        draft
+      />
+
       <SpineReadinessPanel projectId={projectId} />
 
       {contradictions.length ? (
@@ -3597,6 +3606,14 @@ function SpineClientReadyBody({
         />
       </div>
 
+      <BusinessRoadmapPreview
+        projectId={projectId}
+        milestones={spine.milestones}
+        currentStep={spine.project.current_step}
+        pointAApproved={isApprovedTruth(spine.project.point_a_status)}
+        pointBApproved={isApprovedTruth(spine.project.point_b_status)}
+      />
+
       <section className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -3650,12 +3667,14 @@ function BusinessRoadmapPreview({
   currentStep,
   pointAApproved,
   pointBApproved,
+  draft = false,
 }: {
   projectId: string;
   milestones: ProjectSpinePayload["milestones"];
   currentStep: string | null;
   pointAApproved: boolean;
   pointBApproved: boolean;
+  draft?: boolean;
 }) {
   const grouped = groupMilestones(milestones);
   const currentPhaseLabel = currentStep ? humanize(currentStep) : null;
@@ -3672,6 +3691,11 @@ function BusinessRoadmapPreview({
           <h2 id="spine-roadmap-preview-heading" className="font-display text-base text-[#0A0F1F]">
             Point A → phases → Point B
           </h2>
+          {draft ? (
+            <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[#8a6713]">
+              Draft roadmap direction, generated from current understanding
+            </div>
+          ) : null}
         </div>
         <Link
           to="/engine/projects/$projectId/roadmap"
