@@ -318,10 +318,10 @@ function ProjectSpine() {
       ) : null}
 
       {variant === "active" ? (
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
         <div className="min-w-0 space-y-6">
       {/* ───── Hero row: NBA + Snapshot ───── */}
-      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] xl:gap-6">
         <HeroNextBestActionCard
           nba={spine.nba}
           nextMilestone={nextMilestone ?? null}
@@ -1255,10 +1255,35 @@ function GateChip({ state }: { state: GateState }) {
 }
 
 function ApprovalsInlineCard({ reviews }: { reviews: ProjectSpinePayload["reviews"] }) {
+  const [impact, setImpact] = useState<"all" | "high" | "medium" | "low">("all");
+  const [expanded, setExpanded] = useState(false);
+  const filtered = reviews.filter((r) => impact === "all" || r.impact === impact);
+  const visible = expanded ? filtered : filtered.slice(0, 5);
+  const counts = {
+    all: reviews.length,
+    high: reviews.filter((r) => r.impact === "high").length,
+    medium: reviews.filter((r) => r.impact === "medium").length,
+    low: reviews.filter((r) => r.impact === "low").length,
+  };
+  const chip = (key: "all" | "high" | "medium" | "low", label: string) => (
+    <button
+      key={key}
+      type="button"
+      onClick={() => setImpact(key)}
+      className={cn(
+        "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition",
+        impact === key
+          ? "border-[#3E68B2] bg-[#3E68B2] text-white"
+          : "border-[#E8E1D6] bg-white text-[#667085] hover:border-[#3E68B2]/60 hover:text-[#3E68B2]",
+      )}
+    >
+      {label} <span className="opacity-70">· {counts[key]}</span>
+    </button>
+  );
   return (
     <section
       id="spine-approvals"
-      className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm"
+      className="scroll-mt-4 rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm"
     >
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="font-display text-lg text-[#0A0F1F]">Approvals &amp; Decisions</h2>
@@ -1269,43 +1294,66 @@ function ApprovalsInlineCard({ reviews }: { reviews: ProjectSpinePayload["review
           View all <ArrowRight className="h-3 w-3" />
         </a>
       </div>
-      {reviews.length === 0 ? (
-        <p className="mt-4 text-sm text-[#667085]">No pending review items.</p>
+      {reviews.length > 0 ? (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {chip("all", "All")}
+          {chip("high", "High impact")}
+          {chip("medium", "Medium")}
+          {chip("low", "Low")}
+        </div>
+      ) : null}
+      {filtered.length === 0 ? (
+        <p className="mt-4 text-sm text-[#667085]">
+          {reviews.length === 0 ? "No pending review items." : "No items match this filter."}
+        </p>
       ) : (
-        <ul className="mt-4 space-y-3">
-          {reviews.slice(0, 5).map((r) => {
-            const dotClass =
-              r.impact === "high"
-                ? "bg-[#a4283c]"
-                : r.impact === "medium"
-                  ? "bg-[#8a6713]"
-                  : "bg-[#3E68B2]";
-            return (
-              <li
-                key={r.id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-[#F3EEE6] p-3"
-              >
-                <div className="flex min-w-0 gap-2">
-                  <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dotClass)} />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-[#0A0F1F]">{r.title}</div>
-                    <div className="mt-0.5 text-xs text-[#667085]">
-                      {r.status === "pending" || r.status === "needs_review"
-                        ? "Needs your approval"
-                        : "Awaiting decision"}
+        <>
+          <ul className="mt-4 space-y-3">
+            {visible.map((r) => {
+              const dotClass =
+                r.impact === "high"
+                  ? "bg-[#a4283c]"
+                  : r.impact === "medium"
+                    ? "bg-[#8a6713]"
+                    : "bg-[#3E68B2]";
+              return (
+                <li
+                  key={r.id}
+                  className="flex items-start justify-between gap-3 rounded-lg border border-[#F3EEE6] p-3 hover:border-[#3E68B2]/40"
+                >
+                  <div className="flex min-w-0 gap-2">
+                    <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dotClass)} />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-[#0A0F1F]">{r.title}</div>
+                      <div className="mt-0.5 text-xs text-[#667085]">
+                        {humanize(r.item_type)} · {formatRelative(r.created_at)} ·{" "}
+                        {r.status === "pending" || r.status === "needs_review"
+                          ? "Needs your approval"
+                          : "Awaiting decision"}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  className="shrink-0 rounded-full border border-[#E8E1D6] bg-white px-3 py-1 text-xs font-medium text-[#3E68B2] hover:border-[#3E68B2]/60"
-                >
-                  Review
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  <a
+                    href={`/engine/approvals#${r.id}`}
+                    className="shrink-0 rounded-full border border-[#E8E1D6] bg-white px-3 py-1 text-xs font-medium text-[#3E68B2] hover:border-[#3E68B2]/60"
+                  >
+                    Review
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+          {filtered.length > 5 ? (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+            >
+              {expanded ? "Show fewer" : `Show all ${filtered.length}`}
+              {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+          ) : null}
+        </>
       )}
     </section>
   );
@@ -4067,13 +4115,19 @@ function SpineStatusStrip({
   return (
     <section
       aria-label="Project status strip"
-      className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm"
+      className="rounded-2xl border border-[#E8E1D6] bg-white px-5 py-4 shadow-sm ring-1 ring-black/[0.02]"
     >
-      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
-        {cells.map((c) => (
-          <li key={c.label} className="min-w-0">
+      <ul className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4 lg:grid-cols-7 lg:divide-x lg:divide-[#F3EEE6]">
+        {cells.map((c, i) => (
+          <li
+            key={c.label}
+            className={cn(
+              "min-w-0",
+              i > 0 && "lg:pl-5",
+            )}
+          >
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">{c.label}</div>
-            <div className="mt-1 truncate">{c.render}</div>
+            <div className="mt-1.5 truncate">{c.render}</div>
           </li>
         ))}
       </ul>
@@ -4095,15 +4149,49 @@ function formatRelative(iso: string): string {
   return formatDate(iso);
 }
 
-function RailCard({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+function RailCard({
+  title,
+  anchor,
+  action,
+  children,
+}: {
+  title: string;
+  anchor?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="font-display text-sm text-[#0A0F1F]">{title}</h3>
+    <section className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm ring-1 ring-black/[0.02]">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        {anchor ? (
+          <a
+            href={anchor}
+            className="group inline-flex items-center gap-1 font-display text-sm text-[#0A0F1F] hover:text-[#3E68B2]"
+          >
+            {title}
+            <ArrowRight className="h-3 w-3 opacity-0 transition group-hover:opacity-100" />
+          </a>
+        ) : (
+          <h3 className="font-display text-sm text-[#0A0F1F]">{title}</h3>
+        )}
         {action}
       </div>
       {children}
     </section>
+  );
+}
+
+function RailLinkAction({ to, params, label }: { to: string; params?: Record<string, string>; label: string }) {
+  return (
+    <Link
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      to={to as any}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      params={params as any}
+      className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#3E68B2] hover:text-[#284f93]"
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -4116,13 +4204,44 @@ function SpineRightRail({
   projectId: string;
   pendingApprovals: number;
 }) {
-  const reviews = spine.reviews.slice(0, 4);
-  const material = spine.activity.filter((a) => a.severity === "critical" || a.severity === "warning").slice(0, 4);
+  const [approvalImpact, setApprovalImpact] = useState<"all" | "high" | "medium" | "low">("all");
+  const [approvalsExpanded, setApprovalsExpanded] = useState(false);
+  const [changesExpanded, setChangesExpanded] = useState(false);
+
+  const filteredReviews = spine.reviews.filter(
+    (r) => approvalImpact === "all" || r.impact === approvalImpact,
+  );
+  const visibleReviews = approvalsExpanded ? filteredReviews : filteredReviews.slice(0, 4);
+
+  const material = spine.activity.filter(
+    (a) => a.severity === "critical" || a.severity === "warning",
+  );
+  const visibleMaterial = changesExpanded ? material : material.slice(0, 4);
   const recent = spine.activity.slice(0, 4);
+
+  const chip = (key: "all" | "high" | "medium" | "low", label: string) => (
+    <button
+      key={key}
+      type="button"
+      onClick={() => setApprovalImpact(key)}
+      className={cn(
+        "rounded-full border px-2 py-0.5 text-[10px] font-medium transition",
+        approvalImpact === key
+          ? "border-[#3E68B2] bg-[#3E68B2] text-white"
+          : "border-[#E8E1D6] bg-white text-[#667085] hover:border-[#3E68B2]/60 hover:text-[#3E68B2]",
+      )}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
-      <RailCard title="Captain Brief">
+      <RailCard
+        title="Captain Brief"
+        anchor="#spine-nba-heading"
+        action={<RailLinkAction to="/engine/projects/$projectId/chat" params={{ projectId }} label="Open chat" />}
+      >
         <p className="text-sm text-[#0A0F1F] leading-relaxed">{spine.nba.action}</p>
         {spine.nba.reason ? (
           <p className="mt-2 text-xs text-[#667085] leading-relaxed">{spine.nba.reason}</p>
@@ -4131,55 +4250,115 @@ function SpineRightRail({
 
       <RailCard
         title="Approvals & Blockers"
+        anchor="#spine-approvals"
         action={
           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
             {pendingApprovals} pending
           </span>
         }
       >
-        {reviews.length === 0 ? (
-          <p className="text-xs text-[#667085]">Nothing waiting on you.</p>
+        {spine.reviews.length > 0 ? (
+          <div className="mb-2 flex flex-wrap items-center gap-1">
+            {chip("all", "All")}
+            {chip("high", "High")}
+            {chip("medium", "Med")}
+            {chip("low", "Low")}
+          </div>
+        ) : null}
+        {filteredReviews.length === 0 ? (
+          <p className="text-xs text-[#667085]">
+            {spine.reviews.length === 0 ? "Nothing waiting on you." : "None at this impact level."}
+          </p>
         ) : (
-          <ul className="space-y-2">
-            {reviews.map((r) => (
-              <li key={r.id} className="flex items-start gap-2 text-sm text-[#0A0F1F]">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                <span className="min-w-0 truncate">{r.title}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="space-y-2">
+              {visibleReviews.map((r) => {
+                const dotClass =
+                  r.impact === "high"
+                    ? "bg-[#a4283c]"
+                    : r.impact === "medium"
+                      ? "bg-[#8a6713]"
+                      : "bg-[#3E68B2]";
+                return (
+                  <li key={r.id}>
+                    <a
+                      href={`/engine/approvals#${r.id}`}
+                      className="flex items-start gap-2 rounded-md p-1 -m-1 text-sm text-[#0A0F1F] hover:bg-[#F5EFE4]"
+                    >
+                      <span className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", dotClass)} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{r.title}</span>
+                        <span className="mt-0.5 block text-[10px] text-[#667085]">
+                          {humanize(r.item_type)} · {formatRelative(r.created_at)}
+                        </span>
+                      </span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+            {filteredReviews.length > 4 ? (
+              <button
+                type="button"
+                onClick={() => setApprovalsExpanded((v) => !v)}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-[#3E68B2] hover:text-[#284f93]"
+              >
+                {approvalsExpanded ? "Show fewer" : `Show all ${filteredReviews.length}`}
+                {approvalsExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </button>
+            ) : null}
+          </>
         )}
       </RailCard>
 
-      <RailCard title="Material Changes">
+      <RailCard
+        title="Material Changes"
+        anchor="#spine-evidence-heading"
+        action={
+          material.length > 0 ? (
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+              {material.length}
+            </span>
+          ) : undefined
+        }
+      >
         {material.length === 0 ? (
           <p className="text-xs text-[#667085]">No material changes recorded.</p>
         ) : (
-          <ul className="space-y-2">
-            {material.map((a) => (
-              <li key={a.id} className="text-sm text-[#0A0F1F]">
-                <div className="flex items-center gap-2">
-                  <span className={cn("h-1.5 w-1.5 rounded-full", a.severity === "critical" ? "bg-rose-500" : "bg-amber-500")} />
-                  <span className="truncate">{a.title}</span>
-                </div>
-                <div className="ml-3.5 text-[11px] text-[#667085]">{formatRelative(a.created_at)}</div>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="space-y-2">
+              {visibleMaterial.map((a) => (
+                <li key={a.id} className="text-sm text-[#0A0F1F]">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        a.severity === "critical" ? "bg-rose-500" : "bg-amber-500",
+                      )}
+                    />
+                    <span className="truncate">{a.title}</span>
+                  </div>
+                  <div className="ml-3.5 text-[11px] text-[#667085]">{formatRelative(a.created_at)}</div>
+                </li>
+              ))}
+            </ul>
+            {material.length > 4 ? (
+              <button
+                type="button"
+                onClick={() => setChangesExpanded((v) => !v)}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-[#3E68B2] hover:text-[#284f93]"
+              >
+                {changesExpanded ? "Show fewer" : `Show all ${material.length}`}
+                {changesExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </button>
+            ) : null}
+          </>
         )}
       </RailCard>
 
       <RailCard
         title="Active Agents"
-        action={
-          <Link
-            to="/engine/projects/$projectId/spine"
-            params={{ projectId }}
-            className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#3E68B2] hover:text-[#284f93]"
-          >
-            View all
-          </Link>
-        }
+        action={<RailLinkAction to="/engine/projects/$projectId/agent" params={{ projectId }} label="Open room" />}
       >
         <ul className="space-y-2 text-sm">
           <li className="flex items-center justify-between gap-2">
