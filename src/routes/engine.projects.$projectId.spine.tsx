@@ -301,35 +301,13 @@ function ProjectSpine() {
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
-      {/* Desktop rail */}
-      <div className="hidden xl:block">
-        <LeftProjectRail
-          projectId={projectId}
-          projectName={spine.project.name}
-          clientCompany={spine.project.client_company}
-          status={spine.project.status}
-        />
-      </div>
-      {/* Mobile drawer */}
-      <MobileRailDrawer
-        open={mobileNavOpen}
-        onClose={() => setMobileNavOpen(false)}
-        projectId={projectId}
-        projectName={spine.project.name}
-        clientCompany={spine.project.client_company}
-        status={spine.project.status}
-      />
-      <div className="min-w-0 space-y-6 text-[#0A0F1F]">
+    <div className="min-w-0 space-y-6 text-[#0A0F1F]">
       {/* ───── Header row ───── */}
       <SpinePageHeader
         projectId={projectId}
-        projectName={spine.project.name}
-        status={spine.project.status}
         pendingApprovalsCount={pendingApprovalsCount}
         onExportPdf={handleExportClientRoadmap}
         exportDisabled={workspaceQ.isPending}
-        onOpenMobileNav={() => setMobileNavOpen(true)}
         onAskCaptain={() => setAskCaptainOpen(true)}
       />
 
@@ -366,6 +344,7 @@ function ProjectSpine() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
         <div className="min-w-0 space-y-6">
+
       {variant === "active" ? (
         <>
 
