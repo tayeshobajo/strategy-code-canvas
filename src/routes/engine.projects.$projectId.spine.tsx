@@ -4067,13 +4067,19 @@ function SpineStatusStrip({
   return (
     <section
       aria-label="Project status strip"
-      className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm"
+      className="rounded-2xl border border-[#E8E1D6] bg-white px-5 py-4 shadow-sm ring-1 ring-black/[0.02]"
     >
-      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
-        {cells.map((c) => (
-          <li key={c.label} className="min-w-0">
+      <ul className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4 lg:grid-cols-7 lg:divide-x lg:divide-[#F3EEE6]">
+        {cells.map((c, i) => (
+          <li
+            key={c.label}
+            className={cn(
+              "min-w-0",
+              i > 0 && "lg:pl-5",
+            )}
+          >
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">{c.label}</div>
-            <div className="mt-1 truncate">{c.render}</div>
+            <div className="mt-1.5 truncate">{c.render}</div>
           </li>
         ))}
       </ul>
