@@ -120,6 +120,7 @@ function EngineLayout() {
 
   useEffect(() => {
     setMobileOpen(false);
+    setMoreOpen(false);
   }, [pathname]);
 
   async function signOut() {
@@ -144,133 +145,242 @@ function EngineLayout() {
     n.exact ? pathname === n.to : pathname === n.to || pathname.startsWith(n.to + "/"),
   );
 
-  const sidebarBody = (
-    <>
-      <div className="border-b border-white/10 px-6 py-6">
-        <Link to="/" aria-label="Trust Tai home" className="block">
-          <img src={logoWhite.url} alt="Trust Tai" className="h-9 w-auto" />
-        </Link>
-        <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.28em] text-royal">
-          Roadmap Engine
-        </div>
-      </div>
-      <nav aria-label="Engine navigation" className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-        {PRIMARY_NAV.map((item) => (
-          <SidebarLink
-            key={item.to}
-            item={item}
-            pathname={pathname}
-            onNavigate={() => setMobileOpen(false)}
-          />
-        ))}
-
-        <button
-          type="button"
-          onClick={() => setMoreOpen((v) => !v)}
-          aria-expanded={moreOpen}
-          className="mt-3 flex w-full items-center justify-between rounded-md px-3 py-2 text-[11px] uppercase tracking-[0.22em] font-mono text-white/40 hover:text-white/70"
-        >
-          <span>More</span>
-          {moreOpen ? (
-            <ChevronDown className="h-3 w-3" />
-          ) : (
-            <ChevronRight className="h-3 w-3" />
-          )}
-        </button>
-
-        {moreOpen ? (
-          <div className="space-y-0.5">
-            {SECONDARY_NAV.map((item) => (
-              <SidebarLink
-                key={item.to}
-                item={item}
-                pathname={pathname}
-                onNavigate={() => setMobileOpen(false)}
-              />
-            ))}
-          </div>
-        ) : null}
-      </nav>
-      <div className="border-t border-white/10 px-4 py-4 text-xs text-white/60">
-        <div className="mb-2 truncate">{email}</div>
-        <button
-          onClick={signOut}
-          className="flex items-center gap-2 text-white/70 hover:text-white"
-        >
-          <LogOut className="h-3.5 w-3.5" /> Sign out
-        </button>
-      </div>
-    </>
-  );
+  const initials = (email || "?")
+    .split("@")[0]
+    .split(/[._-]/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase() ?? "")
+    .join("") || "TT";
 
   return (
     <SourceInspectorProvider>
-      <div className="flex min-h-screen flex-col bg-paper-soft lg:flex-row">
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-ink text-white lg:flex">
-          {sidebarBody}
-        </aside>
+      <div className="engine-theme flex min-h-screen flex-col bg-paper text-ink">
+        {/* Top nav — white bar, matches the cockpit reference. */}
+        <header className="sticky top-0 z-40 border-b border-rule bg-white/95 backdrop-blur">
+          <div className="flex h-14 items-center gap-3 px-4 lg:px-6">
+            {/* Mobile menu trigger */}
+            <div className="lg:hidden">
+              <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                <SheetTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Open engine menu"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-rule text-ink/70 hover:bg-paper-soft"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="left" className="engine-theme flex w-72 flex-col border-rule bg-white p-0">
+                  <VisuallyHidden>
+                    <SheetTitle>Engine navigation</SheetTitle>
+                  </VisuallyHidden>
+                  <div className="border-b border-rule px-5 py-5">
+                    <Link to="/" aria-label="Trust Tai home" className="block">
+                      <img src={logoWhite.url} alt="Trust Tai" className="h-8 w-auto brightness-0" />
+                    </Link>
+                    <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
+                      Roadmap Engine
+                    </div>
+                  </div>
+                  <nav aria-label="Engine navigation" className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+                    {PRIMARY_NAV.map((item) => (
+                      <MobileNavLink
+                        key={item.to}
+                        item={item}
+                        pathname={pathname}
+                        onNavigate={() => setMobileOpen(false)}
+                      />
+                    ))}
+                    <div className="mt-4 border-t border-rule pt-3">
+                      <div className="px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+                        More
+                      </div>
+                      {SECONDARY_NAV.map((item) => (
+                        <MobileNavLink
+                          key={item.to}
+                          item={item}
+                          pathname={pathname}
+                          onNavigate={() => setMobileOpen(false)}
+                        />
+                      ))}
+                    </div>
+                  </nav>
+                  <div className="border-t border-rule px-4 py-4 text-xs text-ink/70">
+                    <div className="mb-2 truncate">{email}</div>
+                    <button
+                      onClick={signOut}
+                      className="flex items-center gap-2 text-ink/70 hover:text-ink"
+                    >
+                      <LogOut className="h-3.5 w-3.5" /> Sign out
+                    </button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-ink px-4 py-3 text-white lg:hidden">
-            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <SheetTrigger asChild>
+            {/* Brand mark */}
+            <Link to="/" aria-label="Trust Tai home" className="flex items-center gap-2 pr-2">
+              <img src={logoWhite.url} alt="Trust Tai" className="h-7 w-auto brightness-0" />
+              <span className="hidden font-mono text-[10px] uppercase tracking-[0.24em] text-royal sm:inline">
+                Roadmap Engine
+              </span>
+            </Link>
+
+            {/* Primary nav (desktop) */}
+            <nav aria-label="Engine primary" className="ml-4 hidden items-center gap-1 lg:flex">
+              {PRIMARY_NAV.map((item) => (
+                <TopNavLink key={item.to} item={item} pathname={pathname} />
+              ))}
+              <div className="relative">
                 <button
                   type="button"
-                  aria-label="Open engine menu"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded border border-white/10 text-white/80 hover:bg-white/5"
+                  onClick={() => setMoreOpen((v) => !v)}
+                  aria-expanded={moreOpen}
+                  className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-ink/70 hover:bg-paper-soft hover:text-ink"
                 >
-                  <Menu className="h-5 w-5" />
+                  More
+                  <ChevronDown className="h-3.5 w-3.5" />
                 </button>
-              </SheetTrigger>
-              <SheetContent side="left" className="flex w-72 flex-col border-white/10 bg-ink p-0 text-white">
-                <VisuallyHidden>
-                  <SheetTitle>Engine navigation</SheetTitle>
-                </VisuallyHidden>
-                {sidebarBody}
-              </SheetContent>
-            </Sheet>
-            <div className="min-w-0 flex-1">
-              <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
-                Roadmap Engine
+                {moreOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-rule bg-white p-1 shadow-lg"
+                  >
+                    {SECONDARY_NAV.map((item) => (
+                      <TopNavLink
+                        key={item.to}
+                        item={item}
+                        pathname={pathname}
+                        variant="menu"
+                        onNavigate={() => setMoreOpen(false)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
-              <div className="truncate text-sm">{currentNav?.label ?? "Engine"}</div>
+            </nav>
+
+            {/* Right cluster */}
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                className="hidden items-center gap-1.5 rounded-full border border-royal/30 bg-royal/5 px-3 py-1.5 text-xs font-medium text-royal transition-colors hover:bg-royal/10 sm:inline-flex"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Ask Captain
+              </button>
+              <button
+                type="button"
+                aria-label="Notifications"
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-ink/60 hover:bg-paper-soft hover:text-ink"
+              >
+                <Bell className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={signOut}
+                title={email || "Sign out"}
+                className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-ink text-[11px] font-semibold uppercase text-white hover:bg-ink/90"
+                aria-label={`Signed in as ${email}. Sign out.`}
+              >
+                {initials}
+              </button>
             </div>
           </div>
 
-          <header className="hidden border-b border-border bg-card lg:block">
-            <div className="flex items-center justify-between gap-4 px-8 py-3">
-              <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm text-ink/60">
-                {crumbs.map((c, i) => (
-                  <span key={c.to ?? c.label} className="flex min-w-0 items-center gap-2">
-                    {i > 0 ? <span className="text-ink/30">/</span> : null}
-                    {c.to ? (
-                      <Link to={c.to} className="truncate hover:text-ink">
-                        {c.label}
-                      </Link>
-                    ) : (
-                      <span className="truncate text-ink">{c.label}</span>
-                    )}
-                  </span>
-                ))}
-              </nav>
-              <div className="font-mono text-xs uppercase tracking-[0.2em] text-ink/50">
-                Trust Tai Internal
-              </div>
+          {/* Breadcrumb strip */}
+          <div className="hidden items-center justify-between gap-4 border-t border-rule bg-white/60 px-6 py-2 lg:flex">
+            <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-xs text-ink/60">
+              {crumbs.map((c, i) => (
+                <span key={c.to ?? c.label} className="flex min-w-0 items-center gap-2">
+                  {i > 0 ? <span className="text-ink/25">/</span> : null}
+                  {c.to ? (
+                    <Link to={c.to} className="truncate hover:text-ink">
+                      {c.label}
+                    </Link>
+                  ) : (
+                    <span className="truncate text-ink">{c.label}</span>
+                  )}
+                </span>
+              ))}
+            </nav>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/45">
+              Trust Tai Internal
             </div>
-          </header>
-          <main className="app-shell-main flex-1">
-            <div className="min-w-0">
-              <Outlet />
+          </div>
+
+          {/* Mobile-only current-page label */}
+          <div className="border-t border-rule px-4 py-2 lg:hidden">
+            <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
+              Roadmap Engine
             </div>
-          </main>
-        </div>
+            <div className="truncate text-sm text-ink">{currentNav?.label ?? "Engine"}</div>
+          </div>
+        </header>
+
+        <main className="app-shell-main flex-1">
+          <div className="min-w-0">
+            <Outlet />
+          </div>
+        </main>
       </div>
       <SourceTruthInspector />
     </SourceInspectorProvider>
   );
 }
 
-function SidebarLink({
+function TopNavLink({
+  item,
+  pathname,
+  variant = "bar",
+  onNavigate,
+}: {
+  item: NavItem;
+  pathname: string;
+  variant?: "bar" | "menu";
+  onNavigate?: () => void;
+}) {
+  const active = item.exact
+    ? pathname === item.to
+    : pathname === item.to || pathname.startsWith(item.to + "/");
+  const Icon = item.icon;
+  if (variant === "menu") {
+    return (
+      <Link
+        to={item.to}
+        onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
+        className={`flex items-center gap-2 rounded-md px-2.5 py-2 text-sm ${
+          active ? "bg-paper-soft text-ink" : "text-ink/75 hover:bg-paper-soft hover:text-ink"
+        }`}
+      >
+        <Icon className="h-4 w-4" />
+        {item.label}
+      </Link>
+    );
+  }
+  return (
+    <Link
+      to={item.to}
+      aria-current={active ? "page" : undefined}
+      className={`relative inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
+        active ? "text-ink" : "text-ink/65 hover:bg-paper-soft hover:text-ink"
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{item.label}</span>
+      {active ? (
+        <span
+          aria-hidden
+          className="absolute inset-x-2 -bottom-[9px] h-[2px] rounded-full bg-royal"
+        />
+      ) : null}
+    </Link>
+  );
+}
+
+function MobileNavLink({
   item,
   pathname,
   onNavigate,
@@ -288,18 +398,10 @@ function SidebarLink({
       to={item.to}
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}
-      className={`group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-        active
-          ? "bg-white/10 text-white"
-          : "text-white/70 hover:bg-white/5 hover:text-white"
+      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+        active ? "bg-paper-soft text-ink" : "text-ink/70 hover:bg-paper-soft hover:text-ink"
       }`}
     >
-      <span
-        aria-hidden
-        className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full transition-all ${
-          active ? "bg-royal opacity-100" : "bg-white opacity-0 group-hover:opacity-40"
-        }`}
-      />
       <Icon className="h-4 w-4 shrink-0" />
       <span className="truncate">{item.label}</span>
     </Link>
