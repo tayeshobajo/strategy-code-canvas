@@ -4293,6 +4293,53 @@ function RailLinkAction({ to, params, label }: { to: string; params?: Record<str
   );
 }
 
+const JUMP_TARGETS: Array<{ id: string; label: string }> = [
+  { id: "spine-snapshot-heading", label: "Snapshot" },
+  { id: "spine-nba-heading", label: "Captain Brief" },
+  { id: "spine-milestones", label: "Milestones" },
+  { id: "spine-approvals", label: "Approvals" },
+  { id: "spine-evidence-heading", label: "Evidence" },
+  { id: "spine-roadmap-preview-heading", label: "Roadmap" },
+  { id: "working-focus-heading", label: "Working focus" },
+];
+
+function JumpToCard() {
+  const [available, setAvailable] = useState<Array<{ id: string; label: string }>>([]);
+  useEffect(() => {
+    const check = () => {
+      setAvailable(JUMP_TARGETS.filter((t) => document.getElementById(t.id)));
+    };
+    check();
+    const t = window.setTimeout(check, 250);
+    return () => window.clearTimeout(t);
+  }, []);
+  if (available.length === 0) return null;
+  const jump = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (history.replaceState) history.replaceState(null, "", `#${id}`);
+  };
+  return (
+    <RailCard title="Jump to">
+      <ul className="flex flex-col gap-1">
+        {available.map((t) => (
+          <li key={t.id}>
+            <button
+              type="button"
+              onClick={() => jump(t.id)}
+              className="group flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-[13px] text-[#0A0F1F] hover:bg-[#F5EFE4] hover:text-[#3E68B2]"
+            >
+              <span>{t.label}</span>
+              <ArrowRight className="h-3 w-3 opacity-0 transition group-hover:opacity-100" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </RailCard>
+  );
+}
+
 function SpineRightRail({
   spine,
   projectId,
