@@ -1333,13 +1333,12 @@ function ApprovalsInlineCard({ reviews }: { reviews: ProjectSpinePayload["review
                       </div>
                     </div>
                   </div>
-                  <Link
-                    to="/engine/approvals"
-                    search={{ id: r.id } as never}
+                  <a
+                    href={`/engine/approvals#${r.id}`}
                     className="shrink-0 rounded-full border border-[#E8E1D6] bg-white px-3 py-1 text-xs font-medium text-[#3E68B2] hover:border-[#3E68B2]/60"
                   >
                     Review
-                  </Link>
+                  </a>
                 </li>
               );
             })}
