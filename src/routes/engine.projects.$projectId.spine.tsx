@@ -725,12 +725,14 @@ function ProjectSpine() {
 /* ─────────────────── New Spine 2.0 layout components ─────────────────── */
 
 function SpinePageHeader({
-  projectId,
+  projectId: _projectId,
   projectName,
   status,
   pendingApprovalsCount,
   onExportPdf,
   exportDisabled = false,
+  onOpenMobileNav,
+  onAskCaptain,
 }: {
   projectId: string;
   projectName: string;
@@ -738,16 +740,31 @@ function SpinePageHeader({
   pendingApprovalsCount: number;
   onExportPdf: () => void;
   exportDisabled?: boolean;
+  onOpenMobileNav?: () => void;
+  onAskCaptain?: () => void;
 }) {
   return (
     <header className="space-y-3">
-      <Link
-        to="/engine/projects"
-        className="inline-flex items-center gap-1.5 text-sm text-[#3E68B2] transition hover:text-[#284f93]"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Back to Projects
-      </Link>
+      <div className="flex items-center justify-between gap-2">
+        <Link
+          to="/engine/projects"
+          className="inline-flex items-center gap-1.5 text-sm text-[#3E68B2] transition hover:text-[#284f93]"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to Projects
+        </Link>
+        {onOpenMobileNav ? (
+          <button
+            type="button"
+            onClick={onOpenMobileNav}
+            aria-label="Open project navigation"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs font-medium text-[#0A0F1F] xl:hidden"
+          >
+            <Menu className="h-4 w-4" />
+            Rooms
+          </button>
+        ) : null}
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-3">
@@ -771,15 +788,16 @@ function SpinePageHeader({
               {pendingApprovalsCount}
             </span>
           </a>
-          <Link
-            to="/engine/projects/$projectId/chat"
-            params={{ projectId }}
+          <button
+            type="button"
+            onClick={onAskCaptain}
             data-qa-action="ask-captain"
             className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
           >
             <Sparkles className="h-3.5 w-3.5 text-[#3E68B2]" />
             Ask Captain
-          </Link>
+          </button>
+
           <button
             type="button"
             onClick={onExportPdf}
