@@ -691,6 +691,7 @@ function ProjectSpine() {
       ) : (
         <SpineClientReadyBody spine={spine} projectId={projectId} />
       )}
+      </div>
     </div>
   );
 }
