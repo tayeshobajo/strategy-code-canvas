@@ -1098,6 +1098,16 @@ function TruthCardV2({
           >
             Open room
           </Link>
+          <Link
+            to="/engine/projects/$projectId/intelligence"
+            params={{ projectId }}
+            hash={point === "A" ? "point-a" : "point-b"}
+            data-qa-action="open-intelligence-room"
+            className="inline-flex items-center gap-1 font-medium text-[#3E68B2] hover:text-[#284f93]"
+          >
+            <Brain className="h-3 w-3" />
+            Open intelligence room
+          </Link>
         </div>
       </div>
     </section>
