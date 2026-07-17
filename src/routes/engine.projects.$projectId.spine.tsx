@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
+import { useMemo, useState, useEffect, useRef, type ReactNode, type FormEvent } from "react";
 import {
   getProjectSpine,
   getProjectWorkspace,
@@ -49,7 +49,11 @@ import {
   Eye,
   FileText,
   Activity,
+  Menu,
+  Send,
+  Loader2,
 } from "lucide-react";
+import { askProjectIntelligence } from "@/lib/engine-chat.functions";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useSourceInspector } from "@/hooks/use-source-inspector";
@@ -187,6 +191,8 @@ function ProjectSpine() {
   const [evidenceSearch, setEvidenceSearch] = useState("");
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<{ title: string; missing: string[] } | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [askCaptainOpen, setAskCaptainOpen] = useState(false);
 
   const approveMut = useMutation({
     mutationFn: (id: string) => approveFn({ data: { id } }),
@@ -290,7 +296,19 @@ function ProjectSpine() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
-      <LeftProjectRail
+      {/* Desktop rail */}
+      <div className="hidden xl:block">
+        <LeftProjectRail
+          projectId={projectId}
+          projectName={spine.project.name}
+          clientCompany={spine.project.client_company}
+          status={spine.project.status}
+        />
+      </div>
+      {/* Mobile drawer */}
+      <MobileRailDrawer
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
         projectId={projectId}
         projectName={spine.project.name}
         clientCompany={spine.project.client_company}
@@ -305,10 +323,13 @@ function ProjectSpine() {
         pendingApprovalsCount={pendingApprovalsCount}
         onExportPdf={handleExportClientRoadmap}
         exportDisabled={workspaceQ.isPending}
+        onOpenMobileNav={() => setMobileNavOpen(true)}
+        onAskCaptain={() => setAskCaptainOpen(true)}
       />
 
       {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
+
 
       {/* ───── Status strip (7 cells) ───── */}
       <SpineStatusStrip
@@ -692,6 +713,11 @@ function ProjectSpine() {
         <SpineClientReadyBody spine={spine} projectId={projectId} />
       )}
       </div>
+      <AskCaptainModal
+        open={askCaptainOpen}
+        onClose={() => setAskCaptainOpen(false)}
+        projectId={projectId}
+      />
     </div>
   );
 }
@@ -699,12 +725,14 @@ function ProjectSpine() {
 /* ─────────────────── New Spine 2.0 layout components ─────────────────── */
 
 function SpinePageHeader({
-  projectId,
+  projectId: _projectId,
   projectName,
   status,
   pendingApprovalsCount,
   onExportPdf,
   exportDisabled = false,
+  onOpenMobileNav,
+  onAskCaptain,
 }: {
   projectId: string;
   projectName: string;
@@ -712,16 +740,31 @@ function SpinePageHeader({
   pendingApprovalsCount: number;
   onExportPdf: () => void;
   exportDisabled?: boolean;
+  onOpenMobileNav?: () => void;
+  onAskCaptain?: () => void;
 }) {
   return (
     <header className="space-y-3">
-      <Link
-        to="/engine/projects"
-        className="inline-flex items-center gap-1.5 text-sm text-[#3E68B2] transition hover:text-[#284f93]"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Back to Projects
-      </Link>
+      <div className="flex items-center justify-between gap-2">
+        <Link
+          to="/engine/projects"
+          className="inline-flex items-center gap-1.5 text-sm text-[#3E68B2] transition hover:text-[#284f93]"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to Projects
+        </Link>
+        {onOpenMobileNav ? (
+          <button
+            type="button"
+            onClick={onOpenMobileNav}
+            aria-label="Open project navigation"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs font-medium text-[#0A0F1F] xl:hidden"
+          >
+            <Menu className="h-4 w-4" />
+            Rooms
+          </button>
+        ) : null}
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-3">
@@ -745,15 +788,16 @@ function SpinePageHeader({
               {pendingApprovalsCount}
             </span>
           </a>
-          <Link
-            to="/engine/projects/$projectId/chat"
-            params={{ projectId }}
+          <button
+            type="button"
+            onClick={onAskCaptain}
             data-qa-action="ask-captain"
             className="inline-flex items-center gap-2 rounded-full border border-[#E8E1D6] bg-white px-3.5 py-2 text-sm font-medium text-[#0A0F1F] transition hover:border-[#3E68B2]/50"
           >
             <Sparkles className="h-3.5 w-3.5 text-[#3E68B2]" />
             Ask Captain
-          </Link>
+          </button>
+
           <button
             type="button"
             onClick={onExportPdf}
@@ -1053,6 +1097,16 @@ function TruthCardV2({
             className="inline-flex items-center gap-1 font-medium text-[#0A0F1F] hover:text-[#3E68B2]"
           >
             Open room
+          </Link>
+          <Link
+            to="/engine/projects/$projectId/intelligence"
+            params={{ projectId }}
+            hash={point === "A" ? "point-a" : "point-b"}
+            data-qa-action="open-intelligence-room"
+            className="inline-flex items-center gap-1 font-medium text-[#3E68B2] hover:text-[#284f93]"
+          >
+            <Brain className="h-3 w-3" />
+            Open intelligence room
           </Link>
         </div>
       </div>
@@ -4621,5 +4675,214 @@ function ActiveAgentsLive({ projectId }: { projectId: string }) {
         )}
       </ul>
     </>
+  );
+}
+
+/* ─────────────────── Mobile navigation drawer ─────────────────── */
+
+function MobileRailDrawer({
+  open,
+  onClose,
+  projectId,
+  projectName,
+  clientCompany,
+  status,
+}: {
+  open: boolean;
+  onClose: () => void;
+  projectId: string;
+  projectName: string;
+  clientCompany: string | null;
+  status: string;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label="Project navigation">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-y-0 left-0 w-[min(320px,85vw)] overflow-y-auto bg-[#FBF9F4] p-4 shadow-xl">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
+            Project navigation
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close navigation"
+            className="rounded-full border border-[#E8E1D6] bg-white p-1.5 text-[#0A0F1F]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div onClick={onClose}>
+          <LeftProjectRail
+            projectId={projectId}
+            projectName={projectName}
+            clientCompany={clientCompany}
+            status={status}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────── Ask Captain modal ─────────────────── */
+
+type AskCaptainTurn = {
+  id: string;
+  question: string;
+  answer: string | null;
+  error: string | null;
+};
+
+function AskCaptainModal({
+  open,
+  onClose,
+  projectId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  projectId: string;
+}) {
+  const askFn = useServerFn(askProjectIntelligence);
+  const [input, setInput] = useState("");
+  const [threadId, setThreadId] = useState<string | undefined>(undefined);
+  const [turns, setTurns] = useState<AskCaptainTurn[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busy) onClose();
+    };
+    window.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+    };
+  }, [open, onClose, busy]);
+
+  if (!open) return null;
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const question = input.trim();
+    if (!question || busy) return;
+    const turnId = crypto.randomUUID();
+    setTurns((prev) => [...prev, { id: turnId, question, answer: null, error: null }]);
+    setInput("");
+    setBusy(true);
+    try {
+      const res = (await askFn({ data: { projectId, threadId, message: question } })) as {
+        thread: { id: string };
+        answer: { summary: string };
+      };
+      setThreadId(res.thread.id);
+      setTurns((prev) =>
+        prev.map((t) => (t.id === turnId ? { ...t, answer: res.answer.summary } : t)),
+      );
+    } catch (err) {
+      setTurns((prev) =>
+        prev.map((t) =>
+          t.id === turnId ? { ...t, error: (err as Error).message || "Ask failed" } : t,
+        ),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Ask Captain">
+      <div className="absolute inset-0 bg-black/50" onClick={busy ? undefined : onClose} />
+      <div className="relative flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:h-[70vh] sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-[#E8E1D6] px-5 py-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[#3E68B2]" />
+            <div className="font-display text-base text-[#0A0F1F]">Ask Captain</div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            aria-label="Close"
+            className="rounded-full border border-[#E8E1D6] bg-white p-1.5 text-[#0A0F1F] disabled:opacity-50"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {turns.length === 0 ? (
+            <div className="mt-6 text-sm text-[#667085]">
+              Ask a question about this project. Captain reads the full spine — Point A, Point B, milestones, evidence, and approvals.
+            </div>
+          ) : (
+            <ul className="space-y-4">
+              {turns.map((t) => (
+                <li key={t.id} className="space-y-2">
+                  <div className="ml-6 rounded-2xl bg-[#3E68B2] px-4 py-2 text-sm text-white">
+                    {t.question}
+                  </div>
+                  {t.error ? (
+                    <div className="mr-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-800">
+                      {t.error}
+                    </div>
+                  ) : t.answer ? (
+                    <div className="mr-6 whitespace-pre-wrap rounded-2xl border border-[#E8E1D6] bg-[#FBF9F4] px-4 py-2 text-sm text-[#0A0F1F]">
+                      {t.answer}
+                    </div>
+                  ) : (
+                    <div className="mr-6 inline-flex items-center gap-2 rounded-2xl border border-[#E8E1D6] bg-[#FBF9F4] px-4 py-2 text-sm text-[#667085]">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Captain is thinking...
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <form onSubmit={submit} className="border-t border-[#E8E1D6] px-4 py-3">
+          <div className="flex items-end gap-2">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void submit(e as unknown as FormEvent);
+                }
+              }}
+              rows={2}
+              placeholder="Ask about status, blockers, risks, next steps..."
+              className="min-h-[44px] flex-1 resize-none rounded-xl border border-[#E8E1D6] bg-white px-3 py-2 text-sm text-[#0A0F1F] focus:border-[#3E68B2] focus:outline-none"
+              disabled={busy}
+            />
+            <button
+              type="submit"
+              disabled={busy || !input.trim()}
+              className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-[#0A0F1F] px-4 text-sm font-medium text-white transition hover:bg-[#1c2440] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Send
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
