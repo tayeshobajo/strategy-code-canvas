@@ -167,11 +167,15 @@ export type SpineViewInputs = {
 };
 
 export function composeSpineView(input: SpineViewInputs): SpineView {
+  // Legacy escape hatch — see `deriveSpineVariant` doc-comment.
+  const hasLegacyContent =
+    input.milestones.length > 0 || !!input.portal_publish;
   const variant = deriveSpineVariant(
     input.pointAApproved,
     input.pointBApproved,
     input.milestones,
     input.portal_publish,
+    hasLegacyContent,
   );
 
   const approvedMilestones = input.milestones.filter(
