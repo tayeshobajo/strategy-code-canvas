@@ -22,13 +22,14 @@ import {
   TrendingUp,
   Settings,
   ChevronDown,
-  ChevronRight,
   FileStack,
   PackageCheck,
   Activity,
   BrainCircuit,
   LogOut,
   Menu,
+  Bell,
+  Sparkles,
 } from "lucide-react";
 import {
   Sheet,
