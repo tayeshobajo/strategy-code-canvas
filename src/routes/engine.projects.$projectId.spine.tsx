@@ -290,6 +290,14 @@ function ProjectSpine() {
       {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
 
+      {/* ───── Status strip (7 cells) ───── */}
+      <SpineStatusStrip
+        spine={spine}
+        blockedItems={blockedItemsCount}
+        readinessPassed={readinessQ.data?.result?.passed ?? null}
+        readinessTotal={readinessQ.data?.result?.total ?? 14}
+      />
+
       {exportError ? (
         <ErrorBanner
           title={exportError.title}
@@ -309,7 +317,9 @@ function ProjectSpine() {
         />
       ) : null}
 
-      {variant === "active" ? (<>
+      {variant === "active" ? (
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-6">
       {/* ───── Hero row: NBA + Snapshot ───── */}
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <HeroNextBestActionCard
@@ -327,6 +337,7 @@ function ProjectSpine() {
           nextMilestoneDue={nextMilestone?.due_date ?? null}
           healthScore={spine.project.health_score}
           ownerEmail={spine.project.client_owner_email}
+          portalPublish={spine.portal_publish}
         />
       </div>
 
