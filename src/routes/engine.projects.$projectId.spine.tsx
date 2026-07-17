@@ -844,8 +844,9 @@ function ProjectSnapshotCard({
   approvedMilestones,
   totalMilestones,
   nextMilestoneDue,
-  healthScore,
+  healthScore: _healthScore,
   ownerEmail,
+  portalPublish,
 }: {
   project: ProjectSpinePayload["project"];
   version: ProjectSpinePayload["version"];
@@ -856,53 +857,62 @@ function ProjectSnapshotCard({
   nextMilestoneDue: string | null;
   healthScore: number;
   ownerEmail: string | null;
+  portalPublish: ProjectSpinePayload["portal_publish"];
 }) {
-  const health =
-    healthScore > 0
-      ? healthFromScore(healthScore)
-      : deriveHealth(project.status, blockedItems);
-  const currentPhase = humanize(project.current_step || "—");
-  const ownerDisplay = ownerEmail ?? project.client_company ?? "—";
+  const clientPortal = portalPublish
+    ? humanize(portalPublish.status)
+    : "Not Published";
+  const projectType = project.frame ? humanize(project.frame) : "—";
+  const parentProject = project.client_company || "—";
+  const client = project.client_company || "—";
+  const ownerLine = ownerEmail ?? "—";
+
+  const left: Array<[string, ReactNode]> = [
+    ["Client", client],
+    ["Project Type", projectType],
+    ["Parent Project", parentProject],
+    ["Target Date", nextMilestoneDue ? formatDate(nextMilestoneDue) : "—"],
+    ["Roadmap Version", version?.label ?? "Draft"],
+  ];
+  const right: Array<[string, ReactNode]> = [
+    ["Open Approvals", String(pendingApprovals)],
+    [
+      "Blocked Items",
+      <span key="b" className={cn(blockedItems > 0 ? "text-[#a4283c]" : "text-[#0A0F1F]")}>
+        {blockedItems}
+      </span>,
+    ],
+    ["Active Milestones", `${approvedMilestones} of ${totalMilestones}`],
+    ["Client Portal", clientPortal],
+    ["Owner", ownerLine],
+  ];
 
   return (
     <section
       aria-labelledby="spine-snapshot-heading"
       className="rounded-2xl border border-[#E8E1D6] bg-white p-6 shadow-sm"
     >
-      <h2 id="spine-snapshot-heading" className="font-display text-lg text-[#0A0F1F]">
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
         Project Snapshot
-      </h2>
-      <div className="mt-4 grid grid-cols-3 gap-x-4 gap-y-5">
-        <SnapshotCell label="Current Phase" value={currentPhase} />
-        <SnapshotCell
-          label="Health"
-          value={
-            <span className="inline-flex items-center gap-1.5">
-              <span className={cn("h-2 w-2 rounded-full", health.dot)} />
-              {healthScore > 0 ? `${healthScore} · ${health.label}` : health.label}
-            </span>
-          }
-        />
-        <SnapshotCell
-          label="Target Date"
-          value={nextMilestoneDue ? formatDate(nextMilestoneDue) : "—"}
-        />
-        <SnapshotCell label="Project Owner" value={ownerDisplay} />
-        <SnapshotCell label="Captain" value="Captain AI" />
-        <SnapshotCell label="Roadmap Version" value={version?.label ?? "—"} />
-        <SnapshotCell label="Pending Approvals" value={String(pendingApprovals)} />
-        <SnapshotCell
-          label="Blocked Items"
-          value={
-            <span className={cn(blockedItems > 0 ? "text-[#a4283c]" : "text-[#0A0F1F]")}>
-              {blockedItems}
-            </span>
-          }
-        />
-        <SnapshotCell
-          label="Active Milestones"
-          value={`${approvedMilestones} of ${totalMilestones}`}
-        />
+      </div>
+      <h2 id="spine-snapshot-heading" className="sr-only">Project Snapshot</h2>
+      <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-4">
+        <dl className="space-y-3">
+          {left.map(([k, v]) => (
+            <div key={k} className="flex items-baseline justify-between gap-3">
+              <dt className="text-xs text-[#667085]">{k}</dt>
+              <dd className="text-sm font-medium text-[#0A0F1F] text-right truncate">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <dl className="space-y-3">
+          {right.map(([k, v]) => (
+            <div key={k} className="flex items-baseline justify-between gap-3">
+              <dt className="text-xs text-[#667085]">{k}</dt>
+              <dd className="text-sm font-medium text-[#0A0F1F] text-right truncate">{v}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   );
