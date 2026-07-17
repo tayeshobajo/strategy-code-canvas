@@ -81,8 +81,22 @@ export function deriveSpineVariant(
   pointBApproved: boolean,
   milestones: ReadonlyArray<{ approval_status: string }>,
   publish: { status: string } | null | undefined,
+  /**
+   * Legacy escape hatch: projects created before the field-truth ceremony
+   * shipped have no `engine_spine_field_truth` rows, so pointA/B never
+   * count as approved. Without this, mid-flight projects that already have
+   * milestones, a portal publish, or an approved roadmap collapse to the
+   * `incomplete` stub the moment Spine becomes the default landing page.
+   * When any of that content exists, treat the project as `active` and
+   * let the readiness panel surface the missing ceremony as a checklist
+   * item instead of hiding the whole page.
+   */
+  hasLegacyContent: boolean = false,
 ): SpineVariant {
-  if (!pointAApproved || !pointBApproved) return "incomplete";
+  if (!pointAApproved || !pointBApproved) {
+    if (!hasLegacyContent) return "incomplete";
+    // fall through to active/client_ready
+  }
   const allMilestonesApproved =
     milestones.length > 0 &&
     milestones.every((m) => m.approval_status === "approved");
@@ -153,11 +167,15 @@ export type SpineViewInputs = {
 };
 
 export function composeSpineView(input: SpineViewInputs): SpineView {
+  // Legacy escape hatch — see `deriveSpineVariant` doc-comment.
+  const hasLegacyContent =
+    input.milestones.length > 0 || !!input.portal_publish;
   const variant = deriveSpineVariant(
     input.pointAApproved,
     input.pointBApproved,
     input.milestones,
     input.portal_publish,
+    hasLegacyContent,
   );
 
   const approvedMilestones = input.milestones.filter(

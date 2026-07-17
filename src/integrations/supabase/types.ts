@@ -959,6 +959,7 @@ export type Database = {
       }
       engine_activity: {
         Row: {
+          actor_email: string | null
           body: string | null
           created_at: string
           id: string
@@ -968,6 +969,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          actor_email?: string | null
           body?: string | null
           created_at?: string
           id?: string
@@ -977,6 +979,7 @@ export type Database = {
           title: string
         }
         Update: {
+          actor_email?: string | null
           body?: string | null
           created_at?: string
           id?: string
