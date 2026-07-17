@@ -4469,6 +4469,58 @@ function SpineRightRail({
 
 /* ─────────────────── Active Agents (live) ─────────────────── */
 
+type AgentStatusTone = "active" | "pending" | "success" | "error" | "idle";
+
+const AGENT_TONE_STYLES: Record<AgentStatusTone, { badge: string; dot: string }> = {
+  active: {
+    badge: "bg-[#e9eefb] text-[#2842a4] border-[#cdd6f3]",
+    dot: "bg-[#3E68B2]",
+  },
+  pending: {
+    badge: "bg-[#fbf3e0] text-[#8a6713] border-[#f1e3b9]",
+    dot: "bg-amber-500",
+  },
+  success: {
+    badge: "bg-[#e6f5ec] text-[#1f6b3b] border-[#c4e6d2]",
+    dot: "bg-emerald-500",
+  },
+  error: {
+    badge: "bg-[#fbe9ec] text-[#a4283c] border-[#f3ced5]",
+    dot: "bg-rose-500",
+  },
+  idle: {
+    badge: "bg-[#ecedf0] text-[#5a5d70] border-[#d6d8df]",
+    dot: "bg-[#98a1b3]",
+  },
+};
+
+function AgentStatusBadge({ tone, label }: { tone: AgentStatusTone; label: string }) {
+  const s = AGENT_TONE_STYLES[tone];
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium whitespace-nowrap",
+        s.badge,
+      )}
+    >
+      <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
+      {label}
+    </span>
+  );
+}
+
+function AgentRowSkeleton() {
+  return (
+    <li className="min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <div className="h-3 w-32 animate-pulse rounded bg-[#ecedf0]" />
+        <div className="h-3 w-10 animate-pulse rounded bg-[#ecedf0]" />
+      </div>
+      <div className="mt-1.5 h-3 w-20 animate-pulse rounded bg-[#ecedf0]" />
+    </li>
+  );
+}
+
 function ActiveAgentsLive({ projectId }: { projectId: string }) {
   const fn = useServerFn(listAgentTasks);
   const q = useQuery({
@@ -4481,12 +4533,12 @@ function ActiveAgentsLive({ projectId }: { projectId: string }) {
   const rows: EngineAgentTask[] = (q.data as { rows?: EngineAgentTask[] } | undefined)?.rows ?? [];
   const recent = rows.slice(0, 5);
 
-  const toneFor = (t: EngineAgentTask): string => {
-    if (t.error) return "bg-rose-500";
-    if (t.pending_approval) return "bg-amber-500";
-    if (t.status === "applied") return "bg-emerald-500";
-    if (t.status === "rejected") return "bg-[#667085]";
-    return "bg-[#3E68B2]";
+  const toneFor = (t: EngineAgentTask): AgentStatusTone => {
+    if (t.error) return "error";
+    if (t.pending_approval) return "pending";
+    if (t.status === "applied") return "success";
+    if (t.status === "rejected") return "idle";
+    return "active";
   };
   const statusLabel = (t: EngineAgentTask): string => {
     if (t.error) return "Error";
@@ -4495,44 +4547,61 @@ function ActiveAgentsLive({ projectId }: { projectId: string }) {
   };
 
   return (
-    <>
-      <ul className="space-y-2 text-sm">
+    <ul className="space-y-2 text-sm">
+      <li className="flex items-center justify-between gap-2">
+        <span className="truncate text-[#0A0F1F]">Captain</span>
+        <AgentStatusBadge tone="success" label="Monitoring" />
+      </li>
+      {q.isPending ? (
+        <>
+          <AgentRowSkeleton />
+          <AgentRowSkeleton />
+        </>
+      ) : q.isError ? (
         <li className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-2 text-[#0A0F1F]">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Captain
-          </span>
-          <span className="text-[11px] text-[#667085]">Monitoring</span>
+          <span className="truncate text-[#0A0F1F]">Agent activity</span>
+          <div className="flex items-center gap-2">
+            <AgentStatusBadge tone="error" label="Failed to load" />
+            <button
+              type="button"
+              onClick={() => q.refetch()}
+              className="text-[11px] font-medium text-[#3E68B2] hover:text-[#284f93]"
+            >
+              Retry
+            </button>
+          </div>
         </li>
-        {q.isPending ? (
-          <li className="text-[11px] text-[#667085]">Loading agent activity…</li>
-        ) : q.isError ? (
-          <li className="text-[11px] text-rose-700">Failed to load agent activity.</li>
-        ) : recent.length === 0 ? (
-          <li className="text-[11px] text-[#667085]">No agent runs in the last window.</li>
-        ) : (
-          recent.map((t) => (
+      ) : recent.length === 0 ? (
+        <li className="rounded-md border border-dashed border-[#E8E1D6] bg-[#FBF9F4]/60 px-2 py-2 text-[11px] text-[#667085]">
+          No agent runs in the last window.
+        </li>
+      ) : (
+        recent.map((t) => {
+          const tone = toneFor(t);
+          return (
             <li key={t.id} className="min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex min-w-0 items-center gap-2 text-[#0A0F1F]">
-                  <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", toneFor(t))} />
-                  <span className="truncate">{humanize(t.kind)}</span>
-                </span>
+                <span className="min-w-0 truncate text-[#0A0F1F]">{humanize(t.kind)}</span>
                 <span className="shrink-0 text-[11px] text-[#667085]">
                   {formatRelative(t.updated_at ?? t.created_at)}
                 </span>
               </div>
-              <div className="ml-3.5 text-[11px] text-[#667085]">
-                {statusLabel(t)}
-                {t.confidence > 0 ? ` · ${Math.round(t.confidence * 100)}% conf` : ""}
+              <div className="mt-1 flex items-center gap-2">
+                <AgentStatusBadge tone={tone} label={statusLabel(t)} />
+                {t.confidence > 0 ? (
+                  <span className="text-[11px] text-[#667085]">
+                    {Math.round(t.confidence * 100)}% conf
+                  </span>
+                ) : null}
               </div>
             </li>
-          ))
-        )}
-      </ul>
-    </>
+          );
+        })
+      )}
+    </ul>
   );
 }
+
 
 
 
