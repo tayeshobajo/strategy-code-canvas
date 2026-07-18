@@ -5047,7 +5047,9 @@ Restore the prior body of `tg_engine_agent_costs_cap_guard` from
 
 ---
 
-## RT-1 — Roadmap Synthesis persistence (pending Tai approval)
+## RT-1 — Roadmap Synthesis persistence
+
+Status: **APPLIED (2026-07-18)**.
 
 Adds durable state + attempt history so the orchestrator can distinguish
 `failed` / `stale` from `missing`, coalesce concurrent runs, and store
