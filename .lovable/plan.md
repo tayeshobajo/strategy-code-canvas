@@ -1,67 +1,89 @@
-# RT-3 — Execution Boundary + Capability Registry
+# RT-4 — Strategic Thesis + Full Qualification
 
-Replace the in-memory `CAPABILITY_MENU` in `src/lib/roadmap-synthesis/capability-menu.ts` with a versioned, DB-backed registry, and add a per-project **Execution Boundary** approval workspace that produces the two truth rows the RT-1 gate already reads (`approved_capabilities`, `client_owned_areas`).
+Build the artifact that turns approved World Entry + Execution Boundary into a testable strategic thesis, then gate every milestone through a formal qualification ceremony (World fit + Wow fit + human approval).
 
-## Goals
+## Scope
 
-1. Capability menu is durable, versioned, and edited by admins — not a code constant.
-2. Every project has an explicit, approved Execution Boundary: which capabilities are in scope, which areas the client owns, what's explicitly excluded.
-3. Boundary changes are auditable, versioned, and invalidate the RT-1 synthesis steps that depend on them (materiality already handles this).
+Three coupled surfaces, mirroring the RT-2 / RT-3 pattern already in the codebase.
 
-## Deliverables
+### 1. Strategic Thesis artifact (project-level, versioned, second-reviewer approved)
 
-### 1. Database (goes to `.orchestrator/PENDING_MIGRATIONS.md` — NOT applied)
+New table `engine_project_strategic_thesis` (versioned like execution boundary) storing:
+- `bet_statement` — the one-line thesis
+- `why_now` — timing rationale
+- `wedge` — the entry wedge tied to World Entry destination
+- `proof_metrics[]` — how we'll know it's working (metric, target, horizon)
+- `kill_criteria[]` — what would falsify the thesis
+- `assumptions[]` — with confidence levels
+- `linked_world_entry_version`, `linked_execution_boundary_version` (traceability)
 
-Two new tables + one revision to `capability-menu.ts` shim:
+Second-Reviewer trigger (creator ≠ approver), AI-draft server fn seeded from approved World Entry + Execution Boundary + intake.
 
-- **`engine_capability_registry`** — one row per capability version.
-  - `capability_id` (text), `version` (int), `label`, `category`, `execution_mode`, `description`, `retired_at`, `created_by`, standard timestamps.
-  - Unique on `(capability_id, version)`; view `engine_capability_registry_current` returns latest non-retired per `capability_id`.
-  - `engine_capability_menu_version` singleton row holding a semver-ish string bumped on any change.
-  - Grants: `SELECT` to `authenticated`; `ALL` to `service_role`. RLS: authenticated read-all; writes only via server fn (admin-gated).
+Sidecar row in `engine_spine_field_truth` (`field_type='strategic-thesis'`) so Spine readiness picks it up. Register in `roadmap-synthesis/registry.ts` as an RT-4 step depending on RT-2 + RT-3.
 
-- **`engine_project_execution_boundary`** — one active row per project + version history.
-  - `project_id`, `version` (int, monotonic), `status` (`draft` | `proposed` | `approved` | `superseded`), `capability_ids` (text[]), `client_owned_areas` (text[]), `exclusions` (text[]), `notes`, `proposed_by`, `approved_by`, `approved_at`, standard timestamps.
-  - Constraint: `proposed_by <> approved_by` when `status = 'approved'` (second-reviewer rule, same as World Entry).
-  - Grants + RLS scoped to project members via existing helper. Trigger: on approval, upsert two rows into `engine_spine_field_truth` for `execution_boundary` field (`approved_capabilities`, `client_owned_areas`) with `status = 'approved_truth'` so the existing RT-1 gate flips green automatically.
+### 2. Qualification judges (LLM World Judge + Wow Judge)
 
-### 2. App layer (built now, safe pre-migration)
+Server-side judges in `src/lib/engine-milestone-qualification.functions.ts`:
+- **World Judge** — given a milestone brief + approved World Entry + Strategic Thesis, returns `{ verdict: 'passes'|'fails'|'unclear', rationale, cited_world_entry_sections[] }`. Checks the milestone advances the destination, uses correct vocabulary, doesn't contradict competitor positioning.
+- **Wow Judge** — given the milestone brief + Strategic Thesis proof metrics + Execution Boundary, returns `{ verdict, rationale, wow_score 1–5, risks[] }`. Checks the milestone moves a proof metric materially and stays inside boundary.
 
-- **`src/lib/engine-capability-registry.functions.ts`** — `listCapabilities()`, `getCapabilityMenuVersion()`, `upsertCapability()` (admin), `retireCapability()` (admin). Falls back to `CAPABILITY_MENU` constant when the table is missing so builds don't break pre-migration.
-- **`src/lib/roadmap-synthesis/capability-menu.ts`** — convert `CAPABILITY_MENU` + `CAPABILITY_MENU_VERSION` to async loaders (`loadCapabilityMenu()`, `loadCapabilityMenuVersion()`) with the constant as fallback. Update `qualification.ts` and `plan.server.ts` call sites.
-- **`src/lib/engine-execution-boundary.functions.ts`**:
-  - `getProjectExecutionBoundary(projectId)` — latest row + full version history.
-  - `proposeExecutionBoundary(projectId, { capability_ids, client_owned_areas, exclusions, notes })` — creates `proposed` row.
-  - `approveExecutionBoundary(boundaryId)` — enforces separate-reviewer, marks approved, writes truth rows via `engine_activity` guard.
-  - `rejectExecutionBoundary(boundaryId, reason)`.
-  - `aiDraftExecutionBoundary(projectId)` — LLM call using World Entry + intake to propose a draft.
+Both judges use `callLovableAi` + `parseJsonOutput`, cite source rows, and persist a `engine_milestone_qualification_runs` row (immutable log).
 
-### 3. UI
+### 3. Milestone Approval Ceremony
 
-- **`/admin/capability-registry`** — table view: capabilities with version, category, execution mode, retire toggle, "New capability" and "Bump version" actions. Behind admin role.
-- **`/engine/projects/$projectId/execution-boundary`** — new route in the project rail:
-  - Left: capability picker grouped by category with checkboxes; shows current menu version.
-  - Middle: client-owned areas + exclusions editors (chip inputs).
-  - Right: status card (Draft / Proposed / Approved), reviewer info, "Propose", "AI draft", "Approve" (disabled when current user is proposer), version history list with diff to previous.
-- Add "Execution Boundary" pill to `SpineReadinessPanel` linking here when the gate is unsatisfied.
-- Add nav entry to `LeftProjectRail`.
+A per-milestone ceremony UI at `/engine/projects/$projectId/milestones/$milestoneId/qualify` and a modal entry from the roadmap view:
+1. Show milestone brief + auto-run both judges (with re-run button)
+2. Show judge verdicts side-by-side with rationale and cited sources
+3. Require the human approver to (a) acknowledge each judge, (b) mark milestone as `qualified` or `rejected` with a note, (c) enforce Second-Reviewer (approver ≠ author of brief)
+4. On approval: write `engine_milestones.qualified_at / qualified_by`, log to `engine_activity` + `engine_project_chat_events`, and mark the qualification gate green in the readiness matrix
 
-### 4. Wiring
+New table `engine_milestone_qualification_runs` (judge, verdict, rationale, citations, model, tokens, created_at) — append-only, never edited.
 
-- Synthesis materiality already lists `execution_boundary_version` in the input manifest — bumping capability menu version or approving a new boundary triggers staleness on dependent steps automatically.
-- `engine_activity` entries: `execution_boundary_proposed`, `execution_boundary_approved`, `execution_boundary_rejected`, `capability_registered`, `capability_retired`.
+## UI additions
 
-## Out of scope (deferred to RT-4+)
+- **Left rail**: add "Strategic Thesis" nav item under Execution Boundary.
+- **Roadmap view**: per-milestone chip — `Not qualified` / `World: pass · Wow: pass` / `Rejected` with an "Open ceremony" action.
+- **Milestone readiness matrix**: new "Qualified" gate column, red until ceremony passes.
+- **Spine readiness**: add `strategic-thesis` and `milestones-qualified` checks (all approved milestones must be qualified before Spine hits 100%).
 
-- LLM judges for world/wow gates.
-- Client-portal visibility of the approved boundary (portal is downstream-only; will consume once approved via existing publish pipeline).
-- Automatic capability suggestions from World Entry vocabulary.
+## Migrations (appended to `.orchestrator/PENDING_MIGRATIONS.md`, applied on approval)
 
-## Files touched
+1. `engine_project_strategic_thesis` (versioned + second-reviewer trigger + RLS)
+2. `engine_milestone_qualification_runs` (append-only + RLS)
+3. `engine_milestones` — add `qualified_at timestamptz`, `qualified_by uuid`, `qualification_status text`
+4. Extend `engine_spine_field_truth.field_type` check to allow `strategic-thesis` and `milestones-qualified`
+5. GRANTs on all new tables
 
-New: 3 server-fn modules, 2 routes, 1 diff component, migration spec.
-Modified: `capability-menu.ts`, `qualification.ts`, `plan.server.ts`, `LeftProjectRail.tsx`, `SpineReadinessPanel.tsx`, `admin.tsx` nav.
+## Files
 
-## Migration handling
+Create:
+- `src/lib/engine-strategic-thesis.functions.ts` (CRUD, propose, approve, AI-draft)
+- `src/lib/engine-strategic-thesis-ai.functions.ts`
+- `src/lib/engine-milestone-qualification.functions.ts` (World + Wow judges, ceremony fns)
+- `src/routes/engine.projects.$projectId.strategic-thesis.tsx`
+- `src/routes/engine.projects.$projectId.milestones.$milestoneId.qualify.tsx`
+- `src/components/engine/QualificationCeremonyModal.tsx`
+- `src/components/engine/JudgeVerdictCard.tsx`
+- `src/lib/roadmap-synthesis/runners/strategic-thesis.ts`
 
-Per project doctrine (`CLAUDE.md`): the SQL for both tables + view + trigger goes to `.orchestrator/PENDING_MIGRATIONS.md` for Tai review, NOT applied. App code ships with fallback so the build stays green; the DB-backed path activates once Tai runs the migration.
+Modify:
+- `src/lib/roadmap-synthesis/registry.ts` — add RT-4 steps (thesis, qualify-milestones)
+- `src/lib/roadmap-synthesis/gates.ts` — read thesis + qualification sidecars
+- `src/lib/spine-readiness-evaluator.ts` — add two checks
+- `src/lib/milestone-readiness-evaluator.ts` — add qualified gate
+- `src/components/engine/LeftProjectRail.tsx` — add nav item
+- `src/routes/engine.projects.$projectId.roadmap.tsx` — per-milestone qualification chip + ceremony launcher
+
+## Out of scope (deferred)
+
+- Client-visible thesis export (RT-2 pattern already covers export; will reuse in a later phase)
+- Auto-re-run of judges when thesis version changes (manual re-run only in this phase)
+- Wow-score trending / historical charts
+
+## Approval / build order
+
+1. Server-function scaffolding + migration file (surface migration for approval first)
+2. AI drafting + judges
+3. UI rooms + ceremony modal
+4. Registry + readiness integration
+5. Roadmap chip + rail nav
