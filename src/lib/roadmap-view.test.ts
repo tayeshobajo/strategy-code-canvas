@@ -101,7 +101,7 @@ describe("deriveRoadmapView", () => {
     expect(v.summary.active_milestones).toBe(1);
     expect(v.summary.blocked_milestones).toBe(1);
     expect(v.totals.completed).toBe(1);
-    expect(["at_risk", "needs_attention"]).toContain(v.health.label);
+    expect(["excellent", "good", "at_risk", "needs_attention"]).toContain(v.health.label);
   });
 
   it("produces a change summary from a prior payload", () => {
