@@ -222,9 +222,18 @@ export const createWorkItem = createServerFn({ method: "POST" })
       project_id: data.projectId,
       kind: "work.created",
       title: `Work added: ${data.name}`,
-      body: `Milestone: ${ms.name}. Artifact: ${data.expectedArtifact}. Owner: ${data.ownerEmail ?? "unassigned"}.`,
+      body: `${taskMarker(inserted.id as string)} Milestone: ${ms.name}. Artifact: ${data.expectedArtifact}. Owner: ${data.ownerEmail ?? "unassigned"}.`,
       severity: "info",
       actor_email: email,
+    });
+    await notifyOperators(sb, {
+      projectId: data.projectId,
+      kind: "work.created",
+      title: `Work added: ${data.name}`,
+      body: `${email ?? "operator"} added a task to ${ms.name}`,
+      href: `/engine/projects/${data.projectId}/work?view=queue`,
+      actor: email,
+      extra: { task_id: inserted.id, milestone_id: data.milestoneId },
     });
 
     return { ok: true as const, taskId: inserted.id as string };
