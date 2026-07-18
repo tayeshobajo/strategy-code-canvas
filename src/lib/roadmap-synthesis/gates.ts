@@ -266,7 +266,9 @@ function strategicThesisGate(rows: TruthRow[]): DoctrineGateReadiness {
   const b = base("strategic_thesis");
   const thesis = rows.find((r) => r.field_key === "thesis");
   const missing: string[] = [];
+  const bet = extractString(thesis?.source_ref, "bet_statement");
   if (!thesis || !isSettled(thesis.status)) missing.push("Approved strategic thesis statement");
+  else if (!bet || bet.trim().length < 20) missing.push("Bet statement (≥20 chars)");
   return { ...b, satisfied: missing.length === 0, missing_pieces: missing };
 }
 
