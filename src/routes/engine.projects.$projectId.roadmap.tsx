@@ -253,11 +253,13 @@ function RoadmapHeader({
       toast.error((e as Error).message || "Drafted Spine truth could not be approved.");
     },
   });
+  const spineIncomplete = !view.point_a_approved || !view.point_b_approved;
   const canApprove =
     payload.permissions.can_approve_baseline &&
     version != null &&
     !version.locked &&
     version.status !== "approved";
+
 
   const handleApprove = async () => {
     if (!version) return;
