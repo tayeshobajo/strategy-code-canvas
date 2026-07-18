@@ -223,10 +223,8 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
       { json: true, temperature: 0.2, maxRetriesPerModel: 1 },
     );
 
-    const parsed = parseJsonOutput<{ point_a?: unknown; point_b?: unknown; summary?: string }>(
-      ai.text,
-    );
-    if (!parsed) throw new Error("AI Product Manager returned an unreadable draft. Try again.");
+    const parsed =
+      parseJsonOutput<{ point_a?: unknown; point_b?: unknown; summary?: string }>(ai.text) ?? {};
 
     const draftPointA = normalizePointA(parsed.point_a);
     const fallbackPointA = buildFallbackPointA(project.name, contextPayload);
