@@ -189,9 +189,13 @@ function RoadmapDashboard({
 function RoadmapHeader({
   projectId,
   payload,
+  onOpenCompare,
+  onOpenExport,
 }: {
   projectId: string;
   payload: ProjectRoadmapPayload;
+  onOpenCompare: () => void;
+  onOpenExport: () => void;
 }) {
   const { view, project } = payload;
   const version = view.version;
@@ -220,7 +224,7 @@ function RoadmapHeader({
             One living map — phases, milestones, dependencies. Every gate ties back to durable project truth.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             to="/engine/projects/$projectId/spine"
             params={{ projectId }}
@@ -228,10 +232,18 @@ function RoadmapHeader({
           >
             Back to Spine
           </Link>
+          <button
+            type="button"
+            onClick={onOpenCompare}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-xs text-ink hover:border-ink/40"
+          >
+            <GitBranch className="h-3.5 w-3.5" />
+            Compare versions
+          </button>
           {payload.permissions.can_publish_client_safe && (
             <button
               type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent("spine:export-roadmap"))}
+              onClick={onOpenExport}
               className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-xs text-white hover:bg-ink/90"
             >
               Publish client-safe view
