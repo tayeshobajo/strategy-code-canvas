@@ -309,7 +309,7 @@ function RoadmapHeader({
       )}
       {canApprove && (
         <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
-          This roadmap is a <strong>draft</strong>. Approving it locks the baseline and unlocks the Work tab. Requires: Point A + Point B approved, investment confirmed, no open critical change events, and a second reviewer (you can't approve a version you authored).
+          This roadmap is a <strong>draft</strong>. Approving it locks the baseline and unlocks the Work tab. Requires: Point A + Point B approved, no open critical change events, and a second reviewer (you can't approve a version you authored). Investment confirmation is required later, before publishing to the client portal.
         </div>
       )}
       <div className="sr-only" aria-live="polite">
