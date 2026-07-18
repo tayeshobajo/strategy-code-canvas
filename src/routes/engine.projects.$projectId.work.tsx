@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { z } from "zod";
 import {
   Wrench,
@@ -16,6 +17,10 @@ import {
   ShieldCheck,
   DollarSign,
   Zap,
+  Plus,
+  GitCompare,
+  UserCog,
+  FileCheck2,
 } from "lucide-react";
 import { getProjectWork, type ProjectWorkPayload } from "@/lib/engine-work.functions";
 import type {
@@ -27,6 +32,15 @@ import type {
   MilestoneGateProgression,
   GateState,
 } from "@/lib/work-view";
+import { Button } from "@/components/ui/button";
+import { useEngineRole } from "@/hooks/useEngineRole";
+import {
+  AddWorkItemModal,
+  ReassignWorkItemModal,
+  ResolveBlockerModal,
+  ComparePacketsModal,
+  WorkEvidenceModal,
+} from "@/components/engine/work/WorkActionModals";
 
 const searchSchema = z.object({
   view: z.enum(["milestones", "queue", "agents", "blockers"]).default("milestones"),
@@ -48,10 +62,20 @@ const workQueryOptions = (
     staleTime: 15_000,
   });
 
+type ModalState =
+  | { kind: "none" }
+  | { kind: "add"; milestoneId?: string | null }
+  | { kind: "reassign"; taskId: string; taskName: string; currentOwner: string | null }
+  | { kind: "resolve"; reviewItemId: string; title: string }
+  | { kind: "compare"; milestoneId: string; milestoneName: string }
+  | { kind: "evidence"; taskId: string; taskName: string };
+
 function WorkTab() {
   const { projectId } = Route.useParams();
   const search = useSearch({ from: "/engine/projects/$projectId/work" });
   const fn = useServerFn(getProjectWork);
+  const role = useEngineRole();
+  const [modal, setModal] = useState<ModalState>({ kind: "none" });
   const { data, isPending, isError, error } = useQuery(
     workQueryOptions(
       projectId,
@@ -98,9 +122,14 @@ function WorkTab() {
     );
   }
 
+  const canAct = role.canEdit;
+
   return (
     <div className="space-y-5" data-qa-tab-view="work">
-      <SummaryStrip view={view} />
+      <SummaryStrip
+        view={view}
+        onAddWork={canAct ? () => setModal({ kind: "add" }) : undefined}
+      />
       <NextBestActionCard view={view} projectId={projectId} />
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-5 min-w-0">
@@ -110,13 +139,41 @@ function WorkTab() {
               milestones={view.milestones}
               projectId={projectId}
               activeId={search.milestoneId ?? null}
+              canAct={canAct}
+              onAddWork={(mid) => setModal({ kind: "add", milestoneId: mid })}
+              onCompare={(mid, name) =>
+                setModal({ kind: "compare", milestoneId: mid, milestoneName: name })
+              }
             />
           )}
           {search.view === "queue" && (
-            <WorkQueue queue={view.queue} offRoadmap={view.off_roadmap} />
+            <WorkQueue
+              queue={view.queue}
+              offRoadmap={view.off_roadmap}
+              canAct={canAct}
+              onReassign={(w) =>
+                setModal({
+                  kind: "reassign",
+                  taskId: w.id,
+                  taskName: w.name,
+                  currentOwner: w.owner_id ?? null,
+                })
+              }
+              onEvidence={(w) =>
+                setModal({ kind: "evidence", taskId: w.id, taskName: w.name })
+              }
+            />
           )}
           {search.view === "agents" && <AgentGrid agents={view.agents} />}
-          {search.view === "blockers" && <BlockerList blockers={view.blockers} />}
+          {search.view === "blockers" && (
+            <BlockerList
+              blockers={view.blockers}
+              canAct={canAct}
+              onResolve={(b) =>
+                setModal({ kind: "resolve", reviewItemId: b.id, title: b.title })
+              }
+            />
+          )}
         </div>
         <aside className="space-y-4">
           <CaptainBriefCard view={view} />
@@ -125,13 +182,63 @@ function WorkTab() {
           <RecentChangesCard view={view} />
         </aside>
       </div>
+
+      {modal.kind === "add" ? (
+        <AddWorkItemModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          defaultMilestoneId={modal.milestoneId ?? null}
+        />
+      ) : null}
+      {modal.kind === "reassign" ? (
+        <ReassignWorkItemModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          taskId={modal.taskId}
+          taskName={modal.taskName}
+          currentOwner={modal.currentOwner}
+        />
+      ) : null}
+      {modal.kind === "resolve" ? (
+        <ResolveBlockerModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          reviewItemId={modal.reviewItemId}
+          title={modal.title}
+        />
+      ) : null}
+      {modal.kind === "compare" ? (
+        <ComparePacketsModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          milestoneId={modal.milestoneId}
+          milestoneName={modal.milestoneName}
+          isAdmin={role.isAdmin}
+        />
+      ) : null}
+      {modal.kind === "evidence" ? (
+        <WorkEvidenceModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          taskId={modal.taskId}
+          taskName={modal.taskName}
+          isAdmin={role.isAdmin}
+          currentUserEmail={role.email}
+        />
+      ) : null}
     </div>
   );
 }
 
+
 // ---------- summary strip ----------
 
-function SummaryStrip({ view }: { view: ProjectWorkPayload["view"] }) {
+function SummaryStrip({ view, onAddWork }: { view: ProjectWorkPayload["view"]; onAddWork?: () => void }) {
   const healthMeta = healthChip(view.work_health);
   return (
     <section
@@ -193,6 +300,11 @@ function SummaryStrip({ view }: { view: ProjectWorkPayload["view"] }) {
             value={formatCurrency(view.summary.value_blocked_cents)}
             tone="warn"
           />
+        ) : null}
+        {onAddWork ? (
+          <Button size="sm" className="ml-auto" onClick={onAddWork}>
+            <Plus className="w-3 h-3 mr-1" /> Add work
+          </Button>
         ) : null}
       </div>
       {view.last_material_change ? (
@@ -328,10 +440,16 @@ function MilestoneExecutionGrid({
   milestones,
   projectId,
   activeId,
+  canAct,
+  onAddWork,
+  onCompare,
 }: {
   milestones: MilestoneExecutionSummary[];
   projectId: string;
   activeId: string | null;
+  canAct: boolean;
+  onAddWork: (milestoneId: string) => void;
+  onCompare: (milestoneId: string, milestoneName: string) => void;
 }) {
   if (milestones.length === 0) {
     return (
@@ -348,6 +466,9 @@ function MilestoneExecutionGrid({
           m={m}
           projectId={projectId}
           highlighted={activeId === m.id}
+          canAct={canAct}
+          onAddWork={() => onAddWork(m.id)}
+          onCompare={() => onCompare(m.id, m.name)}
         />
       ))}
     </div>
@@ -358,10 +479,16 @@ function MilestoneExecutionCard({
   m,
   projectId,
   highlighted,
+  canAct,
+  onAddWork,
+  onCompare,
 }: {
   m: MilestoneExecutionSummary;
   projectId: string;
   highlighted: boolean;
+  canAct: boolean;
+  onAddWork: () => void;
+  onCompare: () => void;
 }) {
   const health = healthChip(m.health);
   return (
@@ -426,13 +553,25 @@ function MilestoneExecutionCard({
         <div className="text-xs text-ink/60">
           {m.active_tasks} active · {m.blocked_tasks} blocked
         </div>
-        <Link
-          to="/engine/projects/$projectId/milestones/$milestoneId"
-          params={{ projectId, milestoneId: m.id }}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-2.5 py-1.5 text-xs text-ink hover:border-ink/40"
-        >
-          {m.next_action} <ArrowRight className="w-3 h-3" />
-        </Link>
+        <div className="flex items-center gap-1.5">
+          {canAct ? (
+            <>
+              <Button size="sm" variant="outline" onClick={onAddWork} title="Add work item">
+                <Plus className="w-3 h-3 mr-1" /> Work
+              </Button>
+              <Button size="sm" variant="outline" onClick={onCompare} title="Compare build packets">
+                <GitCompare className="w-3 h-3 mr-1" /> Compare
+              </Button>
+            </>
+          ) : null}
+          <Link
+            to="/engine/projects/$projectId/milestones/$milestoneId"
+            params={{ projectId, milestoneId: m.id }}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-2.5 py-1.5 text-xs text-ink hover:border-ink/40"
+          >
+            {m.next_action} <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
       </div>
     </article>
   );
@@ -504,9 +643,15 @@ function gateLabel(k: keyof MilestoneGateProgression): string {
 function WorkQueue({
   queue,
   offRoadmap,
+  canAct,
+  onReassign,
+  onEvidence,
 }: {
   queue: WorkItem[];
   offRoadmap: WorkItem[];
+  canAct: boolean;
+  onReassign: (w: WorkItem) => void;
+  onEvidence: (w: WorkItem) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -520,7 +665,13 @@ function WorkQueue({
         ) : (
           <ul className="divide-y divide-border">
             {queue.map((w) => (
-              <WorkRow key={w.id} w={w} />
+              <WorkRow
+                key={w.id}
+                w={w}
+                canAct={canAct}
+                onReassign={() => onReassign(w)}
+                onEvidence={() => onEvidence(w)}
+              />
             ))}
           </ul>
         )}
@@ -540,7 +691,13 @@ function WorkQueue({
           </div>
           <ul className="divide-y divide-amber-200">
             {offRoadmap.map((w) => (
-              <WorkRow key={w.id} w={w} />
+              <WorkRow
+                key={w.id}
+                w={w}
+                canAct={canAct}
+                onReassign={() => onReassign(w)}
+                onEvidence={() => onEvidence(w)}
+              />
             ))}
           </ul>
         </div>
@@ -549,7 +706,17 @@ function WorkQueue({
   );
 }
 
-function WorkRow({ w }: { w: WorkItem }) {
+function WorkRow({
+  w,
+  canAct,
+  onReassign,
+  onEvidence,
+}: {
+  w: WorkItem;
+  canAct: boolean;
+  onReassign: () => void;
+  onEvidence: () => void;
+}) {
   return (
     <li className="px-4 py-3 flex items-start gap-3 hover:bg-ink/[0.02]">
       <StatusDot status={w.status} />
@@ -576,7 +743,19 @@ function WorkRow({ w }: { w: WorkItem }) {
           ) : null}
         </div>
       </div>
-      <div className="text-xs text-ink/70 shrink-0">{w.next_action}</div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        {canAct ? (
+          <>
+            <Button size="sm" variant="ghost" onClick={onReassign} title="Reassign">
+              <UserCog className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onEvidence} title="Evidence">
+              <FileCheck2 className="w-3.5 h-3.5" />
+            </Button>
+          </>
+        ) : null}
+        <div className="text-xs text-ink/70">{w.next_action}</div>
+      </div>
     </li>
   );
 }
@@ -667,7 +846,15 @@ function AgentStateBadge({ state }: { state: AgentAssignment["state"] }) {
 
 // ---------- blockers ----------
 
-function BlockerList({ blockers }: { blockers: WorkBlocker[] }) {
+function BlockerList({
+  blockers,
+  canAct,
+  onResolve,
+}: {
+  blockers: WorkBlocker[];
+  canAct: boolean;
+  onResolve: (b: WorkBlocker) => void;
+}) {
   if (blockers.length === 0) {
     return (
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-6 text-sm text-emerald-900">
@@ -697,6 +884,11 @@ function BlockerList({ blockers }: { blockers: WorkBlocker[] }) {
               </div>
               <div className="text-xs text-ink/70 mt-2">{b.recommended_resolution}</div>
             </div>
+            {canAct ? (
+              <Button size="sm" variant="outline" onClick={() => onResolve(b)}>
+                Resolve
+              </Button>
+            ) : null}
           </div>
         </li>
       ))}
