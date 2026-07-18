@@ -91,6 +91,7 @@ import { Route as AdminCostGuardRouteImport } from './routes/admin.cost-guard'
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
 import { Route as AdminCommandCenterRouteImport } from './routes/admin.command-center'
 import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
+import { Route as AdminCapabilityRegistryRouteImport } from './routes/admin.capability-registry'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
@@ -139,6 +140,7 @@ import { Route as EngineProjectsProjectIdGapMapRouteImport } from './routes/engi
 import { Route as EngineProjectsProjectIdFrameBuilderRouteImport } from './routes/engine.projects.$projectId.frame-builder'
 import { Route as EngineProjectsProjectIdFamilyRouteImport } from './routes/engine.projects.$projectId.family'
 import { Route as EngineProjectsProjectIdExtractionRouteImport } from './routes/engine.projects.$projectId.extraction'
+import { Route as EngineProjectsProjectIdExecutionBoundaryRouteImport } from './routes/engine.projects.$projectId.execution-boundary'
 import { Route as EngineProjectsProjectIdEvidenceRouteImport } from './routes/engine.projects.$projectId.evidence'
 import { Route as EngineProjectsProjectIdEnginesRouteImport } from './routes/engine.projects.$projectId.engines'
 import { Route as EngineProjectsProjectIdDeliveryRouteImport } from './routes/engine.projects.$projectId.delivery'
@@ -581,6 +583,11 @@ const AdminClientPortalsRoute = AdminClientPortalsRouteImport.update({
   path: '/client-portals',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCapabilityRegistryRoute = AdminCapabilityRegistryRouteImport.update({
+  id: '/capability-registry',
+  path: '/capability-registry',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AuthenticatedPortalRoute = AuthenticatedPortalRouteImport.update({
   id: '/portal',
   path: '/portal',
@@ -857,6 +864,12 @@ const EngineProjectsProjectIdExtractionRoute =
     path: '/extraction',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdExecutionBoundaryRoute =
+  EngineProjectsProjectIdExecutionBoundaryRouteImport.update({
+    id: '/execution-boundary',
+    path: '/execution-boundary',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdEvidenceRoute =
   EngineProjectsProjectIdEvidenceRouteImport.update({
     id: '/evidence',
@@ -1039,6 +1052,7 @@ export interface FileRoutesByFullPath {
   '/what-we-build': typeof WhatWeBuildRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/admin/capability-registry': typeof AdminCapabilityRegistryRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
@@ -1132,6 +1146,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
+  '/engine/projects/$projectId/execution-boundary': typeof EngineProjectsProjectIdExecutionBoundaryRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/family': typeof EngineProjectsProjectIdFamilyRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -1193,6 +1208,7 @@ export interface FileRoutesByTo {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/portal': typeof PortalIndexRoute
+  '/admin/capability-registry': typeof AdminCapabilityRegistryRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
@@ -1284,6 +1300,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
+  '/engine/projects/$projectId/execution-boundary': typeof EngineProjectsProjectIdExecutionBoundaryRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/family': typeof EngineProjectsProjectIdFamilyRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -1351,6 +1368,7 @@ export interface FileRoutesById {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
+  '/admin/capability-registry': typeof AdminCapabilityRegistryRoute
   '/admin/client-portals': typeof AdminClientPortalsRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/config': typeof AdminConfigRoute
@@ -1444,6 +1462,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
+  '/engine/projects/$projectId/execution-boundary': typeof EngineProjectsProjectIdExecutionBoundaryRoute
   '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
   '/engine/projects/$projectId/family': typeof EngineProjectsProjectIdFamilyRoute
   '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -1510,6 +1529,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/admin/capability-registry'
     | '/admin/client-portals'
     | '/admin/command-center'
     | '/admin/config'
@@ -1603,6 +1623,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/delivery'
     | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
+    | '/engine/projects/$projectId/execution-boundary'
     | '/engine/projects/$projectId/extraction'
     | '/engine/projects/$projectId/family'
     | '/engine/projects/$projectId/frame-builder'
@@ -1664,6 +1685,7 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/portal'
+    | '/admin/capability-registry'
     | '/admin/client-portals'
     | '/admin/command-center'
     | '/admin/config'
@@ -1755,6 +1777,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/delivery'
     | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
+    | '/engine/projects/$projectId/execution-boundary'
     | '/engine/projects/$projectId/extraction'
     | '/engine/projects/$projectId/family'
     | '/engine/projects/$projectId/frame-builder'
@@ -1821,6 +1844,7 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/_authenticated/portal'
+    | '/admin/capability-registry'
     | '/admin/client-portals'
     | '/admin/command-center'
     | '/admin/config'
@@ -1914,6 +1938,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/delivery'
     | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
+    | '/engine/projects/$projectId/execution-boundary'
     | '/engine/projects/$projectId/extraction'
     | '/engine/projects/$projectId/family'
     | '/engine/projects/$projectId/frame-builder'
@@ -2582,6 +2607,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminClientPortalsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/capability-registry': {
+      id: '/admin/capability-registry'
+      path: '/capability-registry'
+      fullPath: '/admin/capability-registry'
+      preLoaderRoute: typeof AdminCapabilityRegistryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_authenticated/portal': {
       id: '/_authenticated/portal'
       path: '/portal'
@@ -2918,6 +2950,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdExtractionRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/execution-boundary': {
+      id: '/engine/projects/$projectId/execution-boundary'
+      path: '/execution-boundary'
+      fullPath: '/engine/projects/$projectId/execution-boundary'
+      preLoaderRoute: typeof EngineProjectsProjectIdExecutionBoundaryRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/evidence': {
       id: '/engine/projects/$projectId/evidence'
       path: '/evidence'
@@ -3152,6 +3191,7 @@ const OpsRouteRouteWithChildren = OpsRouteRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminCapabilityRegistryRoute: typeof AdminCapabilityRegistryRoute
   AdminClientPortalsRoute: typeof AdminClientPortalsRoute
   AdminCommandCenterRoute: typeof AdminCommandCenterRoute
   AdminConfigRoute: typeof AdminConfigRoute
@@ -3181,6 +3221,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCapabilityRegistryRoute: AdminCapabilityRegistryRoute,
   AdminClientPortalsRoute: AdminClientPortalsRoute,
   AdminCommandCenterRoute: AdminCommandCenterRoute,
   AdminConfigRoute: AdminConfigRoute,
@@ -3260,6 +3301,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdDeliveryRoute: typeof EngineProjectsProjectIdDeliveryRoute
   EngineProjectsProjectIdEnginesRoute: typeof EngineProjectsProjectIdEnginesRouteWithChildren
   EngineProjectsProjectIdEvidenceRoute: typeof EngineProjectsProjectIdEvidenceRoute
+  EngineProjectsProjectIdExecutionBoundaryRoute: typeof EngineProjectsProjectIdExecutionBoundaryRoute
   EngineProjectsProjectIdExtractionRoute: typeof EngineProjectsProjectIdExtractionRoute
   EngineProjectsProjectIdFamilyRoute: typeof EngineProjectsProjectIdFamilyRoute
   EngineProjectsProjectIdFrameBuilderRoute: typeof EngineProjectsProjectIdFrameBuilderRoute
@@ -3319,6 +3361,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdEnginesRoute:
       EngineProjectsProjectIdEnginesRouteWithChildren,
     EngineProjectsProjectIdEvidenceRoute: EngineProjectsProjectIdEvidenceRoute,
+    EngineProjectsProjectIdExecutionBoundaryRoute:
+      EngineProjectsProjectIdExecutionBoundaryRoute,
     EngineProjectsProjectIdExtractionRoute:
       EngineProjectsProjectIdExtractionRoute,
     EngineProjectsProjectIdFamilyRoute: EngineProjectsProjectIdFamilyRoute,
