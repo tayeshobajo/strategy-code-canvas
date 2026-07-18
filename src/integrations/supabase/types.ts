@@ -5552,6 +5552,89 @@ export type Database = {
           },
         ]
       }
+      engine_work_evidence: {
+        Row: {
+          created_at: string
+          created_by_email: string | null
+          evidence_type: string
+          id: string
+          milestone_id: string | null
+          project_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by_email: string | null
+          summary: string | null
+          task_id: string
+          title: string
+          updated_at: string
+          url: string | null
+          verdict: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_email?: string | null
+          evidence_type: string
+          id?: string
+          milestone_id?: string | null
+          project_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by_email?: string | null
+          summary?: string | null
+          task_id: string
+          title: string
+          updated_at?: string
+          url?: string | null
+          verdict?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_email?: string | null
+          evidence_type?: string
+          id?: string
+          milestone_id?: string | null
+          project_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by_email?: string | null
+          summary?: string | null
+          task_id?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_work_evidence_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_work_evidence_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_work_evidence_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_work_evidence_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "engine_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intake_drafts: {
         Row: {
           answers: Json
