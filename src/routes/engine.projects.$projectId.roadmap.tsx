@@ -18,6 +18,7 @@ import {
   Users,
   Timer,
   ChevronRight,
+  Network,
 } from "lucide-react";
 import { getProjectRoadmap, type ProjectRoadmapPayload } from "@/lib/engine-roadmap.functions";
 import type {
@@ -26,9 +27,13 @@ import type {
   RoadmapPhaseHealth,
   RoadmapPhaseStatus,
 } from "@/lib/roadmap-view";
+import { RoadmapDependencyGraph } from "@/components/engine/roadmap/RoadmapDependencyGraph";
+import { CaptainPrompts } from "@/components/engine/roadmap/CaptainPrompts";
+import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersionsModal";
+import { ClientExportPreviewModal } from "@/components/engine/roadmap/ClientExportPreviewModal";
 
 const searchSchema = z.object({
-  view: z.enum(["journey", "timeline", "table"]).default("journey"),
+  view: z.enum(["journey", "timeline", "graph", "table"]).default("journey"),
   phase: z.string().optional(),
   versionId: z.string().uuid().optional(),
 });
