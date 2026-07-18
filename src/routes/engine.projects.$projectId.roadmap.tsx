@@ -103,6 +103,12 @@ function RoadmapDashboard({
   const { view, versions } = payload;
   const [compareOpen, setCompareOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const filteredMilestones = useMemo(() => {
+    if (!activePhaseKey) return view.milestones;
+    const phase = view.phases.find((p) => p.key === activePhaseKey);
+    if (!phase) return view.milestones;
+    return view.milestones.filter((m) => phase.milestone_ids.includes(m.id));
+  }, [view.milestones, view.phases, activePhaseKey]);
 
   if (view.mode === "no_truth") {
     return <NoTruthState projectId={projectId} missing={view.missing_for_approval} />;
@@ -110,13 +116,6 @@ function RoadmapDashboard({
   if (view.mode === "draft_generating") {
     return <DraftGeneratingState projectId={projectId} />;
   }
-
-  const filteredMilestones = useMemo(() => {
-    if (!activePhaseKey) return view.milestones;
-    const phase = view.phases.find((p) => p.key === activePhaseKey);
-    if (!phase) return view.milestones;
-    return view.milestones.filter((m) => phase.milestone_ids.includes(m.id));
-  }, [view.milestones, view.phases, activePhaseKey]);
 
   return (
     <div className="space-y-5" data-qa-tab-view="roadmap" data-roadmap-mode={view.mode}>
