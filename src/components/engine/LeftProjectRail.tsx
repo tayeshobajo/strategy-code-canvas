@@ -54,6 +54,7 @@ const PROJECT_ROOM_ITEMS: RailNavItem[] = [
   { label: "Agent Room", to: "/engine/projects/$projectId/agent", icon: Bot },
   { label: "Intelligence", to: "/engine/projects/$projectId/intelligence", icon: Brain },
   { label: "Evidence", to: "/engine/projects/$projectId/evidence", icon: FileText },
+  { label: "Amendments", to: "/engine/projects/$projectId/amendments", icon: GitPullRequest },
 ];
 
 export function LeftProjectRail({ projectId }: { projectId: string }) {
