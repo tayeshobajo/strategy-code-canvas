@@ -111,9 +111,9 @@ export function confidenceLabel(
   bulletsCount: number,
 ): "High" | "Medium" | "Low" | "—" {
   if (isApprovedWithContent(status, bulletsCount)) return "High";
-  if (status === "verified_evidence") return "High";
-  if (status === "review_needed" || status === "assumed") return "Medium";
-  if (status === "contradiction_flagged") return "Low";
+  if (status === "verified") return "High";
+  if (status === "needs_confirmation" || status === "accepted_assumption" || status === "inferred") return "Medium";
+  if (status === "contradictory") return "Low";
   if (bulletsCount > 0) return "Medium";
   return "—";
 }
