@@ -12,16 +12,93 @@ import {
   HUMAN_LOCKED_STATUSES,
   asRecord,
   changedKeys,
+  cleanString,
   isBlank,
   mapTruth,
   normalizePointA,
   normalizePointB,
   type FillResult,
   type PointA,
+  type PointB,
   type TruthRow,
 } from "@/lib/engine-spine-ai-fill.helpers";
 
 const fillInput = z.object({ projectId: z.string().uuid() });
+
+function buildFallbackPointA(projectName: string, contextPayload: unknown): PointA {
+  const contextText = JSON.stringify(contextPayload).replace(/\s+/g, " ").slice(0, 900);
+  const sourceHint = contextText
+    ? `Drafted from the intake record for ${projectName}: ${contextText.slice(0, 140)}`
+    : `Drafted from the intake record for ${projectName}.`;
+  return {
+    lenses: [
+      {
+        label: "Current operating model",
+        value: "Needs structured review",
+        hint: sourceHint,
+      },
+      {
+        label: "Growth constraint",
+        value: "Intake-backed bottleneck",
+        hint: "Use the intake brief as the source for confirming what currently slows delivery or revenue.",
+      },
+      {
+        label: "Customer path",
+        value: "Needs clearer system support",
+        hint: "Use founder answers and extracted signals to confirm where prospects, clients, or users get stuck today.",
+      },
+      {
+        label: "Delivery capacity",
+        value: "Manual effort still matters",
+        hint: "Review the intake for the people, process, and tooling limits that affect reliable execution.",
+      },
+    ],
+    diagnosis: [
+      {
+        title: "Intake-defined current reality",
+        tag: "FOUNDATION",
+        bullets: [
+          "The intake provides enough context to draft the current-state truth for review.",
+          "The exact wording should be confirmed by Tai before this becomes client-facing truth.",
+        ],
+      },
+      {
+        title: "System gap to resolve",
+        tag: "GAP",
+        bullets: [
+          "The project needs a clearer operating system between today's process and the desired future state.",
+          "This diagnosis is drafted from intake context and should be reviewed against the source brief.",
+        ],
+      },
+      {
+        title: "Roadmap opportunity",
+        tag: "PATH",
+        bullets: [
+          "The roadmap can convert the intake brief into sequenced milestones, proof, and approval gates.",
+          "Any assumption here remains reviewable until a human approves the Spine truth.",
+        ],
+      },
+    ],
+    key_diagnosis: `Draft for review: ${projectName} has enough intake context to define Point A, but the exact current-state diagnosis should be reviewed against the founder's answers, extracted signals, and attached source material before it is treated as final truth.`,
+  };
+}
+
+function buildFallbackPointB(projectName: string, existingPointB: Record<string, unknown>): Partial<PointB> {
+  const destination =
+    cleanString(existingPointB.destination) ||
+    cleanString(existingPointB.summary) ||
+    cleanString(existingPointB.description) ||
+    `the future operating model described in the intake for ${projectName}`;
+  return {
+    "24_month_destination": `Draft for review: In 24 months, ${destination}`,
+    "10_year_position": `Draft for review: Long term, ${projectName} should operate from the position implied by the intake: a stronger, more durable business with clear systems, measurable outcomes, and less dependence on ad hoc execution.`,
+    client_outcome: `Draft for review: The client has a clearer path from today's constraints to the intended business outcome, with decisions, milestones, and proof tracked in one roadmap.`,
+    customer_outcome: `Draft for review: Customers experience a more reliable, polished, and easier path to the value the business already intends to deliver.`,
+    operational_outcome: `Draft for review: The business moves from manual or unclear execution toward a repeatable operating rhythm with defined owners, milestones, and acceptance criteria.`,
+    revenue_outcome: `Draft for review: Revenue improves as the intake-defined offer, customer path, and delivery system become easier to execute and measure.`,
+    brand_position: `Draft for review: The brand presents with more authority and trust, matching the future state described in the intake and supporting higher-confidence buying decisions.`,
+  };
+}
 
 export const fillMissingSpineDetailsFromIntake = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -117,16 +194,18 @@ export const fillMissingSpineDetailsFromIntake = createServerFn({ method: "POST"
       },
     };
 
-    const ai = await callLovableAiWithFallback(
-      [
-        {
-          role: "system",
-          content:
-            "You are the Trust Tai AI Product Manager. Fill missing Project Spine details from intake, extracted signals, and current project modules. Do not approve anything. If a detail is inferred, phrase it as a reviewable draft. No em dashes, no exclamation points. Return strict JSON only.",
-        },
-        {
-          role: "user",
-          content: `Draft missing Point A and Point B details.
+    let ai: { text: string; model_used: string };
+    try {
+      ai = await callLovableAiWithFallback(
+        [
+          {
+            role: "system",
+            content:
+              "You are the Trust Tai AI Product Manager. Fill missing Project Spine details from intake, extracted signals, and current project modules. Do not approve anything. If a detail is inferred, phrase it as a reviewable draft. No em dashes, no exclamation points. Return strict JSON only.",
+          },
+          {
+            role: "user",
+            content: `Draft missing Point A and Point B details.
 
 Rules:
 - Preserve existing content. Only provide useful replacement content for blank fields.
@@ -141,18 +220,26 @@ Return JSON only:
 
 PROJECT CONTEXT:
 ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
-        },
-      ],
-      { json: true, temperature: 0.2, maxRetriesPerModel: 1 },
-    );
+          },
+        ],
+        { json: true, temperature: 0.2, maxRetriesPerModel: 1 },
+      );
+    } catch {
+      ai = { text: "{}", model_used: "intake_fallback_template" };
+    }
 
-    const parsed = parseJsonOutput<{ point_a?: unknown; point_b?: unknown; summary?: string }>(
-      ai.text,
-    );
-    if (!parsed) throw new Error("AI Product Manager returned an unreadable draft. Try again.");
+    const parsed =
+      parseJsonOutput<{ point_a?: unknown; point_b?: unknown; summary?: string }>(ai.text) ?? {};
 
     const draftPointA = normalizePointA(parsed.point_a);
-    const draftPointB = normalizePointB(parsed.point_b);
+    const fallbackPointA = buildFallbackPointA(project.name, contextPayload);
+    if (!draftPointA.lenses?.length) draftPointA.lenses = fallbackPointA.lenses;
+    if (!draftPointA.diagnosis?.length) draftPointA.diagnosis = fallbackPointA.diagnosis;
+    if (!draftPointA.key_diagnosis) draftPointA.key_diagnosis = fallbackPointA.key_diagnosis;
+    const draftPointB = {
+      ...buildFallbackPointB(project.name, existingPointB),
+      ...normalizePointB(parsed.point_b),
+    };
     const nextPointA: PointA & Record<string, unknown> = {
       ...existingPointARecord,
       ...existingPointA,
