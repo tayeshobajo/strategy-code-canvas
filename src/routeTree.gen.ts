@@ -144,6 +144,7 @@ import { Route as EngineProjectsProjectIdExtractionRouteImport } from './routes/
 import { Route as EngineProjectsProjectIdExecutionBoundaryRouteImport } from './routes/engine.projects.$projectId.execution-boundary'
 import { Route as EngineProjectsProjectIdEvidenceRouteImport } from './routes/engine.projects.$projectId.evidence'
 import { Route as EngineProjectsProjectIdEnginesRouteImport } from './routes/engine.projects.$projectId.engines'
+import { Route as EngineProjectsProjectIdDriftRouteImport } from './routes/engine.projects.$projectId.drift'
 import { Route as EngineProjectsProjectIdDeliveryRouteImport } from './routes/engine.projects.$projectId.delivery'
 import { Route as EngineProjectsProjectIdDeadlinesRouteImport } from './routes/engine.projects.$projectId.deadlines'
 import { Route as EngineProjectsProjectIdClientViewRouteImport } from './routes/engine.projects.$projectId.client-view'
@@ -891,6 +892,12 @@ const EngineProjectsProjectIdEnginesRoute =
     path: '/engines',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdDriftRoute =
+  EngineProjectsProjectIdDriftRouteImport.update({
+    id: '/drift',
+    path: '/drift',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdDeliveryRoute =
   EngineProjectsProjectIdDeliveryRouteImport.update({
     id: '/delivery',
@@ -1166,6 +1173,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/client-view': typeof EngineProjectsProjectIdClientViewRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/drift': typeof EngineProjectsProjectIdDriftRoute
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/execution-boundary': typeof EngineProjectsProjectIdExecutionBoundaryRoute
@@ -1323,6 +1331,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/client-view': typeof EngineProjectsProjectIdClientViewRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/drift': typeof EngineProjectsProjectIdDriftRoute
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/execution-boundary': typeof EngineProjectsProjectIdExecutionBoundaryRoute
@@ -1488,6 +1497,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/client-view': typeof EngineProjectsProjectIdClientViewRoute
   '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
   '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
+  '/engine/projects/$projectId/drift': typeof EngineProjectsProjectIdDriftRoute
   '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
   '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
   '/engine/projects/$projectId/execution-boundary': typeof EngineProjectsProjectIdExecutionBoundaryRoute
@@ -1652,6 +1662,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/client-view'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/drift'
     | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/execution-boundary'
@@ -1809,6 +1820,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/client-view'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/drift'
     | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/execution-boundary'
@@ -1973,6 +1985,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/client-view'
     | '/engine/projects/$projectId/deadlines'
     | '/engine/projects/$projectId/delivery'
+    | '/engine/projects/$projectId/drift'
     | '/engine/projects/$projectId/engines'
     | '/engine/projects/$projectId/evidence'
     | '/engine/projects/$projectId/execution-boundary'
@@ -3017,6 +3030,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdEnginesRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/drift': {
+      id: '/engine/projects/$projectId/drift'
+      path: '/drift'
+      fullPath: '/engine/projects/$projectId/drift'
+      preLoaderRoute: typeof EngineProjectsProjectIdDriftRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/delivery': {
       id: '/engine/projects/$projectId/delivery'
       path: '/delivery'
@@ -3360,6 +3380,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdClientViewRoute: typeof EngineProjectsProjectIdClientViewRoute
   EngineProjectsProjectIdDeadlinesRoute: typeof EngineProjectsProjectIdDeadlinesRoute
   EngineProjectsProjectIdDeliveryRoute: typeof EngineProjectsProjectIdDeliveryRoute
+  EngineProjectsProjectIdDriftRoute: typeof EngineProjectsProjectIdDriftRoute
   EngineProjectsProjectIdEnginesRoute: typeof EngineProjectsProjectIdEnginesRouteWithChildren
   EngineProjectsProjectIdEvidenceRoute: typeof EngineProjectsProjectIdEvidenceRoute
   EngineProjectsProjectIdExecutionBoundaryRoute: typeof EngineProjectsProjectIdExecutionBoundaryRoute
@@ -3423,6 +3444,7 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdDeadlinesRoute:
       EngineProjectsProjectIdDeadlinesRoute,
     EngineProjectsProjectIdDeliveryRoute: EngineProjectsProjectIdDeliveryRoute,
+    EngineProjectsProjectIdDriftRoute: EngineProjectsProjectIdDriftRoute,
     EngineProjectsProjectIdEnginesRoute:
       EngineProjectsProjectIdEnginesRouteWithChildren,
     EngineProjectsProjectIdEvidenceRoute: EngineProjectsProjectIdEvidenceRoute,
