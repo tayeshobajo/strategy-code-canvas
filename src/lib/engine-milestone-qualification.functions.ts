@@ -443,3 +443,42 @@ export const decideMilestoneQualification = createServerFn({ method: "POST" })
 
     return next;
   });
+
+// ---------- Audit timeline ----------
+
+export type QualificationTimelineEntry = {
+  id: string;
+  at: string;
+  actor: string | null;
+  kind: string;
+  title: string;
+  body: string | null;
+  severity: string | null;
+};
+
+export const listMilestoneQualificationTimeline = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => milestoneInput.parse(raw))
+  .handler(async ({ context, data }): Promise<QualificationTimelineEntry[]> => {
+    const ctx = context as unknown as AuthCtx;
+    const sb = ctx.supabase as any;
+    const marker = milestoneMarker(data.milestoneId);
+    const { data: rows, error } = await sb
+      .from("engine_activity")
+      .select("id, created_at, actor_email, kind, title, body, severity")
+      .eq("project_id", data.projectId)
+      .like("kind", "milestone_qualification.%")
+      .like("body", `%${marker}%`)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r: any) => ({
+      id: r.id,
+      at: r.created_at,
+      actor: r.actor_email ?? null,
+      kind: r.kind,
+      title: r.title,
+      body: r.body,
+      severity: r.severity ?? null,
+    }));
+  });
