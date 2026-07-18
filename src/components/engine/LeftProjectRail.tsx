@@ -10,12 +10,14 @@ import {
   Compass,
   Flag,
   Globe,
+  ShieldCheck,
   MessageSquare,
   Bot,
   Brain,
   FileText,
   X,
 } from "lucide-react";
+
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -38,6 +40,8 @@ const PROJECT_ROOM_ITEMS: RailNavItem[] = [
   { label: "Sources & Signal", to: "/engine/projects/$projectId/signal-room", icon: Radio },
   { label: "Understanding", to: "/engine/projects/$projectId/understanding-room", icon: Compass },
   { label: "World Entry", to: "/engine/projects/$projectId/world-entry", icon: Globe },
+  { label: "Execution Boundary", to: "/engine/projects/$projectId/execution-boundary", icon: ShieldCheck },
+
   { label: "Point A", to: "/engine/projects/$projectId/point-a", icon: MapPin },
   { label: "Point B", to: "/engine/projects/$projectId/point-b", icon: Flag },
   { label: "Chat with Captain", to: "/engine/projects/$projectId/chat", icon: MessageSquare },
