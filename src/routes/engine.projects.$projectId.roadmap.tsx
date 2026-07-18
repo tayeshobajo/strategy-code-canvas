@@ -349,13 +349,38 @@ function RoadmapHeader({
           </button>
           <button
             type="button"
-            onClick={() => setSynthesisOpen(true)}
+            onClick={() => openDrawer(null)}
             className="inline-flex items-center gap-1.5 rounded-md border border-royal/40 bg-royal/5 px-3 py-1.5 text-xs font-medium text-royal hover:bg-royal/10"
             title="Doctrine-aware synthesis: repair missing, refresh stale, or rebuild drafts."
           >
             <Sparkles className="h-3.5 w-3.5" />
             Refresh Project Intelligence
           </button>
+          <button
+            type="button"
+            onClick={() => openDrawer("repair")}
+            className="inline-flex items-center gap-1.5 rounded-md border border-royal/40 bg-white px-3 py-1.5 text-xs font-medium text-royal hover:bg-royal/5"
+            title="Re-run only the missing or failed synthesis steps. Approved truth is never touched."
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry missing / failed
+          </button>
+          {freshnessQuery.data?.hasNewIntelligence && (
+            <button
+              type="button"
+              onClick={() => openDrawer("refresh")}
+              className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100"
+              title="New intake / signals detected. Classify materiality and re-run affected steps."
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              New intelligence · Refresh
+              {(freshnessQuery.data.newSourceCount + freshnessQuery.data.newSignalCount) > 0 && (
+                <span className="ml-1 rounded-full bg-amber-200/70 px-1.5 text-[10px] text-amber-950">
+                  {freshnessQuery.data.newSourceCount + freshnessQuery.data.newSignalCount}
+                </span>
+              )}
+            </button>
+          )}
           {spineIncomplete && (
             <button
               type="button"
