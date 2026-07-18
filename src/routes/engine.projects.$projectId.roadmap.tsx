@@ -35,6 +35,7 @@ import { RoadmapDependencyGraph } from "@/components/engine/roadmap/RoadmapDepen
 import { CaptainPrompts } from "@/components/engine/roadmap/CaptainPrompts";
 import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersionsModal";
 import { ClientExportPreviewModal } from "@/components/engine/roadmap/ClientExportPreviewModal";
+import { SynthesisPlanDrawer } from "@/components/engine/roadmap/SynthesisPlanDrawer";
 import {
   MilestoneCpExplainer,
   PhaseCpExplainer,
@@ -215,6 +216,7 @@ function RoadmapHeader({
   const fillMissingFn = useServerFn(fillMissingSpineDetailsFromIntake);
   const approveDraftedTruthFn = useServerFn(batchApproveDraftedSpineTruth);
   const [approving, setApproving] = useState(false);
+  const [synthesisOpen, setSynthesisOpen] = useState(false);
   const invalidateRoadmapTruth = async () => {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
@@ -327,6 +329,15 @@ function RoadmapHeader({
             <GitBranch className="h-3.5 w-3.5" />
             Compare versions
           </button>
+          <button
+            type="button"
+            onClick={() => setSynthesisOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-royal/40 bg-royal/5 px-3 py-1.5 text-xs font-medium text-royal hover:bg-royal/10"
+            title="Doctrine-aware synthesis: repair missing, refresh stale, or rebuild drafts."
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Refresh Project Intelligence
+          </button>
           {spineIncomplete && (
             <button
               type="button"
@@ -401,6 +412,11 @@ function RoadmapHeader({
       <div className="sr-only" aria-live="polite">
         Progress {project.progress_percent} percent
       </div>
+      <SynthesisPlanDrawer
+        projectId={projectId}
+        open={synthesisOpen}
+        onClose={() => setSynthesisOpen(false)}
+      />
     </section>
   );
 }
