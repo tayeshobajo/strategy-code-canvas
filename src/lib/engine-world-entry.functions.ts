@@ -140,6 +140,47 @@ async function writeSidecar(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Mirror the current World Entry version to `engine_spine_field_truth`
+ * so doctrine gate readers and other spine consumers see canonical rows.
+ * The sidecar remains the source of truth for full version history
+ * (drafts, submissions, approver identity).
+ */
+export async function mirrorWorldEntryToFieldTruth(
+  sb: any,
+  projectId: string,
+  version: WorldEntryVersion,
+  actorEmail: string,
+  actor: "human" | "ai",
+): Promise<void> {
+  const status =
+    version.status === "approved"
+      ? "approved_truth"
+      : version.status === "awaiting_review"
+        ? "needs_confirmation"
+        : "inferred";
+  const now = new Date().toISOString();
+  const rows = [
+    { field_key: "destination_summary", source_ref: { text: version.destination_summary, version: version.version } },
+    { field_key: "competitors", source_ref: { items: version.competitors, version: version.version } },
+    { field_key: "vocabulary", source_ref: { tokens: version.vocabulary, version: version.version } },
+    { field_key: "evidence", source_ref: { items: version.evidence, version: version.version } },
+  ].map((r) => ({
+    project_id: projectId,
+    spine: "world-entry",
+    field_key: r.field_key,
+    status,
+    source_ref: r.source_ref,
+    updated_at: now,
+    updated_by_email: actorEmail,
+    updated_by_actor: actor,
+  }));
+  const { error } = await sb
+    .from("engine_spine_field_truth")
+    .upsert(rows, { onConflict: "project_id,spine,field_key" });
+  if (error) throw new Error(`Mirror to field_truth failed: ${error.message}`);
+}
+
 function nextVersionNumber(state: WorldEntryState): number {
   const all = [...state.history, ...(state.current ? [state.current] : [])];
   return all.reduce((m, v) => Math.max(m, v.version), 0) + 1;
