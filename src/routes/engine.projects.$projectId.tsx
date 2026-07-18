@@ -12,6 +12,7 @@ import {
   LeftProjectRail,
   MobileRailDrawer,
 } from "@/components/engine/LeftProjectRail";
+import { LatestAmendmentsPanel } from "@/components/engine/LatestAmendmentsPanel";
 import { useRoomScrollRestoration } from "@/hooks/use-room-scroll-restoration";
 
 
