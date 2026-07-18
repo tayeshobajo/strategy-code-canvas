@@ -95,13 +95,16 @@ function WorkspaceLayout() {
         <WorkspaceToolbar projectId={projectId} project={workspace.project} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)_300px]">
         <div className="hidden xl:block">
           <LeftProjectRail projectId={projectId} />
         </div>
         <div className="min-w-0">
           <Outlet />
         </div>
+        <aside className="hidden xl:block space-y-4">
+          <LatestAmendmentsPanel projectId={projectId} />
+        </aside>
       </div>
 
       <MobileRailDrawer
