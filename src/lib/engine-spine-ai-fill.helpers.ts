@@ -97,7 +97,10 @@ export function normalizePointB(raw: unknown): Partial<PointB> {
   return out;
 }
 
-export function changedKeys(prev: Record<string, unknown>, next: Record<string, unknown>): string[] {
+export function changedKeys(
+  prev: Record<string, unknown>,
+  next: Record<string, unknown>,
+): string[] {
   const keys = Array.from(new Set([...Object.keys(prev), ...Object.keys(next)]));
   return keys.filter(
     (key) => JSON.stringify(prev[key] ?? null) !== JSON.stringify(next[key] ?? null),
