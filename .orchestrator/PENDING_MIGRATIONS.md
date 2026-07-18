@@ -5047,7 +5047,9 @@ Restore the prior body of `tg_engine_agent_costs_cap_guard` from
 
 ---
 
-## RT-1 — Roadmap Synthesis persistence (pending Tai approval)
+## RT-1 — Roadmap Synthesis persistence
+
+Status: **APPLIED (2026-07-18)**.
 
 Adds durable state + attempt history so the orchestrator can distinguish
 `failed` / `stale` from `missing`, coalesce concurrent runs, and store
@@ -5136,6 +5138,8 @@ Notes:
   reuse `engine_spine_field_truth` — no new table needed.
 
 ## RT-2 — Allow `world-entry` (and future doctrine gates) in engine_spine_field_truth.spine_check
+
+Status: **APPLIED (2026-07-18)**.
 
 **Why**: RT-2 currently persists World Entry state to a sidecar bucket on
 `engine_projects.spirit_first_analysis.world_entry_workspace` because the
