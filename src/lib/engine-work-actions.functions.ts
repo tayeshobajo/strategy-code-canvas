@@ -151,6 +151,15 @@ export const resolveBlocker = createServerFn({ method: "POST" })
       severity: data.resolution === "escalated" ? "warn" : "info",
       actor_email: email,
     });
+    await notifyOperators(sb, {
+      projectId: existing.project_id,
+      kind: "blocker.resolved",
+      title: `Blocker ${data.resolution}: ${existing.title}`,
+      body: `${email ?? "operator"} — ${data.note}`,
+      href: `/engine/projects/${existing.project_id}/work?view=blockers`,
+      actor: email,
+      extra: { review_item_id: existing.id, resolution: data.resolution },
+    });
 
     return { ok: true as const };
   });
