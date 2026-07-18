@@ -317,6 +317,7 @@ export const approveWorldEntry = createServerFn({ method: "POST" })
       history: state.history,
     };
     await writeSidecar(sb, data.projectId, spirit, nextState);
+    await mirrorWorldEntryToFieldTruth(sb, data.projectId, approved, actor, "human");
 
     await insertEngineActivity(sb, {
       project_id: data.projectId,
