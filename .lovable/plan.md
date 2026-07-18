@@ -1,121 +1,118 @@
-# Project Roadmap Tab — Implementation Plan
+## Project Work Tab — Execution Operating Layer
 
-Replaces the placeholder `src/routes/engine.projects.$projectId.roadmap.tsx` with the living strategic map described in the brief. Continues the locked Trust Tai Spine visual baseline (warm-white, navy, electric blue accent, Instrument Serif headings, Inter body, engine-theme cloud-blue chrome). Persistent project shell (`LeftProjectRail`, `ProjectHeaderStrip`, `WorkspaceToolbar`) is already in place — the Roadmap slots into it as a peer of Spine.
+Replace the placeholder card at `src/routes/engine.projects.$projectId.work.tsx` with a real, server-owned execution surface that mirrors the brief and continues the locked Spine / Roadmap design language.
 
-## Architecture at a glance
+## How it interconnects (system view)
+
+The Work tab is downstream of Spine → Roadmap and upstream of QA & Delivery → Client View. Nothing here invents state; every panel reads a single server-owned view model composed from existing durable tables.
 
 ```text
-Approved Point A/B (engine_spine_field_truth)
-        │
-        ▼
-Roadmap read model  ── getProjectRoadmap (server fn)
-        │           ── composed from: engine_projects, engine_milestones,
-        │              engine_project_dates, engine_project_frames/mockups/
-        │              build_packets/qa_*, engine_roadmap_versions,
-        │              engine_review_items, engine_activity, family links
-        ▼
-Roadmap view model  ── deriveRoadmapView (pure)
-        │           ── phases, critical path, health, gaps, captain brief
-        ▼
-Roadmap route  ─── Header ─ Summary strip ─ Journey band
-               ─── View switch (Timeline / Table / Journey)
-               ─── Right rail (Captain, Critical Path, Approvals, Health)
+                Approved Spine (truth statuses, Point A/B)
+                              │
+                              ▼
+                    Approved Roadmap (versions, milestones)
+                              │  engine_milestones
+                              ▼
+              ┌───────────────────────────────┐
+              │        Work Read Model        │  ProjectWorkReadModel
+              │  composed server-side, one    │  (server fn: getProjectWork)
+              │  round trip per Work render   │
+              └───────────────────────────────┘
+                              │
+   ┌──────────────┬───────────┼──────────────┬─────────────────┐
+   ▼              ▼           ▼              ▼                 ▼
+Summary strip  Captain    Milestone     Work Queue         Agents view
++ Next-best    Brief      Execution    (engine_tasks +    (engine_agent_tasks
+ action                    cards         packets)          + assignments)
+                              │
+                              ▼
+                      Evidence + Blockers
+                (engine_project_build_evidence,
+                 engine_review_items where status=blocker)
+                              │
+                              ▼
+                    QA Handoff candidates ──────► QA & Delivery tab
 ```
 
-Every visible state is backed by durable records. Drafts render as drafts; only the approved baseline (`engine_roadmap_versions.status = 'approved'` and latest) unlocks operational readiness.
+The governing invariant: every work item traces back to an approved milestone (`engine_milestones.approval_status = 'approved'`), an intended outcome (milestone `brief_md` / `client_safe_md`), and acceptance conditions (`acceptance_criteria`). Rows that don't trace go into a "Needs Review — off-roadmap" band, never the main queue.
 
-## Data model decisions
+## Scope of this plan
 
-- **No new tables in this sprint.** Phases are a derived concept: `engine_milestones.phase` (existing string) groups milestones; phase order, outcome, and rationale live inside the current approved `engine_roadmap_versions.payload.phases[]`. If a project has no version payload, phases fall back to distinct `phase` values sorted by earliest milestone start.
-- **Phase metadata (outcome, rationale, health, client-safe summary)** is read from the version payload where present, and left blank / "Not configured" otherwise — never inferred.
-- **Dependencies** read from `engine_milestones.dependencies` (jsonb array of milestone ids) plus family links (`engine_projects.parent_project_id`) for cross-project edges.
-- **Critical path** is computed in the pure view module using longest-duration path through the milestone DAG on due dates.
-- **A `phases` table + `roadmap_change_requests` table are deferred** to `.orchestrator/PENDING_MIGRATIONS.md` (see §Pending migrations). This sprint uses payload-embedded phase metadata and reuses `engine_review_items` for change requests so nothing ships blocked on schema.
+Implements Phases 1–4, 6, 7, 9 from the brief in one shippable pass. Phase 5 (execution packets) hooks into the existing `engine_project_build_packets` table (no schema changes). Phase 8 (cost + material changes) surfaces existing `estimated_cost_cents` and `engine_activity` — no new metering. Phase 10 QA is scenario checks against real project rows.
 
-## Files to add
+**Out of scope for this pass (call out to user, do not silently defer):**
+- New DB tables or columns. Any schema needs go to `.orchestrator/PENDING_MIGRATIONS.md`.
+- Writing new work items or lifecycle transitions from this tab beyond what existing server functions already expose (Start / Block / Submit are wired as CTAs, but net-new mutation server functions are not created unless a matching one already exists).
+- Real per-agent cost telemetry beyond what `engine_agent_tasks.cost_cents` and `engine_milestones.estimated_cost_cents` already store.
 
-Server / read model
-- `src/lib/roadmap-view.ts` — pure module: `deriveRoadmapView(inputs) -> RoadmapView` (phases, milestones, dependencies, criticalPath, health, missingForApproval, captainBrief scaffold, changeSummary vs prior version). Fully unit-testable.
-- `src/lib/roadmap-view.test.ts` — covers: phase grouping fallback, gate ordering, blocked-upstream propagation, critical path selection, draft vs approved separation, parent/child aggregation, version diff (added/modified/removed/resequenced/date/dep/outcome).
-- `src/lib/engine-roadmap.functions.ts`
-  - `getProjectRoadmap({ projectId, versionId? })` — auth via `requireSupabaseAuth`, role-gated with `hasRoleForEmail`. Returns `{ project, version, phases, milestones, dependencies, criticalPath, health, captainBrief, changeSummary, family, permissions }`.
-  - `listRoadmapVersions({ projectId })`.
-  - `compareRoadmapVersions({ projectId, fromId, toId })` — diff via `roadmap-view` helpers.
-  - `submitRoadmapChangeRequest({ projectId, payload })` — writes an `engine_review_items` row typed `roadmap_change_request` with impact snapshot; uses `insertEngineActivity`.
-  - `askCaptainRoadmap({ projectId, question })` — thin wrapper over `callLovableAi` seeded with the read-model summary and the canonical questions from §6.
-- `src/lib/engine-roadmap-captain.server.ts` — prompt assembly + JSON parsing.
+## Files
 
-Route + UI (roadmap tab lives under project shell, so header identity/toolbar are already provided)
-- `src/routes/engine.projects.$projectId.roadmap.tsx` — replaces the current placeholder. Loads roadmap via `useServerFn` + `useQuery`; renders states: `no-truth` (empty guided), `draft`, `approved`, `error`, `stale-version`.
-- `src/components/engine/roadmap/RoadmapHeader.tsx` — left: title, tagline, version chip (`Baseline v1.2 · Approved`), current phase, last change; right: Add Milestone, Ask Captain, Compare Versions, Filters, More menu (Edit phases, Sequencing, Manage dates, Investment, Generate brief, Publish client-safe, Archive version).
-- `src/components/engine/roadmap/RoadmapSummaryStrip.tsx` — 8 restrained cells per §7.
-- `src/components/engine/roadmap/StrategicJourneyBand.tsx` — Point A → phases → Point B, selecting a phase filters the active view.
-- `src/components/engine/roadmap/RoadmapViewSwitch.tsx` — Timeline / Table / Journey; default rule: Journey if no active work yet, Timeline once phases have active milestones.
-- `src/components/engine/roadmap/RoadmapTimeline.tsx` — phase rows, milestone cards, today marker, week/month/quarter zoom, fit / jump-to-today, subtle SVG dependency connectors, subtle critical-path highlight. Drag only when `permissions.can_edit_dates`.
-- `src/components/engine/roadmap/RoadmapTable.tsx` — canonical columns from §24, row opens milestone workspace.
-- `src/components/engine/roadmap/RoadmapJourney.tsx` — editorial phase-by-phase story (Instrument Serif headers).
-- `src/components/engine/roadmap/MilestoneCard.tsx` — single card used by timeline; readiness chips (Criteria / Mockups / Build / QA) from `milestone-readiness-evaluator`. Quick actions menu per §12; actions respect `permissions` and readiness gates.
-- `src/components/engine/roadmap/DependencyLayer.tsx` — SVG overlay, hover to reveal dependency detail popover.
-- `src/components/engine/roadmap/CriticalPathPanel.tsx`, `RoadmapCaptainBrief.tsx`, `RoadmapHealthPanel.tsx`, `RoadmapApprovalsPanel.tsx` — right-rail cards; rail is sticky (same pattern as Spine right rail).
-- `src/components/engine/roadmap/CompareVersionsDialog.tsx` — diff list (Added / Modified / Removed / Resequenced / Date changed / Dependency changed / Outcome changed) with rationale + approver.
-- `src/components/engine/roadmap/ChangeRequestDialog.tsx` — request form (reason, urgency, scope/date/cost impact, affected milestones, Captain recommendation preview).
-- `src/components/engine/roadmap/RoadmapFilters.tsx` — restrained filter menu per §22.
-- `src/components/engine/roadmap/RoadmapEmptyStates.tsx` — no-truth, draft-generating, error.
-- `src/components/engine/roadmap/FamilyRoadmapTracks.tsx` — parent view with child tracks + cross-project dependency chips; child view shows parent objective banner.
+### New — read model + server functions
+- `src/lib/work-view.ts` — pure derivation. Input: raw rows for the project (milestones, tasks, packets, evidence, agent tasks, review items, activity, roadmap view). Output: `ProjectWorkReadModel` matching the brief's §34 shape. Handles: summary counts, milestone execution states (12 canonical states), gate progression (Brief / Criteria / Mockups / Build / QA / Delivery), readiness reasons, blocker classification, next-best-action selection, work health, scope-drift detection, QA handoff eligibility.
+- `src/lib/engine-work.functions.ts` — `getProjectWork` server fn (`requireSupabaseAuth` + operator/admin gate, mirrors the roadmap fn pattern). One handler composes: `engine_projects`, `engine_milestones`, `engine_tasks`, `engine_project_build_packets`, `engine_project_build_evidence`, `engine_agent_tasks`, `engine_review_items` (item_type='blocker' or status='blocked'), `engine_activity` (last 30 material changes), plus reuses `getProjectSpine` + `deriveRoadmapView` for milestone gate context.
+- `src/lib/work-view.test.ts` — unit tests for the 10 canonical QA scenarios in §39: locked-when-no-roadmap, ready-to-plan, visual milestone with unapproved mockups, non-visual N/A gate, agent execution flow, blocked dependency, scope drift, ready-for-QA gating, agent failure, parent/child aggregation.
 
-Tokens
-- Extend `src/styles.css` (engine-theme scope only) with roadmap-specific tokens: `--roadmap-critical`, `--roadmap-blocked`, `--roadmap-active`, `--roadmap-planned`, `--roadmap-complete`, `--roadmap-today`, `--roadmap-dependency` — all mapped to existing Trust Tai palette (navy, electric blue, quiet reds/ambers/greens). No new colors introduced globally.
+### New — components (all under `src/components/engine/work/`)
+- `WorkHeader.tsx` — title, subtitle, execution phase, active milestone count, work health chip, last material change, version. Right side: Add Work, Ask Captain, Open Blockers, Filters, More menu (Agent Workspace, Generate execution brief, Compare work changes, Manage assignments, View cost analysis, Export internal work report, Open history).
+- `WorkSummaryStrip.tsx` — 8 pill metrics (Ready to Start, In Progress, Blocked, Awaiting Approval, Awaiting Client, Ready for QA, Active Agents, Value Blocked). Each filters the view via search params.
+- `HighestLeverageWorkAction.tsx` — inline card mirroring the reference image's amber "Highest-Leverage Action" panel: action, milestone, why-it-matters, owner, due, impact, CTA. Server-selected via `work-view`'s `next_best_action` (ranked by downstream-blocked count, urgency, authority).
+- `WorkModeSwitcher.tsx` — three-tab switcher: Milestones / Queue / Agents (URL search param `mode`).
+- `MilestoneExecutionCard.tsx` — one card per milestone: name, outcome, phase, current gate, work state (12 canonical states from durable gates), owner, active tasks count, blocked tasks count, expected artifact, evidence progress `x of n`, cost, due, gate progression strip (Brief → Criteria → Mockups → Build → QA → Delivery with ✓ / current / locked / N/A pills), CTA "Open Milestone Workspace" deep-linking to the existing milestone workspace tabs.
+- `MilestoneGateStrip.tsx` — the reference image's mini-timeline dots (Brief / Criteria / Mockups / Build / QA), fed from durable gate order; never renders a downstream state that violates predecessor order.
+- `WorkQueueTable.tsx` — Queue view: Work Item, Milestone, Purpose, Owner (human/agent badge), Status, Priority, Dependency, Expected Artifact, Evidence chip, Due, Next Action. Row click opens `WorkItemDrawer`.
+- `WorkItemDrawer.tsx` — full detail: name, milestone link, purpose, expected artifact, acceptance criteria list, owner/reviewer/approver rows, status + lifecycle badge (Draft → Ready → Assigned → In Progress → Submitted → Evidence Review → Accepted → Complete, plus Blocked / Needs Clarification / Rejected / Superseded / Cancelled branches), dependencies, blockers, effort/cost, evidence requirements list with attach state, related mockup/brief link, source of instruction, change history. Actions row: Start, Pause, Block, Submit, Attach Evidence, Ask Captain, Reassign, Request Clarification, Move to Milestone, Propose Scope Change. Actions that already have a server fn call it; the rest render disabled with a "server fn pending" tooltip so we don't fake writes.
+- `AgentsView.tsx` — agent-oriented pivot: role, current work, project, state (Working / Monitoring / Waiting / Needs Clarification / Blocked / Failed / Complete / Idle), waiting reason, last activity, cost, "Ask Captain" CTA. States derived from `engine_agent_tasks.status` + `pending_approval` + `error`.
+- `WorkCaptainBriefCard.tsx` — right-rail Captain Brief: What changed / What matters now / Recommendation / Watch for, plus `CaptainPrompts` (reuses existing component) with work-specific prompt seeds ("What should start next?", "Which milestone is ready for QA?", "Where is scope drifting?", "Which agent is waiting?").
+- `WorkApprovalsBlockersCard.tsx` — right-rail card listing execution-related items from `engine_review_items` with impact + CTA.
+- `WorkAgentsRailCard.tsx` — condensed active-agents card for the right rail (mirrors the reference image's Active Agents box: Captain, PM, Developer, QA with state chips).
+- `WorkCostCapacityCard.tsx` — MTD spend, burn rate, capacity load, without turning into a finance dashboard.
+- `WorkEmptyState.tsx` — the six empty/error states from §31–32 (no approved roadmap, roadmap approved / nothing ready, no active work, agent not assigned, blocked by missing truth, version mismatch, agent failure) with correct CTAs.
 
-## Files to change
+### Modified
+- `src/routes/engine.projects.$projectId.work.tsx` — delete the placeholder card & shortcut buttons. New route:
+  - `validateSearch` for `mode` (milestones/queue/agents), `filter` (summary pill filters), `milestoneId`, `workItemId` (drawer state), `agentId`.
+  - Loader uses `queryOptions` + `getProjectWork` (called via `useServerFn` inside the component so it's safe under `_authenticated` and matches the roadmap route's pattern).
+  - Renders: `WorkEmptyState` when no approved roadmap OR no milestones ready; otherwise `WorkHeader` + `WorkSummaryStrip` + `HighestLeverageWorkAction` + `WorkModeSwitcher` + main region (Milestones cards | Queue table | Agents view) in a two-column layout with the persistent right rail (`WorkCaptainBriefCard`, `WorkApprovalsBlockersCard`, `WorkAgentsRailCard`, `WorkCostCapacityCard`).
+  - Uses the same `xl:sticky` right-rail treatment used on Spine and Roadmap so it feels like the execution counterpart.
 
-- `src/routes/engine.projects.$projectId.roadmap.tsx` — replace placeholder body.
-- `src/components/engine/WorkspaceHeader.tsx` — `More` menu dispatches new events (`roadmap:add-milestone`, `roadmap:compare-versions`, `roadmap:publish-client-safe`, etc.) so Roadmap-scoped actions surface from the persistent toolbar when the tab is active.
-- `src/components/engine/LeftProjectRail.tsx` — no structural change; verify Roadmap remains selected across sub-states.
-- `src/lib/engine-activity.ts` — reuse existing `insertEngineActivity`; add new event kinds: `roadmap.view_opened`, `roadmap.milestone_opened`, `roadmap.change_requested`, `roadmap.version_compared`, `roadmap.client_export_attempted`.
+### Not touched
+- `src/components/engine/LeftProjectRail.tsx`, `src/routes/engine.projects.$projectId.tsx` (project shell + navigation stays as-is, per §4 "Do not create a second navigation").
+- Existing milestone workspace tabs, QA routes, Agent Workspace route — the Work tab deep-links into them; no duplication.
+- No writes to Supabase schema. If a lifecycle transition or scope-change action needs a new mutation and no server fn exists, it's rendered as a disabled affordance with a tooltip until we ship the write path.
 
-## Interconnection with the rest of the system
+## Design fidelity (matches reference image + baseline)
 
-- **Spine → Roadmap**: `deriveRoadmapView` refuses to promote past `draft` unless `getProjectSpine` reports Point A and Point B as `approved_truth`. The no-truth empty state deep-links back to Spine (`#point-a`, `#point-b`).
-- **Roadmap → Milestone workspace**: `MilestoneCard` and table rows link to `engine.projects.$projectId.milestones.$milestoneId` (already exists via `MilestoneTabs`). Readiness chips deep-link to Brief / Plan / Mockups / Build / QA / History tabs.
-- **Roadmap → Work / QA & Delivery**: Only milestones under the approved baseline appear as actionable in Work and QA rooms — enforced in the read model, not the UI.
-- **Roadmap → Client View**: `roadmap-publish.buildClientSafePayload` already exists; the Publish action opens `CompareVersionsDialog` first, then routes through the existing approval ceremony.
-- **Roadmap ↔ Captain**: `askCaptainRoadmap` accepts the canonical §6 questions as one-tap chips inside `RoadmapCaptainBrief`; answers persist as chat events on the existing project chat thread so the Ask Captain modal already restores them.
-- **Roadmap ↔ Family**: parent/child projects share the version diff and dependency layer via `FamilyRoadmapTracks`.
+- Warm-white app bg (`.engine-theme` cloud tokens already in place), white cards with warm-gray borders, deep navy typography, electric royal blue for active work / CP, Instrument Serif for headings, Inter for UI. No new colors introduced.
+- Header pattern, summary pill row, and amber highest-leverage banner mirror the uploaded reference exactly.
+- Two-column grid `minmax(0,1fr) 320px` with sticky right rail — same as Roadmap for continuity.
+- Milestone cards use the reference image's compact stat block (Active Tasks / Blockers / Evidence %) with a full-width gate strip beneath.
 
-## Permissions
+## Data notes
 
-Server function returns a `permissions` object driven by `hasRoleForEmail`:
-- Tai/Admin: `can_approve_baseline`, `can_edit_phases`, `can_publish_client_safe`, `can_override_dates`.
-- Operator: `can_draft`, `can_add_milestone`, `can_adjust_dates_within_authority`, `can_submit_change_request`.
-- Agent: read + propose only; UI hides mutation controls.
-- Client: never sees this route (already gated by `_authenticated` + engine role).
+- **Value Blocked** ($ metric): summed `engine_milestones.estimated_cost_cents / 100` for milestones with any active blocker; brief documents this fallback since no per-blocker $ field exists.
+- **Active Agents count**: distinct `engine_agent_tasks.related_module` runners with status != 'rejected'/'applied' AND updated within 24h.
+- **Scope drift detection**: for each in-progress task, compare its `milestone_id`'s current `acceptance_criteria` hash against the packet's snapshot at hand-off (`engine_project_build_packets.payload.criteria_hash` if present, else flag as "packet lacks snapshot").
+- **QA handoff eligibility**: milestone qualifies when all its build packets are `accepted`, evidence count ≥ required, no open blocker rows, `engine_milestones.approval_status = 'approved'`, and a QA plan exists (`engine_project_qa_plans` row for the milestone).
+- **Next-best action ranking**: score = downstream_blocked_count × 3 + urgency_days_overdue × 2 + (requires_admin ? 2 : 0). Highest score wins; ties broken by earliest due date.
 
-## States covered (§29–30, §33 QA scenarios)
+## Guarding invariants (server-side)
 
-`no-truth`, `draft`, `draft-generating`, `approved`, `error`, `stale-version`, `dependency-conflict`, `client-export-blocked` — each rendered by dedicated components in `RoadmapEmptyStates.tsx` / inline banners. Reload prompt fires when `getProjectRoadmap` returns a `version.updated_at` newer than the one the client mounted with.
-
-## Pending migrations (write to `.orchestrator/PENDING_MIGRATIONS.md`, do not apply)
-
-1. `engine_roadmap_phases` — first-class phase records (id, project_id, order, name, outcome, rationale, status, health, client_safe_summary, date_range, owner). Migrates existing payload phases.
-2. `engine_roadmap_change_requests` — dedicated table with impact snapshot, approvers, resolution; supersedes the `engine_review_items` overload.
-3. `engine_milestone_dependencies` — normalized edges (from_milestone_id, to_milestone_id, type, status, risk) to replace the jsonb blob; enables efficient cycle detection.
-
-## Voice + design guardrails
-
-- Instrument Serif only on major headings and journey moments; Inter for everything else.
-- Sentence case throughout, no em-dashes, no "leverage", no exclamation points, quiet status colors.
-- No Gantt-chart chrome, no dense PM grids, no percentage-without-context, no cream (engine-theme cloud-blue only).
-- Right rail sticky using the same pattern as Spine.
+- All reads scoped by `project_id` and gated by `requireSupabaseAuth` + `hasRoleForEmail('operator' | 'admin')`.
+- Client-facing surfaces (Client View) never receive this payload; the read model has no `internal_only: false` fields to strip because the whole payload is internal.
+- Agents cannot approve their own work — this is a display invariant here: acceptance CTAs are hidden when `viewer.email === work_item.owner_id`. The DB-level enforcement is Phase 9C and remains in `.orchestrator/PENDING_MIGRATIONS.md`; we surface a banner if any accepted row violates the rule so ops can see drift.
 
 ## Verification
 
-- `vitest run src/lib/roadmap-view.test.ts` — pure logic (phases, gates, critical path, diff).
-- `tsgo` typecheck on all new files.
-- Playwright smoke against a real project (`cakepro`): opens `/engine/projects/:id/roadmap`, asserts Journey band renders phases from `engine_roadmap_versions`, Timeline shows milestones from `engine_milestones` with readiness chips matching `milestone-readiness-evaluator`, Compare Versions dialog opens with a real prior version, Ask Captain returns a Captain Brief. Screenshots at 1280×1800 for Journey, Timeline, Table, no-truth empty state, draft state, compare dialog.
-- Manual pass through the 10 canonical QA scenarios in §33; capture proof in `.orchestrator/phase-spine2-roadmap-output.md`.
+- `bunx tsgo` clean.
+- Unit tests: `bunx vitest run src/lib/work-view.test.ts` — all 10 canonical scenarios pass.
+- Playwright against the live preview at `/engine/projects/<realProjectId>/work`: screenshot Milestones view, Queue view, Agents view, an empty state, and the drawer open. Confirm the reference image's layout, sticky right rail, and gate strip render.
+- Manual: click every CTA; confirm deep links resolve to the correct existing routes and that disabled affordances show the "server fn pending" tooltip rather than errors.
 
-## Out of scope for this sprint (called out to user before build)
+## Sequence (single build session)
 
-- The three schema migrations above (deferred, gated on Tai approval).
-- Drag-to-reschedule with automatic version bump — read-only date edits via existing `Manage dates` route until phases table lands.
-- Autonomous project-split execution — Captain will *recommend* a split, human confirms in Family view.
+1. `work-view.ts` + `work-view.test.ts` (make tests pass first).
+2. `engine-work.functions.ts` (compose the read model).
+3. Components in dependency order: primitives (header, summary strip, gate strip) → milestone card → queue table → drawer → agents view → right-rail cards → empty states.
+4. Route swap + search-schema wiring.
+5. Typecheck, unit tests, Playwright verify, commit `feat(work-tab): execution operating layer`.
+6. Write `.orchestrator/phase-work-tab-output.md` with the changed-files list, screenshots, and any deferred writes.
