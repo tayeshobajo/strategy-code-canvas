@@ -74,6 +74,12 @@ import {
 } from "@/lib/intelligence-room-links";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { listChatThreads, getChatThread } from "@/lib/engine-chat.functions";
+import { IdentityStrip } from "@/components/engine/spine/IdentityStrip";
+import { NarrativeHeader } from "@/components/engine/spine/NarrativeHeader";
+import { CaptainIntelligencePanel } from "@/components/engine/spine/CaptainIntelligencePanel";
+import { PointCard } from "@/components/engine/spine/PointCard";
+import { StrategicThesisCard } from "@/components/engine/spine/StrategicThesisCard";
+import { extractPointBullets } from "@/lib/spine-coherence";
 
 /**
  * Map the richer 7-tone `SpineStatusPresentation` palette onto the 5
@@ -312,19 +318,51 @@ function ProjectSpine() {
   exportHandlerRef.current = handleExportClientRoadmap;
 
 
+  const identityCells = [
+    { label: "Client", value: spine.project.client_company || "—" },
+    { label: "Project", value: spine.project.name || "—" },
+    { label: "Type", value: spine.project.frame ? humanize(spine.project.frame) : "—" },
+    { label: "Roadmap", value: spine.version?.label ?? "Draft" },
+    {
+      label: "Health",
+      value: spine.project.health_score > 0
+        ? `${spine.project.health_score} · ${healthFromScore(spine.project.health_score).label}`
+        : deriveHealth(spine.project.status, blockedItemsCount).label,
+      tone: (spine.project.health_score >= 80
+        ? "ok"
+        : spine.project.health_score >= 60
+          ? "warn"
+          : blockedItemsCount > 0
+            ? "bad"
+            : "neutral") as "ok" | "warn" | "bad" | "neutral",
+    },
+    {
+      label: "Portal",
+      value: spine.portal_publish ? humanize(spine.portal_publish.status) : "Not Published",
+    },
+  ];
+  const narrativeTitle = spine.project.name || "Untitled project";
+  const narrativeSubtitle = spine.project.goal
+    ? spine.project.goal
+    : "The living story of this project — truth, direction, and next move.";
+
   return (
     <div className="min-w-0 space-y-6 text-[#0A0F1F]">
-      {/* ───── Header row ───── */}
+      {/* ───── Identity strip ───── */}
+      <IdentityStrip cells={identityCells} />
+
+      {/* ───── Narrative header ───── */}
+      <NarrativeHeader title={narrativeTitle} subtitle={narrativeSubtitle} />
+
+      {/* ───── Header actions ───── */}
       <SpinePageHeader
         projectId={projectId}
         pendingApprovalsCount={pendingApprovalsCount}
         onAskCaptain={() => setAskCaptainOpen(true)}
       />
 
-
-      {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
+      {/* ───── Variant banner ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
-
 
       {/* ───── Status strip (7 cells) ───── */}
       <SpineStatusStrip
@@ -359,50 +397,70 @@ function ProjectSpine() {
       {variant === "active" ? (
         <>
 
-      {/* ───── Hero row: NBA + Snapshot ───── */}
+      {/* ───── First viewport: NBA + Captain Intelligence ───── */}
       <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] xl:gap-6">
         <HeroNextBestActionCard
           nba={spine.nba}
           nextMilestone={nextMilestone ?? null}
           projectId={projectId}
         />
-        <ProjectSnapshotCard
-          project={spine.project}
-          version={spine.version}
-          pendingApprovals={pendingApprovalsCount}
-          blockedItems={blockedItemsCount}
-          approvedMilestones={approvedMilestoneCount}
-          totalMilestones={spine.milestones.length}
-          nextMilestoneDue={nextMilestone?.due_date ?? null}
-          healthScore={spine.project.health_score}
-          ownerEmail={spine.project.client_owner_email}
-          portalPublish={spine.portal_publish}
+        <CaptainIntelligencePanel
+          whatChanged={
+            spine.activity[0]
+              ? `${spine.activity[0].title} · ${formatRelative(spine.activity[0].created_at)}`
+              : "No new signals in the last cycle."
+          }
+          whatMatters={
+            blockedItemsCount > 0
+              ? `${blockedItemsCount} blocked item${blockedItemsCount === 1 ? "" : "s"} need attention before the next milestone unlocks.`
+              : pendingApprovalsCount > 0
+                ? `${pendingApprovalsCount} approval${pendingApprovalsCount === 1 ? "" : "s"} waiting on you.`
+                : "The project is on track — focus on advancing the next milestone."
+          }
+          recommendation={spine.nba.action}
         />
       </div>
 
-      {/* ───── Truth row: Point A / Point B ───── */}
+      {/* ───── Snapshot (secondary, kept for operator reference) ───── */}
+      <ProjectSnapshotCard
+        project={spine.project}
+        version={spine.version}
+        pendingApprovals={pendingApprovalsCount}
+        blockedItems={blockedItemsCount}
+        approvedMilestones={approvedMilestoneCount}
+        totalMilestones={spine.milestones.length}
+        nextMilestoneDue={nextMilestone?.due_date ?? null}
+        healthScore={spine.project.health_score}
+        ownerEmail={spine.project.client_owner_email}
+        portalPublish={spine.portal_publish}
+      />
+
+      {/* ───── Mirrored Point A / Point B ───── */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <TruthCardV2
+        <PointCard
           point="A"
           projectId={projectId}
           status={spine.project.point_a_status}
-          bullets={collectTruthBullets(pointA, ["current_state", "challenges", "summary", "description"])}
+          bullets={extractPointBullets(pointA, "A")}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
           inspectorKey="point_a"
           inspectorLabel="Point A — Current Reality"
         />
-        <TruthCardV2
+        <PointCard
           point="B"
           projectId={projectId}
           status={spine.project.point_b_status}
-          bullets={collectTruthBullets(pointB, ["destination", "goal", "vision", "success_looks_like", "frame"])}
+          bullets={extractPointBullets(pointB, "B")}
           sourceCount={spine.sources.total}
           approvedAt={spine.version?.approved_at ?? null}
           inspectorKey="point_b"
           inspectorLabel="Point B — Desired Future"
         />
       </div>
+
+      {/* ───── Strategic Thesis ───── */}
+      <StrategicThesisCard projectId={projectId} />
 
       {/* ───── Business Roadmap preview strip (Point A → phases → Point B) ───── */}
       <BusinessRoadmapPreview
@@ -419,6 +477,24 @@ function ProjectSpine() {
         milestones={spine.milestones}
       />
 
+
+      {/* ───── Project Evidence & History (collapsed operational detail) ───── */}
+      <details className="group rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
+        <summary className="cursor-pointer list-none px-5 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-display text-base text-[#0A0F1F]">Project Evidence &amp; History</div>
+              <div className="mt-0.5 text-xs text-[#667085]">
+                Approvals, modules, sources, activity, audit, tasks, versions, readiness contract.
+              </div>
+            </div>
+            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#667085] group-open:text-[#3E68B2]">
+              <span className="group-open:hidden">Expand</span>
+              <span className="hidden group-open:inline">Collapse</span>
+            </div>
+          </div>
+        </summary>
+        <div className="space-y-6 border-t border-[#E8E1D6] px-5 py-5">
 
       {/* ───── Lower row: Approvals + Foundation + Captain Brief ───── */}
       <div className="grid gap-4 xl:grid-cols-3">
@@ -697,6 +773,9 @@ function ProjectSpine() {
           <SpineReadinessPanel projectId={projectId} />
         </SearchableBlock>
       </section>
+
+        </div>
+      </details>
 
       <NotificationsCard notifications={spine.notifications} />
         </>
