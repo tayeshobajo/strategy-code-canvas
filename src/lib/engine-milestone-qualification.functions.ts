@@ -28,6 +28,12 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertAdminOrOperator, type AuthCtx } from "@/lib/engine-epistemic.server";
 import { insertEngineActivity } from "@/lib/engine-activity";
+import { notifyOperators } from "@/lib/engine-work-notify";
+
+/** Marker written into engine_activity.body so we can filter per-milestone. */
+export function milestoneMarker(milestoneId: string): string {
+  return `[milestone:${milestoneId}]`;
+}
 
 const SIDECAR_KEY = "milestone_qualifications";
 const MODEL = "google/gemini-3.5-flash";
