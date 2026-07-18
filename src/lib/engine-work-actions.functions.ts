@@ -89,9 +89,18 @@ export const reassignWorkItem = createServerFn({ method: "POST" })
       project_id: existing.project_id,
       kind: "work.reassigned",
       title: `Work reassigned: ${existing.name}`,
-      body: `From ${prevOwner ?? "unassigned"} to ${data.newOwnerEmail ?? "unassigned"} (${data.ownerType}). Reason: ${data.reason}`,
+      body: `${taskMarker(existing.id)} From ${prevOwner ?? "unassigned"} to ${data.newOwnerEmail ?? "unassigned"} (${data.ownerType}). Reason: ${data.reason}`,
       severity: "info",
       actor_email: email,
+    });
+    await notifyOperators(sb, {
+      projectId: existing.project_id,
+      kind: "work.reassigned",
+      title: `Work reassigned: ${existing.name}`,
+      body: `${email ?? "operator"} moved owner to ${data.newOwnerEmail ?? "unassigned"} — ${data.reason}`,
+      href: `/engine/projects/${existing.project_id}/work?view=queue`,
+      actor: email,
+      extra: { task_id: existing.id, prev_owner: prevOwner, new_owner: data.newOwnerEmail },
     });
 
     return { ok: true as const };
