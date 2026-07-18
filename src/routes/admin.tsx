@@ -23,7 +23,9 @@ import {
   LayoutTemplate,
   Timer,
   HeartPulse,
+  Boxes,
 } from "lucide-react";
+
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
@@ -68,6 +70,13 @@ const NAV: AdminNav[] = [
   },
   { to: "/admin/config", label: "Runtime config", icon: Settings, match: "/admin/config" },
   { to: "/admin/roles", label: "User roles", icon: ShieldCheck, match: "/admin/roles" },
+  {
+    to: "/admin/capability-registry",
+    label: "Capability registry",
+    icon: Boxes,
+    match: "/admin/capability-registry",
+  },
+
   { to: "/ops/queue", label: "Roadmap intake queue", icon: ClipboardList, match: "/ops/queue" },
   {
     to: "/admin/intake-alerts",
