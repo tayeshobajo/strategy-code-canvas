@@ -265,20 +265,33 @@ function EngineLayout() {
 
             {/* Right cluster */}
             <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                className="hidden items-center gap-1.5 rounded-full border border-royal/30 bg-royal/5 px-3 py-1.5 text-xs font-medium text-royal transition-colors hover:bg-royal/10 sm:inline-flex"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                Ask Captain
-              </button>
-              <button
-                type="button"
-                aria-label="Notifications"
+              {activeProjectId ? (
+                <Link
+                  to="/engine/projects/$projectId/chat"
+                  params={{ projectId: activeProjectId }}
+                  className="hidden items-center gap-1.5 rounded-full border border-royal/30 bg-royal/5 px-3 py-1.5 text-xs font-medium text-royal transition-colors hover:bg-royal/10 sm:inline-flex"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Ask Captain
+                </Link>
+              ) : (
+                <Link
+                  to="/engine/projects"
+                  className="hidden items-center gap-1.5 rounded-full border border-royal/30 bg-royal/5 px-3 py-1.5 text-xs font-medium text-royal transition-colors hover:bg-royal/10 sm:inline-flex"
+                  title="Open a project to ask Captain"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Ask Captain
+                </Link>
+              )}
+              <Link
+                to="/engine/approvals"
+                aria-label="Notifications and approvals"
+                title="Approvals & notifications"
                 className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-ink/60 hover:bg-paper-soft hover:text-ink"
               >
                 <Bell className="h-4 w-4" />
-              </button>
+              </Link>
               <button
                 type="button"
                 onClick={signOut}
