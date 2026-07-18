@@ -136,11 +136,14 @@ describe.skipIf(!HAS_PG)("Roadmap tab → Publish to client portal (E2E via RPC)
     );
     cleanup.push(`DELETE FROM public.engine_projects WHERE id='${engineProjectId}'`);
 
-    // Two approved versions so we can publish twice.
+    // Two draft versions — enough to exercise the RPC's supersede path.
+    // (The RPC itself only enforces staff + non-null ids + caller email;
+    // approval gating is enforced by the wrapping server function, covered
+    // separately in review-item-and-publish-gates.test.ts.)
     versionAId = insertReturning(
       `INSERT INTO public.engine_roadmap_versions
          (project_id, version, status, client_preview_status, label, payload)
-       VALUES ('${engineProjectId}','v1.0','approved','approved',
+       VALUES ('${engineProjectId}','v1.0','draft','draft',
                '${marker} v1.0','{}'::jsonb)
        RETURNING id`,
     );
@@ -148,11 +151,12 @@ describe.skipIf(!HAS_PG)("Roadmap tab → Publish to client portal (E2E via RPC)
     versionBId = insertReturning(
       `INSERT INTO public.engine_roadmap_versions
          (project_id, version, status, client_preview_status, label, payload)
-       VALUES ('${engineProjectId}','v2.0','approved','approved',
+       VALUES ('${engineProjectId}','v2.0','draft','draft',
                '${marker} v2.0','{}'::jsonb)
        RETURNING id`,
     );
     cleanup.push(`DELETE FROM public.engine_roadmap_versions WHERE id='${versionBId}'`);
+
 
     // Portal project + client permission so the client-side read policy
     // (lower(email)=lower(auth.email()), status='published') returns rows.
