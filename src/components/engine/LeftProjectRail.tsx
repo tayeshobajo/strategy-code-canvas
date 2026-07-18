@@ -18,6 +18,7 @@ import {
   Brain,
   FileText,
   GitPullRequest,
+  Radar,
   X,
 } from "lucide-react";
 
