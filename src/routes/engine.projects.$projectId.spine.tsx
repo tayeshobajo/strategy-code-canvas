@@ -22,6 +22,7 @@ import {
 import { EngineStatusBadge, formatDate } from "@/components/engine/primitives";
 import { SpineVersionHistory } from "@/components/engine/SpineVersionHistory";
 import { SpineReadinessPanel } from "@/components/engine/SpineReadinessPanel";
+import { LatestAmendmentsPanel } from "@/components/engine/LatestAmendmentsPanel";
 import {
   Lock,
   ChevronLeft,
