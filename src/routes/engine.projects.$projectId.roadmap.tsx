@@ -459,8 +459,13 @@ function RoadmapHeader({
       <SynthesisPlanDrawer
         projectId={projectId}
         open={synthesisOpen}
-        onClose={() => setSynthesisOpen(false)}
+        onClose={() => {
+          setSynthesisOpen(false);
+          setSynthesisAutoMode(null);
+        }}
+        autoRunOnOpen={synthesisAutoMode}
       />
+
     </section>
   );
 }
