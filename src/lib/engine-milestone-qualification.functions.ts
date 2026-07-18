@@ -419,9 +419,26 @@ export const decideMilestoneQualification = createServerFn({ method: "POST" })
         ? "milestone_qualification.qualified"
         : "milestone_qualification.rejected",
       title: `Milestone ${data.decision} — ${milestone.name}`,
-      body: data.note || undefined,
+      body: `${milestoneMarker(data.milestoneId)}${data.note ? ` — ${data.note}` : ""}`,
       severity: data.decision === "qualified" ? "success" : "warn",
       actor_email: actor,
+    });
+
+    await notifyOperators(sb, {
+      projectId: data.projectId,
+      kind: data.decision === "qualified"
+        ? "milestone_qualification.qualified"
+        : "milestone_qualification.rejected",
+      title: `Milestone ${data.decision} — ${milestone.name}`,
+      body: data.note || (data.decision === "qualified"
+        ? "Ceremony complete. Milestone is qualified for execution."
+        : "Ceremony complete. Milestone was rejected."),
+      href: `/engine/projects/${data.projectId}/milestones/${data.milestoneId}/qualify`,
+      actor,
+      extra: {
+        milestone_id: data.milestoneId,
+        decision: data.decision,
+      },
     });
 
     return next;
