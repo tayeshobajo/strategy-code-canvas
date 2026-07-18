@@ -444,14 +444,14 @@ function MoreMenu({
           );
         })}
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="text-sm"
-          onSelect={(e) => {
-            e.preventDefault();
-            window.dispatchEvent(new CustomEvent("spine:export-roadmap"));
-          }}
-        >
-          <Download className="w-3.5 h-3.5 mr-2" /> Export Roadmap
+        <DropdownMenuItem asChild className="text-sm">
+          <Link
+            to="/engine/projects/$projectId/roadmap"
+            params={{ projectId }}
+            className="flex items-center gap-2"
+          >
+            <Download className="w-3.5 h-3.5 mr-2" /> Export Roadmap
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="text-sm">
           <Settings className="w-3.5 h-3.5 mr-2" /> Project Settings

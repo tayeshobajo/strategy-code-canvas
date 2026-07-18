@@ -26,12 +26,19 @@ export function ClientExportPreviewModal({
   milestones,
   canPublish,
   onClose,
+  onPublish,
 }: {
   version: RoadmapVersionMeta | null;
   phases: RoadmapPhase[];
   milestones: RoadmapMilestoneView[];
   canPublish: boolean;
   onClose: () => void;
+  /**
+   * Optional publish handler. When provided, invoked instead of the
+   * legacy `spine:export-roadmap` event fallback so callers on any route
+   * (not just the Spine route) can actually perform the export.
+   */
+  onPublish?: () => void | Promise<void>;
 }) {
   const [confirmed, setConfirmed] = useState(false);
   const approved = version?.status === "approved";
@@ -156,8 +163,14 @@ export function ClientExportPreviewModal({
             <button
               type="button"
               disabled={!canPublish || !confirmed || !approved}
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent("spine:export-roadmap"));
+              onClick={async () => {
+                if (onPublish) {
+                  await onPublish();
+                } else {
+                  // Fallback for legacy callers (Spine route registers a
+                  // window listener for this event).
+                  window.dispatchEvent(new CustomEvent("spine:export-roadmap"));
+                }
                 onClose();
               }}
               className="rounded-md bg-ink px-3 py-1.5 text-xs text-white hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-40"

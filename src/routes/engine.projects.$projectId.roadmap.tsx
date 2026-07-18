@@ -38,6 +38,9 @@ import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersion
 import { ClientExportPreviewModal } from "@/components/engine/roadmap/ClientExportPreviewModal";
 import { SynthesisPlanDrawer } from "@/components/engine/roadmap/SynthesisPlanDrawer";
 import { getRoadmapSynthesisFreshness } from "@/lib/roadmap-synthesis/plan.functions";
+import { getProjectWorkspace } from "@/lib/engine.functions";
+import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
+import { validateClientRoadmapExport } from "@/routes/engine.projects.$projectId.spine";
 import {
   MilestoneCpExplainer,
   PhaseCpExplainer,
@@ -107,6 +110,33 @@ function RoadmapDashboard({
   const { view, versions } = payload;
   const [compareOpen, setCompareOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const workspaceFn = useServerFn(getProjectWorkspace);
+  const workspaceQ = useQuery({
+    queryKey: ["engine", "workspace", projectId],
+    queryFn: () => workspaceFn({ data: { id: projectId } }),
+    staleTime: 60_000,
+    enabled: exportOpen,
+  });
+  const approvedMilestoneCount = useMemo(
+    () => view.milestones.filter((m) => m.status === "complete" || m.status === "done").length,
+    [view.milestones],
+  );
+  const handlePublishClientRoadmap = async () => {
+    const workspace = workspaceQ.data as { project: import("@/lib/engine-workspace").WorkspaceProject } | undefined;
+    if (!workspace) {
+      toast.error("Roadmap data is still loading. Try again in a moment.");
+      throw new Error("workspace not loaded");
+    }
+    const check = validateClientRoadmapExport(workspace.project);
+    if (!check.ok) {
+      toast.error(`Client Roadmap is not ready: ${check.missing[0]}`);
+      throw new Error(check.missing.join("; "));
+    }
+    exportClientRoadmapPdf(workspace.project, {
+      approvals: { approved: approvedMilestoneCount, total: view.milestones.length },
+    });
+    toast.success("Client-safe roadmap published.");
+  };
   const filteredMilestones = useMemo(() => {
     if (!activePhaseKey) return view.milestones;
     const phase = view.phases.find((p) => p.key === activePhaseKey);
@@ -191,6 +221,7 @@ function RoadmapDashboard({
           phases={view.phases}
           milestones={view.milestones}
           canPublish={payload.permissions.can_publish_client_safe}
+          onPublish={handlePublishClientRoadmap}
           onClose={() => setExportOpen(false)}
         />
       )}
