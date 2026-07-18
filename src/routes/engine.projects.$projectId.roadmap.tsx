@@ -18,6 +18,7 @@ import {
   Users,
   Timer,
   ChevronRight,
+  Network,
 } from "lucide-react";
 import { getProjectRoadmap, type ProjectRoadmapPayload } from "@/lib/engine-roadmap.functions";
 import type {
@@ -26,9 +27,13 @@ import type {
   RoadmapPhaseHealth,
   RoadmapPhaseStatus,
 } from "@/lib/roadmap-view";
+import { RoadmapDependencyGraph } from "@/components/engine/roadmap/RoadmapDependencyGraph";
+import { CaptainPrompts } from "@/components/engine/roadmap/CaptainPrompts";
+import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersionsModal";
+import { ClientExportPreviewModal } from "@/components/engine/roadmap/ClientExportPreviewModal";
 
 const searchSchema = z.object({
-  view: z.enum(["journey", "timeline", "table"]).default("journey"),
+  view: z.enum(["journey", "timeline", "graph", "table"]).default("journey"),
   phase: z.string().optional(),
   versionId: z.string().uuid().optional(),
 });
@@ -85,10 +90,12 @@ function RoadmapDashboard({
 }: {
   projectId: string;
   payload: ProjectRoadmapPayload;
-  activeView: "journey" | "timeline" | "table";
+  activeView: "journey" | "timeline" | "graph" | "table";
   activePhaseKey: string | null;
 }) {
   const { view, versions } = payload;
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   if (view.mode === "no_truth") {
     return <NoTruthState projectId={projectId} missing={view.missing_for_approval} />;
@@ -106,7 +113,12 @@ function RoadmapDashboard({
 
   return (
     <div className="space-y-5" data-qa-tab-view="roadmap" data-roadmap-mode={view.mode}>
-      <RoadmapHeader projectId={projectId} payload={payload} />
+      <RoadmapHeader
+        projectId={projectId}
+        payload={payload}
+        onOpenCompare={() => setCompareOpen(true)}
+        onOpenExport={() => setExportOpen(true)}
+      />
       <RoadmapSummaryStrip payload={payload} />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
@@ -123,7 +135,17 @@ function RoadmapDashboard({
             <PhasesDetailList phases={view.phases} milestones={view.milestones} activePhaseKey={activePhaseKey} />
           )}
           {activeView === "timeline" && (
-            <RoadmapTimeline phases={view.phases} milestones={filteredMilestones} />
+            <>
+              <CriticalPathBanner critical={view.critical_path} />
+              <RoadmapTimeline phases={view.phases} milestones={filteredMilestones} />
+            </>
+          )}
+          {activeView === "graph" && (
+            <RoadmapDependencyGraph
+              phases={view.phases}
+              milestones={filteredMilestones}
+              dependencies={view.dependencies}
+            />
           )}
           {activeView === "table" && (
             <MilestoneTable projectId={projectId} milestones={filteredMilestones} />
@@ -131,12 +153,33 @@ function RoadmapDashboard({
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto pr-1">
-          <CaptainBriefCard brief={view.captain_brief} />
-          <ChangeSummaryCard change={view.change_summary} versions={versions} />
+          <CaptainBriefCard brief={view.captain_brief} projectId={projectId} />
+          <ChangeSummaryCard
+            change={view.change_summary}
+            versions={versions}
+            onOpenCompare={() => setCompareOpen(true)}
+          />
           <CrossProjectCard family={view.cross_project_dependencies} />
           <ChangeRequestCta permissions={payload.permissions} projectId={projectId} />
         </aside>
       </div>
+
+      {compareOpen && (
+        <CompareVersionsModal
+          projectId={projectId}
+          versions={versions}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
+      {exportOpen && (
+        <ClientExportPreviewModal
+          version={view.version}
+          phases={view.phases}
+          milestones={view.milestones}
+          canPublish={payload.permissions.can_publish_client_safe}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -146,9 +189,13 @@ function RoadmapDashboard({
 function RoadmapHeader({
   projectId,
   payload,
+  onOpenCompare,
+  onOpenExport,
 }: {
   projectId: string;
   payload: ProjectRoadmapPayload;
+  onOpenCompare: () => void;
+  onOpenExport: () => void;
 }) {
   const { view, project } = payload;
   const version = view.version;
@@ -177,7 +224,7 @@ function RoadmapHeader({
             One living map — phases, milestones, dependencies. Every gate ties back to durable project truth.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             to="/engine/projects/$projectId/spine"
             params={{ projectId }}
@@ -185,10 +232,18 @@ function RoadmapHeader({
           >
             Back to Spine
           </Link>
+          <button
+            type="button"
+            onClick={onOpenCompare}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-xs text-ink hover:border-ink/40"
+          >
+            <GitBranch className="h-3.5 w-3.5" />
+            Compare versions
+          </button>
           {payload.permissions.can_publish_client_safe && (
             <button
               type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent("spine:export-roadmap"))}
+              onClick={onOpenExport}
               className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-xs text-white hover:bg-ink/90"
             >
               Publish client-safe view
@@ -353,12 +408,13 @@ function ViewSwitcher({
   activePhaseKey,
 }: {
   projectId: string;
-  activeView: "journey" | "timeline" | "table";
+  activeView: "journey" | "timeline" | "graph" | "table";
   activePhaseKey: string | null;
 }) {
-  const tabs: Array<{ key: "journey" | "timeline" | "table"; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+  const tabs: Array<{ key: "journey" | "timeline" | "graph" | "table"; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { key: "journey", label: "Journey", icon: MapIcon },
     { key: "timeline", label: "Timeline", icon: Clock },
+    { key: "graph", label: "Dependencies", icon: Network },
     { key: "table", label: "Milestones", icon: ListChecks },
   ];
   return (
@@ -619,6 +675,47 @@ function mapMilestoneStatus(s: string): RoadmapPhaseStatus {
 
 // ------------- timeline view -------------
 
+function CriticalPathBanner({
+  critical,
+}: {
+  critical: ProjectRoadmapPayload["view"]["critical_path"];
+}) {
+  if (!critical.bottleneck_id && !critical.bottleneck_name) {
+    return (
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+        No critical-path bottleneck detected. Milestones on the critical path
+        are highlighted in indigo below.
+      </div>
+    );
+  }
+  return (
+    <section
+      className="rounded-md border border-royal/30 bg-royal/5 px-3 py-2 text-xs text-ink"
+      role="status"
+      data-qa-section="critical-path-banner"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded bg-royal/15 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-royal">
+          Critical path
+        </span>
+        <span className="font-medium">{critical.bottleneck_name}</span>
+        {critical.delay_days != null && (
+          <span className="text-rose-700">· projected delay ≈ {critical.delay_days}d</span>
+        )}
+        {critical.downstream_impact_count > 0 && (
+          <span className="text-ink/60">
+            · blocks {critical.downstream_impact_count} downstream
+          </span>
+        )}
+      </div>
+      {critical.reason && <div className="mt-1 text-ink/70">Why: {critical.reason}</div>}
+      {critical.recovery && (
+        <div className="mt-0.5 text-ink/70">Recovery: {critical.recovery}</div>
+      )}
+    </section>
+  );
+}
+
 function RoadmapTimeline({
   phases,
   milestones,
@@ -638,6 +735,7 @@ function RoadmapTimeline({
   const min = Math.min(...times);
   const max = Math.max(...times);
   const span = Math.max(max - min, 1);
+  const cpIds = new Set(dated.filter((m) => m.on_critical_path).map((m) => m.id));
   return (
     <section className="rounded-xl border border-border bg-card p-4 shadow-sm" data-qa-section="roadmap-timeline">
       <div className="mb-3 flex items-center justify-between">
@@ -653,13 +751,24 @@ function RoadmapTimeline({
         {phases.map((p) => {
           const ms = dated.filter((m) => p.milestone_ids.includes(m.id));
           if (ms.length === 0) return null;
+          const phaseOnCp = ms.some((m) => cpIds.has(m.id));
           return (
             <div key={p.key}>
               <div className="mb-1 flex items-center gap-2 text-[11px] text-ink/60">
                 <span className="font-medium text-ink">{p.name}</span>
                 <StatusChip status={p.status} />
+                {phaseOnCp && (
+                  <span
+                    className="rounded bg-royal/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-royal"
+                    title="This phase contains a milestone on the critical path"
+                  >
+                    CP
+                  </span>
+                )}
               </div>
-              <div className="relative h-9 rounded-md bg-ink/5">
+              <div
+                className={`relative h-9 rounded-md ${phaseOnCp ? "bg-royal/10 ring-1 ring-royal/25" : "bg-ink/5"}`}
+              >
                 {ms.map((m) => {
                   const t = new Date(m.due_date!).getTime();
                   const left = ((t - min) / span) * 100;
@@ -670,13 +779,30 @@ function RoadmapTimeline({
                         ? "bg-amber-500"
                         : m.status === "complete" || m.status === "done"
                           ? "bg-emerald-500"
-                          : "bg-royal";
+                          : m.on_critical_path
+                            ? "bg-royal"
+                            : "bg-slate-500";
+                  const cpReason = m.on_critical_path
+                    ? m.status === "blocked"
+                      ? "blocked — holds the longest downstream chain"
+                      : m.health === "at_risk"
+                        ? "at risk on the longest chain"
+                        : "on the longest dependency chain"
+                    : null;
                   return (
                     <div
                       key={m.id}
-                      title={`${m.name} · ${new Date(m.due_date!).toLocaleDateString()}`}
-                      className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white ${tone}`}
-                      style={{ left: `${left}%`, width: 12, height: 12 }}
+                      title={`${m.name} · ${new Date(m.due_date!).toLocaleDateString()}${
+                        cpReason ? ` · CP: ${cpReason}` : ""
+                      }`}
+                      className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${tone} ${
+                        m.on_critical_path ? "ring-2 ring-royal shadow-md" : "ring-2 ring-white"
+                      }`}
+                      style={{
+                        left: `${left}%`,
+                        width: m.on_critical_path ? 16 : 12,
+                        height: m.on_critical_path ? 16 : 12,
+                      }}
                     />
                   );
                 })}
@@ -688,6 +814,7 @@ function RoadmapTimeline({
     </section>
   );
 }
+
 
 // ------------- table view -------------
 
@@ -759,7 +886,13 @@ function MilestoneTable({
 
 // ------------- right rail cards -------------
 
-function CaptainBriefCard({ brief }: { brief: ProjectRoadmapPayload["view"]["captain_brief"] }) {
+function CaptainBriefCard({
+  brief,
+  projectId,
+}: {
+  brief: ProjectRoadmapPayload["view"]["captain_brief"];
+  projectId: string;
+}) {
   const items: Array<{ label: string; body: string | null }> = [
     { label: "What changed", body: brief.what_changed },
     { label: "What matters now", body: brief.what_matters_now },
@@ -780,6 +913,7 @@ function CaptainBriefCard({ brief }: { brief: ProjectRoadmapPayload["view"]["cap
           </li>
         ))}
       </ul>
+      <CaptainPrompts projectId={projectId} />
     </section>
   );
 }
@@ -787,9 +921,11 @@ function CaptainBriefCard({ brief }: { brief: ProjectRoadmapPayload["view"]["cap
 function ChangeSummaryCard({
   change,
   versions,
+  onOpenCompare,
 }: {
   change: ProjectRoadmapPayload["view"]["change_summary"];
   versions: ProjectRoadmapPayload["versions"];
+  onOpenCompare: () => void;
 }) {
   const has = change.added.length + change.changed.length + change.removed.length + change.resequenced.length > 0;
   return (
@@ -810,13 +946,23 @@ function ChangeSummaryCard({
         <p className="mt-3 text-sm text-ink/50">No changes since the last baseline.</p>
       )}
       {versions.length > 1 && (
-        <div className="mt-3 flex flex-wrap gap-1 text-[11px]">
-          {versions.slice(0, 5).map((v) => (
-            <span key={v.id} className="rounded border border-border bg-white px-1.5 py-0.5 text-ink/70">
-              {v.label ?? v.id.slice(0, 6)} · {v.status}
-            </span>
-          ))}
-        </div>
+        <>
+          <div className="mt-3 flex flex-wrap gap-1 text-[11px]">
+            {versions.slice(0, 5).map((v) => (
+              <span key={v.id} className="rounded border border-border bg-white px-1.5 py-0.5 text-ink/70">
+                {v.label ?? v.id.slice(0, 6)} · {v.status}
+              </span>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={onOpenCompare}
+            className="mt-2 inline-flex items-center gap-1 rounded-md border border-border bg-white px-2.5 py-1 text-[11px] text-ink hover:border-ink/40"
+          >
+            <GitBranch className="h-3 w-3" />
+            Compare versions
+          </button>
+        </>
       )}
     </section>
   );
