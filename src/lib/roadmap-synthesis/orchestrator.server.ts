@@ -175,27 +175,56 @@ async function tryRecordRun(args: {
   runGroupId: string;
   ran: SynthesisStepId[];
   errors: OrchestratorRunResult["errors"];
+  plan: SynthesisPlan;
+  mode: FillMode;
 }): Promise<boolean> {
   try {
-    const rows = args.ran.map((id) => ({
-      run_group_id: args.runGroupId,
+    if (args.ran.length === 0) return false;
+    const stepById = new Map(args.plan.steps.map((s) => [s.id, s] as const));
+    const now = new Date().toISOString();
+    const rows = args.ran.map((id) => {
+      const view = stepById.get(id);
+      const failed = args.errors.some((e) => e.id === id);
+      return {
+        run_group_id: args.runGroupId,
+        project_id: args.projectId,
+        step_id: id,
+        trigger: args.mode,
+        actor_email: args.actorEmail,
+        input_manifest: {},
+        input_hash: view?.current_input_hash ?? "",
+        prompt_version: "rt-1.0.0",
+        provider: "lovable",
+        model: "legacy_fill",
+        started_at: now,
+        completed_at: now,
+        status: failed ? "failed" : "succeeded",
+        error_message: args.errors.find((e) => e.id === id)?.message ?? null,
+      };
+    });
+    const { data: inserted, error } = await args.supabase
+      .from("engine_project_synthesis_attempts")
+      .insert(rows)
+      .select("id, step_id, status, input_hash, error_message");
+    if (error) return false;
+
+    // Upsert step_state so plan derivation can detect stale/failed on the
+    // next pass. Skip rows without an attempt id (should not happen).
+    const stateRows = ((inserted as Array<{ id: string; step_id: SynthesisStepId; status: string; input_hash: string; error_message: string | null }>) ?? []).map((r) => ({
       project_id: args.projectId,
-      step_id: id,
-      trigger: "manual",
-      actor_email: args.actorEmail,
-      input_manifest: {},
-      input_hash: "",
-      prompt_version: "rt-1.0.0",
-      provider: "lovable",
-      model: "legacy_fill",
-      started_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-      status: args.errors.some((e) => e.id === id) ? "failed" : "succeeded",
-      error_message: args.errors.find((e) => e.id === id)?.message ?? null,
+      step_id: r.step_id,
+      state: r.status === "failed" ? "failed" : "satisfied",
+      reason: r.status === "failed" ? "last_attempt_failed" : null,
+      current_input_hash: r.input_hash,
+      latest_attempt_id: r.id,
+      updated_at: now,
     }));
-    if (rows.length === 0) return false;
-    const { error } = await args.supabase.from("engine_project_synthesis_attempts").insert(rows);
-    return !error;
+    if (stateRows.length > 0) {
+      await args.supabase
+        .from("engine_project_synthesis_step_state")
+        .upsert(stateRows, { onConflict: "project_id,step_id" });
+    }
+    return true;
   } catch {
     return false;
   }
