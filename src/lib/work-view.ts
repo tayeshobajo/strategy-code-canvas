@@ -489,7 +489,7 @@ export function deriveGateProgression(
         : hasQaPlan
           ? "in_progress"
           : "current";
-  const delivery: GateState = qa !== "done" ? "locked" : "current";
+  const delivery: GateState = (qa as GateState) === "done" ? "current" : "locked";
   return { brief, criteria, mockups: mockupsGate, build, qa, delivery };
 }
 
