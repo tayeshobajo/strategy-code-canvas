@@ -28,6 +28,12 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertAdminOrOperator, type AuthCtx } from "@/lib/engine-epistemic.server";
 import { insertEngineActivity } from "@/lib/engine-activity";
+import { notifyOperators } from "@/lib/engine-work-notify";
+
+/** Marker written into engine_activity.body so we can filter per-milestone. */
+export function milestoneMarker(milestoneId: string): string {
+  return `[milestone:${milestoneId}]`;
+}
 
 const SIDECAR_KEY = "milestone_qualifications";
 const MODEL = "google/gemini-3.5-flash";
@@ -347,13 +353,32 @@ export const runMilestoneJudges = createServerFn({ method: "POST" })
       project_id: data.projectId,
       kind: "milestone_qualification.judges_ran",
       title: `Milestone judges ran — ${milestone.name}`,
-      body: `World: ${world.verdict} · Wow: ${wow.verdict} (${wow.wow_score}/5)`,
+      body: `${milestoneMarker(data.milestoneId)} World: ${world.verdict} · Wow: ${wow.verdict} (${wow.wow_score}/5)`,
       severity: "info",
       actor_email: actor,
     });
 
+    // Fan out to the operator bell so witnesses/approvers know a
+    // milestone has entered the qualification ceremony and needs a
+    // second-reviewer decision.
+    await notifyOperators(sb, {
+      projectId: data.projectId,
+      kind: "milestone_qualification.entered",
+      title: `Qualification opened — ${milestone.name}`,
+      body: `World: ${world.verdict} · Wow: ${wow.verdict} (${wow.wow_score}/5). Awaiting second-reviewer decision.`,
+      href: `/engine/projects/${data.projectId}/milestones/${data.milestoneId}/qualify`,
+      actor,
+      extra: {
+        milestone_id: data.milestoneId,
+        world_verdict: world.verdict,
+        wow_verdict: wow.verdict,
+        wow_score: wow.wow_score,
+      },
+    });
+
     return next;
   });
+
 
 export const decideMilestoneQualification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -394,10 +419,66 @@ export const decideMilestoneQualification = createServerFn({ method: "POST" })
         ? "milestone_qualification.qualified"
         : "milestone_qualification.rejected",
       title: `Milestone ${data.decision} — ${milestone.name}`,
-      body: data.note || undefined,
+      body: `${milestoneMarker(data.milestoneId)}${data.note ? ` — ${data.note}` : ""}`,
       severity: data.decision === "qualified" ? "success" : "warn",
       actor_email: actor,
     });
 
+    await notifyOperators(sb, {
+      projectId: data.projectId,
+      kind: data.decision === "qualified"
+        ? "milestone_qualification.qualified"
+        : "milestone_qualification.rejected",
+      title: `Milestone ${data.decision} — ${milestone.name}`,
+      body: data.note || (data.decision === "qualified"
+        ? "Ceremony complete. Milestone is qualified for execution."
+        : "Ceremony complete. Milestone was rejected."),
+      href: `/engine/projects/${data.projectId}/milestones/${data.milestoneId}/qualify`,
+      actor,
+      extra: {
+        milestone_id: data.milestoneId,
+        decision: data.decision,
+      },
+    });
+
     return next;
+  });
+
+// ---------- Audit timeline ----------
+
+export type QualificationTimelineEntry = {
+  id: string;
+  at: string;
+  actor: string | null;
+  kind: string;
+  title: string;
+  body: string | null;
+  severity: string | null;
+};
+
+export const listMilestoneQualificationTimeline = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => milestoneInput.parse(raw))
+  .handler(async ({ context, data }): Promise<QualificationTimelineEntry[]> => {
+    const ctx = context as unknown as AuthCtx;
+    const sb = ctx.supabase as any;
+    const marker = milestoneMarker(data.milestoneId);
+    const { data: rows, error } = await sb
+      .from("engine_activity")
+      .select("id, created_at, actor_email, kind, title, body, severity")
+      .eq("project_id", data.projectId)
+      .like("kind", "milestone_qualification.%")
+      .like("body", `%${marker}%`)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r: any) => ({
+      id: r.id,
+      at: r.created_at,
+      actor: r.actor_email ?? null,
+      kind: r.kind,
+      title: r.title,
+      body: r.body,
+      severity: r.severity ?? null,
+    }));
   });
