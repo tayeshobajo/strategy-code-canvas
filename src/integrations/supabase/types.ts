@@ -1665,6 +1665,42 @@ export type Database = {
           },
         ]
       }
+      engine_capability_registry: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          execution_mode: string
+          id: string
+          label: string
+          retired_at: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          execution_mode: string
+          id: string
+          label: string
+          retired_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          execution_mode?: string
+          id?: string
+          label?: string
+          retired_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       engine_change_events: {
         Row: {
           affected_module: string | null
@@ -3385,6 +3421,82 @@ export type Database = {
             columns: ["qa_plan_id"]
             isOneToOne: false
             referencedRelation: "engine_project_qa_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_project_execution_boundary: {
+        Row: {
+          approved_at: string | null
+          approved_by_email: string | null
+          capability_ids: string[]
+          client_owned_areas: string[]
+          created_at: string
+          exclusions: string[]
+          id: string
+          notes: string
+          project_id: string
+          proposed_by_actor: string
+          proposed_by_email: string
+          rejected_reason: string | null
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          capability_ids?: string[]
+          client_owned_areas?: string[]
+          created_at?: string
+          exclusions?: string[]
+          id?: string
+          notes?: string
+          project_id: string
+          proposed_by_actor: string
+          proposed_by_email: string
+          rejected_reason?: string | null
+          status: string
+          updated_at?: string
+          version: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_email?: string | null
+          capability_ids?: string[]
+          client_owned_areas?: string[]
+          created_at?: string
+          exclusions?: string[]
+          id?: string
+          notes?: string
+          project_id?: string
+          proposed_by_actor?: string
+          proposed_by_email?: string
+          rejected_reason?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_execution_boundary_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_execution_boundary_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_execution_boundary_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
             referencedColumns: ["id"]
           },
         ]
