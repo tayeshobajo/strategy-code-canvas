@@ -8,7 +8,16 @@ import {
   POINT_B_FIELD_KEYS,
   pointADiagnosisKey,
 } from "@/lib/engine-spine-fields";
-import type { EpistemicStatus } from "@/lib/engine-epistemic.server";
+
+type EpistemicStatus =
+  | "stated"
+  | "inferred"
+  | "assumed"
+  | "missing"
+  | "contradicted"
+  | "needs_confirmation"
+  | "verified"
+  | "approved_truth";
 
 type Lens = { label: string; value: string; hint: string };
 type DiagnosisCard = { title: string; tag: string; bullets: string[] };
@@ -325,7 +334,7 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
       truthWrites.push({
         project_id: data.projectId,
         spine,
-          field_key: fieldKey,
+        field_key: fieldKey,
         status: generated ? "inferred" : "needs_confirmation",
         source_ref: generated
           ? {
