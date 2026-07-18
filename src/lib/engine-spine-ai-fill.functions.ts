@@ -77,6 +77,7 @@ export const fillMissingSpineDetailsFromIntake = createServerFn({ method: "POST"
     const rows = (truthRows ?? []) as TruthRow[];
     const pointAStatus = mapTruth(rows, "point-a");
     const pointBStatus = mapTruth(rows, "point-b");
+    const existingPointARecord = asRecord(project.point_a);
     const existingPointA = normalizePointA(project.point_a);
     const existingPointB = asRecord(project.point_b);
 
@@ -152,7 +153,10 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
 
     const draftPointA = normalizePointA(parsed.point_a);
     const draftPointB = normalizePointB(parsed.point_b);
-    const nextPointA: PointA = { ...existingPointA };
+    const nextPointA: PointA & Record<string, unknown> = {
+      ...existingPointARecord,
+      ...existingPointA,
+    };
     const nextPointB: Record<string, unknown> = { ...existingPointB };
     const changed: string[] = [];
     const canWriteA = (key: string) =>
@@ -185,10 +189,18 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
 
     const now = new Date().toISOString();
     const patch: Record<string, unknown> = {};
-    if (changedKeys(asRecord(project.point_a), nextPointA as Record<string, unknown>).length) {
+    if (
+      changed.some((key) => key.startsWith("point_a.")) &&
+      changedKeys(existingPointARecord, nextPointA).length
+    ) {
       patch.point_a = nextPointA;
     }
-    if (changedKeys(existingPointB, nextPointB).length) patch.point_b = nextPointB;
+    if (
+      changed.some((key) => key.startsWith("point_b.")) &&
+      changedKeys(existingPointB, nextPointB).length
+    ) {
+      patch.point_b = nextPointB;
+    }
 
     const nextStates = { ...stepStates };
     if (changed.some((key) => key.startsWith("point_a."))) {
