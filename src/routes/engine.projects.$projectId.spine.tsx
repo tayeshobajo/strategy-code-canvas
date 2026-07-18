@@ -4686,7 +4686,7 @@ function AskCaptainModal({
   const [hydrating, setHydrating] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  useFocusTrap(containerRef, open && !busy);
+  useFocusTrap(containerRef, open);
 
   // Persist / restore: on open, load the most-recent thread for this project
   // and hydrate its messages into turns. Runs once per open.
@@ -4775,7 +4775,7 @@ function AskCaptainModal({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) onClose();
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handler);
     document.body.style.overflow = "hidden";
@@ -4783,7 +4783,7 @@ function AskCaptainModal({
       window.removeEventListener("keydown", handler);
       document.body.style.overflow = "";
     };
-  }, [open, onClose, busy]);
+  }, [open, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -4838,7 +4838,7 @@ function AskCaptainModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Ask Captain">
-      <div className="absolute inset-0 bg-black/50" onClick={busy ? undefined : onClose} />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
         ref={containerRef}
         className="relative flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl outline-none sm:h-[70vh] sm:rounded-2xl"
@@ -4852,13 +4852,17 @@ function AskCaptainModal({
                 <Loader2 className="h-3 w-3 animate-spin" /> Restoring
               </span>
             ) : null}
+            {busy ? (
+              <span className="ml-2 inline-flex items-center gap-1 text-[11px] text-[#667085]">
+                <Loader2 className="h-3 w-3 animate-spin" /> Captain is thinking
+              </span>
+            ) : null}
           </div>
           <button
             type="button"
             onClick={onClose}
-            disabled={busy}
             aria-label="Close"
-            className="rounded-full border border-[#E8E1D6] bg-white p-1.5 text-[#0A0F1F] disabled:opacity-50"
+            className="rounded-full border border-[#E8E1D6] bg-white p-1.5 text-[#0A0F1F]"
           >
             <X className="h-4 w-4" />
           </button>
