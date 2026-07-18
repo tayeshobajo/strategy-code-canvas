@@ -74,15 +74,13 @@ describe("deriveRoadmapView", () => {
     const v = deriveRoadmapView({
       ...empty,
       milestones: [
-        ms({ id: "a", name: "A", phase: "P1", status: "in_progress", brief_md: null }),
+        ms({ id: "a", name: "A", phase: "P1", status: "in_progress" }),
         ms({
           id: "b",
           name: "B",
           phase: "P1",
           status: "blocked",
-          brief_md: null,
-          // dependencies field is read via bracket access in view
-          ...({ dependencies: ["a"] } as Partial<SpineMilestone>),
+          dependencies: ["a"],
         }),
       ],
     });
