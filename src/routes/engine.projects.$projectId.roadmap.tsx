@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { approveVersion } from "@/lib/engine-intelligence.functions";
 import { fillMissingSpineDetailsFromIntake } from "@/lib/engine-spine-ai-fill.functions";
+import { batchApproveDraftedSpineTruth } from "@/lib/engine-spine-ceremonies.functions";
 import {
   Map as MapIcon,
   ArrowRight,
@@ -212,16 +213,21 @@ function RoadmapHeader({
   const qc = useQueryClient();
   const approveFn = useServerFn(approveVersion);
   const fillMissingFn = useServerFn(fillMissingSpineDetailsFromIntake);
+  const approveDraftedTruthFn = useServerFn(batchApproveDraftedSpineTruth);
   const [approving, setApproving] = useState(false);
+  const invalidateRoadmapTruth = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "spine", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "workspace", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "spine-status", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "ceremony-summary", projectId] }),
+    ]);
+  };
   const fillMutation = useMutation({
     mutationFn: () => fillMissingFn({ data: { projectId } }),
     onSuccess: async (result) => {
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
-        qc.invalidateQueries({ queryKey: ["engine", "workspace", projectId] }),
-        qc.invalidateQueries({ queryKey: ["engine", "spine-status", projectId] }),
-        qc.invalidateQueries({ queryKey: ["engine", "ceremony-summary", projectId] }),
-      ]);
+      await invalidateRoadmapTruth();
       const count = result.changed.length;
       toast.success(
         count
@@ -231,6 +237,20 @@ function RoadmapHeader({
     },
     onError: (e) => {
       toast.error((e as Error).message || "AI Product Manager could not fill missing details.");
+    },
+  });
+  const approveDraftedMutation = useMutation({
+    mutationFn: () => approveDraftedTruthFn({ data: { projectId } }),
+    onSuccess: async (result) => {
+      await invalidateRoadmapTruth();
+      if (result.approved.length) {
+        toast.success(`Approved ${result.approved.length} drafted Spine truth${result.approved.length === 1 ? "" : "s"}. Try approving the roadmap again.`);
+      } else {
+        toast.info("No AI-drafted Spine truth was ready for approval. Open the Spine tab to review remaining fields.");
+      }
+    },
+    onError: (e) => {
+      toast.error((e as Error).message || "Drafted Spine truth could not be approved.");
     },
   });
   const canApprove =
@@ -341,6 +361,15 @@ function RoadmapHeader({
           >
             <Sparkles className="h-3.5 w-3.5" />
             {fillMutation.isPending ? "Filling details…" : "Fill missing Spine details"}
+          </button>
+          <button
+            type="button"
+            onClick={() => approveDraftedMutation.mutate()}
+            disabled={approveDraftedMutation.isPending}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-950 hover:border-emerald-500 disabled:opacity-50"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            {approveDraftedMutation.isPending ? "Approving truth…" : "Approve drafted Spine truth"}
           </button>
         </div>
       )}
