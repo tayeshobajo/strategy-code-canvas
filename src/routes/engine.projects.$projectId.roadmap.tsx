@@ -1170,14 +1170,20 @@ function ChangeRequestModal({ projectId, onClose }: { projectId: string; onClose
 function NoTruthState({ projectId, missing }: { projectId: string; missing: string[] }) {
   const qc = useQueryClient();
   const fillMissingFn = useServerFn(fillMissingSpineDetailsFromIntake);
+  const approveDraftedTruthFn = useServerFn(batchApproveDraftedSpineTruth);
+  const invalidateRoadmapTruth = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "spine", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "workspace", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "spine-status", projectId] }),
+      qc.invalidateQueries({ queryKey: ["engine", "ceremony-summary", projectId] }),
+    ]);
+  };
   const fillMutation = useMutation({
     mutationFn: () => fillMissingFn({ data: { projectId } }),
     onSuccess: async (result) => {
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
-        qc.invalidateQueries({ queryKey: ["engine", "workspace", projectId] }),
-        qc.invalidateQueries({ queryKey: ["engine", "spine-status", projectId] }),
-      ]);
+      await invalidateRoadmapTruth();
       toast.success(
         result.changed.length
           ? `AI Product Manager drafted ${result.changed.length} missing Spine field${result.changed.length === 1 ? "" : "s"}.`
@@ -1186,6 +1192,20 @@ function NoTruthState({ projectId, missing }: { projectId: string; missing: stri
     },
     onError: (e) => {
       toast.error((e as Error).message || "AI Product Manager could not fill missing details.");
+    },
+  });
+  const approveDraftedMutation = useMutation({
+    mutationFn: () => approveDraftedTruthFn({ data: { projectId } }),
+    onSuccess: async (result) => {
+      await invalidateRoadmapTruth();
+      if (result.approved.length) {
+        toast.success(`Approved ${result.approved.length} drafted Spine truth${result.approved.length === 1 ? "" : "s"}.`);
+      } else {
+        toast.info("No AI-drafted Spine truth was ready for approval. Open the Spine tab to review remaining fields.");
+      }
+    },
+    onError: (e) => {
+      toast.error((e as Error).message || "Drafted Spine truth could not be approved.");
     },
   });
   return (
@@ -1213,6 +1233,15 @@ function NoTruthState({ projectId, missing }: { projectId: string; missing: stri
         >
           <Sparkles className="h-3.5 w-3.5" />
           {fillMutation.isPending ? "Filling details…" : "Fill missing Spine details"}
+        </button>
+        <button
+          type="button"
+          onClick={() => approveDraftedMutation.mutate()}
+          disabled={approveDraftedMutation.isPending}
+          className="inline-flex items-center gap-1.5 rounded-md border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-950 hover:border-emerald-500 disabled:opacity-50"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          {approveDraftedMutation.isPending ? "Approving truth…" : "Approve drafted Spine truth"}
         </button>
         <Link
           to="/engine/projects/$projectId/spine"
