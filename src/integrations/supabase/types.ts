@@ -5843,6 +5843,83 @@ export type Database = {
           },
         ]
       }
+      engine_world_entry_comments: {
+        Row: {
+          author_email: string
+          body: string
+          created_at: string
+          id: string
+          mentions: string[]
+          parent_id: string | null
+          project_id: string
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by_email: string | null
+          section: string
+          updated_at: string
+          world_entry_version: number
+        }
+        Insert: {
+          author_email: string
+          body: string
+          created_at?: string
+          id?: string
+          mentions?: string[]
+          parent_id?: string | null
+          project_id: string
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by_email?: string | null
+          section: string
+          updated_at?: string
+          world_entry_version: number
+        }
+        Update: {
+          author_email?: string
+          body?: string
+          created_at?: string
+          id?: string
+          mentions?: string[]
+          parent_id?: string | null
+          project_id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by_email?: string | null
+          section?: string
+          updated_at?: string
+          world_entry_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_world_entry_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "engine_world_entry_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_world_entry_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_world_entry_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_world_entry_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intake_drafts: {
         Row: {
           answers: Json

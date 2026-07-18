@@ -39,9 +39,14 @@ export type WorldEntryEvidence = {
   url?: string;
   source_id?: string;
   quote?: string;
+  file_path?: string;
+  file_name?: string;
+  file_size?: number;
+  file_mime?: string;
   added_by_email: string;
   added_at: string;
 };
+
 
 export type WorldEntryVersion = {
   version: number;
@@ -83,7 +88,12 @@ const evidenceSchema = z.object({
   url: z.string().trim().max(800).optional(),
   source_id: z.string().trim().max(80).optional(),
   quote: z.string().trim().max(1200).optional(),
+  file_path: z.string().trim().max(400).optional(),
+  file_name: z.string().trim().max(240).optional(),
+  file_size: z.number().int().nonnegative().optional(),
+  file_mime: z.string().trim().max(120).optional(),
 });
+
 
 const saveDraftInput = z.object({
   projectId: z.string().uuid(),
@@ -230,10 +240,15 @@ export const saveWorldEntryDraft = createServerFn({ method: "POST" })
         url: e.url,
         source_id: e.source_id,
         quote: e.quote,
+        file_path: e.file_path,
+        file_name: e.file_name,
+        file_size: e.file_size,
+        file_mime: e.file_mime,
         added_by_email: prior?.added_by_email ?? actor,
         added_at: prior?.added_at ?? now,
       };
     });
+
 
     const nextCurrent: WorldEntryVersion = {
       version,
