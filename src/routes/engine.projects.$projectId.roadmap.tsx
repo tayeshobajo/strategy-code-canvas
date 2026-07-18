@@ -215,6 +215,7 @@ function RoadmapHeader({
   const fillMissingFn = useServerFn(fillMissingSpineDetailsFromIntake);
   const approveDraftedTruthFn = useServerFn(batchApproveDraftedSpineTruth);
   const [approving, setApproving] = useState(false);
+  const [synthesisOpen, setSynthesisOpen] = useState(false);
   const invalidateRoadmapTruth = async () => {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
