@@ -557,9 +557,18 @@ export const reviewWorkEvidence = createServerFn({ method: "POST" })
       project_id: ev.project_id,
       kind: data.verdict === "accepted" ? "evidence.accepted" : "evidence.rejected",
       title: `Evidence ${data.verdict}: ${ev.title}`,
-      body: data.note || null,
+      body: `${taskMarker(ev.task_id)} ${data.note || ""}`.trim(),
       severity: data.verdict === "rejected" ? "warn" : "info",
       actor_email: email,
+    });
+    await notifyOperators(sb, {
+      projectId: ev.project_id,
+      kind: `evidence.${data.verdict}`,
+      title: `Evidence ${data.verdict}: ${ev.title}`,
+      body: `${email ?? "operator"} — ${data.note || "no note"}`,
+      href: `/engine/projects/${ev.project_id}/work?view=queue`,
+      actor: email,
+      extra: { task_id: ev.task_id, evidence_id: ev.id, verdict: data.verdict },
     });
 
     return { ok: true as const };
