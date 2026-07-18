@@ -1,92 +1,73 @@
-# RT-5 — Responsive Intelligence + Impact Graph
+# RT-6 Execution Drift Monitor
 
-Upgrades RT-1's rules-based materiality into an LLM classifier, adds a queryable source→truth→milestone→work impact graph, and formalises "controlled roadmap amendments" so no new intelligence can silently mutate approved truth.
+Detects when execution (Work tasks, QA evidence, Delivery items) drifts from the approved strategic anchors: **strategic thesis**, **milestone rationale**, and **execution boundary / capability registry**. Complements RT-5, which watches *inbound* intelligence; RT-6 watches *outbound* execution.
 
-Doctrine anchor: **World first → Constraint second → Milestones third → Evidence always → Human approval before promotion.** RT-5 is the "always" — approved artifacts never change without a candidate + second-reviewer decision.
+## Anchors watched
 
-## What RT-5 delivers
+1. **Thesis anchor** — approved `engine_strategic_thesis` (world entry, wow, destination vocabulary).
+2. **Milestone rationale anchor** — approved milestone brief + phase rationale + qualification decision.
+3. **Boundary anchor** — approved `engine_project_execution_boundary` + `engine_capability_registry` versions.
 
-1. **LLM materiality classifier** — replaces keyword heuristics in `roadmap-synthesis/materiality.ts` with a Lovable AI call (google/gemini-3.5-flash) that returns `{impact, confidence, rationale, affected_spines[]}`. Falls back to the existing rules classifier on error.
-2. **Impact graph read model** — a server function that walks `engine_sources → engine_extracted_signals → engine_spine_field_truth → engine_milestones → engine_tasks` for one project and returns a typed graph plus per-node `blast_radius` (which milestones + tasks would move if that truth row changed).
-3. **Change event stream** — every classification, staleness mark, candidate write, and amendment decision writes to `engine_change_events` with `impact` + `affected_ids[]`, so the Synthesis Plan Drawer, activity feed, and Approvals Queue all read from one log.
-4. **Controlled amendments** — when materiality touches approved truth, the orchestrator writes a `roadmap_amendment` candidate (never mutates the approved row). Reviewers approve/reject via the existing candidate flow; approval bumps the truth version and marks downstream steps stale.
-5. **Amendments Inbox UI** — a room at `/engine/projects/$projectId/amendments` that lists pending amendments with before/after diff, blast radius, and the second-reviewer decision panel.
+## Drift signals
 
-## Non-goals
+- **Task drift** — new/edited `engine_tasks` whose title, description, or capability tag falls outside the approved capability set for its milestone.
+- **Rationale drift** — tasks or evidence that don't map to the milestone's approved rationale bullets (LLM semantic match).
+- **Thesis drift** — evidence, delivery items, or task outcomes that contradict the approved world entry / wow claims (LLM judge).
+- **Boundary drift** — capability used in execution that isn't in the current approved boundary version.
+- **Delivery drift** — `engine_delivery_items` (or `client_portal_*` publish events) whose scope exceeds the approved roadmap version.
 
-- Not touching client portal (RT-6 concern).
-- Not auto-promoting anything. Every amendment is human-decided.
-- Not moving RT-2/RT-3/RT-4 write paths.
+## Deliverables
 
-## Architecture
+### Data
+Migration `engine_execution_drift_signals`:
+- id, project_id, milestone_id?, source_kind (task|evidence|delivery|publish), source_id
+- anchor_kind (thesis|rationale|boundary|capability)
+- severity (low|medium|high), classification (drift|out_of_scope|contradicts|missing_capability)
+- summary, rationale_json, suggested_action
+- status (open|acknowledged|resolved|dismissed), resolved_by, resolved_at, resolution_note
+- created_at, detector_version, model
+- unique(project_id, source_kind, source_id, anchor_kind) for dedup
+- GRANTs + RLS (authenticated read; service_role all)
+- Index on (project_id, status, severity)
 
-```text
-                   engine_sources / engine_extracted_signals
-                                    │
-                     (RT-5) LLM materiality classifier
-                                    │
-                        engine_change_events (append)
-                                    │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
-       synthesis plan          impact graph     amendment
-       staleness derivation    read model       candidate writer
-                                                    │
-                                                    ▼
-                                    engine_project_roadmap_amendments
-                                                    │
-                                       Approvals Queue + Amendments Inbox
-                                                    │
-                                    approve → truth version++ → downstream stale
-```
+### Server functions (`src/lib/engine-execution-drift.functions.ts`)
+- `runExecutionDriftScan({ projectId, scopes? })` — orchestrates detectors, calls LLM judges (Lovable AI), upserts signals, dedups.
+- `listExecutionDriftSignals({ projectId, status?, severity? })`
+- `acknowledgeDriftSignal({ id, note })`
+- `resolveDriftSignal({ id, note, action })` — action = amend_roadmap | update_boundary | reject_work | ignore
+- `dismissDriftSignal({ id, note })`
+- `getDriftSummary({ projectId })` — counts by severity/anchor for the rail.
 
-## Files
+### Detectors (`src/lib/execution-drift/`)
+- `detect-boundary.ts` — pure SQL diff of task/evidence capabilities vs approved boundary.
+- `detect-rationale.ts` — LLM semantic match of task titles/descriptions to milestone rationale bullets.
+- `detect-thesis.ts` — LLM contradiction judge over evidence/delivery text vs thesis world/wow.
+- `detect-delivery.ts` — diff delivery items vs approved roadmap version scope.
+- Shared `judges.ts` using `callLovableAi` + `parseJsonOutput`.
 
-New:
-- `src/lib/roadmap-synthesis/materiality-llm.ts` — pure classifier wrapping `callLovableAi` + `parseJsonOutput`; small Zod-free schema, prompt states the six impact classes.
-- `src/lib/engine-impact-graph.functions.ts` — `getProjectImpactGraph({ projectId })` and `getTruthBlastRadius({ projectId, truthId })` server fns using `requireSupabaseAuth`.
-- `src/lib/engine-roadmap-amendments.functions.ts` — `listRoadmapAmendments`, `proposeRoadmapAmendment`, `decideRoadmapAmendment` (second-reviewer rule via `hasRoleForEmail`, writes to `engine_change_events` + `engine_activity`).
-- `src/routes/engine.projects.$projectId.amendments.tsx` — Amendments Inbox with diff view, blast-radius chip, decision panel.
-- `src/components/engine/ImpactGraphPanel.tsx` — read-only node/edge summary used on the Spine page and inside Amendments.
-- `.orchestrator/PENDING_MIGRATIONS.md` entry: `engine_project_roadmap_amendments` table + `engine_change_events.impact/affected_ids/actor_email` columns if missing. Do not apply — flag for Tai.
+### UI
+- New route `src/routes/engine.projects.$projectId.drift.tsx` — **Execution Drift Monitor** room:
+  - Header with "Run drift scan" button + last-scan timestamp
+  - Filters: status, severity, anchor kind
+  - Grouped list of signals with source deep-links (task/evidence/delivery), suggested action, and Acknowledge / Resolve / Dismiss actions
+  - "Convert to roadmap amendment" quick-action → prefills RT-5 amendment proposal
+- Right rail panel `DriftSummaryPanel.tsx` (drop-in for project rail, similar to `LatestAmendmentsPanel`) showing top 3 open high-severity signals.
+- Add "Drift Monitor" to `LeftProjectRail` under Intelligence.
 
-Edited:
-- `src/lib/roadmap-synthesis/materiality.ts` — export `classifySourceChange` (rules) unchanged; add `classifySourceChangeSmart` that tries the LLM path and falls back.
-- `src/lib/roadmap-synthesis/orchestrator.server.ts` — when `affectedSteps` includes a step whose current truth is `approved`, emit an amendment candidate instead of marking the approved row stale.
-- `src/lib/roadmap-synthesis/plan.functions.ts` — surface pending amendment count so the Synthesis Plan Drawer can badge it.
-- `src/components/engine/SynthesisPlanDrawer.tsx` — new "Pending amendments" section with deep link into the inbox.
-- `src/components/engine/LeftProjectRail.tsx` — add "Amendments" nav entry with count badge.
-- `src/lib/roadmap-synthesis/gates.ts` — no logic change; verify `drift_assessment` resolution deep link points at `/amendments`.
+### Wiring
+- Add drift scan step to `roadmap-synthesis` orchestrator as a post-execution audit step (non-blocking).
+- Materiality changes to thesis/rationale/boundary trigger a targeted drift rescan of affected scopes.
+- Route-level loader uses `getDriftSummary` for badge counts on nav.
 
-## DB (flagged, not applied)
+### Notifications
+- `notifyOperators` on new high-severity drift signals and on resolutions.
 
-Append to `.orchestrator/PENDING_MIGRATIONS.md`:
+## Non-goals for this pass
+- No automatic write-blocking of drifting tasks (advisory-only in RT-6).
+- No client-portal exposure of drift signals.
+- No historical drift analytics dashboard (deferred).
 
-```text
--- engine_project_roadmap_amendments
--- id uuid pk, project_id uuid fk, truth_id uuid null, milestone_id uuid null,
--- proposed_change jsonb, impact text, rationale text,
--- status text default 'pending' check in (pending,approved,rejected,superseded),
--- created_by uuid, created_by_email text, created_at timestamptz default now(),
--- decided_by uuid, decided_by_email text, decided_at timestamptz,
--- decision_note text
--- RLS: authenticated read within their org; grants: authenticated + service_role.
--- Second-reviewer trigger: reject when decided_by = created_by.
-
--- engine_change_events additive:
---   impact text, affected_ids uuid[], actor_email text, kind text
-```
-
-Rule from `CLAUDE.md`: **do not apply this migration**. Write it, flag Tai, and code around the current schema by writing amendments into `engine_project_chat_proposals` with `type = 'roadmap_amendment'` until the table exists — the Amendments Inbox will read from the same source so the UI is stable across the cutover.
-
-## Checks
-
-- Tsgo on all touched files.
-- Manual: on a project with an approved truth row, add a source whose text implies scope change → change event appears, amendment candidate is written, Approvals Queue + Amendments Inbox both list it, approving bumps `engine_spine_field_truth.version` and marks downstream synthesis steps stale.
-- Second-reviewer: same account cannot create + approve.
-- Fallback: force the LLM call to error (invalid model id in a test wrapper) → rules classifier still runs and the pipeline stays green.
-
-## Out of scope for this batch
-
-- Full graph visualisation (D3/force layout). Ship a text/table view first; visualise in a follow-up if Tai wants it.
-- Auto-classification on legacy sources — RT-5 classifies on write and on explicit "Refresh intelligence"; backfill is a separate one-shot job.
+## Technical notes
+- Reuse `callLovableAi` (Gemini default) with tight JSON schemas for judge outputs.
+- All detectors idempotent; dedup via unique index; scans record a `detector_version` so we can invalidate old signals on prompt changes.
+- Follow project rules: migration adds GRANTs; no self-approval — resolutions record `resolved_by` distinct from `created_by` when the signal was AI-authored.
