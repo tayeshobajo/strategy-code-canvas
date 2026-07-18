@@ -80,6 +80,19 @@ export async function evaluateDoctrineGates(
     | { current?: { status?: string; capability_ids?: unknown[]; client_owned_areas?: unknown[] } | null }
     | undefined;
 
+  const strategicThesisSidecar = spirit["strategic_thesis_workspace"] as
+    | {
+        current?: {
+          status?: string;
+          bet_statement?: string;
+          wedge?: string;
+          proof_metrics?: unknown[];
+          kill_criteria?: unknown[];
+          version?: number;
+        } | null;
+      }
+    | undefined;
+
   return (Object.keys(GATE_SPINES) as DoctrineGateId[]).map((id) => {
     const gateRows = byGate.get(id) ?? [];
     if (id === "world_entry") {
@@ -90,8 +103,52 @@ export async function evaluateDoctrineGates(
       if (gateRows.length > 0) return { ...executionBoundaryGate(gateRows), resolution_pending: false };
       return executionBoundarySidecarGate(executionBoundarySidecar, gateRows);
     }
+    if (id === "strategic_thesis") {
+      if (gateRows.length > 0) return { ...strategicThesisGate(gateRows), resolution_pending: false };
+      return strategicThesisSidecarGate(strategicThesisSidecar, gateRows);
+    }
     return evaluateGate(id, gateRows);
   });
+}
+
+function strategicThesisSidecarGate(
+  sidecar:
+    | {
+        current?: {
+          status?: string;
+          bet_statement?: string;
+          wedge?: string;
+          proof_metrics?: unknown[];
+          kill_criteria?: unknown[];
+          version?: number;
+        } | null;
+      }
+    | undefined,
+  fallbackRows: TruthRow[],
+): DoctrineGateReadiness {
+  const b = base("strategic_thesis");
+  const current = sidecar?.current;
+  if (current) {
+    const missing: string[] = [];
+    const isApproved = current.status === "approved";
+    const bet = (current.bet_statement ?? "").trim();
+    const wedge = (current.wedge ?? "").trim();
+    const proof = Array.isArray(current.proof_metrics) ? current.proof_metrics : [];
+    const kill = Array.isArray(current.kill_criteria) ? current.kill_criteria : [];
+    if (bet.length < 20) missing.push("Bet statement (≥20 chars)");
+    if (wedge.length < 10) missing.push("Wedge");
+    if (proof.length < 1) missing.push("At least one proof metric");
+    if (kill.length < 1) missing.push("At least one kill criterion");
+    if (!isApproved) missing.push("Awaiting human approval");
+    return {
+      ...b,
+      satisfied: missing.length === 0,
+      missing_pieces: missing,
+      resolution_pending: false,
+      version: current.version ?? null,
+    };
+  }
+  return { ...strategicThesisGate(fallbackRows), resolution_pending: false };
 }
 
 function executionBoundarySidecarGate(
