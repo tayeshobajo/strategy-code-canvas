@@ -77,10 +77,12 @@ export async function evaluateDoctrineGates(
     | undefined;
 
   return (Object.keys(GATE_SPINES) as DoctrineGateId[]).map((id) => {
-    if (id === "world_entry") {
-      return worldEntrySidecarGate(worldEntrySidecar, byGate.get(id) ?? []);
-    }
     const gateRows = byGate.get(id) ?? [];
+    if (id === "world_entry") {
+      // Prefer canonical field_truth rows; fall back to sidecar for legacy projects.
+      if (gateRows.length > 0) return { ...worldEntryGate(gateRows), resolution_pending: false };
+      return worldEntrySidecarGate(worldEntrySidecar, gateRows);
+    }
     return evaluateGate(id, gateRows);
   });
 }
