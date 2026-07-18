@@ -4443,6 +4443,214 @@ export type Database = {
           },
         ]
       }
+      engine_project_synthesis_attempts: {
+        Row: {
+          actor_email: string | null
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          input_hash: string
+          input_manifest: Json
+          model: string
+          project_id: string
+          prompt_version: string
+          provider: string
+          run_group_id: string
+          started_at: string
+          status: string
+          step_id: string
+          trigger: string
+        }
+        Insert: {
+          actor_email?: string | null
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_hash: string
+          input_manifest?: Json
+          model: string
+          project_id: string
+          prompt_version: string
+          provider: string
+          run_group_id: string
+          started_at?: string
+          status: string
+          step_id: string
+          trigger: string
+        }
+        Update: {
+          actor_email?: string | null
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_hash?: string
+          input_manifest?: Json
+          model?: string
+          project_id?: string
+          prompt_version?: string
+          provider?: string
+          run_group_id?: string
+          started_at?: string
+          status?: string
+          step_id?: string
+          trigger?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_synthesis_attempts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_synthesis_attempts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_synthesis_attempts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_project_synthesis_candidates: {
+        Row: {
+          attempt_id: string | null
+          created_at: string
+          decision: string | null
+          decision_reason: string | null
+          id: string
+          materiality: string
+          payload: Json
+          project_id: string
+          qualification: Json
+          reviewed_at: string | null
+          reviewer_email: string | null
+          status: string
+          step_id: string
+        }
+        Insert: {
+          attempt_id?: string | null
+          created_at?: string
+          decision?: string | null
+          decision_reason?: string | null
+          id?: string
+          materiality: string
+          payload: Json
+          project_id: string
+          qualification?: Json
+          reviewed_at?: string | null
+          reviewer_email?: string | null
+          status?: string
+          step_id: string
+        }
+        Update: {
+          attempt_id?: string | null
+          created_at?: string
+          decision?: string | null
+          decision_reason?: string | null
+          id?: string
+          materiality?: string
+          payload?: Json
+          project_id?: string
+          qualification?: Json
+          reviewed_at?: string | null
+          reviewer_email?: string | null
+          status?: string
+          step_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_synthesis_candidates_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_synthesis_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_project_synthesis_candidates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_synthesis_candidates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_synthesis_candidates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_project_synthesis_step_state: {
+        Row: {
+          current_input_hash: string | null
+          latest_attempt_id: string | null
+          latest_candidate_id: string | null
+          project_id: string
+          reason: string | null
+          state: string
+          step_id: string
+          updated_at: string
+        }
+        Insert: {
+          current_input_hash?: string | null
+          latest_attempt_id?: string | null
+          latest_candidate_id?: string | null
+          project_id: string
+          reason?: string | null
+          state: string
+          step_id: string
+          updated_at?: string
+        }
+        Update: {
+          current_input_hash?: string | null
+          latest_attempt_id?: string | null
+          latest_candidate_id?: string | null
+          project_id?: string
+          reason?: string | null
+          state?: string
+          step_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_project_synthesis_step_state_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_project_synthesis_step_state_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_project_synthesis_step_state_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_projects: {
         Row: {
           action_mode_enabled: boolean
