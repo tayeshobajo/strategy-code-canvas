@@ -36,6 +36,7 @@ import { CaptainPrompts } from "@/components/engine/roadmap/CaptainPrompts";
 import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersionsModal";
 import { ClientExportPreviewModal } from "@/components/engine/roadmap/ClientExportPreviewModal";
 import { SynthesisPlanDrawer } from "@/components/engine/roadmap/SynthesisPlanDrawer";
+import { getRoadmapSynthesisFreshness } from "@/lib/roadmap-synthesis/plan.functions";
 import {
   MilestoneCpExplainer,
   PhaseCpExplainer,
