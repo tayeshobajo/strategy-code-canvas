@@ -353,13 +353,32 @@ export const runMilestoneJudges = createServerFn({ method: "POST" })
       project_id: data.projectId,
       kind: "milestone_qualification.judges_ran",
       title: `Milestone judges ran — ${milestone.name}`,
-      body: `World: ${world.verdict} · Wow: ${wow.verdict} (${wow.wow_score}/5)`,
+      body: `${milestoneMarker(data.milestoneId)} World: ${world.verdict} · Wow: ${wow.verdict} (${wow.wow_score}/5)`,
       severity: "info",
       actor_email: actor,
     });
 
+    // Fan out to the operator bell so witnesses/approvers know a
+    // milestone has entered the qualification ceremony and needs a
+    // second-reviewer decision.
+    await notifyOperators(sb, {
+      projectId: data.projectId,
+      kind: "milestone_qualification.entered",
+      title: `Qualification opened — ${milestone.name}`,
+      body: `World: ${world.verdict} · Wow: ${wow.verdict} (${wow.wow_score}/5). Awaiting second-reviewer decision.`,
+      href: `/engine/projects/${data.projectId}/milestones/${data.milestoneId}/qualify`,
+      actor,
+      extra: {
+        milestone_id: data.milestoneId,
+        world_verdict: world.verdict,
+        wow_verdict: wow.verdict,
+        wow_score: wow.wow_score,
+      },
+    });
+
     return next;
   });
+
 
 export const decideMilestoneQualification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
