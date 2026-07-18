@@ -2,14 +2,12 @@
  * Phase RT-1 — Orchestrator (server-only).
  *
  * Walks the DAG for the requested mode, respects gates, coalesces
- * concurrent runs via an idempotency key. In RT-1 the runners for
- * point_a / point_b / milestones / dates / rationale / truth rows /
- * investment_note delegate to the legacy monolithic fill for `repair`
- * mode. Per-step runners can be lifted out incrementally without
- * changing the orchestrator contract.
+ * concurrent runs via an idempotency key. Per-step attempts now persist
+ * the actual input_hash from deriveSynthesisPlan and update
+ * engine_project_synthesis_step_state so staleness detection is honest.
  */
 
-import type { FillMode, SynthesisStepId } from "./contract";
+import type { FillMode, SynthesisStepId, SynthesisPlan } from "./contract";
 import { deriveSynthesisPlan } from "./plan.server";
 
 type Sb = any;
