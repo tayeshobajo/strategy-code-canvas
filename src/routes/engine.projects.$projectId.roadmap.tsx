@@ -412,6 +412,11 @@ function RoadmapHeader({
       <div className="sr-only" aria-live="polite">
         Progress {project.progress_percent} percent
       </div>
+      <SynthesisPlanDrawer
+        projectId={projectId}
+        open={synthesisOpen}
+        onClose={() => setSynthesisOpen(false)}
+      />
     </section>
   );
 }
