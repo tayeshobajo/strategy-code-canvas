@@ -31,6 +31,20 @@ const CEREMONIES = "engine_spine_ceremonies";
 const DECISIONS = "engine_spine_ceremony_decisions";
 const TRUTH = "engine_spine_field_truth";
 
+type DbError = { message?: string } | null;
+type SpineCeremonyDbClient = {
+  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: DbError }>;
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (column: string, value: unknown) => Promise<{ data: unknown; error: DbError }>;
+    };
+    update: (values: Record<string, unknown>) => {
+      eq: (column: string, value: unknown) => Promise<{ error: DbError }>;
+    };
+    insert: (payload: unknown) => Promise<{ error: unknown }>;
+  };
+};
+
 // ---------- Inputs ----------
 
 const startCeremonyInput = z.object({
@@ -450,7 +464,7 @@ export const batchApproveDraftedSpineTruth = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const ctx = context as unknown as AuthCtx;
     const actor = await assertAdminOrOperator(ctx);
-    const sb = ctx.supabase as any;
+    const sb = ctx.supabase as unknown as SpineCeremonyDbClient;
     const now = new Date().toISOString();
     const reason =
       data.reason ??
