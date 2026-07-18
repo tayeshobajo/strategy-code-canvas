@@ -316,10 +316,9 @@ function ProjectSpine() {
       <SpinePageHeader
         projectId={projectId}
         pendingApprovalsCount={pendingApprovalsCount}
-        onExportPdf={handleExportClientRoadmap}
-        exportDisabled={workspaceQ.isPending}
         onAskCaptain={() => setAskCaptainOpen(true)}
       />
+
 
       {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
