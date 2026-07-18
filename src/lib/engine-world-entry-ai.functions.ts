@@ -159,6 +159,9 @@ export const draftWorldEntryFromIntake = createServerFn({ method: "POST" })
       .eq("id", data.projectId);
     if (upErr) throw new Error(upErr.message);
 
+    const { mirrorWorldEntryToFieldTruth } = await import("@/lib/engine-world-entry.functions");
+    await mirrorWorldEntryToFieldTruth(sb, data.projectId, draft, actor, "ai");
+
     await insertEngineActivity(sb, {
       project_id: data.projectId,
       kind: "world_entry.ai_drafted",
