@@ -675,6 +675,47 @@ function mapMilestoneStatus(s: string): RoadmapPhaseStatus {
 
 // ------------- timeline view -------------
 
+function CriticalPathBanner({
+  critical,
+}: {
+  critical: ProjectRoadmapPayload["view"]["critical_path"];
+}) {
+  if (!critical.bottleneck_id && !critical.bottleneck_name) {
+    return (
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+        No critical-path bottleneck detected. Milestones on the critical path
+        are highlighted in indigo below.
+      </div>
+    );
+  }
+  return (
+    <section
+      className="rounded-md border border-royal/30 bg-royal/5 px-3 py-2 text-xs text-ink"
+      role="status"
+      data-qa-section="critical-path-banner"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded bg-royal/15 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-royal">
+          Critical path
+        </span>
+        <span className="font-medium">{critical.bottleneck_name}</span>
+        {critical.delay_days != null && (
+          <span className="text-rose-700">· projected delay ≈ {critical.delay_days}d</span>
+        )}
+        {critical.downstream_impact_count > 0 && (
+          <span className="text-ink/60">
+            · blocks {critical.downstream_impact_count} downstream
+          </span>
+        )}
+      </div>
+      {critical.reason && <div className="mt-1 text-ink/70">Why: {critical.reason}</div>}
+      {critical.recovery && (
+        <div className="mt-0.5 text-ink/70">Recovery: {critical.recovery}</div>
+      )}
+    </section>
+  );
+}
+
 function RoadmapTimeline({
   phases,
   milestones,
@@ -694,6 +735,7 @@ function RoadmapTimeline({
   const min = Math.min(...times);
   const max = Math.max(...times);
   const span = Math.max(max - min, 1);
+  const cpIds = new Set(dated.filter((m) => m.on_critical_path).map((m) => m.id));
   return (
     <section className="rounded-xl border border-border bg-card p-4 shadow-sm" data-qa-section="roadmap-timeline">
       <div className="mb-3 flex items-center justify-between">
@@ -709,13 +751,24 @@ function RoadmapTimeline({
         {phases.map((p) => {
           const ms = dated.filter((m) => p.milestone_ids.includes(m.id));
           if (ms.length === 0) return null;
+          const phaseOnCp = ms.some((m) => cpIds.has(m.id));
           return (
             <div key={p.key}>
               <div className="mb-1 flex items-center gap-2 text-[11px] text-ink/60">
                 <span className="font-medium text-ink">{p.name}</span>
                 <StatusChip status={p.status} />
+                {phaseOnCp && (
+                  <span
+                    className="rounded bg-royal/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-royal"
+                    title="This phase contains a milestone on the critical path"
+                  >
+                    CP
+                  </span>
+                )}
               </div>
-              <div className="relative h-9 rounded-md bg-ink/5">
+              <div
+                className={`relative h-9 rounded-md ${phaseOnCp ? "bg-royal/10 ring-1 ring-royal/25" : "bg-ink/5"}`}
+              >
                 {ms.map((m) => {
                   const t = new Date(m.due_date!).getTime();
                   const left = ((t - min) / span) * 100;
@@ -726,13 +779,30 @@ function RoadmapTimeline({
                         ? "bg-amber-500"
                         : m.status === "complete" || m.status === "done"
                           ? "bg-emerald-500"
-                          : "bg-royal";
+                          : m.on_critical_path
+                            ? "bg-royal"
+                            : "bg-slate-500";
+                  const cpReason = m.on_critical_path
+                    ? m.status === "blocked"
+                      ? "blocked — holds the longest downstream chain"
+                      : m.health === "at_risk"
+                        ? "at risk on the longest chain"
+                        : "on the longest dependency chain"
+                    : null;
                   return (
                     <div
                       key={m.id}
-                      title={`${m.name} · ${new Date(m.due_date!).toLocaleDateString()}`}
-                      className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white ${tone}`}
-                      style={{ left: `${left}%`, width: 12, height: 12 }}
+                      title={`${m.name} · ${new Date(m.due_date!).toLocaleDateString()}${
+                        cpReason ? ` · CP: ${cpReason}` : ""
+                      }`}
+                      className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${tone} ${
+                        m.on_critical_path ? "ring-2 ring-royal shadow-md" : "ring-2 ring-white"
+                      }`}
+                      style={{
+                        left: `${left}%`,
+                        width: m.on_critical_path ? 16 : 12,
+                        height: m.on_critical_path ? 16 : 12,
+                      }}
                     />
                   );
                 })}
@@ -744,6 +814,7 @@ function RoadmapTimeline({
     </section>
   );
 }
+
 
 // ------------- table view -------------
 
