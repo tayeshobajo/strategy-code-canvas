@@ -392,6 +392,21 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
       );
     }
 
+    // Also seed approved milestones from intake if the project has none yet.
+    // Without approved milestones the Work tab shows an empty state even
+    // after the roadmap is approved.
+    const milestoneResult = await seedMilestonesFromIntake(sb, {
+      projectId: data.projectId,
+      projectName: project.name,
+      actorEmail,
+      contextPayload,
+      pointA: nextPointA,
+      pointB: nextPointB,
+    });
+    if (milestoneResult.created > 0) {
+      changed.push(`milestones.${milestoneResult.created}`);
+    }
+
     await sb.from("engine_activity").insert({
       project_id: data.projectId,
       kind: "spine_ai_fill",
@@ -410,3 +425,194 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
       statuses: truthWrites.map((row) => `${row.spine}.${row.field_key}`),
     };
   });
+
+async function seedMilestonesFromIntake(
+  sb: any,
+  args: {
+    projectId: string;
+    projectName: string;
+    actorEmail: string | null;
+    contextPayload: unknown;
+    pointA: Record<string, unknown>;
+    pointB: Record<string, unknown>;
+  },
+): Promise<{ created: number }> {
+  // Never overwrite operator-authored milestones — only seed when empty.
+  const { data: existing } = await sb
+    .from("engine_milestones")
+    .select("id")
+    .eq("project_id", args.projectId)
+    .limit(1);
+  if ((existing ?? []).length > 0) return { created: 0 };
+
+  const { data: version } = await sb
+    .from("engine_roadmap_versions")
+    .select("id")
+    .eq("project_id", args.projectId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  type DraftMilestone = {
+    name: string;
+    phase: string;
+    brief: string;
+    acceptance: string[];
+  };
+
+  let drafts: DraftMilestone[] = [];
+  try {
+    const { callLovableAiWithFallback, parseJsonOutput } = await import(
+      "@/lib/engine-ai.server"
+    );
+    const ai = await callLovableAiWithFallback(
+      [
+        {
+          role: "system",
+          content:
+            "You are the Trust Tai AI Product Manager. Draft a sequenced milestone roadmap from Point A to Point B using the intake as the source. No em dashes, no exclamation points. Return strict JSON only.",
+        },
+        {
+          role: "user",
+          content: `Draft 4 to 6 milestones that move the project from Point A to Point B.
+Rules:
+- Each milestone must have a short name, a phase label (Foundations, Build, Launch, or Iterate), a one-paragraph brief, and 3 to 5 acceptance criteria.
+- Sequence them in the order they must ship.
+- Ground every milestone in the intake context.
+
+Return JSON only:
+{"milestones":[{"name":"","phase":"","brief":"","acceptance":["",""]}]}
+
+CONTEXT:
+${JSON.stringify({ point_a: args.pointA, point_b: args.pointB, intake: args.contextPayload }, null, 2).slice(0, 40_000)}`,
+        },
+      ],
+      { json: true, temperature: 0.2, maxRetriesPerModel: 1 },
+    );
+    const parsed = parseJsonOutput<{ milestones?: unknown }>(ai.text) ?? {};
+    if (Array.isArray(parsed.milestones)) {
+      drafts = (parsed.milestones as any[])
+        .map((m) => ({
+          name: cleanString(m?.name) ?? "",
+          phase: cleanString(m?.phase) ?? "Foundations",
+          brief: cleanString(m?.brief) ?? "",
+          acceptance: Array.isArray(m?.acceptance)
+            ? m.acceptance
+                .map((a: unknown) => cleanString(a) ?? "")
+                .filter((s: string) => s.length > 0)
+            : [],
+        }))
+        .filter((m) => m.name.length > 0);
+    }
+  } catch {
+    drafts = [];
+  }
+
+  if (drafts.length === 0) {
+    drafts = buildFallbackMilestones(args.projectName);
+  }
+
+  const now = new Date().toISOString();
+  const rows = drafts.slice(0, 8).map((m, idx) => ({
+    project_id: args.projectId,
+    name: m.name.slice(0, 240),
+    phase: m.phase.slice(0, 120),
+    status: "approved",
+    approval_status: "approved",
+    sort_index: idx,
+    roadmap_version_id: version?.id ?? null,
+    created_by_kind: "ai",
+    approved_by_email: args.actorEmail,
+    approved_at: now,
+    brief_md: m.brief || `Draft for review: ${m.name}`,
+    acceptance_criteria:
+      m.acceptance.length > 0
+        ? m.acceptance.map((text) => ({ text, done: false }))
+        : [{ text: `Confirm ${m.name} meets the intake-defined outcome.`, done: false }],
+    source_evidence: [
+      {
+        snippet: `Drafted by AI Product Manager from intake for ${args.projectName}.`,
+        category: "intake",
+      },
+    ],
+  }));
+
+  const { error } = await sb.from("engine_milestones").insert(rows);
+  if (error) {
+    throw new Error(
+      (error as { message?: string }).message ?? "Failed to seed milestones from intake",
+    );
+  }
+
+  await sb.from("engine_audit_log").insert({
+    project_id: args.projectId,
+    actor_email: args.actorEmail,
+    action: "milestones_ai_seeded",
+    summary: `AI Product Manager seeded ${rows.length} milestone${rows.length === 1 ? "" : "s"} from intake.`,
+    affected_modules: ["milestones", "roadmap"],
+    reason: "Empty milestone list at time of AI Spine fill.",
+    metadata: { count: rows.length },
+  });
+
+  return { created: rows.length };
+}
+
+function buildFallbackMilestones(projectName: string): Array<{
+  name: string;
+  phase: string;
+  brief: string;
+  acceptance: string[];
+}> {
+  return [
+    {
+      name: "Confirm Point A and Point B with founder",
+      phase: "Foundations",
+      brief: `Draft for review: Validate the current-state diagnosis and destination for ${projectName} against the intake, then lock the Spine as the reference for all downstream work.`,
+      acceptance: [
+        "Point A lenses and diagnosis reviewed with founder",
+        "Point B outcomes confirmed in writing",
+        "Spine marked approved on the Spine tab",
+      ],
+    },
+    {
+      name: "Design the operating system blueprint",
+      phase: "Foundations",
+      brief: `Draft for review: Translate the intake into a concrete operating system: owners, workflows, and tooling that move ${projectName} from Point A to Point B.`,
+      acceptance: [
+        "Operating model diagram approved",
+        "Roles and owners assigned",
+        "Toolchain and data model defined",
+      ],
+    },
+    {
+      name: "Build the first execution layer",
+      phase: "Build",
+      brief: `Draft for review: Implement the highest-leverage workflow identified in the intake so the team can execute against the new operating system.`,
+      acceptance: [
+        "Primary workflow live in production",
+        "Owners trained on the new flow",
+        "Evidence captured against acceptance criteria",
+      ],
+    },
+    {
+      name: "Launch client-facing outcome",
+      phase: "Launch",
+      brief: `Draft for review: Ship the first customer-visible outcome tied to the Point B destination and confirm the delivery meets the intake-defined promise.`,
+      acceptance: [
+        "Customer-facing surface live",
+        "Success metric instrumented",
+        "Client acknowledgement recorded",
+      ],
+    },
+    {
+      name: "Iterate on evidence and expand",
+      phase: "Iterate",
+      brief: `Draft for review: Review evidence from the first launch, close gaps, and extend the operating system into the next priority area from the intake.`,
+      acceptance: [
+        "Post-launch review completed",
+        "Gaps triaged and scheduled",
+        "Next-priority milestone drafted",
+      ],
+    },
+  ];
+}
