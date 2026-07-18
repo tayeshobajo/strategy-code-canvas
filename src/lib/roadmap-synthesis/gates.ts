@@ -144,7 +144,7 @@ function base(id: DoctrineGateId): Omit<DoctrineGateReadiness, "satisfied" | "mi
  * in .orchestrator/BUILD_STATE.md as an intentional bridge.
  */
 const RESOLUTION_LINKS: Record<DoctrineGateId, string> = {
-  world_entry: "understanding-room",
+  world_entry: "world-entry",
   execution_boundary: "builder",
   strategic_thesis: "point-b",
   drift_assessment: "roadmap",
