@@ -9,6 +9,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertAdminOrOperator, type AuthCtx } from "@/lib/engine-epistemic.server";
 import { insertEngineActivity } from "@/lib/engine-activity";
+import { notifyOperators } from "@/lib/engine-work-notify";
 
 export type WorldEntrySection =
   | "destination"
