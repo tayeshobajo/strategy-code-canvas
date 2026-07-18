@@ -253,6 +253,7 @@ export const saveWorldEntryDraft = createServerFn({ method: "POST" })
       history: nextHistory,
     };
     await writeSidecar(sb, data.projectId, spirit, nextState);
+    await mirrorWorldEntryToFieldTruth(sb, data.projectId, nextCurrent, actor, "human");
 
     await insertEngineActivity(sb, {
       project_id: data.projectId,
