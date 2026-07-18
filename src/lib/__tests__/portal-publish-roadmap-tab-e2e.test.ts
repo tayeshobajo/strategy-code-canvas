@@ -93,9 +93,14 @@ function callPublishRpc(args: {
 
 describe.skipIf(!HAS_PG)("Roadmap tab → Publish to client portal (E2E via RPC)", () => {
   const marker = `e2e-rmp-${randomUUID()}`;
-  const staffUserId = randomUUID();
+  // user_roles.user_id has an FK to auth.users which we can't write in
+  // this sandbox. Reuse an existing engine-staff user for the RPC's
+  // is_engine_staff() check; drive impersonation with the JWT-claims
+  // GUC and a synthetic actor email.
+  let staffUserId = "";
   const staffEmail = `${marker}-staff@trust-tai-e2e.local`;
   const clientEmail = `${marker}-client@trust-tai-e2e.local`;
+  // Stranger uses a random uuid with no user_roles row → not staff.
   const strangerUserId = randomUUID();
   const strangerEmail = `${marker}-stranger@trust-tai-e2e.local`;
 
@@ -108,16 +113,14 @@ describe.skipIf(!HAS_PG)("Roadmap tab → Publish to client portal (E2E via RPC)
   beforeAll(() => {
     if (!HAS_PG) return;
 
-    // Staff user + admin role → satisfies is_engine_staff() inside the RPC.
-    psql(
-      `INSERT INTO public.user_roles (user_id, email, role)
-         VALUES ('${staffUserId}', '${staffEmail}', 'admin')
-       ON CONFLICT DO NOTHING`,
+    staffUserId = psql(
+      `SELECT user_id::text FROM public.user_roles
+        WHERE role IN ('admin','operator','team_member')
+          AND user_id IS NOT NULL
+        LIMIT 1`,
     );
-    cleanup.push(`DELETE FROM public.user_roles WHERE user_id='${staffUserId}'`);
+    if (!staffUserId) throw new Error("no engine-staff user_id available for e2e");
 
-    // Stranger user with NO role → drives the "not authorized" branch.
-    // No user_roles row inserted on purpose.
 
     engineClientId = insertReturning(
       `INSERT INTO public.engine_clients (company, status)
