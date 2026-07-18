@@ -54,10 +54,66 @@ export async function evaluateDoctrineGates(
     if (gateEntry) byGate.get(gateEntry[0])!.push(r);
   }
 
+  // RT-2 sidecar: read World Entry workspace from spirit_first_analysis
+  // until the spine_check constraint is relaxed to accept 'world-entry'.
+  const { data: projRow } = await input.supabase
+    .from("engine_projects")
+    .select("spirit_first_analysis")
+    .eq("id", input.projectId)
+    .maybeSingle();
+  const spirit = ((projRow?.spirit_first_analysis as Record<string, unknown> | null) ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const worldEntrySidecar = spirit["world_entry_workspace"] as
+    | {
+        current?: {
+          status?: string;
+          destination_summary?: string;
+          competitors?: unknown[];
+          vocabulary?: unknown[];
+        } | null;
+      }
+    | undefined;
+
   return (Object.keys(GATE_SPINES) as DoctrineGateId[]).map((id) => {
+    if (id === "world_entry") {
+      return worldEntrySidecarGate(worldEntrySidecar, byGate.get(id) ?? []);
+    }
     const gateRows = byGate.get(id) ?? [];
     return evaluateGate(id, gateRows);
   });
+}
+
+function worldEntrySidecarGate(
+  sidecar:
+    | {
+        current?: {
+          status?: string;
+          destination_summary?: string;
+          competitors?: unknown[];
+          vocabulary?: unknown[];
+        } | null;
+      }
+    | undefined,
+  fallbackRows: TruthRow[],
+): DoctrineGateReadiness {
+  const b = base("world_entry");
+  const current = sidecar?.current;
+  if (current) {
+    const missing: string[] = [];
+    const isApproved = current.status === "approved";
+    const summary = (current.destination_summary ?? "").trim();
+    const competitors = Array.isArray(current.competitors) ? current.competitors : [];
+    const vocabulary = Array.isArray(current.vocabulary) ? current.vocabulary : [];
+    if (!summary || summary.length < 20) missing.push("Industry destination summary");
+    if (competitors.length < 3) missing.push(`Competitor review (${competitors.length}/3)`);
+    if (vocabulary.length < 5) missing.push(`Category vocabulary (${vocabulary.length}/5 tokens)`);
+    if (!isApproved) missing.push("Awaiting human approval");
+    return { ...b, satisfied: missing.length === 0, missing_pieces: missing, resolution_pending: false };
+  }
+  // Fall back to legacy engine_spine_field_truth read.
+  return { ...worldEntryGate(fallbackRows), resolution_pending: false };
 }
 
 function evaluateGate(id: DoctrineGateId, rows: TruthRow[]): DoctrineGateReadiness {
