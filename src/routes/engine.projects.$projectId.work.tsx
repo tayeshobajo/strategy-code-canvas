@@ -41,6 +41,14 @@ import {
   ComparePacketsModal,
   WorkEvidenceModal,
 } from "@/components/engine/work/WorkActionModals";
+import {
+  PausedWorkBanner,
+  BulkReassignModal,
+  BulkResolveBlockersModal,
+  WorkAuditTrailModal,
+} from "@/components/engine/work/WorkBulkModals";
+import { Checkbox } from "@/components/ui/checkbox";
+import { History } from "lucide-react";
 
 const searchSchema = z.object({
   view: z.enum(["milestones", "queue", "agents", "blockers"]).default("milestones"),
