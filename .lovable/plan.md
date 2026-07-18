@@ -1,94 +1,121 @@
-## Reference read-out
+# Project Roadmap Tab — Implementation Plan
 
-The uploaded mockup differs from the current engine in five specific ways:
+Replaces the placeholder `src/routes/engine.projects.$projectId.roadmap.tsx` with the living strategic map described in the brief. Continues the locked Trust Tai Spine visual baseline (warm-white, navy, electric blue accent, Instrument Serif headings, Inter body, engine-theme cloud-blue chrome). Persistent project shell (`LeftProjectRail`, `ProjectHeaderStrip`, `WorkspaceToolbar`) is already in place — the Roadmap slots into it as a peer of Spine.
 
-1. **Palette** — Page background is a cool cloud-blue-gray (`#F5F7FA` / `#EEF1F6`), not the warm cream `#FBF9F4` we use today. Borders are a cool neutral (`#E5E9F0`) instead of beige `#E8E1D6`. Ink and royal stay.
-2. **Type system** — Headings, body, and labels are all sans-serif (a clean neo-grotesque like Inter/Söhne). The engine currently uses `Cormorant Garamond` (serif) for `font-display`, which reads as marketing/editorial. Only the engine should change — the public Trust Tai site keeps the serif.
-3. **Global chrome** — Reference shows a **white top nav bar** (Command Center · Projects · Approvals · Operations · Strategic Sales · Settings, Ask Captain + bell + user chip on the right) instead of today's dark left sidebar. A second, lighter **left project rail** hosts the per-project navigation (already in place on the Spine page).
-4. **Spine page structure** — Same section order as today (you confirmed the positioning is right), but visually tighter: 7-cell status strip on a single card, Next Best Action highlighted in soft royal-tinted card, Point A/B as equal cards with a connecting arrow, Project Foundation as 6 evenly-spaced tiles, Business Roadmap preview as a 5-node timeline (Point A → Phase 1/2/3 → Point B) with the current phase highlighted.
-5. **Right rail** — Captain Brief, Approvals & Blockers, Material Changes, Active Agents — order preserved, spacing tightened, agent status uses colored dot + label (Working / Waiting for approval / Blocked).
+## Architecture at a glance
 
-## What this plan does
-
-Scope is deliberately limited to the engine surface (`/engine/*`). The marketing site, portal, and intake flows are not touched.
-
-### 1. Engine-scoped theme (new tokens, not a global swap)
-
-- Add a `.engine-theme` class on the engine layout root (`src/routes/engine.tsx` line 207 wrapper).
-- In `src/styles.css`, add a `.engine-theme` block that overrides `--paper`, `--paper-soft`, `--rule`, `--rule-soft`, and `--font-display` to the cool palette + sans-serif. Nothing outside `/engine` sees this.
-- Load Inter (or agreed sans) via `<link>` in `src/routes/__root.tsx` so `--font-display` inside engine resolves properly.
-
-New engine tokens:
-
-```
---paper:        #F5F7FA   (page bg)
---paper-soft:   #EEF1F6   (card wells, inline surfaces)
---rule:         #E5E9F0   (borders, dividers)
---rule-soft:    #EEF1F6
---font-display: "Inter", system-ui, sans-serif
+```text
+Approved Point A/B (engine_spine_field_truth)
+        │
+        ▼
+Roadmap read model  ── getProjectRoadmap (server fn)
+        │           ── composed from: engine_projects, engine_milestones,
+        │              engine_project_dates, engine_project_frames/mockups/
+        │              build_packets/qa_*, engine_roadmap_versions,
+        │              engine_review_items, engine_activity, family links
+        ▼
+Roadmap view model  ── deriveRoadmapView (pure)
+        │           ── phases, critical path, health, gaps, captain brief
+        ▼
+Roadmap route  ─── Header ─ Summary strip ─ Journey band
+               ─── View switch (Timeline / Table / Journey)
+               ─── Right rail (Captain, Critical Path, Approvals, Health)
 ```
 
-### 2. Global hex → token sweep inside engine files
+Every visible state is backed by durable records. Drafts render as drafts; only the approved baseline (`engine_roadmap_versions.status = 'approved'` and latest) unlocks operational readiness.
 
-There are ~226 literal `#FBF9F4` / `#E8E1D6` / `#FAF8F5` usages across engine files (spine, projects list, command center, ops, engine components). Each becomes the matching Tailwind token class:
+## Data model decisions
 
-- `bg-[#FBF9F4]` → `bg-paper-soft`
-- `bg-[#FAF8F5]` → `bg-paper`
-- `border-[#E8E1D6]` → `border-rule` (or `border-border`)
-- `text-[#0A0F1F]` → `text-ink`
-- `text-[#667085]` → `text-ink/60`
+- **No new tables in this sprint.** Phases are a derived concept: `engine_milestones.phase` (existing string) groups milestones; phase order, outcome, and rationale live inside the current approved `engine_roadmap_versions.payload.phases[]`. If a project has no version payload, phases fall back to distinct `phase` values sorted by earliest milestone start.
+- **Phase metadata (outcome, rationale, health, client-safe summary)** is read from the version payload where present, and left blank / "Not configured" otherwise — never inferred.
+- **Dependencies** read from `engine_milestones.dependencies` (jsonb array of milestone ids) plus family links (`engine_projects.parent_project_id`) for cross-project edges.
+- **Critical path** is computed in the pure view module using longest-duration path through the milestone DAG on due dates.
+- **A `phases` table + `roadmap_change_requests` table are deferred** to `.orchestrator/PENDING_MIGRATIONS.md` (see §Pending migrations). This sprint uses payload-embedded phase metadata and reuses `engine_review_items` for change requests so nothing ships blocked on schema.
 
-Because these all resolve through the `.engine-theme` overrides, the cream reads as cool blue-gray inside `/engine` and nothing changes elsewhere.
+## Files to add
 
-### 3. Engine top-nav chrome (matches reference)
+Server / read model
+- `src/lib/roadmap-view.ts` — pure module: `deriveRoadmapView(inputs) -> RoadmapView` (phases, milestones, dependencies, criticalPath, health, missingForApproval, captainBrief scaffold, changeSummary vs prior version). Fully unit-testable.
+- `src/lib/roadmap-view.test.ts` — covers: phase grouping fallback, gate ordering, blocked-upstream propagation, critical path selection, draft vs approved separation, parent/child aggregation, version diff (added/modified/removed/resequenced/date/dep/outcome).
+- `src/lib/engine-roadmap.functions.ts`
+  - `getProjectRoadmap({ projectId, versionId? })` — auth via `requireSupabaseAuth`, role-gated with `hasRoleForEmail`. Returns `{ project, version, phases, milestones, dependencies, criticalPath, health, captainBrief, changeSummary, family, permissions }`.
+  - `listRoadmapVersions({ projectId })`.
+  - `compareRoadmapVersions({ projectId, fromId, toId })` — diff via `roadmap-view` helpers.
+  - `submitRoadmapChangeRequest({ projectId, payload })` — writes an `engine_review_items` row typed `roadmap_change_request` with impact snapshot; uses `insertEngineActivity`.
+  - `askCaptainRoadmap({ projectId, question })` — thin wrapper over `callLovableAi` seeded with the read-model summary and the canonical questions from §6.
+- `src/lib/engine-roadmap-captain.server.ts` — prompt assembly + JSON parsing.
 
-Rework `src/routes/engine.tsx`:
+Route + UI (roadmap tab lives under project shell, so header identity/toolbar are already provided)
+- `src/routes/engine.projects.$projectId.roadmap.tsx` — replaces the current placeholder. Loads roadmap via `useServerFn` + `useQuery`; renders states: `no-truth` (empty guided), `draft`, `approved`, `error`, `stale-version`.
+- `src/components/engine/roadmap/RoadmapHeader.tsx` — left: title, tagline, version chip (`Baseline v1.2 · Approved`), current phase, last change; right: Add Milestone, Ask Captain, Compare Versions, Filters, More menu (Edit phases, Sequencing, Manage dates, Investment, Generate brief, Publish client-safe, Archive version).
+- `src/components/engine/roadmap/RoadmapSummaryStrip.tsx` — 8 restrained cells per §7.
+- `src/components/engine/roadmap/StrategicJourneyBand.tsx` — Point A → phases → Point B, selecting a phase filters the active view.
+- `src/components/engine/roadmap/RoadmapViewSwitch.tsx` — Timeline / Table / Journey; default rule: Journey if no active work yet, Timeline once phases have active milestones.
+- `src/components/engine/roadmap/RoadmapTimeline.tsx` — phase rows, milestone cards, today marker, week/month/quarter zoom, fit / jump-to-today, subtle SVG dependency connectors, subtle critical-path highlight. Drag only when `permissions.can_edit_dates`.
+- `src/components/engine/roadmap/RoadmapTable.tsx` — canonical columns from §24, row opens milestone workspace.
+- `src/components/engine/roadmap/RoadmapJourney.tsx` — editorial phase-by-phase story (Instrument Serif headers).
+- `src/components/engine/roadmap/MilestoneCard.tsx` — single card used by timeline; readiness chips (Criteria / Mockups / Build / QA) from `milestone-readiness-evaluator`. Quick actions menu per §12; actions respect `permissions` and readiness gates.
+- `src/components/engine/roadmap/DependencyLayer.tsx` — SVG overlay, hover to reveal dependency detail popover.
+- `src/components/engine/roadmap/CriticalPathPanel.tsx`, `RoadmapCaptainBrief.tsx`, `RoadmapHealthPanel.tsx`, `RoadmapApprovalsPanel.tsx` — right-rail cards; rail is sticky (same pattern as Spine right rail).
+- `src/components/engine/roadmap/CompareVersionsDialog.tsx` — diff list (Added / Modified / Removed / Resequenced / Date changed / Dependency changed / Outcome changed) with rationale + approver.
+- `src/components/engine/roadmap/ChangeRequestDialog.tsx` — request form (reason, urgency, scope/date/cost impact, affected milestones, Captain recommendation preview).
+- `src/components/engine/roadmap/RoadmapFilters.tsx` — restrained filter menu per §22.
+- `src/components/engine/roadmap/RoadmapEmptyStates.tsx` — no-truth, draft-generating, error.
+- `src/components/engine/roadmap/FamilyRoadmapTracks.tsx` — parent view with child tracks + cross-project dependency chips; child view shows parent objective banner.
 
-- Replace the sticky dark left sidebar with a **white top bar** containing the 6 primary nav items, a right-aligned "Ask Captain" pill, notification bell, and user chip.
-- The existing per-project left rail on the Spine page (already built) becomes the only vertical navigation; it stays scoped to project routes.
-- Preserve the mobile Sheet drawer (same items, opens from a hamburger in the top bar).
-- Keep all auth, breadcrumb, and role-check logic intact.
-
-### 4. Project Spine visual pass
-
-File: `src/routes/engine.projects.$projectId.spine.tsx`. No layout reordering (per your instruction); tighten what's there:
-
-- **Status strip** — collapse the 7 cells onto a single card, uppercase micro-labels, single-value + one-line qualifier, small progress bar under "Spine Readiness".
-- **Next Best Action** — soft royal tint background (`bg-royal/5` inside engine theme), compass/anchor icon on the right, meta chips row (`Impact · Unlocks · Owner · Due`).
-- **Point A / Point B cards** — equal columns, small icon + label + subtitle header, 3-line summary, meta grid (Sources · Confidence · Approved By · Approved On or Last Updated · Needs Approval), links row (View details / Open intelligence room). Arrow between the two cards on desktop.
-- **Project Foundation** — 6 evenly-spaced tiles in one horizontal row with an icon, label, and one metric line per tile; "View all foundation" link on the right.
-- **Business Roadmap Preview** — 5 nodes (Point A · Phase 1 · Phase 2 · Phase 3 · Point B) with connector lines, current phase highlighted with royal ring; footer summary shows Current Phase, Target Completion, View full roadmap link.
-- **Right rail** — same components as now; tighten padding, remove border weight, agent list uses colored dot + status label.
-
-Preserved as-is per your note: card order, Ask Captain modal, Source Inspector, thread persistence, focus trap, deep-link validation.
-
-### 5. Sanity check other engine pages
-
-Because the sweep and the theme layer are engine-wide, the Command Center, Projects list, Approvals, Operations pages inherit the new palette + sans-serif automatically. I'll do a quick pass on those three to fix anything that visually breaks (e.g. white-on-cream badges that need re-tuning against blue-gray).
+Tokens
+- Extend `src/styles.css` (engine-theme scope only) with roadmap-specific tokens: `--roadmap-critical`, `--roadmap-blocked`, `--roadmap-active`, `--roadmap-planned`, `--roadmap-complete`, `--roadmap-today`, `--roadmap-dependency` — all mapped to existing Trust Tai palette (navy, electric blue, quiet reds/ambers/greens). No new colors introduced globally.
 
 ## Files to change
 
-- `src/styles.css` — add `.engine-theme` block with engine tokens.
-- `src/routes/__root.tsx` — add Inter `<link>` (public font, single stylesheet).
-- `src/routes/engine.tsx` — swap dark left sidebar for white top nav, wrap with `.engine-theme`.
-- `src/routes/engine.projects.$projectId.spine.tsx` — visual pass on status strip, NBA card, Point A/B, Foundation strip, Roadmap preview, right rail.
-- 20 engine route/component files — mass replace hardcoded cream/beige hex values with tokens.
+- `src/routes/engine.projects.$projectId.roadmap.tsx` — replace placeholder body.
+- `src/components/engine/WorkspaceHeader.tsx` — `More` menu dispatches new events (`roadmap:add-milestone`, `roadmap:compare-versions`, `roadmap:publish-client-safe`, etc.) so Roadmap-scoped actions surface from the persistent toolbar when the tab is active.
+- `src/components/engine/LeftProjectRail.tsx` — no structural change; verify Roadmap remains selected across sub-states.
+- `src/lib/engine-activity.ts` — reuse existing `insertEngineActivity`; add new event kinds: `roadmap.view_opened`, `roadmap.milestone_opened`, `roadmap.change_requested`, `roadmap.version_compared`, `roadmap.client_export_attempted`.
 
-## Not in scope
+## Interconnection with the rest of the system
 
-- No changes to marketing site, portal, intake, auth pages.
-- No new server functions, no schema changes.
-- No changes to card ordering on the Spine page (you confirmed positioning is right).
-- No changes to Ask Captain, Source Inspector, thread persistence, focus trap, or deep-link validation shipped last turn.
+- **Spine → Roadmap**: `deriveRoadmapView` refuses to promote past `draft` unless `getProjectSpine` reports Point A and Point B as `approved_truth`. The no-truth empty state deep-links back to Spine (`#point-a`, `#point-b`).
+- **Roadmap → Milestone workspace**: `MilestoneCard` and table rows link to `engine.projects.$projectId.milestones.$milestoneId` (already exists via `MilestoneTabs`). Readiness chips deep-link to Brief / Plan / Mockups / Build / QA / History tabs.
+- **Roadmap → Work / QA & Delivery**: Only milestones under the approved baseline appear as actionable in Work and QA rooms — enforced in the read model, not the UI.
+- **Roadmap → Client View**: `roadmap-publish.buildClientSafePayload` already exists; the Publish action opens `CompareVersionsDialog` first, then routes through the existing approval ceremony.
+- **Roadmap ↔ Captain**: `askCaptainRoadmap` accepts the canonical §6 questions as one-tap chips inside `RoadmapCaptainBrief`; answers persist as chat events on the existing project chat thread so the Ask Captain modal already restores them.
+- **Roadmap ↔ Family**: parent/child projects share the version diff and dependency layer via `FamilyRoadmapTracks`.
 
-## Risks / assumptions
+## Permissions
 
-- **Font choice**: I'll use **Inter** unless you'd rather Söhne, Manrope, or another sans. Inter is free, close in feeling to the reference, and pairs cleanly with the geometric icons.
-- **Top-nav swap** is the biggest structural change. If you'd rather keep the current dark left sidebar and only re-skin the palette/font, tell me and I'll drop step 3.
-- Some engine pages have inline badge tones tuned for cream (soft green/red). Against cool blue-gray those may look chalky; I'll retune contrast on the pass in step 5.
+Server function returns a `permissions` object driven by `hasRoleForEmail`:
+- Tai/Admin: `can_approve_baseline`, `can_edit_phases`, `can_publish_client_safe`, `can_override_dates`.
+- Operator: `can_draft`, `can_add_milestone`, `can_adjust_dates_within_authority`, `can_submit_change_request`.
+- Agent: read + propose only; UI hides mutation controls.
+- Client: never sees this route (already gated by `_authenticated` + engine role).
+
+## States covered (§29–30, §33 QA scenarios)
+
+`no-truth`, `draft`, `draft-generating`, `approved`, `error`, `stale-version`, `dependency-conflict`, `client-export-blocked` — each rendered by dedicated components in `RoadmapEmptyStates.tsx` / inline banners. Reload prompt fires when `getProjectRoadmap` returns a `version.updated_at` newer than the one the client mounted with.
+
+## Pending migrations (write to `.orchestrator/PENDING_MIGRATIONS.md`, do not apply)
+
+1. `engine_roadmap_phases` — first-class phase records (id, project_id, order, name, outcome, rationale, status, health, client_safe_summary, date_range, owner). Migrates existing payload phases.
+2. `engine_roadmap_change_requests` — dedicated table with impact snapshot, approvers, resolution; supersedes the `engine_review_items` overload.
+3. `engine_milestone_dependencies` — normalized edges (from_milestone_id, to_milestone_id, type, status, risk) to replace the jsonb blob; enables efficient cycle detection.
+
+## Voice + design guardrails
+
+- Instrument Serif only on major headings and journey moments; Inter for everything else.
+- Sentence case throughout, no em-dashes, no "leverage", no exclamation points, quiet status colors.
+- No Gantt-chart chrome, no dense PM grids, no percentage-without-context, no cream (engine-theme cloud-blue only).
+- Right rail sticky using the same pattern as Spine.
 
 ## Verification
 
-- Spine page at 1440px, 1024px, 375px against the reference — colors, spacing, card composition.
-- Marketing home page unchanged (serif + cream preserved).
-- Typecheck + preview walkthrough of Command Center, Projects list, Approvals to confirm nothing regressed visually.
+- `vitest run src/lib/roadmap-view.test.ts` — pure logic (phases, gates, critical path, diff).
+- `tsgo` typecheck on all new files.
+- Playwright smoke against a real project (`cakepro`): opens `/engine/projects/:id/roadmap`, asserts Journey band renders phases from `engine_roadmap_versions`, Timeline shows milestones from `engine_milestones` with readiness chips matching `milestone-readiness-evaluator`, Compare Versions dialog opens with a real prior version, Ask Captain returns a Captain Brief. Screenshots at 1280×1800 for Journey, Timeline, Table, no-truth empty state, draft state, compare dialog.
+- Manual pass through the 10 canonical QA scenarios in §33; capture proof in `.orchestrator/phase-spine2-roadmap-output.md`.
+
+## Out of scope for this sprint (called out to user before build)
+
+- The three schema migrations above (deferred, gated on Tai approval).
+- Drag-to-reschedule with automatic version bump — read-only date edits via existing `Manage dates` route until phases table lands.
+- Autonomous project-split execution — Captain will *recommend* a split, human confirms in Family view.
