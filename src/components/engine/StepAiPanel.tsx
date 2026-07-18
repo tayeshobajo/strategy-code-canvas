@@ -36,9 +36,9 @@ const STEP_SPEC: Record<
   "point-b": {
     label: "Point B Definition",
     canDraft: [
-      "12-month desired-state narrative",
-      "Success metrics per pillar",
-      "North-star outcome sentence",
+      "24-month destination and 10-year position",
+      "Client, customer, operational, and revenue outcomes",
+      "Brand position",
     ],
     requiresApproval: ["Operator + client confirm target state before Gap Map"],
     nextTrigger: "Approve Point B → unlocks Gap Map + Hidden Asset drafting.",
@@ -54,37 +54,25 @@ const STEP_SPEC: Record<
   },
   "gap-map": {
     label: "Gap Map",
-    canDraft: [
-      "Gap list between Point A and Point B",
-      "Severity + owner suggestion per gap",
-    ],
+    canDraft: ["Gap list between Point A and Point B", "Severity + owner suggestion per gap"],
     requiresApproval: ["Operator confirms gap severity before it drives milestones"],
     nextTrigger: "Approve gaps → feeds Blueprint and Milestones.",
   },
   blueprint: {
     label: "System Blueprint",
-    canDraft: [
-      "System nodes (people, tools, data, workflows)",
-      "Connections + failure points",
-    ],
+    canDraft: ["System nodes (people, tools, data, workflows)", "Connections + failure points"],
     requiresApproval: ["Operator validates the blueprint reflects reality"],
     nextTrigger: "Approve Blueprint → unlocks Roadmap Builder.",
   },
   sequencing: {
     label: "Sequencing View",
-    canDraft: [
-      "30/60/90 phase assignment for each milestone",
-      "Dependency ordering",
-    ],
+    canDraft: ["30/60/90 phase assignment for each milestone", "Dependency ordering"],
     requiresApproval: ["Operator confirms order matches client capacity"],
     nextTrigger: "Approve sequencing → unlocks Deadline Plan.",
   },
   deadlines: {
     label: "Deadline Plan",
-    canDraft: [
-      "Suggested due dates per milestone from phase + effort",
-      "Critical-path flag",
-    ],
+    canDraft: ["Suggested due dates per milestone from phase + effort", "Critical-path flag"],
     requiresApproval: ["Operator commits dates with client"],
     nextTrigger: "Approve dates → unlocks Investment Builder.",
   },
@@ -94,9 +82,7 @@ const STEP_SPEC: Record<
       "Cost estimate per milestone (agent hours + services)",
       "Recommended monthly budget envelope",
     ],
-    requiresApproval: [
-      "Admin-only confirmation of investment plan (never agent-authored)",
-    ],
+    requiresApproval: ["Admin-only confirmation of investment plan (never agent-authored)"],
     nextTrigger: "Admin confirms investment → unlocks Client Preview.",
   },
 };
@@ -134,9 +120,13 @@ export function computeStepKnowsMissing(step: StepKey, data: unknown): ComputedS
       check("key_diagnosis", "Key diagnosis sentence");
       break;
     case "point-b":
-      check("narrative", "12-month desired-state narrative");
-      check("success_metrics", "Success metrics per pillar");
-      check("north_star", "North-star outcome");
+      check("24_month_destination", "24-month destination");
+      check("10_year_position", "10-year position");
+      check("client_outcome", "Client outcome");
+      check("customer_outcome", "Customer outcome");
+      check("operational_outcome", "Operational outcome");
+      check("revenue_outcome", "Revenue outcome");
+      check("brand_position", "Brand position");
       break;
     case "hidden-assets":
       check("assets", "Hidden asset inventory");
@@ -166,7 +156,6 @@ export function computeStepKnowsMissing(step: StepKey, data: unknown): ComputedS
   }
   return { knows, missing };
 }
-
 
 export type StepAiPanelProps = {
   stepLabel: string;
@@ -238,7 +227,9 @@ export function StepAiPanel(p: StepAiPanelProps) {
           />
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-ink/60 mb-1.5">AI can draft</div>
+          <div className="text-[10px] uppercase tracking-widest text-ink/60 mb-1.5">
+            AI can draft
+          </div>
           <List
             items={p.canDraft}
             icon={<Sparkles className="w-3 h-3" />}
@@ -247,7 +238,9 @@ export function StepAiPanel(p: StepAiPanelProps) {
           />
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-ink/60 mb-1.5">Requires human approval</div>
+          <div className="text-[10px] uppercase tracking-widest text-ink/60 mb-1.5">
+            Requires human approval
+          </div>
           <List
             items={p.requiresApproval}
             icon={<Lock className="w-3 h-3" />}
@@ -258,7 +251,9 @@ export function StepAiPanel(p: StepAiPanelProps) {
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/10 pt-3">
         <div className="text-xs text-ink/70">
-          <span className="uppercase tracking-widest text-[10px] text-ink/50 mr-2">Next trigger</span>
+          <span className="uppercase tracking-widest text-[10px] text-ink/50 mr-2">
+            Next trigger
+          </span>
           <ArrowRight className="inline w-3 h-3 mr-1" />
           {p.nextTrigger}
         </div>
@@ -272,7 +267,7 @@ export function StepAiPanel(p: StepAiPanelProps) {
               className="inline-flex items-center gap-1.5 rounded-md bg-royal px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-royal/90 disabled:opacity-50"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              {p.draftPending ? "Drafting…" : p.draftLabel ?? "Ask AI to draft"}
+              {p.draftPending ? "Drafting…" : (p.draftLabel ?? "Ask AI to draft")}
             </button>
           </div>
         ) : null}

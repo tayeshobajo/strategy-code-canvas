@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
-import { useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { approveVersion } from "@/lib/engine-intelligence.functions";
+import { fillMissingSpineDetailsFromIntake } from "@/lib/engine-spine-ai-fill.functions";
 import {
   Map as MapIcon,
   ArrowRight,
@@ -102,6 +103,12 @@ function RoadmapDashboard({
   const { view, versions } = payload;
   const [compareOpen, setCompareOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const filteredMilestones = useMemo(() => {
+    if (!activePhaseKey) return view.milestones;
+    const phase = view.phases.find((p) => p.key === activePhaseKey);
+    if (!phase) return view.milestones;
+    return view.milestones.filter((m) => phase.milestone_ids.includes(m.id));
+  }, [view.milestones, view.phases, activePhaseKey]);
 
   if (view.mode === "no_truth") {
     return <NoTruthState projectId={projectId} missing={view.missing_for_approval} />;
@@ -109,13 +116,6 @@ function RoadmapDashboard({
   if (view.mode === "draft_generating") {
     return <DraftGeneratingState projectId={projectId} />;
   }
-
-  const filteredMilestones = useMemo(() => {
-    if (!activePhaseKey) return view.milestones;
-    const phase = view.phases.find((p) => p.key === activePhaseKey);
-    if (!phase) return view.milestones;
-    return view.milestones.filter((m) => phase.milestone_ids.includes(m.id));
-  }, [view.milestones, view.phases, activePhaseKey]);
 
   return (
     <div className="space-y-5" data-qa-tab-view="roadmap" data-roadmap-mode={view.mode}>
@@ -211,7 +211,28 @@ function RoadmapHeader({
   const version = view.version;
   const qc = useQueryClient();
   const approveFn = useServerFn(approveVersion);
+  const fillMissingFn = useServerFn(fillMissingSpineDetailsFromIntake);
   const [approving, setApproving] = useState(false);
+  const fillMutation = useMutation({
+    mutationFn: () => fillMissingFn({ data: { projectId } }),
+    onSuccess: async (result) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
+        qc.invalidateQueries({ queryKey: ["engine", "workspace", projectId] }),
+        qc.invalidateQueries({ queryKey: ["engine", "spine-status", projectId] }),
+        qc.invalidateQueries({ queryKey: ["engine", "ceremony-summary", projectId] }),
+      ]);
+      const count = result.changed.length;
+      toast.success(
+        count
+          ? `AI Product Manager drafted ${count} missing Spine field${count === 1 ? "" : "s"}. Review and approve on the Spine tab.`
+          : "AI Product Manager reviewed the Spine. No blank fields were changed.",
+      );
+    },
+    onError: (e) => {
+      toast.error((e as Error).message || "AI Product Manager could not fill missing details.");
+    },
+  });
   const canApprove =
     payload.permissions.can_approve_baseline &&
     version != null &&
@@ -308,8 +329,19 @@ function RoadmapHeader({
         </div>
       )}
       {canApprove && (
-        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
-          This roadmap is a <strong>draft</strong>. Approving it locks the baseline and unlocks the Work tab. Requires: Point A + Point B approved, no open critical change events, and a second reviewer (you can't approve a version you authored). Investment confirmation is required later, before publishing to the client portal.
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+          <span className="max-w-4xl">
+            This roadmap is a <strong>draft</strong>. Approving it locks the baseline and unlocks the Work tab. Requires: Point A + Point B approved, no open critical change events, and a second reviewer (you can't approve a version you authored). Investment confirmation is required later, before publishing to the client portal.
+          </span>
+          <button
+            type="button"
+            onClick={() => fillMutation.mutate()}
+            disabled={fillMutation.isPending}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-950 hover:border-amber-500 disabled:opacity-50"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {fillMutation.isPending ? "Filling details…" : "Fill missing Spine details"}
+          </button>
         </div>
       )}
       <div className="sr-only" aria-live="polite">
@@ -1107,6 +1139,26 @@ function ChangeRequestModal({ projectId, onClose }: { projectId: string; onClose
 // ------------- empty / draft states -------------
 
 function NoTruthState({ projectId, missing }: { projectId: string; missing: string[] }) {
+  const qc = useQueryClient();
+  const fillMissingFn = useServerFn(fillMissingSpineDetailsFromIntake);
+  const fillMutation = useMutation({
+    mutationFn: () => fillMissingFn({ data: { projectId } }),
+    onSuccess: async (result) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
+        qc.invalidateQueries({ queryKey: ["engine", "workspace", projectId] }),
+        qc.invalidateQueries({ queryKey: ["engine", "spine-status", projectId] }),
+      ]);
+      toast.success(
+        result.changed.length
+          ? `AI Product Manager drafted ${result.changed.length} missing Spine field${result.changed.length === 1 ? "" : "s"}.`
+          : "AI Product Manager reviewed the Spine. No blank fields were changed.",
+      );
+    },
+    onError: (e) => {
+      toast.error((e as Error).message || "AI Product Manager could not fill missing details.");
+    },
+  });
   return (
     <section className="rounded-xl border border-border bg-card p-6 shadow-sm text-sm" data-qa-state="roadmap-no-truth">
       <div className="flex items-center gap-2 text-ink">
@@ -1123,13 +1175,24 @@ function NoTruthState({ projectId, missing }: { projectId: string; missing: stri
           ))}
         </ul>
       )}
-      <Link
-        to="/engine/projects/$projectId/spine"
-        params={{ projectId }}
-        className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-xs text-white hover:bg-ink/90"
-      >
-        Open Spine <ArrowRight className="h-3.5 w-3.5" />
-      </Link>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => fillMutation.mutate()}
+          disabled={fillMutation.isPending}
+          className="inline-flex items-center gap-1.5 rounded-md bg-royal px-3 py-1.5 text-xs text-white hover:bg-royal/90 disabled:opacity-50"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          {fillMutation.isPending ? "Filling details…" : "Fill missing Spine details"}
+        </button>
+        <Link
+          to="/engine/projects/$projectId/spine"
+          params={{ projectId }}
+          className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-xs text-white hover:bg-ink/90"
+        >
+          Open Spine <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
     </section>
   );
 }
