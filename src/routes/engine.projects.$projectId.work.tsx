@@ -137,6 +137,7 @@ function WorkTab() {
 
   return (
     <div className="space-y-5" data-qa-tab-view="work">
+      <PausedWorkBanner projectId={projectId} isAdmin={role.isAdmin} />
       <SummaryStrip
         view={view}
         onAddWork={canAct ? () => setModal({ kind: "add" }) : undefined}
@@ -173,6 +174,12 @@ function WorkTab() {
               onEvidence={(w) =>
                 setModal({ kind: "evidence", taskId: w.id, taskName: w.name })
               }
+              onHistory={(w) =>
+                setModal({ kind: "audit", taskId: w.id, taskName: w.name })
+              }
+              onBulkReassign={(ids) =>
+                setModal({ kind: "bulk-reassign", taskIds: ids })
+              }
             />
           )}
           {search.view === "agents" && <AgentGrid agents={view.agents} />}
@@ -182,6 +189,9 @@ function WorkTab() {
               canAct={canAct}
               onResolve={(b) =>
                 setModal({ kind: "resolve", reviewItemId: b.id, title: b.title })
+              }
+              onBulkResolve={(ids) =>
+                setModal({ kind: "bulk-resolve", reviewItemIds: ids })
               }
             />
           )}
@@ -240,6 +250,31 @@ function WorkTab() {
           taskName={modal.taskName}
           isAdmin={role.isAdmin}
           currentUserEmail={role.email}
+        />
+      ) : null}
+      {modal.kind === "audit" ? (
+        <WorkAuditTrailModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          taskId={modal.taskId}
+          taskName={modal.taskName}
+        />
+      ) : null}
+      {modal.kind === "bulk-reassign" ? (
+        <BulkReassignModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          taskIds={modal.taskIds}
+        />
+      ) : null}
+      {modal.kind === "bulk-resolve" ? (
+        <BulkResolveBlockersModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          reviewItemIds={modal.reviewItemIds}
         />
       ) : null}
     </div>
