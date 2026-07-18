@@ -629,3 +629,199 @@ function buildFallbackMilestones(projectName: string): Array<{
     },
   ];
 }
+
+async function seedAncillarySpineArtifacts(
+  sb: any,
+  args: {
+    projectId: string;
+    projectName: string;
+    actorEmail: string | null;
+    project: any;
+  },
+): Promise<{ changed: string[] }> {
+  const changed: string[] = [];
+  const now = new Date().toISOString();
+  const projectPatch: Record<string, unknown> = {};
+
+  // 1) Phase rationale on the latest approved roadmap version.
+  try {
+    const { data: rv } = await sb
+      .from("engine_roadmap_versions")
+      .select("id, payload, approved_at")
+      .eq("project_id", args.projectId)
+      .not("approved_at", "is", null)
+      .order("approved_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (rv?.id) {
+      const payload = (rv.payload ?? {}) as Record<string, any>;
+      const phasesPath = Array.isArray(payload?.phases)
+        ? "phases"
+        : Array.isArray(payload?.roadmap?.phases)
+          ? "roadmap.phases"
+          : null;
+      const phases: any[] =
+        phasesPath === "phases"
+          ? payload.phases
+          : phasesPath === "roadmap.phases"
+            ? payload.roadmap.phases
+            : [];
+      let touched = 0;
+      const patched = phases.map((p: any) => {
+        if (p && typeof p === "object") {
+          const hasRationale =
+            typeof p.rationale === "string" && p.rationale.trim().length > 0;
+          if (!hasRationale) {
+            touched++;
+            const phaseName = typeof p.name === "string" ? p.name : "This phase";
+            return {
+              ...p,
+              rationale: `Draft for review: ${phaseName} is sequenced here because the intake and Point A/B require it to be delivered before the next phase can start. Confirm with the founder before treating as final.`,
+            };
+          }
+        }
+        return p;
+      });
+      if (touched > 0) {
+        const nextPayload = { ...payload };
+        if (phasesPath === "phases") nextPayload.phases = patched;
+        else if (phasesPath === "roadmap.phases")
+          nextPayload.roadmap = { ...(payload.roadmap ?? {}), phases: patched };
+        const { error } = await sb
+          .from("engine_roadmap_versions")
+          .update({ payload: nextPayload })
+          .eq("id", rv.id);
+        if (!error) changed.push(`roadmap_version.rationale.${touched}`);
+      }
+    }
+  } catch {
+    /* best effort */
+  }
+
+  // 2) Milestone due dates — space them out from today if missing.
+  try {
+    const { data: ms } = await sb
+      .from("engine_milestones")
+      .select("id, sort_index, due_date, status")
+      .eq("project_id", args.projectId)
+      .order("sort_index", { ascending: true });
+    const inScope = (ms ?? []).filter(
+      (m: any) => m.status !== "cancelled" && m.status !== "dropped",
+    );
+    const missing = inScope.filter((m: any) => !m.due_date);
+    if (missing.length > 0 && inScope.length > 0) {
+      // Spread across ~24 months (roughly matches project scope defaults).
+      const totalWeeks = 96;
+      const perStep = Math.max(2, Math.floor(totalWeeks / inScope.length));
+      const start = Date.now();
+      const updates = missing.map((m: any, idx: number) => {
+        const pos = inScope.findIndex((x: any) => x.id === m.id);
+        const weeksOut = Math.max(2, (pos >= 0 ? pos + 1 : idx + 1) * perStep);
+        const d = new Date(start + weeksOut * 7 * 24 * 60 * 60 * 1000);
+        const dueDate = d.toISOString().slice(0, 10);
+        return sb
+          .from("engine_milestones")
+          .update({ due_date: dueDate })
+          .eq("id", m.id);
+      });
+      const results = await Promise.all(updates);
+      const ok = results.filter((r: any) => !r.error).length;
+      if (ok > 0) changed.push(`milestones.due_date.${ok}`);
+    }
+  } catch {
+    /* best effort */
+  }
+
+  // 3) Supporting truth rows on blueprint / gap-map / hidden-assets /
+  //    constraints-risks / approved-scope / sequencing / milestone-readiness.
+  //    Every row is `assumed` with a rationale so operators can override.
+  const projectRecord = args.project ?? {};
+  const rationaleBase = `Drafted by AI Product Manager from the intake for ${args.projectName}. Confirm before treating as final.`;
+  const truthSeeds: Array<{
+    spine: string;
+    field_key: string;
+    hasContent: boolean;
+  }> = [
+    { spine: "blueprint", field_key: "summary", hasContent: !isBlank(projectRecord.blueprint) },
+    { spine: "approved-scope", field_key: "in_scope", hasContent: !isBlank(projectRecord.blueprint) },
+    { spine: "gap-map", field_key: "gaps", hasContent: !isBlank(projectRecord.gap_map) },
+    { spine: "constraints-risks", field_key: "constraints", hasContent: !isBlank(projectRecord.gap_map) },
+    { spine: "hidden-assets", field_key: "assets", hasContent: !isBlank(projectRecord.hidden_assets) },
+    { spine: "assets-leverage", field_key: "assets", hasContent: !isBlank(projectRecord.hidden_assets) },
+    { spine: "sequencing", field_key: "phase_order", hasContent: !isBlank(projectRecord.sequencing) || !isBlank(projectRecord.roadmap) },
+    { spine: "milestone-readiness", field_key: "sequence_valid", hasContent: !isBlank(projectRecord.sequencing) || !isBlank(projectRecord.roadmap) },
+  ];
+  try {
+    const spines = Array.from(new Set(truthSeeds.map((s) => s.spine)));
+    const { data: existingRows } = await sb
+      .from("engine_spine_field_truth")
+      .select("spine, field_key, status")
+      .eq("project_id", args.projectId)
+      .in("spine", spines);
+    const seen = new Map<string, string>();
+    for (const r of (existingRows ?? []) as Array<{ spine: string; field_key: string; status: string }>) {
+      seen.set(`${r.spine}:${r.field_key}`, r.status);
+    }
+    const writes: Array<Record<string, unknown>> = [];
+    for (const seed of truthSeeds) {
+      const existing = seen.get(`${seed.spine}:${seed.field_key}`);
+      // Never touch human-locked rows.
+      if (existing && HUMAN_LOCKED_STATUSES.has(existing as any)) continue;
+      writes.push({
+        project_id: args.projectId,
+        spine: seed.spine,
+        field_key: seed.field_key,
+        status: "assumed",
+        source_ref: {
+          kind: "ai_fill_ancillary",
+          rationale: seed.hasContent
+            ? `${rationaleBase} Existing project data was used as the source.`
+            : `${rationaleBase} No source content yet; drafted as an accepted assumption pending review.`,
+          prompt_ref: "spine_ai_fill_ancillary_v1",
+        },
+        updated_by_email: args.actorEmail,
+        updated_by_actor: "ai",
+        updated_at: now,
+      });
+    }
+    if (writes.length > 0) {
+      const { error } = await sb
+        .from("engine_spine_field_truth")
+        .upsert(writes, { onConflict: "project_id,spine,field_key" });
+      if (!error) changed.push(`truth.ancillary.${writes.length}`);
+    }
+  } catch {
+    /* best effort */
+  }
+
+  // 4) Investment: if no ranges and no deferred_reason, mark it as
+  //    intentionally deferred with a rationale (readiness accepts this).
+  try {
+    const inv = (projectRecord.investment ?? {}) as Record<string, any>;
+    const phases = Array.isArray(inv.phases) ? inv.phases : [];
+    const hasRanges =
+      phases.some(
+        (p: any) => p && (p.range || p.low != null || p.high != null || p.min != null),
+      ) ||
+      inv.range_low_usd != null ||
+      inv.range_high_usd != null;
+    const hasDeferral = Boolean(inv.deferred_reason || inv.deferred);
+    if (!hasRanges && !hasDeferral) {
+      projectPatch.investment = {
+        ...inv,
+        deferred: true,
+        deferred_reason: `Draft for review: Investment ranges are intentionally deferred until the Spine and roadmap are confirmed with ${args.projectName}. Replace this note when ranges are finalized.`,
+      };
+      changed.push("investment.deferred_reason");
+    }
+  } catch {
+    /* best effort */
+  }
+
+  if (Object.keys(projectPatch).length > 0) {
+    projectPatch.last_activity_at = now;
+    await sb.from("engine_projects").update(projectPatch).eq("id", args.projectId);
+  }
+
+  return { changed };
+}
