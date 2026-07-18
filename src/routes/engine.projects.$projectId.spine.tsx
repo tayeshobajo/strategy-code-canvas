@@ -774,6 +774,9 @@ function ProjectSpine() {
         </SearchableBlock>
       </section>
 
+        </div>
+      </details>
+
       <NotificationsCard notifications={spine.notifications} />
         </>
       ) : variant === "incomplete" ? (
