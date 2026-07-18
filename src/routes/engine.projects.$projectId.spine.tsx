@@ -198,6 +198,14 @@ function ProjectSpine() {
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<{ title: string; missing: string[] } | null>(null);
   const [askCaptainOpen, setAskCaptainOpen] = useState(false);
+  const exportHandlerRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    const handler = () => exportHandlerRef.current?.();
+    window.addEventListener("spine:export-roadmap", handler);
+    return () => window.removeEventListener("spine:export-roadmap", handler);
+  }, []);
+
 
 
   const approveMut = useMutation({
@@ -299,6 +307,8 @@ function ProjectSpine() {
       },
     });
   };
+  exportHandlerRef.current = handleExportClientRoadmap;
+
 
   return (
     <div className="min-w-0 space-y-6 text-[#0A0F1F]">
@@ -306,10 +316,9 @@ function ProjectSpine() {
       <SpinePageHeader
         projectId={projectId}
         pendingApprovalsCount={pendingApprovalsCount}
-        onExportPdf={handleExportClientRoadmap}
-        exportDisabled={workspaceQ.isPending}
         onAskCaptain={() => setAskCaptainOpen(true)}
       />
+
 
       {/* ───── Variant banner (Incomplete / Active / Client-Ready) ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
@@ -718,14 +727,10 @@ function ProjectSpine() {
 function SpinePageHeader({
   projectId: _projectId,
   pendingApprovalsCount,
-  onExportPdf,
-  exportDisabled = false,
   onAskCaptain,
 }: {
   projectId: string;
   pendingApprovalsCount: number;
-  onExportPdf: () => void;
-  exportDisabled?: boolean;
   onAskCaptain?: () => void;
 }) {
   return (
@@ -757,16 +762,6 @@ function SpinePageHeader({
         >
           <Sparkles className="h-3.5 w-3.5 text-[#3E68B2]" />
           Ask Captain
-        </button>
-        <button
-          type="button"
-          onClick={onExportPdf}
-          data-qa-action="export-roadmap"
-          disabled={exportDisabled}
-          className="inline-flex items-center gap-1.5 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-3.5 py-1.5 text-[13px] font-medium text-white transition hover:bg-[#1c2440] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Export Roadmap
         </button>
       </div>
     </header>

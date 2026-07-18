@@ -22,6 +22,7 @@ import {
   ChevronDown,
   MoreHorizontal,
   BrainCircuit,
+  Download,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
@@ -409,6 +410,15 @@ function MoreMenu({
           );
         })}
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-sm"
+          onSelect={(e) => {
+            e.preventDefault();
+            window.dispatchEvent(new CustomEvent("spine:export-roadmap"));
+          }}
+        >
+          <Download className="w-3.5 h-3.5 mr-2" /> Export Roadmap
+        </DropdownMenuItem>
         <DropdownMenuItem className="text-sm">
           <Settings className="w-3.5 h-3.5 mr-2" /> Project Settings
         </DropdownMenuItem>

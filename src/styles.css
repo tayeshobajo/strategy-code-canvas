@@ -145,14 +145,22 @@
  * the marketing site rendering the original warm palette. */
 .engine-theme .bg-\[\#FBF9F4\],
 .engine-theme .bg-\[\#FAF8F5\],
-.engine-theme .bg-\[\#F5F0E8\] {
+.engine-theme .bg-\[\#F5F0E8\],
+.engine-theme .bg-\[\#FBF7F0\],
+.engine-theme .bg-\[\#FBF7F0\]\/60,
+.engine-theme .bg-\[\#F3EEE6\] {
   background-color: var(--paper) !important;
 }
-.engine-theme .bg-\[\#E8E1D6\] {
+.engine-theme .bg-\[\#E8E1D6\],
+.engine-theme .bg-\[\#F5F8FE\] {
   background-color: var(--paper-soft) !important;
 }
 .engine-theme .border-\[\#E8E1D6\],
-.engine-theme .border-\[\#EDE6D8\] {
+.engine-theme .border-\[\#EDE6D8\],
+.engine-theme .border-\[\#F3EEE6\] {
+  border-color: var(--rule) !important;
+}
+.engine-theme .divide-\[\#F3EEE6\] > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--rule) !important;
 }
 
