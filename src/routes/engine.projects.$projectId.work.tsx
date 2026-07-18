@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { z } from "zod";
 import {
   Wrench,
@@ -16,6 +17,10 @@ import {
   ShieldCheck,
   DollarSign,
   Zap,
+  Plus,
+  GitCompare,
+  UserCog,
+  FileCheck2,
 } from "lucide-react";
 import { getProjectWork, type ProjectWorkPayload } from "@/lib/engine-work.functions";
 import type {
@@ -27,6 +32,15 @@ import type {
   MilestoneGateProgression,
   GateState,
 } from "@/lib/work-view";
+import { Button } from "@/components/ui/button";
+import { useEngineRole } from "@/hooks/useEngineRole";
+import {
+  AddWorkItemModal,
+  ReassignWorkItemModal,
+  ResolveBlockerModal,
+  ComparePacketsModal,
+  WorkEvidenceModal,
+} from "@/components/engine/work/WorkActionModals";
 
 const searchSchema = z.object({
   view: z.enum(["milestones", "queue", "agents", "blockers"]).default("milestones"),
