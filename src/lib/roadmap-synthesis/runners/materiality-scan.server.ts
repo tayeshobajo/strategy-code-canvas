@@ -135,18 +135,6 @@ export async function runMaterialityScan(args: {
         if (!approvedRows || approvedRows.length === 0) continue;
 
         for (const row of approvedRows) {
-          // Skip if we've already written a pending amendment for this
-          // (source, truth) pair to avoid duplicates on repeated refreshes.
-          const dupRes = await supabase
-            .from("engine_project_synthesis_candidates")
-            .select("id")
-            .eq("project_id", projectId)
-            .eq("step_id", "roadmap_amendment")
-            .eq("status", "pending")
-            .contains("payload", { target: { truthId: row.id }, sourceIds: [src.id] })
-            .limit(1);
-          if ((dupRes.data as Array<{ id: string }> | null)?.length) continue;
-
           const payload = {
             kind: "roadmap_amendment" as const,
             target: { kind: "truth" as const, truthId: row.id, spine, fieldKey: row.field_key },
@@ -171,7 +159,17 @@ export async function runMaterialityScan(args: {
               status: "pending",
             });
           if (insErr) {
-            result.errors.push(insErr.message ?? "amendment insert failed");
+            // Partial unique index engine_roadmap_amendment_dedup_pending
+            // guarantees at-most-one pending amendment per (project, truth,
+            // source). A duplicate raises Postgres 23505 — treat as a
+            // no-op skip, not a failure, so repeated refreshes are safe.
+            const code = (insErr as { code?: string }).code;
+            const msg = (insErr as { message?: string }).message ?? "";
+            if (code === "23505" || /duplicate key|unique constraint/i.test(msg)) {
+              result.duplicatesSkipped += 1;
+              continue;
+            }
+            result.errors.push(msg || "amendment insert failed");
             continue;
           }
           result.amendmentsWritten += 1;
