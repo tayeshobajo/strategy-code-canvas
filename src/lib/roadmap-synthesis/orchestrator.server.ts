@@ -98,11 +98,12 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
     }
   }
 
-  // For RT-1 the only runner is the legacy monolithic fill. It is
-  // idempotent per-project (only fills blanks / adds missing artifacts).
-  // We invoke it once if ANY target maps to it, then mark those targets
-  // as ran. Per-step runners can replace this without changing callers.
+  // The legacy fill is monolithic, but we can attribute per-step honestly
+  // by re-deriving the plan after it runs: a step transitioning from
+  // missing/failed → satisfied is what actually ran. Steps still missing
+  // stay in `errors` for the caller.
   if (targets.length > 0) {
+    const beforeStates = new Map(plan.steps.map((s) => [s.id, s.state] as const));
     try {
       const { runLegacyFill } = await import("./runners/legacy-fill.server");
       await runLegacyFill({
@@ -110,7 +111,25 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
         supabase: input.supabase,
         actorEmail: input.actorEmail,
       });
-      ran.push(...targets);
+      const afterPlan = await deriveSynthesisPlan({
+        projectId: input.projectId,
+        supabase: input.supabase,
+      });
+      const afterById = new Map(afterPlan.steps.map((s) => [s.id, s] as const));
+      for (const id of targets) {
+        const after = afterById.get(id);
+        const before = beforeStates.get(id);
+        if (after && (after.state === "satisfied" || after.state === "candidate_ready")) {
+          ran.push(id);
+        } else {
+          errors.push({
+            id,
+            message: `Step still ${after?.state ?? "unknown"} after fill (was ${before ?? "unknown"})`,
+          });
+        }
+      }
+      // Use the fresher hash for attempt persistence below.
+      (plan as { steps: SynthesisPlan["steps"] }).steps = afterPlan.steps;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Fill failed";
       for (const id of targets) errors.push({ id, message });
