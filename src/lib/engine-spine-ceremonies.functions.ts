@@ -25,6 +25,7 @@ import {
   type FieldStatusEntry,
   type SourceRef,
 } from "@/lib/engine-epistemic.server";
+import { insertEngineActivity } from "@/lib/engine-activity";
 
 const CEREMONIES = "engine_spine_ceremonies";
 const DECISIONS = "engine_spine_ceremony_decisions";
@@ -56,6 +57,11 @@ const completeCeremonyInput = z.object({
 const abandonCeremonyInput = z.object({
   ceremonyId: uuidSchema,
   reason: z.string().min(1).max(2000),
+});
+
+const batchApproveDraftedInput = z.object({
+  projectId: uuidSchema,
+  reason: z.string().trim().min(6).max(1000).optional(),
 });
 
 // ---------- Helpers ----------
