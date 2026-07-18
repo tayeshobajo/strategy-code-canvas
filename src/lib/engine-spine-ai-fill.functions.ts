@@ -153,14 +153,8 @@ export const fillMissingSpineDetailsFromIntake = createServerFn({ method: "POST"
       string,
       { state?: string; updated_at?: string; updated_by?: string | null; note?: string | null }
     >;
-    if (
-      stepStates["point-a"]?.state === "approved" ||
-      stepStates["point-b"]?.state === "approved"
-    ) {
-      throw new Error(
-        "AI Product Manager cannot overwrite an approved Point A or Point B. Reopen the step first.",
-      );
-    }
+    const pointAApproved = stepStates["point-a"]?.state === "approved";
+    const pointBApproved = stepStates["point-b"]?.state === "approved";
 
     const [{ data: signalRows }, { data: sourceRows }, { data: truthRows }] = await Promise.all([
       sb
@@ -263,8 +257,10 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
     const nextPointA: PointA = { ...existingPointA };
     const nextPointB: Record<string, unknown> = { ...existingPointB };
     const changed: string[] = [];
-    const canWriteA = (key: string) => !HUMAN_LOCKED_STATUSES.has(pointAStatus.get(key)!);
-    const canWriteB = (key: string) => !HUMAN_LOCKED_STATUSES.has(pointBStatus.get(key)!);
+    const canWriteA = (key: string) =>
+      !pointAApproved && !HUMAN_LOCKED_STATUSES.has(pointAStatus.get(key)!);
+    const canWriteB = (key: string) =>
+      !pointBApproved && !HUMAN_LOCKED_STATUSES.has(pointBStatus.get(key)!);
 
     if (isBlank(nextPointA.lenses) && draftPointA.lenses?.length && canWriteA("lenses")) {
       nextPointA.lenses = draftPointA.lenses;
@@ -329,6 +325,8 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
 
     const truthWrites: Array<Record<string, unknown>> = [];
     const addTruth = (spine: "point-a" | "point-b", fieldKey: string, generated: boolean) => {
+      if (spine === "point-a" && pointAApproved) return;
+      if (spine === "point-b" && pointBApproved) return;
       const current = spine === "point-a" ? pointAStatus.get(fieldKey) : pointBStatus.get(fieldKey);
       if (current && HUMAN_LOCKED_STATUSES.has(current)) return;
       truthWrites.push({
