@@ -76,7 +76,10 @@ type ModalState =
   | { kind: "reassign"; taskId: string; taskName: string; currentOwner: string | null }
   | { kind: "resolve"; reviewItemId: string; title: string }
   | { kind: "compare"; milestoneId: string; milestoneName: string }
-  | { kind: "evidence"; taskId: string; taskName: string };
+  | { kind: "evidence"; taskId: string; taskName: string }
+  | { kind: "audit"; taskId: string; taskName: string }
+  | { kind: "bulk-reassign"; taskIds: string[] }
+  | { kind: "bulk-resolve"; reviewItemIds: string[] };
 
 function WorkTab() {
   const { projectId } = Route.useParams();
