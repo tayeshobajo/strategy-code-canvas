@@ -947,11 +947,23 @@ function BlockerList({
   blockers,
   canAct,
   onResolve,
+  onBulkResolve,
 }: {
   blockers: WorkBlocker[];
   canAct: boolean;
   onResolve: (b: WorkBlocker) => void;
+  onBulkResolve: (ids: string[]) => void;
 }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const selectedIds = [...selected].filter((id) => blockers.some((b) => b.id === id));
+
   if (blockers.length === 0) {
     return (
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-6 text-sm text-emerald-900">
@@ -960,38 +972,62 @@ function BlockerList({
     );
   }
   return (
-    <ul className="space-y-2">
-      {blockers.map((b) => (
-        <li key={b.id} className="rounded-xl border border-border bg-white p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <span className="text-sm text-ink font-medium">{b.title}</span>
-                <span className="text-[10px] rounded bg-ink/5 text-ink/60 px-1.5 py-0.5">
-                  {b.blocker_type.replace(/_/g, " ")}
-                </span>
-              </div>
-              <div className="text-xs text-ink/60 mt-1">Blocks: {b.what_it_blocks}</div>
-              <div className="text-[11px] text-ink/50 mt-1 flex gap-3 flex-wrap">
-                <span>Age {b.age_days}d</span>
-                {b.owner ? <span>Owner: {b.owner}</span> : null}
-                {b.due_date ? <span>Due {formatDate(b.due_date)}</span> : null}
-                <span>Impact: {b.impact}</span>
-              </div>
-              <div className="text-xs text-ink/70 mt-2">{b.recommended_resolution}</div>
-            </div>
-            {canAct ? (
-              <Button size="sm" variant="outline" onClick={() => onResolve(b)}>
-                Resolve
-              </Button>
-            ) : null}
+    <div className="space-y-2">
+      {canAct && selectedIds.length > 0 ? (
+        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+          <span>{selectedIds.length} selected</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setSelected(new Set())}>
+              Clear
+            </Button>
+            <Button size="sm" onClick={() => onBulkResolve(selectedIds)}>
+              Bulk resolve
+            </Button>
           </div>
-        </li>
-      ))}
-    </ul>
+        </div>
+      ) : null}
+      <ul className="space-y-2">
+        {blockers.map((b) => (
+          <li key={b.id} className="rounded-xl border border-border bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              {canAct ? (
+                <Checkbox
+                  checked={selected.has(b.id)}
+                  onCheckedChange={() => toggle(b.id)}
+                  className="mt-1"
+                  aria-label={`Select ${b.title}`}
+                />
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm text-ink font-medium">{b.title}</span>
+                  <span className="text-[10px] rounded bg-ink/5 text-ink/60 px-1.5 py-0.5">
+                    {b.blocker_type.replace(/_/g, " ")}
+                  </span>
+                </div>
+                <div className="text-xs text-ink/60 mt-1">Blocks: {b.what_it_blocks}</div>
+                <div className="text-[11px] text-ink/50 mt-1 flex gap-3 flex-wrap">
+                  <span>Age {b.age_days}d</span>
+                  {b.owner ? <span>Owner: {b.owner}</span> : null}
+                  {b.due_date ? <span>Due {formatDate(b.due_date)}</span> : null}
+                  <span>Impact: {b.impact}</span>
+                </div>
+                <div className="text-xs text-ink/70 mt-2">{b.recommended_resolution}</div>
+              </div>
+              {canAct ? (
+                <Button size="sm" variant="outline" onClick={() => onResolve(b)}>
+                  Resolve
+                </Button>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
+
 
 // ---------- right rail cards ----------
 
