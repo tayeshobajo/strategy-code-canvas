@@ -80,14 +80,15 @@ export async function runMaterialityScan(args: {
       .limit(50),
     supabase
       .from("engine_projects")
-      .select("name, client_name")
+      .select("name, client_id, engine_clients(company)")
       .eq("id", projectId)
       .maybeSingle(),
   ]);
 
   const contradictionIds = ((contradictions as Array<{ id: string }>) ?? []).map((r) => r.id);
+  const clientCompany = (projectRow as { engine_clients?: { company?: string } | null } | null)?.engine_clients?.company ?? "";
   const projectContext = projectRow
-    ? `${(projectRow as { name?: string }).name ?? ""} — client: ${(projectRow as { client_name?: string }).client_name ?? ""}`
+    ? `${(projectRow as { name?: string }).name ?? ""} — client: ${clientCompany}`
     : "";
 
   // Load all approved truth rows once, index by spine.

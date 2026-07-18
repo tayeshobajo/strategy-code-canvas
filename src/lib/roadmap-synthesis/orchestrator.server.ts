@@ -2,14 +2,12 @@
  * Phase RT-1 — Orchestrator (server-only).
  *
  * Walks the DAG for the requested mode, respects gates, coalesces
- * concurrent runs via an idempotency key. In RT-1 the runners for
- * point_a / point_b / milestones / dates / rationale / truth rows /
- * investment_note delegate to the legacy monolithic fill for `repair`
- * mode. Per-step runners can be lifted out incrementally without
- * changing the orchestrator contract.
+ * concurrent runs via an idempotency key. Per-step attempts now persist
+ * the actual input_hash from deriveSynthesisPlan and update
+ * engine_project_synthesis_step_state so staleness detection is honest.
  */
 
-import type { FillMode, SynthesisStepId } from "./contract";
+import type { FillMode, SynthesisStepId, SynthesisPlan } from "./contract";
 import { deriveSynthesisPlan } from "./plan.server";
 
 type Sb = any;
@@ -100,11 +98,12 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
     }
   }
 
-  // For RT-1 the only runner is the legacy monolithic fill. It is
-  // idempotent per-project (only fills blanks / adds missing artifacts).
-  // We invoke it once if ANY target maps to it, then mark those targets
-  // as ran. Per-step runners can replace this without changing callers.
+  // The legacy fill is monolithic, but we can attribute per-step honestly
+  // by re-deriving the plan after it runs: a step transitioning from
+  // missing/failed → satisfied is what actually ran. Steps still missing
+  // stay in `errors` for the caller.
   if (targets.length > 0) {
+    const beforeStates = new Map(plan.steps.map((s) => [s.id, s.state] as const));
     try {
       const { runLegacyFill } = await import("./runners/legacy-fill.server");
       await runLegacyFill({
@@ -112,7 +111,25 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
         supabase: input.supabase,
         actorEmail: input.actorEmail,
       });
-      ran.push(...targets);
+      const afterPlan = await deriveSynthesisPlan({
+        projectId: input.projectId,
+        supabase: input.supabase,
+      });
+      const afterById = new Map(afterPlan.steps.map((s) => [s.id, s] as const));
+      for (const id of targets) {
+        const after = afterById.get(id);
+        const before = beforeStates.get(id);
+        if (after && (after.state === "satisfied" || after.state === "candidate_ready")) {
+          ran.push(id);
+        } else {
+          errors.push({
+            id,
+            message: `Step still ${after?.state ?? "unknown"} after fill (was ${before ?? "unknown"})`,
+          });
+        }
+      }
+      // Use the fresher hash for attempt persistence below.
+      (plan as { steps: SynthesisPlan["steps"] }).steps = afterPlan.steps;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Fill failed";
       for (const id of targets) errors.push({ id, message });
@@ -120,7 +137,8 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
   }
   void materialityAmendments;
 
-  // Best-effort attempt row (only written when persistence is available).
+  // Per-step attempt rows carry the real input_hash derived by the plan;
+  // step_state is upserted so `stale` detection works on the next run.
   const attempts_persisted = await tryRecordRun({
     supabase: input.supabase,
     projectId: input.projectId,
@@ -128,6 +146,8 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
     runGroupId,
     ran,
     errors,
+    plan,
+    mode: input.mode,
   });
 
   // Structured activity log via the guarded inserter.
@@ -174,27 +194,56 @@ async function tryRecordRun(args: {
   runGroupId: string;
   ran: SynthesisStepId[];
   errors: OrchestratorRunResult["errors"];
+  plan: SynthesisPlan;
+  mode: FillMode;
 }): Promise<boolean> {
   try {
-    const rows = args.ran.map((id) => ({
-      run_group_id: args.runGroupId,
+    if (args.ran.length === 0) return false;
+    const stepById = new Map(args.plan.steps.map((s) => [s.id, s] as const));
+    const now = new Date().toISOString();
+    const rows = args.ran.map((id) => {
+      const view = stepById.get(id);
+      const failed = args.errors.some((e) => e.id === id);
+      return {
+        run_group_id: args.runGroupId,
+        project_id: args.projectId,
+        step_id: id,
+        trigger: args.mode,
+        actor_email: args.actorEmail,
+        input_manifest: {},
+        input_hash: view?.current_input_hash ?? "",
+        prompt_version: "rt-1.0.0",
+        provider: "lovable",
+        model: "legacy_fill",
+        started_at: now,
+        completed_at: now,
+        status: failed ? "failed" : "succeeded",
+        error_message: args.errors.find((e) => e.id === id)?.message ?? null,
+      };
+    });
+    const { data: inserted, error } = await args.supabase
+      .from("engine_project_synthesis_attempts")
+      .insert(rows)
+      .select("id, step_id, status, input_hash, error_message");
+    if (error) return false;
+
+    // Upsert step_state so plan derivation can detect stale/failed on the
+    // next pass. Skip rows without an attempt id (should not happen).
+    const stateRows = ((inserted as Array<{ id: string; step_id: SynthesisStepId; status: string; input_hash: string; error_message: string | null }>) ?? []).map((r) => ({
       project_id: args.projectId,
-      step_id: id,
-      trigger: "manual",
-      actor_email: args.actorEmail,
-      input_manifest: {},
-      input_hash: "",
-      prompt_version: "rt-1.0.0",
-      provider: "lovable",
-      model: "legacy_fill",
-      started_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-      status: args.errors.some((e) => e.id === id) ? "failed" : "succeeded",
-      error_message: args.errors.find((e) => e.id === id)?.message ?? null,
+      step_id: r.step_id,
+      state: r.status === "failed" ? "failed" : "satisfied",
+      reason: r.status === "failed" ? "last_attempt_failed" : null,
+      current_input_hash: r.input_hash,
+      latest_attempt_id: r.id,
+      updated_at: now,
     }));
-    if (rows.length === 0) return false;
-    const { error } = await args.supabase.from("engine_project_synthesis_attempts").insert(rows);
-    return !error;
+    if (stateRows.length > 0) {
+      await args.supabase
+        .from("engine_project_synthesis_step_state")
+        .upsert(stateRows, { onConflict: "project_id,step_id" });
+    }
+    return true;
   } catch {
     return false;
   }
