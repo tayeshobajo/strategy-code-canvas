@@ -292,19 +292,14 @@ describe.skipIf(!HAS_PG)("Roadmap tab → Publish to client portal (E2E via RPC)
   });
 
   it("missing caller email fails loudly (never silent no-op)", () => {
-    // Impersonate a staff user_id but with an empty email claim — the RPC
-    // must reject rather than write an anonymous publish.
-    const emptyEmailUserId = randomUUID();
-    psql(
-      `INSERT INTO public.user_roles (user_id, email, role)
-         VALUES ('${emptyEmailUserId}', '${marker}-noemail@trust-tai-e2e.local', 'admin')
-       ON CONFLICT DO NOTHING`,
-    );
-    cleanup.push(`DELETE FROM public.user_roles WHERE user_id='${emptyEmailUserId}'`);
+    // Reuse the real staff user_id but pass an empty email claim — the RPC
+    // must reject rather than write an anonymous publish. (We can't insert
+    // a synthetic staff user_id because user_roles.user_id → auth.users FK
+    // isn't writable from this sandbox.)
     const res = tryPsql(
       `BEGIN;
        SET LOCAL "request.jwt.claims" =
-         '${JSON.stringify({ sub: emptyEmailUserId, email: "" })}';
+         '${JSON.stringify({ sub: staffUserId, email: "" })}';
        SELECT public.publish_portal_roadmap(
          '${portalProjectId}'::uuid, '${engineProjectId}'::uuid,
          '${versionAId}'::uuid,
@@ -317,3 +312,4 @@ describe.skipIf(!HAS_PG)("Roadmap tab → Publish to client portal (E2E via RPC)
     if (!res.ok) expect(res.err).toMatch(/caller email required/i);
   });
 });
+
