@@ -327,6 +327,15 @@ function RoadmapHeader({
             <GitBranch className="h-3.5 w-3.5" />
             Compare versions
           </button>
+          <button
+            type="button"
+            onClick={() => setSynthesisOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-royal/40 bg-royal/5 px-3 py-1.5 text-xs font-medium text-royal hover:bg-royal/10"
+            title="Doctrine-aware synthesis: repair missing, refresh stale, or rebuild drafts."
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Refresh Project Intelligence
+          </button>
           {spineIncomplete && (
             <button
               type="button"
