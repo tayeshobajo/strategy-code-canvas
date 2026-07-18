@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
-import { useQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
+import { approveVersion } from "@/lib/engine-intelligence.functions";
 import {
   Map as MapIcon,
   ArrowRight,
@@ -207,6 +209,30 @@ function RoadmapHeader({
 }) {
   const { view, project } = payload;
   const version = view.version;
+  const qc = useQueryClient();
+  const approveFn = useServerFn(approveVersion);
+  const [approving, setApproving] = useState(false);
+  const canApprove =
+    payload.permissions.can_approve_baseline &&
+    version != null &&
+    !version.locked &&
+    version.status !== "approved";
+
+  const handleApprove = async () => {
+    if (!version) return;
+    if (!confirm(`Approve ${version.label} as the baseline? This locks the snapshot.`)) return;
+    setApproving(true);
+    try {
+      const res = await approveFn({ data: { id: version.id } });
+      toast.success(`Baseline approved: ${res.version}`);
+      await qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setApproving(false);
+    }
+  };
+
   return (
     <section
       className="rounded-xl border border-border bg-card px-5 py-4 shadow-sm"
@@ -248,6 +274,18 @@ function RoadmapHeader({
             <GitBranch className="h-3.5 w-3.5" />
             Compare versions
           </button>
+          {canApprove && (
+            <button
+              type="button"
+              onClick={handleApprove}
+              disabled={approving}
+              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              data-qa-action="approve-baseline"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {approving ? "Approving…" : `Approve ${version?.label ?? "baseline"}`}
+            </button>
+          )}
           {payload.permissions.can_publish_client_safe && (
             <button
               type="button"
@@ -269,12 +307,18 @@ function RoadmapHeader({
           )}
         </div>
       )}
+      {canApprove && (
+        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+          This roadmap is a <strong>draft</strong>. Approving it locks the baseline and unlocks the Work tab. Requires: Point A + Point B approved, investment confirmed, no open critical change events, and a second reviewer (you can't approve a version you authored).
+        </div>
+      )}
       <div className="sr-only" aria-live="polite">
         Progress {project.progress_percent} percent
       </div>
     </section>
   );
 }
+
 
 function VersionBadge({ status }: { status: string }) {
   const tone =
