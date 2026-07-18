@@ -123,6 +123,7 @@ function QualifyPage() {
       <Link
         to="/engine/projects/$projectId/roadmap"
         params={{ projectId }}
+        search={{ view: "journey" as const }}
         className="inline-flex items-center gap-1 text-xs text-ink/60 hover:text-ink"
       >
         <ArrowLeft className="w-3 h-3" /> Back to roadmap
