@@ -513,7 +513,20 @@ export const approveVersion = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select("id, project_id, version, payload")
       .single();
-    if (error) throwGeneric(error, "approve failed");
+    if (error) {
+      console.error("[engine] approve failed", error);
+      const msg = (error as any)?.message ?? "";
+      // Surface spine-gate messages from the DB trigger directly so operators
+      // know which Point A / Point B fields still need approval.
+      if (/spine not fully approved/i.test(msg)) {
+        throw new Error(
+          "Roadmap cannot be approved yet: Point A and Point B must be fully approved on the Spine tab first. " +
+            msg.replace(/^.*?spine not fully approved\.\s*/i, ""),
+        );
+      }
+      throwGeneric(error, "approve failed");
+    }
+
 
     // Snapshot the approved payload immutably on the project so any further
     // draft edits do not touch the last approved state.
