@@ -9,6 +9,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertAdminOrOperator, type AuthCtx } from "@/lib/engine-epistemic.server";
 import { insertEngineActivity } from "@/lib/engine-activity";
+import { notifyOperators } from "@/lib/engine-work-notify";
 
 export type WorldEntrySection =
   | "destination"
@@ -111,6 +112,43 @@ export const createWorldEntryComment = createServerFn({ method: "POST" })
       severity: "info",
       actor_email: actor,
     });
+
+    // Fanout: notify @mentioned users and the parent comment author (reply).
+    const recipients = new Set<string>(mentions.map((m) => m.toLowerCase()));
+    if (data.parentId) {
+      const { data: parent } = await sb
+        .from("engine_world_entry_comments")
+        .select("author_email")
+        .eq("id", data.parentId)
+        .maybeSingle();
+      const parentAuthor = parent?.author_email as string | undefined;
+      if (parentAuthor) recipients.add(parentAuthor.toLowerCase());
+    }
+    recipients.delete(actor.toLowerCase());
+
+    const href = `/engine/projects/${data.projectId}/world-entry`;
+    const preview = data.body.slice(0, 200);
+    for (const recipient of recipients) {
+      const isMention = mentions.map((m) => m.toLowerCase()).includes(recipient);
+      await notifyOperators(sb, {
+        projectId: data.projectId,
+        kind: isMention
+          ? "world_entry.comment.mention"
+          : "world_entry.comment.reply",
+        title: isMention
+          ? `${actor} mentioned you on World Entry · ${data.section}`
+          : `${actor} replied on World Entry · ${data.section}`,
+        body: preview,
+        href,
+        actor,
+        extra: {
+          recipient_email: recipient,
+          comment_id: (row as { id: string }).id,
+          section: data.section,
+          parent_id: data.parentId ?? null,
+        },
+      });
+    }
     return row as WorldEntryComment;
   });
 

@@ -55,16 +55,24 @@ export function WorldEntryCommentsThread({
   );
 
   const [body, setBody] = useState("");
+  const [replyTo, setReplyTo] = useState<WorldEntryComment | null>(null);
   const createMut = useMutation({
     mutationFn: async () => {
       const text = body.trim();
       if (!text) return;
       await createFn({
-        data: { projectId, section, worldEntryVersion, body: text },
+        data: {
+          projectId,
+          section,
+          worldEntryVersion,
+          body: text,
+          parentId: replyTo?.id ?? null,
+        },
       });
     },
     onSuccess: () => {
       setBody("");
+      setReplyTo(null);
       invalidate();
     },
   });
@@ -108,6 +116,7 @@ export function WorldEntryCommentsThread({
               resolveMut.mutate({ commentId: c.id, resolved: next })
             }
             onDelete={() => deleteMut.mutate(c.id)}
+            onReply={() => setReplyTo(c)}
           />
         ))}
         {resolved.length > 0 && (
@@ -125,18 +134,41 @@ export function WorldEntryCommentsThread({
                     resolveMut.mutate({ commentId: c.id, resolved: next })
                   }
                   onDelete={() => deleteMut.mutate(c.id)}
+                  onReply={() => setReplyTo(c)}
                 />
               ))}
             </div>
           </details>
         )}
       </div>
+      {replyTo && (
+        <div className="mt-2 flex items-center justify-between rounded-md bg-cloud/60 px-2 py-1 text-[11px] text-ink/70">
+          <span>
+            Replying to <span className="font-medium">{replyTo.author_email}</span>
+            <span className="mx-1.5">·</span>
+            {replyTo.body.slice(0, 80)}
+            {replyTo.body.length > 80 ? "…" : ""}
+          </span>
+          <button
+            type="button"
+            onClick={() => setReplyTo(null)}
+            className="text-ink/50 hover:text-ink"
+            aria-label="Cancel reply"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div className="mt-2 flex items-start gap-2">
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={2}
-          placeholder="Leave a comment. Use @name@company.com to mention."
+          placeholder={
+            replyTo
+              ? "Write a reply. Use @name@company.com to mention."
+              : "Leave a comment. Use @name@company.com to mention."
+          }
           className="flex-1 rounded-md border border-ink/15 px-2 py-1.5 text-sm focus:border-royal focus:outline-none"
         />
         <button
@@ -157,11 +189,13 @@ function CommentRow({
   currentUserEmail,
   onToggleResolved,
   onDelete,
+  onReply,
 }: {
   comment: WorldEntryComment;
   currentUserEmail?: string;
   onToggleResolved: (next: boolean) => void;
   onDelete: () => void;
+  onReply?: () => void;
 }) {
   const isMine =
     !!currentUserEmail &&
@@ -187,6 +221,15 @@ function CommentRow({
           )}
         </div>
         <div className="flex items-center gap-1">
+          {onReply && !comment.resolved && (
+            <button
+              type="button"
+              onClick={onReply}
+              className="rounded px-1.5 py-0.5 text-[11px] text-ink/60 hover:bg-ink/5"
+            >
+              Reply
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onToggleResolved(!comment.resolved)}
@@ -226,3 +269,4 @@ function CommentRow({
     </div>
   );
 }
+
