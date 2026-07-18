@@ -22,6 +22,7 @@ import {
 import { EngineStatusBadge, formatDate } from "@/components/engine/primitives";
 import { SpineVersionHistory } from "@/components/engine/SpineVersionHistory";
 import { SpineReadinessPanel } from "@/components/engine/SpineReadinessPanel";
+import { LatestAmendmentsPanel } from "@/components/engine/LatestAmendmentsPanel";
 import {
   Lock,
   ChevronLeft,
@@ -4380,7 +4381,7 @@ function SpineRightRail({
 
   return (
     <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1 [scrollbar-width:thin]">
-      <JumpToCard />
+      <LatestAmendmentsPanel projectId={projectId} />
       <RailCard
         title="Captain Brief"
         anchor="#spine-nba-heading"
