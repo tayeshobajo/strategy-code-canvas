@@ -118,7 +118,8 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
   }
   void materialityAmendments;
 
-  // Best-effort attempt row (only written when persistence is available).
+  // Per-step attempt rows carry the real input_hash derived by the plan;
+  // step_state is upserted so `stale` detection works on the next run.
   const attempts_persisted = await tryRecordRun({
     supabase: input.supabase,
     projectId: input.projectId,
@@ -126,6 +127,8 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
     runGroupId,
     ran,
     errors,
+    plan,
+    mode: input.mode,
   });
 
   // Structured activity log via the guarded inserter.
