@@ -141,7 +141,11 @@ function RoadmapDashboard({
           {activeView === "timeline" && (
             <>
               <CriticalPathBanner critical={view.critical_path} />
-              <RoadmapTimeline phases={view.phases} milestones={filteredMilestones} />
+              <RoadmapTimeline
+                phases={view.phases}
+                milestones={filteredMilestones}
+                bottleneckId={view.critical_path.bottleneck_id}
+              />
             </>
           )}
           {activeView === "graph" && (
