@@ -44,6 +44,9 @@ const PROJECT_ROOM_ITEMS: RailNavItem[] = [
   { label: "World Entry", to: "/engine/projects/$projectId/world-entry", icon: Globe },
   { label: "Execution Boundary", to: "/engine/projects/$projectId/execution-boundary", icon: ShieldCheck },
 
+  { label: "Execution Boundary", to: "/engine/projects/$projectId/execution-boundary", icon: ShieldCheck },
+  { label: "Strategic Thesis", to: "/engine/projects/$projectId/strategic-thesis", icon: Target },
+
   { label: "Point A", to: "/engine/projects/$projectId/point-a", icon: MapPin },
   { label: "Point B", to: "/engine/projects/$projectId/point-b", icon: Flag },
   { label: "Chat with Captain", to: "/engine/projects/$projectId/chat", icon: MessageSquare },
