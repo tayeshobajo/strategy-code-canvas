@@ -253,11 +253,16 @@ function RoadmapHeader({
       toast.error((e as Error).message || "Drafted Spine truth could not be approved.");
     },
   });
+  const spineIncomplete = view.missing_for_approval.some(
+    (m) => m.includes("Point A") || m.includes("Point B"),
+  );
   const canApprove =
     payload.permissions.can_approve_baseline &&
     version != null &&
     !version.locked &&
     version.status !== "approved";
+
+
 
   const handleApprove = async () => {
     if (!version) return;
@@ -315,6 +320,18 @@ function RoadmapHeader({
             <GitBranch className="h-3.5 w-3.5" />
             Compare versions
           </button>
+          {spineIncomplete && (
+            <button
+              type="button"
+              onClick={() => fillMutation.mutate()}
+              disabled={fillMutation.isPending}
+              className="inline-flex items-center gap-1.5 rounded-md border border-royal/40 bg-royal/5 px-3 py-1.5 text-xs font-medium text-royal hover:bg-royal/10 disabled:opacity-50"
+              title="AI Product Manager drafts missing Point A + Point B fields from the intake."
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {fillMutation.isPending ? "Filling details…" : "AI: Fill Spine from intake"}
+            </button>
+          )}
           {canApprove && (
             <button
               type="button"
@@ -338,6 +355,7 @@ function RoadmapHeader({
             </button>
           )}
         </div>
+
       </div>
       {version?.locked && (
         <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-900">
