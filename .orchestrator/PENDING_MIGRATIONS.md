@@ -5134,3 +5134,34 @@ Notes:
   the state row before the candidate exists (chicken/egg on first run).
 - Doctrine gate keys (`world-entry`, `execution-boundary`, `strategic-thesis`)
   reuse `engine_spine_field_truth` — no new table needed.
+
+## RT-2 — Allow `world-entry` (and future doctrine gates) in engine_spine_field_truth.spine_check
+
+**Why**: RT-2 currently persists World Entry state to a sidecar bucket on
+`engine_projects.spirit_first_analysis.world_entry_workspace` because the
+existing `engine_spine_field_truth_spine_check` constraint only allows
+`point-a | point-b`. To promote World Entry (and later Execution Boundary,
+Strategic Thesis, Drift Assessment) onto the durable spine truth table with
+the same evidence/second-reviewer guarantees, the constraint must be widened.
+
+**Proposed migration** (for Tai to review — DO NOT APPLY autonomously):
+
+```sql
+ALTER TABLE public.engine_spine_field_truth
+  DROP CONSTRAINT engine_spine_field_truth_spine_check;
+
+ALTER TABLE public.engine_spine_field_truth
+  ADD CONSTRAINT engine_spine_field_truth_spine_check
+  CHECK (spine = ANY (ARRAY[
+    'point-a'::text,
+    'point-b'::text,
+    'world-entry'::text,
+    'execution-boundary'::text,
+    'strategic-thesis'::text,
+    'drift-assessment'::text
+  ]));
+```
+
+After apply, migrate readers in `src/lib/roadmap-synthesis/gates.ts` and
+writers in `src/lib/engine-world-entry*.functions.ts` from the sidecar to
+`engine_spine_field_truth` with `spine = 'world-entry'`.

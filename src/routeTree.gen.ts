@@ -110,6 +110,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as EngineProjectsProjectIdWorldEntryRouteImport } from './routes/engine.projects.$projectId.world-entry'
 import { Route as EngineProjectsProjectIdWorkRouteImport } from './routes/engine.projects.$projectId.work'
 import { Route as EngineProjectsProjectIdUnderstandingRoomRouteImport } from './routes/engine.projects.$projectId.understanding-room'
 import { Route as EngineProjectsProjectIdSpiritFirstRouteImport } from './routes/engine.projects.$projectId.spirit-first'
@@ -682,6 +683,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngineProjectsProjectIdWorldEntryRoute =
+  EngineProjectsProjectIdWorldEntryRouteImport.update({
+    id: '/world-entry',
+    path: '/world-entry',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdWorkRoute =
   EngineProjectsProjectIdWorkRouteImport.update({
     id: '/work',
@@ -1153,6 +1160,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
   '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
+  '/engine/projects/$projectId/world-entry': typeof EngineProjectsProjectIdWorldEntryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1304,6 +1312,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
   '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
+  '/engine/projects/$projectId/world-entry': typeof EngineProjectsProjectIdWorldEntryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1463,6 +1472,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
   '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
+  '/engine/projects/$projectId/world-entry': typeof EngineProjectsProjectIdWorldEntryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1621,6 +1631,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/spirit-first'
     | '/engine/projects/$projectId/understanding-room'
     | '/engine/projects/$projectId/work'
+    | '/engine/projects/$projectId/world-entry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1772,6 +1783,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/spirit-first'
     | '/engine/projects/$projectId/understanding-room'
     | '/engine/projects/$projectId/work'
+    | '/engine/projects/$projectId/world-entry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1930,6 +1942,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/spirit-first'
     | '/engine/projects/$projectId/understanding-room'
     | '/engine/projects/$projectId/work'
+    | '/engine/projects/$projectId/world-entry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -2702,6 +2715,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engine/projects/$projectId/world-entry': {
+      id: '/engine/projects/$projectId/world-entry'
+      path: '/world-entry'
+      fullPath: '/engine/projects/$projectId/world-entry'
+      preLoaderRoute: typeof EngineProjectsProjectIdWorldEntryRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/work': {
       id: '/engine/projects/$projectId/work'
       path: '/work'
@@ -3268,6 +3288,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdSpiritFirstRoute: typeof EngineProjectsProjectIdSpiritFirstRoute
   EngineProjectsProjectIdUnderstandingRoomRoute: typeof EngineProjectsProjectIdUnderstandingRoomRoute
   EngineProjectsProjectIdWorkRoute: typeof EngineProjectsProjectIdWorkRoute
+  EngineProjectsProjectIdWorldEntryRoute: typeof EngineProjectsProjectIdWorldEntryRoute
   EngineProjectsProjectIdIndexRoute: typeof EngineProjectsProjectIdIndexRoute
   EngineProjectsProjectIdVersionsCompareRoute: typeof EngineProjectsProjectIdVersionsCompareRoute
   EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
@@ -3342,6 +3363,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdUnderstandingRoomRoute:
       EngineProjectsProjectIdUnderstandingRoomRoute,
     EngineProjectsProjectIdWorkRoute: EngineProjectsProjectIdWorkRoute,
+    EngineProjectsProjectIdWorldEntryRoute:
+      EngineProjectsProjectIdWorldEntryRoute,
     EngineProjectsProjectIdIndexRoute: EngineProjectsProjectIdIndexRoute,
     EngineProjectsProjectIdVersionsCompareRoute:
       EngineProjectsProjectIdVersionsCompareRoute,
