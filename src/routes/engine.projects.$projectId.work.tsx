@@ -479,10 +479,16 @@ function MilestoneExecutionCard({
   m,
   projectId,
   highlighted,
+  canAct,
+  onAddWork,
+  onCompare,
 }: {
   m: MilestoneExecutionSummary;
   projectId: string;
   highlighted: boolean;
+  canAct: boolean;
+  onAddWork: () => void;
+  onCompare: () => void;
 }) {
   const health = healthChip(m.health);
   return (
