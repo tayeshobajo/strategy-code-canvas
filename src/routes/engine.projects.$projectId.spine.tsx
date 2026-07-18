@@ -307,6 +307,8 @@ function ProjectSpine() {
       },
     });
   };
+  exportHandlerRef.current = handleExportClientRoadmap;
+
 
   return (
     <div className="min-w-0 space-y-6 text-[#0A0F1F]">
