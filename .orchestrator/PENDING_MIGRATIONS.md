@@ -5169,3 +5169,82 @@ ALTER TABLE public.engine_spine_field_truth
 After apply, migrate readers in `src/lib/roadmap-synthesis/gates.ts` and
 writers in `src/lib/engine-world-entry*.functions.ts` from the sidecar to
 `engine_spine_field_truth` with `spine = 'world-entry'`.
+
+## RT-3 — Capability registry + execution boundary tables
+
+Two versioned tables backing the doctrine gate. Sidecar reads on
+`engine_projects.spirit_first_analysis.execution_boundary_workspace` and
+the compile-time capability menu remain a zero-downtime fallback until
+this migration lands.
+
+```sql
+-- Global versioned capability menu
+CREATE TABLE public.engine_capability_registry (
+  id text PRIMARY KEY,
+  label text NOT NULL,
+  category text NOT NULL CHECK (category IN (
+    'positioning','content','audience_capture','intelligence','product_ai','operations'
+  )),
+  execution_mode text NOT NULL CHECK (execution_mode IN ('trust_tai_build','trust_tai_coordinate')),
+  description text NOT NULL,
+  version int NOT NULL DEFAULT 1,
+  retired_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT ON public.engine_capability_registry TO authenticated;
+GRANT ALL ON public.engine_capability_registry TO service_role;
+ALTER TABLE public.engine_capability_registry ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "capability_registry_read_authenticated"
+  ON public.engine_capability_registry FOR SELECT TO authenticated USING (true);
+
+-- Per-project execution boundary versions
+CREATE TABLE public.engine_project_execution_boundary (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
+  version int NOT NULL,
+  status text NOT NULL CHECK (status IN ('draft','proposed','approved','superseded')),
+  capability_ids text[] NOT NULL DEFAULT '{}',
+  client_owned_areas text[] NOT NULL DEFAULT '{}',
+  exclusions text[] NOT NULL DEFAULT '{}',
+  notes text NOT NULL DEFAULT '',
+  proposed_by_email text NOT NULL,
+  proposed_by_actor text NOT NULL CHECK (proposed_by_actor IN ('human','ai')),
+  approved_by_email text,
+  approved_at timestamptz,
+  rejected_reason text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (project_id, version)
+);
+GRANT SELECT, INSERT, UPDATE ON public.engine_project_execution_boundary TO authenticated;
+GRANT ALL ON public.engine_project_execution_boundary TO service_role;
+ALTER TABLE public.engine_project_execution_boundary ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "execution_boundary_admin_operator_all"
+  ON public.engine_project_execution_boundary FOR ALL TO authenticated
+  USING (public.has_role_email(auth.jwt() ->> 'email', 'admin')
+      OR public.has_role_email(auth.jwt() ->> 'email', 'operator'))
+  WITH CHECK (public.has_role_email(auth.jwt() ->> 'email', 'admin')
+           OR public.has_role_email(auth.jwt() ->> 'email', 'operator'));
+
+-- Second-reviewer enforcement: same email cannot approve their own proposal
+CREATE OR REPLACE FUNCTION public.enforce_execution_boundary_second_reviewer()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.status = 'approved' AND NEW.approved_by_email IS NOT NULL
+     AND lower(NEW.approved_by_email) = lower(NEW.proposed_by_email) THEN
+    RAISE EXCEPTION 'second-reviewer rule: approver must differ from proposer';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trg_execution_boundary_second_reviewer
+  BEFORE INSERT OR UPDATE ON public.engine_project_execution_boundary
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_execution_boundary_second_reviewer();
+```
+
+After apply, the registry loader in
+`src/lib/engine-capability-registry.functions.ts` reads from the table
+and its `fallbackRows()` path becomes cold code. The boundary functions
+in `src/lib/engine-execution-boundary.functions.ts` migrate off the
+`spirit_first_analysis.execution_boundary_workspace` sidecar and mirror
+approvals into `engine_spine_field_truth` with `spine = 'execution-boundary'`.
