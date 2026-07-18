@@ -336,7 +336,7 @@ function RoadmapHeader({
               title="AI Product Manager drafts missing Point A + Point B fields from intake, then records your approval for the drafted truth."
             >
               <Sparkles className="h-3.5 w-3.5" />
-              {fillMutation.isPending ? "Filling and approving…" : "AI: Fill Spine from intake"}
+              {fillMutation.isPending ? "Filling and approving…" : "AI: Fill & approve Spine"}
             </button>
           )}
           {canApprove && (
@@ -385,7 +385,7 @@ function RoadmapHeader({
             className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-950 hover:border-amber-500 disabled:opacity-50"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            {fillMutation.isPending ? "Filling and approving…" : "Fill missing Spine details"}
+            {fillMutation.isPending ? "Filling and approving…" : "Fill & approve Spine details"}
           </button>
           <button
             type="button"
@@ -1265,7 +1265,7 @@ function NoTruthState({ projectId, missing }: { projectId: string; missing: stri
           className="inline-flex items-center gap-1.5 rounded-md bg-royal px-3 py-1.5 text-xs text-white hover:bg-royal/90 disabled:opacity-50"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          {fillMutation.isPending ? "Filling and approving…" : "Fill missing Spine details"}
+          {fillMutation.isPending ? "Filling and approving…" : "Fill & approve Spine details"}
         </button>
         <button
           type="button"
