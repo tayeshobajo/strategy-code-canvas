@@ -407,6 +407,19 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
       changed.push(`milestones.${milestoneResult.created}`);
     }
 
+    // Seed the ancillary artifacts that the 14-check Spine readiness
+    // evaluator inspects: phase rationale on the approved roadmap
+    // version, milestone due dates, blueprint/gap/asset truth rows, and
+    // an investment deferral note if no ranges are captured. Every write
+    // is a reviewable draft (assumed / inferred), never approved_truth.
+    const ancillary = await seedAncillarySpineArtifacts(sb, {
+      projectId: data.projectId,
+      projectName: project.name,
+      actorEmail,
+      project,
+    });
+    for (const key of ancillary.changed) changed.push(key);
+
     await sb.from("engine_activity").insert({
       project_id: data.projectId,
       kind: "spine_ai_fill",
