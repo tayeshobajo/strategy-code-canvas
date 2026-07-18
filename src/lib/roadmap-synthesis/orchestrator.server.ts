@@ -78,6 +78,28 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
     targets.push(step.id);
   }
 
+  // RT-5: in refresh mode, scan for materially-affecting new intelligence
+  // BEFORE the fill runs. Amendments are written for approved truth; the
+  // fill still runs to top up empty/unblocked slots.
+  let materialityAmendments = 0;
+  if (input.mode === "refresh") {
+    try {
+      const { runMaterialityScan } = await import("./runners/materiality-scan.server");
+      const scan = await runMaterialityScan({
+        projectId: input.projectId,
+        supabase: input.supabase,
+        actorEmail: input.actorEmail,
+      });
+      materialityAmendments = scan.amendmentsWritten;
+      for (const msg of scan.errors) errors.push({ id: "materiality_scan" as SynthesisStepId, message: msg });
+    } catch (err) {
+      errors.push({
+        id: "materiality_scan" as SynthesisStepId,
+        message: err instanceof Error ? err.message : "materiality scan failed",
+      });
+    }
+  }
+
   // For RT-1 the only runner is the legacy monolithic fill. It is
   // idempotent per-project (only fills blanks / adds missing artifacts).
   // We invoke it once if ANY target maps to it, then mark those targets
@@ -96,6 +118,7 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
       for (const id of targets) errors.push({ id, message });
     }
   }
+  void materialityAmendments;
 
   // Best-effort attempt row (only written when persistence is available).
   const attempts_persisted = await tryRecordRun({
