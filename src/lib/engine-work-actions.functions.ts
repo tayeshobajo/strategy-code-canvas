@@ -635,3 +635,327 @@ export const listPacketsForMilestone = createServerFn({ method: "GET" })
       updated_at: string;
     }>;
   });
+
+// ---------- paused work ----------
+
+export type PausedWorkRow = {
+  task_id: string;
+  project_id: string;
+  milestone_id: string | null;
+  milestone_name: string | null;
+  name: string;
+  reason: string;
+  owner_email: string | null;
+  updated_at: string;
+};
+
+export const listPausedWork = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ projectId: uuid }).parse(raw))
+  .handler(async ({ context, data }): Promise<PausedWorkRow[]> => {
+    await assertOperator(context);
+    const sb = context.supabase as AnySb;
+    const { data: rows, error } = await sb
+      .from("engine_tasks")
+      .select(
+        "id,project_id,milestone_id,name,blocked_decision,owner_email,updated_at,engine_milestones(name)",
+      )
+      .eq("project_id", data.projectId)
+      .eq("status", "blocked")
+      .ilike("blocked_decision", `${PAUSE_REASON_PREFIX}%`)
+      .order("updated_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return ((rows ?? []) as Array<Record<string, unknown>>).map((r) => ({
+      task_id: r.id as string,
+      project_id: r.project_id as string,
+      milestone_id: (r.milestone_id as string | null) ?? null,
+      milestone_name:
+        (r.engine_milestones as { name: string } | null)?.name ?? null,
+      name: r.name as string,
+      reason: (r.blocked_decision as string | null) ?? "",
+      owner_email: (r.owner_email as string | null) ?? null,
+      updated_at: r.updated_at as string,
+    }));
+  });
+
+export const resumePausedWork = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        taskIds: z.array(uuid).min(1).max(200),
+        note: z.string().trim().min(3).max(2000),
+        changeAssessmentApproved: z.boolean().default(false),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    const { email, isAdmin } = await assertOperator(context);
+    if (!isAdmin) throw new Error("Forbidden: admin required to resume paused work");
+    if (!data.changeAssessmentApproved)
+      throw new Error("Change assessment must be approved before resuming paused work");
+    const sb = context.supabase as AnySb;
+
+    const { data: rows, error } = await sb
+      .from("engine_tasks")
+      .select("id,project_id,name,owner_email,blocked_decision,status")
+      .in("id", data.taskIds);
+    if (error) throw new Error(error.message);
+    const list = (rows ?? []) as Array<{
+      id: string;
+      project_id: string;
+      name: string;
+      owner_email: string | null;
+      blocked_decision: string | null;
+      status: string;
+    }>;
+    const pausedOnly = list.filter(
+      (t) => t.status === "blocked" && (t.blocked_decision ?? "").startsWith(PAUSE_REASON_PREFIX),
+    );
+    if (pausedOnly.length === 0) return { ok: true as const, resumed: 0 };
+
+    const now = new Date().toISOString();
+    for (const t of pausedOnly) {
+      await sb
+        .from("engine_tasks")
+        .update({
+          status: t.owner_email ? "assigned" : "ready",
+          blocked_decision: null,
+          updated_at: now,
+        })
+        .eq("id", t.id);
+    }
+
+    await insertEngineActivity(
+      sb,
+      pausedOnly.map((t) => ({
+        project_id: t.project_id,
+        kind: "work.resumed",
+        title: `Resumed: ${t.name}`,
+        body: `${taskMarker(t.id)} ${data.note}`,
+        severity: "info" as const,
+        actor_email: email,
+      })),
+    );
+
+    const projectId = pausedOnly[0]?.project_id ?? null;
+    await notifyOperators(sb, {
+      projectId,
+      kind: "work.resumed",
+      title: `Resumed ${pausedOnly.length} paused task${pausedOnly.length === 1 ? "" : "s"}`,
+      body: `${email ?? "operator"} — ${data.note}`,
+      href: projectId ? `/engine/projects/${projectId}/work?view=queue` : null,
+      actor: email,
+      extra: { task_ids: pausedOnly.map((t) => t.id) },
+    });
+
+    return { ok: true as const, resumed: pausedOnly.length };
+  });
+
+// ---------- bulk actions ----------
+
+export const bulkReassignWorkItems = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        taskIds: z.array(uuid).min(1).max(200),
+        newOwnerEmail: z.string().trim().email().nullable(),
+        ownerType: z.enum(["agent", "human"]),
+        reason: z.string().trim().min(3).max(2000),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    const { email } = await assertOperator(context);
+    const sb = context.supabase as AnySb;
+
+    const { data: rows, error } = await sb
+      .from("engine_tasks")
+      .select("id,project_id,name,owner_email,owner_type")
+      .in("id", data.taskIds);
+    if (error) throw new Error(error.message);
+    const list = (rows ?? []) as Array<{
+      id: string;
+      project_id: string;
+      name: string;
+      owner_email: string | null;
+      owner_type: string | null;
+    }>;
+    if (list.length === 0) return { ok: true as const, updated: 0 };
+
+    const now = new Date().toISOString();
+    await sb
+      .from("engine_tasks")
+      .update({
+        owner_email: data.newOwnerEmail,
+        owner_type: data.ownerType,
+        status: data.newOwnerEmail ? "assigned" : "ready",
+        updated_at: now,
+      })
+      .in(
+        "id",
+        list.map((r) => r.id),
+      );
+
+    await insertEngineActivity(
+      sb,
+      list.map((t) => ({
+        project_id: t.project_id,
+        kind: "work.reassigned",
+        title: `Work reassigned: ${t.name}`,
+        body: `${taskMarker(t.id)} From ${t.owner_email ?? "unassigned"} to ${data.newOwnerEmail ?? "unassigned"} (${data.ownerType}). Bulk reason: ${data.reason}`,
+        severity: "info" as const,
+        actor_email: email,
+      })),
+    );
+
+    const projectId = list[0]?.project_id ?? null;
+    await notifyOperators(sb, {
+      projectId,
+      kind: "work.bulk_reassigned",
+      title: `Bulk reassign: ${list.length} task${list.length === 1 ? "" : "s"}`,
+      body: `${email ?? "operator"} → ${data.newOwnerEmail ?? "unassigned"} — ${data.reason}`,
+      href: projectId ? `/engine/projects/${projectId}/work?view=queue` : null,
+      actor: email,
+      extra: { task_ids: list.map((t) => t.id), new_owner: data.newOwnerEmail },
+    });
+
+    return { ok: true as const, updated: list.length };
+  });
+
+export const bulkResolveBlockers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z
+      .object({
+        reviewItemIds: z.array(uuid).min(1).max(200),
+        resolution: z.enum(["resolved", "wont_fix", "escalated"]),
+        note: z.string().trim().min(3).max(2000),
+      })
+      .parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    const { email, isAdmin } = await assertOperator(context);
+    if ((data.resolution === "wont_fix" || data.resolution === "escalated") && !isAdmin)
+      throw new Error(`Forbidden: admin required to mark blockers as ${data.resolution}`);
+    const sb = context.supabase as AnySb;
+
+    const { data: rows, error } = await sb
+      .from("engine_review_items")
+      .select("id,project_id,title")
+      .in("id", data.reviewItemIds);
+    if (error) throw new Error(error.message);
+    const list = (rows ?? []) as Array<{ id: string; project_id: string; title: string }>;
+    if (list.length === 0) return { ok: true as const, updated: 0 };
+
+    const now = new Date().toISOString();
+    await sb
+      .from("engine_review_items")
+      .update({
+        status: data.resolution === "resolved" ? "resolved" : "closed",
+        resolution: data.resolution,
+        resolution_note: data.note,
+        resolved_by_email: email,
+        resolved_at: now,
+        updated_at: now,
+      })
+      .in(
+        "id",
+        list.map((r) => r.id),
+      );
+
+    await insertEngineActivity(
+      sb,
+      list.map((r) => ({
+        project_id: r.project_id,
+        kind: "blocker.resolved",
+        title: `Blocker resolved: ${r.title}`,
+        body: `Bulk resolution: ${data.resolution}. Note: ${data.note}`,
+        severity: data.resolution === "escalated" ? ("warn" as const) : ("info" as const),
+        actor_email: email,
+      })),
+    );
+
+    const projectId = list[0]?.project_id ?? null;
+    await notifyOperators(sb, {
+      projectId,
+      kind: "blocker.bulk_resolved",
+      title: `Bulk ${data.resolution}: ${list.length} blocker${list.length === 1 ? "" : "s"}`,
+      body: `${email ?? "operator"} — ${data.note}`,
+      href: projectId ? `/engine/projects/${projectId}/work?view=blockers` : null,
+      actor: email,
+      extra: { review_item_ids: list.map((r) => r.id), resolution: data.resolution },
+    });
+
+    return { ok: true as const, updated: list.length };
+  });
+
+// ---------- audit trail per work item ----------
+
+export type WorkAuditEvent = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  severity: string | null;
+  actor_email: string | null;
+  created_at: string;
+  source: "activity" | "evidence";
+};
+
+export const listWorkItemAuditTrail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ taskId: uuid, projectId: uuid }).parse(raw),
+  )
+  .handler(async ({ context, data }): Promise<WorkAuditEvent[]> => {
+    await assertOperator(context);
+    const sb = context.supabase as AnySb;
+
+    const marker = taskMarker(data.taskId);
+    const { data: acts } = await sb
+      .from("engine_activity")
+      .select("id,kind,title,body,severity,actor_email,created_at")
+      .eq("project_id", data.projectId)
+      .ilike("body", `%${marker}%`)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    const { data: evs } = await sb
+      .from("engine_work_evidence")
+      .select(
+        "id,evidence_type,title,verdict,review_note,reviewed_by_email,reviewed_at,created_by_email,created_at",
+      )
+      .eq("task_id", data.taskId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    const events: WorkAuditEvent[] = [];
+    for (const a of (acts ?? []) as Array<Record<string, unknown>>) {
+      events.push({
+        id: a.id as string,
+        kind: a.kind as string,
+        title: a.title as string,
+        body: ((a.body as string | null) ?? null)?.replace(marker, "").trim() || null,
+        severity: (a.severity as string | null) ?? null,
+        actor_email: (a.actor_email as string | null) ?? null,
+        created_at: a.created_at as string,
+        source: "activity",
+      });
+    }
+    for (const e of (evs ?? []) as Array<Record<string, unknown>>) {
+      events.push({
+        id: `ev-${e.id as string}`,
+        kind: `evidence.${e.verdict as string}`,
+        title: `${(e.evidence_type as string).toUpperCase()} — ${e.title as string}`,
+        body: (e.review_note as string | null) ?? null,
+        severity: e.verdict === "rejected" ? "warn" : "info",
+        actor_email:
+          ((e.reviewed_by_email as string | null) ?? (e.created_by_email as string | null)) ?? null,
+        created_at: ((e.reviewed_at as string | null) ?? (e.created_at as string)) as string,
+        source: "evidence",
+      });
+    }
+    return events.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  });
