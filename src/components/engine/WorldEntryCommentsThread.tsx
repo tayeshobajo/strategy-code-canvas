@@ -55,16 +55,24 @@ export function WorldEntryCommentsThread({
   );
 
   const [body, setBody] = useState("");
+  const [replyTo, setReplyTo] = useState<WorldEntryComment | null>(null);
   const createMut = useMutation({
     mutationFn: async () => {
       const text = body.trim();
       if (!text) return;
       await createFn({
-        data: { projectId, section, worldEntryVersion, body: text },
+        data: {
+          projectId,
+          section,
+          worldEntryVersion,
+          body: text,
+          parentId: replyTo?.id ?? null,
+        },
       });
     },
     onSuccess: () => {
       setBody("");
+      setReplyTo(null);
       invalidate();
     },
   });
