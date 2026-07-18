@@ -5139,6 +5139,8 @@ Notes:
 
 ## RT-2 — Allow `world-entry` (and future doctrine gates) in engine_spine_field_truth.spine_check
 
+Status: **APPLIED (2026-07-18)**.
+
 **Why**: RT-2 currently persists World Entry state to a sidecar bucket on
 `engine_projects.spirit_first_analysis.world_entry_workspace` because the
 existing `engine_spine_field_truth_spine_check` constraint only allows
