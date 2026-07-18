@@ -503,15 +503,9 @@ export const approveVersion = createServerFn({ method: "POST" })
       throw new Error("Resolve open critical change events before approving.");
     }
 
-    // Pillar 7: investment must be confirmed before a version can be approved.
-    const { data: projRow } = await sb
-      .from("engine_projects")
-      .select("investment_confirmed_at")
-      .eq("id", current.project_id)
-      .single();
-    if (!projRow?.investment_confirmed_at) {
-      throw new Error("Confirm the investment on this project before approving the roadmap version.");
-    }
+    // Investment confirmation is NOT a gate for roadmap approval.
+    // It remains a gate for portal publishing only.
+
 
     const { data: v, error } = await sb
       .from("engine_roadmap_versions")
