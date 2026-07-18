@@ -41,7 +41,7 @@ export async function runMaterialityScan(args: {
   actorEmail: string | null;
 }): Promise<MaterialityScanResult> {
   const { supabase, projectId } = args;
-  const result: MaterialityScanResult = { scanned: 0, amendmentsWritten: 0, errors: [] };
+  const result: MaterialityScanResult = { scanned: 0, amendmentsWritten: 0, duplicatesSkipped: 0, errors: [] };
 
   const lastAttemptRes = await supabase
     .from("engine_project_synthesis_attempts")
