@@ -408,12 +408,13 @@ function ViewSwitcher({
   activePhaseKey,
 }: {
   projectId: string;
-  activeView: "journey" | "timeline" | "table";
+  activeView: "journey" | "timeline" | "graph" | "table";
   activePhaseKey: string | null;
 }) {
-  const tabs: Array<{ key: "journey" | "timeline" | "table"; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+  const tabs: Array<{ key: "journey" | "timeline" | "graph" | "table"; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { key: "journey", label: "Journey", icon: MapIcon },
     { key: "timeline", label: "Timeline", icon: Clock },
+    { key: "graph", label: "Dependencies", icon: Network },
     { key: "table", label: "Milestones", icon: ListChecks },
   ];
   return (
