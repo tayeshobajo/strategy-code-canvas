@@ -794,18 +794,45 @@ function EvidenceRow({
   const downloadFn = useServerFn(getWorldEntryEvidenceDownloadUrl);
   const deleteFileFn = useServerFn(deleteWorldEntryEvidenceFile);
   const [busy, setBusy] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewErr, setPreviewErr] = useState<string | null>(null);
 
-  const openFile = async () => {
-    if (!evidence.file_path) return;
+  const mime = evidence.file_mime ?? "";
+  const isImage = mime.startsWith("image/");
+  const isPdf = mime === "application/pdf";
+  const isText =
+    mime.startsWith("text/") ||
+    mime === "application/json" ||
+    mime === "application/xml";
+  const inlinePreviewable = isImage || isPdf || isText;
+
+  const ensurePreviewUrl = useCallback(async () => {
+    if (previewUrl || !evidence.file_path) return previewUrl;
     setBusy(true);
+    setPreviewErr(null);
     try {
       const { url } = await downloadFn({
         data: { projectId, path: evidence.file_path },
       });
-      window.open(url, "_blank", "noopener,noreferrer");
+      setPreviewUrl(url);
+      return url;
+    } catch (e) {
+      setPreviewErr(e instanceof Error ? e.message : String(e));
+      return null;
     } finally {
       setBusy(false);
     }
+  }, [previewUrl, evidence.file_path, downloadFn, projectId]);
+
+  const openFile = async () => {
+    const url = await ensurePreviewUrl();
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const togglePreview = async () => {
+    if (!previewOpen) await ensurePreviewUrl();
+    setPreviewOpen((v) => !v);
   };
 
   const removeFile = async () => {
@@ -819,10 +846,17 @@ function EvidenceRow({
         file_size: undefined,
         file_mime: undefined,
       });
+      setPreviewUrl(null);
+      setPreviewOpen(false);
     } finally {
       setBusy(false);
     }
   };
+
+  const linkUrl = evidence.url?.trim();
+  const isLikelyImageLink =
+    !!linkUrl && /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(linkUrl);
+  const [linkPreviewOpen, setLinkPreviewOpen] = useState(false);
 
   return (
     <div className="rounded-md border border-ink/10 bg-white p-2 space-y-2">
@@ -858,6 +892,40 @@ function EvidenceRow({
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
+
+      {linkUrl && !evidence.file_path && (
+        <div className="flex items-center gap-2 rounded bg-cloud/40 px-2 py-1 text-xs">
+          <ExternalLink className="h-3 w-3 text-ink/60" />
+          <a
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="truncate text-royal hover:underline"
+          >
+            {linkUrl}
+          </a>
+          {isLikelyImageLink && (
+            <button
+              type="button"
+              onClick={() => setLinkPreviewOpen((v) => !v)}
+              className="ml-auto text-ink/60 hover:text-ink"
+            >
+              {linkPreviewOpen ? "Hide preview" : "Preview"}
+            </button>
+          )}
+        </div>
+      )}
+      {linkUrl && isLikelyImageLink && linkPreviewOpen && (
+        <div className="rounded border border-ink/10 bg-cloud/20 p-2">
+          <img
+            src={linkUrl}
+            alt={evidence.label || "Evidence preview"}
+            className="max-h-64 w-auto rounded"
+            onError={() => setLinkPreviewOpen(false)}
+          />
+        </div>
+      )}
+
       {evidence.file_path && (
         <div className="flex items-center gap-2 rounded bg-cloud/40 px-2 py-1 text-xs">
           <Paperclip className="h-3 w-3 text-ink/60" />
@@ -867,11 +935,23 @@ function EvidenceRow({
               {(evidence.file_size / 1024).toFixed(1)} KB
             </span>
           )}
+          {inlinePreviewable && (
+            <button
+              type="button"
+              onClick={togglePreview}
+              disabled={busy}
+              className="ml-auto text-ink/70 hover:text-ink"
+            >
+              {previewOpen ? "Hide preview" : "Preview"}
+            </button>
+          )}
           <button
             type="button"
             onClick={openFile}
             disabled={busy}
-            className="ml-auto inline-flex items-center gap-1 text-royal hover:underline"
+            className={`inline-flex items-center gap-1 text-royal hover:underline ${
+              inlinePreviewable ? "" : "ml-auto"
+            }`}
           >
             <ExternalLink className="h-3 w-3" /> Open
           </button>
@@ -888,6 +968,40 @@ function EvidenceRow({
           )}
         </div>
       )}
+      {evidence.file_path && previewOpen && (
+        <div className="rounded border border-ink/10 bg-cloud/20 p-2">
+          {previewErr && (
+            <div className="text-xs text-red-600">{previewErr}</div>
+          )}
+          {!previewUrl && !previewErr && (
+            <div className="flex items-center gap-2 text-xs text-ink/60">
+              <Loader2 className="h-3 w-3 animate-spin" /> Loading preview…
+            </div>
+          )}
+          {previewUrl && isImage && (
+            <img
+              src={previewUrl}
+              alt={evidence.label || evidence.file_name || "Evidence"}
+              className="max-h-96 w-auto rounded"
+            />
+          )}
+          {previewUrl && isPdf && (
+            <iframe
+              src={previewUrl}
+              title={evidence.label || evidence.file_name || "Evidence PDF"}
+              className="h-[480px] w-full rounded border border-ink/10 bg-white"
+            />
+          )}
+          {previewUrl && isText && (
+            <iframe
+              src={previewUrl}
+              title={evidence.label || evidence.file_name || "Evidence text"}
+              className="h-64 w-full rounded border border-ink/10 bg-white"
+            />
+          )}
+        </div>
+      )}
+
       <textarea
         value={evidence.quote ?? ""}
         onChange={(ev) => onChange({ quote: ev.target.value || undefined })}
