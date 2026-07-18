@@ -232,7 +232,7 @@ function base(id: DoctrineGateId): Omit<DoctrineGateReadiness, "satisfied" | "mi
 const RESOLUTION_LINKS: Record<DoctrineGateId, string> = {
   world_entry: "world-entry",
   execution_boundary: "execution-boundary",
-  strategic_thesis: "point-b",
+  strategic_thesis: "strategic-thesis",
   drift_assessment: "roadmap",
 };
 
