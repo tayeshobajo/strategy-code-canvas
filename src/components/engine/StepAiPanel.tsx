@@ -36,9 +36,9 @@ const STEP_SPEC: Record<
   "point-b": {
     label: "Point B Definition",
     canDraft: [
-      "12-month desired-state narrative",
-      "Success metrics per pillar",
-      "North-star outcome sentence",
+      "24-month destination and 10-year position",
+      "Client, customer, operational, and revenue outcomes",
+      "Brand position",
     ],
     requiresApproval: ["Operator + client confirm target state before Gap Map"],
     nextTrigger: "Approve Point B → unlocks Gap Map + Hidden Asset drafting.",
@@ -134,9 +134,13 @@ export function computeStepKnowsMissing(step: StepKey, data: unknown): ComputedS
       check("key_diagnosis", "Key diagnosis sentence");
       break;
     case "point-b":
-      check("narrative", "12-month desired-state narrative");
-      check("success_metrics", "Success metrics per pillar");
-      check("north_star", "North-star outcome");
+      check("24_month_destination", "24-month destination");
+      check("10_year_position", "10-year position");
+      check("client_outcome", "Client outcome");
+      check("customer_outcome", "Customer outcome");
+      check("operational_outcome", "Operational outcome");
+      check("revenue_outcome", "Revenue outcome");
+      check("brand_position", "Brand position");
       break;
     case "hidden-assets":
       check("assets", "Hidden asset inventory");
