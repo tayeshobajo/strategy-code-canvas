@@ -1,8 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  CheckCircle2,
+  Clock,
+  Download,
+  ExternalLink,
+  Loader2,
+  Paperclip,
+  Plus,
+  Sparkles,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getWorldEntry,
   saveWorldEntryDraft,
@@ -12,6 +25,13 @@ import {
   type WorldEntryEvidence,
 } from "@/lib/engine-world-entry.functions";
 import { draftWorldEntryFromIntake } from "@/lib/engine-world-entry-ai.functions";
+import {
+  getWorldEntryEvidenceUploadUrl,
+  getWorldEntryEvidenceDownloadUrl,
+  deleteWorldEntryEvidenceFile,
+} from "@/lib/engine-world-entry-evidence.functions";
+import { downloadWorldEntryPdf } from "@/lib/engine-world-entry-pdf";
+import { WorldEntryCommentsThread } from "@/components/engine/WorldEntryCommentsThread";
 
 export const Route = createFileRoute("/engine/projects/$projectId/world-entry")({
   component: WorldEntryPage,
@@ -43,6 +63,12 @@ function rid(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function draftsEqual(a: Draft, b: Draft): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+type AutosaveStatus = "idle" | "pending" | "saving" | "saved" | "error";
+
 function WorldEntryPage() {
   const { projectId } = Route.useParams();
   const qc = useQueryClient();
@@ -61,7 +87,15 @@ function WorldEntryPage() {
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autosave, setAutosave] = useState<AutosaveStatus>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? undefined));
+  }, []);
+
+  // Load server state into draft when not dirty
   useEffect(() => {
     if (state && !dirty) setDraft(fromState(state));
   }, [state, dirty]);
@@ -73,32 +107,59 @@ function WorldEntryPage() {
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: ["engine", "world-entry", projectId] });
 
-  const saveMut = useMutation({
-    mutationFn: async (submit: boolean) => {
+  const runSave = useCallback(
+    async (submit: boolean) => {
       setError(null);
-      return await saveDraft({
-        data: {
-          projectId,
-          destination_summary: draft.destination_summary,
-          competitors: draft.competitors,
-          vocabulary: draft.vocabulary,
-          evidence: draft.evidence.map((e) => ({
-            id: e.id,
-            label: e.label,
-            url: e.url,
-            source_id: e.source_id,
-            quote: e.quote,
-          })),
-          submit_for_review: submit,
-        },
-      });
+      setAutosave("saving");
+      try {
+        await saveDraft({
+          data: {
+            projectId,
+            destination_summary: draft.destination_summary,
+            competitors: draft.competitors,
+            vocabulary: draft.vocabulary,
+            evidence: draft.evidence.map((e) => ({
+              id: e.id,
+              label: e.label,
+              url: e.url,
+              source_id: e.source_id,
+              quote: e.quote,
+              file_path: e.file_path,
+              file_name: e.file_name,
+              file_size: e.file_size,
+              file_mime: e.file_mime,
+            })),
+            submit_for_review: submit,
+          },
+        });
+        setDirty(false);
+        setAutosave("saved");
+        setLastSavedAt(new Date());
+        await invalidate();
+      } catch (e) {
+        setAutosave("error");
+        setError(e instanceof Error ? e.message : String(e));
+      }
     },
-    onSuccess: async () => {
-      setDirty(false);
-      await invalidate();
-    },
-    onError: (e) => setError(e instanceof Error ? e.message : String(e)),
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft, projectId],
+  );
+
+  const saveMut = useMutation({ mutationFn: (submit: boolean) => runSave(submit) });
+
+  // Autosave: debounce 2s after last change, skip when approved
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!dirty || isApproved) return;
+    setAutosave("pending");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      runSave(false);
+    }, 2000);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [draft, dirty, isApproved, runSave]);
 
   const approveMut = useMutation({
     mutationFn: async (reason: string | undefined) => {
@@ -134,6 +195,24 @@ function WorldEntryPage() {
     return missing;
   }, [draft]);
 
+  const mutate = (next: Partial<Draft>) => {
+    setDraft((prev) => {
+      const merged = { ...prev, ...next };
+      // Only mark dirty if content actually changed
+      if (!draftsEqual(prev, merged)) setDirty(true);
+      return merged;
+    });
+  };
+
+  const handleExportPdf = () => {
+    if (!current || current.status !== "approved") return;
+    downloadWorldEntryPdf({
+      projectName: `Project ${projectId.slice(0, 8)}`,
+      approvedAt: current.approved_at,
+      version: current,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="p-8 text-sm text-ink/60 flex items-center gap-2">
@@ -165,6 +244,7 @@ function WorldEntryPage() {
               {new Date(current.drafted_at).toLocaleString()}
             </div>
           )}
+          <AutosaveIndicator status={autosave} lastSavedAt={lastSavedAt} disabled={isApproved} />
         </div>
       </header>
 
@@ -189,6 +269,15 @@ function WorldEntryPage() {
             pending={approveMut.isPending}
           />
         )}
+        {isApproved && (
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white"
+          >
+            <Download className="h-4 w-4" /> Export client-safe PDF
+          </button>
+        )}
         {readinessMissing.length === 0 ? (
           <span className="inline-flex items-center gap-1 text-xs text-emerald-700">
             <CheckCircle2 className="h-3.5 w-3.5" /> Ready to submit
@@ -202,10 +291,10 @@ function WorldEntryPage() {
           <button
             type="button"
             onClick={() => saveMut.mutate(false)}
-            disabled={saveMut.isPending || isApproved}
+            disabled={saveMut.isPending || isApproved || !dirty}
             className="rounded-md border border-ink/20 px-3 py-1.5 text-sm text-ink hover:bg-ink/5 disabled:opacity-50"
           >
-            {saveMut.isPending ? "Saving…" : "Save draft"}
+            {saveMut.isPending ? "Saving…" : "Save now"}
           </button>
           <button
             type="button"
@@ -228,10 +317,7 @@ function WorldEntryPage() {
       <Section title="Industry destination" hint="Where this business is going, in 2-4 sentences.">
         <textarea
           value={draft.destination_summary}
-          onChange={(e) => {
-            setDraft({ ...draft, destination_summary: e.target.value });
-            setDirty(true);
-          }}
+          onChange={(e) => mutate({ destination_summary: e.target.value })}
           disabled={isApproved}
           rows={4}
           className="w-full rounded-md border border-ink/15 bg-white px-3 py-2 text-sm text-ink focus:border-royal focus:outline-none"
@@ -240,6 +326,12 @@ function WorldEntryPage() {
         <div className="mt-1 text-[11px] text-ink/50">
           {draft.destination_summary.trim().length} chars
         </div>
+        <WorldEntryCommentsThread
+          projectId={projectId}
+          section="destination"
+          worldEntryVersion={current?.version ?? 0}
+          currentUserEmail={userEmail}
+        />
       </Section>
 
       {/* Competitors */}
@@ -250,16 +342,14 @@ function WorldEntryPage() {
           <button
             type="button"
             disabled={isApproved}
-            onClick={() => {
-              setDraft({
-                ...draft,
+            onClick={() =>
+              mutate({
                 competitors: [
                   ...draft.competitors,
                   { id: rid("c"), name: "", positioning: "", why_relevant: "" },
                 ],
-              });
-              setDirty(true);
-            }}
+              })
+            }
             className="inline-flex items-center gap-1 text-xs text-royal hover:underline"
           >
             <Plus className="h-3.5 w-3.5" /> Add competitor
@@ -279,8 +369,7 @@ function WorldEntryPage() {
                 onChange={(e) => {
                   const copy = [...draft.competitors];
                   copy[idx] = { ...c, name: e.target.value };
-                  setDraft({ ...draft, competitors: copy });
-                  setDirty(true);
+                  mutate({ competitors: copy });
                 }}
                 disabled={isApproved}
                 placeholder="Name"
@@ -291,8 +380,7 @@ function WorldEntryPage() {
                 onChange={(e) => {
                   const copy = [...draft.competitors];
                   copy[idx] = { ...c, positioning: e.target.value };
-                  setDraft({ ...draft, competitors: copy });
-                  setDirty(true);
+                  mutate({ competitors: copy });
                 }}
                 disabled={isApproved}
                 placeholder="Positioning"
@@ -303,8 +391,7 @@ function WorldEntryPage() {
                 onChange={(e) => {
                   const copy = [...draft.competitors];
                   copy[idx] = { ...c, why_relevant: e.target.value };
-                  setDraft({ ...draft, competitors: copy });
-                  setDirty(true);
+                  mutate({ competitors: copy });
                 }}
                 disabled={isApproved}
                 placeholder="Why relevant"
@@ -313,13 +400,11 @@ function WorldEntryPage() {
               <button
                 type="button"
                 disabled={isApproved}
-                onClick={() => {
-                  setDraft({
-                    ...draft,
+                onClick={() =>
+                  mutate({
                     competitors: draft.competitors.filter((x) => x.id !== c.id),
-                  });
-                  setDirty(true);
-                }}
+                  })
+                }
                 className="col-span-1 flex items-center justify-center text-ink/40 hover:text-red-600"
                 aria-label="Remove competitor"
               >
@@ -328,6 +413,12 @@ function WorldEntryPage() {
             </div>
           ))}
         </div>
+        <WorldEntryCommentsThread
+          projectId={projectId}
+          section="competitors"
+          worldEntryVersion={current?.version ?? 0}
+          currentUserEmail={userEmail}
+        />
       </Section>
 
       {/* Vocabulary */}
@@ -338,40 +429,64 @@ function WorldEntryPage() {
         <VocabularyEditor
           value={draft.vocabulary}
           disabled={isApproved}
-          onChange={(next) => {
-            setDraft({ ...draft, vocabulary: next });
-            setDirty(true);
-          }}
+          onChange={(next) => mutate({ vocabulary: next })}
+        />
+        <WorldEntryCommentsThread
+          projectId={projectId}
+          section="vocabulary"
+          worldEntryVersion={current?.version ?? 0}
+          currentUserEmail={userEmail}
         />
       </Section>
 
       {/* Evidence */}
       <Section
         title="Evidence"
-        hint="Attach at least one source note grounding the destination."
+        hint="Attach a URL or upload a file. At least one source note is required."
         action={
-          <button
-            type="button"
-            disabled={isApproved}
-            onClick={() => {
-              setDraft({
-                ...draft,
-                evidence: [
-                  ...draft.evidence,
-                  {
-                    id: rid("e"),
-                    label: "",
-                    added_by_email: "",
-                    added_at: new Date().toISOString(),
-                  },
-                ],
-              });
-              setDirty(true);
-            }}
-            className="inline-flex items-center gap-1 text-xs text-royal hover:underline"
-          >
-            <Plus className="h-3.5 w-3.5" /> Add evidence
-          </button>
+          <div className="flex items-center gap-2">
+            <EvidenceUploadButton
+              projectId={projectId}
+              disabled={isApproved}
+              onUploaded={(uploaded) =>
+                mutate({
+                  evidence: [
+                    ...draft.evidence,
+                    {
+                      id: rid("e"),
+                      label: uploaded.file_name,
+                      file_path: uploaded.path,
+                      file_name: uploaded.file_name,
+                      file_size: uploaded.file_size,
+                      file_mime: uploaded.file_mime,
+                      added_by_email: "",
+                      added_at: new Date().toISOString(),
+                    },
+                  ],
+                })
+              }
+            />
+            <button
+              type="button"
+              disabled={isApproved}
+              onClick={() =>
+                mutate({
+                  evidence: [
+                    ...draft.evidence,
+                    {
+                      id: rid("e"),
+                      label: "",
+                      added_by_email: "",
+                      added_at: new Date().toISOString(),
+                    },
+                  ],
+                })
+              }
+              className="inline-flex items-center gap-1 text-xs text-royal hover:underline"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add link
+            </button>
+          </div>
         }
       >
         <div className="space-y-2">
@@ -379,76 +494,39 @@ function WorldEntryPage() {
             <div className="text-xs text-ink/50 italic">No evidence attached yet.</div>
           )}
           {draft.evidence.map((e, idx) => (
-            <div key={e.id} className="rounded-md border border-ink/10 bg-white p-2 space-y-2">
-              <div className="grid grid-cols-12 gap-2">
-                <input
-                  value={e.label}
-                  onChange={(ev) => {
-                    const copy = [...draft.evidence];
-                    copy[idx] = { ...e, label: ev.target.value };
-                    setDraft({ ...draft, evidence: copy });
-                    setDirty(true);
-                  }}
-                  disabled={isApproved}
-                  placeholder="Label"
-                  className="col-span-5 rounded border border-ink/10 px-2 py-1 text-sm"
-                />
-                <input
-                  value={e.url ?? ""}
-                  onChange={(ev) => {
-                    const copy = [...draft.evidence];
-                    copy[idx] = { ...e, url: ev.target.value || undefined };
-                    setDraft({ ...draft, evidence: copy });
-                    setDirty(true);
-                  }}
-                  disabled={isApproved}
-                  placeholder="URL (optional)"
-                  className="col-span-4 rounded border border-ink/10 px-2 py-1 text-sm"
-                />
-                <input
-                  value={e.source_id ?? ""}
-                  onChange={(ev) => {
-                    const copy = [...draft.evidence];
-                    copy[idx] = { ...e, source_id: ev.target.value || undefined };
-                    setDraft({ ...draft, evidence: copy });
-                    setDirty(true);
-                  }}
-                  disabled={isApproved}
-                  placeholder="Source id"
-                  className="col-span-2 rounded border border-ink/10 px-2 py-1 text-sm"
-                />
-                <button
-                  type="button"
-                  disabled={isApproved}
-                  onClick={() => {
-                    setDraft({
-                      ...draft,
-                      evidence: draft.evidence.filter((x) => x.id !== e.id),
-                    });
-                    setDirty(true);
-                  }}
-                  className="col-span-1 flex items-center justify-center text-ink/40 hover:text-red-600"
-                  aria-label="Remove evidence"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-              <textarea
-                value={e.quote ?? ""}
-                onChange={(ev) => {
-                  const copy = [...draft.evidence];
-                  copy[idx] = { ...e, quote: ev.target.value || undefined };
-                  setDraft({ ...draft, evidence: copy });
-                  setDirty(true);
-                }}
-                disabled={isApproved}
-                placeholder="Quote (optional)"
-                rows={2}
-                className="w-full rounded border border-ink/10 px-2 py-1 text-sm"
-              />
-            </div>
+            <EvidenceRow
+              key={e.id}
+              evidence={e}
+              projectId={projectId}
+              disabled={isApproved}
+              onChange={(patch) => {
+                const copy = [...draft.evidence];
+                copy[idx] = { ...e, ...patch };
+                mutate({ evidence: copy });
+              }}
+              onRemove={() =>
+                mutate({ evidence: draft.evidence.filter((x) => x.id !== e.id) })
+              }
+            />
           ))}
         </div>
+        <WorldEntryCommentsThread
+          projectId={projectId}
+          section="evidence"
+          worldEntryVersion={current?.version ?? 0}
+          currentUserEmail={userEmail}
+        />
+      </Section>
+
+      {/* General thread */}
+      <Section title="General reviewer notes" hint="Overall feedback not tied to a section.">
+        <WorldEntryCommentsThread
+          projectId={projectId}
+          section="general"
+          worldEntryVersion={current?.version ?? 0}
+          currentUserEmail={userEmail}
+          compact
+        />
       </Section>
 
       {/* History */}
@@ -496,6 +574,42 @@ function Section({
       {children}
     </section>
   );
+}
+
+function AutosaveIndicator({
+  status,
+  lastSavedAt,
+  disabled,
+}: {
+  status: AutosaveStatus;
+  lastSavedAt: Date | null;
+  disabled: boolean;
+}) {
+  if (disabled) return null;
+  const stamp = lastSavedAt
+    ? lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : null;
+  if (status === "saving") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] text-ink/60">
+        <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+      </span>
+    );
+  }
+  if (status === "pending") {
+    return <span className="text-[11px] text-ink/40">Unsaved changes…</span>;
+  }
+  if (status === "error") {
+    return <span className="text-[11px] text-red-600">Autosave failed</span>;
+  }
+  if (status === "saved" && stamp) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700">
+        <CheckCircle2 className="h-3 w-3" /> Saved · {stamp}
+      </span>
+    );
+  }
+  return null;
 }
 
 function StatusBadge({ status, version }: { status?: string; version?: number }) {
@@ -660,6 +774,198 @@ function VocabularyEditor({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function EvidenceRow({
+  evidence,
+  projectId,
+  disabled,
+  onChange,
+  onRemove,
+}: {
+  evidence: WorldEntryEvidence;
+  projectId: string;
+  disabled?: boolean;
+  onChange: (patch: Partial<WorldEntryEvidence>) => void;
+  onRemove: () => void;
+}) {
+  const downloadFn = useServerFn(getWorldEntryEvidenceDownloadUrl);
+  const deleteFileFn = useServerFn(deleteWorldEntryEvidenceFile);
+  const [busy, setBusy] = useState(false);
+
+  const openFile = async () => {
+    if (!evidence.file_path) return;
+    setBusy(true);
+    try {
+      const { url } = await downloadFn({
+        data: { projectId, path: evidence.file_path },
+      });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeFile = async () => {
+    if (!evidence.file_path) return;
+    setBusy(true);
+    try {
+      await deleteFileFn({ data: { projectId, path: evidence.file_path } });
+      onChange({
+        file_path: undefined,
+        file_name: undefined,
+        file_size: undefined,
+        file_mime: undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-ink/10 bg-white p-2 space-y-2">
+      <div className="grid grid-cols-12 gap-2">
+        <input
+          value={evidence.label}
+          onChange={(ev) => onChange({ label: ev.target.value })}
+          disabled={disabled}
+          placeholder="Label"
+          className="col-span-5 rounded border border-ink/10 px-2 py-1 text-sm"
+        />
+        <input
+          value={evidence.url ?? ""}
+          onChange={(ev) => onChange({ url: ev.target.value || undefined })}
+          disabled={disabled}
+          placeholder="URL (optional)"
+          className="col-span-4 rounded border border-ink/10 px-2 py-1 text-sm"
+        />
+        <input
+          value={evidence.source_id ?? ""}
+          onChange={(ev) => onChange({ source_id: ev.target.value || undefined })}
+          disabled={disabled}
+          placeholder="Source id"
+          className="col-span-2 rounded border border-ink/10 px-2 py-1 text-sm"
+        />
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onRemove}
+          className="col-span-1 flex items-center justify-center text-ink/40 hover:text-red-600"
+          aria-label="Remove evidence"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+      {evidence.file_path && (
+        <div className="flex items-center gap-2 rounded bg-cloud/40 px-2 py-1 text-xs">
+          <Paperclip className="h-3 w-3 text-ink/60" />
+          <span className="truncate text-ink">{evidence.file_name ?? evidence.file_path}</span>
+          {typeof evidence.file_size === "number" && (
+            <span className="text-ink/50">
+              {(evidence.file_size / 1024).toFixed(1)} KB
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={openFile}
+            disabled={busy}
+            className="ml-auto inline-flex items-center gap-1 text-royal hover:underline"
+          >
+            <ExternalLink className="h-3 w-3" /> Open
+          </button>
+          {!disabled && (
+            <button
+              type="button"
+              onClick={removeFile}
+              disabled={busy}
+              className="text-ink/50 hover:text-red-600"
+              aria-label="Remove file"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      )}
+      <textarea
+        value={evidence.quote ?? ""}
+        onChange={(ev) => onChange({ quote: ev.target.value || undefined })}
+        disabled={disabled}
+        placeholder="Quote (optional)"
+        rows={2}
+        className="w-full rounded border border-ink/10 px-2 py-1 text-sm"
+      />
+    </div>
+  );
+}
+
+function EvidenceUploadButton({
+  projectId,
+  disabled,
+  onUploaded,
+}: {
+  projectId: string;
+  disabled?: boolean;
+  onUploaded: (u: { path: string; file_name: string; file_size: number; file_mime: string }) => void;
+}) {
+  const uploadUrlFn = useServerFn(getWorldEntryEvidenceUploadUrl);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const onPick = async (file: File) => {
+    setErr(null);
+    setUploading(true);
+    try {
+      const signed = await uploadUrlFn({
+        data: { projectId, fileName: file.name, contentType: file.type || undefined },
+      });
+      const { error: upErr } = await supabase.storage
+        .from(signed.bucket)
+        .uploadToSignedUrl(signed.path, signed.token, file, {
+          contentType: file.type || undefined,
+        });
+      if (upErr) throw new Error(upErr.message);
+      onUploaded({
+        path: signed.path,
+        file_name: file.name,
+        file_size: file.size,
+        file_mime: file.type || "application/octet-stream",
+      });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onPick(f);
+        }}
+      />
+      <button
+        type="button"
+        disabled={disabled || uploading}
+        onClick={() => inputRef.current?.click()}
+        className="inline-flex items-center gap-1 rounded-md border border-ink/20 px-2 py-1 text-xs text-ink hover:bg-ink/5 disabled:opacity-50"
+      >
+        {uploading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Upload className="h-3.5 w-3.5" />
+        )}
+        Upload file
+      </button>
+      {err && <span className="text-[11px] text-red-600">{err}</span>}
     </div>
   );
 }
