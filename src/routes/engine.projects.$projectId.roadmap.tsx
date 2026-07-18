@@ -31,6 +31,10 @@ import { RoadmapDependencyGraph } from "@/components/engine/roadmap/RoadmapDepen
 import { CaptainPrompts } from "@/components/engine/roadmap/CaptainPrompts";
 import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersionsModal";
 import { ClientExportPreviewModal } from "@/components/engine/roadmap/ClientExportPreviewModal";
+import {
+  MilestoneCpExplainer,
+  PhaseCpExplainer,
+} from "@/components/engine/roadmap/CriticalPathExplainer";
 
 const searchSchema = z.object({
   view: z.enum(["journey", "timeline", "graph", "table"]).default("journey"),
