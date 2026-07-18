@@ -12,12 +12,14 @@ import {
   HUMAN_LOCKED_STATUSES,
   asRecord,
   changedKeys,
+  cleanString,
   isBlank,
   mapTruth,
   normalizePointA,
   normalizePointB,
   type FillResult,
   type PointA,
+  type PointB,
   type TruthRow,
 } from "@/lib/engine-spine-ai-fill.helpers";
 
