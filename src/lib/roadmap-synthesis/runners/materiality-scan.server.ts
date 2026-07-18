@@ -17,6 +17,7 @@ type Sb = any;
 export type MaterialityScanResult = {
   scanned: number;
   amendmentsWritten: number;
+  duplicatesSkipped: number;
   errors: string[];
 };
 
