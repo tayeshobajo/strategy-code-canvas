@@ -90,10 +90,12 @@ function RoadmapDashboard({
 }: {
   projectId: string;
   payload: ProjectRoadmapPayload;
-  activeView: "journey" | "timeline" | "table";
+  activeView: "journey" | "timeline" | "graph" | "table";
   activePhaseKey: string | null;
 }) {
   const { view, versions } = payload;
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   if (view.mode === "no_truth") {
     return <NoTruthState projectId={projectId} missing={view.missing_for_approval} />;
@@ -111,7 +113,12 @@ function RoadmapDashboard({
 
   return (
     <div className="space-y-5" data-qa-tab-view="roadmap" data-roadmap-mode={view.mode}>
-      <RoadmapHeader projectId={projectId} payload={payload} />
+      <RoadmapHeader
+        projectId={projectId}
+        payload={payload}
+        onOpenCompare={() => setCompareOpen(true)}
+        onOpenExport={() => setExportOpen(true)}
+      />
       <RoadmapSummaryStrip payload={payload} />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
@@ -128,7 +135,17 @@ function RoadmapDashboard({
             <PhasesDetailList phases={view.phases} milestones={view.milestones} activePhaseKey={activePhaseKey} />
           )}
           {activeView === "timeline" && (
-            <RoadmapTimeline phases={view.phases} milestones={filteredMilestones} />
+            <>
+              <CriticalPathBanner critical={view.critical_path} />
+              <RoadmapTimeline phases={view.phases} milestones={filteredMilestones} />
+            </>
+          )}
+          {activeView === "graph" && (
+            <RoadmapDependencyGraph
+              phases={view.phases}
+              milestones={filteredMilestones}
+              dependencies={view.dependencies}
+            />
           )}
           {activeView === "table" && (
             <MilestoneTable projectId={projectId} milestones={filteredMilestones} />
@@ -136,12 +153,33 @@ function RoadmapDashboard({
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto pr-1">
-          <CaptainBriefCard brief={view.captain_brief} />
-          <ChangeSummaryCard change={view.change_summary} versions={versions} />
+          <CaptainBriefCard brief={view.captain_brief} projectId={projectId} />
+          <ChangeSummaryCard
+            change={view.change_summary}
+            versions={versions}
+            onOpenCompare={() => setCompareOpen(true)}
+          />
           <CrossProjectCard family={view.cross_project_dependencies} />
           <ChangeRequestCta permissions={payload.permissions} projectId={projectId} />
         </aside>
       </div>
+
+      {compareOpen && (
+        <CompareVersionsModal
+          projectId={projectId}
+          versions={versions}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
+      {exportOpen && (
+        <ClientExportPreviewModal
+          version={view.version}
+          phases={view.phases}
+          milestones={view.milestones}
+          canPublish={payload.permissions.can_publish_client_safe}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
     </div>
   );
 }
