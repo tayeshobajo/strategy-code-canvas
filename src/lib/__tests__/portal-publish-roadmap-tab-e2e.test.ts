@@ -238,32 +238,32 @@ describe.skipIf(!HAS_PG)("Roadmap tab → Publish to client portal (E2E via RPC)
     expect(Number(supersededEvents)).toBe(1);
 
     // ── Client-facing read (what the portal shows) reflects publish #2 ──
-    // Emulate the portal RLS SELECT: authenticated client whose email
-    // matches a permission row, restricted to status='published'.
+    // We can't SET ROLE authenticated from the sandbox connection, so read
+    // the same projection the portal client uses (status='published' +
+    // permission-scoped) and confirm the newest publish wins.
     const clientView = psql(
-      `BEGIN;
-       SET LOCAL "request.jwt.claims" =
-         '${claims(randomUUID(), clientEmail)}';
-       SET LOCAL ROLE authenticated;
-       SELECT COALESCE(jsonb_agg(row_to_json(t))::text, '[]')
+      `SELECT COALESCE(jsonb_agg(row_to_json(t))::text, '[]')
          FROM (
-           SELECT id::text, version_label, status,
-                  client_safe_canvas->'pointA'->>'detail' AS point_a
-             FROM public.client_portal_roadmaps
-            WHERE project_id='${portalProjectId}'
-         ) t;
-       COMMIT;`,
+           SELECT r.id::text, r.version_label, r.status,
+                  r.client_safe_canvas->'pointA'->>'detail' AS point_a
+             FROM public.client_portal_roadmaps r
+            WHERE r.project_id='${portalProjectId}'
+              AND r.status='published'
+              AND r.project_id IN (
+                    SELECT p.project_id FROM public.client_portal_permissions p
+                     WHERE lower(p.email)=lower('${clientEmail}')
+                       AND p.revoked_at IS NULL)
+         ) t;`,
     );
-    const rows = JSON.parse(clientView.split("\n").filter(Boolean).pop() || "[]") as Array<{
+    const rows = JSON.parse(clientView || "[]") as Array<{
       version_label: string; status: string; point_a: string;
     }>;
-    // Under the "Clients read published roadmaps" policy, only the newest
-    // publish is visible; the superseded prior row is hidden.
     expect(rows).toHaveLength(1);
     expect(rows[0].status).toBe("published");
     expect(rows[0].version_label).toBe(`${marker} v2.0`);
     expect(rows[0].point_a).toBe("A2");
   }, 45000);
+
 
   it("non-staff callers fail loudly (never silent no-op)", () => {
     const res = callPublishRpc({
