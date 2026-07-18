@@ -80,7 +80,7 @@ function PointA() {
         </div>
       </header>
       <StepStateBar projectId={projectId} step="point-a" current={project.step_states?.["point-a"]} />
-      <StepAiPanelFor step="point-a" data={project.point_a} />
+      <StepAiPanelFor step="point-a" data={project.point_a} projectId={projectId} />
       <SourceEvidence projectId={projectId} step="point-a" />
       <CeremonyPanel projectId={projectId} spine="point-a" />
 

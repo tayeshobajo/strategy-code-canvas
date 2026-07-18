@@ -47,7 +47,7 @@ function PointB() {
         <p className="text-sm text-ink/60 mt-1">Where the business is headed and what "there" looks like.</p>
       </header>
       <StepStateBar projectId={projectId} step="point-b" current={project.step_states?.["point-b"]} />
-      <StepAiPanelFor step="point-b" data={project.point_b} />
+      <StepAiPanelFor step="point-b" data={project.point_b} projectId={projectId} />
       <SourceEvidence projectId={projectId} step="point-b" />
       <CeremonyPanel projectId={projectId} spine="point-b" />
 
