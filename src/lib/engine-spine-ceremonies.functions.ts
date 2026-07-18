@@ -25,10 +25,25 @@ import {
   type FieldStatusEntry,
   type SourceRef,
 } from "@/lib/engine-epistemic.server";
+import { insertEngineActivity } from "@/lib/engine-activity";
 
 const CEREMONIES = "engine_spine_ceremonies";
 const DECISIONS = "engine_spine_ceremony_decisions";
 const TRUTH = "engine_spine_field_truth";
+
+type DbError = { message?: string } | null;
+type SpineCeremonyDbClient = {
+  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: DbError }>;
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (column: string, value: unknown) => Promise<{ data: unknown; error: DbError }>;
+    };
+    update: (values: Record<string, unknown>) => {
+      eq: (column: string, value: unknown) => Promise<{ error: DbError }>;
+    };
+    insert: (payload: unknown) => Promise<{ error: unknown }>;
+  };
+};
 
 // ---------- Inputs ----------
 
@@ -56,6 +71,11 @@ const completeCeremonyInput = z.object({
 const abandonCeremonyInput = z.object({
   ceremonyId: uuidSchema,
   reason: z.string().min(1).max(2000),
+});
+
+const batchApproveDraftedInput = z.object({
+  projectId: uuidSchema,
+  reason: z.string().trim().min(6).max(1000).optional(),
 });
 
 // ---------- Helpers ----------
@@ -430,4 +450,135 @@ export const getCeremonySummary = createServerFn({ method: "POST" })
         "point-b": build("point-b"),
       } satisfies Record<"point-a" | "point-b", CeremonySpineSummary>,
     };
+  });
+
+// ---------- batchApproveDraftedSpineTruth ----------
+//
+// AI may draft or mark fields for review, but only a human operator can
+// promote those fields into approved truth. This uses the existing DB-audited
+// operator override path instead of weakening the roadmap approval gate.
+
+export const batchApproveDraftedSpineTruth = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => batchApproveDraftedInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as AuthCtx;
+    const actor = await assertAdminOrOperator(ctx);
+    const sb = ctx.supabase as unknown as SpineCeremonyDbClient;
+    const now = new Date().toISOString();
+    const reason =
+      data.reason ??
+      "Operator reviewed AI-drafted Spine details and approved them for roadmap baseline gating.";
+
+    const requiredFields: Array<{ spine: "point-a" | "point-b"; fieldKey: string }> = [];
+    const seen = new Set<string>();
+    for (const spine of ["point-a", "point-b"] as const) {
+      const { data: keyRows, error } = await sb.rpc("spine_field_keys", {
+        _project_id: data.projectId,
+        _spine: spine,
+      });
+      if (error) {
+        console.error("batchApproveDraftedSpineTruth spine_field_keys", error);
+        throw new Error("Failed to load Spine field keys");
+      }
+      for (const row of (keyRows ?? []) as Array<string | { spine_field_keys: string }>) {
+        const fieldKey = typeof row === "string" ? row : row.spine_field_keys;
+        assertKnownFieldKey(spine, fieldKey);
+        const uniqueKey = `${spine}\u001f${fieldKey}`;
+        if (!seen.has(uniqueKey)) {
+          seen.add(uniqueKey);
+          requiredFields.push({ spine, fieldKey });
+        }
+      }
+    }
+
+    const { data: rows, error: rowsErr } = await sb
+      .from(TRUTH)
+      .select("id, spine, field_key, status, source_ref, updated_by_actor, updated_by_email")
+      .eq("project_id", data.projectId);
+    if (rowsErr) {
+      console.error("batchApproveDraftedSpineTruth load truth", rowsErr);
+      throw new Error("Failed to load drafted Spine truth");
+    }
+
+    const truthRows = (rows ?? []) as Array<{
+      id: string;
+      spine: "point-a" | "point-b";
+      field_key: string;
+      status: string;
+      source_ref: SourceRef | null;
+      updated_by_actor: string | null;
+      updated_by_email: string | null;
+    }>;
+
+    const byKey = new Map(truthRows.map((row) => [`${row.spine}\u001f${row.field_key}`, row]));
+    const approved: Array<{ spine: "point-a" | "point-b"; fieldKey: string; priorStatus: string }> = [];
+    const skipped: Array<{ spine: "point-a" | "point-b"; fieldKey: string; reason: string }> = [];
+
+    for (const field of requiredFields) {
+      const row = byKey.get(`${field.spine}\u001f${field.fieldKey}`);
+      if (!row) {
+        skipped.push({ ...field, reason: "No durable truth row exists yet" });
+        continue;
+      }
+      if (row.status === "approved_truth") continue;
+
+      const sourceKind = row.source_ref?.kind ?? "";
+      const isAiDraft =
+        row.updated_by_actor === "ai" ||
+        sourceKind === "ai_inference" ||
+        sourceKind === "ai_fill_review";
+      if (!isAiDraft) {
+        skipped.push({ ...field, reason: `Current status is ${row.status}; not an AI draft` });
+        continue;
+      }
+      if (!["inferred", "needs_confirmation", "assumed", "stated", "verified"].includes(row.status)) {
+        skipped.push({ ...field, reason: `Current status is ${row.status}; cannot batch approve` });
+        continue;
+      }
+
+      const sourceRef = enrichSourceRefForHuman(
+        {
+          kind: "operator_override",
+          approval_kind: "operator_override",
+          operator_email: actor,
+          reason,
+          prior_status: row.status,
+          prior_source_ref: row.source_ref ?? null,
+        } as SourceRef,
+        actor,
+      );
+      assertStatusAllowedForActor("approved_truth", "human");
+      assertEvidenceForStatus("approved_truth", sourceRef, "human");
+
+      const { error: updateErr } = await sb
+        .from(TRUTH)
+        .update({
+          status: "approved_truth",
+          source_ref: sourceRef,
+          updated_by_email: actor,
+          updated_by_actor: "human",
+          updated_at: now,
+          ceremony_id: null,
+        })
+        .eq("id", row.id);
+      if (updateErr) {
+        console.error("batchApproveDraftedSpineTruth update", updateErr);
+        throw new Error(updateErr.message ?? "Failed to approve drafted Spine truth");
+      }
+      approved.push({ ...field, priorStatus: row.status });
+    }
+
+    if (approved.length) {
+      await insertEngineActivity(sb, {
+        project_id: data.projectId,
+        kind: "spine_truth.batch_approved",
+        title: `Approved ${approved.length} drafted Spine truth${approved.length === 1 ? "" : "s"}`,
+        body: reason,
+        severity: "success",
+        actor_email: actor,
+      });
+    }
+
+    return { ok: true as const, approved, skipped };
   });

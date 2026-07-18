@@ -520,7 +520,7 @@ export const approveVersion = createServerFn({ method: "POST" })
       // know which Point A / Point B fields still need approval.
       if (/spine not fully approved/i.test(msg)) {
         throw new Error(
-          "Roadmap cannot be approved yet: Point A and Point B must be fully approved on the Spine tab first. " +
+          "Roadmap cannot be approved yet: Point A and Point B must be fully approved. Use Fill missing Spine details, then Approve drafted Spine truth, or review fields on the Spine tab. " +
             msg.replace(/^.*?spine not fully approved\.\s*/i, ""),
         );
       }
