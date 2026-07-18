@@ -553,13 +553,25 @@ function MilestoneExecutionCard({
         <div className="text-xs text-ink/60">
           {m.active_tasks} active · {m.blocked_tasks} blocked
         </div>
-        <Link
-          to="/engine/projects/$projectId/milestones/$milestoneId"
-          params={{ projectId, milestoneId: m.id }}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-2.5 py-1.5 text-xs text-ink hover:border-ink/40"
-        >
-          {m.next_action} <ArrowRight className="w-3 h-3" />
-        </Link>
+        <div className="flex items-center gap-1.5">
+          {canAct ? (
+            <>
+              <Button size="sm" variant="outline" onClick={onAddWork} title="Add work item">
+                <Plus className="w-3 h-3 mr-1" /> Work
+              </Button>
+              <Button size="sm" variant="outline" onClick={onCompare} title="Compare build packets">
+                <GitCompare className="w-3 h-3 mr-1" /> Compare
+              </Button>
+            </>
+          ) : null}
+          <Link
+            to="/engine/projects/$projectId/milestones/$milestoneId"
+            params={{ projectId, milestoneId: m.id }}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-2.5 py-1.5 text-xs text-ink hover:border-ink/40"
+          >
+            {m.next_action} <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
       </div>
     </article>
   );
