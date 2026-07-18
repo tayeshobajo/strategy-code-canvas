@@ -74,6 +74,12 @@ import {
 } from "@/lib/intelligence-room-links";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { listChatThreads, getChatThread } from "@/lib/engine-chat.functions";
+import { IdentityStrip } from "@/components/engine/spine/IdentityStrip";
+import { NarrativeHeader } from "@/components/engine/spine/NarrativeHeader";
+import { CaptainIntelligencePanel } from "@/components/engine/spine/CaptainIntelligencePanel";
+import { PointCard } from "@/components/engine/spine/PointCard";
+import { StrategicThesisCard } from "@/components/engine/spine/StrategicThesisCard";
+import { extractPointBullets } from "@/lib/spine-coherence";
 
 /**
  * Map the richer 7-tone `SpineStatusPresentation` palette onto the 5
