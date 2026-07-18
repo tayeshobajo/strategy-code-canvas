@@ -492,9 +492,18 @@ export const uploadWorkEvidence = createServerFn({ method: "POST" })
       project_id: t.project_id,
       kind: "evidence.submitted",
       title: `Evidence submitted: ${t.name}`,
-      body: `${data.evidenceType.toUpperCase()} — ${data.title}`,
+      body: `${taskMarker(t.id)} ${data.evidenceType.toUpperCase()} — ${data.title}`,
       severity: "info",
       actor_email: email,
+    });
+    await notifyOperators(sb, {
+      projectId: t.project_id,
+      kind: "evidence.submitted",
+      title: `Evidence submitted: ${t.name}`,
+      body: `${email ?? "operator"} attached ${data.evidenceType} — ${data.title}`,
+      href: `/engine/projects/${t.project_id}/work?view=queue`,
+      actor: email,
+      extra: { task_id: t.id, evidence_id: row.id },
     });
 
     return { ok: true as const, evidenceId: row.id as string };
