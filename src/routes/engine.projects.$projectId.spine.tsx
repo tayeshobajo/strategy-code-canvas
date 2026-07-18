@@ -1167,6 +1167,7 @@ function MilestoneReadinessMatrix({
         <Link
           to="/engine/projects/$projectId/roadmap"
           params={{ projectId }}
+          search={{ view: "journey" }}
           className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
         >
           View all <ArrowRight className="h-3 w-3" />
@@ -3994,6 +3995,7 @@ function BusinessRoadmapPreview({
         <Link
           to="/engine/projects/$projectId/roadmap"
           params={{ projectId }}
+          search={{ view: "journey" }}
           className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
         >
           Open full roadmap <ArrowRight className="h-3 w-3" />
