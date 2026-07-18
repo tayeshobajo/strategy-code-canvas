@@ -114,6 +114,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as EngineProjectsProjectIdWorldEntryRouteImport } from './routes/engine.projects.$projectId.world-entry'
 import { Route as EngineProjectsProjectIdWorkRouteImport } from './routes/engine.projects.$projectId.work'
 import { Route as EngineProjectsProjectIdUnderstandingRoomRouteImport } from './routes/engine.projects.$projectId.understanding-room'
+import { Route as EngineProjectsProjectIdStrategicThesisRouteImport } from './routes/engine.projects.$projectId.strategic-thesis'
 import { Route as EngineProjectsProjectIdSpiritFirstRouteImport } from './routes/engine.projects.$projectId.spirit-first'
 import { Route as EngineProjectsProjectIdSpineRouteImport } from './routes/engine.projects.$projectId.spine'
 import { Route as EngineProjectsProjectIdSourcesRouteImport } from './routes/engine.projects.$projectId.sources'
@@ -163,6 +164,7 @@ import { Route as EngineProjectsProjectIdVersionsCompareRouteImport } from './ro
 import { Route as EngineProjectsProjectIdAgentTasksRouteImport } from './routes/engine.projects.$projectId.agent.tasks'
 import { Route as EngineProjectsProjectIdAgentPermissionsRouteImport } from './routes/engine.projects.$projectId.agent.permissions'
 import { Route as EngineProjectsProjectIdAgentCostsRouteImport } from './routes/engine.projects.$projectId.agent.costs'
+import { Route as EngineProjectsProjectIdMilestonesMilestoneIdQualifyRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.qualify'
 import { Route as EngineProjectsProjectIdMilestonesMilestoneIdQaRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.qa'
 import { Route as EngineProjectsProjectIdMilestonesMilestoneIdMockupsRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.mockups'
 import { Route as EngineProjectsProjectIdMilestonesMilestoneIdBuildRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.build'
@@ -708,6 +710,12 @@ const EngineProjectsProjectIdUnderstandingRoomRoute =
     path: '/understanding-room',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdStrategicThesisRoute =
+  EngineProjectsProjectIdStrategicThesisRouteImport.update({
+    id: '/strategic-thesis',
+    path: '/strategic-thesis',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdSpiritFirstRoute =
   EngineProjectsProjectIdSpiritFirstRouteImport.update({
     id: '/spirit-first',
@@ -1002,6 +1010,12 @@ const EngineProjectsProjectIdAgentCostsRoute =
     path: '/costs',
     getParentRoute: () => EngineProjectsProjectIdAgentRoute,
   } as any)
+const EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute =
+  EngineProjectsProjectIdMilestonesMilestoneIdQualifyRouteImport.update({
+    id: '/milestones/$milestoneId/qualify',
+    path: '/milestones/$milestoneId/qualify',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdMilestonesMilestoneIdQaRoute =
   EngineProjectsProjectIdMilestonesMilestoneIdQaRouteImport.update({
     id: '/milestones/$milestoneId/qa',
@@ -1173,6 +1187,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/sources': typeof EngineProjectsProjectIdSourcesRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
+  '/engine/projects/$projectId/strategic-thesis': typeof EngineProjectsProjectIdStrategicThesisRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
   '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
   '/engine/projects/$projectId/world-entry': typeof EngineProjectsProjectIdWorldEntryRoute
@@ -1191,6 +1206,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
   '/engine/projects/$projectId/milestones/$milestoneId/mockups': typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
   '/engine/projects/$projectId/milestones/$milestoneId/qa': typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/qualify': typeof EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1327,6 +1343,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/sources': typeof EngineProjectsProjectIdSourcesRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
+  '/engine/projects/$projectId/strategic-thesis': typeof EngineProjectsProjectIdStrategicThesisRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
   '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
   '/engine/projects/$projectId/world-entry': typeof EngineProjectsProjectIdWorldEntryRoute
@@ -1345,6 +1362,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
   '/engine/projects/$projectId/milestones/$milestoneId/mockups': typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
   '/engine/projects/$projectId/milestones/$milestoneId/qa': typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/qualify': typeof EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1489,6 +1507,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/sources': typeof EngineProjectsProjectIdSourcesRoute
   '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
   '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
+  '/engine/projects/$projectId/strategic-thesis': typeof EngineProjectsProjectIdStrategicThesisRoute
   '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
   '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
   '/engine/projects/$projectId/world-entry': typeof EngineProjectsProjectIdWorldEntryRoute
@@ -1507,6 +1526,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
   '/engine/projects/$projectId/milestones/$milestoneId/mockups': typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
   '/engine/projects/$projectId/milestones/$milestoneId/qa': typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
+  '/engine/projects/$projectId/milestones/$milestoneId/qualify': typeof EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1650,6 +1670,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/sources'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
+    | '/engine/projects/$projectId/strategic-thesis'
     | '/engine/projects/$projectId/understanding-room'
     | '/engine/projects/$projectId/work'
     | '/engine/projects/$projectId/world-entry'
@@ -1668,6 +1689,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/milestones/$milestoneId/build'
     | '/engine/projects/$projectId/milestones/$milestoneId/mockups'
     | '/engine/projects/$projectId/milestones/$milestoneId/qa'
+    | '/engine/projects/$projectId/milestones/$milestoneId/qualify'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1804,6 +1826,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/sources'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
+    | '/engine/projects/$projectId/strategic-thesis'
     | '/engine/projects/$projectId/understanding-room'
     | '/engine/projects/$projectId/work'
     | '/engine/projects/$projectId/world-entry'
@@ -1822,6 +1845,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/milestones/$milestoneId/build'
     | '/engine/projects/$projectId/milestones/$milestoneId/mockups'
     | '/engine/projects/$projectId/milestones/$milestoneId/qa'
+    | '/engine/projects/$projectId/milestones/$milestoneId/qualify'
   id:
     | '__root__'
     | '/'
@@ -1965,6 +1989,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/sources'
     | '/engine/projects/$projectId/spine'
     | '/engine/projects/$projectId/spirit-first'
+    | '/engine/projects/$projectId/strategic-thesis'
     | '/engine/projects/$projectId/understanding-room'
     | '/engine/projects/$projectId/work'
     | '/engine/projects/$projectId/world-entry'
@@ -1983,6 +2008,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/milestones/$milestoneId/build'
     | '/engine/projects/$projectId/milestones/$milestoneId/mockups'
     | '/engine/projects/$projectId/milestones/$milestoneId/qa'
+    | '/engine/projects/$projectId/milestones/$milestoneId/qualify'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2768,6 +2794,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdUnderstandingRoomRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/strategic-thesis': {
+      id: '/engine/projects/$projectId/strategic-thesis'
+      path: '/strategic-thesis'
+      fullPath: '/engine/projects/$projectId/strategic-thesis'
+      preLoaderRoute: typeof EngineProjectsProjectIdStrategicThesisRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/spirit-first': {
       id: '/engine/projects/$projectId/spirit-first'
       path: '/spirit-first'
@@ -3111,6 +3144,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdAgentCostsRouteImport
       parentRoute: typeof EngineProjectsProjectIdAgentRoute
     }
+    '/engine/projects/$projectId/milestones/$milestoneId/qualify': {
+      id: '/engine/projects/$projectId/milestones/$milestoneId/qualify'
+      path: '/milestones/$milestoneId/qualify'
+      fullPath: '/engine/projects/$projectId/milestones/$milestoneId/qualify'
+      preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdQualifyRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/milestones/$milestoneId/qa': {
       id: '/engine/projects/$projectId/milestones/$milestoneId/qa'
       path: '/milestones/$milestoneId/qa'
@@ -3328,6 +3368,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdSourcesRoute: typeof EngineProjectsProjectIdSourcesRoute
   EngineProjectsProjectIdSpineRoute: typeof EngineProjectsProjectIdSpineRoute
   EngineProjectsProjectIdSpiritFirstRoute: typeof EngineProjectsProjectIdSpiritFirstRoute
+  EngineProjectsProjectIdStrategicThesisRoute: typeof EngineProjectsProjectIdStrategicThesisRoute
   EngineProjectsProjectIdUnderstandingRoomRoute: typeof EngineProjectsProjectIdUnderstandingRoomRoute
   EngineProjectsProjectIdWorkRoute: typeof EngineProjectsProjectIdWorkRoute
   EngineProjectsProjectIdWorldEntryRoute: typeof EngineProjectsProjectIdWorldEntryRoute
@@ -3337,6 +3378,7 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
   EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
   EngineProjectsProjectIdMilestonesMilestoneIdQaRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
+  EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute
 }
 
 const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren =
@@ -3404,6 +3446,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdSpineRoute: EngineProjectsProjectIdSpineRoute,
     EngineProjectsProjectIdSpiritFirstRoute:
       EngineProjectsProjectIdSpiritFirstRoute,
+    EngineProjectsProjectIdStrategicThesisRoute:
+      EngineProjectsProjectIdStrategicThesisRoute,
     EngineProjectsProjectIdUnderstandingRoomRoute:
       EngineProjectsProjectIdUnderstandingRoomRoute,
     EngineProjectsProjectIdWorkRoute: EngineProjectsProjectIdWorkRoute,
@@ -3420,6 +3464,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
       EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute,
     EngineProjectsProjectIdMilestonesMilestoneIdQaRoute:
       EngineProjectsProjectIdMilestonesMilestoneIdQaRoute,
+    EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute:
+      EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute,
   }
 
 const EngineProjectsProjectIdRouteWithChildren =
