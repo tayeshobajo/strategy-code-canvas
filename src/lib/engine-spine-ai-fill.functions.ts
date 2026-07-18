@@ -194,16 +194,18 @@ export const fillMissingSpineDetailsFromIntake = createServerFn({ method: "POST"
       },
     };
 
-    const ai = await callLovableAiWithFallback(
-      [
-        {
-          role: "system",
-          content:
-            "You are the Trust Tai AI Product Manager. Fill missing Project Spine details from intake, extracted signals, and current project modules. Do not approve anything. If a detail is inferred, phrase it as a reviewable draft. No em dashes, no exclamation points. Return strict JSON only.",
-        },
-        {
-          role: "user",
-          content: `Draft missing Point A and Point B details.
+    let ai: { text: string; model_used: string };
+    try {
+      ai = await callLovableAiWithFallback(
+        [
+          {
+            role: "system",
+            content:
+              "You are the Trust Tai AI Product Manager. Fill missing Project Spine details from intake, extracted signals, and current project modules. Do not approve anything. If a detail is inferred, phrase it as a reviewable draft. No em dashes, no exclamation points. Return strict JSON only.",
+          },
+          {
+            role: "user",
+            content: `Draft missing Point A and Point B details.
 
 Rules:
 - Preserve existing content. Only provide useful replacement content for blank fields.
@@ -218,10 +220,13 @@ Return JSON only:
 
 PROJECT CONTEXT:
 ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
-        },
-      ],
-      { json: true, temperature: 0.2, maxRetriesPerModel: 1 },
-    );
+          },
+        ],
+        { json: true, temperature: 0.2, maxRetriesPerModel: 1 },
+      );
+    } catch {
+      ai = { text: "{}", model_used: "intake_fallback_template" };
+    }
 
     const parsed =
       parseJsonOutput<{ point_a?: unknown; point_b?: unknown; summary?: string }>(ai.text) ?? {};
