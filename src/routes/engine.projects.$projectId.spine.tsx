@@ -2964,6 +2964,7 @@ function WorkingFocusStrip({
               key={s.to}
               to={s.to}
               params={{ projectId }}
+              search={s.to === "/engine/projects/$projectId/roadmap" ? { view: "journey" as const } : (undefined as never)}
               data-qa-shortcut={s.label}
               className="rounded-lg border border-[#E8E1D6] px-3 py-2 text-xs text-[#0A0F1F] hover:border-[#3E68B2]/50 hover:bg-[#FBF9F4] transition"
             >

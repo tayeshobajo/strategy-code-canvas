@@ -1172,6 +1172,7 @@ function EmptyState({
       <Link
         to={cta.to}
         params={{ projectId: cta.projectId }}
+        search={{ view: "journey" }}
         className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-2 text-sm text-white hover:bg-ink/90"
       >
         {cta.label} <ArrowRight className="w-3.5 h-3.5" />
