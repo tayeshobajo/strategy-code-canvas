@@ -277,7 +277,14 @@ export const compareRoadmapVersions = createServerFn({ method: "POST" })
 
     const { diffVersions } = await import("@/lib/roadmap-view");
     const diff = diffVersions(to.payload, from.payload, []);
-    return { from, to, diff };
+    const strip = (r: typeof list[number]) => ({
+      id: r.id,
+      label: r.label,
+      status: r.status,
+      created_at: r.created_at,
+      approved_at: r.approved_at,
+    });
+    return { from: strip(from), to: strip(to), diff };
   });
 
 export const submitRoadmapChangeRequest = createServerFn({ method: "POST" })
