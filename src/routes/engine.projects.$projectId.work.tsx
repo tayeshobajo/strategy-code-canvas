@@ -643,9 +643,15 @@ function gateLabel(k: keyof MilestoneGateProgression): string {
 function WorkQueue({
   queue,
   offRoadmap,
+  canAct,
+  onReassign,
+  onEvidence,
 }: {
   queue: WorkItem[];
   offRoadmap: WorkItem[];
+  canAct: boolean;
+  onReassign: (w: WorkItem) => void;
+  onEvidence: (w: WorkItem) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -659,7 +665,13 @@ function WorkQueue({
         ) : (
           <ul className="divide-y divide-border">
             {queue.map((w) => (
-              <WorkRow key={w.id} w={w} />
+              <WorkRow
+                key={w.id}
+                w={w}
+                canAct={canAct}
+                onReassign={() => onReassign(w)}
+                onEvidence={() => onEvidence(w)}
+              />
             ))}
           </ul>
         )}
@@ -679,7 +691,13 @@ function WorkQueue({
           </div>
           <ul className="divide-y divide-amber-200">
             {offRoadmap.map((w) => (
-              <WorkRow key={w.id} w={w} />
+              <WorkRow
+                key={w.id}
+                w={w}
+                canAct={canAct}
+                onReassign={() => onReassign(w)}
+                onEvidence={() => onEvidence(w)}
+              />
             ))}
           </ul>
         </div>
@@ -688,7 +706,17 @@ function WorkQueue({
   );
 }
 
-function WorkRow({ w }: { w: WorkItem }) {
+function WorkRow({
+  w,
+  canAct,
+  onReassign,
+  onEvidence,
+}: {
+  w: WorkItem;
+  canAct: boolean;
+  onReassign: () => void;
+  onEvidence: () => void;
+}) {
   return (
     <li className="px-4 py-3 flex items-start gap-3 hover:bg-ink/[0.02]">
       <StatusDot status={w.status} />
@@ -715,7 +743,19 @@ function WorkRow({ w }: { w: WorkItem }) {
           ) : null}
         </div>
       </div>
-      <div className="text-xs text-ink/70 shrink-0">{w.next_action}</div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        {canAct ? (
+          <>
+            <Button size="sm" variant="ghost" onClick={onReassign} title="Reassign">
+              <UserCog className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onEvidence} title="Evidence">
+              <FileCheck2 className="w-3.5 h-3.5" />
+            </Button>
+          </>
+        ) : null}
+        <div className="text-xs text-ink/70">{w.next_action}</div>
+      </div>
     </li>
   );
 }
