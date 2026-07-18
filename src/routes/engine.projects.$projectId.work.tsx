@@ -62,10 +62,20 @@ const workQueryOptions = (
     staleTime: 15_000,
   });
 
+type ModalState =
+  | { kind: "none" }
+  | { kind: "add"; milestoneId?: string | null }
+  | { kind: "reassign"; taskId: string; taskName: string; currentOwner: string | null }
+  | { kind: "resolve"; reviewItemId: string; title: string }
+  | { kind: "compare"; milestoneId: string; milestoneName: string }
+  | { kind: "evidence"; taskId: string; taskName: string };
+
 function WorkTab() {
   const { projectId } = Route.useParams();
   const search = useSearch({ from: "/engine/projects/$projectId/work" });
   const fn = useServerFn(getProjectWork);
+  const role = useEngineRole();
+  const [modal, setModal] = useState<ModalState>({ kind: "none" });
   const { data, isPending, isError, error } = useQuery(
     workQueryOptions(
       projectId,
@@ -112,9 +122,14 @@ function WorkTab() {
     );
   }
 
+  const canAct = role.canEdit;
+
   return (
     <div className="space-y-5" data-qa-tab-view="work">
-      <SummaryStrip view={view} />
+      <SummaryStrip
+        view={view}
+        onAddWork={canAct ? () => setModal({ kind: "add" }) : undefined}
+      />
       <NextBestActionCard view={view} projectId={projectId} />
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-5 min-w-0">
@@ -124,13 +139,41 @@ function WorkTab() {
               milestones={view.milestones}
               projectId={projectId}
               activeId={search.milestoneId ?? null}
+              canAct={canAct}
+              onAddWork={(mid) => setModal({ kind: "add", milestoneId: mid })}
+              onCompare={(mid, name) =>
+                setModal({ kind: "compare", milestoneId: mid, milestoneName: name })
+              }
             />
           )}
           {search.view === "queue" && (
-            <WorkQueue queue={view.queue} offRoadmap={view.off_roadmap} />
+            <WorkQueue
+              queue={view.queue}
+              offRoadmap={view.off_roadmap}
+              canAct={canAct}
+              onReassign={(w) =>
+                setModal({
+                  kind: "reassign",
+                  taskId: w.id,
+                  taskName: w.name,
+                  currentOwner: w.owner_id ?? null,
+                })
+              }
+              onEvidence={(w) =>
+                setModal({ kind: "evidence", taskId: w.id, taskName: w.name })
+              }
+            />
           )}
           {search.view === "agents" && <AgentGrid agents={view.agents} />}
-          {search.view === "blockers" && <BlockerList blockers={view.blockers} />}
+          {search.view === "blockers" && (
+            <BlockerList
+              blockers={view.blockers}
+              canAct={canAct}
+              onResolve={(b) =>
+                setModal({ kind: "resolve", reviewItemId: b.id, title: b.title })
+              }
+            />
+          )}
         </div>
         <aside className="space-y-4">
           <CaptainBriefCard view={view} />
@@ -139,9 +182,59 @@ function WorkTab() {
           <RecentChangesCard view={view} />
         </aside>
       </div>
+
+      {modal.kind === "add" ? (
+        <AddWorkItemModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          defaultMilestoneId={modal.milestoneId ?? null}
+        />
+      ) : null}
+      {modal.kind === "reassign" ? (
+        <ReassignWorkItemModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          taskId={modal.taskId}
+          taskName={modal.taskName}
+          currentOwner={modal.currentOwner}
+        />
+      ) : null}
+      {modal.kind === "resolve" ? (
+        <ResolveBlockerModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          reviewItemId={modal.reviewItemId}
+          title={modal.title}
+        />
+      ) : null}
+      {modal.kind === "compare" ? (
+        <ComparePacketsModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          milestoneId={modal.milestoneId}
+          milestoneName={modal.milestoneName}
+          isAdmin={role.isAdmin}
+        />
+      ) : null}
+      {modal.kind === "evidence" ? (
+        <WorkEvidenceModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          taskId={modal.taskId}
+          taskName={modal.taskName}
+          isAdmin={role.isAdmin}
+          currentUserEmail={role.email}
+        />
+      ) : null}
     </div>
   );
 }
+
 
 // ---------- summary strip ----------
 
