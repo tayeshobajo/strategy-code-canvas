@@ -134,6 +134,7 @@ export function WorldEntryCommentsThread({
                     resolveMut.mutate({ commentId: c.id, resolved: next })
                   }
                   onDelete={() => deleteMut.mutate(c.id)}
+                  onReply={() => setReplyTo(c)}
                 />
               ))}
             </div>
