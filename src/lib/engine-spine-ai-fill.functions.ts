@@ -345,7 +345,8 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
             }
           : {
               kind: "ai_fill_review",
-              reason: "Field had content but no durable truth status. Human review is still required.",
+              reason:
+                "Field had content but no durable truth status. Human review is still required.",
             },
         updated_by_email: actorEmail,
         updated_by_actor: "ai",
@@ -402,7 +403,8 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
       title: changed.length
         ? `AI Product Manager filled ${changed.length} Spine field${changed.length === 1 ? "" : "s"}`
         : "AI Product Manager reviewed the Spine",
-      body: parsed.summary ?? "Missing Point A and Point B details were reviewed from intake context.",
+      body:
+        parsed.summary ?? "Missing Point A and Point B details were reviewed from intake context.",
       severity: "info",
       actor_email: actorEmail,
     });
