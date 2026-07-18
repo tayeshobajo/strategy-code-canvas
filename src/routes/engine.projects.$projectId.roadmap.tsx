@@ -225,14 +225,21 @@ function RoadmapHeader({
     ]);
   };
   const fillMutation = useMutation({
-    mutationFn: () => fillMissingFn({ data: { projectId } }),
+    mutationFn: async () => {
+      const fillResult = await fillMissingFn({ data: { projectId } });
+      const approveResult = await approveDraftedTruthFn({ data: { projectId } });
+      return { fillResult, approveResult };
+    },
     onSuccess: async (result) => {
       await invalidateRoadmapTruth();
-      const count = result.changed.length;
+      const count = result.fillResult.changed.length;
+      const approvedCount = result.approveResult.approved.length;
       toast.success(
-        count
-          ? `AI Product Manager drafted ${count} missing Spine field${count === 1 ? "" : "s"}. Review and approve on the Spine tab.`
-          : "AI Product Manager reviewed the Spine. No blank fields were changed.",
+        approvedCount
+          ? `AI Product Manager drafted from intake and you approved ${approvedCount} Spine truth${approvedCount === 1 ? "" : "s"}. Try approving the roadmap again.`
+          : count
+            ? `AI Product Manager drafted ${count} Spine field${count === 1 ? "" : "s"}. Review remaining fields on the Spine tab.`
+            : "AI Product Manager reviewed the Spine. No blank fields were changed.",
       );
     },
     onError: (e) => {
@@ -326,10 +333,10 @@ function RoadmapHeader({
               onClick={() => fillMutation.mutate()}
               disabled={fillMutation.isPending}
               className="inline-flex items-center gap-1.5 rounded-md border border-royal/40 bg-royal/5 px-3 py-1.5 text-xs font-medium text-royal hover:bg-royal/10 disabled:opacity-50"
-              title="AI Product Manager drafts missing Point A + Point B fields from the intake."
+              title="AI Product Manager drafts missing Point A + Point B fields from intake, then records your approval for the drafted truth."
             >
               <Sparkles className="h-3.5 w-3.5" />
-              {fillMutation.isPending ? "Filling details…" : "AI: Fill Spine from intake"}
+              {fillMutation.isPending ? "Filling and approving…" : "AI: Fill Spine from intake"}
             </button>
           )}
           {canApprove && (
@@ -378,7 +385,7 @@ function RoadmapHeader({
             className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-950 hover:border-amber-500 disabled:opacity-50"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            {fillMutation.isPending ? "Filling details…" : "Fill missing Spine details"}
+            {fillMutation.isPending ? "Filling and approving…" : "Fill missing Spine details"}
           </button>
           <button
             type="button"
@@ -1199,12 +1206,20 @@ function NoTruthState({ projectId, missing }: { projectId: string; missing: stri
     ]);
   };
   const fillMutation = useMutation({
-    mutationFn: () => fillMissingFn({ data: { projectId } }),
+    mutationFn: async () => {
+      const fillResult = await fillMissingFn({ data: { projectId } });
+      const approveResult = await approveDraftedTruthFn({ data: { projectId } });
+      return { fillResult, approveResult };
+    },
     onSuccess: async (result) => {
       await invalidateRoadmapTruth();
+      const changedCount = result.fillResult.changed.length;
+      const approvedCount = result.approveResult.approved.length;
       toast.success(
-        result.changed.length
-          ? `AI Product Manager drafted ${result.changed.length} missing Spine field${result.changed.length === 1 ? "" : "s"}.`
+        approvedCount
+          ? `AI Product Manager drafted from intake and you approved ${approvedCount} Spine truth${approvedCount === 1 ? "" : "s"}.`
+          : changedCount
+            ? `AI Product Manager drafted ${changedCount} missing Spine field${changedCount === 1 ? "" : "s"}.`
           : "AI Product Manager reviewed the Spine. No blank fields were changed.",
       );
     },
@@ -1250,7 +1265,7 @@ function NoTruthState({ projectId, missing }: { projectId: string; missing: stri
           className="inline-flex items-center gap-1.5 rounded-md bg-royal px-3 py-1.5 text-xs text-white hover:bg-royal/90 disabled:opacity-50"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          {fillMutation.isPending ? "Filling details…" : "Fill missing Spine details"}
+          {fillMutation.isPending ? "Filling and approving…" : "Fill missing Spine details"}
         </button>
         <button
           type="button"
