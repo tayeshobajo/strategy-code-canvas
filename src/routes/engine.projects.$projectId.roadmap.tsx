@@ -31,6 +31,10 @@ import { RoadmapDependencyGraph } from "@/components/engine/roadmap/RoadmapDepen
 import { CaptainPrompts } from "@/components/engine/roadmap/CaptainPrompts";
 import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersionsModal";
 import { ClientExportPreviewModal } from "@/components/engine/roadmap/ClientExportPreviewModal";
+import {
+  MilestoneCpExplainer,
+  PhaseCpExplainer,
+} from "@/components/engine/roadmap/CriticalPathExplainer";
 
 const searchSchema = z.object({
   view: z.enum(["journey", "timeline", "graph", "table"]).default("journey"),
@@ -137,7 +141,11 @@ function RoadmapDashboard({
           {activeView === "timeline" && (
             <>
               <CriticalPathBanner critical={view.critical_path} />
-              <RoadmapTimeline phases={view.phases} milestones={filteredMilestones} />
+              <RoadmapTimeline
+                phases={view.phases}
+                milestones={filteredMilestones}
+                bottleneckId={view.critical_path.bottleneck_id}
+              />
             </>
           )}
           {activeView === "graph" && (
@@ -719,9 +727,11 @@ function CriticalPathBanner({
 function RoadmapTimeline({
   phases,
   milestones,
+  bottleneckId,
 }: {
   phases: RoadmapPhase[];
   milestones: RoadmapMilestoneView[];
+  bottleneckId: string | null;
 }) {
   const dated = milestones.filter((m) => m.due_date);
   if (dated.length === 0) {
@@ -751,19 +761,23 @@ function RoadmapTimeline({
         {phases.map((p) => {
           const ms = dated.filter((m) => p.milestone_ids.includes(m.id));
           if (ms.length === 0) return null;
-          const phaseOnCp = ms.some((m) => cpIds.has(m.id));
+          const cpMsInPhase = ms.filter((m) => cpIds.has(m.id));
+          const phaseOnCp = cpMsInPhase.length > 0;
           return (
             <div key={p.key}>
               <div className="mb-1 flex items-center gap-2 text-[11px] text-ink/60">
                 <span className="font-medium text-ink">{p.name}</span>
                 <StatusChip status={p.status} />
                 {phaseOnCp && (
-                  <span
-                    className="rounded bg-royal/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-royal"
-                    title="This phase contains a milestone on the critical path"
-                  >
-                    CP
-                  </span>
+                  <PhaseCpExplainer phase={p} milestonesOnCp={cpMsInPhase}>
+                    <button
+                      type="button"
+                      className="rounded bg-royal/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-royal hover:bg-royal/25"
+                      aria-label={`Why ${p.name} is on the critical path`}
+                    >
+                      CP · why?
+                    </button>
+                  </PhaseCpExplainer>
                 )}
               </div>
               <div
@@ -782,34 +796,36 @@ function RoadmapTimeline({
                           : m.on_critical_path
                             ? "bg-royal"
                             : "bg-slate-500";
-                  const cpReason = m.on_critical_path
-                    ? m.status === "blocked"
-                      ? "blocked — holds the longest downstream chain"
-                      : m.health === "at_risk"
-                        ? "at risk on the longest chain"
-                        : "on the longest dependency chain"
-                    : null;
+                  const isBottleneck = m.id === bottleneckId;
                   return (
-                    <div
+                    <MilestoneCpExplainer
                       key={m.id}
-                      title={`${m.name} · ${new Date(m.due_date!).toLocaleDateString()}${
-                        cpReason ? ` · CP: ${cpReason}` : ""
-                      }`}
-                      className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${tone} ${
-                        m.on_critical_path ? "ring-2 ring-royal shadow-md" : "ring-2 ring-white"
-                      }`}
-                      style={{
-                        left: `${left}%`,
-                        width: m.on_critical_path ? 16 : 12,
-                        height: m.on_critical_path ? 16 : 12,
-                      }}
-                    />
+                      milestone={m}
+                      isBottleneck={isBottleneck}
+                    >
+                      <button
+                        type="button"
+                        aria-label={`${m.name} — critical-path rules`}
+                        className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${tone} ${
+                          m.on_critical_path ? "ring-2 ring-royal shadow-md" : "ring-2 ring-white"
+                        } focus:outline-none focus:ring-royal/70 hover:scale-110 transition-transform`}
+                        style={{
+                          left: `${left}%`,
+                          width: m.on_critical_path ? 16 : 12,
+                          height: m.on_critical_path ? 16 : 12,
+                        }}
+                      />
+                    </MilestoneCpExplainer>
                   );
                 })}
               </div>
             </div>
           );
         })}
+      </div>
+      <div className="mt-4 rounded-md border border-dashed border-border bg-muted/30 p-2 text-[11px] text-ink/60">
+        <span className="font-mono uppercase tracking-wider text-ink/50">Critical-path rules · </span>
+        R1 longest dependency chain · R2 first blocked or at-risk on chain (bottleneck) · R3 gated by upstream · R4 phase inherits from its milestones. Click any dot or the phase chip to see which rules apply.
       </div>
     </section>
   );
