@@ -254,8 +254,9 @@ export function deriveRoadmapView(input: RoadmapViewInputs): RoadmapView {
 
   // Milestones view
   const milestones: RoadmapMilestoneView[] = input.milestones.map((m) => {
-    const deps = Array.isArray(m.dependencies)
-      ? (m.dependencies as unknown[]).filter((v) => typeof v === "string") as string[]
+    const rawDeps = (m as unknown as { dependencies?: unknown }).dependencies;
+    const deps = Array.isArray(rawDeps)
+      ? (rawDeps as unknown[]).filter((v): v is string => typeof v === "string")
       : [];
     return {
       id: m.id,
