@@ -815,7 +815,13 @@ function MilestoneTable({
 
 // ------------- right rail cards -------------
 
-function CaptainBriefCard({ brief }: { brief: ProjectRoadmapPayload["view"]["captain_brief"] }) {
+function CaptainBriefCard({
+  brief,
+  projectId,
+}: {
+  brief: ProjectRoadmapPayload["view"]["captain_brief"];
+  projectId: string;
+}) {
   const items: Array<{ label: string; body: string | null }> = [
     { label: "What changed", body: brief.what_changed },
     { label: "What matters now", body: brief.what_matters_now },
@@ -836,6 +842,7 @@ function CaptainBriefCard({ brief }: { brief: ProjectRoadmapPayload["view"]["cap
           </li>
         ))}
       </ul>
+      <CaptainPrompts projectId={projectId} />
     </section>
   );
 }
@@ -843,9 +850,11 @@ function CaptainBriefCard({ brief }: { brief: ProjectRoadmapPayload["view"]["cap
 function ChangeSummaryCard({
   change,
   versions,
+  onOpenCompare,
 }: {
   change: ProjectRoadmapPayload["view"]["change_summary"];
   versions: ProjectRoadmapPayload["versions"];
+  onOpenCompare: () => void;
 }) {
   const has = change.added.length + change.changed.length + change.removed.length + change.resequenced.length > 0;
   return (
@@ -866,13 +875,23 @@ function ChangeSummaryCard({
         <p className="mt-3 text-sm text-ink/50">No changes since the last baseline.</p>
       )}
       {versions.length > 1 && (
-        <div className="mt-3 flex flex-wrap gap-1 text-[11px]">
-          {versions.slice(0, 5).map((v) => (
-            <span key={v.id} className="rounded border border-border bg-white px-1.5 py-0.5 text-ink/70">
-              {v.label ?? v.id.slice(0, 6)} · {v.status}
-            </span>
-          ))}
-        </div>
+        <>
+          <div className="mt-3 flex flex-wrap gap-1 text-[11px]">
+            {versions.slice(0, 5).map((v) => (
+              <span key={v.id} className="rounded border border-border bg-white px-1.5 py-0.5 text-ink/70">
+                {v.label ?? v.id.slice(0, 6)} · {v.status}
+              </span>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={onOpenCompare}
+            className="mt-2 inline-flex items-center gap-1 rounded-md border border-border bg-white px-2.5 py-1 text-[11px] text-ink hover:border-ink/40"
+          >
+            <GitBranch className="h-3 w-3" />
+            Compare versions
+          </button>
+        </>
       )}
     </section>
   );
