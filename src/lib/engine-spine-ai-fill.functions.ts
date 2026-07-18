@@ -107,9 +107,7 @@ function changedKeys(prev: Record<string, unknown>, next: Record<string, unknown
 
 function mapTruth(rows: TruthRow[], spine: "point-a" | "point-b") {
   return new Map(
-    rows
-      .filter((row) => row.spine === spine)
-      .map((row) => [row.field_key, row.status] as const),
+    rows.filter((row) => row.spine === spine).map((row) => [row.field_key, row.status] as const),
   );
 }
 
@@ -146,7 +144,10 @@ export const fillMissingSpineDetailsFromIntake = createServerFn({ method: "POST"
       string,
       { state?: string; updated_at?: string; updated_by?: string | null; note?: string | null }
     >;
-    if (stepStates["point-a"]?.state === "approved" || stepStates["point-b"]?.state === "approved") {
+    if (
+      stepStates["point-a"]?.state === "approved" ||
+      stepStates["point-b"]?.state === "approved"
+    ) {
       throw new Error(
         "AI Product Manager cannot overwrite an approved Point A or Point B. Reopen the step first.",
       );
@@ -243,7 +244,9 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
       { json: true, temperature: 0.2, maxRetriesPerModel: 1 },
     );
 
-    const parsed = parseJsonOutput<{ point_a?: unknown; point_b?: unknown; summary?: string }>(ai.text);
+    const parsed = parseJsonOutput<{ point_a?: unknown; point_b?: unknown; summary?: string }>(
+      ai.text,
+    );
     if (!parsed) throw new Error("AI Product Manager returned an unreadable draft. Try again.");
 
     const draftPointA = normalizePointA(parsed.point_a);
@@ -262,7 +265,11 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
       nextPointA.diagnosis = draftPointA.diagnosis;
       changed.push("point_a.diagnosis");
     }
-    if (isBlank(nextPointA.key_diagnosis) && draftPointA.key_diagnosis && canWriteA("key_diagnosis")) {
+    if (
+      isBlank(nextPointA.key_diagnosis) &&
+      draftPointA.key_diagnosis &&
+      canWriteA("key_diagnosis")
+    ) {
       nextPointA.key_diagnosis = draftPointA.key_diagnosis;
       changed.push("point_a.key_diagnosis");
     }
@@ -300,7 +307,10 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
     if (Object.keys(patch).length) {
       patch.step_states = nextStates;
       patch.last_activity_at = now;
-      const { error: updateErr } = await sb.from("engine_projects").update(patch).eq("id", data.projectId);
+      const { error: updateErr } = await sb
+        .from("engine_projects")
+        .update(patch)
+        .eq("id", data.projectId);
       if (updateErr) {
         throw new Error(
           (updateErr as { message?: string }).message ?? "Failed to save AI-filled Spine details",
@@ -315,7 +325,7 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
       truthWrites.push({
         project_id: data.projectId,
         spine,
-        field_key: fieldKey,
+          field_key: fieldKey,
         status: generated ? "inferred" : "needs_confirmation",
         source_ref: generated
           ? {
