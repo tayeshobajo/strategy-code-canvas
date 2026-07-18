@@ -11,6 +11,8 @@ import {
   Flag,
   Globe,
   ShieldCheck,
+  Target,
+  Gavel,
   MessageSquare,
   Bot,
   Brain,
@@ -41,6 +43,9 @@ const PROJECT_ROOM_ITEMS: RailNavItem[] = [
   { label: "Understanding", to: "/engine/projects/$projectId/understanding-room", icon: Compass },
   { label: "World Entry", to: "/engine/projects/$projectId/world-entry", icon: Globe },
   { label: "Execution Boundary", to: "/engine/projects/$projectId/execution-boundary", icon: ShieldCheck },
+
+  { label: "Execution Boundary", to: "/engine/projects/$projectId/execution-boundary", icon: ShieldCheck },
+  { label: "Strategic Thesis", to: "/engine/projects/$projectId/strategic-thesis", icon: Target },
 
   { label: "Point A", to: "/engine/projects/$projectId/point-a", icon: MapPin },
   { label: "Point B", to: "/engine/projects/$projectId/point-b", icon: Flag },
