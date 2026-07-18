@@ -727,14 +727,10 @@ function ProjectSpine() {
 function SpinePageHeader({
   projectId: _projectId,
   pendingApprovalsCount,
-  onExportPdf,
-  exportDisabled = false,
   onAskCaptain,
 }: {
   projectId: string;
   pendingApprovalsCount: number;
-  onExportPdf: () => void;
-  exportDisabled?: boolean;
   onAskCaptain?: () => void;
 }) {
   return (
@@ -766,16 +762,6 @@ function SpinePageHeader({
         >
           <Sparkles className="h-3.5 w-3.5 text-[#3E68B2]" />
           Ask Captain
-        </button>
-        <button
-          type="button"
-          onClick={onExportPdf}
-          data-qa-action="export-roadmap"
-          disabled={exportDisabled}
-          className="inline-flex items-center gap-1.5 rounded-full border border-[#0A0F1F] bg-[#0A0F1F] px-3.5 py-1.5 text-[13px] font-medium text-white transition hover:bg-[#1c2440] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Export Roadmap
         </button>
       </div>
     </header>
