@@ -478,6 +478,24 @@ function ProjectSpine() {
       />
 
 
+      {/* ───── Project Evidence & History (collapsed operational detail) ───── */}
+      <details className="group rounded-2xl border border-[#E8E1D6] bg-white shadow-sm">
+        <summary className="cursor-pointer list-none px-5 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-display text-base text-[#0A0F1F]">Project Evidence &amp; History</div>
+              <div className="mt-0.5 text-xs text-[#667085]">
+                Approvals, modules, sources, activity, audit, tasks, versions, readiness contract.
+              </div>
+            </div>
+            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#667085] group-open:text-[#3E68B2]">
+              <span className="group-open:hidden">Expand</span>
+              <span className="hidden group-open:inline">Collapse</span>
+            </div>
+          </div>
+        </summary>
+        <div className="space-y-6 border-t border-[#E8E1D6] px-5 py-5">
+
       {/* ───── Lower row: Approvals + Foundation + Captain Brief ───── */}
       <div className="grid gap-4 xl:grid-cols-3">
         <ApprovalsInlineCard reviews={spine.reviews} />
