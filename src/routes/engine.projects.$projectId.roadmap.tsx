@@ -217,6 +217,23 @@ function RoadmapHeader({
   const approveDraftedTruthFn = useServerFn(batchApproveDraftedSpineTruth);
   const [approving, setApproving] = useState(false);
   const [synthesisOpen, setSynthesisOpen] = useState(false);
+  const [synthesisAutoMode, setSynthesisAutoMode] = useState<"repair" | "refresh" | null>(null);
+  const freshnessFn = useServerFn(getRoadmapSynthesisFreshness);
+  const freshnessQuery = useQuery({
+    queryKey: ["engine", "synthesis-freshness", projectId],
+    queryFn: () => freshnessFn({ data: { projectId } }) as unknown as Promise<{
+      hasNewIntelligence: boolean;
+      newSourceCount: number;
+      newSignalCount: number;
+      lastRunAt: string | null;
+    }>,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const openDrawer = (auto: "repair" | "refresh" | null) => {
+    setSynthesisAutoMode(auto);
+    setSynthesisOpen(true);
+  };
   const invalidateRoadmapTruth = async () => {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
