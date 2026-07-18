@@ -1,4 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { evaluateProjectSpineReadiness } from "@/lib/engine-spine-readiness-eval.functions";
 import {
   Settings,
   PlusCircle,
@@ -103,6 +106,7 @@ export function ProjectHeaderStrip({ project }: { project: WorkspaceProject }) {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <SpineMetricPill projectId={project.id} />
           <MetricPill label="Signals" value={project.signal_count.toString()} tone="blue" />
           <MetricPill label="Health" value={`${project.health_score}`} tone="amber" />
           <MetricPill label="Progress" value={`${project.progress_pct}%`} tone="green" />
@@ -143,6 +147,36 @@ function MetricPill({
   );
 }
 
+
+function SpineMetricPill({ projectId }: { projectId: string }) {
+  const fn = useServerFn(evaluateProjectSpineReadiness);
+  const q = useQuery({
+    queryKey: ["engine", "spine-readiness", projectId],
+    queryFn: () => fn({ data: { projectId } }) as Promise<{ result: { ready: boolean; passed: number; total: number } }>,
+    staleTime: 30_000,
+  });
+  const passed = q.data?.result.passed ?? 0;
+  const total = q.data?.result.total ?? 0;
+  const pct = total > 0 ? Math.round((passed / total) * 100) : 0;
+  const ready = q.data?.result.ready ?? false;
+  const tone: "green" | "amber" | "blue" = ready ? "green" : pct >= 60 ? "amber" : "blue";
+  const value = q.isPending ? "—" : `${pct}%`;
+  const title = q.isPending
+    ? "Evaluating Spine readiness"
+    : ready
+      ? `Spine complete · ${passed}/${total} checks pass`
+      : `Spine ${pct}% · ${passed}/${total} checks pass`;
+  return (
+    <Link
+      to="/engine/projects/$projectId/spine"
+      params={{ projectId }}
+      title={title}
+      className="no-underline"
+    >
+      <MetricPill label="Spine" value={value} tone={tone} />
+    </Link>
+  );
+}
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type NavEntry = { key: string; label: string; suffix: string; icon: Icon };
