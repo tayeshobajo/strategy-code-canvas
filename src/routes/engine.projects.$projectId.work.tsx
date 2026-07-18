@@ -301,6 +301,11 @@ function SummaryStrip({ view, onAddWork }: { view: ProjectWorkPayload["view"]; o
             tone="warn"
           />
         ) : null}
+        {onAddWork ? (
+          <Button size="sm" className="ml-auto" onClick={onAddWork}>
+            <Plus className="w-3 h-3 mr-1" /> Add work
+          </Button>
+        ) : null}
       </div>
       {view.last_material_change ? (
         <div className="mt-3 text-xs text-ink/60 border-t border-border pt-3">
