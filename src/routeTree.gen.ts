@@ -152,6 +152,7 @@ import { Route as EngineProjectsProjectIdBuilderRouteImport } from './routes/eng
 import { Route as EngineProjectsProjectIdBuildExecutionRouteImport } from './routes/engine.projects.$projectId.build-execution'
 import { Route as EngineProjectsProjectIdBlueprintRouteImport } from './routes/engine.projects.$projectId.blueprint'
 import { Route as EngineProjectsProjectIdBackendBuilderRouteImport } from './routes/engine.projects.$projectId.backend-builder'
+import { Route as EngineProjectsProjectIdAmendmentsRouteImport } from './routes/engine.projects.$projectId.amendments'
 import { Route as EngineProjectsProjectIdAiWorkspaceRouteImport } from './routes/engine.projects.$projectId.ai-workspace'
 import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engine.projects.$projectId.agent'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -938,6 +939,12 @@ const EngineProjectsProjectIdBackendBuilderRoute =
     path: '/backend-builder',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
+const EngineProjectsProjectIdAmendmentsRoute =
+  EngineProjectsProjectIdAmendmentsRouteImport.update({
+    id: '/amendments',
+    path: '/amendments',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdAiWorkspaceRoute =
   EngineProjectsProjectIdAiWorkspaceRouteImport.update({
     id: '/ai-workspace',
@@ -1150,6 +1157,7 @@ export interface FileRoutesByFullPath {
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
+  '/engine/projects/$projectId/amendments': typeof EngineProjectsProjectIdAmendmentsRoute
   '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
@@ -1306,6 +1314,7 @@ export interface FileRoutesByTo {
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
+  '/engine/projects/$projectId/amendments': typeof EngineProjectsProjectIdAmendmentsRoute
   '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
@@ -1470,6 +1479,7 @@ export interface FileRoutesById {
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
   '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
+  '/engine/projects/$projectId/amendments': typeof EngineProjectsProjectIdAmendmentsRoute
   '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
   '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
   '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
@@ -1633,6 +1643,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
+    | '/engine/projects/$projectId/amendments'
     | '/engine/projects/$projectId/backend-builder'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/build-execution'
@@ -1789,6 +1800,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
+    | '/engine/projects/$projectId/amendments'
     | '/engine/projects/$projectId/backend-builder'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/build-execution'
@@ -1952,6 +1964,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/engine/projects/$projectId/agent'
     | '/engine/projects/$projectId/ai-workspace'
+    | '/engine/projects/$projectId/amendments'
     | '/engine/projects/$projectId/backend-builder'
     | '/engine/projects/$projectId/blueprint'
     | '/engine/projects/$projectId/build-execution'
@@ -3060,6 +3073,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdBackendBuilderRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
+    '/engine/projects/$projectId/amendments': {
+      id: '/engine/projects/$projectId/amendments'
+      path: '/amendments'
+      fullPath: '/engine/projects/$projectId/amendments'
+      preLoaderRoute: typeof EngineProjectsProjectIdAmendmentsRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/ai-workspace': {
       id: '/engine/projects/$projectId/ai-workspace'
       path: '/ai-workspace'
@@ -3331,6 +3351,7 @@ const EngineProjectsProjectIdEnginesRouteWithChildren =
 interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdAgentRoute: typeof EngineProjectsProjectIdAgentRouteWithChildren
   EngineProjectsProjectIdAiWorkspaceRoute: typeof EngineProjectsProjectIdAiWorkspaceRoute
+  EngineProjectsProjectIdAmendmentsRoute: typeof EngineProjectsProjectIdAmendmentsRoute
   EngineProjectsProjectIdBackendBuilderRoute: typeof EngineProjectsProjectIdBackendBuilderRoute
   EngineProjectsProjectIdBlueprintRoute: typeof EngineProjectsProjectIdBlueprintRoute
   EngineProjectsProjectIdBuildExecutionRoute: typeof EngineProjectsProjectIdBuildExecutionRoute
@@ -3387,6 +3408,8 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
       EngineProjectsProjectIdAgentRouteWithChildren,
     EngineProjectsProjectIdAiWorkspaceRoute:
       EngineProjectsProjectIdAiWorkspaceRoute,
+    EngineProjectsProjectIdAmendmentsRoute:
+      EngineProjectsProjectIdAmendmentsRoute,
     EngineProjectsProjectIdBackendBuilderRoute:
       EngineProjectsProjectIdBackendBuilderRoute,
     EngineProjectsProjectIdBlueprintRoute:
