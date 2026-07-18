@@ -198,6 +198,14 @@ function ProjectSpine() {
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<{ title: string; missing: string[] } | null>(null);
   const [askCaptainOpen, setAskCaptainOpen] = useState(false);
+  const exportHandlerRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    const handler = () => exportHandlerRef.current?.();
+    window.addEventListener("spine:export-roadmap", handler);
+    return () => window.removeEventListener("spine:export-roadmap", handler);
+  }, []);
+
 
 
   const approveMut = useMutation({
