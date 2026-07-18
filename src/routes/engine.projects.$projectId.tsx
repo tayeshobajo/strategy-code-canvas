@@ -69,27 +69,30 @@ function WorkspaceLayout() {
   }
 
   return (
-    <div className="space-y-5 max-w-[1500px]">
-      <div className="flex items-center justify-end gap-2 flex-wrap">
-        <button
-          type="button"
-          onClick={() => setMobileNavOpen(true)}
-          aria-label="Open project navigation"
-          className="inline-flex items-center gap-1.5 rounded-md border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs text-[#0A0F1F] hover:bg-[#FBF9F4] xl:hidden"
-        >
-          <Menu className="h-3.5 w-3.5" />
-          Rooms
-        </button>
-        <Link
-          to="/engine/projects/$projectId/family"
-          params={{ projectId }}
-          className="rounded-md border border-[#E8E1D6] bg-white px-3 py-1.5 text-xs text-[#0A0F1F] hover:bg-[#FBF9F4]"
-        >
-          Family
-        </Link>
+    <div className="space-y-4 max-w-[1500px]">
+      <ProjectHeaderStrip project={workspace.project} />
+
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open project navigation"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs text-ink hover:bg-muted xl:hidden"
+          >
+            <Menu className="h-3.5 w-3.5" />
+            Rooms
+          </button>
+          <Link
+            to="/engine/projects/$projectId/family"
+            params={{ projectId }}
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-xs text-ink hover:bg-muted"
+          >
+            Family
+          </Link>
+        </div>
         <WorkspaceToolbar projectId={projectId} project={workspace.project} />
       </div>
-      <ProjectHeaderStrip project={workspace.project} />
 
       <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
         <div className="hidden xl:block">
