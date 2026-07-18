@@ -38,6 +38,9 @@ import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersion
 import { ClientExportPreviewModal } from "@/components/engine/roadmap/ClientExportPreviewModal";
 import { SynthesisPlanDrawer } from "@/components/engine/roadmap/SynthesisPlanDrawer";
 import { getRoadmapSynthesisFreshness } from "@/lib/roadmap-synthesis/plan.functions";
+import { getProjectWorkspace } from "@/lib/engine.functions";
+import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
+import { validateClientRoadmapExport } from "@/routes/engine.projects.$projectId.spine";
 import {
   MilestoneCpExplainer,
   PhaseCpExplainer,
