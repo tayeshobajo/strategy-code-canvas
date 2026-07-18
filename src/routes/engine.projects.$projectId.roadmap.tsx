@@ -23,6 +23,7 @@ import {
   Timer,
   ChevronRight,
   Network,
+  RefreshCw,
 } from "lucide-react";
 import { getProjectRoadmap, type ProjectRoadmapPayload } from "@/lib/engine-roadmap.functions";
 import type {
@@ -36,6 +37,7 @@ import { CaptainPrompts } from "@/components/engine/roadmap/CaptainPrompts";
 import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersionsModal";
 import { ClientExportPreviewModal } from "@/components/engine/roadmap/ClientExportPreviewModal";
 import { SynthesisPlanDrawer } from "@/components/engine/roadmap/SynthesisPlanDrawer";
+import { getRoadmapSynthesisFreshness } from "@/lib/roadmap-synthesis/plan.functions";
 import {
   MilestoneCpExplainer,
   PhaseCpExplainer,
@@ -217,6 +219,23 @@ function RoadmapHeader({
   const approveDraftedTruthFn = useServerFn(batchApproveDraftedSpineTruth);
   const [approving, setApproving] = useState(false);
   const [synthesisOpen, setSynthesisOpen] = useState(false);
+  const [synthesisAutoMode, setSynthesisAutoMode] = useState<"repair" | "refresh" | null>(null);
+  const freshnessFn = useServerFn(getRoadmapSynthesisFreshness);
+  const freshnessQuery = useQuery({
+    queryKey: ["engine", "synthesis-freshness", projectId],
+    queryFn: () => freshnessFn({ data: { projectId } }) as unknown as Promise<{
+      hasNewIntelligence: boolean;
+      newSourceCount: number;
+      newSignalCount: number;
+      lastRunAt: string | null;
+    }>,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const openDrawer = (auto: "repair" | "refresh" | null) => {
+    setSynthesisAutoMode(auto);
+    setSynthesisOpen(true);
+  };
   const invalidateRoadmapTruth = async () => {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
@@ -331,13 +350,38 @@ function RoadmapHeader({
           </button>
           <button
             type="button"
-            onClick={() => setSynthesisOpen(true)}
+            onClick={() => openDrawer(null)}
             className="inline-flex items-center gap-1.5 rounded-md border border-royal/40 bg-royal/5 px-3 py-1.5 text-xs font-medium text-royal hover:bg-royal/10"
             title="Doctrine-aware synthesis: repair missing, refresh stale, or rebuild drafts."
           >
             <Sparkles className="h-3.5 w-3.5" />
             Refresh Project Intelligence
           </button>
+          <button
+            type="button"
+            onClick={() => openDrawer("repair")}
+            className="inline-flex items-center gap-1.5 rounded-md border border-royal/40 bg-white px-3 py-1.5 text-xs font-medium text-royal hover:bg-royal/5"
+            title="Re-run only the missing or failed synthesis steps. Approved truth is never touched."
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry missing / failed
+          </button>
+          {freshnessQuery.data?.hasNewIntelligence && (
+            <button
+              type="button"
+              onClick={() => openDrawer("refresh")}
+              className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100"
+              title="New intake / signals detected. Classify materiality and re-run affected steps."
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              New intelligence · Refresh
+              {(freshnessQuery.data.newSourceCount + freshnessQuery.data.newSignalCount) > 0 && (
+                <span className="ml-1 rounded-full bg-amber-200/70 px-1.5 text-[10px] text-amber-950">
+                  {freshnessQuery.data.newSourceCount + freshnessQuery.data.newSignalCount}
+                </span>
+              )}
+            </button>
+          )}
           {spineIncomplete && (
             <button
               type="button"
@@ -415,8 +459,13 @@ function RoadmapHeader({
       <SynthesisPlanDrawer
         projectId={projectId}
         open={synthesisOpen}
-        onClose={() => setSynthesisOpen(false)}
+        onClose={() => {
+          setSynthesisOpen(false);
+          setSynthesisAutoMode(null);
+        }}
+        autoRunOnOpen={synthesisAutoMode}
       />
+
     </section>
   );
 }
