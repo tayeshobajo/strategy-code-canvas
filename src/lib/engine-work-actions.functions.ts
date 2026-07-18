@@ -20,6 +20,9 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
 import { insertEngineActivity } from "@/lib/engine-activity";
+import { notifyOperators, taskMarker } from "@/lib/engine-work-notify";
+
+export const PAUSE_REASON_PREFIX = "Paused: scope drift";
 
 const uuid = z
   .string()
