@@ -440,10 +440,16 @@ function MilestoneExecutionGrid({
   milestones,
   projectId,
   activeId,
+  canAct,
+  onAddWork,
+  onCompare,
 }: {
   milestones: MilestoneExecutionSummary[];
   projectId: string;
   activeId: string | null;
+  canAct: boolean;
+  onAddWork: (milestoneId: string) => void;
+  onCompare: (milestoneId: string, milestoneName: string) => void;
 }) {
   if (milestones.length === 0) {
     return (
@@ -460,6 +466,9 @@ function MilestoneExecutionGrid({
           m={m}
           projectId={projectId}
           highlighted={activeId === m.id}
+          canAct={canAct}
+          onAddWork={() => onAddWork(m.id)}
+          onCompare={() => onCompare(m.id, m.name)}
         />
       ))}
     </div>
