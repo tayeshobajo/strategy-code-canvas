@@ -17,7 +17,15 @@ type StepKey =
   | "deadlines"
   | "investment";
 
-export function StepAiPanelFor({ step, data, projectId }: { step: StepKey; data: unknown; projectId?: string }) {
+export function StepAiPanelFor({
+  step,
+  data,
+  projectId,
+}: {
+  step: StepKey;
+  data: unknown;
+  projectId?: string;
+}) {
   const spec = stepAiSpec(step);
   const { knows, missing } = computeStepKnowsMissing(step, data);
   const queryClient = useQueryClient();
@@ -25,7 +33,8 @@ export function StepAiPanelFor({ step, data, projectId }: { step: StepKey; data:
   const canFillSpine = Boolean(projectId && (step === "point-a" || step === "point-b"));
   const fillMutation = useMutation({
     mutationFn: () => fillMissing({ data: { projectId: projectId! } }),
-    onSuccess: async (result) => {
+    onSuccess: async (rawResult) => {
+      const result = rawResult as { changed: string[] };
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["engine", "workspace", projectId] }),
         queryClient.invalidateQueries({ queryKey: ["engine", "spine-status", projectId] }),
@@ -39,7 +48,9 @@ export function StepAiPanelFor({ step, data, projectId }: { step: StepKey; data:
       );
     },
     onError: (error) => {
-      toast.error((error as Error).message || "AI Product Manager could not fill the missing details.");
+      toast.error(
+        (error as Error).message || "AI Product Manager could not fill the missing details.",
+      );
     },
   });
   return (
