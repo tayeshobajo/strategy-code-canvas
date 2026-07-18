@@ -76,16 +76,43 @@ export async function evaluateDoctrineGates(
       }
     | undefined;
 
+  const executionBoundarySidecar = spirit["execution_boundary_workspace"] as
+    | { current?: { status?: string; capability_ids?: unknown[]; client_owned_areas?: unknown[] } | null }
+    | undefined;
+
   return (Object.keys(GATE_SPINES) as DoctrineGateId[]).map((id) => {
     const gateRows = byGate.get(id) ?? [];
     if (id === "world_entry") {
-      // Prefer canonical field_truth rows; fall back to sidecar for legacy projects.
       if (gateRows.length > 0) return { ...worldEntryGate(gateRows), resolution_pending: false };
       return worldEntrySidecarGate(worldEntrySidecar, gateRows);
+    }
+    if (id === "execution_boundary") {
+      if (gateRows.length > 0) return { ...executionBoundaryGate(gateRows), resolution_pending: false };
+      return executionBoundarySidecarGate(executionBoundarySidecar, gateRows);
     }
     return evaluateGate(id, gateRows);
   });
 }
+
+function executionBoundarySidecarGate(
+  sidecar: { current?: { status?: string; capability_ids?: unknown[]; client_owned_areas?: unknown[] } | null } | undefined,
+  fallbackRows: TruthRow[],
+): DoctrineGateReadiness {
+  const b = base("execution_boundary");
+  const current = sidecar?.current;
+  if (current) {
+    const missing: string[] = [];
+    const caps = Array.isArray(current.capability_ids) ? current.capability_ids : [];
+    const clientOwned = Array.isArray(current.client_owned_areas) ? current.client_owned_areas : [];
+    const isApproved = current.status === "approved";
+    if (caps.length < 1) missing.push("At least one approved Trust Tai capability");
+    if (clientOwned.length < 1) missing.push("Explicit client-owned areas");
+    if (!isApproved) missing.push("Awaiting human approval");
+    return { ...b, satisfied: missing.length === 0, missing_pieces: missing, resolution_pending: false };
+  }
+  return { ...executionBoundaryGate(fallbackRows), resolution_pending: false };
+}
+
 
 function worldEntrySidecarGate(
   sidecar:
@@ -147,7 +174,7 @@ function base(id: DoctrineGateId): Omit<DoctrineGateReadiness, "satisfied" | "mi
  */
 const RESOLUTION_LINKS: Record<DoctrineGateId, string> = {
   world_entry: "world-entry",
-  execution_boundary: "builder",
+  execution_boundary: "execution-boundary",
   strategic_thesis: "point-b",
   drift_assessment: "roadmap",
 };

@@ -1,99 +1,67 @@
-## RT-2 · World Entry Workspace
+# RT-3 — Execution Boundary + Capability Registry
 
-Ships the first real doctrine-gate resolution surface. Today `world_entry` is a stub gate that reads `engine_spine_field_truth` rows written by nobody. RT-2 gives Captain (and a human approver) an editor to draft, evidence, and approve the three fields the RT-1 gate already checks:
+Replace the in-memory `CAPABILITY_MENU` in `src/lib/roadmap-synthesis/capability-menu.ts` with a versioned, DB-backed registry, and add a per-project **Execution Boundary** approval workspace that produces the two truth rows the RT-1 gate already reads (`approved_capabilities`, `client_owned_areas`).
 
-- `destination_summary` — one-paragraph "industry destination" the client is walking into
-- `competitors` — ≥3 named competitors, each with a link + one-line why-they-matter
-- `vocabulary` — ≥5 category-language tokens the roadmap must use (drives the qualification checker at `src/lib/roadmap-synthesis/qualification.ts`)
+## Goals
 
-All writes go through the existing `engine_spine_field_truth` schema (no migrations). Value payloads live in the `source_ref` JSONB column, following the pattern the gates already read.
+1. Capability menu is durable, versioned, and edited by admins — not a code constant.
+2. Every project has an explicit, approved Execution Boundary: which capabilities are in scope, which areas the client owns, what's explicitly excluded.
+3. Boundary changes are auditable, versioned, and invalidate the RT-1 synthesis steps that depend on them (materiality already handles this).
 
-### Route & layout
+## Deliverables
 
-New route `src/routes/engine.projects.$projectId.world-entry.tsx` (co-located with the other project rooms). Three-column engine cockpit:
+### 1. Database (goes to `.orchestrator/PENDING_MIGRATIONS.md` — NOT applied)
 
-```text
-┌──────────────────────────── World Entry ────────────────────────────┐
-│ Header: gate status pill (satisfied / unmet · missing pieces)       │
-├──────────────┬──────────────────────────────┬────────────────────────┤
-│ Left rail    │ Draft (candidate)            │ Evidence + history     │
-│ (persisted)  │  · Destination summary       │  · Attach source URL   │
-│              │  · Competitors (list editor) │  · Prior approvals     │
-│              │  · Vocabulary (chips)        │  · Change log          │
-└──────────────┴──────────────────────────────┴────────────────────────┘
-```
+Two new tables + one revision to `capability-menu.ts` shim:
 
-Bottom bar: **Save draft** · **Ask Captain to draft from intake** · **Submit for approval** · **Approve World Entry** (admin-only, second-reviewer rule per Spine contract).
+- **`engine_capability_registry`** — one row per capability version.
+  - `capability_id` (text), `version` (int), `label`, `category`, `execution_mode`, `description`, `retired_at`, `created_by`, standard timestamps.
+  - Unique on `(capability_id, version)`; view `engine_capability_registry_current` returns latest non-retired per `capability_id`.
+  - `engine_capability_menu_version` singleton row holding a semver-ish string bumped on any change.
+  - Grants: `SELECT` to `authenticated`; `ALL` to `service_role`. RLS: authenticated read-all; writes only via server fn (admin-gated).
 
-Deep-link target already registered in `RESOLUTION_LINKS` (`world_entry: "understanding-room"`) is repointed to `world-entry`.
+- **`engine_project_execution_boundary`** — one active row per project + version history.
+  - `project_id`, `version` (int, monotonic), `status` (`draft` | `proposed` | `approved` | `superseded`), `capability_ids` (text[]), `client_owned_areas` (text[]), `exclusions` (text[]), `notes`, `proposed_by`, `approved_by`, `approved_at`, standard timestamps.
+  - Constraint: `proposed_by <> approved_by` when `status = 'approved'` (second-reviewer rule, same as World Entry).
+  - Grants + RLS scoped to project members via existing helper. Trigger: on approval, upsert two rows into `engine_spine_field_truth` for `execution_boundary` field (`approved_capabilities`, `client_owned_areas`) with `status = 'approved_truth'` so the existing RT-1 gate flips green automatically.
 
-### Server functions (`src/lib/engine-world-entry.functions.ts`, new)
+### 2. App layer (built now, safe pre-migration)
 
-All `requireSupabaseAuth` + admin role check.
+- **`src/lib/engine-capability-registry.functions.ts`** — `listCapabilities()`, `getCapabilityMenuVersion()`, `upsertCapability()` (admin), `retireCapability()` (admin). Falls back to `CAPABILITY_MENU` constant when the table is missing so builds don't break pre-migration.
+- **`src/lib/roadmap-synthesis/capability-menu.ts`** — convert `CAPABILITY_MENU` + `CAPABILITY_MENU_VERSION` to async loaders (`loadCapabilityMenu()`, `loadCapabilityMenuVersion()`) with the constant as fallback. Update `qualification.ts` and `plan.server.ts` call sites.
+- **`src/lib/engine-execution-boundary.functions.ts`**:
+  - `getProjectExecutionBoundary(projectId)` — latest row + full version history.
+  - `proposeExecutionBoundary(projectId, { capability_ids, client_owned_areas, exclusions, notes })` — creates `proposed` row.
+  - `approveExecutionBoundary(boundaryId)` — enforces separate-reviewer, marks approved, writes truth rows via `engine_activity` guard.
+  - `rejectExecutionBoundary(boundaryId, reason)`.
+  - `aiDraftExecutionBoundary(projectId)` — LLM call using World Entry + intake to propose a draft.
 
-- `getWorldEntry({ projectId })` — reads the three truth rows + latest attempts + evidence list. Returns `{ destination, competitors, vocabulary, gateStatus, history }`.
-- `saveWorldEntryDraft({ projectId, patch })` — upserts truth rows with `status = 'drafted'`, `source_ref` = the value payload. Patch is partial (any subset of the three fields). Records `engine_activity` `world_entry.drafted`.
-- `submitWorldEntryForReview({ projectId })` — flips status to `awaiting_review`, blocks if any field is empty / below threshold. Notifies via `engine_activity`.
-- `approveWorldEntry({ projectId, notes })` — enforces second-reviewer rule (author ≠ approver, comparing `updated_by_email` on latest drafted rows against caller). Flips rows to `approved_truth`, stamps a new `world_entry_version` (integer bumped, stored on `strategic_thesis`-style version field). Emits `engine_activity` `world_entry.approved`.
-- `rejectWorldEntry({ projectId, reason })` — flips back to `stale`, records reason.
-- `draftWorldEntryFromIntake({ projectId })` — Captain drafts destination summary + competitors + vocabulary from intake / signals via Lovable AI (`google/gemini-3.5-flash`, JSON output), saves as a draft (never auto-approves).
+### 3. UI
 
-### AI draft (Lovable AI gateway)
+- **`/admin/capability-registry`** — table view: capabilities with version, category, execution mode, retire toggle, "New capability" and "Bump version" actions. Behind admin role.
+- **`/engine/projects/$projectId/execution-boundary`** — new route in the project rail:
+  - Left: capability picker grouped by category with checkboxes; shows current menu version.
+  - Middle: client-owned areas + exclusions editors (chip inputs).
+  - Right: status card (Draft / Proposed / Approved), reviewer info, "Propose", "AI draft", "Approve" (disabled when current user is proposer), version history list with diff to previous.
+- Add "Execution Boundary" pill to `SpineReadinessPanel` linking here when the gate is unsatisfied.
+- Add nav entry to `LeftProjectRail`.
 
-Uses the existing pattern (`src/lib/engine-ai.server.ts` — `callLovableAi` / `parseJsonOutput`). Prompt reads: project name, intake submission text, extracted signals, existing sources. Output schema:
+### 4. Wiring
 
-```ts
-{
-  destination_summary: string,   // ≤ 600 chars
-  competitors: Array<{ name: string, url?: string, why_matters: string }>, // 3-6
-  vocabulary: string[]           // 5-12 lowercase tokens
-}
-```
+- Synthesis materiality already lists `execution_boundary_version` in the input manifest — bumping capability menu version or approving a new boundary triggers staleness on dependent steps automatically.
+- `engine_activity` entries: `execution_boundary_proposed`, `execution_boundary_approved`, `execution_boundary_rejected`, `capability_registered`, `capability_retired`.
 
-Never approves — always writes with `status='drafted'` so the human approval gate stays intact.
+## Out of scope (deferred to RT-4+)
 
-### UI components (`src/components/engine/world-entry/`, new)
+- LLM judges for world/wow gates.
+- Client-portal visibility of the approved boundary (portal is downstream-only; will consume once approved via existing publish pipeline).
+- Automatic capability suggestions from World Entry vocabulary.
 
-- `WorldEntryHeader.tsx` — gate status, version pill, second-reviewer banner
-- `DestinationEditor.tsx` — textarea + char counter
-- `CompetitorList.tsx` — add/remove/reorder, URL + why-matters
-- `VocabularyChips.tsx` — chip input with paste-split, min-5 counter
-- `EvidencePanel.tsx` — attached sources + change log (reuses `getSpineFieldHistory` for each field)
-- `ApprovalGateCard.tsx` — shows missing pieces, disables approve until satisfied, enforces second-reviewer rule client-side
+## Files touched
 
-### Wiring
+New: 3 server-fn modules, 2 routes, 1 diff component, migration spec.
+Modified: `capability-menu.ts`, `qualification.ts`, `plan.server.ts`, `LeftProjectRail.tsx`, `SpineReadinessPanel.tsx`, `admin.tsx` nav.
 
-- `src/lib/roadmap-synthesis/gates.ts` — repoint `RESOLUTION_LINKS.world_entry` from `"understanding-room"` to `"world-entry"`; set `resolution_pending: false` for `world_entry` (RT-2 is live).
-- `src/components/engine/LeftProjectRail.tsx` — add "World Entry" link between Understanding and Spine.
-- `src/routes/engine.tsx` — label mapping.
-- `SynthesisPlanDrawer` — no changes; the gate list already renders `resolution_deep_link`.
+## Migration handling
 
-### Second-reviewer & audit
-
-- Approve fn rejects when `caller.email === latest drafted row's updated_by_email` with a friendly error. Matches the Spine contract's approval rule.
-- Every write emits an `engine_activity` row via the existing `insertEngineActivity` guard.
-- `engine_spine_ceremonies` gets a `world_entry` ceremony row on approve (uses existing table — no schema change).
-
-### Out of scope for RT-2
-
-- Execution Boundary and Strategic Thesis workspaces (RT-3).
-- Reviewer inbox / notifications beyond `engine_activity`.
-- Migration for a first-class `world_entry_version` column — the version integer piggybacks on the ceremony row (`decisions` count), following the pattern already used for other gates.
-
-### Verification
-
-- Build (`bun run build:dev`).
-- Playwright: open `/engine/projects/<id>/world-entry` as admin, draft → submit → attempt self-approve (blocked) → approve as second user → confirm `world_entry` gate flips to satisfied in the RT-1 SynthesisPlanDrawer.
-
-### Files touched
-
-**New**
-- `src/routes/engine.projects.$projectId.world-entry.tsx`
-- `src/lib/engine-world-entry.functions.ts`
-- `src/lib/engine-world-entry-ai.functions.ts` (Captain draft, split so `.functions.ts` handler stays clean)
-- `src/components/engine/world-entry/{WorldEntryHeader,DestinationEditor,CompetitorList,VocabularyChips,EvidencePanel,ApprovalGateCard}.tsx`
-
-**Edited**
-- `src/lib/roadmap-synthesis/gates.ts` (deep link + `resolution_pending`)
-- `src/components/engine/LeftProjectRail.tsx` (nav entry)
-- `src/routes/engine.tsx` (room label)
+Per project doctrine (`CLAUDE.md`): the SQL for both tables + view + trigger goes to `.orchestrator/PENDING_MIGRATIONS.md` for Tai review, NOT applied. App code ships with fallback so the build stays green; the DB-backed path activates once Tai runs the migration.

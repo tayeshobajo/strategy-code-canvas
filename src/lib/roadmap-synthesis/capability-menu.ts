@@ -1,9 +1,18 @@
 /**
- * Phase RT-1 — Versioned Trust Tai capability menu (RT-1 stub).
+ * Trust Tai capability menu.
  *
- * Seeded from the World Entry Playbook. RT-3 replaces this with a
- * DB-backed registry. The version string participates in the input
- * manifest hash so future changes trigger staleness on affected steps.
+ * RT-1 seeded this from the World Entry Playbook as a compile-time
+ * constant. RT-3 replaces it with a versioned, DB-backed registry
+ * (`engine_capability_registry` + `engine_capability_menu_version`).
+ *
+ * The constant below is retained as a fallback so the app keeps
+ * booting when the registry tables are missing (pre-migration) and
+ * as an offline seed. Runtime code should prefer the loader helpers
+ * exported from `@/lib/engine-capability-registry.functions`
+ * (`loadCapabilityMenu`, `loadCapabilityMenuVersion`).
+ *
+ * The version participates in the input manifest hash so future
+ * changes trigger staleness on affected synthesis steps.
  */
 
 export type CapabilityCategory =
@@ -22,7 +31,7 @@ export type Capability = {
   description: string;
 };
 
-/** Bump this when the menu content changes. Participates in staleness. */
+/** Fallback version used when the registry table has not been seeded. */
 export const CAPABILITY_MENU_VERSION = "1.0.0";
 
 export const CAPABILITY_MENU: readonly Capability[] = [
