@@ -16,7 +16,7 @@ const baseReadiness: SpineMilestone["readiness"] = {
   counts: { frames: 0, mockups: 0, packets: 0, evidence: 0, qa_plans: 0, qa_reviews: 0 },
 };
 
-function ms(overrides: Partial<SpineMilestone> = {}): SpineMilestone {
+function ms(overrides: Partial<SpineMilestone> & { dependencies?: string[] } = {}): SpineMilestone {
   return {
     id: overrides.id ?? crypto.randomUUID(),
     name: overrides.name ?? "Milestone",
@@ -27,7 +27,8 @@ function ms(overrides: Partial<SpineMilestone> = {}): SpineMilestone {
     due_date: overrides.due_date ?? "2026-08-01",
     brief_md: overrides.brief_md ?? null,
     readiness: overrides.readiness ?? baseReadiness,
-  };
+    ...(overrides.dependencies ? { dependencies: overrides.dependencies } : {}),
+  } as SpineMilestone;
 }
 
 const empty = {
