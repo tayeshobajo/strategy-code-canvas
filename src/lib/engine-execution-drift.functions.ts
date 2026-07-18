@@ -45,7 +45,7 @@ export type DriftSignalRow = {
   classification: DraftSignal["classification"];
   summary: string;
   suggestedAction: string | null;
-  rationale: Record<string, unknown>;
+  rationale: Record<string, any>;
   status: "open" | "acknowledged" | "resolved" | "dismissed";
   createdByKind: "ai" | "human" | "detector";
   createdByEmail: string | null;
