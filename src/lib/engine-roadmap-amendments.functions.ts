@@ -16,6 +16,7 @@ import { hasRoleForEmail } from "@/lib/ops/access";
 
 type Sb = { from: (t: string) => any; rpc?: (fn: string, args: Record<string, unknown>) => any };
 type Row = Record<string, unknown>;
+type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
 
 export type RoadmapAmendment = {
   id: string;
