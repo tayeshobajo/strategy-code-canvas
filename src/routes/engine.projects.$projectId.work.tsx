@@ -692,15 +692,43 @@ function WorkQueue({
   canAct,
   onReassign,
   onEvidence,
+  onHistory,
+  onBulkReassign,
 }: {
   queue: WorkItem[];
   offRoadmap: WorkItem[];
   canAct: boolean;
   onReassign: (w: WorkItem) => void;
   onEvidence: (w: WorkItem) => void;
+  onHistory: (w: WorkItem) => void;
+  onBulkReassign: (ids: string[]) => void;
 }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const selectedIds = [...selected].filter(
+    (id) => queue.some((w) => w.id === id) || offRoadmap.some((w) => w.id === id),
+  );
   return (
     <div className="space-y-4">
+      {canAct && selectedIds.length > 0 ? (
+        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+          <span>{selectedIds.length} selected</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setSelected(new Set())}>
+              Clear
+            </Button>
+            <Button size="sm" onClick={() => onBulkReassign(selectedIds)}>
+              Bulk reassign
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <div className="rounded-xl border border-border bg-white overflow-hidden">
         <header className="flex items-center justify-between px-4 py-2.5 border-b border-border">
           <div className="text-sm font-medium text-ink">Roadmap-linked work</div>
@@ -715,8 +743,11 @@ function WorkQueue({
                 key={w.id}
                 w={w}
                 canAct={canAct}
+                selected={selected.has(w.id)}
+                onToggle={() => toggle(w.id)}
                 onReassign={() => onReassign(w)}
                 onEvidence={() => onEvidence(w)}
+                onHistory={() => onHistory(w)}
               />
             ))}
           </ul>
@@ -741,8 +772,11 @@ function WorkQueue({
                 key={w.id}
                 w={w}
                 canAct={canAct}
+                selected={selected.has(w.id)}
+                onToggle={() => toggle(w.id)}
                 onReassign={() => onReassign(w)}
                 onEvidence={() => onEvidence(w)}
+                onHistory={() => onHistory(w)}
               />
             ))}
           </ul>
@@ -755,16 +789,30 @@ function WorkQueue({
 function WorkRow({
   w,
   canAct,
+  selected,
+  onToggle,
   onReassign,
   onEvidence,
+  onHistory,
 }: {
   w: WorkItem;
   canAct: boolean;
+  selected: boolean;
+  onToggle: () => void;
   onReassign: () => void;
   onEvidence: () => void;
+  onHistory: () => void;
 }) {
   return (
     <li className="px-4 py-3 flex items-start gap-3 hover:bg-ink/[0.02]">
+      {canAct ? (
+        <Checkbox
+          checked={selected}
+          onCheckedChange={onToggle}
+          className="mt-1.5"
+          aria-label={`Select ${w.name}`}
+        />
+      ) : null}
       <StatusDot status={w.status} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -800,6 +848,9 @@ function WorkRow({
             </Button>
           </>
         ) : null}
+        <Button size="sm" variant="ghost" onClick={onHistory} title="Audit trail">
+          <History className="w-3.5 h-3.5" />
+        </Button>
         <div className="text-xs text-ink/70">{w.next_action}</div>
       </div>
     </li>
