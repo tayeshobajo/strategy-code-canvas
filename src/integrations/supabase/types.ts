@@ -1961,6 +1961,110 @@ export type Database = {
           },
         ]
       }
+      engine_execution_drift_signals: {
+        Row: {
+          anchor_kind: string
+          classification: string
+          created_at: string
+          created_by_email: string | null
+          created_by_kind: string
+          detector_version: string
+          id: string
+          milestone_id: string | null
+          model: string | null
+          project_id: string
+          rationale_json: Json
+          resolution_action: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by_email: string | null
+          severity: string
+          source_id: string
+          source_kind: string
+          status: string
+          suggested_action: string | null
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          anchor_kind: string
+          classification: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_kind?: string
+          detector_version?: string
+          id?: string
+          milestone_id?: string | null
+          model?: string | null
+          project_id: string
+          rationale_json?: Json
+          resolution_action?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by_email?: string | null
+          severity: string
+          source_id: string
+          source_kind: string
+          status?: string
+          suggested_action?: string | null
+          summary: string
+          updated_at?: string
+        }
+        Update: {
+          anchor_kind?: string
+          classification?: string
+          created_at?: string
+          created_by_email?: string | null
+          created_by_kind?: string
+          detector_version?: string
+          id?: string
+          milestone_id?: string | null
+          model?: string | null
+          project_id?: string
+          rationale_json?: Json
+          resolution_action?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by_email?: string | null
+          severity?: string
+          source_id?: string
+          source_kind?: string
+          status?: string
+          suggested_action?: string | null
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_execution_drift_signals_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "engine_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_execution_drift_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_execution_drift_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_execution_drift_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_extracted_signals: {
         Row: {
           category: Database["public"]["Enums"]["engine_signal_category"]
