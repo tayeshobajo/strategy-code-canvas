@@ -8,132 +8,30 @@ import {
   POINT_B_FIELD_KEYS,
   pointADiagnosisKey,
 } from "@/lib/engine-spine-fields";
-
-type EpistemicStatus =
-  | "stated"
-  | "inferred"
-  | "assumed"
-  | "missing"
-  | "contradicted"
-  | "needs_confirmation"
-  | "verified"
-  | "approved_truth";
-
-type Lens = { label: string; value: string; hint: string };
-type DiagnosisCard = { title: string; tag: string; bullets: string[] };
-type PointA = { lenses?: Lens[]; diagnosis?: DiagnosisCard[]; key_diagnosis?: string };
-type PointB = Record<(typeof POINT_B_FIELD_KEYS)[number], string>;
-type FillResult = { ok: true; changed: string[]; statuses: string[] };
-type TruthRow = { field_key: string; status: EpistemicStatus; spine: string };
+import {
+  HUMAN_LOCKED_STATUSES,
+  asRecord,
+  changedKeys,
+  isBlank,
+  mapTruth,
+  normalizePointA,
+  normalizePointB,
+  type FillResult,
+  type PointA,
+  type TruthRow,
+} from "@/lib/engine-spine-ai-fill.helpers";
 
 const fillInput = z.object({ projectId: z.string().uuid() });
-
-async function assertAdmin(context: any) {
-  const email = (context.claims?.email as string | undefined) ?? undefined;
-  const ok = await hasRoleForEmail(context.supabase, email, "admin");
-  if (!ok) throw new Error("Forbidden: admin role required");
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function isBlank(value: unknown): boolean {
-  if (value == null) return true;
-  if (typeof value === "string") return value.trim().length === 0;
-  if (Array.isArray(value)) return value.length === 0;
-  if (typeof value === "object") return Object.keys(asRecord(value)).length === 0;
-  return false;
-}
-
-function cleanString(value: unknown, fallback = ""): string {
-  return typeof value === "string" ? value.trim().slice(0, 1_200) : fallback;
-}
-
-function normalizePointA(raw: unknown): PointA {
-  const rec = asRecord(raw);
-  const lenses = Array.isArray(rec.lenses)
-    ? rec.lenses
-        .map((item) => {
-          const r = asRecord(item);
-          return {
-            label: cleanString(r.label, "Lens").slice(0, 48),
-            value: cleanString(r.value, "Needs review").slice(0, 96),
-            hint: cleanString(r.hint, "Drafted from intake context.").slice(0, 180),
-          };
-        })
-        .filter((lens) => lens.label && lens.value)
-        .slice(0, 6)
-    : [];
-
-  const diagnosis = Array.isArray(rec.diagnosis)
-    ? rec.diagnosis
-        .map((item) => {
-          const r = asRecord(item);
-          const bullets = Array.isArray(r.bullets)
-            ? r.bullets
-                .map((bullet) => cleanString(bullet).slice(0, 240))
-                .filter(Boolean)
-                .slice(0, 4)
-            : cleanString(r.bullets)
-              ? [cleanString(r.bullets).slice(0, 240)]
-              : [];
-          return {
-            title: cleanString(r.title, "Working diagnosis").slice(0, 80),
-            tag: cleanString(r.tag, "DEFAULT").toUpperCase().slice(0, 24),
-            bullets: bullets.length ? bullets : ["Needs confirmation from Tai before approval."],
-          };
-        })
-        .filter((card) => card.title)
-        .slice(0, 6)
-    : [];
-
-  return {
-    lenses,
-    diagnosis,
-    key_diagnosis: cleanString(rec.key_diagnosis).slice(0, 1_000),
-  };
-}
-
-function normalizePointB(raw: unknown): Partial<PointB> {
-  const rec = asRecord(raw);
-  const out: Partial<PointB> = {};
-  for (const key of POINT_B_FIELD_KEYS) {
-    const value = cleanString(rec[key]).slice(0, 1_000);
-    if (value) out[key] = value;
-  }
-  return out;
-}
-
-function changedKeys(prev: Record<string, unknown>, next: Record<string, unknown>): string[] {
-  const keys = Array.from(new Set([...Object.keys(prev), ...Object.keys(next)]));
-  return keys.filter(
-    (key) => JSON.stringify(prev[key] ?? null) !== JSON.stringify(next[key] ?? null),
-  );
-}
-
-function mapTruth(rows: TruthRow[], spine: "point-a" | "point-b") {
-  return new Map(
-    rows.filter((row) => row.spine === spine).map((row) => [row.field_key, row.status] as const),
-  );
-}
-
-const HUMAN_LOCKED_STATUSES = new Set<EpistemicStatus>([
-  "stated",
-  "verified",
-  "approved_truth",
-  "contradicted",
-]);
 
 export const fillMissingSpineDetailsFromIntake = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => fillInput.parse(raw))
   .handler(async ({ context, data }): Promise<FillResult> => {
-    await assertAdmin(context);
-
     const sb = (context as any).supabase;
+    const email = ((context as any).claims?.email as string | undefined) ?? undefined;
+    const isAdmin = await hasRoleForEmail(sb, email, "admin");
+    if (!isAdmin) throw new Error("Forbidden: admin role required");
+
     const actorEmail = ((context as any).claims?.email as string | undefined) ?? null;
     const { callLovableAiWithFallback, parseJsonOutput } = await import("@/lib/engine-ai.server");
 
