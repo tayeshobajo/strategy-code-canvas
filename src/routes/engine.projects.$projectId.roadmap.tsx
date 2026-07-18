@@ -371,7 +371,7 @@ function ViewSwitcher({
             key={t.key}
             to="/engine/projects/$projectId/roadmap"
             params={{ projectId }}
-            search={(prev) => ({ ...prev, view: t.key, ...(activePhaseKey ? { phase: activePhaseKey } : {}) })}
+            search={(prev: Record<string, unknown>) => ({ ...prev, view: t.key, ...(activePhaseKey ? { phase: activePhaseKey } : {}) })}
             role="tab"
             aria-selected={active}
             className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs ${
@@ -430,7 +430,7 @@ function StrategicJourneyBand({
               <Link
                 to="/engine/projects/$projectId/roadmap"
                 params={{ projectId }}
-                search={(prev) => {
+                search={(prev: Record<string, unknown>) => {
                   if (active) {
                     const rest = { ...prev } as Record<string, unknown>;
                     delete rest.phase;
