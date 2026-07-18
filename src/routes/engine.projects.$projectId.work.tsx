@@ -846,7 +846,15 @@ function AgentStateBadge({ state }: { state: AgentAssignment["state"] }) {
 
 // ---------- blockers ----------
 
-function BlockerList({ blockers }: { blockers: WorkBlocker[] }) {
+function BlockerList({
+  blockers,
+  canAct,
+  onResolve,
+}: {
+  blockers: WorkBlocker[];
+  canAct: boolean;
+  onResolve: (b: WorkBlocker) => void;
+}) {
   if (blockers.length === 0) {
     return (
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-6 text-sm text-emerald-900">
@@ -876,6 +884,11 @@ function BlockerList({ blockers }: { blockers: WorkBlocker[] }) {
               </div>
               <div className="text-xs text-ink/70 mt-2">{b.recommended_resolution}</div>
             </div>
+            {canAct ? (
+              <Button size="sm" variant="outline" onClick={() => onResolve(b)}>
+                Resolve
+              </Button>
+            ) : null}
           </div>
         </li>
       ))}
