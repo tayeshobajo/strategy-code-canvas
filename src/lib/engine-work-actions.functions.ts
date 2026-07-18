@@ -338,24 +338,39 @@ export const compareBuildPackets = createServerFn({ method: "POST" })
     const scopeDrift = driftScore >= 3 || criteria_removed.length > 0;
 
     let pausedIds: string[] = [];
+    const pauseReason = `${PAUSE_REASON_PREFIX} between packets ${base.title} → ${cand.title}`;
     if (scopeDrift && data.pauseDownstream) {
       const { data: downstream } = await sb
         .from("engine_tasks")
-        .select("id")
+        .select("id,name")
         .eq("milestone_id", base.milestone_id)
         .in("status", ["ready", "assigned", "in_progress"]);
-      const ids = ((downstream ?? []) as Array<{ id: string }>).map((r) => r.id);
+      const rows = (downstream ?? []) as Array<{ id: string; name: string }>;
+      const ids = rows.map((r) => r.id);
       if (ids.length > 0) {
         const { error: pauseErr } = await sb
           .from("engine_tasks")
           .update({
             status: "blocked",
-            blocked_decision: `Paused: scope drift detected between packets ${base.title} → ${cand.title}`,
+            blocked_decision: pauseReason,
             updated_at: new Date().toISOString(),
           })
           .in("id", ids);
         if (pauseErr) throw new Error(pauseErr.message);
         pausedIds = ids;
+
+        // Per-task activity so each work item's audit trail shows the pause.
+        await insertEngineActivity(
+          sb,
+          rows.map((r) => ({
+            project_id: base.project_id,
+            kind: "work.paused",
+            title: `Paused: ${r.name}`,
+            body: `${taskMarker(r.id)} ${pauseReason}. Candidate packet ${cand.id}. Awaiting change assessment approval.`,
+            severity: "warn" as const,
+            actor_email: email,
+          })),
+        );
       }
     }
 
@@ -377,6 +392,23 @@ export const compareBuildPackets = createServerFn({ method: "POST" })
       severity: scopeDrift ? "warn" : "info",
       actor_email: email,
     });
+
+    if (scopeDrift) {
+      await notifyOperators(sb, {
+        projectId: base.project_id,
+        kind: "packet.scope_drift",
+        title: `Scope drift: ${base.title} → ${cand.title}`,
+        body: `${captainNote} ${recommendation}`,
+        href: `/engine/projects/${base.project_id}/work?view=milestones&milestoneId=${base.milestone_id}`,
+        actor: email,
+        extra: {
+          base_packet_id: base.id,
+          candidate_packet_id: cand.id,
+          milestone_id: base.milestone_id,
+          paused_count: pausedIds.length,
+        },
+      });
+    }
 
     return {
       base_packet_id: base.id,
