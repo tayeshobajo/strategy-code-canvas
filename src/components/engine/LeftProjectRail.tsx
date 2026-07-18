@@ -11,6 +11,8 @@ import {
   Flag,
   Globe,
   ShieldCheck,
+  Target,
+  Gavel,
   MessageSquare,
   Bot,
   Brain,
