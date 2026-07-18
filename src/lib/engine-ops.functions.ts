@@ -341,17 +341,11 @@ export const decideReviewItem = createServerFn({ method: "POST" })
       if ((openCritical ?? []).length) {
         throw new Error("Resolve open critical change events before approving this version.");
       }
-      // Pillar 7: investment must be confirmed before version approval.
-      const { data: projGate } = await sb
-        .from("engine_projects")
-        .select("investment_confirmed_at")
-        .eq("id", projId)
-        .single() as unknown as { data: { investment_confirmed_at: string | null } | null };
-      if (!projGate?.investment_confirmed_at) {
-        throw new Error("Confirm the investment on this project before approving the roadmap version.");
-      }
+      // Investment confirmation is NOT required to approve the roadmap.
+      // It remains a gate for portal publish (see publishVersionToPortal).
       versionApprovalTarget = target;
     }
+
 
     // ---- All guards passed: writes start here. The review item is flipped
     // before the version side effect so a mid-sequence infrastructure failure
