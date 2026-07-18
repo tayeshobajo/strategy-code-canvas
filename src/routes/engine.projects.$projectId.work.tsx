@@ -238,7 +238,7 @@ function WorkTab() {
 
 // ---------- summary strip ----------
 
-function SummaryStrip({ view }: { view: ProjectWorkPayload["view"] }) {
+function SummaryStrip({ view, onAddWork }: { view: ProjectWorkPayload["view"]; onAddWork?: () => void }) {
   const healthMeta = healthChip(view.work_health);
   return (
     <section
