@@ -41,6 +41,14 @@ import {
   ComparePacketsModal,
   WorkEvidenceModal,
 } from "@/components/engine/work/WorkActionModals";
+import {
+  PausedWorkBanner,
+  BulkReassignModal,
+  BulkResolveBlockersModal,
+  WorkAuditTrailModal,
+} from "@/components/engine/work/WorkBulkModals";
+import { Checkbox } from "@/components/ui/checkbox";
+import { History } from "lucide-react";
 
 const searchSchema = z.object({
   view: z.enum(["milestones", "queue", "agents", "blockers"]).default("milestones"),
@@ -68,7 +76,10 @@ type ModalState =
   | { kind: "reassign"; taskId: string; taskName: string; currentOwner: string | null }
   | { kind: "resolve"; reviewItemId: string; title: string }
   | { kind: "compare"; milestoneId: string; milestoneName: string }
-  | { kind: "evidence"; taskId: string; taskName: string };
+  | { kind: "evidence"; taskId: string; taskName: string }
+  | { kind: "audit"; taskId: string; taskName: string }
+  | { kind: "bulk-reassign"; taskIds: string[] }
+  | { kind: "bulk-resolve"; reviewItemIds: string[] };
 
 function WorkTab() {
   const { projectId } = Route.useParams();
@@ -126,6 +137,7 @@ function WorkTab() {
 
   return (
     <div className="space-y-5" data-qa-tab-view="work">
+      <PausedWorkBanner projectId={projectId} isAdmin={role.isAdmin} />
       <SummaryStrip
         view={view}
         onAddWork={canAct ? () => setModal({ kind: "add" }) : undefined}
@@ -162,6 +174,12 @@ function WorkTab() {
               onEvidence={(w) =>
                 setModal({ kind: "evidence", taskId: w.id, taskName: w.name })
               }
+              onHistory={(w) =>
+                setModal({ kind: "audit", taskId: w.id, taskName: w.name })
+              }
+              onBulkReassign={(ids) =>
+                setModal({ kind: "bulk-reassign", taskIds: ids })
+              }
             />
           )}
           {search.view === "agents" && <AgentGrid agents={view.agents} />}
@@ -171,6 +189,9 @@ function WorkTab() {
               canAct={canAct}
               onResolve={(b) =>
                 setModal({ kind: "resolve", reviewItemId: b.id, title: b.title })
+              }
+              onBulkResolve={(ids) =>
+                setModal({ kind: "bulk-resolve", reviewItemIds: ids })
               }
             />
           )}
@@ -229,6 +250,31 @@ function WorkTab() {
           taskName={modal.taskName}
           isAdmin={role.isAdmin}
           currentUserEmail={role.email}
+        />
+      ) : null}
+      {modal.kind === "audit" ? (
+        <WorkAuditTrailModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          taskId={modal.taskId}
+          taskName={modal.taskName}
+        />
+      ) : null}
+      {modal.kind === "bulk-reassign" ? (
+        <BulkReassignModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          taskIds={modal.taskIds}
+        />
+      ) : null}
+      {modal.kind === "bulk-resolve" ? (
+        <BulkResolveBlockersModal
+          open
+          onOpenChange={(o) => !o && setModal({ kind: "none" })}
+          projectId={projectId}
+          reviewItemIds={modal.reviewItemIds}
         />
       ) : null}
     </div>
@@ -646,15 +692,43 @@ function WorkQueue({
   canAct,
   onReassign,
   onEvidence,
+  onHistory,
+  onBulkReassign,
 }: {
   queue: WorkItem[];
   offRoadmap: WorkItem[];
   canAct: boolean;
   onReassign: (w: WorkItem) => void;
   onEvidence: (w: WorkItem) => void;
+  onHistory: (w: WorkItem) => void;
+  onBulkReassign: (ids: string[]) => void;
 }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const selectedIds = [...selected].filter(
+    (id) => queue.some((w) => w.id === id) || offRoadmap.some((w) => w.id === id),
+  );
   return (
     <div className="space-y-4">
+      {canAct && selectedIds.length > 0 ? (
+        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+          <span>{selectedIds.length} selected</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setSelected(new Set())}>
+              Clear
+            </Button>
+            <Button size="sm" onClick={() => onBulkReassign(selectedIds)}>
+              Bulk reassign
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <div className="rounded-xl border border-border bg-white overflow-hidden">
         <header className="flex items-center justify-between px-4 py-2.5 border-b border-border">
           <div className="text-sm font-medium text-ink">Roadmap-linked work</div>
@@ -669,8 +743,11 @@ function WorkQueue({
                 key={w.id}
                 w={w}
                 canAct={canAct}
+                selected={selected.has(w.id)}
+                onToggle={() => toggle(w.id)}
                 onReassign={() => onReassign(w)}
                 onEvidence={() => onEvidence(w)}
+                onHistory={() => onHistory(w)}
               />
             ))}
           </ul>
@@ -695,8 +772,11 @@ function WorkQueue({
                 key={w.id}
                 w={w}
                 canAct={canAct}
+                selected={selected.has(w.id)}
+                onToggle={() => toggle(w.id)}
                 onReassign={() => onReassign(w)}
                 onEvidence={() => onEvidence(w)}
+                onHistory={() => onHistory(w)}
               />
             ))}
           </ul>
@@ -709,16 +789,30 @@ function WorkQueue({
 function WorkRow({
   w,
   canAct,
+  selected,
+  onToggle,
   onReassign,
   onEvidence,
+  onHistory,
 }: {
   w: WorkItem;
   canAct: boolean;
+  selected: boolean;
+  onToggle: () => void;
   onReassign: () => void;
   onEvidence: () => void;
+  onHistory: () => void;
 }) {
   return (
     <li className="px-4 py-3 flex items-start gap-3 hover:bg-ink/[0.02]">
+      {canAct ? (
+        <Checkbox
+          checked={selected}
+          onCheckedChange={onToggle}
+          className="mt-1.5"
+          aria-label={`Select ${w.name}`}
+        />
+      ) : null}
       <StatusDot status={w.status} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -754,6 +848,9 @@ function WorkRow({
             </Button>
           </>
         ) : null}
+        <Button size="sm" variant="ghost" onClick={onHistory} title="Audit trail">
+          <History className="w-3.5 h-3.5" />
+        </Button>
         <div className="text-xs text-ink/70">{w.next_action}</div>
       </div>
     </li>
@@ -850,11 +947,23 @@ function BlockerList({
   blockers,
   canAct,
   onResolve,
+  onBulkResolve,
 }: {
   blockers: WorkBlocker[];
   canAct: boolean;
   onResolve: (b: WorkBlocker) => void;
+  onBulkResolve: (ids: string[]) => void;
 }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const selectedIds = [...selected].filter((id) => blockers.some((b) => b.id === id));
+
   if (blockers.length === 0) {
     return (
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-6 text-sm text-emerald-900">
@@ -863,38 +972,62 @@ function BlockerList({
     );
   }
   return (
-    <ul className="space-y-2">
-      {blockers.map((b) => (
-        <li key={b.id} className="rounded-xl border border-border bg-white p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <span className="text-sm text-ink font-medium">{b.title}</span>
-                <span className="text-[10px] rounded bg-ink/5 text-ink/60 px-1.5 py-0.5">
-                  {b.blocker_type.replace(/_/g, " ")}
-                </span>
-              </div>
-              <div className="text-xs text-ink/60 mt-1">Blocks: {b.what_it_blocks}</div>
-              <div className="text-[11px] text-ink/50 mt-1 flex gap-3 flex-wrap">
-                <span>Age {b.age_days}d</span>
-                {b.owner ? <span>Owner: {b.owner}</span> : null}
-                {b.due_date ? <span>Due {formatDate(b.due_date)}</span> : null}
-                <span>Impact: {b.impact}</span>
-              </div>
-              <div className="text-xs text-ink/70 mt-2">{b.recommended_resolution}</div>
-            </div>
-            {canAct ? (
-              <Button size="sm" variant="outline" onClick={() => onResolve(b)}>
-                Resolve
-              </Button>
-            ) : null}
+    <div className="space-y-2">
+      {canAct && selectedIds.length > 0 ? (
+        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+          <span>{selectedIds.length} selected</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setSelected(new Set())}>
+              Clear
+            </Button>
+            <Button size="sm" onClick={() => onBulkResolve(selectedIds)}>
+              Bulk resolve
+            </Button>
           </div>
-        </li>
-      ))}
-    </ul>
+        </div>
+      ) : null}
+      <ul className="space-y-2">
+        {blockers.map((b) => (
+          <li key={b.id} className="rounded-xl border border-border bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              {canAct ? (
+                <Checkbox
+                  checked={selected.has(b.id)}
+                  onCheckedChange={() => toggle(b.id)}
+                  className="mt-1"
+                  aria-label={`Select ${b.title}`}
+                />
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm text-ink font-medium">{b.title}</span>
+                  <span className="text-[10px] rounded bg-ink/5 text-ink/60 px-1.5 py-0.5">
+                    {b.blocker_type.replace(/_/g, " ")}
+                  </span>
+                </div>
+                <div className="text-xs text-ink/60 mt-1">Blocks: {b.what_it_blocks}</div>
+                <div className="text-[11px] text-ink/50 mt-1 flex gap-3 flex-wrap">
+                  <span>Age {b.age_days}d</span>
+                  {b.owner ? <span>Owner: {b.owner}</span> : null}
+                  {b.due_date ? <span>Due {formatDate(b.due_date)}</span> : null}
+                  <span>Impact: {b.impact}</span>
+                </div>
+                <div className="text-xs text-ink/70 mt-2">{b.recommended_resolution}</div>
+              </div>
+              {canAct ? (
+                <Button size="sm" variant="outline" onClick={() => onResolve(b)}>
+                  Resolve
+                </Button>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
+
 
 // ---------- right rail cards ----------
 
