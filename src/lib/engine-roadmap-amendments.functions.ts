@@ -40,8 +40,8 @@ export type AmendmentPayload = {
     spine: string;
     fieldKey: string;
   };
-  before: unknown;
-  after: unknown;
+  before: Json;
+  after: Json;
   rationale: string;
   impact: string;
   confidence: number;
