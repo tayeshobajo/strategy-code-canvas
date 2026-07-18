@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
-import { useQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
+import { approveVersion } from "@/lib/engine-intelligence.functions";
 import {
   Map as MapIcon,
   ArrowRight,
