@@ -17,6 +17,7 @@ import {
   Bot,
   Brain,
   FileText,
+  GitPullRequest,
   X,
 } from "lucide-react";
 
