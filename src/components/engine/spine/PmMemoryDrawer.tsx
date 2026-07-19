@@ -158,8 +158,9 @@ export function PmMemoryDrawer({ projectId }: { projectId: string }) {
               />
             </div>
 
-            <Tabs defaultValue="questions" className="mt-3">
-              <TabsList className="grid grid-cols-4 w-full">
+            <Tabs defaultValue="ceremonies" className="mt-3">
+              <TabsList className="grid grid-cols-5 w-full">
+                <TabsTrigger value="ceremonies">Ceremonies</TabsTrigger>
                 <TabsTrigger value="questions">
                   Questions{openCount ? ` (${openCount})` : ""}
                 </TabsTrigger>
@@ -167,6 +168,11 @@ export function PmMemoryDrawer({ projectId }: { projectId: string }) {
                 <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
                 <TabsTrigger value="decisions">Decisions</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="ceremonies" className="space-y-3 mt-4">
+                <CeremonyChecklist projectId={projectId} />
+              </TabsContent>
+
 
               <TabsContent value="questions" className="space-y-3 mt-4">
                 <FilterRow>
