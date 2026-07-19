@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { listProjects, getCommandCenter } from "@/lib/engine.functions";
+import { deleteProject } from "@/lib/engine-project-intake.functions";
 import type { EngineProjectRow, EngineProjectStatus } from "@/lib/engine.functions";
+
 import {
   EngineStatusBadge,
   SectionCard,
