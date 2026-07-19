@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { getProjectWork, type ProjectWorkPayload } from "@/lib/engine-work.functions";
 import { draftMilestoneAcceptanceCriteria, enrichMilestoneAcceptanceCriteria } from "@/lib/engine-milestone-ai-draft.functions";
-import { Sparkles, Loader2, CheckCircle2 as CheckCircle2Icon } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type {
   MilestoneExecutionSummary,
