@@ -1,13 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   ArrowRight,
+  Check,
   CheckCircle2,
   CircleDashed,
   Clock,
   Loader2,
   ShieldAlert,
+  X,
   XCircle,
 } from "lucide-react";
 import {
@@ -15,6 +19,17 @@ import {
   type CeremonyState,
   type CeremonyStatus,
 } from "@/lib/engine-ceremony-status.functions";
+import { approveWorldEntry, rejectWorldEntry } from "@/lib/engine-world-entry.functions";
+import {
+  approveExecutionBoundary,
+  rejectExecutionBoundary,
+} from "@/lib/engine-execution-boundary.functions";
+import {
+  approveStrategicThesis,
+  rejectStrategicThesis,
+} from "@/lib/engine-strategic-thesis.functions";
+import { approveVersion } from "@/lib/engine-intelligence.functions";
+import { useEngineRole } from "@/hooks/useEngineRole";
 
 export const Route = createFileRoute("/engine/projects/$projectId/approvals")({
   head: () => ({
