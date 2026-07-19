@@ -56,9 +56,18 @@ export function canAutoRun(projectId: string): boolean {
 export function runPmInBackground(
   projectId: string,
   run: (input: { data: { projectId: string; mode: "repair" | "refresh" | "rebuild_draft" } }) => Promise<unknown>,
-  opts: { step?: string; onSettled?: () => void; mode?: "repair" | "refresh" } = {},
-): void {
-  if (!canAutoRun(projectId)) return;
+  opts: {
+    step?: string;
+    onSettled?: (result: { ok: boolean; error?: string }) => void;
+    mode?: "repair" | "refresh" | "rebuild_draft";
+    /** Bypass the cooldown — use for user-initiated "Run now" clicks. */
+    force?: boolean;
+  } = {},
+): boolean {
+  if (!opts.force && !canAutoRun(projectId)) return false;
+  // User-forced runs still shouldn't stack on top of a live run.
+  if (state.get(projectId)?.running) return false;
+
   state.set(projectId, {
     running: true,
     step: opts.step ?? "Drafting missing artifacts…",
@@ -68,23 +77,17 @@ export function runPmInBackground(
   emit();
   void run({ data: { projectId, mode: opts.mode ?? "repair" } })
     .then(() => {
-      state.set(projectId, {
-        running: false,
-        step: null,
-        lastRunAt: Date.now(),
-        lastError: null,
-      });
+      state.set(projectId, { running: false, step: null, lastRunAt: Date.now(), lastError: null });
+      opts.onSettled?.({ ok: true });
     })
     .catch((e: unknown) => {
-      state.set(projectId, {
-        running: false,
-        step: null,
-        lastRunAt: Date.now(),
-        lastError: (e as Error)?.message ?? "AI PM run failed",
-      });
+      const msg = (e as Error)?.message ?? "AI PM run failed";
+      state.set(projectId, { running: false, step: null, lastRunAt: Date.now(), lastError: msg });
+      opts.onSettled?.({ ok: false, error: msg });
     })
     .finally(() => {
       emit();
-      opts.onSettled?.();
     });
+  return true;
 }
+
