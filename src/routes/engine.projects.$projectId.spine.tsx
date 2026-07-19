@@ -80,6 +80,8 @@ import { CaptainIntelligencePanel } from "@/components/engine/spine/CaptainIntel
 import { PointCard } from "@/components/engine/spine/PointCard";
 import { StrategicThesisCard } from "@/components/engine/spine/StrategicThesisCard";
 import { ThesisRequiredBanner } from "@/components/engine/spine/ThesisRequiredBanner";
+import { WorldEntryCard, ExecutionBoundaryCard } from "@/components/engine/spine/DoctrineCards";
+import { RoadmapApprovalCard } from "@/components/engine/spine/RoadmapApprovalCard";
 import { extractPointBullets } from "@/lib/spine-coherence";
 import { derivePhase } from "@/lib/spine-phase";
 import { getStrategicThesis } from "@/lib/engine-strategic-thesis.functions";
@@ -489,6 +491,8 @@ function ProjectSpine() {
           approvedAt={spine.version?.approved_at ?? null}
           inspectorKey="point_a"
           inspectorLabel="Point A — Current Reality"
+          summary={derivePointSummary(pointA, "A")}
+          whatChanged={derivePointWhatChanged(spine.activity, "A")}
         />
         <PointCard
           point="B"
@@ -499,8 +503,28 @@ function ProjectSpine() {
           approvedAt={spine.version?.approved_at ?? null}
           inspectorKey="point_b"
           inspectorLabel="Point B — Desired Future"
+          summary={derivePointSummary(pointB, "B")}
+          whatChanged={derivePointWhatChanged(spine.activity, "B")}
         />
       </div>
+
+      {/* ───── Doctrine cards: World Entry & Execution Boundary ───── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <WorldEntryCard projectId={projectId} />
+        <ExecutionBoundaryCard projectId={projectId} />
+      </div>
+
+      {/* ───── Roadmap baseline approval (only when unapproved) ───── */}
+      {spine.version && spine.version.status !== "approved" ? (
+        <RoadmapApprovalCard
+          projectId={projectId}
+          versionLabel={spine.version.label ?? null}
+          status={spine.version.status ?? "draft"}
+          ownerEmail={spine.project.client_owner_email}
+          dueDate={nextMilestone?.due_date ?? null}
+          milestoneCount={spine.milestones.length}
+        />
+      ) : null}
 
       {/* ───── Strategic Thesis ───── */}
       <StrategicThesisCard projectId={projectId} />
@@ -1407,11 +1431,43 @@ function MilestoneReadinessMatrix({
 }) {
   const rows = milestones.slice(0, 6);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [showAll, setShowAll] = useState(false);
+  const storageKey = `spine.readiness.showAll:${projectId}`;
+  const [showAll, setShowAll] = useState<boolean>(false);
+  const sectionRef = useRef<HTMLDivElement | null>(null);
   const currentGates = deriveCurrentGates(milestones);
 
+  // Restore per-project session preference on mount.
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(storageKey);
+      if (raw === "1") setShowAll(true);
+    } catch { /* sessionStorage may be unavailable */ }
+  }, [storageKey]);
+
+  const toggleShowAll = () => {
+    // Preserve scroll position across the layout swap: capture the
+    // section's viewport-relative top, flip state, then re-anchor.
+    const rect = sectionRef.current?.getBoundingClientRect();
+    const top = rect ? rect.top : null;
+    setShowAll((v) => {
+      const next = !v;
+      try { window.sessionStorage.setItem(storageKey, next ? "1" : "0"); } catch { /* noop */ }
+      return next;
+    });
+    if (top != null) {
+      requestAnimationFrame(() => {
+        const newRect = sectionRef.current?.getBoundingClientRect();
+        if (newRect) window.scrollBy({ top: newRect.top - top, behavior: "auto" });
+      });
+    }
+  };
+
   return (
-    <section id="spine-milestones" className="scroll-mt-4 rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+    <section
+      ref={sectionRef}
+      id="spine-milestones"
+      className="scroll-mt-4 rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm"
+    >
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <h2 className="font-display text-lg text-[#0A0F1F]">Milestone Readiness</h2>
@@ -1424,9 +1480,10 @@ function MilestoneReadinessMatrix({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setShowAll((v) => !v)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+            onClick={toggleShowAll}
+            className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] transition-colors hover:text-[#284f93]"
             aria-pressed={showAll}
+            aria-controls="spine-milestones-body"
           >
             {showAll ? "Show current gate" : "View all"}
             {showAll ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -1441,6 +1498,9 @@ function MilestoneReadinessMatrix({
           </Link>
         </div>
       </div>
+
+      <div id="spine-milestones-body" key={showAll ? "all" : "current"} className="animate-fade-in">
+
 
       {rows.length === 0 ? (
         <p className="mt-4 text-sm text-[#667085]">No milestones captured yet.</p>
@@ -1601,6 +1661,7 @@ function MilestoneReadinessMatrix({
           </table>
         </div>
       )}
+      </div>
       {/* Suppress the eslint hint for humanizeGateState if unused elsewhere — kept for future chip labeling. */}
       <span className="sr-only">{humanizeGateState(null)}</span>
     </section>
@@ -3556,6 +3617,45 @@ function GenericBadge({
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
+}
+
+/**
+ * Point A/B card summary: a single short sentence pulled from the
+ * richest available field, so both cards start with the same
+ * structural cell instead of leading with bullets.
+ */
+function derivePointSummary(
+  record: Record<string, unknown> | null,
+  point: "A" | "B",
+): string | null {
+  if (!record) return null;
+  const keys =
+    point === "A"
+      ? ["summary", "description", "key_diagnosis", "current_state", "challenges"]
+      : ["summary", "description", "24_month_destination", "destination", "vision", "goal"];
+  for (const k of keys) {
+    const v = record[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return null;
+}
+
+/**
+ * "What changed" cell: most recent activity row related to this point.
+ * Falls back to null when no relevant signal exists.
+ */
+function derivePointWhatChanged(
+  activity: ReadonlyArray<{ title?: string | null; created_at?: string | null; area?: string | null }>,
+  point: "A" | "B",
+): string | null {
+  const needle = point === "A" ? /point[-_ ]?a|current reality|diagnosis/i : /point[-_ ]?b|destination|desired future/i;
+  const hit = activity.find((a) => {
+    const t = (a.title ?? "") + " " + (a.area ?? "");
+    return needle.test(t);
+  });
+  if (!hit?.title) return null;
+  const when = hit.created_at ? new Date(hit.created_at).toLocaleDateString() : null;
+  return when ? `${hit.title} · ${when}` : hit.title;
 }
 
 function hasMeaningfulValue(value: unknown): boolean {
