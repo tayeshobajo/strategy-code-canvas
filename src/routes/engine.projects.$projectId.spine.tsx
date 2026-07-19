@@ -377,18 +377,21 @@ function ProjectSpine() {
     isApprovedTruth(spine.project.point_b_status) &&
     !thesisApproved;
 
-  // Identity cells: trimmed to the four facts that identify the project —
-  // client, project, current phase, and roadmap version. Health lives in
-  // the status strip; putting it here duplicated the signal.
+  // Identity cells: name + client already live in the persistent
+  // ProjectHeaderStrip above, so this strip carries only the facts that
+  // aren't already on screen (phase, roadmap version).
   const identityCells = [
-    { label: "Client", value: spine.project.client_company || "—" },
     { label: "Phase", value: phaseInfo.phase },
     { label: "Roadmap", value: spine.version?.label ?? "Draft" },
   ];
-  const narrativeTitle = spine.project.name || "Untitled project";
-  const narrativeSubtitle = spine.project.goal
+  // The header strip owns the project name. The Spine hero leads with the
+  // project's goal — the editorial "why" — so the name is stated exactly once.
+  const narrativeTitle = spine.project.goal
     ? spine.project.goal
-    : "The living story of this project — truth, direction, and next move.";
+    : spine.project.name || "Untitled project";
+  const narrativeSubtitle = spine.project.goal
+    ? "The living story of this project — truth, direction, and next move."
+    : undefined;
 
   return (
     <div className="min-w-0 space-y-10 pb-12 text-[#0A0F1F]">
@@ -397,6 +400,7 @@ function ProjectSpine() {
 
       {/* ───── Narrative header ───── */}
       <NarrativeHeader title={narrativeTitle} subtitle={narrativeSubtitle} />
+
 
       {/* ───── Header actions ───── */}
       <SpinePageHeader
