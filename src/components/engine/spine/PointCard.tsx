@@ -36,6 +36,8 @@ export function PointCard({
   approvedAt,
   inspectorKey,
   inspectorLabel,
+  summary,
+  whatChanged,
 }: {
   point: "A" | "B";
   projectId: string;
@@ -45,6 +47,8 @@ export function PointCard({
   approvedAt: string | null;
   inspectorKey: string;
   inspectorLabel: string;
+  summary?: string | null;
+  whatChanged?: string | null;
 }) {
   const { open } = useSourceInspector();
   const label = point === "A" ? "Point A · Current Reality" : "Point B · Desired Future";
@@ -53,6 +57,14 @@ export function PointCard({
   const presentation = coherentPresentation(status, bullets.length);
   const confidence = confidenceLabel(status, bullets.length);
   const Icon = point === "A" ? MapPin : Flag;
+  const bulletsHeading = point === "A" ? "Key truths" : "Success measures";
+  // Standardised structure per PROJECT_SPINE_CONTRACT §5 — Point A and
+  // Point B render the same six blocks: Summary · Key truths/Success
+  // measures · Confidence · Sources · Approval · What changed.
+  const summaryText = (summary ?? "").trim();
+  const trimmedBullets = bullets
+    .map((b) => (b.length > 160 ? b.slice(0, 157).trimEnd() + "…" : b))
+    .slice(0, 4);
 
   return (
     <section className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[#E8E1D6] bg-white p-6 shadow-[0_1px_0_rgba(10,15,31,0.03),0_12px_32px_-24px_rgba(10,15,31,0.18)] ring-1 ring-[#0A0F1F]/[0.03] transition-shadow hover:shadow-[0_1px_0_rgba(10,15,31,0.04),0_18px_40px_-24px_rgba(10,15,31,0.22)]">
@@ -89,16 +101,39 @@ export function PointCard({
         </span>
       </div>
 
-      <div className="mt-6 flex-1">
+      {/* 1 · Summary */}
+      <div className="mt-6">
         <div className="flex items-center gap-2.5">
           <span aria-hidden className="h-px w-6 bg-[#0A0F1F]" />
           <div className="font-mono text-[9.5px] font-medium uppercase tracking-[0.32em] text-[#0A0F1F]">
-            Key truths
+            Summary
           </div>
         </div>
-        <ul className="mt-3.5 space-y-3 text-[14px] leading-[1.55] text-[#1a2233]">
-          {bullets.length ? (
-            bullets.slice(0, 4).map((b, i) => (
+        <p className="mt-2.5 text-[14px] leading-[1.55] text-[#1a2233]">
+          {summaryText ? (
+            summaryText.length > 240 ? summaryText.slice(0, 237).trimEnd() + "…" : summaryText
+          ) : (
+            <span
+              className="italic text-[#8a94a6]"
+              style={{ fontFamily: "'Instrument Serif', ui-serif, Georgia, serif" }}
+            >
+              Not yet summarised.
+            </span>
+          )}
+        </p>
+      </div>
+
+      {/* 2 · Key truths / Success measures */}
+      <div className="mt-5 flex-1">
+        <div className="flex items-center gap-2.5">
+          <span aria-hidden className="h-px w-6 bg-[#0A0F1F]" />
+          <div className="font-mono text-[9.5px] font-medium uppercase tracking-[0.32em] text-[#0A0F1F]">
+            {bulletsHeading}
+          </div>
+        </div>
+        <ul className="mt-3 space-y-2.5 text-[14px] leading-[1.55] text-[#1a2233]">
+          {trimmedBullets.length ? (
+            trimmedBullets.map((b, i) => (
               <li key={i} className="flex items-start gap-2.5">
                 <CheckCircle2 className="mt-[3px] h-3.5 w-3.5 shrink-0 text-[#1f6b3b]" />
                 <span className="min-w-0 break-words">{b}</span>
@@ -115,10 +150,21 @@ export function PointCard({
         </ul>
       </div>
 
+      {/* 3-5 · Confidence · Sources · Approval */}
       <div className="mt-6 grid grid-cols-3 gap-4 rounded-xl border border-[#F0EBE3] bg-[#FBF9F4] px-4 py-3">
         <Meta label="Confidence" value={confidence} />
         <Meta label="Sources" value={String(sourceCount)} />
-        <Meta label="Approved" value={approvedAt ? new Date(approvedAt).toLocaleDateString() : "—"} />
+        <Meta label="Approval" value={approvedAt ? new Date(approvedAt).toLocaleDateString() : "Pending"} />
+      </div>
+
+      {/* 6 · What changed */}
+      <div className="mt-3 rounded-lg border border-[#F0EBE3] bg-white px-4 py-2.5">
+        <div className="font-mono text-[9px] font-medium uppercase tracking-[0.28em] text-[#8a94a6]">
+          What changed
+        </div>
+        <div className="mt-1 text-[12.5px] leading-[1.5] text-[#3f4a5e]">
+          {whatChanged?.trim() ? whatChanged : <span className="text-[#8a94a6]">No recent revisions.</span>}
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#F0EBE3] pt-4 text-[12px]">
