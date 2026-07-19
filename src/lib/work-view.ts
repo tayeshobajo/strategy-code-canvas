@@ -740,7 +740,9 @@ export function deriveProjectWork(inputs: WorkViewInputs): ProjectWorkReadModel 
       ready_for_qa: readyForQa,
       readiness_missing: readinessMissing,
       mockups_required: mockupsRequired,
+      ai_draft_state: aiDraftState,
     });
+
 
     if (workState !== "not_ready" && workState !== "complete") {
       readyMilestones.push(milestones[milestones.length - 1]!);
