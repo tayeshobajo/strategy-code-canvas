@@ -531,17 +531,56 @@ function ProjectSpine() {
         <ExecutionBoundaryCard projectId={projectId} />
       </div>
 
-      {/* ───── Roadmap baseline approval (only when unapproved) ───── */}
-      {spine.version && spine.version.status !== "approved" ? (
+      {/* ───── Roadmap baseline approval (with post-approve confirmation) ───── */}
+      {spine.version && (spine.version.status !== "approved" || justApproved) ? (
         <RoadmapApprovalCard
           projectId={projectId}
           versionLabel={spine.version.label ?? null}
-          status={spine.version.status ?? "draft"}
+          status={justApproved ? "approved" : (spine.version.status ?? "draft")}
           ownerEmail={spine.project.client_owner_email}
           dueDate={nextMilestone?.due_date ?? null}
           milestoneCount={spine.milestones.length}
+          approving={baselineApproving}
+          onApprove={async () => {
+            if (!spine.version) return;
+            const label = spine.version.label ?? "v0.1";
+            if (!window.confirm(`Approve ${label} as the baseline? This locks the snapshot.`)) return;
+            setBaselineApproving(true);
+            try {
+              await approveVersionFn({ data: { id: spine.version.id } });
+              const now = new Date().toISOString();
+              setJustApproved({ at: now, by: null });
+              toast.success(`Baseline approved: ${label}`);
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["engine", "spine", projectId] }),
+                queryClient.invalidateQueries({ queryKey: ["engine", "roadmap-versions", projectId] }),
+                queryClient.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
+              ]);
+            } catch (e) {
+              toast.error((e as Error).message ?? "Approval failed");
+            } finally {
+              setBaselineApproving(false);
+            }
+          }}
+          onCompare={() => setCompareOpen(true)}
+          justApprovedAt={justApproved?.at ?? null}
+          approvedBy={justApproved?.by ?? null}
         />
       ) : null}
+
+      {compareOpen && (
+        <CompareVersionsModal
+          projectId={projectId}
+          versions={(versionsQ.data?.rows ?? []).map((v) => ({
+            id: v.id,
+            label: v.label ?? null,
+            status: v.status ?? "draft",
+            created_at: v.created_at ?? new Date().toISOString(),
+            approved_at: v.approved_at ?? null,
+          }))}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
 
       {/* ───── Strategic Thesis ───── */}
       <StrategicThesisCard projectId={projectId} />
