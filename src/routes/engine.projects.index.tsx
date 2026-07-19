@@ -642,7 +642,15 @@ function ProjectsTable({
 }
 
 
-function ProjectRow({ r }: { r: EngineProjectRow }) {
+function ProjectRow({
+  r,
+  checked,
+  onToggle,
+}: {
+  r: EngineProjectRow;
+  checked: boolean;
+  onToggle: () => void;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const deleteFn = useServerFn(deleteProject);
@@ -650,14 +658,14 @@ function ProjectRow({ r }: { r: EngineProjectRow }) {
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
-      `Delete project "${r.name}"?\n\nThis permanently removes the project, its milestones, sources, chat, artifacts, and any linked client portal. This cannot be undone.`,
+      `Move "${r.name}" to trash?\n\nYou can restore it within 30 days from the Trash view.`,
     );
     if (!confirmed) return;
     setMenuOpen(false);
     setDeleting(true);
     try {
       await deleteFn({ data: { projectId: r.id } });
-      toast.success(`Deleted "${r.name}"`);
+      toast.success(`Moved "${r.name}" to trash`);
       await qc.invalidateQueries({ queryKey: ["engine", "projects"] });
       await qc.invalidateQueries({ queryKey: ["engine", "command-center"] });
     } catch (err) {
@@ -673,7 +681,17 @@ function ProjectRow({ r }: { r: EngineProjectRow }) {
         deleting && "opacity-50 pointer-events-none",
       )}
     >
-      <td className="py-3 px-5">
+      <td className="py-3 pl-5 pr-1 align-middle">
+        <input
+          type="checkbox"
+          aria-label={`Select ${r.name}`}
+          checked={checked}
+          onChange={onToggle}
+          className="rounded border-border"
+        />
+      </td>
+      <td className="py-3 px-2">
+
         <Link
           to="/engine/projects/$projectId/overview"
           params={{ projectId: r.id }}
