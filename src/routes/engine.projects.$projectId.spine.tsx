@@ -172,6 +172,8 @@ function ProjectSpine() {
   const approveFn = useServerFn(approveMilestone);
   const rejectFn = useServerFn(rejectMilestone);
   const workspaceFn = useServerFn(getProjectWorkspace);
+  const approveVersionFn = useServerFn(approveVersion);
+  const listVersionsFn = useServerFn(listVersions);
   const queryClient = useQueryClient();
 
   const spineQ = useQuery({
