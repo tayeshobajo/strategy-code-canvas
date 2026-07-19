@@ -327,11 +327,13 @@ async function fetchProjects(supabase: {
   const { data, error } = await supabase
     .from("engine_projects")
     .select(
-      "id,name,client_id,status,current_step,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at,client_portal_project_id, engine_clients(company,industry)",
+      "id,name,client_id,status,current_step,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at,client_portal_project_id,deleted_at, engine_clients(company,industry)",
     )
+    .is("deleted_at" as never, null as never)
     .order("last_activity_at", { ascending: false });
   if (error) throw new Error((error as { message?: string }).message ?? "load projects failed");
   const rows = (data ?? []) as ProjectDbRow[];
+
 
   const { data: dateData } = await supabase
     .from("engine_project_dates")
