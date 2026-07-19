@@ -165,6 +165,20 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
     /* activity guard is best-effort */
   }
 
+  // PM memory update — record the run + convert failures into open questions.
+  try {
+    const { recordSynthesisIntoMemory } = await import("@/lib/engine-pm-memory.server");
+    await recordSynthesisIntoMemory({
+      supabase: input.supabase,
+      projectId: input.projectId,
+      actorEmail: input.actorEmail,
+      ranStepIds: ran as unknown as string[],
+      errors: errors as unknown as Array<{ id: string; message: string }>,
+    });
+  } catch {
+    /* PM memory updates are best-effort */
+  }
+
   // Discard variable to keep TS happy about stepById presence for future use.
   void stepById;
 
