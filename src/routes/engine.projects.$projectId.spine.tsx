@@ -491,6 +491,8 @@ function ProjectSpine() {
           approvedAt={spine.version?.approved_at ?? null}
           inspectorKey="point_a"
           inspectorLabel="Point A — Current Reality"
+          summary={derivePointSummary(pointA, "A")}
+          whatChanged={derivePointWhatChanged(spine.activity, "A")}
         />
         <PointCard
           point="B"
@@ -501,8 +503,28 @@ function ProjectSpine() {
           approvedAt={spine.version?.approved_at ?? null}
           inspectorKey="point_b"
           inspectorLabel="Point B — Desired Future"
+          summary={derivePointSummary(pointB, "B")}
+          whatChanged={derivePointWhatChanged(spine.activity, "B")}
         />
       </div>
+
+      {/* ───── Doctrine cards: World Entry & Execution Boundary ───── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <WorldEntryCard projectId={projectId} />
+        <ExecutionBoundaryCard projectId={projectId} />
+      </div>
+
+      {/* ───── Roadmap baseline approval (only when unapproved) ───── */}
+      {spine.version && spine.version.status !== "approved" ? (
+        <RoadmapApprovalCard
+          projectId={projectId}
+          versionLabel={spine.version.label ?? null}
+          status={spine.version.status ?? "draft"}
+          ownerEmail={spine.project.client_owner_email}
+          dueDate={nextMilestone?.due_date ?? null}
+          milestoneCount={spine.milestones.length}
+        />
+      ) : null}
 
       {/* ───── Strategic Thesis ───── */}
       <StrategicThesisCard projectId={projectId} />
