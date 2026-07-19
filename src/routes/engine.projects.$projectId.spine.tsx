@@ -226,6 +226,9 @@ function ProjectSpine() {
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<{ title: string; missing: string[] } | null>(null);
   const [askCaptainOpen, setAskCaptainOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [baselineApproving, setBaselineApproving] = useState(false);
+  const [justApproved, setJustApproved] = useState<{ at: string; by: string | null } | null>(null);
   const exportHandlerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
