@@ -302,11 +302,11 @@ export function PmMemoryDrawer({ projectId }: { projectId: string }) {
 }
 
 function CeremonyChecklist({ projectId }: { projectId: string }) {
-  const getStatus = useServerFn(
-    (
-      require("@/lib/engine-ceremony-status.functions") as typeof import("@/lib/engine-ceremony-status.functions")
-    ).getProjectCeremonyStatus,
-  );
+  const getStatus = useServerFn(getProjectCeremonyStatus);
+  const { data, isLoading } = useQuery({
+    queryKey: ["ceremony-status", projectId],
+    queryFn: () => getStatus({ data: { projectId } }),
+  });
   const { data, isLoading } = useQuery({
     queryKey: ["ceremony-status", projectId],
     queryFn: () => getStatus({ data: { projectId } }),
