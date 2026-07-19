@@ -307,10 +307,6 @@ function CeremonyChecklist({ projectId }: { projectId: string }) {
     queryKey: ["ceremony-status", projectId],
     queryFn: () => getStatus({ data: { projectId } }),
   });
-  const { data, isLoading } = useQuery({
-    queryKey: ["ceremony-status", projectId],
-    queryFn: () => getStatus({ data: { projectId } }),
-  });
 
   if (isLoading) {
     return (
