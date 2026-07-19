@@ -233,6 +233,8 @@ export async function computeProjectCeremonyStatus(
       evidence_required: CEREMONY_META.strategic_thesis.evidence,
       blocked_by: CEREMONY_META.strategic_thesis.blockedBy,
       detail: stCur?.bet_statement?.slice(0, 160) ?? null,
+      roadmap_version_id: null,
+      drafted_by_email: stCur?.proposed_by_email ?? null,
     },
     {
       key: "milestone_qualification",
