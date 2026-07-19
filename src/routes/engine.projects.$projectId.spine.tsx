@@ -79,7 +79,10 @@ import { NarrativeHeader } from "@/components/engine/spine/NarrativeHeader";
 import { CaptainIntelligencePanel } from "@/components/engine/spine/CaptainIntelligencePanel";
 import { PointCard } from "@/components/engine/spine/PointCard";
 import { StrategicThesisCard } from "@/components/engine/spine/StrategicThesisCard";
+import { ThesisRequiredBanner } from "@/components/engine/spine/ThesisRequiredBanner";
 import { extractPointBullets } from "@/lib/spine-coherence";
+import { derivePhase } from "@/lib/spine-phase";
+import { getStrategicThesis } from "@/lib/engine-strategic-thesis.functions";
 
 /**
  * Map the richer 7-tone `SpineStatusPresentation` palette onto the 5
@@ -197,6 +200,16 @@ function ProjectSpine() {
     queryFn: () => readinessFn({ data: { projectId } }),
     enabled: !!projectId,
     staleTime: 30_000,
+  });
+  // Fetch the Strategic Thesis so the phase machine and the
+  // ThesisRequiredBanner can gate the roadmap on a real approval,
+  // not just presence of a roadmap version.
+  const thesisFn = useServerFn(getStrategicThesis);
+  const thesisQ = useQuery({
+    queryKey: ["engine", "strategic-thesis", projectId],
+    queryFn: () => thesisFn({ data: { projectId } }),
+    enabled: !!projectId,
+    staleTime: 60_000,
   });
 
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
@@ -318,28 +331,41 @@ function ProjectSpine() {
   exportHandlerRef.current = handleExportClientRoadmap;
 
 
+  // Derive a single canonical project phase from the spine + thesis + roadmap.
+  // Historical UI conflated project.status / current_step / portal.status and
+  // could display "Client Preview" for an unapproved draft — the phase
+  // machine collapses these into one truth.
+  const thesisApproved = thesisQ.data?.current?.status === "approved";
+  const phaseInfo = derivePhase({
+    pointAApproved: isApprovedTruth(spine.project.point_a_status),
+    pointBApproved: isApprovedTruth(spine.project.point_b_status),
+    strategicThesisApproved: thesisApproved,
+    roadmapVersionStatus: spine.version?.status ?? null,
+    approvedMilestoneCount,
+    totalMilestoneCount: spine.milestones.length,
+    milestonesInProgress: spine.milestones.filter((m) => m.status === "in_progress").length,
+    portalPublishStatus: spine.portal_publish?.status ?? null,
+    projectStatus: spine.project.status ?? "",
+  });
+  const executionActive =
+    phaseInfo.phase === "Execution" ||
+    phaseInfo.phase === "QA" ||
+    phaseInfo.phase === "Client Preview" ||
+    phaseInfo.phase === "Delivery";
+  // Roadmap should not be treated as operational without an approved thesis.
+  const needsThesisGate =
+    isApprovedTruth(spine.project.point_a_status) &&
+    isApprovedTruth(spine.project.point_b_status) &&
+    !thesisApproved;
+
+  // Identity cells: trimmed to the four facts that identify the project —
+  // client, project, current phase, and roadmap version. Health lives in
+  // the status strip; putting it here duplicated the signal.
   const identityCells = [
     { label: "Client", value: spine.project.client_company || "—" },
     { label: "Project", value: spine.project.name || "—" },
-    { label: "Type", value: spine.project.frame ? humanize(spine.project.frame) : "—" },
+    { label: "Phase", value: phaseInfo.phase },
     { label: "Roadmap", value: spine.version?.label ?? "Draft" },
-    {
-      label: "Health",
-      value: spine.project.health_score > 0
-        ? `${spine.project.health_score} · ${healthFromScore(spine.project.health_score).label}`
-        : deriveHealth(spine.project.status, blockedItemsCount).label,
-      tone: (spine.project.health_score >= 80
-        ? "ok"
-        : spine.project.health_score >= 60
-          ? "warn"
-          : blockedItemsCount > 0
-            ? "bad"
-            : "neutral") as "ok" | "warn" | "bad" | "neutral",
-    },
-    {
-      label: "Portal",
-      value: spine.portal_publish ? humanize(spine.portal_publish.status) : "Not Published",
-    },
   ];
   const narrativeTitle = spine.project.name || "Untitled project";
   const narrativeSubtitle = spine.project.goal
@@ -364,7 +390,12 @@ function ProjectSpine() {
       {/* ───── Variant banner ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
 
-      {/* ───── Status strip (7 cells) ───── */}
+      {/* ───── Strategic Thesis gate ─────
+          Blocks operational treatment of the roadmap until the thesis is
+          approved (see doctrine/PROJECT_SPINE_CONTRACT.md). */}
+      {needsThesisGate ? <ThesisRequiredBanner projectId={projectId} /> : null}
+
+      {/* ───── Status strip ───── */}
       <SpineStatusStrip
         spine={spine}
         blockedItems={blockedItemsCount}
@@ -429,10 +460,15 @@ function ProjectSpine() {
                 : "The project is on track — focus on advancing the next milestone."
           }
           recommendation={spine.nba.action}
+          watchFor={
+            needsThesisGate
+              ? "Roadmap will remain a draft until the Strategic Thesis is approved."
+              : phaseInfo.reason
+          }
         />
         <div className="space-y-4">
           <LatestAmendmentsPanel projectId={projectId} />
-          <DriftSummaryPanel projectId={projectId} />
+          <DriftSummaryPanel projectId={projectId} executionActive={executionActive} />
           <RailCard
             title="Active Agents"
             action={<RailLinkAction to="/engine/projects/$projectId/agent" params={{ projectId }} label="View all" />}
@@ -2473,36 +2509,36 @@ function NotificationsCard({
 }: {
   notifications: ProjectSpinePayload["notifications"];
 }) {
+  // Empty operational cards create visual noise and do not support project
+  // health. Hide entirely when nothing to show — the header notification
+  // bell still surfaces new items.
+  if (!notifications.length) return null;
   return (
     <div className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
       <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
         Operator notifications
       </div>
-      {notifications.length ? (
-        <div className="mt-3 space-y-3">
-          {notifications.slice(0, 6).map((n) => (
-            <div key={n.id} className="rounded-lg border border-[#F3EEE6] p-3">
-              <div className="text-sm font-medium text-[#0A0F1F]">{n.title}</div>
-              {n.body ? <div className="mt-1 text-xs text-[#667085]">{n.body}</div> : null}
-              <div className="mt-2 flex items-center justify-between text-xs text-[#667085]">
-                <span>
-                  {humanize(n.kind)} · {formatDateTime(n.created_at)}
-                </span>
-                {n.href ? (
-                  <a
-                    href={n.href}
-                    className="inline-flex items-center gap-1 text-[#3E68B2] hover:text-[#284f93]"
-                  >
-                    Open <ArrowRight className="h-3 w-3" />
-                  </a>
-                ) : null}
-              </div>
+      <div className="mt-3 space-y-3">
+        {notifications.slice(0, 6).map((n) => (
+          <div key={n.id} className="rounded-lg border border-[#F3EEE6] p-3">
+            <div className="text-sm font-medium text-[#0A0F1F]">{n.title}</div>
+            {n.body ? <div className="mt-1 text-xs text-[#667085]">{n.body}</div> : null}
+            <div className="mt-2 flex items-center justify-between text-xs text-[#667085]">
+              <span>
+                {humanize(n.kind)} · {formatDateTime(n.created_at)}
+              </span>
+              {n.href ? (
+                <a
+                  href={n.href}
+                  className="inline-flex items-center gap-1 text-[#3E68B2] hover:text-[#284f93]"
+                >
+                  Open <ArrowRight className="h-3 w-3" />
+                </a>
+              ) : null}
             </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-[#667085]">No operator notifications.</p>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
