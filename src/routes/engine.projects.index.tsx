@@ -6,8 +6,16 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { listProjects, getCommandCenter } from "@/lib/engine.functions";
-import { deleteProject } from "@/lib/engine-project-intake.functions";
+import {
+  deleteProject,
+  bulkDeleteProjects,
+  restoreProject,
+  purgeProject,
+  listDeletedProjects,
+  type DeletedProjectRow,
+} from "@/lib/engine-project-intake.functions";
 import type { EngineProjectRow, EngineProjectStatus } from "@/lib/engine.functions";
+
 
 import {
   EngineStatusBadge,
