@@ -194,6 +194,8 @@ export type WorkItem = {
   updated_at: string;
 };
 
+export type MilestoneAiDraftState = "none" | "baseline" | "enriched";
+
 export type MilestoneExecutionSummary = {
   id: string;
   name: string;
@@ -216,7 +218,9 @@ export type MilestoneExecutionSummary = {
   ready_for_qa: boolean;
   readiness_missing: string[];
   mockups_required: boolean;
+  ai_draft_state: MilestoneAiDraftState;
 };
+
 
 export type AgentAssignment = {
   id: string;
