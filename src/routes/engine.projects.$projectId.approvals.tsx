@@ -1,13 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   ArrowRight,
+  Check,
   CheckCircle2,
   CircleDashed,
   Clock,
   Loader2,
   ShieldAlert,
+  X,
   XCircle,
 } from "lucide-react";
 import {
@@ -15,6 +19,17 @@ import {
   type CeremonyState,
   type CeremonyStatus,
 } from "@/lib/engine-ceremony-status.functions";
+import { approveWorldEntry } from "@/lib/engine-world-entry.functions";
+import {
+  approveExecutionBoundary,
+  rejectExecutionBoundary,
+} from "@/lib/engine-execution-boundary.functions";
+import {
+  approveStrategicThesis,
+  rejectStrategicThesis,
+} from "@/lib/engine-strategic-thesis.functions";
+import { approveVersion } from "@/lib/engine-intelligence.functions";
+import { useEngineRole } from "@/hooks/useEngineRole";
 
 export const Route = createFileRoute("/engine/projects/$projectId/approvals")({
   head: () => ({
@@ -37,6 +52,60 @@ function ProjectApprovalsRoom() {
     queryKey: ["ceremony-status", projectId],
     queryFn: () => getStatus({ data: { projectId } }),
   });
+  const queryClient = useQueryClient();
+  const role = useEngineRole();
+
+  const approveWE = useServerFn(approveWorldEntry);
+  const approveEB = useServerFn(approveExecutionBoundary);
+  const rejectEB = useServerFn(rejectExecutionBoundary);
+  const approveST = useServerFn(approveStrategicThesis);
+  const rejectST = useServerFn(rejectStrategicThesis);
+  const approveRV = useServerFn(approveVersion);
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["ceremony-status", projectId] });
+    queryClient.invalidateQueries({ queryKey: ["engine"] });
+  };
+
+  const mutation = useMutation({
+    mutationFn: async (args: {
+      ceremony: CeremonyStatus;
+      action: "approve" | "reject";
+      reason?: string;
+    }) => {
+      const { ceremony, action, reason } = args;
+      if (ceremony.key === "world_entry") {
+        if (action === "reject") throw new Error("Use the World Entry room to send back a draft.");
+        if (ceremony.version == null) throw new Error("No version to approve.");
+        return approveWE({ data: { projectId, version: ceremony.version, reason } });
+      }
+      if (ceremony.key === "execution_boundary") {
+        if (ceremony.version == null) throw new Error("No version to decide.");
+        return action === "approve"
+          ? approveEB({ data: { projectId, version: ceremony.version, reason } })
+          : rejectEB({ data: { projectId, version: ceremony.version, reason: reason ?? "Sent back for revision" } });
+      }
+      if (ceremony.key === "strategic_thesis") {
+        if (ceremony.version == null) throw new Error("No version to decide.");
+        return action === "approve"
+          ? approveST({ data: { projectId, version: ceremony.version, reason } })
+          : rejectST({ data: { projectId, version: ceremony.version, reason: reason ?? "Sent back for revision" } });
+      }
+      if (ceremony.key === "roadmap_v01") {
+        if (action === "reject") throw new Error("Open the Roadmap room to reject a version.");
+        if (!ceremony.roadmap_version_id) throw new Error("No roadmap version to approve.");
+        return approveRV({ data: { id: ceremony.roadmap_version_id } });
+      }
+      throw new Error("Open the ceremony room to complete this step.");
+    },
+    onSuccess: (_r, vars) => {
+      toast.success(vars.action === "approve" ? "Approved" : "Sent back");
+      invalidate();
+    },
+    onError: (e: unknown) => {
+      toast.error(e instanceof Error ? e.message : "Action failed");
+    },
+  });
 
   if (query.isLoading) {
     return (
@@ -58,6 +127,10 @@ function ProjectApprovalsRoom() {
   const pct = status.total_count
     ? Math.round((status.completed_count / status.total_count) * 100)
     : 0;
+
+  const pendingKey = mutation.isPending
+    ? (mutation.variables?.ceremony.key ?? null)
+    : null;
 
   return (
     <div className="space-y-5" data-qa-role="project-approvals-room">
@@ -95,7 +168,17 @@ function ProjectApprovalsRoom() {
 
       <ol className="space-y-3">
         {status.ceremonies.map((c, idx) => (
-          <CeremonyRow key={c.key} ceremony={c} index={idx + 1} />
+          <CeremonyRow
+            key={c.key}
+            ceremony={c}
+            index={idx + 1}
+            canApprove={role.canApprove}
+            currentEmail={role.email}
+            busy={pendingKey === c.key}
+            onDecide={(action, reason) =>
+              mutation.mutate({ ceremony: c, action, reason })
+            }
+          />
         ))}
       </ol>
     </div>
@@ -105,15 +188,43 @@ function ProjectApprovalsRoom() {
 function CeremonyRow({
   ceremony,
   index,
+  canApprove,
+  currentEmail,
+  busy,
+  onDecide,
 }: {
   ceremony: CeremonyStatus;
   index: number;
+  canApprove: boolean;
+  currentEmail: string | null;
+  busy: boolean;
+  onDecide: (action: "approve" | "reject", reason?: string) => void;
 }) {
   const { icon: Icon, tone, label } = stateBadge(ceremony.state);
   const blocked =
     ceremony.blocked_by.length > 0 &&
     ceremony.state !== "approved" &&
     ceremony.state !== "awaiting_review";
+
+  const inlineSupported =
+    ceremony.key === "world_entry" ||
+    ceremony.key === "execution_boundary" ||
+    ceremony.key === "strategic_thesis" ||
+    ceremony.key === "roadmap_v01";
+
+  const canInlineDecide =
+    canApprove &&
+    inlineSupported &&
+    ceremony.state === "awaiting_review" &&
+    (ceremony.key === "roadmap_v01" ? !!ceremony.roadmap_version_id : ceremony.version != null);
+
+  const selfDrafted =
+    !!currentEmail &&
+    !!ceremony.drafted_by_email &&
+    currentEmail.toLowerCase() === ceremony.drafted_by_email.toLowerCase();
+
+  const rejectSupported =
+    ceremony.key === "execution_boundary" || ceremony.key === "strategic_thesis";
 
   return (
     <li className="rounded-lg border border-border bg-card p-4 shadow-sm">
@@ -154,13 +265,48 @@ function CeremonyRow({
             )}
           </div>
         </div>
-        <Link
-          to={ceremony.deep_link}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-white px-3 py-1.5 text-xs text-ink hover:bg-muted"
-        >
-          Open
-          <ArrowRight className="h-3 w-3" />
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {canInlineDecide && !selfDrafted && (
+            <>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onDecide("approve")}
+                className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                Approve
+              </button>
+              {rejectSupported && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    const reason = window.prompt("Reason for sending back?") ?? undefined;
+                    if (reason === undefined) return;
+                    onDecide("reject", reason || undefined);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+                >
+                  <X className="h-3 w-3" />
+                  Send back
+                </button>
+              )}
+            </>
+          )}
+          {canInlineDecide && selfDrafted && (
+            <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+              Second reviewer required
+            </span>
+          )}
+          <Link
+            to={ceremony.deep_link}
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-white px-3 py-1.5 text-xs text-ink hover:bg-muted"
+          >
+            Open
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
       </div>
 
       {blocked && (

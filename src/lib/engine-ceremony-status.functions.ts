@@ -46,6 +46,10 @@ export type CeremonyStatus = {
   evidence_required: string[];
   blocked_by: CeremonyKey[];
   detail: string | null;
+  /** Roadmap version id — only set for the roadmap_v01 ceremony. */
+  roadmap_version_id: string | null;
+  /** Email of the person who drafted the awaiting-review version (for second-reviewer UI hints). */
+  drafted_by_email: string | null;
 };
 
 export type ProjectCeremonyStatus = {
@@ -197,6 +201,8 @@ export async function computeProjectCeremonyStatus(
       evidence_required: CEREMONY_META.world_entry.evidence,
       blocked_by: CEREMONY_META.world_entry.blockedBy,
       detail: weCur?.destination_summary?.slice(0, 160) ?? null,
+      roadmap_version_id: null,
+      drafted_by_email: weCur?.drafted_by_email ?? null,
     },
     {
       key: "execution_boundary",
@@ -212,6 +218,8 @@ export async function computeProjectCeremonyStatus(
       detail: Array.isArray(ebCur?.capability_ids)
         ? `${ebCur.capability_ids.length} capabilities selected`
         : null,
+      roadmap_version_id: null,
+      drafted_by_email: ebCur?.proposed_by_email ?? null,
     },
     {
       key: "strategic_thesis",
@@ -225,6 +233,8 @@ export async function computeProjectCeremonyStatus(
       evidence_required: CEREMONY_META.strategic_thesis.evidence,
       blocked_by: CEREMONY_META.strategic_thesis.blockedBy,
       detail: stCur?.bet_statement?.slice(0, 160) ?? null,
+      roadmap_version_id: null,
+      drafted_by_email: stCur?.proposed_by_email ?? null,
     },
     {
       key: "milestone_qualification",
@@ -249,6 +259,8 @@ export async function computeProjectCeremonyStatus(
         qualifiedEntries.length > 0
           ? `${qualifiedEntries.length} milestone(s) qualified`
           : `${Object.keys(mq).length} in progress`,
+      roadmap_version_id: null,
+      drafted_by_email: null,
     },
     {
       key: "roadmap_v01",
@@ -271,6 +283,8 @@ export async function computeProjectCeremonyStatus(
         : latest
           ? `Latest: ${latest.label ?? latest.id.slice(0, 6)} (${latest.status})`
           : null,
+      roadmap_version_id: firstApproved ? null : (latest?.id ?? null),
+      drafted_by_email: null,
     },
   ];
 
