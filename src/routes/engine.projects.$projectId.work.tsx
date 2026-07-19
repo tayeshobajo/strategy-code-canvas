@@ -143,11 +143,13 @@ function WorkTab() {
   return (
     <div className="space-y-5" data-qa-tab-view="work">
       <PausedWorkBanner projectId={projectId} isAdmin={role.isAdmin} />
+      <EnrichmentIndicator projectId={projectId} />
       <SummaryStrip
         view={view}
         onAddWork={canAct ? () => setModal({ kind: "add" }) : undefined}
       />
       <NextBestActionCard view={view} projectId={projectId} />
+
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-5 min-w-0">
           <ViewTabs projectId={projectId} current={search.view} />
