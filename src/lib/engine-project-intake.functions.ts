@@ -483,6 +483,25 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       pipelineStatus = "failed";
     }
 
+    // Auto-run the AI Product Manager (RT-1 synthesis, repair mode) so
+    // every new project lands with PM Memory populated and readiness
+    // driven as high as autonomous drafting allows before the operator
+    // opens the Spine. Repair mode never touches approved truth.
+    // Best-effort: never fail the intake if synthesis hiccups.
+    if (pipelineStatus !== "failed") {
+      try {
+        const { runSynthesis } = await import("@/lib/roadmap-synthesis/orchestrator.server");
+        await runSynthesis({
+          projectId,
+          supabase: sb,
+          actorEmail: actor,
+          mode: "repair",
+        });
+      } catch (e) {
+        console.error("[intake-bridge] auto AI PM run failed", e);
+      }
+    }
+
     return {
       project_id: projectId,
       source_id: srcRow.id,
