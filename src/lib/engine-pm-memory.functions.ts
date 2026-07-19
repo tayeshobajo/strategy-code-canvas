@@ -268,3 +268,93 @@ export const removePmEntry = createServerFn({ method: "POST" })
     await upsertMemory(sb, data.projectId, { [key]: next } as Partial<PmMemory>);
     return { ok: true as const };
   });
+
+const updateSchema = z.object({
+  projectId: uuid,
+  kind: z.enum(["fact", "assumption", "question", "decision"]),
+  id: z.string().min(1),
+  text: z.string().min(2).max(4_000),
+  confidence: z.enum(["low", "medium", "high"]).optional(),
+});
+
+export const updatePmEntry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => updateSchema.parse(raw))
+  .handler(async ({ context, data }) => {
+    await assertStaff(context);
+    const sb = (context as any).supabase;
+    const { data: row } = await sb
+      .from("engine_pm_memory")
+      .select("*")
+      .eq("project_id", data.projectId)
+      .maybeSingle();
+    if (!row) return { ok: false as const };
+    const key =
+      data.kind === "fact"
+        ? "known_facts"
+        : data.kind === "assumption"
+          ? "working_assumptions"
+          : data.kind === "question"
+            ? "open_questions"
+            : "decisions_log";
+    const arr = (row[key] ?? []) as Array<Record<string, unknown> & { id: string }>;
+    const next = arr.map((x) =>
+      x.id === data.id
+        ? {
+            ...x,
+            text: data.text,
+            ...(data.confidence && data.kind === "assumption" ? { confidence: data.confidence } : {}),
+          }
+        : x,
+    );
+    await upsertMemory(sb, data.projectId, { [key]: next } as Partial<PmMemory>);
+    return { ok: true as const };
+  });
+
+const approveSchema = z.object({
+  projectId: uuid,
+  assumptionId: z.string().min(1),
+  text: z.string().min(2).max(4_000).optional(),
+});
+
+export const approvePmAssumption = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => approveSchema.parse(raw))
+  .handler(async ({ context, data }) => {
+    const email = await assertStaff(context);
+    const sb = (context as any).supabase;
+    const now = new Date().toISOString();
+    const { data: row } = await sb
+      .from("engine_pm_memory")
+      .select("working_assumptions, known_facts, decisions_log")
+      .eq("project_id", data.projectId)
+      .maybeSingle();
+    if (!row) return { ok: false as const };
+    const assumptions: PmAssumption[] = row.working_assumptions ?? [];
+    const idx = assumptions.findIndex((a) => a.id === data.assumptionId);
+    if (idx < 0) return { ok: false as const };
+    const approved = assumptions[idx];
+    const finalText = data.text?.trim() || approved.text;
+    const remaining = assumptions.filter((a) => a.id !== data.assumptionId);
+    const facts: PmFact[] = row.known_facts ?? [];
+    facts.unshift({
+      id: rid(),
+      text: finalText,
+      source: "approved-assumption",
+      captured_at: now,
+      captured_by: email,
+    });
+    const decisions: PmDecision[] = row.decisions_log ?? [];
+    decisions.unshift({
+      id: rid(),
+      text: `Approved assumption: ${finalText}`,
+      actor_email: email,
+      decided_at: now,
+    });
+    await upsertMemory(sb, data.projectId, {
+      working_assumptions: remaining,
+      known_facts: facts.slice(0, 500),
+      decisions_log: decisions.slice(0, 500),
+    });
+    return { ok: true as const };
+  });
