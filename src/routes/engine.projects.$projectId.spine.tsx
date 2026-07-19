@@ -80,6 +80,8 @@ import { CaptainIntelligencePanel } from "@/components/engine/spine/CaptainIntel
 import { PointCard } from "@/components/engine/spine/PointCard";
 import { StrategicThesisCard } from "@/components/engine/spine/StrategicThesisCard";
 import { ThesisRequiredBanner } from "@/components/engine/spine/ThesisRequiredBanner";
+import { WorldEntryCard, ExecutionBoundaryCard } from "@/components/engine/spine/DoctrineCards";
+import { RoadmapApprovalCard } from "@/components/engine/spine/RoadmapApprovalCard";
 import { extractPointBullets } from "@/lib/spine-coherence";
 import { derivePhase } from "@/lib/spine-phase";
 import { getStrategicThesis } from "@/lib/engine-strategic-thesis.functions";
