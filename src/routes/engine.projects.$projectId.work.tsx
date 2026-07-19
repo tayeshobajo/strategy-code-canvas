@@ -23,7 +23,7 @@ import {
   FileCheck2,
 } from "lucide-react";
 import { getProjectWork, type ProjectWorkPayload } from "@/lib/engine-work.functions";
-import { draftMilestoneAcceptanceCriteria } from "@/lib/engine-milestone-ai-draft.functions";
+import { draftMilestoneAcceptanceCriteria, enrichMilestoneAcceptanceCriteria } from "@/lib/engine-milestone-ai-draft.functions";
 import { Sparkles } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type {
@@ -1155,6 +1155,7 @@ function RecentChangesCard({ view }: { view: ProjectWorkPayload["view"] }) {
 function NoReadyMilestoneEmpty({ projectId, canAct }: { projectId: string; canAct: boolean }) {
   const qc = useQueryClient();
   const draft = useServerFn(draftMilestoneAcceptanceCriteria);
+  const enrich = useServerFn(enrichMilestoneAcceptanceCriteria);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1165,10 +1166,19 @@ function NoReadyMilestoneEmpty({ projectId, canAct }: { projectId: string; canAc
       const res = (await (draft as unknown as (i: { data: { projectId: string } }) => Promise<{
         drafted: number;
         approved: number;
+        needs_enrichment: boolean;
       }>)({ data: { projectId } }));
+      // Defaults are persisted — reveal Work immediately.
       await qc.invalidateQueries({ queryKey: ["engine", "work", projectId] });
       if (res.drafted === 0) {
         setError("No milestones needed drafting. Try Refresh Project Intelligence on the Roadmap tab.");
+      } else if (res.needs_enrichment) {
+        // Fire AI polish in the background; refresh the Work view when it lands.
+        (enrich as unknown as (i: { data: { projectId: string } }) => Promise<{ enriched: number }>)({
+          data: { projectId },
+        })
+          .then(() => qc.invalidateQueries({ queryKey: ["engine", "work", projectId] }))
+          .catch(() => { /* baseline defaults already visible */ });
       }
     } catch (e) {
       setError((e as Error)?.message ?? "AI draft failed.");
