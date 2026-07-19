@@ -26,6 +26,7 @@ import { SpineReadinessPanel } from "@/components/engine/SpineReadinessPanel";
 import { LatestAmendmentsPanel } from "@/components/engine/LatestAmendmentsPanel";
 import { DriftSummaryPanel } from "@/components/engine/DriftSummaryPanel";
 import { AiPmStatusChip } from "@/components/engine/spine/AiPmStatusChip";
+import { RunAiPmButton } from "@/components/engine/spine/RunAiPmButton";
 import { useAutoPmRun } from "@/hooks/use-auto-pm-run";
 import {
   Lock,
@@ -238,7 +239,7 @@ function ProjectSpine() {
     readinessResult && readinessResult.total > 0
       ? readinessResult.passed / readinessResult.total
       : null;
-  useAutoPmRun({ projectId, readinessRatio });
+  const { runNow: runPmNow } = useAutoPmRun({ projectId, readinessRatio });
 
 
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
@@ -422,7 +423,10 @@ function ProjectSpine() {
           pendingApprovalsCount={pendingApprovalsCount}
           onAskCaptain={() => setAskCaptainOpen(true)}
         />
-        <AiPmStatusChip projectId={projectId} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <AiPmStatusChip projectId={projectId} />
+          <RunAiPmButton projectId={projectId} runNow={runPmNow} variant="subtle" />
+        </div>
       </div>
 
 
