@@ -423,7 +423,10 @@ function ProjectSpine() {
           pendingApprovalsCount={pendingApprovalsCount}
           onAskCaptain={() => setAskCaptainOpen(true)}
         />
-        <AiPmStatusChip projectId={projectId} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <AiPmStatusChip projectId={projectId} />
+          <RunAiPmButton projectId={projectId} runNow={runPmNow} variant="subtle" />
+        </div>
       </div>
 
 
