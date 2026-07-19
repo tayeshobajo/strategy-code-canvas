@@ -83,9 +83,11 @@ import { StrategicThesisCard } from "@/components/engine/spine/StrategicThesisCa
 import { ThesisRequiredBanner } from "@/components/engine/spine/ThesisRequiredBanner";
 import { WorldEntryCard, ExecutionBoundaryCard } from "@/components/engine/spine/DoctrineCards";
 import { RoadmapApprovalCard } from "@/components/engine/spine/RoadmapApprovalCard";
+import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersionsModal";
 import { extractPointBullets } from "@/lib/spine-coherence";
 import { derivePhase } from "@/lib/spine-phase";
 import { getStrategicThesis } from "@/lib/engine-strategic-thesis.functions";
+import { toast } from "sonner";
 
 /**
  * Map the richer 7-tone `SpineStatusPresentation` palette onto the 5
