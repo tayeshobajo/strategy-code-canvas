@@ -1,16 +1,15 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { runRoadmapSynthesis } from "@/lib/roadmap-synthesis/plan.functions";
 import { canAutoRun, runPmInBackground } from "@/lib/engine-pm-status";
 
+type Mode = "repair" | "refresh" | "rebuild_draft";
+
 /**
- * Proactively runs the AI Product Manager whenever the current Spine is
- * below 100% readiness. Respects the 5-minute cooldown and never fires
- * while another run is in flight.
- *
- * `readinessRatio` is (passed / total) — pass `null` while the readiness
- * query is still loading to skip auto-run until the number is known.
+ * Proactively runs the AI Product Manager whenever Spine readiness is below
+ * 100%. Also returns a `runNow` callback so a button can force a manual
+ * retry that bypasses the cooldown but still respects the in-flight guard.
  */
 export function useAutoPmRun({
   projectId,
@@ -24,6 +23,12 @@ export function useAutoPmRun({
   const qc = useQueryClient();
   const runFn = useServerFn(runRoadmapSynthesis);
 
+  const invalidate = useCallback(() => {
+    void qc.invalidateQueries({ queryKey: ["engine", "project-spine", projectId] });
+    void qc.invalidateQueries({ queryKey: ["engine", "spine-readiness", projectId] });
+    void qc.invalidateQueries({ queryKey: ["engine", "work", projectId] });
+  }, [qc, projectId]);
+
   useEffect(() => {
     if (!enabled) return;
     if (readinessRatio === null) return;
@@ -33,17 +38,27 @@ export function useAutoPmRun({
     runPmInBackground(
       projectId,
       runFn as unknown as (i: {
-        data: { projectId: string; mode: "repair" | "refresh" | "rebuild_draft" };
+        data: { projectId: string; mode: Mode };
       }) => Promise<unknown>,
-      {
-        step: "Filling missing Spine fields…",
-        mode: "repair",
-        onSettled: () => {
-          void qc.invalidateQueries({ queryKey: ["engine", "project-spine", projectId] });
-          void qc.invalidateQueries({ queryKey: ["engine", "spine-readiness", projectId] });
-          void qc.invalidateQueries({ queryKey: ["engine", "work", projectId] });
-        },
-      },
+      { step: "Filling missing Spine fields…", mode: "repair", onSettled: invalidate },
     );
-  }, [enabled, readinessRatio, projectId, runFn, qc]);
+  }, [enabled, readinessRatio, projectId, runFn, invalidate]);
+
+  const runNow = useCallback(
+    (mode: Mode = "refresh") =>
+      runPmInBackground(
+        projectId,
+        runFn as unknown as (i: { data: { projectId: string; mode: Mode } }) => Promise<unknown>,
+        {
+          step: mode === "refresh" ? "Refreshing intelligence…" : "Re-running missing steps…",
+          mode,
+          force: true,
+          onSettled: invalidate,
+        },
+      ),
+    [projectId, runFn, invalidate],
+  );
+
+  return { runNow };
 }
+
