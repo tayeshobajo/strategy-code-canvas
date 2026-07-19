@@ -19,6 +19,7 @@ import {
   FileText,
   GitPullRequest,
   Radar,
+  Milestone,
   X,
 } from "lucide-react";
 
