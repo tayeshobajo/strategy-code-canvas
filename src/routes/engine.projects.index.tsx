@@ -143,6 +143,13 @@ function ProjectsPage() {
 
   const [showFilters, setShowFilters] = useState(false);
   const [railOpen, setRailOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showTrash, setShowTrash] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const qc = useQueryClient();
+  const bulkDeleteFn = useServerFn(bulkDeleteProjects);
+
 
   const listFn = useServerFn(listProjects);
   const ccFn = useServerFn(getCommandCenter);
