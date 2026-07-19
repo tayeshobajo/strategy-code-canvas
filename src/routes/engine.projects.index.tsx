@@ -34,7 +34,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
+  Trash2,
+  Undo2,
+  X,
 } from "lucide-react";
+
 
 // ─── search schema ──────────────────────────────────────────────────────────
 type FilterValue =
