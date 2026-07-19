@@ -50,11 +50,28 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
 
   const stepById = new Map(plan.steps.map((s) => [s.id, s] as const));
   const targets: SynthesisStepId[] = [];
+  const supportBackfillSteps = new Set<SynthesisStepId>([
+    "milestone_dates",
+    "phase_rationale",
+    "truth_blueprint",
+    "truth_gaps",
+    "truth_assets",
+    "truth_constraints",
+    "truth_sequencing",
+    "investment_note",
+  ]);
+  const supportBackfillTargets: SynthesisStepId[] = [];
 
   for (const step of plan.steps) {
     if (!wantSet.has(step.id)) continue;
     if (step.state === "blocked") {
       blocked.push({ id: step.id, reason: step.reason_detail || "Blocked" });
+      if (
+        (input.mode === "repair" || input.mode === "refresh") &&
+        supportBackfillSteps.has(step.id)
+      ) {
+        supportBackfillTargets.push(step.id);
+      }
       continue;
     }
     const wantsRepair = input.mode === "repair" && (step.state === "missing" || step.state === "failed");
@@ -74,6 +91,13 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
       continue;
     }
     targets.push(step.id);
+  }
+
+  for (const step of plan.steps) {
+    if (!wantSet.has(step.id)) continue;
+    if (!supportBackfillSteps.has(step.id)) continue;
+    if (step.state === "satisfied" || supportBackfillTargets.includes(step.id)) continue;
+    if (input.mode === "repair" || input.mode === "refresh") supportBackfillTargets.push(step.id);
   }
 
   // RT-5: in refresh mode, scan for materially-affecting new intelligence
@@ -102,7 +126,8 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
   // by re-deriving the plan after it runs: a step transitioning from
   // missing/failed → satisfied is what actually ran. Steps still missing
   // stay in `errors` for the caller.
-  if (targets.length > 0) {
+  const fillTargets = Array.from(new Set([...targets, ...supportBackfillTargets]));
+  if (fillTargets.length > 0) {
     const beforeStates = new Map(plan.steps.map((s) => [s.id, s.state] as const));
     try {
       const { runLegacyFill } = await import("./runners/legacy-fill.server");
@@ -116,11 +141,11 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
         supabase: input.supabase,
       });
       const afterById = new Map(afterPlan.steps.map((s) => [s.id, s] as const));
-      for (const id of targets) {
+      for (const id of fillTargets) {
         const after = afterById.get(id);
         const before = beforeStates.get(id);
         if (after && (after.state === "satisfied" || after.state === "candidate_ready")) {
-          ran.push(id);
+          if (!ran.includes(id)) ran.push(id);
         } else {
           errors.push({
             id,
@@ -132,7 +157,7 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
       (plan as { steps: SynthesisPlan["steps"] }).steps = afterPlan.steps;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Fill failed";
-      for (const id of targets) errors.push({ id, message });
+      for (const id of fillTargets) errors.push({ id, message });
     }
   }
   void materialityAmendments;

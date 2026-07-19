@@ -630,7 +630,7 @@ function buildFallbackMilestones(projectName: string): Array<{
   ];
 }
 
-async function seedAncillarySpineArtifacts(
+export async function seedAncillarySpineArtifacts(
   sb: any,
   args: {
     projectId: string;
