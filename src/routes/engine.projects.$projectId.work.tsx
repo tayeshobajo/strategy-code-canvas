@@ -1,7 +1,13 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import {
+  isEnrichmentRunning,
+  runEnrichmentInBackground,
+  subscribeEnrichment,
+} from "@/lib/engine-milestone-enrichment-status";
+
 import { z } from "zod";
 import {
   Wrench,
@@ -24,7 +30,7 @@ import {
 } from "lucide-react";
 import { getProjectWork, type ProjectWorkPayload } from "@/lib/engine-work.functions";
 import { draftMilestoneAcceptanceCriteria, enrichMilestoneAcceptanceCriteria } from "@/lib/engine-milestone-ai-draft.functions";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type {
   MilestoneExecutionSummary,
@@ -137,11 +143,13 @@ function WorkTab() {
   return (
     <div className="space-y-5" data-qa-tab-view="work">
       <PausedWorkBanner projectId={projectId} isAdmin={role.isAdmin} />
+      <EnrichmentIndicator projectId={projectId} />
       <SummaryStrip
         view={view}
         onAddWork={canAct ? () => setModal({ kind: "add" }) : undefined}
       />
       <NextBestActionCard view={view} projectId={projectId} />
+
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
         <div className="space-y-5 min-w-0">
           <ViewTabs projectId={projectId} current={search.view} />
@@ -551,6 +559,9 @@ function MilestoneExecutionCard({
           </div>
           <h3 className="font-medium text-ink text-base truncate">{m.name}</h3>
           <p className="text-xs text-ink/60 mt-1 line-clamp-2">{m.outcome}</p>
+          <div className="mt-1.5">
+            <AiDraftStateBadge state={m.ai_draft_state} />
+          </div>
         </div>
         <span
           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium shrink-0 ${health.className}`}
@@ -559,6 +570,7 @@ function MilestoneExecutionCard({
           {health.label}
         </span>
       </header>
+
 
       <GateStrip gates={m.gates} current={m.current_gate} />
 
@@ -1174,11 +1186,13 @@ function NoReadyMilestoneEmpty({ projectId, canAct }: { projectId: string; canAc
         setError("No milestones needed drafting. Try Refresh Project Intelligence on the Roadmap tab.");
       } else if (res.needs_enrichment) {
         // Fire AI polish in the background; refresh the Work view when it lands.
-        (enrich as unknown as (i: { data: { projectId: string } }) => Promise<{ enriched: number }>)({
-          data: { projectId },
-        })
-          .then(() => qc.invalidateQueries({ queryKey: ["engine", "work", projectId] }))
-          .catch(() => { /* baseline defaults already visible */ });
+        runEnrichmentInBackground(
+          projectId,
+          enrich as unknown as (i: { data: { projectId: string } }) => Promise<unknown>,
+          () => {
+            void qc.invalidateQueries({ queryKey: ["engine", "work", projectId] });
+          },
+        );
       }
     } catch (e) {
       setError((e as Error)?.message ?? "AI draft failed.");
@@ -1186,6 +1200,7 @@ function NoReadyMilestoneEmpty({ projectId, canAct }: { projectId: string; canAc
       setPending(false);
     }
   }
+
 
   return (
     <section className="rounded-xl border border-border bg-card p-8 text-center max-w-2xl mx-auto">
@@ -1315,4 +1330,44 @@ function timeAgo(iso: string): string {
   if (h < 24) return `${h}h ago`;
   const d = Math.round(h / 24);
   return `${d}d ago`;
+}
+
+function AiDraftStateBadge({ state }: { state: "none" | "baseline" | "enriched" }) {
+  if (state === "none") return null;
+  if (state === "baseline") {
+    return (
+      <span
+        title="Deterministic defaults only — AI polish pending"
+        className="inline-flex items-center gap-1 rounded-full border border-[#f1e3b9] bg-[#fbf3e0] text-[#8a6713] px-2 py-0.5 text-[10px] font-medium"
+      >
+        <Sparkles className="w-2.5 h-2.5" /> Baseline draft
+      </span>
+    );
+  }
+  return (
+    <span
+      title="AI enrichment complete"
+      className="inline-flex items-center gap-1 rounded-full border border-[#c9e6d3] bg-[#e9f5ee] text-[#1f6b3b] px-2 py-0.5 text-[10px] font-medium"
+    >
+      <Sparkles className="w-2.5 h-2.5" /> AI enriched
+    </span>
+  );
+}
+
+function EnrichmentIndicator({ projectId }: { projectId: string }) {
+  const running = useSyncExternalStore(
+    subscribeEnrichment,
+    () => isEnrichmentRunning(projectId),
+    () => false,
+  );
+  if (!running) return null;
+  return (
+    <div
+      role="status"
+      className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary"
+    >
+      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      Drafting AI enrichment for milestones… baseline content is available now; cards will refresh when polish lands.
+    </div>
+  );
 }
