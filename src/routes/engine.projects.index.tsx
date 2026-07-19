@@ -300,17 +300,48 @@ function ProjectsPage() {
             <SectionCard
               title={`${sortedRows.length} project${sortedRows.length === 1 ? "" : "s"}`}
               right={
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSearch({
-                      sort: sort === "updated_desc" ? "updated_asc" : "updated_desc",
-                    })
-                  }
-                  className="text-xs text-ink/60 hover:text-ink"
-                >
-                  Sort: updated {sort === "updated_desc" ? "newest" : "oldest"}
-                </button>
+                <div className="flex items-center gap-3">
+                  {selected.size > 0 && (
+                    <button
+                      type="button"
+                      disabled={bulkBusy}
+                      onClick={async () => {
+                        const ids = Array.from(selected);
+                        const confirmed = window.confirm(
+                          `Move ${ids.length} project${ids.length === 1 ? "" : "s"} to trash?\n\nYou can restore them within 30 days.`,
+                        );
+                        if (!confirmed) return;
+                        setBulkBusy(true);
+                        try {
+                          const res = await bulkDeleteFn({ data: { projectIds: ids } });
+                          toast.success(`Moved ${res.deleted} to trash`);
+                          setSelected(new Set());
+                          await qc.invalidateQueries({ queryKey: ["engine", "projects"] });
+                          await qc.invalidateQueries({ queryKey: ["engine", "command-center"] });
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Delete failed");
+                        } finally {
+                          setBulkBusy(false);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#a4283c] text-white hover:bg-[#8b1f31] disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete {selected.size} selected
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSearch({
+                        sort: sort === "updated_desc" ? "updated_asc" : "updated_desc",
+                      })
+                    }
+                    className="text-xs text-ink/60 hover:text-ink"
+                  >
+                    Sort: updated {sort === "updated_desc" ? "newest" : "oldest"}
+                  </button>
+                </div>
               }
             >
               {isLoading ? (
@@ -319,7 +350,26 @@ function ProjectsPage() {
                 <EmptyState title="No projects match" hint="Adjust filters to see more." />
               ) : (
                 <>
-                  <ProjectsTable rows={pagedRows} />
+                  <ProjectsTable
+                    rows={pagedRows}
+                    selected={selected}
+                    onToggle={(id) =>
+                      setSelected((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(id)) next.delete(id);
+                        else next.add(id);
+                        return next;
+                      })
+                    }
+                    onToggleAll={(checked) =>
+                      setSelected((prev) => {
+                        const next = new Set(prev);
+                        if (checked) pagedRows.forEach((r) => next.add(r.id));
+                        else pagedRows.forEach((r) => next.delete(r.id));
+                        return next;
+                      })
+                    }
+                  />
                   <TablePager
                     total={sortedRows.length}
                     page={currentPage}
@@ -328,6 +378,7 @@ function ProjectsPage() {
                     onPage={(p) => setSearch({ page: p })}
                   />
                 </>
+
               )}
             </SectionCard>
           </div>
