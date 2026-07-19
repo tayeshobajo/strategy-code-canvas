@@ -126,7 +126,20 @@
   --rule: oklch(0.905 0.010 250);        /* ~#E5E9F0 border */
   --rule-soft: oklch(0.945 0.009 250);
   --font-display: "Inter", system-ui, sans-serif;
+  /* Cream "recently updated" highlight — inherits the marketing brand cream so
+   * the audit signal reads warm against the cool cockpit palette. */
+  --updated-cream: #fbf3e0;
+  --updated-cream-border: #f1e3b9;
 }
+
+/* Applied by <RecentlyUpdated> around any Spine field a human or the AI PM
+ * touched in the last 24h. Gives a soft cream wash + hairline so you can
+ * scan the page and immediately see what shifted. */
+.field-recently-updated {
+  background-color: var(--updated-cream);
+  box-shadow: inset 0 0 0 1px var(--updated-cream-border);
+}
+
 
 /* Headings inside the engine drop the marketing serif for a functional
  * neo-grotesque. Weight lifts to 600 so hierarchy still reads. */

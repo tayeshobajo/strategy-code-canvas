@@ -25,6 +25,8 @@ import { SpineVersionHistory } from "@/components/engine/SpineVersionHistory";
 import { SpineReadinessPanel } from "@/components/engine/SpineReadinessPanel";
 import { LatestAmendmentsPanel } from "@/components/engine/LatestAmendmentsPanel";
 import { DriftSummaryPanel } from "@/components/engine/DriftSummaryPanel";
+import { AiPmStatusChip } from "@/components/engine/spine/AiPmStatusChip";
+import { useAutoPmRun } from "@/hooks/use-auto-pm-run";
 import {
   Lock,
   ChevronLeft,
@@ -228,6 +230,17 @@ function ProjectSpine() {
     staleTime: 30_000,
   });
 
+  // Proactively run the AI Product Manager when Spine readiness < 100%.
+  // Cooldown + in-flight guards live in engine-pm-status so we don't spam
+  // credits when this component remounts.
+  const readinessResult = readinessQ.data?.result;
+  const readinessRatio =
+    readinessResult && readinessResult.total > 0
+      ? readinessResult.passed / readinessResult.total
+      : null;
+  useAutoPmRun({ projectId, readinessRatio });
+
+
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<ModuleCategoryFilter>("all");
   const [moduleSort, setModuleSort] = useState<ModuleSort>("readiness");
@@ -403,11 +416,15 @@ function ProjectSpine() {
 
 
       {/* ───── Header actions ───── */}
-      <SpinePageHeader
-        projectId={projectId}
-        pendingApprovalsCount={pendingApprovalsCount}
-        onAskCaptain={() => setAskCaptainOpen(true)}
-      />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <SpinePageHeader
+          projectId={projectId}
+          pendingApprovalsCount={pendingApprovalsCount}
+          onAskCaptain={() => setAskCaptainOpen(true)}
+        />
+        <AiPmStatusChip projectId={projectId} />
+      </div>
+
 
       {/* ───── Variant banner ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
