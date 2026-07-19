@@ -69,7 +69,7 @@ function WorkspaceLayout() {
   }
 
   return (
-    <div className="space-y-4 max-w-[1500px]">
+    <div className="space-y-4 w-full">
       <ProjectHeaderStrip project={workspace.project} />
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
