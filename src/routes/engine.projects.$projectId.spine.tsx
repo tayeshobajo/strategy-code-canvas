@@ -371,26 +371,6 @@ function ProjectSpine() {
   const narrativeSubtitle = spine.project.goal
     ? spine.project.goal
     : "The living story of this project — truth, direction, and next move.";
-      value: spine.project.health_score > 0
-        ? `${spine.project.health_score} · ${healthFromScore(spine.project.health_score).label}`
-        : deriveHealth(spine.project.status, blockedItemsCount).label,
-      tone: (spine.project.health_score >= 80
-        ? "ok"
-        : spine.project.health_score >= 60
-          ? "warn"
-          : blockedItemsCount > 0
-            ? "bad"
-            : "neutral") as "ok" | "warn" | "bad" | "neutral",
-    },
-    {
-      label: "Portal",
-      value: spine.portal_publish ? humanize(spine.portal_publish.status) : "Not Published",
-    },
-  ];
-  const narrativeTitle = spine.project.name || "Untitled project";
-  const narrativeSubtitle = spine.project.goal
-    ? spine.project.goal
-    : "The living story of this project — truth, direction, and next move.";
 
   return (
     <div className="min-w-0 space-y-10 pb-12 text-[#0A0F1F]">
