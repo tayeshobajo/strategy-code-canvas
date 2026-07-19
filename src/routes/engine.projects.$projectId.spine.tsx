@@ -201,6 +201,16 @@ function ProjectSpine() {
     enabled: !!projectId,
     staleTime: 30_000,
   });
+  // Fetch the Strategic Thesis so the phase machine and the
+  // ThesisRequiredBanner can gate the roadmap on a real approval,
+  // not just presence of a roadmap version.
+  const thesisFn = useServerFn(getStrategicThesis);
+  const thesisQ = useQuery({
+    queryKey: ["engine", "strategic-thesis", projectId],
+    queryFn: () => thesisFn({ data: { projectId } }),
+    enabled: !!projectId,
+    staleTime: 60_000,
+  });
 
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<ModuleCategoryFilter>("all");
