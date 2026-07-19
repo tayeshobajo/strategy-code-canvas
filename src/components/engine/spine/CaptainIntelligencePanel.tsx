@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Brain, Sparkles, Radar } from "lucide-react";
+import { Brain, Sparkles, Radar, Eye } from "lucide-react";
 
 type Item = { icon: ReactNode; label: string; body: ReactNode };
 
@@ -7,16 +7,21 @@ export function CaptainIntelligencePanel({
   whatChanged,
   whatMatters,
   recommendation,
+  watchFor,
 }: {
   whatChanged: ReactNode;
   whatMatters: ReactNode;
   recommendation: ReactNode;
+  watchFor?: ReactNode;
 }) {
   const items: Item[] = [
     { icon: <Radar className="h-4 w-4" />, label: "What changed", body: whatChanged },
     { icon: <Brain className="h-4 w-4" />, label: "What matters now", body: whatMatters },
     { icon: <Sparkles className="h-4 w-4" />, label: "Recommendation", body: recommendation },
   ];
+  if (watchFor) {
+    items.push({ icon: <Eye className="h-4 w-4" />, label: "Watch for", body: watchFor });
+  }
   return (
     <section
       aria-labelledby="captain-intelligence-heading"

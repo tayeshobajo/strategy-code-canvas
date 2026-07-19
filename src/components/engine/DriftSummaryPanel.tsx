@@ -8,12 +8,24 @@ import { getDriftSummary } from "@/lib/engine-execution-drift.functions";
  * RT-6 — Compact summary panel for the persistent right rail.
  * Shows open drift counts by severity with a link into the Drift Monitor room.
  */
-export function DriftSummaryPanel({ projectId }: { projectId: string }) {
+export function DriftSummaryPanel({
+  projectId,
+  executionActive = true,
+}: {
+  projectId: string;
+  /**
+   * When false, no milestone has entered execution yet — showing a
+   * green "no drift" empty state would imply a health guarantee the
+   * engine cannot yet support. Render an explicit "not active" state.
+   */
+  executionActive?: boolean;
+}) {
   const summary = useServerFn(getDriftSummary);
   const query = useQuery({
     queryKey: ["drift-summary", projectId],
     queryFn: () => summary({ data: { projectId } }),
     staleTime: 30_000,
+    enabled: executionActive,
   });
 
   const data = query.data;
@@ -31,22 +43,31 @@ export function DriftSummaryPanel({ projectId }: { projectId: string }) {
           <h3 id="drift-summary-heading" className="text-sm font-semibold text-[#0A0F1F]">
             Execution drift
           </h3>
-          {high > 0 ? (
+          {executionActive && high > 0 ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-800">
               <AlertTriangle className="h-3 w-3" /> {high} high
             </span>
           ) : null}
         </div>
-        <Link
-          to="/engine/projects/$projectId/drift"
-          params={{ projectId }}
-          className="text-[11px] text-[#3E68B2] hover:underline"
-        >
-          Open monitor →
-        </Link>
+        {executionActive ? (
+          <Link
+            to="/engine/projects/$projectId/drift"
+            params={{ projectId }}
+            className="text-[11px] text-[#3E68B2] hover:underline"
+          >
+            Open monitor →
+          </Link>
+        ) : null}
       </header>
 
-      {query.isLoading ? (
+      {!executionActive ? (
+        <div className="rounded-md border border-dashed border-[#E4E9F2] bg-[#FBFBFD] px-3 py-2.5">
+          <div className="text-[11px] font-semibold text-[#0A0F1F]">Not active yet</div>
+          <p className="mt-0.5 text-[11px] leading-snug text-[#667085]">
+            Monitoring begins once the first milestone enters execution.
+          </p>
+        </div>
+      ) : query.isLoading ? (
         <p className="text-xs text-[#667085]">Loading…</p>
       ) : total === 0 ? (
         <p className="text-xs text-[#667085]">No open drift signals.</p>
