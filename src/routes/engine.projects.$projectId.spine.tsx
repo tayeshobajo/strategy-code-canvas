@@ -1431,11 +1431,43 @@ function MilestoneReadinessMatrix({
 }) {
   const rows = milestones.slice(0, 6);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [showAll, setShowAll] = useState(false);
+  const storageKey = `spine.readiness.showAll:${projectId}`;
+  const [showAll, setShowAll] = useState<boolean>(false);
+  const sectionRef = useRef<HTMLDivElement | null>(null);
   const currentGates = deriveCurrentGates(milestones);
 
+  // Restore per-project session preference on mount.
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(storageKey);
+      if (raw === "1") setShowAll(true);
+    } catch { /* sessionStorage may be unavailable */ }
+  }, [storageKey]);
+
+  const toggleShowAll = () => {
+    // Preserve scroll position across the layout swap: capture the
+    // section's viewport-relative top, flip state, then re-anchor.
+    const rect = sectionRef.current?.getBoundingClientRect();
+    const top = rect ? rect.top : null;
+    setShowAll((v) => {
+      const next = !v;
+      try { window.sessionStorage.setItem(storageKey, next ? "1" : "0"); } catch { /* noop */ }
+      return next;
+    });
+    if (top != null) {
+      requestAnimationFrame(() => {
+        const newRect = sectionRef.current?.getBoundingClientRect();
+        if (newRect) window.scrollBy({ top: newRect.top - top, behavior: "auto" });
+      });
+    }
+  };
+
   return (
-    <section id="spine-milestones" className="scroll-mt-4 rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
+    <section
+      ref={sectionRef}
+      id="spine-milestones"
+      className="scroll-mt-4 rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm"
+    >
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <h2 className="font-display text-lg text-[#0A0F1F]">Milestone Readiness</h2>
@@ -1448,9 +1480,10 @@ function MilestoneReadinessMatrix({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setShowAll((v) => !v)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+            onClick={toggleShowAll}
+            className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] transition-colors hover:text-[#284f93]"
             aria-pressed={showAll}
+            aria-controls="spine-milestones-body"
           >
             {showAll ? "Show current gate" : "View all"}
             {showAll ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -1465,6 +1498,9 @@ function MilestoneReadinessMatrix({
           </Link>
         </div>
       </div>
+
+      <div id="spine-milestones-body" key={showAll ? "all" : "current"} className="animate-fade-in">
+
 
       {rows.length === 0 ? (
         <p className="mt-4 text-sm text-[#667085]">No milestones captured yet.</p>
