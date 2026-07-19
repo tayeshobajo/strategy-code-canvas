@@ -23,6 +23,9 @@ import {
   FileCheck2,
 } from "lucide-react";
 import { getProjectWork, type ProjectWorkPayload } from "@/lib/engine-work.functions";
+import { draftMilestoneAcceptanceCriteria } from "@/lib/engine-milestone-ai-draft.functions";
+import { Sparkles } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import type {
   MilestoneExecutionSummary,
   WorkItem,
@@ -125,11 +128,7 @@ function WorkTab() {
   }
   if (view.mode === "roadmap_no_ready_milestone") {
     return (
-      <EmptyState
-        title="Roadmap approved. No milestone is ready yet."
-        body="Draft acceptance criteria on the earliest upcoming milestone to open execution."
-        cta={{ label: "Open Roadmap", to: "/engine/projects/$projectId/roadmap", projectId }}
-      />
+      <NoReadyMilestoneEmpty projectId={projectId} canAct={role.canEdit} />
     );
   }
 
@@ -1152,6 +1151,66 @@ function RecentChangesCard({ view }: { view: ProjectWorkPayload["view"] }) {
 }
 
 // ---------- misc ----------
+
+function NoReadyMilestoneEmpty({ projectId, canAct }: { projectId: string; canAct: boolean }) {
+  const qc = useQueryClient();
+  const draft = useServerFn(draftMilestoneAcceptanceCriteria);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onDraft() {
+    setPending(true);
+    setError(null);
+    try {
+      const res = (await (draft as unknown as (i: { data: { projectId: string } }) => Promise<{
+        drafted: number;
+        approved: number;
+      }>)({ data: { projectId } }));
+      await qc.invalidateQueries({ queryKey: ["engine", "work", projectId] });
+      if (res.drafted === 0) {
+        setError("No milestones needed drafting. Try Refresh Project Intelligence on the Roadmap tab.");
+      }
+    } catch (e) {
+      setError((e as Error)?.message ?? "AI draft failed.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-8 text-center max-w-2xl mx-auto">
+      <div className="mx-auto w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+        <Wrench className="w-5 h-5" />
+      </div>
+      <h2 className="mt-3 font-display text-lg text-ink">Roadmap approved. No milestone is ready yet.</h2>
+      <p className="mt-1 text-sm text-ink/60">
+        The AI Product Manager can draft acceptance criteria on every milestone so execution can open.
+      </p>
+      <div className="mt-4 flex items-center justify-center gap-2">
+        {canAct && (
+          <button
+            type="button"
+            onClick={onDraft}
+            disabled={pending}
+            className="inline-flex items-center gap-1.5 rounded-md bg-royal px-3 py-2 text-sm font-medium text-white hover:bg-royal/90 disabled:opacity-50"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {pending ? "Drafting acceptance criteria…" : "AI: Draft acceptance criteria"}
+          </button>
+        )}
+        <Link
+          to="/engine/projects/$projectId/roadmap"
+          params={{ projectId }}
+          search={{ view: "journey" }}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-2 text-sm text-ink hover:bg-ink/5"
+        >
+          Open Roadmap <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+      {error && <p className="mt-3 text-xs text-red-700">{error}</p>}
+    </section>
+  );
+}
 
 function EmptyState({
   title,
