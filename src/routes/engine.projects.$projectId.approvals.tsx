@@ -19,7 +19,7 @@ import {
   type CeremonyState,
   type CeremonyStatus,
 } from "@/lib/engine-ceremony-status.functions";
-import { approveWorldEntry, rejectWorldEntry } from "@/lib/engine-world-entry.functions";
+import { approveWorldEntry } from "@/lib/engine-world-entry.functions";
 import {
   approveExecutionBoundary,
   rejectExecutionBoundary,
