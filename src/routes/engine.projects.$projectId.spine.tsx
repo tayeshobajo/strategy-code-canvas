@@ -331,13 +331,46 @@ function ProjectSpine() {
   exportHandlerRef.current = handleExportClientRoadmap;
 
 
+  // Derive a single canonical project phase from the spine + thesis + roadmap.
+  // Historical UI conflated project.status / current_step / portal.status and
+  // could display "Client Preview" for an unapproved draft — the phase
+  // machine collapses these into one truth.
+  const thesisApproved = thesisQ.data?.current?.status === "approved";
+  const phaseInfo = derivePhase({
+    pointAApproved: isApprovedTruth(spine.project.point_a_status),
+    pointBApproved: isApprovedTruth(spine.project.point_b_status),
+    strategicThesisApproved: thesisApproved,
+    roadmapVersionStatus: spine.version?.status ?? null,
+    approvedMilestoneCount,
+    totalMilestoneCount: spine.milestones.length,
+    milestonesInProgress: spine.milestones.filter((m) => m.status === "in_progress").length,
+    portalPublishStatus: spine.portal_publish?.status ?? null,
+    projectStatus: spine.project.status ?? "",
+  });
+  const executionActive =
+    phaseInfo.phase === "Execution" ||
+    phaseInfo.phase === "QA" ||
+    phaseInfo.phase === "Client Preview" ||
+    phaseInfo.phase === "Delivery";
+  // Roadmap should not be treated as operational without an approved thesis.
+  const needsThesisGate =
+    isApprovedTruth(spine.project.point_a_status) &&
+    isApprovedTruth(spine.project.point_b_status) &&
+    !thesisApproved;
+
+  // Identity cells: trimmed to the four facts that identify the project —
+  // client, project, current phase, and roadmap version. Health lives in
+  // the status strip; putting it here duplicated the signal.
   const identityCells = [
     { label: "Client", value: spine.project.client_company || "—" },
     { label: "Project", value: spine.project.name || "—" },
-    { label: "Type", value: spine.project.frame ? humanize(spine.project.frame) : "—" },
+    { label: "Phase", value: phaseInfo.phase },
     { label: "Roadmap", value: spine.version?.label ?? "Draft" },
-    {
-      label: "Health",
+  ];
+  const narrativeTitle = spine.project.name || "Untitled project";
+  const narrativeSubtitle = spine.project.goal
+    ? spine.project.goal
+    : "The living story of this project — truth, direction, and next move.";
       value: spine.project.health_score > 0
         ? `${spine.project.health_score} · ${healthFromScore(spine.project.health_score).label}`
         : deriveHealth(spine.project.status, blockedItemsCount).label,
