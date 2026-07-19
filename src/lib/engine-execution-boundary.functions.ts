@@ -246,7 +246,10 @@ export const approveExecutionBoundary = createServerFn({ method: "POST" })
     if (current.status !== "proposed") {
       throw new Error("Only versions submitted for approval can be approved.");
     }
-    if (current.proposed_by_email.toLowerCase() === actor.toLowerCase()) {
+    if (
+      current.proposed_by_actor !== "ai" &&
+      current.proposed_by_email.toLowerCase() === actor.toLowerCase()
+    ) {
       throw new Error(
         "Second-reviewer rule: the person who proposed this boundary cannot approve it. Ask another admin or operator to approve.",
       );
