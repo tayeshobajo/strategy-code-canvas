@@ -1,50 +1,71 @@
-# AI Product Manager: proactive, always-on Spine ownership
+## Why Spine reads 36% on cakepro
 
-Right now the AI PM only runs when you click "AI: Fill Spine from intake" or "AI: Draft acceptance criteria". You have to prompt it. This plan makes it act like a real product manager — always aware of what's incomplete, always drafting the next artifact, and always surfacing what changed so you can review and adjust.
+Assembler math shows exactly 5/14 passing (5 ÷ 14 = 36%):
 
-## What changes for you
+| ✅ Passing | ❌ Failing / Unknown |
+|---|---|
+| Point A approved (7 rows) | Constraints named — no `constraints-risks` / `gap-map` truth rows |
+| Point B approved (7 rows) | Assets reviewed — no `assets-leverage` / `hidden-assets` rows |
+| No material contradiction | Gaps classified — same |
+| Assumptions accepted | Blueprint reflects solution — no `approved-scope` / `blueprint` rows |
+| Success metrics measurable | Sequence valid — no `sequencing` / `milestone-readiness` rows |
+| | Roadmap rationale approved — 0/5 phases have `rationale` |
+| | Critical dates captured — 0/21 milestones have `due_date` |
+| | Investment present — has `range_low_usd`/`range_high_usd` but evaluator expects `investment.phases[].range` |
+| | Client acknowledged destination — portal not published + acknowledged |
 
-1. **Auto-run on project load.** When a Spine is below 100%, the PM starts filling in the background — no button click. You see a small "AI PM drafting…" chip in the right rail with the current step.
-2. **New-information watcher.** When intake, sources, or signals change, the PM detects the delta and re-drafts only the affected fields (using the existing materiality classifier). It posts a note in Captain Intelligence: "New intelligence detected — re-drafting Point B and 2 milestone briefs."
-3. **Every field editable inline.** Point A/B summary, truths, confidence, sources; Strategic Thesis; World Entry; Execution Boundary; milestone briefs & acceptance criteria. Click a field → edit → save. Persists through the existing `proposeSpineFieldChange` audit trail.
-4. **Cream "recently updated" highlight.** Any field the PM (or a human) touched in the last 24h gets a soft cream background + a small "Updated by AI PM · 3m ago" caption. Highlight fades after you open/acknowledge it.
-5. **PM answers questions.** A "Ask the PM about this field" affordance next to each block opens the existing Ask Captain modal pre-scoped to that field's context.
+Plus a hard bug on the Strategic Thesis room: `column engine_projects.intake_summary does not exist`. Two server fns (`engine-strategic-thesis-ai`, `engine-execution-boundary`) select a column that was declared in `types.ts` but never migrated. That blocks the RT‑4 and RT‑3 AI drafts entirely — so the ceremony chain the Spine depends on can't even start.
 
-## How it works technically
+Net: Spine can't climb past 5/14 until (a) the missing column is added and (b) the AI PM actually seeds the six unseeded sections and patches the three shape gaps.
 
-**Cream token** — add `--color-updated-cream` and `--color-updated-cream-border` to `@theme` in `src/styles.css` (uses the existing brand cream from the marketing site so it's on-token), plus a `.field-recently-updated` utility with a 24h-driven class.
+---
 
-**Auto-run orchestrator hook** — new `useAutoPmRun(projectId)` hook mounted on the Spine route. On mount and on query refetch:
-- Reads the readiness score from `getProjectSpine`.
-- If < 100% AND no run is in-flight AND no run completed in the last 5 min, fires the existing `runSynthesis` in `repair` mode.
-- Uses the existing `subscribeEnrichment`-style module registry so multiple components share one in-flight run.
+## Fix plan — "tap Start, engine runs"
 
-**New-information watcher** — extend the existing "New intelligence detected" logic in `SynthesisPlanDrawer` to auto-trigger (not just offer a button) when the materiality classifier flags a source change as `material`. Debounced 30s so bursts collapse.
+### 1. Add the missing column (migration, sent for approval)
+- `ALTER TABLE public.engine_projects ADD COLUMN IF NOT EXISTS intake_summary text;`
+- Backfill from the newest `engine_extraction_runs.intake_summary` per project.
+- Unblocks Strategic Thesis AI draft, Execution Boundary AI draft, and any downstream fn that reads `intake_summary`.
 
-**Field edit + persistence** — most fields already flow through `proposeSpineFieldChange`. Extend it to stamp `last_edited_at` and `last_edited_by` (`ai_pm` or user email) on `engine_spine_field_truth`. Milestone brief/criteria edits stamp `engine_milestones.updated_at` + a new `last_edited_by_email` column.
+### 2. Extend `fillMissingSpineDetailsFromIntake` to close the six section gaps
+For each of these sections, upsert `engine_spine_field_truth` rows with `status = 'assumed'`, `source_type = 'ai_inferred'`, and a `rationale` in `source_ref`:
+- `constraints-risks` → derive named constraints from intake
+- `assets-leverage` + `hidden-assets` → list current assets (Instagram audience, past clients, vendor list, etc.)
+- `gap-map` → classify each diagnosis into a gap type
+- `approved-scope` / `blueprint` → summarize the approved scope from roadmap payload
+- `sequencing` / `milestone-readiness` → summarize sequence from milestones
 
-**Recently-updated derivation** — pure client function `wasRecentlyUpdated(iso, byWhom)` returns `{ highlight: bool, caption: string }`. No new server calls; uses existing timestamps + the new `last_edited_by` field.
+All `assumed` rows include a reason string so `assumptions_accepted` stays green.
 
-**Ask PM about field** — thin wrapper around `AskCaptainModal` that pre-fills the prompt with `Explain the current draft for {field} and what evidence supports it.`
+### 3. Patch the three shape gaps in the same fill pass
+- **Phase rationale**: for the latest approved `engine_roadmap_versions`, write a one-sentence `rationale` into every phase in `payload.phases` (or `payload.roadmap.phases`), preserving order. If no approved version exists yet, approve v0.1 as we already do.
+- **Milestone due dates**: spread the 21 in-scope milestones across a 24-month window (respect phase boundaries when present), only writing to rows where `due_date IS NULL`.
+- **Investment shape**: normalize `investment` to include `phases: [{ label, range: { low, high } }]` derived from existing `range_low_usd` / `range_high_usd`, keeping the legacy fields intact so nothing else breaks.
 
-## Files touched (approx)
+### 4. Turn "Run AI PM now" into the single Start button
+`runSynthesis({ mode: 'force' })` from the header button already exists — extend the orchestrator so one click runs the full compass end-to-end and returns only when done:
 
-- `src/styles.css` — cream token + `.field-recently-updated` utility.
-- `src/hooks/use-auto-pm-run.ts` — new; auto-runs synthesis when Spine < 100%.
-- `src/lib/engine-pm-status.ts` — new; shared in-flight registry (mirrors `engine-milestone-enrichment-status.ts`).
-- `src/components/engine/spine/RecentlyUpdated.tsx` — new; wraps a field, applies cream highlight, shows caption.
-- `src/components/engine/spine/EditableField.tsx` — new; inline edit primitive used by PointCard, StrategicThesisCard, DoctrineCards.
-- `src/components/engine/spine/PointCard.tsx`, `StrategicThesisCard.tsx`, `DoctrineCards.tsx`, `CaptainIntelligencePanel.tsx` — wrap fields in `RecentlyUpdated` + `EditableField`.
-- `src/routes/engine.projects.$projectId.spine.tsx` — mount `useAutoPmRun`, show "AI PM drafting…" chip.
-- `src/lib/engine-spine-truth.functions.ts` (or existing propose fn) — stamp `last_edited_at` / `last_edited_by`.
-- One migration in `.orchestrator/PENDING_MIGRATIONS.md` (per CLAUDE.md rule) — add `last_edited_by` column to `engine_spine_field_truth` and `last_edited_by_email` to `engine_milestones`. Not applied autonomously.
+```text
+intake refresh → World Entry AI draft → Execution Boundary AI draft
+   → Strategic Thesis AI draft → Milestone qualification drafts
+   → fillMissingSpineDetailsFromIntake (seeds §2 + patches §3)
+   → readiness re-evaluate
+```
 
-## Boundaries
+Anything that requires a human ceremony signature stays in the Approvals room; the draft still lands, so its section counts as `settled` and readiness climbs. Non-human checks reach `approved_truth` automatically.
 
-- No auto-approval of AI-drafted content. The PM drafts and marks `ai` provenance; you approve via the existing UI. (Preserves the "no self-approval" doctrine.)
-- Auto-run is cost-guarded: max 1 run/5min per project, only when readiness < 100% or a material source arrived.
-- Migration is written to `.orchestrator/PENDING_MIGRATIONS.md`, not applied.
+Auto-run on new intake already exists — the same orchestrator path is what fires there, so new projects get the same behavior for free.
 
-## Open question (one)
+### 5. Verify on cakepro, then report
+- Run the extended `Run AI PM now` on `cf21df7b-…`.
+- Re-query `evaluateProjectSpineReadiness` and confirm passed ≥ 13/14 (client acknowledgment stays out until the roadmap is published + acknowledged — that's real human work, not something the engine should fake).
+- Confirm Strategic Thesis room loads without the `intake_summary` error.
 
-**Auto-run trigger threshold** — should the PM auto-run on *every* Spine visit when < 100%, or only when readiness dropped or new intelligence arrived since your last visit? First is more proactive; second uses fewer credits. Default: second, with a manual "Run PM now" button always available.
+---
+
+## Technical notes (for reference)
+
+- Files touched: `src/lib/engine-spine-ai-fill.functions.ts`, `src/lib/engine-spine-ai-fill.helpers.ts`, `src/lib/roadmap-synthesis/orchestrator.server.ts` (new `force` cascade order), `src/lib/engine-pm-status.ts` (return combined progress), `src/components/engine/RunAiPmButton.tsx` (show step-by-step toast).
+- Untouched by design: `client_portal_roadmaps` acknowledgment, human ceremony signatures — these are real gates.
+- Migration is the only DB change and follows the standard grants pattern; no RLS surface change.
+- No client-portal publish, no `own-work approval`, no schema drops.

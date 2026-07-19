@@ -4968,6 +4968,7 @@ export type Database = {
           health_score: number
           hidden_assets: Json
           id: string
+          intake_summary: string | null
           investment: Json
           investment_confirmed_at: string | null
           investment_confirmed_by: string | null
@@ -5025,6 +5026,7 @@ export type Database = {
           health_score?: number
           hidden_assets?: Json
           id?: string
+          intake_summary?: string | null
           investment?: Json
           investment_confirmed_at?: string | null
           investment_confirmed_by?: string | null
@@ -5082,6 +5084,7 @@ export type Database = {
           health_score?: number
           hidden_assets?: Json
           id?: string
+          intake_summary?: string | null
           investment?: Json
           investment_confirmed_at?: string | null
           investment_confirmed_by?: string | null
