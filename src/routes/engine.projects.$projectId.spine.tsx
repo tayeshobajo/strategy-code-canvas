@@ -573,7 +573,7 @@ function ProjectSpine() {
           projectId={projectId}
           versions={(versionsQ.data?.rows ?? []).map((v) => ({
             id: v.id,
-            label: v.label ?? null,
+            label: v.version ?? null,
             status: v.status ?? "draft",
             created_at: v.created_at ?? new Date().toISOString(),
             approved_at: v.approved_at ?? null,
