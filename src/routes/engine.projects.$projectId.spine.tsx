@@ -792,12 +792,6 @@ function ProjectSpine() {
         <SpineClientReadyBody spine={spine} projectId={projectId} />
       )}
         </div>
-        <SpineRightRail
-          spine={spine}
-          projectId={projectId}
-          pendingApprovals={pendingApprovalsCount}
-        />
-      </div>
 
       <AskCaptainModal
 
