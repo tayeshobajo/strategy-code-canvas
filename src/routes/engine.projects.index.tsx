@@ -535,8 +535,35 @@ function ProjectsTable({ rows }: { rows: EngineProjectRow[] }) {
 
 function ProjectRow({ r }: { r: EngineProjectRow }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const deleteFn = useServerFn(deleteProject);
+  const qc = useQueryClient();
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      `Delete project "${r.name}"?\n\nThis permanently removes the project, its milestones, sources, chat, artifacts, and any linked client portal. This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    setMenuOpen(false);
+    setDeleting(true);
+    try {
+      await deleteFn({ data: { projectId: r.id } });
+      toast.success(`Deleted "${r.name}"`);
+      await qc.invalidateQueries({ queryKey: ["engine", "projects"] });
+      await qc.invalidateQueries({ queryKey: ["engine", "command-center"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Delete failed");
+      setDeleting(false);
+    }
+  };
+
   return (
-    <tr className="border-b border-border/60 last:border-0 hover:bg-paper-soft align-top">
+    <tr
+      className={cn(
+        "border-b border-border/60 last:border-0 hover:bg-paper-soft align-top",
+        deleting && "opacity-50 pointer-events-none",
+      )}
+    >
       <td className="py-3 px-5">
         <Link
           to="/engine/projects/$projectId/overview"
@@ -622,6 +649,14 @@ function ProjectRow({ r }: { r: EngineProjectRow }) {
                     {r.next_critical_date.label}
                   </div>
                 )}
+                <div className="border-t border-border my-1" />
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="block w-full text-left px-3 py-1.5 text-[#a4283c] hover:bg-[#fdecef]"
+                >
+                  Delete project…
+                </button>
               </div>
             )}
           </div>
@@ -630,6 +665,7 @@ function ProjectRow({ r }: { r: EngineProjectRow }) {
     </tr>
   );
 }
+
 
 function TablePager({
   total,
