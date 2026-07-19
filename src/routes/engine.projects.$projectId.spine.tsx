@@ -3582,6 +3582,45 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+/**
+ * Point A/B card summary: a single short sentence pulled from the
+ * richest available field, so both cards start with the same
+ * structural cell instead of leading with bullets.
+ */
+function derivePointSummary(
+  record: Record<string, unknown> | null,
+  point: "A" | "B",
+): string | null {
+  if (!record) return null;
+  const keys =
+    point === "A"
+      ? ["summary", "description", "key_diagnosis", "current_state", "challenges"]
+      : ["summary", "description", "24_month_destination", "destination", "vision", "goal"];
+  for (const k of keys) {
+    const v = record[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return null;
+}
+
+/**
+ * "What changed" cell: most recent activity row related to this point.
+ * Falls back to null when no relevant signal exists.
+ */
+function derivePointWhatChanged(
+  activity: ReadonlyArray<{ title?: string | null; created_at?: string | null; area?: string | null }>,
+  point: "A" | "B",
+): string | null {
+  const needle = point === "A" ? /point[-_ ]?a|current reality|diagnosis/i : /point[-_ ]?b|destination|desired future/i;
+  const hit = activity.find((a) => {
+    const t = (a.title ?? "") + " " + (a.area ?? "");
+    return needle.test(t);
+  });
+  if (!hit?.title) return null;
+  const when = hit.created_at ? new Date(hit.created_at).toLocaleDateString() : null;
+  return when ? `${hit.title} · ${when}` : hit.title;
+}
+
 function hasMeaningfulValue(value: unknown): boolean {
   if (value == null) return false;
   if (typeof value === "string") return value.trim().length > 0;
