@@ -1112,5 +1112,53 @@ export const listRecentIntakeFailures = createServerFn({ method: "GET" })
   });
 
 
+/* ============================================================
+ * deleteProject — hard delete a project + portal linkage.
+ * Admin-only. Most sibling tables cascade on engine_projects
+ * deletion; the portal shell (client_portal_projects /
+ * client_portal_permissions) does not, so we clean it up first
+ * through the service role.
+ * ============================================================ */
 
+export const deleteProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ projectId: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    const email = ((context as any).claims?.email as string | undefined) ?? undefined;
+    const sb = (context as any).supabase;
+    const isAdmin = await hasRoleForEmail(sb, email, "admin");
+    if (!isAdmin) throw new Error("Forbidden: admin role required to delete a project");
+
+    // Look up portal linkage before the project row is gone.
+    const { data: proj, error: readErr } = await sb
+      .from("engine_projects")
+      .select("id, name, client_portal_project_id")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (readErr) throwGeneric(readErr, "delete project failed (lookup)");
+    if (!proj) throw new Error("Project not found");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (proj.client_portal_project_id) {
+      await supabaseAdmin
+        .from("client_portal_permissions")
+        .delete()
+        .eq("project_id", proj.client_portal_project_id);
+      await supabaseAdmin
+        .from("client_portal_projects")
+        .delete()
+        .eq("id", proj.client_portal_project_id);
+    }
+
+    const { error: delErr } = await supabaseAdmin
+      .from("engine_projects")
+      .delete()
+      .eq("id", data.projectId);
+    if (delErr) throwGeneric(delErr, "delete project failed");
+
+    return { ok: true as const, id: data.projectId, name: proj.name ?? null };
+  });
 
