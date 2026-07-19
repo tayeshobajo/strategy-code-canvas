@@ -27,6 +27,7 @@ import { LatestAmendmentsPanel } from "@/components/engine/LatestAmendmentsPanel
 import { DriftSummaryPanel } from "@/components/engine/DriftSummaryPanel";
 import { AiPmStatusChip } from "@/components/engine/spine/AiPmStatusChip";
 import { RunAiPmButton } from "@/components/engine/spine/RunAiPmButton";
+import { PmMemoryDrawer } from "@/components/engine/spine/PmMemoryDrawer";
 import { useAutoPmRun } from "@/hooks/use-auto-pm-run";
 import {
   Lock,
