@@ -259,6 +259,8 @@ export async function computeProjectCeremonyStatus(
         qualifiedEntries.length > 0
           ? `${qualifiedEntries.length} milestone(s) qualified`
           : `${Object.keys(mq).length} in progress`,
+      roadmap_version_id: null,
+      drafted_by_email: null,
     },
     {
       key: "roadmap_v01",
@@ -281,6 +283,8 @@ export async function computeProjectCeremonyStatus(
         : latest
           ? `Latest: ${latest.label ?? latest.id.slice(0, 6)} (${latest.status})`
           : null,
+      roadmap_version_id: firstApproved ? null : (latest?.id ?? null),
+      drafted_by_email: null,
     },
   ];
 
