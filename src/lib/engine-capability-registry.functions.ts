@@ -124,6 +124,39 @@ export async function loadCapabilityMenuVersion(sb: any): Promise<string> {
   return v ?? CAPABILITY_MENU_VERSION;
 }
 
+/**
+ * Seed the capability registry from CAPABILITY_MENU when the table is
+ * empty. Safe to call on every intake — becomes a no-op once seeded.
+ * Returns the number of rows inserted.
+ */
+export async function seedCapabilityRegistryIfEmpty(sb: any): Promise<number> {
+  const existing = await tryReadRegistry(sb);
+  if (existing === null) return 0; // table missing; fallback already handles it
+  if (existing.length > 0) return 0;
+
+  const rows = CAPABILITY_MENU.map((c) => ({
+    capability_id: c.id,
+    version: 1,
+    label: c.label,
+    category: c.category,
+    execution_mode: c.execution_mode,
+    description: c.description,
+    created_by_email: null,
+    retired_at: null,
+  }));
+
+  const { error } = await sb
+    .from("engine_capability_registry")
+    .upsert(rows, { onConflict: "capability_id,version" });
+  if (error) {
+    if (isMissingTable(error)) return 0;
+    throw new Error(error.message ?? "Failed to seed capability registry");
+  }
+
+  await bumpMenuVersion(sb);
+  return rows.length;
+}
+
 // ---------- Server functions ----------
 
 export const listCapabilityMenu = createServerFn({ method: "GET" })
