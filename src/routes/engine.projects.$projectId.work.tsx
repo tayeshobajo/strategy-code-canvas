@@ -559,6 +559,9 @@ function MilestoneExecutionCard({
           </div>
           <h3 className="font-medium text-ink text-base truncate">{m.name}</h3>
           <p className="text-xs text-ink/60 mt-1 line-clamp-2">{m.outcome}</p>
+          <div className="mt-1.5">
+            <AiDraftStateBadge state={m.ai_draft_state} />
+          </div>
         </div>
         <span
           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium shrink-0 ${health.className}`}
@@ -567,6 +570,7 @@ function MilestoneExecutionCard({
           {health.label}
         </span>
       </header>
+
 
       <GateStrip gates={m.gates} current={m.current_gate} />
 
