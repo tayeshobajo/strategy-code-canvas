@@ -687,6 +687,20 @@ export function deriveProjectWork(inputs: WorkViewInputs): ProjectWorkReadModel 
       packets.find((p) => (p.payload as { expected_artifact?: string } | null)?.expected_artifact)
         ?.payload as { expected_artifact?: string } | undefined;
 
+    const criteriaTexts = toStrList(m.acceptance_criteria);
+    const briefText = (m.brief_md ?? "").trim();
+    const briefIsFiller = briefText.length === 0 || briefText.startsWith("Draft for review:");
+    const criteriaIsFiller = criteriaTexts.some(
+      (t) => t.startsWith("Confirm ") && t.endsWith("meets the intake-defined outcome."),
+    );
+    const aiDraftState: MilestoneAiDraftState =
+      briefText.length === 0 && criteriaTexts.length === 0
+        ? "none"
+        : briefIsFiller || criteriaIsFiller || criteriaTexts.length < 3
+          ? "baseline"
+          : "enriched";
+
+
     milestones.push({
       id: m.id,
       name: m.name,
