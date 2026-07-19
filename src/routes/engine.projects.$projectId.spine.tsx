@@ -463,7 +463,7 @@ function ProjectSpine() {
         />
         <div className="space-y-4">
           <LatestAmendmentsPanel projectId={projectId} />
-          <DriftSummaryPanel projectId={projectId} />
+          <DriftSummaryPanel projectId={projectId} executionActive={executionActive} />
           <RailCard
             title="Active Agents"
             action={<RailLinkAction to="/engine/projects/$projectId/agent" params={{ projectId }} label="View all" />}
