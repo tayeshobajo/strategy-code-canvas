@@ -14,14 +14,14 @@ export function NarrativeHeader({
         </div>
       </div>
       <h1
-        className="max-w-4xl text-[56px] font-normal leading-[1.02] tracking-[-0.02em] text-[#0A0F1F]"
+        className="text-[56px] font-normal leading-[1.02] tracking-[-0.02em] text-[#0A0F1F]"
         style={{ fontFamily: "'Instrument Serif', ui-serif, Georgia, serif" }}
       >
         {title}
       </h1>
       {subtitle ? (
         <p
-          className="max-w-2xl text-[17px] leading-[1.55] text-[#3f4a5e]"
+          className="text-[17px] leading-[1.55] text-[#3f4a5e]"
           style={{ fontFamily: "'Instrument Serif', ui-serif, Georgia, serif" }}
         >
           {subtitle}
