@@ -1,7 +1,13 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import {
+  isEnrichmentRunning,
+  runEnrichmentInBackground,
+  subscribeEnrichment,
+} from "@/lib/engine-milestone-enrichment-status";
+
 import { z } from "zod";
 import {
   Wrench,
