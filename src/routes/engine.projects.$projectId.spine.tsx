@@ -230,6 +230,17 @@ function ProjectSpine() {
     staleTime: 30_000,
   });
 
+  // Proactively run the AI Product Manager when Spine readiness < 100%.
+  // Cooldown + in-flight guards live in engine-pm-status so we don't spam
+  // credits when this component remounts.
+  const readinessResult = readinessQ.data?.result;
+  const readinessRatio =
+    readinessResult && readinessResult.total > 0
+      ? readinessResult.passed / readinessResult.total
+      : null;
+  useAutoPmRun({ projectId, readinessRatio });
+
+
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<ModuleCategoryFilter>("all");
   const [moduleSort, setModuleSort] = useState<ModuleSort>("readiness");
