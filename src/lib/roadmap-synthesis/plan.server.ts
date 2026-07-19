@@ -42,6 +42,10 @@ type ProjectSnapshot = {
   hidden_assets: unknown;
   sequencing: unknown;
   investment: Record<string, unknown> | null;
+  truth_spines: string[];
+  has_milestones: boolean;
+  milestones_have_due_dates: boolean;
+  approved_roadmap_has_phase_rationale: boolean;
 };
 
 type StepStateRow = {
@@ -179,12 +183,31 @@ function mapPersistedState(raw: string): SynthesisStepView["state"] {
 }
 
 async function loadProjectSnapshot(sb: Sb, projectId: string): Promise<ProjectSnapshot> {
-  const { data } = await sb
-    .from("engine_projects")
-    .select("point_a, point_b, blueprint, gap_map, hidden_assets, sequencing, investment")
-    .eq("id", projectId)
-    .single();
-  return (data ?? {
+  const [projectRes, truthRes, milestoneRes, roadmapRes] = await Promise.all([
+    sb
+      .from("engine_projects")
+      .select("point_a, point_b, blueprint, gap_map, hidden_assets, sequencing, investment")
+      .eq("id", projectId)
+      .single(),
+    sb
+      .from("engine_spine_field_truth")
+      .select("spine, status")
+      .eq("project_id", projectId),
+    sb
+      .from("engine_milestones")
+      .select("id, status, due_date")
+      .eq("project_id", projectId),
+    sb
+      .from("engine_roadmap_versions")
+      .select("payload, approved_at, created_at")
+      .eq("project_id", projectId)
+      .not("approved_at", "is", null)
+      .order("approved_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const project = projectRes.data ?? {
     point_a: null,
     point_b: null,
     blueprint: null,
@@ -192,7 +215,29 @@ async function loadProjectSnapshot(sb: Sb, projectId: string): Promise<ProjectSn
     hidden_assets: null,
     sequencing: null,
     investment: null,
-  }) as ProjectSnapshot;
+  };
+  const truthSpines = new Set<string>();
+  for (const row of (truthRes.data ?? []) as Array<{ spine: string; status: string }>) {
+    if (["assumed", "verified", "approved_truth"].includes(row.status)) truthSpines.add(row.spine);
+  }
+  const milestones = ((milestoneRes.data ?? []) as Array<{ id: string; status: string | null; due_date: string | null }>).filter(
+    (m) => m.status !== "cancelled" && m.status !== "dropped",
+  );
+  const payload = (roadmapRes.data?.payload ?? {}) as Record<string, any>;
+  const phases = (Array.isArray(payload.phases)
+    ? payload.phases
+    : Array.isArray(payload.roadmap?.phases)
+      ? payload.roadmap.phases
+      : []) as Array<any>;
+
+  return {
+    ...(project as Omit<ProjectSnapshot, "truth_spines" | "has_milestones" | "milestones_have_due_dates" | "approved_roadmap_has_phase_rationale">),
+    truth_spines: Array.from(truthSpines),
+    has_milestones: milestones.length > 0,
+    milestones_have_due_dates: milestones.length > 0 && milestones.every((m) => Boolean(m.due_date)),
+    approved_roadmap_has_phase_rationale:
+      phases.length > 0 && phases.every((p) => typeof p?.rationale === "string" && p.rationale.trim().length > 0),
+  };
 }
 
 async function loadStepStateRows(sb: Sb, projectId: string): Promise<StepStateRow[]> {
@@ -248,14 +293,15 @@ function hasExistingArtifact(step: SynthesisStepId, s: ProjectSnapshot): boolean
     case "point_b":
       return !isBlank(s.point_b);
     case "truth_blueprint":
-      return !isBlank(s.blueprint);
+      return s.truth_spines.includes("blueprint") || s.truth_spines.includes("approved-scope") || !isBlank(s.blueprint);
     case "truth_gaps":
+      return s.truth_spines.includes("gap-map") || !isBlank(s.gap_map);
     case "truth_constraints":
-      return !isBlank(s.gap_map);
+      return s.truth_spines.includes("constraints-risks") || !isBlank(s.gap_map);
     case "truth_assets":
-      return !isBlank(s.hidden_assets);
+      return s.truth_spines.includes("assets-leverage") || s.truth_spines.includes("hidden-assets") || !isBlank(s.hidden_assets);
     case "truth_sequencing":
-      return !isBlank(s.sequencing);
+      return s.truth_spines.includes("sequencing") || s.truth_spines.includes("milestone-readiness") || !isBlank(s.sequencing);
     case "investment_note": {
       const inv = (s.investment ?? {}) as Record<string, unknown>;
       const phases = Array.isArray((inv as { phases?: unknown }).phases)
@@ -267,13 +313,12 @@ function hasExistingArtifact(step: SynthesisStepId, s: ProjectSnapshot): boolean
         (inv as { range_low_usd?: unknown }).range_low_usd != null
       );
     }
-    // milestones / dates / rationale can't be reliably derived without extra
-    // queries; treat as missing so plan surfaces them for repair. The
-    // orchestrator's real runner will no-op when it finds them present.
     case "milestones":
+      return s.has_milestones;
     case "milestone_dates":
+      return s.milestones_have_due_dates;
     case "phase_rationale":
-      return false;
+      return s.approved_roadmap_has_phase_rationale;
   }
 }
 
