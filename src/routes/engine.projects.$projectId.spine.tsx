@@ -391,18 +391,29 @@ function ProjectSpine() {
         />
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-8">
-        <div className="min-w-0 space-y-6">
+      <div className="min-w-0 space-y-6">
 
       {variant === "active" ? (
         <>
 
-      {/* ───── First viewport: NBA + Captain Intelligence ───── */}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] xl:gap-6">
+      {/* ───── First viewport: NBA + Snapshot + Captain Intelligence + Sidebar ───── */}
+      <div className="grid gap-4 xl:grid-cols-4 xl:items-start">
         <HeroNextBestActionCard
           nba={spine.nba}
           nextMilestone={nextMilestone ?? null}
           projectId={projectId}
+        />
+        <ProjectSnapshotCard
+          project={spine.project}
+          version={spine.version}
+          pendingApprovals={pendingApprovalsCount}
+          blockedItems={blockedItemsCount}
+          approvedMilestones={approvedMilestoneCount}
+          totalMilestones={spine.milestones.length}
+          nextMilestoneDue={nextMilestone?.due_date ?? null}
+          healthScore={spine.project.health_score}
+          ownerEmail={spine.project.client_owner_email}
+          portalPublish={spine.portal_publish}
         />
         <CaptainIntelligencePanel
           whatChanged={
@@ -419,21 +430,17 @@ function ProjectSpine() {
           }
           recommendation={spine.nba.action}
         />
+        <div className="space-y-4">
+          <LatestAmendmentsPanel projectId={projectId} />
+          <DriftSummaryPanel projectId={projectId} />
+          <RailCard
+            title="Active Agents"
+            action={<RailLinkAction to="/engine/projects/$projectId/agent" params={{ projectId }} label="View all" />}
+          >
+            <ActiveAgentsLive projectId={projectId} />
+          </RailCard>
+        </div>
       </div>
-
-      {/* ───── Snapshot (secondary, kept for operator reference) ───── */}
-      <ProjectSnapshotCard
-        project={spine.project}
-        version={spine.version}
-        pendingApprovals={pendingApprovalsCount}
-        blockedItems={blockedItemsCount}
-        approvedMilestones={approvedMilestoneCount}
-        totalMilestones={spine.milestones.length}
-        nextMilestoneDue={nextMilestone?.due_date ?? null}
-        healthScore={spine.project.health_score}
-        ownerEmail={spine.project.client_owner_email}
-        portalPublish={spine.portal_publish}
-      />
 
       {/* ───── Mirrored Point A / Point B ───── */}
       <div className="grid gap-4 lg:grid-cols-2">
