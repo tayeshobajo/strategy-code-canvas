@@ -1,13 +1,18 @@
 /**
  * Explicit roadmap approval card for the Spine approvals column.
  *
- * Replaces the generic "Review pending" line for the roadmap baseline
- * with an actionable brief: why it matters, what it unlocks, owner,
- * due date, impact, and what happens after approval.
+ * Provides three actions in one place:
+ *  - Approve v0.1 (baseline)  — via `onApprove` (parent owns the mutation)
+ *  - Compare versions          — via `onCompare` (parent opens the modal)
+ *  - Post-approval confirmation state that swaps in when `justApprovedAt`
+ *    is set, so operators get immediate visual proof the baseline flipped
+ *    to approved even before the next refetch settles.
+ *
+ * Presentational-only otherwise; all writes go through the parent so the
+ * spine cache invalidation stays in one place.
  */
 
-import { Link } from "@tanstack/react-router";
-import { ArrowRight, FileCheck2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, FileCheck2, GitBranch, Loader2 } from "lucide-react";
 import { formatDate } from "@/components/engine/primitives";
 
 export type RoadmapApprovalCardProps = {
@@ -17,18 +22,89 @@ export type RoadmapApprovalCardProps = {
   ownerEmail: string | null;
   dueDate: string | null;
   milestoneCount: number;
+  approving?: boolean;
+  onApprove?: () => void;
+  onCompare?: () => void;
+  /** ISO timestamp set by the parent right after a successful approve. */
+  justApprovedAt?: string | null;
+  approvedBy?: string | null;
 };
 
 export function RoadmapApprovalCard({
-  projectId,
+  projectId: _projectId,
   versionLabel,
   status,
   ownerEmail,
   dueDate,
   milestoneCount,
+  approving = false,
+  onApprove,
+  onCompare,
+  justApprovedAt = null,
+  approvedBy = null,
 }: RoadmapApprovalCardProps) {
   const label = versionLabel ?? "v0.1";
   const isProposed = status === "proposed";
+  const isApproved = status === "approved" || Boolean(justApprovedAt);
+
+  if (isApproved) {
+    return (
+      <section
+        id="spine-roadmap-approval"
+        className="relative overflow-hidden rounded-2xl border border-[#bfe4ce] bg-[#eef8f2] p-5 shadow-sm"
+      >
+        <span
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#1f6b3b] via-[#3E68B2] to-[#34C4EB]"
+        />
+        <div className="flex items-start gap-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#1f6b3b] text-white ring-4 ring-white">
+            <CheckCircle2 className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="font-mono text-[9.5px] font-medium uppercase tracking-[0.32em] text-[#1f6b3b]">
+              Baseline approved
+            </div>
+            <h3
+              className="mt-0.5 text-[20px] leading-tight tracking-[-0.01em] text-[#0A0F1F]"
+              style={{ fontFamily: "'Instrument Serif', ui-serif, Georgia, serif" }}
+            >
+              Roadmap {label} is now the baseline
+            </h3>
+            <p className="mt-1 text-[13px] leading-[1.55] text-[#3f4a5e]">
+              Milestone planning, qualification, and client publishing are
+              unlocked. All future changes flow through amendments against
+              this baseline.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <Meta
+                label="Approved"
+                value={
+                  justApprovedAt
+                    ? formatDate(justApprovedAt)
+                    : "Just now"
+                }
+              />
+              <Meta label="Approver" value={approvedBy ?? ownerEmail ?? "You"} />
+              <Meta label="Milestones locked" value={String(milestoneCount)} />
+            </div>
+            {onCompare && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={onCompare}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#cdd6f3] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3E68B2] hover:bg-[#eef3fd]"
+                >
+                  <GitBranch className="h-3 w-3" /> Compare versions
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       id="spine-roadmap-approval"
@@ -82,23 +158,32 @@ export function RoadmapApprovalCard({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
-        <Link
-          to="/engine/projects/$projectId/roadmap"
-          params={{ projectId }}
-          search={{ view: "journey" as const }}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#0A0F1F] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1a2544]"
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onApprove}
+          disabled={approving || !onApprove}
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#0A0F1F] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1a2544] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Review &amp; approve <ArrowRight className="h-3 w-3" />
-        </Link>
-        <Link
-          to="/engine/projects/$projectId/roadmap"
-          params={{ projectId }}
-          search={{ view: "table" as const }}
-          className="inline-flex items-center gap-1 text-[12px] font-medium text-[#3E68B2] hover:text-[#284f93]"
-        >
-          Compare versions
-        </Link>
+          {approving ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" /> Approving…
+            </>
+          ) : (
+            <>
+              Approve {label} <ArrowRight className="h-3 w-3" />
+            </>
+          )}
+        </button>
+        {onCompare && (
+          <button
+            type="button"
+            onClick={onCompare}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#cdd6f3] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3E68B2] hover:bg-[#eef3fd]"
+          >
+            <GitBranch className="h-3 w-3" /> Compare versions
+          </button>
+        )}
       </div>
     </section>
   );
