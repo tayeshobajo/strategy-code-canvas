@@ -28,6 +28,13 @@ function toList(v: unknown): Array<{ text: string; done?: boolean }> {
     .filter((x) => x.text.trim().length > 0);
 }
 
+/**
+ * Fast path: writes deterministic baseline briefs + acceptance criteria +
+ * approval for every milestone that needs them. Contains NO AI calls, so
+ * it returns in a few hundred milliseconds and the Work page can open
+ * immediately after the client invalidates its query. AI polish happens
+ * separately via `enrichMilestoneAcceptanceCriteria` below.
+ */
 export const draftMilestoneAcceptanceCriteria = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => input.parse(raw))
@@ -40,7 +47,7 @@ export const draftMilestoneAcceptanceCriteria = createServerFn({ method: "POST" 
 
     const { data: project, error: projectErr } = await sb
       .from("engine_projects")
-      .select("id,name,point_a,point_b,blueprint,gap_map,hidden_assets,roadmap,sequencing")
+      .select("id,name")
       .eq("id", data.projectId)
       .single();
     if (projectErr || !project) throw new Error(projectErr?.message ?? "Project not found");
@@ -54,10 +61,8 @@ export const draftMilestoneAcceptanceCriteria = createServerFn({ method: "POST" 
     const milestones = (msRows ?? []) as Array<{
       id: string;
       name: string;
-      phase: string | null;
       status: string | null;
       approval_status: string | null;
-      sort_index: number;
       brief_md: string | null;
       acceptance_criteria: unknown;
     }>;
@@ -72,15 +77,9 @@ export const draftMilestoneAcceptanceCriteria = createServerFn({ method: "POST" 
       });
 
     if (targets.length === 0) {
-      return { ok: true as const, drafted: 0, approved: 0, ai_enriched: 0 };
+      return { ok: true as const, drafted: 0, approved: 0, needs_enrichment: false };
     }
 
-    // ---------------------------------------------------------------
-    // Step 1 — write deterministic defaults FIRST so the Work gate opens
-    // even if the AI call fails or times out. Every target milestone gets
-    // a baseline brief, 3 acceptance criteria, and approval so Work can
-    // start. The AI enrichment in step 2 refines this content in place.
-    // ---------------------------------------------------------------
     const now = new Date().toISOString();
     let drafted = 0;
     let approved = 0;
@@ -124,13 +123,66 @@ export const draftMilestoneAcceptanceCriteria = createServerFn({ method: "POST" 
       }
     }
 
-    // ---------------------------------------------------------------
-    // Step 2 — best-effort AI enrichment. Runs after defaults have
-    // already been persisted, so any failure here (timeout, JSON parse,
-    // rate limit) leaves the Work page fully populated. AI drafts
-    // replace the baseline text per-milestone as they arrive.
-    // ---------------------------------------------------------------
-    let aiEnriched = 0;
+    await sb.from("engine_activity").insert({
+      project_id: data.projectId,
+      kind: "milestone_ai_draft",
+      title: `AI Product Manager drafted acceptance criteria on ${drafted} milestone${drafted === 1 ? "" : "s"}`,
+      body: `${approved} milestone${approved === 1 ? "" : "s"} auto-approved so Work can open. AI polish runs next.`,
+      severity: "info",
+      actor_email: actorEmail,
+    });
+
+    return { ok: true as const, drafted, approved, needs_enrichment: true };
+  });
+
+/**
+ * Slow path: AI polish. Refines briefs + acceptance criteria in place for
+ * milestones that still look like the baseline filler. Safe to fire in the
+ * background from the client after the fast path resolves — any failure
+ * (timeout, JSON parse, rate limit) leaves the deterministic defaults intact.
+ */
+export const enrichMilestoneAcceptanceCriteria = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => input.parse(raw))
+  .handler(async ({ context, data }) => {
+    const sb: Sb = (context as any).supabase;
+    const email = ((context as any).claims?.email as string | undefined) ?? undefined;
+    const isAdmin = await hasRoleForEmail(sb, email, "admin");
+    if (!isAdmin) throw new Error("Forbidden: admin role required");
+
+    const { data: project } = await sb
+      .from("engine_projects")
+      .select("id,name,point_a,point_b,blueprint,gap_map,hidden_assets,sequencing")
+      .eq("id", data.projectId)
+      .single();
+    if (!project) return { ok: true as const, enriched: 0 };
+
+    const { data: msRows } = await sb
+      .from("engine_milestones")
+      .select("id,name,phase,brief_md,acceptance_criteria,status")
+      .eq("project_id", data.projectId)
+      .order("sort_index", { ascending: true });
+
+    const milestones = ((msRows ?? []) as Array<{
+      id: string;
+      name: string;
+      phase: string | null;
+      brief_md: string | null;
+      acceptance_criteria: unknown;
+      status: string | null;
+    }>).filter((m) => (m.status ?? "").toLowerCase() !== "cancelled" && (m.status ?? "").toLowerCase() !== "dropped");
+
+    // Only enrich milestones whose current brief/criteria still look like the
+    // baseline "Draft for review:" filler.
+    const targets = milestones.filter((m) => {
+      const briefIsFiller = !m.brief_md || m.brief_md.trim().startsWith("Draft for review:");
+      const accTexts = toList(m.acceptance_criteria).map((a) => a.text);
+      const accIsFiller = accTexts.some((t) => t.startsWith("Confirm ") && t.endsWith("meets the intake-defined outcome."));
+      return briefIsFiller || accIsFiller;
+    });
+    if (targets.length === 0) return { ok: true as const, enriched: 0 };
+
+    let enriched = 0;
     try {
       const { callLovableAiWithFallback, parseJsonOutput } = await import(
         "@/lib/engine-ai.server"
@@ -161,8 +213,8 @@ export const draftMilestoneAcceptanceCriteria = createServerFn({ method: "POST" 
           {
             role: "user",
             content: `For each milestone below, produce:
-- brief: one short paragraph (60 to 140 words). Preserve existing brief if non-empty.
-- acceptance: 3 to 5 observable, testable criteria that a reviewer could check. Preserve existing criteria if any and extend to reach at least 3.
+- brief: one short paragraph (60 to 140 words).
+- acceptance: 3 to 5 observable, testable criteria that a reviewer could check.
 
 Return JSON only:
 {"milestones":[{"id":"","brief":"","acceptance":["",""]}]}
@@ -181,8 +233,6 @@ ${JSON.stringify(asked).slice(0, 25_000)}`,
       }>(ai.text) ?? {};
       for (const row of parsed.milestones ?? []) {
         if (!row?.id) continue;
-        const target = targets.find((t) => t.id === row.id);
-        if (!target) continue;
         const brief = typeof row.brief === "string" ? row.brief.trim() : "";
         const acc = Array.isArray(row.acceptance)
           ? row.acceptance
@@ -192,28 +242,16 @@ ${JSON.stringify(asked).slice(0, 25_000)}`,
               .map((text) => ({ text, done: false }))
           : [];
         const patch: Record<string, unknown> = {};
-        if (brief.length >= 20 && (!target.brief_md || target.brief_md.trim().length < 20)) {
-          patch.brief_md = brief;
-        }
-        if (acc.length >= 3) {
-          patch.acceptance_criteria = acc;
-        }
+        if (brief.length >= 20) patch.brief_md = brief;
+        if (acc.length >= 3) patch.acceptance_criteria = acc;
         if (Object.keys(patch).length === 0) continue;
         const { error } = await sb.from("engine_milestones").update(patch).eq("id", row.id);
-        if (!error) aiEnriched++;
+        if (!error) enriched++;
       }
     } catch {
-      // Swallow — defaults already persisted, Work is unblocked.
+      // Baseline defaults remain; caller ignores errors here.
     }
 
-    await sb.from("engine_activity").insert({
-      project_id: data.projectId,
-      kind: "milestone_ai_draft",
-      title: `AI Product Manager drafted acceptance criteria on ${drafted} milestone${drafted === 1 ? "" : "s"}`,
-      body: `${approved} milestone${approved === 1 ? "" : "s"} auto-approved so Work can open. ${aiEnriched} enriched by AI. Criteria remain reviewable.`,
-      severity: "info",
-      actor_email: actorEmail,
-    });
-
-    return { ok: true as const, drafted, approved, ai_enriched: aiEnriched };
+    return { ok: true as const, enriched };
   });
+
