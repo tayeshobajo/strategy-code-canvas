@@ -1,95 +1,50 @@
-# Project Spine — Path to 10/10
+# AI Product Manager: proactive, always-on Spine ownership
 
-Goal: make every element on `/engine/projects/$id/spine` coherent, decision-oriented, and explainable. No new "cards for cards' sake" — fix the state contradictions first, then tighten the surfaces we keep.
+Right now the AI PM only runs when you click "AI: Fill Spine from intake" or "AI: Draft acceptance criteria". You have to prompt it. This plan makes it act like a real product manager — always aware of what's incomplete, always drafting the next artifact, and always surfacing what changed so you can review and adjust.
 
-## Scope
+## What changes for you
 
-Frontend + read-model only. No schema migrations. Server functions extended read-side (derived state, explanations); no doctrine changes to existing tables.
+1. **Auto-run on project load.** When a Spine is below 100%, the PM starts filling in the background — no button click. You see a small "AI PM drafting…" chip in the right rail with the current step.
+2. **New-information watcher.** When intake, sources, or signals change, the PM detects the delta and re-drafts only the affected fields (using the existing materiality classifier). It posts a note in Captain Intelligence: "New intelligence detected — re-drafting Point B and 2 milestone briefs."
+3. **Every field editable inline.** Point A/B summary, truths, confidence, sources; Strategic Thesis; World Entry; Execution Boundary; milestone briefs & acceptance criteria. Click a field → edit → save. Persists through the existing `proposeSpineFieldChange` audit trail.
+4. **Cream "recently updated" highlight.** Any field the PM (or a human) touched in the last 24h gets a soft cream background + a small "Updated by AI PM · 3m ago" caption. Highlight fades after you open/acknowledge it.
+5. **PM answers questions.** A "Ask the PM about this field" affordance next to each block opens the existing Ask Captain modal pre-scoped to that field's context.
 
-## 1. Fix the state contradictions (highest priority)
+## How it works technically
 
-**a. Project phase machine — single source of truth**
-- Add `derivePhase(spine)` in `src/lib/spine-variant.ts` returning one of: `Understanding → Spine Review → Roadmap Draft → Roadmap Approval → Planning → Execution → QA → Client Preview → Delivery`.
-- Rules: cannot be past `Roadmap Approval` while roadmap `version.status !== 'approved'`; cannot be `Client Preview` unless portal is published AND ≥1 milestone approved.
-- Expose `phase`, `phase_reason` on `spine.view`; use it everywhere the page currently reads `status` / `current phase`.
+**Cream token** — add `--color-updated-cream` and `--color-updated-cream-border` to `@theme` in `src/styles.css` (uses the existing brand cream from the marketing site so it's on-token), plus a `.field-recently-updated` utility with a 24h-driven class.
 
-**b. Progress % — explainable or gone**
-- Replace the 93% pill with a computed `Spine readiness X/14` + `Milestones approved N/M` + `Roadmap: <state>`. Remove the opaque "Progress" and "Health 90" numbers unless they can be sourced from durable records; when Health is shown, it must open a "Why this score" popover listing contributing checks.
+**Auto-run orchestrator hook** — new `useAutoPmRun(projectId)` hook mounted on the Spine route. On mount and on query refetch:
+- Reads the readiness score from `getProjectSpine`.
+- If < 100% AND no run is in-flight AND no run completed in the last 5 min, fires the existing `runSynthesis` in `repair` mode.
+- Uses the existing `subscribeEnrichment`-style module registry so multiple components share one in-flight run.
 
-**c. Strategic Thesis gate**
-- If `getStrategicThesis().current?.status !== 'approved'` AND roadmap has been activated, show a blocking banner: "Strategic Thesis Required — roadmap should not be operational until the project's strategic bet is approved." Link to the thesis room + "AI: Draft thesis" action (existing endpoint).
-- Downgrade phase to `Roadmap Draft` in the derivation when thesis missing.
+**New-information watcher** — extend the existing "New intelligence detected" logic in `SynthesisPlanDrawer` to auto-trigger (not just offer a button) when the materiality classifier flags a source change as `material`. Debounced 30s so bursts collapse.
 
-## 2. Rework the above-the-fold
+**Field edit + persistence** — most fields already flow through `proposeSpineFieldChange`. Extend it to stamp `last_edited_at` and `last_edited_by` (`ai_pm` or user email) on `engine_spine_field_truth`. Milestone brief/criteria edits stamp `engine_milestones.updated_at` + a new `last_edited_by_email` column.
 
-Order (drop the rest below):
-1. **Project title + one-sentence definition** (≤160 chars). Move today's long paragraph into an accordion "Project brief" below Point B.
-2. **Identity strip** — trim to `Client · Phase · Roadmap vX · Portal · Last change`. Remove blank `Type`, remove duplicate `Project` cell.
-3. **Next Best Action (explicit)** — replace "Review 1 pending item" with:
-   - Title (e.g. "Approve Roadmap v0.1")
-   - Why it matters / Blocks / Owner / Due / Impact
-   - Derived from the highest-priority review item; fall back to a phase-appropriate default.
-4. **Project Snapshot** (facts only, no scores): Phase, Roadmap state, Spine readiness N/14, Milestones ready N/M, Open approvals, Portal, Last meaningful change.
-5. **Captain Intelligence** — rewrite prompt/derivation to output 4 fields: *What changed · What matters now · Recommendation · Watch for*. Must interpret, not restate queue counts. Add a "Regenerate" action.
-6. **Point A / Point B** — enforce symmetrical schema: `Summary · Key truths · Success measures · Confidence · Sources · Approval · What changed`. Trim Point B rendering to the same shape as Point A; use `extractPointBullets` cap at 4.
+**Recently-updated derivation** — pure client function `wasRecentlyUpdated(iso, byWhom)` returns `{ highlight: bool, caption: string }`. No new server calls; uses existing timestamps + the new `last_edited_by` field.
 
-## 3. Rename "intake" → real project identity
+**Ask PM about field** — thin wrapper around `AskCaptainModal` that pre-fills the prompt with `Explain the current draft for {field} and what evidence supports it.`
 
-- Add `deriveProjectDisplayName(project)` that prefers `project.name` when it's not "intake"/"Untitled", else composes `${client_company} ${frame ?? "Transformation"}`.
-- Show an inline "Rename project" affordance in the header for admins (calls existing update-project server fn if present; otherwise defer as follow-up).
+## Files touched (approx)
 
-## 4. Middle sections — make them decide-worthy
+- `src/styles.css` — cream token + `.field-recently-updated` utility.
+- `src/hooks/use-auto-pm-run.ts` — new; auto-runs synthesis when Spine < 100%.
+- `src/lib/engine-pm-status.ts` — new; shared in-flight registry (mirrors `engine-milestone-enrichment-status.ts`).
+- `src/components/engine/spine/RecentlyUpdated.tsx` — new; wraps a field, applies cream highlight, shows caption.
+- `src/components/engine/spine/EditableField.tsx` — new; inline edit primitive used by PointCard, StrategicThesisCard, DoctrineCards.
+- `src/components/engine/spine/PointCard.tsx`, `StrategicThesisCard.tsx`, `DoctrineCards.tsx`, `CaptainIntelligencePanel.tsx` — wrap fields in `RecentlyUpdated` + `EditableField`.
+- `src/routes/engine.projects.$projectId.spine.tsx` — mount `useAutoPmRun`, show "AI PM drafting…" chip.
+- `src/lib/engine-spine-truth.functions.ts` (or existing propose fn) — stamp `last_edited_at` / `last_edited_by`.
+- One migration in `.orchestrator/PENDING_MIGRATIONS.md` (per CLAUDE.md rule) — add `last_edited_by` column to `engine_spine_field_truth` and `last_edited_by_email` to `engine_milestones`. Not applied autonomously.
 
-**Business Roadmap preview**: for each phase show *why it exists* (rationale from `version.payload`), *what it unlocks* (next phase name), *current-phase pill*, *health dot*, *next milestone that matters*. Keep the strip visual; add rationale line.
+## Boundaries
 
-**Milestone Readiness (default view)**: switch default from full 21-row matrix to "Attention view" — top 5 milestones by (blocking × phase-proximity), columns `Milestone · Current gate · Health · Owner · Next move`. "View all" reveals the full matrix.
+- No auto-approval of AI-drafted content. The PM drafts and marks `ai` provenance; you approve via the existing UI. (Preserves the "no self-approval" doctrine.)
+- Auto-run is cost-guarded: max 1 run/5min per project, only when readiness < 100% or a material source arrived.
+- Migration is written to `.orchestrator/PENDING_MIGRATIONS.md`, not applied.
 
-**Latest Amendments → Material Changes**: rename panel; broaden source to include *Point A/B approved, roadmap version created, milestones generated, phase transitions* (read from `engine_activity` with a curated kind filter) in addition to `roadmap_amendment` rows.
+## Open question (one)
 
-**Execution Drift**: when no milestone is in execution, render explicit "Not active yet — monitoring begins once the first milestone enters execution." Do not show the green "no drift" state pre-execution.
-
-**Active Agents**: replace "runs in last window" with role coverage grid (Captain / AI PM / AI Proj Mgr / Designer / Developer / QA), each row: `assigned? · last run · required for phase`.
-
-**Operator Notifications**: hide the card entirely when list is empty (only render header bell dot).
-
-**Evidence & History accordion**: show real counts — Sources, Material Changes, Approvals, Agent Runs, Audit Events, Roadmap Versions.
-
-## 5. Add missing narrative cards (compact)
-
-- **World Entry summary card** — reads `getWorldEntry`: industry direction, category leaders reviewed count, key pattern (approved version only). Link to room.
-- **Execution Boundary summary** — reads `getExecutionBoundary`: two columns "Trust Tai owns / Client owns" (top 5 each). Link to room.
-- **Durable Assets** — derive from approved blueprint nodes + milestone deliverables; simple bulleted list.
-- **Health explainer** — replaces raw score with `Health: <label>` + *Why* bullets + *What improves health* single action.
-
-## 6. Files touched
-
-New:
-- `src/lib/spine-phase.ts` — `derivePhase`, `explainPhase`.
-- `src/components/engine/spine/NextBestActionCard.tsx` (explicit variant)
-- `src/components/engine/spine/ProjectSnapshotFacts.tsx`
-- `src/components/engine/spine/AttentionMilestones.tsx`
-- `src/components/engine/spine/WorldEntrySummaryCard.tsx`
-- `src/components/engine/spine/ExecutionBoundarySummaryCard.tsx`
-- `src/components/engine/spine/DurableAssetsCard.tsx`
-- `src/components/engine/spine/HealthExplainerCard.tsx`
-- `src/components/engine/spine/ThesisRequiredBanner.tsx`
-
-Modified:
-- `src/lib/spine-variant.ts` — export phase + counts on `spine.view`.
-- `src/lib/engine.functions.ts` (`getProjectSpine`) — join thesis status, wire derived phase, expose `last_material_change`.
-- `src/routes/engine.projects.$projectId.spine.tsx` — rewire ordering, replace pills, hide empty ops card.
-- `src/components/engine/spine/CaptainIntelligencePanel.tsx` — 4-field interpretive output.
-- `src/components/engine/spine/PointCard.tsx` — symmetrical schema (Point B trimmed).
-- `src/components/engine/LatestAmendmentsPanel.tsx` — rename + broaden source.
-- `src/components/engine/DriftSummaryPanel.tsx` — pre-execution empty state.
-
-## 7. Out of scope (call out, don't build)
-
-- Renaming a project persistently (needs update fn confirmation) — surfaced but deferred if endpoint missing.
-- Health score algorithm changes — we only add explainability around whatever the existing score is.
-- Any DB migration.
-
-## 8. Verification
-
-- Load current project (`cf21df7b…`): assert phase reads `Roadmap Review` (not Client Preview), thesis banner shown, NBA card names the specific pending approval, no green "no drift" state, no empty Operator Notifications card, Point A/B render identical structure.
-- `bunx tsgo` clean.
+**Auto-run trigger threshold** — should the PM auto-run on *every* Spine visit when < 100%, or only when readiness dropped or new intelligence arrived since your last visit? First is more proactive; second uses fewer credits. Default: second, with a manual "Run PM now" button always available.
