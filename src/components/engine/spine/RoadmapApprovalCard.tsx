@@ -94,7 +94,7 @@ export function RoadmapApprovalCard({
         <Link
           to="/engine/projects/$projectId/roadmap"
           params={{ projectId }}
-          search={{ view: "versions" as const }}
+          search={{ view: "table" as const }}
           className="inline-flex items-center gap-1 text-[12px] font-medium text-[#3E68B2] hover:text-[#284f93]"
         >
           Compare versions
