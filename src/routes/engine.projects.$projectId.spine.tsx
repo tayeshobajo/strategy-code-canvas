@@ -416,11 +416,15 @@ function ProjectSpine() {
 
 
       {/* ───── Header actions ───── */}
-      <SpinePageHeader
-        projectId={projectId}
-        pendingApprovalsCount={pendingApprovalsCount}
-        onAskCaptain={() => setAskCaptainOpen(true)}
-      />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <SpinePageHeader
+          projectId={projectId}
+          pendingApprovalsCount={pendingApprovalsCount}
+          onAskCaptain={() => setAskCaptainOpen(true)}
+        />
+        <AiPmStatusChip projectId={projectId} />
+      </div>
+
 
       {/* ───── Variant banner ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
