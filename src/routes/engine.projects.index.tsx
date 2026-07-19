@@ -238,6 +238,14 @@ function ProjectsPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setShowTrash(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card text-sm text-ink/80 hover:border-royal/50"
+            >
+              <Trash2 className="w-4 h-4" />
+              Trash
+            </button>
+            <button
+              type="button"
               onClick={() => setShowFilters((v) => !v)}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card text-sm text-ink/80 hover:border-royal/50"
             >
@@ -248,6 +256,7 @@ function ProjectsPage() {
               to="/engine/projects/new"
               className="bg-ink text-white px-4 py-2 rounded-md text-sm hover:bg-ink/90"
             >
+
               + New project
             </Link>
           </div>
