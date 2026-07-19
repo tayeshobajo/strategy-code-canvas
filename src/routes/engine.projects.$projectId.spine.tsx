@@ -79,7 +79,10 @@ import { NarrativeHeader } from "@/components/engine/spine/NarrativeHeader";
 import { CaptainIntelligencePanel } from "@/components/engine/spine/CaptainIntelligencePanel";
 import { PointCard } from "@/components/engine/spine/PointCard";
 import { StrategicThesisCard } from "@/components/engine/spine/StrategicThesisCard";
+import { ThesisRequiredBanner } from "@/components/engine/spine/ThesisRequiredBanner";
 import { extractPointBullets } from "@/lib/spine-coherence";
+import { derivePhase } from "@/lib/spine-phase";
+import { getStrategicThesis } from "@/lib/engine-strategic-thesis.functions";
 
 /**
  * Map the richer 7-tone `SpineStatusPresentation` palette onto the 5
