@@ -150,6 +150,14 @@ After step 7 readiness will read 100% and the Approve baseline banner will clear
 
 ---
 
+## Verified ceiling (2026‑07‑19 cakepro drive)
+
+Driven live against `/engine/projects/cf21df7b…/spine` as admin. Result: `Run AI PM now` finished cleanly but readiness stayed at **36% (5/14)**. Only `point-a` and `point-b` truth rows exist. The AI PM in `repair` mode will not seed `world-entry`, `execution-boundary`, or `strategic-thesis` — those spines require a human reviewer per doctrine. Steps 4–7 are non-optional; there is no path to 100% that skips them.
+
 ## Applying this to a new project
 
-For every new project, run the checklist top to bottom. The AI PM handles steps 1–2 autonomously; steps 3–7 require a human reviewer per doctrine (Second‑Reviewer Rule). If a step is blocked, the drawer will list the exact check id so you can trace it back to `SPINE_READINESS_CHECKS`.
+For every new project, run the checklist top to bottom. AI PM autonomously covers steps 1–2 (Point A, Point B, phase rationales, milestone seeding, blueprint/gap/asset assumptions). Steps 3–7 require a human ceremony each. To industrialize this:
+
+1. On intake, auto‑run step 1 (`fillMissingSpineDetailsFromIntake`) so every project lands at ~50% out of the gate.
+2. Queue a "Spine ceremony backlog" in the Approvals room listing the four required ceremonies per project (World Entry, Execution Boundary, Strategic Thesis, first milestone qualification) so operators know exactly what to run next.
+3. Only after all four ceremonies land does step 7 (Approve Roadmap v0.1) unlock. This is by design — the 14 canonical checks in `SPINE_READINESS_CHECKS` are the definition of "ready".
