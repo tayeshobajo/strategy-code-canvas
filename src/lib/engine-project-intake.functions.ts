@@ -495,24 +495,14 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       console.error("[intake-bridge] capability registry seed failed", e);
     }
 
-    // Auto-run the AI Product Manager (RT-1 synthesis, repair mode) so
-    // every new project lands with PM Memory populated and readiness
-    // driven as high as autonomous drafting allows before the operator
-    // opens the Spine. Repair mode never touches approved truth.
-    // Best-effort: never fail the intake if synthesis hiccups.
-    if (pipelineStatus !== "failed") {
-      try {
-        const { runSynthesis } = await import("@/lib/roadmap-synthesis/orchestrator.server");
-        await runSynthesis({
-          projectId,
-          supabase: sb,
-          actorEmail: actor,
-          mode: "repair",
-        });
-      } catch (e) {
-        console.error("[intake-bridge] auto AI PM run failed", e);
-      }
-    }
+    // NOTE: The AI Product Manager synthesis pass is intentionally NOT run
+    // here. Cloudflare Workers tear down when the response is sent, and
+    // synthesis can take tens of seconds to minutes — awaiting it blocks
+    // intake past worker CPU/wall-time limits and surfaces as a failed
+    // request even though the project was created. The client-side
+    // `useAutoPmRun` hook picks readiness < 100% up on first render of the
+    // Spine and triggers `runSynthesis` in "repair" mode from there.
+
 
     return {
       project_id: projectId,
