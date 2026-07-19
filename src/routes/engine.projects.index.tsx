@@ -395,9 +395,11 @@ function ProjectsPage() {
           </div>
         </div>
       </div>
+      {showTrash && <TrashDrawer onClose={() => setShowTrash(false)} />}
     </div>
   );
 }
+
 
 // ─── views rail ─────────────────────────────────────────────────────────────
 const VIEW_LABELS: Record<string, string> = {
