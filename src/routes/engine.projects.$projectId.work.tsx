@@ -1331,3 +1331,43 @@ function timeAgo(iso: string): string {
   const d = Math.round(h / 24);
   return `${d}d ago`;
 }
+
+function AiDraftStateBadge({ state }: { state: "none" | "baseline" | "enriched" }) {
+  if (state === "none") return null;
+  if (state === "baseline") {
+    return (
+      <span
+        title="Deterministic defaults only — AI polish pending"
+        className="inline-flex items-center gap-1 rounded-full border border-[#f1e3b9] bg-[#fbf3e0] text-[#8a6713] px-2 py-0.5 text-[10px] font-medium"
+      >
+        <Sparkles className="w-2.5 h-2.5" /> Baseline draft
+      </span>
+    );
+  }
+  return (
+    <span
+      title="AI enrichment complete"
+      className="inline-flex items-center gap-1 rounded-full border border-[#c9e6d3] bg-[#e9f5ee] text-[#1f6b3b] px-2 py-0.5 text-[10px] font-medium"
+    >
+      <Sparkles className="w-2.5 h-2.5" /> AI enriched
+    </span>
+  );
+}
+
+function EnrichmentIndicator({ projectId }: { projectId: string }) {
+  const running = useSyncExternalStore(
+    subscribeEnrichment,
+    () => isEnrichmentRunning(projectId),
+    () => false,
+  );
+  if (!running) return null;
+  return (
+    <div
+      role="status"
+      className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary"
+    >
+      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      Drafting AI enrichment for milestones… baseline content is available now; cards will refresh when polish lands.
+    </div>
+  );
+}
