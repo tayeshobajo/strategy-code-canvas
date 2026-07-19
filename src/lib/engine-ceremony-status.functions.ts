@@ -218,6 +218,8 @@ export async function computeProjectCeremonyStatus(
       detail: Array.isArray(ebCur?.capability_ids)
         ? `${ebCur.capability_ids.length} capabilities selected`
         : null,
+      roadmap_version_id: null,
+      drafted_by_email: ebCur?.proposed_by_email ?? null,
     },
     {
       key: "strategic_thesis",
