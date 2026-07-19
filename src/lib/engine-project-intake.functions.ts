@@ -1113,12 +1113,49 @@ export const listRecentIntakeFailures = createServerFn({ method: "GET" })
 
 
 /* ============================================================
- * deleteProject — hard delete a project + portal linkage.
- * Admin-only. Most sibling tables cascade on engine_projects
- * deletion; the portal shell (client_portal_projects /
- * client_portal_permissions) does not, so we clean it up first
- * through the service role.
+ * Project soft-delete / restore / bulk-delete / purge.
+ *
+ * Deleting a project moves it to the trash (deleted_at = now(),
+ * deleted_by = admin email). Rows stay in engine_projects and
+ * all sibling tables so a restore is a single timestamp flip.
+ *
+ * Portal linkage: publishing surfaces filter on the parent
+ * engine_projects.deleted_at column, so we leave client_portal_*
+ * rows in place while the project sits in the trash. Purge (30d+)
+ * cleans them up before hard-deleting the project row itself.
+ *
+ * TRASH_RETENTION_DAYS is the window Restore is available for.
  * ============================================================ */
+
+const TRASH_RETENTION_DAYS = 30;
+
+export type DeletedProjectRow = {
+  id: string;
+  name: string;
+  client_company: string | null;
+  deleted_at: string;
+  deleted_by: string | null;
+  expires_at: string;
+};
+
+async function assertAdmin(context: any): Promise<string> {
+  const email = (context.claims?.email as string | undefined) ?? undefined;
+  const sb = context.supabase;
+  const isAdmin = await hasRoleForEmail(sb, email, "admin");
+  if (!isAdmin) throw new Error("Forbidden: admin role required");
+  return (email ?? "").toLowerCase();
+}
+
+async function softDeleteIds(sb: any, ids: string[], actor: string) {
+  const { data, error } = await sb
+    .from("engine_projects")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: actor })
+    .in("id", ids)
+    .is("deleted_at", null)
+    .select("id, name");
+  if (error) throwGeneric(error, "delete project failed");
+  return (data ?? []) as Array<{ id: string; name: string | null }>;
+}
 
 export const deleteProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1126,22 +1163,87 @@ export const deleteProject = createServerFn({ method: "POST" })
     z.object({ projectId: z.string().uuid() }).parse(raw),
   )
   .handler(async ({ context, data }) => {
-    const email = ((context as any).claims?.email as string | undefined) ?? undefined;
-    const sb = (context as any).supabase;
-    const isAdmin = await hasRoleForEmail(sb, email, "admin");
-    if (!isAdmin) throw new Error("Forbidden: admin role required to delete a project");
+    const actor = await assertAdmin(context);
+    const rows = await softDeleteIds((context as any).supabase, [data.projectId], actor);
+    if (rows.length === 0) throw new Error("Project not found or already deleted");
+    return { ok: true as const, id: rows[0].id, name: rows[0].name ?? null };
+  });
 
-    // Look up portal linkage before the project row is gone.
+export const bulkDeleteProjects = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ projectIds: z.array(z.string().uuid()).min(1).max(200) }).parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    const actor = await assertAdmin(context);
+    const rows = await softDeleteIds((context as any).supabase, data.projectIds, actor);
+    return { ok: true as const, deleted: rows.length, ids: rows.map((r) => r.id) };
+  });
+
+export const restoreProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ projectId: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = (context as any).supabase;
+    const { data: rows, error } = await sb
+      .from("engine_projects")
+      .update({ deleted_at: null, deleted_by: null })
+      .eq("id", data.projectId)
+      .not("deleted_at", "is", null)
+      .select("id, name");
+    if (error) throwGeneric(error, "restore project failed");
+    if (!rows || rows.length === 0) throw new Error("Project not found in trash");
+    return { ok: true as const, id: rows[0].id, name: rows[0].name ?? null };
+  });
+
+export const listDeletedProjects = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ rows: DeletedProjectRow[]; retentionDays: number }> => {
+    await assertAdmin(context);
+    const sb = (context as any).supabase;
+    const { data, error } = await sb
+      .from("engine_projects")
+      .select("id, name, deleted_at, deleted_by, engine_clients(company)")
+      .not("deleted_at", "is", null)
+      .order("deleted_at", { ascending: false })
+      .limit(500);
+    if (error) throwGeneric(error, "list deleted failed");
+    const rows: DeletedProjectRow[] = ((data ?? []) as any[]).map((r) => {
+      const deletedAt = new Date(r.deleted_at as string);
+      const expiresAt = new Date(deletedAt.getTime() + TRASH_RETENTION_DAYS * 24 * 3600 * 1000);
+      return {
+        id: r.id as string,
+        name: (r.name as string | null) ?? "(untitled)",
+        client_company: (r.engine_clients?.company as string | null) ?? null,
+        deleted_at: r.deleted_at as string,
+        deleted_by: (r.deleted_by as string | null) ?? null,
+        expires_at: expiresAt.toISOString(),
+      };
+    });
+    return { rows, retentionDays: TRASH_RETENTION_DAYS };
+  });
+
+export const purgeProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ projectId: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const sb = (context as any).supabase;
     const { data: proj, error: readErr } = await sb
       .from("engine_projects")
-      .select("id, name, client_portal_project_id")
+      .select("id, name, client_portal_project_id, deleted_at")
       .eq("id", data.projectId)
       .maybeSingle();
-    if (readErr) throwGeneric(readErr, "delete project failed (lookup)");
+    if (readErr) throwGeneric(readErr, "purge lookup failed");
     if (!proj) throw new Error("Project not found");
+    if (!proj.deleted_at) throw new Error("Project is not in the trash");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
     if (proj.client_portal_project_id) {
       await supabaseAdmin
         .from("client_portal_permissions")
@@ -1152,13 +1254,12 @@ export const deleteProject = createServerFn({ method: "POST" })
         .delete()
         .eq("id", proj.client_portal_project_id);
     }
-
     const { error: delErr } = await supabaseAdmin
       .from("engine_projects")
       .delete()
       .eq("id", data.projectId);
-    if (delErr) throwGeneric(delErr, "delete project failed");
-
-    return { ok: true as const, id: data.projectId, name: proj.name ?? null };
+    if (delErr) throwGeneric(delErr, "purge failed");
+    return { ok: true as const, id: data.projectId };
   });
+
 
