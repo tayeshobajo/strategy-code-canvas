@@ -61,11 +61,11 @@ export const aiDraftStrategicThesis = createServerFn({ method: "POST" })
     const worldEntry = (spirit["world_entry_workspace"] as any)?.current ?? null;
     const boundary = (spirit["execution_boundary_workspace"] as any)?.current ?? null;
 
-    if (!worldEntry || worldEntry.status !== "approved") {
-      throw new Error("World Entry must be approved before drafting the Strategic Thesis.");
+    if (!worldEntry) {
+      throw new Error("World Entry must exist before drafting the Strategic Thesis. Run AI PM to seed it.");
     }
-    if (!boundary || boundary.status !== "approved") {
-      throw new Error("Execution Boundary must be approved before drafting the Strategic Thesis.");
+    if (!boundary) {
+      throw new Error("Execution Boundary must exist before drafting the Strategic Thesis. Run AI PM to seed it.");
     }
 
     const context_block = [
