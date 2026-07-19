@@ -382,7 +382,6 @@ function ProjectSpine() {
   // the status strip; putting it here duplicated the signal.
   const identityCells = [
     { label: "Client", value: spine.project.client_company || "—" },
-    { label: "Project", value: spine.project.name || "—" },
     { label: "Phase", value: phaseInfo.phase },
     { label: "Roadmap", value: spine.version?.label ?? "Draft" },
   ];
