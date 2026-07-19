@@ -390,7 +390,12 @@ function ProjectSpine() {
       {/* ───── Variant banner ───── */}
       <SpineVariantBanner variant={variant} projectId={projectId} spine={spine} />
 
-      {/* ───── Status strip (7 cells) ───── */}
+      {/* ───── Strategic Thesis gate ─────
+          Blocks operational treatment of the roadmap until the thesis is
+          approved (see doctrine/PROJECT_SPINE_CONTRACT.md). */}
+      {needsThesisGate ? <ThesisRequiredBanner projectId={projectId} /> : null}
+
+      {/* ───── Status strip ───── */}
       <SpineStatusStrip
         spine={spine}
         blockedItems={blockedItemsCount}
