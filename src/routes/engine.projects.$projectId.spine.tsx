@@ -12,6 +12,7 @@ import {
 } from "@/lib/engine.functions";
 import { evaluateProjectSpineReadiness } from "@/lib/engine-spine-readiness-eval.functions";
 import { listAgentTasks, type EngineAgentTask } from "@/lib/engine-agent.functions";
+import { approveVersion, listVersions } from "@/lib/engine-intelligence.functions";
 import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import {
