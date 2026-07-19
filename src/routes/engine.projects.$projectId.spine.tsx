@@ -2473,36 +2473,36 @@ function NotificationsCard({
 }: {
   notifications: ProjectSpinePayload["notifications"];
 }) {
+  // Empty operational cards create visual noise and do not support project
+  // health. Hide entirely when nothing to show — the header notification
+  // bell still surfaces new items.
+  if (!notifications.length) return null;
   return (
     <div className="rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
       <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#667085]">
         Operator notifications
       </div>
-      {notifications.length ? (
-        <div className="mt-3 space-y-3">
-          {notifications.slice(0, 6).map((n) => (
-            <div key={n.id} className="rounded-lg border border-[#F3EEE6] p-3">
-              <div className="text-sm font-medium text-[#0A0F1F]">{n.title}</div>
-              {n.body ? <div className="mt-1 text-xs text-[#667085]">{n.body}</div> : null}
-              <div className="mt-2 flex items-center justify-between text-xs text-[#667085]">
-                <span>
-                  {humanize(n.kind)} · {formatDateTime(n.created_at)}
-                </span>
-                {n.href ? (
-                  <a
-                    href={n.href}
-                    className="inline-flex items-center gap-1 text-[#3E68B2] hover:text-[#284f93]"
-                  >
-                    Open <ArrowRight className="h-3 w-3" />
-                  </a>
-                ) : null}
-              </div>
+      <div className="mt-3 space-y-3">
+        {notifications.slice(0, 6).map((n) => (
+          <div key={n.id} className="rounded-lg border border-[#F3EEE6] p-3">
+            <div className="text-sm font-medium text-[#0A0F1F]">{n.title}</div>
+            {n.body ? <div className="mt-1 text-xs text-[#667085]">{n.body}</div> : null}
+            <div className="mt-2 flex items-center justify-between text-xs text-[#667085]">
+              <span>
+                {humanize(n.kind)} · {formatDateTime(n.created_at)}
+              </span>
+              {n.href ? (
+                <a
+                  href={n.href}
+                  className="inline-flex items-center gap-1 text-[#3E68B2] hover:text-[#284f93]"
+                >
+                  Open <ArrowRight className="h-3 w-3" />
+                </a>
+              ) : null}
             </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-[#667085]">No operator notifications.</p>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
