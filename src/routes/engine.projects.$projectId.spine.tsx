@@ -12,6 +12,7 @@ import {
 } from "@/lib/engine.functions";
 import { evaluateProjectSpineReadiness } from "@/lib/engine-spine-readiness-eval.functions";
 import { listAgentTasks, type EngineAgentTask } from "@/lib/engine-agent.functions";
+import { approveVersion, listVersions } from "@/lib/engine-intelligence.functions";
 import { exportClientRoadmapPdf } from "@/lib/roadmap-pdf";
 import type { WorkspaceProject } from "@/lib/engine-workspace";
 import {
@@ -82,9 +83,11 @@ import { StrategicThesisCard } from "@/components/engine/spine/StrategicThesisCa
 import { ThesisRequiredBanner } from "@/components/engine/spine/ThesisRequiredBanner";
 import { WorldEntryCard, ExecutionBoundaryCard } from "@/components/engine/spine/DoctrineCards";
 import { RoadmapApprovalCard } from "@/components/engine/spine/RoadmapApprovalCard";
+import { CompareVersionsModal } from "@/components/engine/roadmap/CompareVersionsModal";
 import { extractPointBullets } from "@/lib/spine-coherence";
 import { derivePhase } from "@/lib/spine-phase";
 import { getStrategicThesis } from "@/lib/engine-strategic-thesis.functions";
+import { toast } from "sonner";
 
 /**
  * Map the richer 7-tone `SpineStatusPresentation` palette onto the 5
@@ -172,6 +175,8 @@ function ProjectSpine() {
   const approveFn = useServerFn(approveMilestone);
   const rejectFn = useServerFn(rejectMilestone);
   const workspaceFn = useServerFn(getProjectWorkspace);
+  const approveVersionFn = useServerFn(approveVersion);
+  const listVersionsFn = useServerFn(listVersions);
   const queryClient = useQueryClient();
 
   const spineQ = useQuery({
@@ -214,6 +219,15 @@ function ProjectSpine() {
     staleTime: 60_000,
   });
 
+  // Versions list — powers the Compare Versions modal launched from the
+  // roadmap approval card. Kept lightweight; refetched after approve.
+  const versionsQ = useQuery({
+    queryKey: ["engine", "roadmap-versions", projectId],
+    queryFn: () => listVersionsFn({ data: { projectId } }),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<ModuleCategoryFilter>("all");
   const [moduleSort, setModuleSort] = useState<ModuleSort>("readiness");
@@ -221,6 +235,9 @@ function ProjectSpine() {
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<{ title: string; missing: string[] } | null>(null);
   const [askCaptainOpen, setAskCaptainOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [baselineApproving, setBaselineApproving] = useState(false);
+  const [justApproved, setJustApproved] = useState<{ at: string; by: string | null } | null>(null);
   const exportHandlerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -514,17 +531,56 @@ function ProjectSpine() {
         <ExecutionBoundaryCard projectId={projectId} />
       </div>
 
-      {/* ───── Roadmap baseline approval (only when unapproved) ───── */}
-      {spine.version && spine.version.status !== "approved" ? (
+      {/* ───── Roadmap baseline approval (with post-approve confirmation) ───── */}
+      {spine.version && (spine.version.status !== "approved" || justApproved) ? (
         <RoadmapApprovalCard
           projectId={projectId}
           versionLabel={spine.version.label ?? null}
-          status={spine.version.status ?? "draft"}
+          status={justApproved ? "approved" : (spine.version.status ?? "draft")}
           ownerEmail={spine.project.client_owner_email}
           dueDate={nextMilestone?.due_date ?? null}
           milestoneCount={spine.milestones.length}
+          approving={baselineApproving}
+          onApprove={async () => {
+            if (!spine.version) return;
+            const label = spine.version.label ?? "v0.1";
+            if (!window.confirm(`Approve ${label} as the baseline? This locks the snapshot.`)) return;
+            setBaselineApproving(true);
+            try {
+              await approveVersionFn({ data: { id: spine.version.id } });
+              const now = new Date().toISOString();
+              setJustApproved({ at: now, by: null });
+              toast.success(`Baseline approved: ${label}`);
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["engine", "spine", projectId] }),
+                queryClient.invalidateQueries({ queryKey: ["engine", "roadmap-versions", projectId] }),
+                queryClient.invalidateQueries({ queryKey: ["engine", "roadmap", projectId] }),
+              ]);
+            } catch (e) {
+              toast.error((e as Error).message ?? "Approval failed");
+            } finally {
+              setBaselineApproving(false);
+            }
+          }}
+          onCompare={() => setCompareOpen(true)}
+          justApprovedAt={justApproved?.at ?? null}
+          approvedBy={justApproved?.by ?? null}
         />
       ) : null}
+
+      {compareOpen && (
+        <CompareVersionsModal
+          projectId={projectId}
+          versions={(versionsQ.data?.rows ?? []).map((v) => ({
+            id: v.id,
+            label: v.version ?? null,
+            status: v.status ?? "draft",
+            created_at: v.created_at ?? new Date().toISOString(),
+            approved_at: v.approved_at ?? null,
+          }))}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
 
       {/* ───── Strategic Thesis ───── */}
       <StrategicThesisCard projectId={projectId} />
