@@ -426,6 +426,7 @@ function ProjectSpine() {
         <div className="flex items-center gap-2 flex-wrap">
           <AiPmStatusChip projectId={projectId} />
           <RunAiPmButton projectId={projectId} runNow={runPmNow} variant="subtle" />
+          <PmMemoryDrawer projectId={projectId} />
         </div>
       </div>
 
