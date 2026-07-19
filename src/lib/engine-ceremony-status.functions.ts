@@ -46,6 +46,10 @@ export type CeremonyStatus = {
   evidence_required: string[];
   blocked_by: CeremonyKey[];
   detail: string | null;
+  /** Roadmap version id — only set for the roadmap_v01 ceremony. */
+  roadmap_version_id: string | null;
+  /** Email of the person who drafted the awaiting-review version (for second-reviewer UI hints). */
+  drafted_by_email: string | null;
 };
 
 export type ProjectCeremonyStatus = {
