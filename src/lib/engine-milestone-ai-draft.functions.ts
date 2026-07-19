@@ -72,12 +72,65 @@ export const draftMilestoneAcceptanceCriteria = createServerFn({ method: "POST" 
       });
 
     if (targets.length === 0) {
-      return { ok: true as const, drafted: 0, approved: 0 };
+      return { ok: true as const, drafted: 0, approved: 0, ai_enriched: 0 };
     }
 
-    // Ask the AI PM to draft acceptance criteria (and a brief) for every
-    // target in a single JSON call.
-    let drafts: Record<string, { brief: string; acceptance: string[] }> = {};
+    // ---------------------------------------------------------------
+    // Step 1 — write deterministic defaults FIRST so the Work gate opens
+    // even if the AI call fails or times out. Every target milestone gets
+    // a baseline brief, 3 acceptance criteria, and approval so Work can
+    // start. The AI enrichment in step 2 refines this content in place.
+    // ---------------------------------------------------------------
+    const now = new Date().toISOString();
+    let drafted = 0;
+    let approved = 0;
+
+    for (const m of targets) {
+      const existingAcc = toList(m.acceptance_criteria);
+      const seen = new Set(existingAcc.map((a) => a.text));
+      const baselineAcc = [...existingAcc];
+      const filler = [
+        `Confirm ${m.name} meets the intake-defined outcome.`,
+        "Evidence attached against every acceptance item.",
+        "Owner and reviewer sign-off recorded.",
+      ];
+      for (const t of filler) {
+        if (baselineAcc.length >= 3) break;
+        if (!seen.has(t)) {
+          seen.add(t);
+          baselineAcc.push({ text: t, done: false });
+        }
+      }
+
+      const baselineBrief =
+        m.brief_md && m.brief_md.trim().length >= 20
+          ? m.brief_md
+          : `Draft for review: ${m.name} sequences the work needed to move from Point A to Point B for ${project.name}. Confirm scope and owners before starting.`;
+
+      const patch: Record<string, unknown> = {
+        brief_md: baselineBrief,
+        acceptance_criteria: baselineAcc,
+      };
+      const needsApproval = (m.approval_status ?? "") !== "approved";
+      if (needsApproval) {
+        patch.approval_status = "approved";
+        patch.approved_by_email = actorEmail;
+        patch.approved_at = now;
+      }
+      const { error } = await sb.from("engine_milestones").update(patch).eq("id", m.id);
+      if (!error) {
+        drafted++;
+        if (needsApproval) approved++;
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // Step 2 — best-effort AI enrichment. Runs after defaults have
+    // already been persisted, so any failure here (timeout, JSON parse,
+    // rate limit) leaves the Work page fully populated. AI drafts
+    // replace the baseline text per-milestone as they arrive.
+    // ---------------------------------------------------------------
+    let aiEnriched = 0;
     try {
       const { callLovableAiWithFallback, parseJsonOutput } = await import(
         "@/lib/engine-ai.server"
@@ -123,83 +176,44 @@ ${JSON.stringify(asked).slice(0, 25_000)}`,
         ],
         { json: true, temperature: 0.2, maxRetriesPerModel: 1 },
       );
-      const parsed = parseJsonOutput<{ milestones?: Array<{ id?: string; brief?: string; acceptance?: unknown }> }>(
-        ai.text,
-      ) ?? {};
+      const parsed = parseJsonOutput<{
+        milestones?: Array<{ id?: string; brief?: string; acceptance?: unknown }>;
+      }>(ai.text) ?? {};
       for (const row of parsed.milestones ?? []) {
         if (!row?.id) continue;
+        const target = targets.find((t) => t.id === row.id);
+        if (!target) continue;
         const brief = typeof row.brief === "string" ? row.brief.trim() : "";
         const acc = Array.isArray(row.acceptance)
           ? row.acceptance
               .map((a) => (typeof a === "string" ? a.trim() : ""))
               .filter((s) => s.length > 0)
               .slice(0, 6)
+              .map((text) => ({ text, done: false }))
           : [];
-        drafts[row.id] = { brief, acceptance: acc };
+        const patch: Record<string, unknown> = {};
+        if (brief.length >= 20 && (!target.brief_md || target.brief_md.trim().length < 20)) {
+          patch.brief_md = brief;
+        }
+        if (acc.length >= 3) {
+          patch.acceptance_criteria = acc;
+        }
+        if (Object.keys(patch).length === 0) continue;
+        const { error } = await sb.from("engine_milestones").update(patch).eq("id", row.id);
+        if (!error) aiEnriched++;
       }
     } catch {
-      drafts = {};
-    }
-
-    const now = new Date().toISOString();
-    let drafted = 0;
-    let approved = 0;
-
-    for (const m of targets) {
-      const existingAcc = toList(m.acceptance_criteria);
-      const draft = drafts[m.id];
-      const draftAcc = draft?.acceptance ?? [];
-      const mergedText = new Set<string>(existingAcc.map((a) => a.text));
-      for (const t of draftAcc) mergedText.add(t);
-      let finalAcc = Array.from(mergedText).map((text) => ({ text, done: false }));
-      if (finalAcc.length < 3) {
-        // Guarantee the gate can pass — synthesize minimum viable criteria
-        // that a reviewer can still tighten later.
-        const filler = [
-          `Confirm ${m.name} meets the intake-defined outcome.`,
-          "Evidence attached against every acceptance item.",
-          "Owner and reviewer sign-off recorded.",
-        ];
-        for (const t of filler) {
-          if (finalAcc.length >= 3) break;
-          if (!mergedText.has(t)) {
-            mergedText.add(t);
-            finalAcc.push({ text: t, done: false });
-          }
-        }
-      }
-      finalAcc = finalAcc.slice(0, 6);
-
-      const nextBrief =
-        (m.brief_md && m.brief_md.trim().length >= 20)
-          ? m.brief_md
-          : (draft?.brief && draft.brief.length > 0
-              ? draft.brief
-              : `Draft for review: ${m.name} sequences the work needed to move from Point A to Point B for ${project.name}. Confirm scope and owners before starting.`);
-
-      const patch: Record<string, unknown> = {
-        brief_md: nextBrief,
-        acceptance_criteria: finalAcc,
-      };
-      const needsApproval = (m.approval_status ?? "") !== "approved";
-      if (needsApproval) {
-        patch.approval_status = "approved";
-        patch.approved_by_email = actorEmail;
-        patch.approved_at = now;
-        approved++;
-      }
-      const { error } = await sb.from("engine_milestones").update(patch).eq("id", m.id);
-      if (!error) drafted++;
+      // Swallow — defaults already persisted, Work is unblocked.
     }
 
     await sb.from("engine_activity").insert({
       project_id: data.projectId,
       kind: "milestone_ai_draft",
       title: `AI Product Manager drafted acceptance criteria on ${drafted} milestone${drafted === 1 ? "" : "s"}`,
-      body: `${approved} milestone${approved === 1 ? "" : "s"} auto-approved so Work can open. Criteria remain reviewable.`,
+      body: `${approved} milestone${approved === 1 ? "" : "s"} auto-approved so Work can open. ${aiEnriched} enriched by AI. Criteria remain reviewable.`,
       severity: "info",
       actor_email: actorEmail,
     });
 
-    return { ok: true as const, drafted, approved };
+    return { ok: true as const, drafted, approved, ai_enriched: aiEnriched };
   });
