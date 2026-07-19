@@ -6,8 +6,16 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { listProjects, getCommandCenter } from "@/lib/engine.functions";
-import { deleteProject } from "@/lib/engine-project-intake.functions";
+import {
+  deleteProject,
+  bulkDeleteProjects,
+  restoreProject,
+  purgeProject,
+  listDeletedProjects,
+  type DeletedProjectRow,
+} from "@/lib/engine-project-intake.functions";
 import type { EngineProjectRow, EngineProjectStatus } from "@/lib/engine.functions";
+
 
 import {
   EngineStatusBadge,
@@ -26,7 +34,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
+  Trash2,
+  Undo2,
+  X,
 } from "lucide-react";
+
 
 // ─── search schema ──────────────────────────────────────────────────────────
 type FilterValue =
@@ -131,6 +143,13 @@ function ProjectsPage() {
 
   const [showFilters, setShowFilters] = useState(false);
   const [railOpen, setRailOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showTrash, setShowTrash] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const qc = useQueryClient();
+  const bulkDeleteFn = useServerFn(bulkDeleteProjects);
+
 
   const listFn = useServerFn(listProjects);
   const ccFn = useServerFn(getCommandCenter);
@@ -219,6 +238,14 @@ function ProjectsPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setShowTrash(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card text-sm text-ink/80 hover:border-royal/50"
+            >
+              <Trash2 className="w-4 h-4" />
+              Trash
+            </button>
+            <button
+              type="button"
               onClick={() => setShowFilters((v) => !v)}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card text-sm text-ink/80 hover:border-royal/50"
             >
@@ -229,6 +256,7 @@ function ProjectsPage() {
               to="/engine/projects/new"
               className="bg-ink text-white px-4 py-2 rounded-md text-sm hover:bg-ink/90"
             >
+
               + New project
             </Link>
           </div>
@@ -272,17 +300,48 @@ function ProjectsPage() {
             <SectionCard
               title={`${sortedRows.length} project${sortedRows.length === 1 ? "" : "s"}`}
               right={
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSearch({
-                      sort: sort === "updated_desc" ? "updated_asc" : "updated_desc",
-                    })
-                  }
-                  className="text-xs text-ink/60 hover:text-ink"
-                >
-                  Sort: updated {sort === "updated_desc" ? "newest" : "oldest"}
-                </button>
+                <div className="flex items-center gap-3">
+                  {selected.size > 0 && (
+                    <button
+                      type="button"
+                      disabled={bulkBusy}
+                      onClick={async () => {
+                        const ids = Array.from(selected);
+                        const confirmed = window.confirm(
+                          `Move ${ids.length} project${ids.length === 1 ? "" : "s"} to trash?\n\nYou can restore them within 30 days.`,
+                        );
+                        if (!confirmed) return;
+                        setBulkBusy(true);
+                        try {
+                          const res = await bulkDeleteFn({ data: { projectIds: ids } });
+                          toast.success(`Moved ${res.deleted} to trash`);
+                          setSelected(new Set());
+                          await qc.invalidateQueries({ queryKey: ["engine", "projects"] });
+                          await qc.invalidateQueries({ queryKey: ["engine", "command-center"] });
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Delete failed");
+                        } finally {
+                          setBulkBusy(false);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#a4283c] text-white hover:bg-[#8b1f31] disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete {selected.size} selected
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSearch({
+                        sort: sort === "updated_desc" ? "updated_asc" : "updated_desc",
+                      })
+                    }
+                    className="text-xs text-ink/60 hover:text-ink"
+                  >
+                    Sort: updated {sort === "updated_desc" ? "newest" : "oldest"}
+                  </button>
+                </div>
               }
             >
               {isLoading ? (
@@ -291,7 +350,26 @@ function ProjectsPage() {
                 <EmptyState title="No projects match" hint="Adjust filters to see more." />
               ) : (
                 <>
-                  <ProjectsTable rows={pagedRows} />
+                  <ProjectsTable
+                    rows={pagedRows}
+                    selected={selected}
+                    onToggle={(id) =>
+                      setSelected((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(id)) next.delete(id);
+                        else next.add(id);
+                        return next;
+                      })
+                    }
+                    onToggleAll={(checked) =>
+                      setSelected((prev) => {
+                        const next = new Set(prev);
+                        if (checked) pagedRows.forEach((r) => next.add(r.id));
+                        else pagedRows.forEach((r) => next.delete(r.id));
+                        return next;
+                      })
+                    }
+                  />
                   <TablePager
                     total={sortedRows.length}
                     page={currentPage}
@@ -300,6 +378,7 @@ function ProjectsPage() {
                     onPage={(p) => setSearch({ page: p })}
                   />
                 </>
+
               )}
             </SectionCard>
           </div>
@@ -316,9 +395,11 @@ function ProjectsPage() {
           </div>
         </div>
       </div>
+      {showTrash && <TrashDrawer onClose={() => setShowTrash(false)} />}
     </div>
   );
 }
+
 
 // ─── views rail ─────────────────────────────────────────────────────────────
 const VIEW_LABELS: Record<string, string> = {
@@ -507,13 +588,37 @@ function StatCardRow({
 }
 
 // ─── main table ─────────────────────────────────────────────────────────────
-function ProjectsTable({ rows }: { rows: EngineProjectRow[] }) {
+function ProjectsTable({
+  rows,
+  selected,
+  onToggle,
+  onToggleAll,
+}: {
+  rows: EngineProjectRow[];
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+  onToggleAll: (checked: boolean) => void;
+}) {
+  const allChecked = rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const someChecked = rows.some((r) => selected.has(r.id));
   return (
     <div className="overflow-x-auto -mx-5">
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-[11px] uppercase tracking-wider text-ink/50 border-b border-border">
-            <th className="py-2 px-5 font-medium">Project</th>
+            <th className="py-2 pl-5 pr-1 font-medium w-8">
+              <input
+                type="checkbox"
+                aria-label="Select all on this page"
+                checked={allChecked}
+                ref={(el) => {
+                  if (el) el.indeterminate = !allChecked && someChecked;
+                }}
+                onChange={(e) => onToggleAll(e.target.checked)}
+                className="rounded border-border"
+              />
+            </th>
+            <th className="py-2 px-2 font-medium">Project</th>
             <th className="py-2 px-2 font-medium">Client</th>
             <th className="py-2 px-2 font-medium">Phase / stage</th>
             <th className="py-2 px-2 font-medium">Health</th>
@@ -525,7 +630,12 @@ function ProjectsTable({ rows }: { rows: EngineProjectRow[] }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <ProjectRow key={r.id} r={r} />
+            <ProjectRow
+              key={r.id}
+              r={r}
+              checked={selected.has(r.id)}
+              onToggle={() => onToggle(r.id)}
+            />
           ))}
         </tbody>
       </table>
@@ -533,7 +643,16 @@ function ProjectsTable({ rows }: { rows: EngineProjectRow[] }) {
   );
 }
 
-function ProjectRow({ r }: { r: EngineProjectRow }) {
+
+function ProjectRow({
+  r,
+  checked,
+  onToggle,
+}: {
+  r: EngineProjectRow;
+  checked: boolean;
+  onToggle: () => void;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const deleteFn = useServerFn(deleteProject);
@@ -541,14 +660,14 @@ function ProjectRow({ r }: { r: EngineProjectRow }) {
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
-      `Delete project "${r.name}"?\n\nThis permanently removes the project, its milestones, sources, chat, artifacts, and any linked client portal. This cannot be undone.`,
+      `Move "${r.name}" to trash?\n\nYou can restore it within 30 days from the Trash view.`,
     );
     if (!confirmed) return;
     setMenuOpen(false);
     setDeleting(true);
     try {
       await deleteFn({ data: { projectId: r.id } });
-      toast.success(`Deleted "${r.name}"`);
+      toast.success(`Moved "${r.name}" to trash`);
       await qc.invalidateQueries({ queryKey: ["engine", "projects"] });
       await qc.invalidateQueries({ queryKey: ["engine", "command-center"] });
     } catch (err) {
@@ -564,7 +683,17 @@ function ProjectRow({ r }: { r: EngineProjectRow }) {
         deleting && "opacity-50 pointer-events-none",
       )}
     >
-      <td className="py-3 px-5">
+      <td className="py-3 pl-5 pr-1 align-middle">
+        <input
+          type="checkbox"
+          aria-label={`Select ${r.name}`}
+          checked={checked}
+          onChange={onToggle}
+          className="rounded border-border"
+        />
+      </td>
+      <td className="py-3 px-2">
+
         <Link
           to="/engine/projects/$projectId/overview"
           params={{ projectId: r.id }}
@@ -861,5 +990,142 @@ function CaptainBriefCard({ rows }: { rows: EngineProjectRow[] }) {
         </div>
       </div>
     </SectionCard>
+  );
+}
+
+// ─── trash drawer ───────────────────────────────────────────────────────────
+function TrashDrawer({ onClose }: { onClose: () => void }) {
+  const listFn = useServerFn(listDeletedProjects);
+  const restoreFn = useServerFn(restoreProject);
+  const purgeFn = useServerFn(purgeProject);
+  const qc = useQueryClient();
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["engine", "projects", "trash"],
+    queryFn: () => listFn(),
+  });
+
+  const rows: DeletedProjectRow[] = data?.rows ?? [];
+  const retention = data?.retentionDays ?? 30;
+
+  const invalidate = async () => {
+    await qc.invalidateQueries({ queryKey: ["engine", "projects"] });
+    await qc.invalidateQueries({ queryKey: ["engine", "command-center"] });
+  };
+
+  const handleRestore = async (row: DeletedProjectRow) => {
+    setBusyId(row.id);
+    try {
+      await restoreFn({ data: { projectId: row.id } });
+      toast.success(`Restored "${row.name}"`);
+      await invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Restore failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handlePurge = async (row: DeletedProjectRow) => {
+    const confirmed = window.confirm(
+      `Permanently delete "${row.name}"?\n\nThis removes the project, all sibling data, and any linked client portal. This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    setBusyId(row.id);
+    try {
+      await purgeFn({ data: { projectId: row.id } });
+      toast.success(`Permanently deleted "${row.name}"`);
+      await invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Purge failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Trash">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute right-0 top-0 h-full w-[min(720px,95vw)] overflow-y-auto bg-card shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
+          <div>
+            <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+              Trash
+            </div>
+            <h2 className="font-display text-2xl text-ink mt-1">Deleted projects</h2>
+            <p className="text-xs text-ink/60 mt-1">
+              Deleted projects can be restored within {retention} days.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="p-1.5 rounded-md border border-border text-ink/60 hover:bg-paper-soft"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-6">
+          {isLoading ? (
+            <div className="py-10 text-center text-ink/50 text-sm">Loading</div>
+          ) : rows.length === 0 ? (
+            <EmptyState title="Trash is empty" hint="Deleted projects appear here." />
+          ) : (
+            <ul className="space-y-2">
+              {rows.map((row) => {
+                const expiresIn = Math.max(
+                  0,
+                  Math.ceil(
+                    (new Date(row.expires_at).getTime() - Date.now()) / (24 * 3600 * 1000),
+                  ),
+                );
+                const expired = expiresIn === 0;
+                return (
+                  <li
+                    key={row.id}
+                    className={cn(
+                      "rounded-lg border border-border bg-paper p-3 flex items-center justify-between gap-3",
+                      busyId === row.id && "opacity-50 pointer-events-none",
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-ink truncate">{row.name}</div>
+                      <div className="text-xs text-ink/60 mt-0.5">
+                        {row.client_company ?? "—"} · Deleted {formatDate(row.deleted_at)}
+                        {row.deleted_by ? ` by ${row.deleted_by}` : ""}
+                        {" · "}
+                        {expired
+                          ? "Expired"
+                          : `${expiresIn} day${expiresIn === 1 ? "" : "s"} left`}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleRestore(row)}
+                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border bg-card text-ink hover:bg-paper-soft"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                        Restore
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePurge(row)}
+                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#a4283c] text-white hover:bg-[#8b1f31]"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete forever
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
