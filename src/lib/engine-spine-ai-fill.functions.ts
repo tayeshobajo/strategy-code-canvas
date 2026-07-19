@@ -439,7 +439,7 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
     };
   });
 
-async function seedMilestonesFromIntake(
+export async function seedMilestonesFromIntake(
   sb: any,
   args: {
     projectId: string;
@@ -630,7 +630,7 @@ function buildFallbackMilestones(projectName: string): Array<{
   ];
 }
 
-async function seedAncillarySpineArtifacts(
+export async function seedAncillarySpineArtifacts(
   sb: any,
   args: {
     projectId: string;
