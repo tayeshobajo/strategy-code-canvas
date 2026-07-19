@@ -586,13 +586,37 @@ function StatCardRow({
 }
 
 // ─── main table ─────────────────────────────────────────────────────────────
-function ProjectsTable({ rows }: { rows: EngineProjectRow[] }) {
+function ProjectsTable({
+  rows,
+  selected,
+  onToggle,
+  onToggleAll,
+}: {
+  rows: EngineProjectRow[];
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+  onToggleAll: (checked: boolean) => void;
+}) {
+  const allChecked = rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const someChecked = rows.some((r) => selected.has(r.id));
   return (
     <div className="overflow-x-auto -mx-5">
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-[11px] uppercase tracking-wider text-ink/50 border-b border-border">
-            <th className="py-2 px-5 font-medium">Project</th>
+            <th className="py-2 pl-5 pr-1 font-medium w-8">
+              <input
+                type="checkbox"
+                aria-label="Select all on this page"
+                checked={allChecked}
+                ref={(el) => {
+                  if (el) el.indeterminate = !allChecked && someChecked;
+                }}
+                onChange={(e) => onToggleAll(e.target.checked)}
+                className="rounded border-border"
+              />
+            </th>
+            <th className="py-2 px-2 font-medium">Project</th>
             <th className="py-2 px-2 font-medium">Client</th>
             <th className="py-2 px-2 font-medium">Phase / stage</th>
             <th className="py-2 px-2 font-medium">Health</th>
@@ -604,13 +628,19 @@ function ProjectsTable({ rows }: { rows: EngineProjectRow[] }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <ProjectRow key={r.id} r={r} />
+            <ProjectRow
+              key={r.id}
+              r={r}
+              checked={selected.has(r.id)}
+              onToggle={() => onToggle(r.id)}
+            />
           ))}
         </tbody>
       </table>
     </div>
   );
 }
+
 
 function ProjectRow({ r }: { r: EngineProjectRow }) {
   const [menuOpen, setMenuOpen] = useState(false);
