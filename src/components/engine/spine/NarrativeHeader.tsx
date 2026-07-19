@@ -13,11 +13,11 @@ export function NarrativeHeader({
           Project Spine
         </div>
       </div>
-      <p className="max-w-[30rem] text-[15px] font-normal leading-relaxed text-ink/70">
+      <p className="text-[15px] font-normal leading-relaxed text-ink/70">
         {title}
       </p>
       {subtitle ? (
-        <p className="max-w-[30rem] text-[15px] font-normal leading-relaxed text-ink/70">
+        <p className="text-[15px] font-normal leading-relaxed text-ink/70">
           {subtitle}
         </p>
       ) : null}
