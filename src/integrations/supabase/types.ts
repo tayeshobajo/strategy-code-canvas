@@ -4895,6 +4895,8 @@ export type Database = {
           current_step: string
           current_step_num: number
           deadlines: Json
+          deleted_at: string | null
+          deleted_by: string | null
           delivery: Json
           delivery_mode: Database["public"]["Enums"]["engine_delivery_mode"]
           extraction: Json
@@ -4950,6 +4952,8 @@ export type Database = {
           current_step?: string
           current_step_num?: number
           deadlines?: Json
+          deleted_at?: string | null
+          deleted_by?: string | null
           delivery?: Json
           delivery_mode?: Database["public"]["Enums"]["engine_delivery_mode"]
           extraction?: Json
@@ -5005,6 +5009,8 @@ export type Database = {
           current_step?: string
           current_step_num?: number
           deadlines?: Json
+          deleted_at?: string | null
+          deleted_by?: string | null
           delivery?: Json
           delivery_mode?: Database["public"]["Enums"]["engine_delivery_mode"]
           extraction?: Json
