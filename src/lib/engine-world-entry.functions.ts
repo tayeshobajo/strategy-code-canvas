@@ -303,7 +303,10 @@ export const approveWorldEntry = createServerFn({ method: "POST" })
     if (current.status !== "awaiting_review") {
       throw new Error("Only versions submitted for review can be approved.");
     }
-    if (current.drafted_by_email.toLowerCase() === actor.toLowerCase()) {
+    if (
+      current.drafted_by_actor !== "ai" &&
+      current.drafted_by_email.toLowerCase() === actor.toLowerCase()
+    ) {
       throw new Error("Second-reviewer rule: the person who drafted this version cannot approve it. Ask another admin or operator to approve.");
     }
     if (!current.destination_summary || current.destination_summary.trim().length < 20) {
