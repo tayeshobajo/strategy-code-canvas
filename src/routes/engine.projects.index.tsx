@@ -992,3 +992,140 @@ function CaptainBriefCard({ rows }: { rows: EngineProjectRow[] }) {
     </SectionCard>
   );
 }
+
+// ─── trash drawer ───────────────────────────────────────────────────────────
+function TrashDrawer({ onClose }: { onClose: () => void }) {
+  const listFn = useServerFn(listDeletedProjects);
+  const restoreFn = useServerFn(restoreProject);
+  const purgeFn = useServerFn(purgeProject);
+  const qc = useQueryClient();
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["engine", "projects", "trash"],
+    queryFn: () => listFn(),
+  });
+
+  const rows: DeletedProjectRow[] = data?.rows ?? [];
+  const retention = data?.retentionDays ?? 30;
+
+  const invalidate = async () => {
+    await qc.invalidateQueries({ queryKey: ["engine", "projects"] });
+    await qc.invalidateQueries({ queryKey: ["engine", "command-center"] });
+  };
+
+  const handleRestore = async (row: DeletedProjectRow) => {
+    setBusyId(row.id);
+    try {
+      await restoreFn({ data: { projectId: row.id } });
+      toast.success(`Restored "${row.name}"`);
+      await invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Restore failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handlePurge = async (row: DeletedProjectRow) => {
+    const confirmed = window.confirm(
+      `Permanently delete "${row.name}"?\n\nThis removes the project, all sibling data, and any linked client portal. This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    setBusyId(row.id);
+    try {
+      await purgeFn({ data: { projectId: row.id } });
+      toast.success(`Permanently deleted "${row.name}"`);
+      await invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Purge failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Trash">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute right-0 top-0 h-full w-[min(720px,95vw)] overflow-y-auto bg-card shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
+          <div>
+            <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+              Trash
+            </div>
+            <h2 className="font-display text-2xl text-ink mt-1">Deleted projects</h2>
+            <p className="text-xs text-ink/60 mt-1">
+              Deleted projects can be restored within {retention} days.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="p-1.5 rounded-md border border-border text-ink/60 hover:bg-paper-soft"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-6">
+          {isLoading ? (
+            <div className="py-10 text-center text-ink/50 text-sm">Loading</div>
+          ) : rows.length === 0 ? (
+            <EmptyState title="Trash is empty" hint="Deleted projects appear here." />
+          ) : (
+            <ul className="space-y-2">
+              {rows.map((row) => {
+                const expiresIn = Math.max(
+                  0,
+                  Math.ceil(
+                    (new Date(row.expires_at).getTime() - Date.now()) / (24 * 3600 * 1000),
+                  ),
+                );
+                const expired = expiresIn === 0;
+                return (
+                  <li
+                    key={row.id}
+                    className={cn(
+                      "rounded-lg border border-border bg-paper p-3 flex items-center justify-between gap-3",
+                      busyId === row.id && "opacity-50 pointer-events-none",
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-ink truncate">{row.name}</div>
+                      <div className="text-xs text-ink/60 mt-0.5">
+                        {row.client_company ?? "—"} · Deleted {formatDate(row.deleted_at)}
+                        {row.deleted_by ? ` by ${row.deleted_by}` : ""}
+                        {" · "}
+                        {expired
+                          ? "Expired"
+                          : `${expiresIn} day${expiresIn === 1 ? "" : "s"} left`}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleRestore(row)}
+                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border bg-card text-ink hover:bg-paper-soft"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                        Restore
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePurge(row)}
+                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#a4283c] text-white hover:bg-[#8b1f31]"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete forever
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
