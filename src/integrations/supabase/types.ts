@@ -2677,6 +2677,70 @@ export type Database = {
           },
         ]
       }
+      engine_pm_memory: {
+        Row: {
+          created_at: string
+          decisions_log: Json
+          id: string
+          ingested_sources: Json
+          known_facts: Json
+          last_readiness_score: number | null
+          last_synthesis_at: string | null
+          open_questions: Json
+          project_id: string
+          updated_at: string
+          working_assumptions: Json
+        }
+        Insert: {
+          created_at?: string
+          decisions_log?: Json
+          id?: string
+          ingested_sources?: Json
+          known_facts?: Json
+          last_readiness_score?: number | null
+          last_synthesis_at?: string | null
+          open_questions?: Json
+          project_id: string
+          updated_at?: string
+          working_assumptions?: Json
+        }
+        Update: {
+          created_at?: string
+          decisions_log?: Json
+          id?: string
+          ingested_sources?: Json
+          known_facts?: Json
+          last_readiness_score?: number | null
+          last_synthesis_at?: string | null
+          open_questions?: Json
+          project_id?: string
+          updated_at?: string
+          working_assumptions?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_pm_memory_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["child_id"]
+          },
+          {
+            foreignKeyName: "engine_pm_memory_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "engine_project_family_summary"
+            referencedColumns: ["parent_id"]
+          },
+          {
+            foreignKeyName: "engine_pm_memory_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "engine_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_project_agents: {
         Row: {
           approval_pct: number | null
