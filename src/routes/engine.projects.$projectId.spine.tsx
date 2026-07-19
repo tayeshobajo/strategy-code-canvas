@@ -239,7 +239,7 @@ function ProjectSpine() {
     readinessResult && readinessResult.total > 0
       ? readinessResult.passed / readinessResult.total
       : null;
-  useAutoPmRun({ projectId, readinessRatio });
+  const { runNow: runPmNow } = useAutoPmRun({ projectId, readinessRatio });
 
 
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
