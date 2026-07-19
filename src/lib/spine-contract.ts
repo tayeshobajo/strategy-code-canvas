@@ -96,7 +96,7 @@ export const SPINE_READINESS_CHECKS: readonly SpineReadinessCheck[] = [
   { id: "assets_reviewed",            label: "Hidden assets have been reviewed",                    section_key: "assets_leverage",       evaluator_id: "assets_reviewed" },
   { id: "gaps_classified",            label: "Material gaps have been classified",                  section_key: "constraints_risks",     evaluator_id: "gaps_classified" },
   { id: "blueprint_reflects_solution",label: "System Blueprint reflects the intended solution",     section_key: "approved_scope",        evaluator_id: "blueprint_reflects_solution" },
-  { id: "roadmap_rationale_approved", label: "Roadmap phases and milestone rationale are approved", section_key: "roadmap",               evaluator_id: "roadmap_rationale_approved" },
+  { id: "roadmap_rationale_approved", label: "Strategic Thesis, roadmap phases, and milestone rationale are approved", section_key: "roadmap",               evaluator_id: "roadmap_rationale_approved" },
   { id: "sequence_valid",             label: "Dependencies and sequence are valid",                 section_key: "milestone_readiness",   evaluator_id: "sequence_valid" },
   { id: "critical_dates_captured",    label: "Critical dates are captured",                         section_key: "milestone_readiness",   evaluator_id: "critical_dates_captured" },
   { id: "success_metrics_measurable", label: "Success metrics are measurable",                      section_key: "success_measures",      evaluator_id: "success_metrics_measurable" },
