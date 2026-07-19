@@ -55,6 +55,16 @@ type TruthRow = {
   updated_at: string | null;
 };
 
+function isApprovedStrategicThesisSidecar(current: unknown): boolean {
+  if (!current || typeof current !== "object") return false;
+  const c = current as Record<string, unknown>;
+  const bet = typeof c.bet_statement === "string" ? c.bet_statement.trim() : "";
+  const wedge = typeof c.wedge === "string" ? c.wedge.trim() : "";
+  const proof = Array.isArray(c.proof_metrics) ? c.proof_metrics : [];
+  const kill = Array.isArray(c.kill_criteria) ? c.kill_criteria : [];
+  return c.status === "approved" && bet.length >= 20 && wedge.length >= 10 && proof.length > 0 && kill.length > 0;
+}
+
 function keyOf(spine: string, field: string) {
   return `${spine}:${field}`;
 }
@@ -165,7 +175,29 @@ export const evaluateProjectSpineReadiness = createServerFn({ method: "GET" })
     input.blueprint_reflects_solution = sectionSettled("approved-scope") || sectionSettled("blueprint");
     input.sequence_valid = sectionSettled("milestone-readiness") || sectionSettled("sequencing");
 
-    // ---- 2. Approved roadmap version + phase rationale ----
+    // ---- 2. Strategic Thesis + approved roadmap version + phase rationale ----
+    let strategicThesisApproved = false;
+    try {
+      // Prefer the durable truth mirror, but fall back to the RT-4 sidecar so
+      // readiness does not drift if the mirror write failed or predates the
+      // expanded spine constraint.
+      const truth = statusByKey.get(keyOf("strategic-thesis", "thesis"));
+      if (isApprovedTruth(truth?.status)) {
+        strategicThesisApproved = true;
+      } else {
+        const { data: proj, error } = await sb
+          .from("engine_projects")
+          .select("spirit_first_analysis")
+          .eq("id", projectId)
+          .maybeSingle();
+        if (!error && proj) {
+          const spirit = ((proj.spirit_first_analysis as Record<string, unknown> | null) ?? {}) as Record<string, unknown>;
+          const current = (spirit.strategic_thesis_workspace as { current?: unknown } | undefined)?.current;
+          strategicThesisApproved = isApprovedStrategicThesisSidecar(current);
+        }
+      }
+    } catch { /* leave false */ }
+
     try {
       const { data: rv, error } = await sb
         .from("engine_roadmap_versions")
@@ -179,8 +211,11 @@ export const evaluateProjectSpineReadiness = createServerFn({ method: "GET" })
         const phases = ((rv.payload as any)?.phases ?? (rv.payload as any)?.roadmap?.phases ?? []) as Array<any>;
         if (Array.isArray(phases) && phases.length > 0) {
           const withRationale = phases.filter((p) => typeof p?.rationale === "string" && p.rationale.trim().length > 0).length;
-          input.roadmap_rationale_approved = withRationale === phases.length;
-          if (withRationale < phases.length) notes.roadmap_rationale_approved = `${withRationale}/${phases.length} phases have rationale`;
+          input.roadmap_rationale_approved = strategicThesisApproved && withRationale === phases.length;
+          const missing: string[] = [];
+          if (!strategicThesisApproved) missing.push("Strategic Thesis is not approved");
+          if (withRationale < phases.length) missing.push(`${withRationale}/${phases.length} phases have rationale`);
+          if (missing.length > 0) notes.roadmap_rationale_approved = missing.join("; ");
         } else {
           input.roadmap_rationale_approved = false;
           notes.roadmap_rationale_approved = "Approved version has no phases";
@@ -240,7 +275,7 @@ export const evaluateProjectSpineReadiness = createServerFn({ method: "GET" })
       }
     } catch { /* leave null */ }
 
-    // ---- 6. Client acknowledged the current roadmap ----
+    // ---- 6. Client acknowledged the current roadmap, where required ----
     try {
       const { data: cpr, error } = await sb
         .from("client_portal_roadmaps")
@@ -251,8 +286,8 @@ export const evaluateProjectSpineReadiness = createServerFn({ method: "GET" })
         .maybeSingle();
       if (!error) {
         if (!cpr || !cpr.published_at) {
-          input.client_acknowledged_destination = false;
-          notes.client_acknowledged_destination = "Roadmap not yet published to client portal";
+          input.client_acknowledged_destination = true;
+          notes.client_acknowledged_destination = "Not required until a roadmap is published to the client portal";
         } else {
           input.client_acknowledged_destination = Boolean(cpr.acknowledged_at);
           if (!cpr.acknowledged_at) notes.client_acknowledged_destination = "Client has not acknowledged the current roadmap";
