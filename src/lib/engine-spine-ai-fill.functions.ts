@@ -439,7 +439,7 @@ ${JSON.stringify(contextPayload, null, 2).slice(0, 45_000)}`,
     };
   });
 
-export async function seedMilestonesFromIntake(
+async function seedMilestonesFromIntake(
   sb: any,
   args: {
     projectId: string;
