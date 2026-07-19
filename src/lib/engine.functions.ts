@@ -324,15 +324,24 @@ async function fetchProjects(supabase: {
   dates: Map<string, { label: string; due_on: string }>;
   agg: ProjectAggregates;
 }> {
-  const { data, error } = await supabase
-    .from("engine_projects")
+  const { data, error } = await (supabase.from("engine_projects") as unknown as {
+    select: (s: string) => {
+      is: (c: string, v: null) => {
+        order: (
+          col: string,
+          o?: { ascending?: boolean },
+        ) => Promise<{ data: unknown; error: unknown }>;
+      };
+    };
+  })
     .select(
       "id,name,client_id,status,current_step,roadmap_version,approved_version,agent_status,agent_budget_monthly_cents,agent_spend_month_cents,open_decisions,next_action,last_activity_at,client_portal_project_id,deleted_at, engine_clients(company,industry)",
     )
-    .is("deleted_at" as never, null as never)
+    .is("deleted_at", null)
     .order("last_activity_at", { ascending: false });
   if (error) throw new Error((error as { message?: string }).message ?? "load projects failed");
   const rows = (data ?? []) as ProjectDbRow[];
+
 
 
   const { data: dateData } = await supabase
