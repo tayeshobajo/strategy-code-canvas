@@ -188,15 +188,43 @@ function ProjectApprovalsRoom() {
 function CeremonyRow({
   ceremony,
   index,
+  canApprove,
+  currentEmail,
+  busy,
+  onDecide,
 }: {
   ceremony: CeremonyStatus;
   index: number;
+  canApprove: boolean;
+  currentEmail: string | null;
+  busy: boolean;
+  onDecide: (action: "approve" | "reject", reason?: string) => void;
 }) {
   const { icon: Icon, tone, label } = stateBadge(ceremony.state);
   const blocked =
     ceremony.blocked_by.length > 0 &&
     ceremony.state !== "approved" &&
     ceremony.state !== "awaiting_review";
+
+  const inlineSupported =
+    ceremony.key === "world_entry" ||
+    ceremony.key === "execution_boundary" ||
+    ceremony.key === "strategic_thesis" ||
+    ceremony.key === "roadmap_v01";
+
+  const canInlineDecide =
+    canApprove &&
+    inlineSupported &&
+    ceremony.state === "awaiting_review" &&
+    (ceremony.key === "roadmap_v01" ? !!ceremony.roadmap_version_id : ceremony.version != null);
+
+  const selfDrafted =
+    !!currentEmail &&
+    !!ceremony.drafted_by_email &&
+    currentEmail.toLowerCase() === ceremony.drafted_by_email.toLowerCase();
+
+  const rejectSupported =
+    ceremony.key === "execution_boundary" || ceremony.key === "strategic_thesis";
 
   return (
     <li className="rounded-lg border border-border bg-card p-4 shadow-sm">
@@ -237,13 +265,48 @@ function CeremonyRow({
             )}
           </div>
         </div>
-        <Link
-          to={ceremony.deep_link}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-white px-3 py-1.5 text-xs text-ink hover:bg-muted"
-        >
-          Open
-          <ArrowRight className="h-3 w-3" />
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {canInlineDecide && !selfDrafted && (
+            <>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onDecide("approve")}
+                className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                Approve
+              </button>
+              {rejectSupported && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    const reason = window.prompt("Reason for sending back?") ?? undefined;
+                    if (reason === undefined) return;
+                    onDecide("reject", reason || undefined);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+                >
+                  <X className="h-3 w-3" />
+                  Send back
+                </button>
+              )}
+            </>
+          )}
+          {canInlineDecide && selfDrafted && (
+            <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+              Second reviewer required
+            </span>
+          )}
+          <Link
+            to={ceremony.deep_link}
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-white px-3 py-1.5 text-xs text-ink hover:bg-muted"
+          >
+            Open
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
       </div>
 
       {blocked && (
