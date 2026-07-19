@@ -201,6 +201,8 @@ export async function computeProjectCeremonyStatus(
       evidence_required: CEREMONY_META.world_entry.evidence,
       blocked_by: CEREMONY_META.world_entry.blockedBy,
       detail: weCur?.destination_summary?.slice(0, 160) ?? null,
+      roadmap_version_id: null,
+      drafted_by_email: weCur?.drafted_by_email ?? null,
     },
     {
       key: "execution_boundary",
