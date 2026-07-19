@@ -794,19 +794,35 @@ async function seedAncillarySpineArtifacts(
     /* best effort */
   }
 
-  // 4) Investment: if no ranges and no deferred_reason, mark it as
-  //    intentionally deferred with a rationale (readiness accepts this).
+  // 4) Investment: readiness evaluator wants `investment.phases[].range`
+  //    OR an explicit `deferred_reason`. Normalize both flat legacy
+  //    ranges and phases-only shapes so the check flips green without
+  //    losing any existing data.
   try {
     const inv = (projectRecord.investment ?? {}) as Record<string, any>;
-    const phases = Array.isArray(inv.phases) ? inv.phases : [];
-    const hasRanges =
-      phases.some(
-        (p: any) => p && (p.range || p.low != null || p.high != null || p.min != null),
-      ) ||
-      inv.range_low_usd != null ||
-      inv.range_high_usd != null;
+    const existingPhases = Array.isArray(inv.phases) ? inv.phases : [];
+    const phasesHaveRange = existingPhases.some(
+      (p: any) => p && (p.range || p.low != null || p.high != null || p.min != null),
+    );
+    const flatLow = inv.range_low_usd ?? inv.low ?? inv.min ?? null;
+    const flatHigh = inv.range_high_usd ?? inv.high ?? inv.max ?? null;
+    const hasFlatRange = flatLow != null || flatHigh != null;
     const hasDeferral = Boolean(inv.deferred_reason || inv.deferred);
-    if (!hasRanges && !hasDeferral) {
+
+    if (!phasesHaveRange && hasFlatRange) {
+      // Promote the flat range into the phases[] shape the evaluator reads.
+      projectPatch.investment = {
+        ...inv,
+        phases: [
+          {
+            label: "Total estimate",
+            range: { low: flatLow, high: flatHigh },
+          },
+          ...existingPhases,
+        ],
+      };
+      changed.push("investment.normalized_phases");
+    } else if (!phasesHaveRange && !hasFlatRange && !hasDeferral) {
       projectPatch.investment = {
         ...inv,
         deferred: true,
