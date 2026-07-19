@@ -1180,11 +1180,13 @@ function NoReadyMilestoneEmpty({ projectId, canAct }: { projectId: string; canAc
         setError("No milestones needed drafting. Try Refresh Project Intelligence on the Roadmap tab.");
       } else if (res.needs_enrichment) {
         // Fire AI polish in the background; refresh the Work view when it lands.
-        (enrich as unknown as (i: { data: { projectId: string } }) => Promise<{ enriched: number }>)({
-          data: { projectId },
-        })
-          .then(() => qc.invalidateQueries({ queryKey: ["engine", "work", projectId] }))
-          .catch(() => { /* baseline defaults already visible */ });
+        runEnrichmentInBackground(
+          projectId,
+          enrich as unknown as (i: { data: { projectId: string } }) => Promise<unknown>,
+          () => {
+            void qc.invalidateQueries({ queryKey: ["engine", "work", projectId] });
+          },
+        );
       }
     } catch (e) {
       setError((e as Error)?.message ?? "AI draft failed.");
@@ -1192,6 +1194,7 @@ function NoReadyMilestoneEmpty({ projectId, canAct }: { projectId: string; canAc
       setPending(false);
     }
   }
+
 
   return (
     <section className="rounded-xl border border-border bg-card p-8 text-center max-w-2xl mx-auto">
