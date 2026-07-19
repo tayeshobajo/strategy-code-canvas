@@ -347,7 +347,7 @@ function ProjectSpine() {
     : "The living story of this project — truth, direction, and next move.";
 
   return (
-    <div className="min-w-0 space-y-6 text-[#0A0F1F]">
+    <div className="min-w-0 space-y-10 pb-12 text-[#0A0F1F]">
       {/* ───── Identity strip ───── */}
       <IdentityStrip cells={identityCells} />
 
@@ -391,13 +391,13 @@ function ProjectSpine() {
         />
       ) : null}
 
-      <div className="min-w-0 space-y-6">
+      <div className="min-w-0 space-y-10">
 
       {variant === "active" ? (
         <>
 
       {/* ───── First viewport: NBA + Snapshot + Captain Intelligence + Sidebar ───── */}
-      <div className="grid gap-4 xl:grid-cols-4 xl:items-start">
+      <div className="grid gap-5 xl:grid-cols-4 xl:items-start">
         <HeroNextBestActionCard
           nba={spine.nba}
           nextMilestone={nextMilestone ?? null}
