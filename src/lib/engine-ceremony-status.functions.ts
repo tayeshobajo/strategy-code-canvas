@@ -50,6 +50,12 @@ export type CeremonyStatus = {
   roadmap_version_id: string | null;
   /** Email of the person who drafted the awaiting-review version (for second-reviewer UI hints). */
   drafted_by_email: string | null;
+  /** Whether the current draft was produced by AI (exempt from second-reviewer). */
+  drafted_by_actor: "human" | "ai" | null;
+  /** Concrete evidence lines derived from the current draft, for inline review. */
+  evidence_summary: string[];
+  /** Any remaining approval constraints that would currently block approval. */
+  constraints: string[];
 };
 
 export type ProjectCeremonyStatus = {
