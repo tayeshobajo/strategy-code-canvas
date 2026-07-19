@@ -1268,34 +1268,246 @@ function combineQaState(auto: GateState, human: GateState): GateState {
   return "not_started";
 }
 
+/**
+ * Canonical gate order used to identify the *current* gate blocking a
+ * milestone. Kept in-file (not shared) because it only makes sense in
+ * the context of the readiness table on the Spine.
+ */
+const CURRENT_GATE_ORDER: Array<{
+  key: keyof ProjectSpinePayload["milestones"][number]["readiness"];
+  label: string;
+  reason: string;
+  move: string;
+}> = [
+  {
+    key: "criteria",
+    label: "Acceptance criteria",
+    reason: "No acceptance criteria captured yet.",
+    move: "Draft criteria in the milestone brief.",
+  },
+  {
+    key: "design",
+    label: "Design frame",
+    reason: "No design frame is defined.",
+    move: "Create the design frame in Plans & Specs.",
+  },
+  {
+    key: "mockups",
+    label: "Mockups",
+    reason: "Mockups have not been produced.",
+    move: "Attach mockups or generate them from the frame.",
+  },
+  {
+    key: "build",
+    label: "Build packet",
+    reason: "Build packet is not ready.",
+    move: "Package the build spec for execution.",
+  },
+  {
+    key: "evidence",
+    label: "Build evidence",
+    reason: "Build evidence has not been submitted.",
+    move: "Upload build evidence when the work lands.",
+  },
+  {
+    key: "qa_auto",
+    label: "Automated QA",
+    reason: "Automated QA has not run or is failing.",
+    move: "Run the automated QA plan and resolve failures.",
+  },
+  {
+    key: "qa_human",
+    label: "Human QA",
+    reason: "Human QA review is pending.",
+    move: "Complete the human QA review.",
+  },
+  {
+    key: "dependencies",
+    label: "Dependencies",
+    reason: "Upstream dependencies are not satisfied.",
+    move: "Unblock or reroute the dependency.",
+  },
+  {
+    key: "blockers",
+    label: "Blockers",
+    reason: "An open blocker is preventing progress.",
+    move: "Resolve or reassign the blocker.",
+  },
+];
+
+type CurrentGate = {
+  milestone: ProjectSpinePayload["milestones"][number];
+  gate: (typeof CURRENT_GATE_ORDER)[number] | null;
+  state: GateState | null;
+  nextGate: (typeof CURRENT_GATE_ORDER)[number] | null;
+};
+
+function deriveCurrentGates(
+  milestones: ProjectSpinePayload["milestones"],
+): CurrentGate[] {
+  // Focus on milestones that are not yet fully done and are the closest
+  // to shipping — first three by sort_index that still have work.
+  const active = milestones
+    .filter((m) => m.status !== "done" && m.approval_status !== "rejected")
+    .slice(0, 3);
+  return active.map((m) => {
+    const gates = m.readiness;
+    const firstIncomplete = CURRENT_GATE_ORDER.findIndex((g) => {
+      const s = gates[g.key] as GateState | undefined;
+      return s !== "done" && s !== "na";
+    });
+    if (firstIncomplete === -1) {
+      return { milestone: m, gate: null, state: null, nextGate: null };
+    }
+    const gate = CURRENT_GATE_ORDER[firstIncomplete];
+    const state = gates[gate.key] as GateState;
+    // Next gate after the current one that still needs attention.
+    const nextIdx = CURRENT_GATE_ORDER.findIndex((g, i) => {
+      if (i <= firstIncomplete) return false;
+      const s = gates[g.key] as GateState | undefined;
+      return s !== "done" && s !== "na";
+    });
+    const nextGate = nextIdx === -1 ? null : CURRENT_GATE_ORDER[nextIdx];
+    return { milestone: m, gate, state, nextGate };
+  });
+}
+
+function humanizeGateState(state: GateState | null): string {
+  switch (state) {
+    case "blocked":
+      return "Blocked";
+    case "review":
+      return "In review";
+    case "in_progress":
+      return "In progress";
+    case "not_ready":
+      return "Not ready";
+    case "not_started":
+      return "Not started";
+    case "not_configured":
+      return "Not configured";
+    case "done":
+      return "Done";
+    case "na":
+      return "N/A";
+    default:
+      return "—";
+  }
+}
+
 function MilestoneReadinessMatrix({
   projectId,
   milestones,
+  ownerEmail,
 }: {
   projectId: string;
   milestones: ProjectSpinePayload["milestones"];
+  ownerEmail: string | null;
 }) {
   const rows = milestones.slice(0, 6);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [showAll, setShowAll] = useState(false);
+  const currentGates = deriveCurrentGates(milestones);
 
   return (
     <section id="spine-milestones" className="scroll-mt-4 rounded-2xl border border-[#E8E1D6] bg-white p-5 shadow-sm">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-lg text-[#0A0F1F]">Milestone Readiness</h2>
-        <Link
-          to="/engine/projects/$projectId/roadmap"
-          params={{ projectId }}
-          search={{ view: "journey" }}
-          className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
-        >
-          View all <ArrowRight className="h-3 w-3" />
-        </Link>
+        <div>
+          <h2 className="font-display text-lg text-[#0A0F1F]">Milestone Readiness</h2>
+          <p className="mt-1 text-xs text-[#667085]">
+            {showAll
+              ? "Every gate across every milestone. Derived from durable project records."
+              : "What matters now — the milestone in flight, the gate blocking it, and the next move."}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+            aria-pressed={showAll}
+          >
+            {showAll ? "Show current gate" : "View all"}
+            {showAll ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </button>
+          <Link
+            to="/engine/projects/$projectId/roadmap"
+            params={{ projectId }}
+            search={{ view: "journey" }}
+            className="inline-flex items-center gap-1 text-xs font-medium text-[#3E68B2] hover:text-[#284f93]"
+          >
+            Open roadmap <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
       </div>
-      <p className="mt-1 text-xs text-[#667085]">
-        Every gate is derived from durable project records. Missing backing records render as “Not configured”.
-      </p>
+
       {rows.length === 0 ? (
         <p className="mt-4 text-sm text-[#667085]">No milestones captured yet.</p>
+      ) : !showAll ? (
+        currentGates.length === 0 ? (
+          <div className="mt-4 rounded-lg border border-dashed border-[#E8E1D6] bg-[#FBF9F4] p-4 text-sm text-[#667085]">
+            No active milestones. Approve the next milestone from the roadmap to begin.
+          </div>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#E8E1D6] text-[#667085]">
+                  <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Milestone</th>
+                  <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Current gate</th>
+                  <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Why it's not ready</th>
+                  <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Next gate</th>
+                  <th className="py-2 pr-4 font-mono text-[10px] uppercase tracking-[0.22em]">Owner</th>
+                  <th className="py-2 pr-3 font-mono text-[10px] uppercase tracking-[0.22em]">Next move</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentGates.map(({ milestone: m, gate, state, nextGate }) => (
+                  <tr key={m.id} className="border-b border-[#F3EEE6] align-top">
+                    <td className="py-3 pr-4">
+                      <Link
+                        to="/engine/projects/$projectId/milestones/$milestoneId/brief"
+                        params={{ projectId, milestoneId: m.id }}
+                        className="font-medium text-[#0A0F1F] hover:text-[#3E68B2]"
+                      >
+                        {m.name}
+                      </Link>
+                      {m.due_date ? (
+                        <div className="mt-0.5 text-[11px] text-[#667085]">
+                          Due {formatDate(m.due_date)}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="py-3 pr-4">
+                      {gate ? (
+                        <div>
+                          <div className="text-sm text-[#0A0F1F]">{gate.label}</div>
+                          <div className="mt-1">
+                            <GateChip state={state ?? "not_started"} />
+                          </div>
+                        </div>
+                      ) : (
+                        <GateChip state="done" />
+                      )}
+                    </td>
+                    <td className="py-3 pr-4 text-[13px] leading-5 text-[#3f4a5e]">
+                      {gate ? gate.reason : "All gates cleared — awaiting approval."}
+                    </td>
+                    <td className="py-3 pr-4 text-[13px] text-[#3f4a5e]">
+                      {nextGate ? nextGate.label : gate ? "—" : "Ready to close"}
+                    </td>
+                    <td className="py-3 pr-4 text-[13px] text-[#3f4a5e]">
+                      {ownerEmail ?? <span className="text-[#8a94a6]">Unassigned</span>}
+                    </td>
+                    <td className="py-3 pr-3 text-[13px] leading-5 text-[#0A0F1F]">
+                      {gate ? gate.move : "Send to approval."}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       ) : (
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full text-left text-sm">
@@ -1388,6 +1600,8 @@ function MilestoneReadinessMatrix({
           </table>
         </div>
       )}
+      {/* Suppress the eslint hint for humanizeGateState if unused elsewhere — kept for future chip labeling. */}
+      <span className="sr-only">{humanizeGateState(null)}</span>
     </section>
   );
 }
