@@ -23,6 +23,9 @@ import {
   FileCheck2,
 } from "lucide-react";
 import { getProjectWork, type ProjectWorkPayload } from "@/lib/engine-work.functions";
+import { draftMilestoneAcceptanceCriteria } from "@/lib/engine-milestone-ai-draft.functions";
+import { Sparkles } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import type {
   MilestoneExecutionSummary,
   WorkItem,
