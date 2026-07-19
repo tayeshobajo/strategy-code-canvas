@@ -466,14 +466,6 @@ function ProjectSpine() {
               : phaseInfo.reason
           }
         />
-            blockedItemsCount > 0
-              ? `${blockedItemsCount} blocked item${blockedItemsCount === 1 ? "" : "s"} need attention before the next milestone unlocks.`
-              : pendingApprovalsCount > 0
-                ? `${pendingApprovalsCount} approval${pendingApprovalsCount === 1 ? "" : "s"} waiting on you.`
-                : "The project is on track — focus on advancing the next milestone."
-          }
-          recommendation={spine.nba.action}
-        />
         <div className="space-y-4">
           <LatestAmendmentsPanel projectId={projectId} />
           <DriftSummaryPanel projectId={projectId} executionActive={executionActive} />
