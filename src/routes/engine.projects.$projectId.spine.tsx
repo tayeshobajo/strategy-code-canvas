@@ -219,6 +219,15 @@ function ProjectSpine() {
     staleTime: 60_000,
   });
 
+  // Versions list — powers the Compare Versions modal launched from the
+  // roadmap approval card. Kept lightweight; refetched after approve.
+  const versionsQ = useQuery({
+    queryKey: ["engine", "roadmap-versions", projectId],
+    queryFn: () => listVersionsFn({ data: { projectId } }),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+
   const [moduleFilter, setModuleFilter] = useState<ModuleReadinessFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<ModuleCategoryFilter>("all");
   const [moduleSort, setModuleSort] = useState<ModuleSort>("readiness");
