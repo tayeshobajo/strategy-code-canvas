@@ -50,6 +50,12 @@ export type CeremonyStatus = {
   roadmap_version_id: string | null;
   /** Email of the person who drafted the awaiting-review version (for second-reviewer UI hints). */
   drafted_by_email: string | null;
+  /** Whether the current draft was produced by AI (exempt from second-reviewer). */
+  drafted_by_actor: "human" | "ai" | null;
+  /** Concrete evidence lines derived from the current draft, for inline review. */
+  evidence_summary: string[];
+  /** Any remaining approval constraints that would currently block approval. */
+  constraints: string[];
 };
 
 export type ProjectCeremonyStatus = {
@@ -187,6 +193,57 @@ export async function computeProjectCeremonyStatus(
   const firstApproved = versions.find((v) => v.status === "approved");
   const latest = versions[versions.length - 1] ?? null;
 
+  // Build evidence summaries / constraints per ceremony from current drafts.
+  const weActor: "human" | "ai" | null = weCur
+    ? (weCur.drafted_by_actor === "ai" ? "ai" : "human")
+    : null;
+  const weEvidence: string[] = weCur
+    ? [
+        weCur.destination_summary ? `Destination: ${String(weCur.destination_summary).slice(0, 140)}` : "",
+        Array.isArray(weCur.competitors) ? `${weCur.competitors.length} competitor(s) documented` : "",
+        Array.isArray(weCur.vocabulary) ? `${weCur.vocabulary.length} vocabulary token(s)` : "",
+        Array.isArray(weCur.evidence_sources) ? `${weCur.evidence_sources.length} evidence source(s)` : "",
+      ].filter(Boolean)
+    : [];
+  const weConstraints: string[] = [];
+  if (weCur && weActor === "human" && weCur.drafted_by_email) {
+    weConstraints.push(`Second reviewer required (drafted by ${weCur.drafted_by_email}).`);
+  }
+  if (!weCur) weConstraints.push("No draft yet — start in the World Entry room.");
+
+  const ebActor: "human" | "ai" | null = ebCur
+    ? (ebCur.proposed_by_actor === "ai" ? "ai" : "human")
+    : null;
+  const ebEvidence: string[] = ebCur
+    ? [
+        Array.isArray(ebCur.capability_ids) ? `${ebCur.capability_ids.length} capability/ies selected` : "",
+        Array.isArray(ebCur.client_owned) ? `${ebCur.client_owned.length} client-owned area(s)` : "",
+        Array.isArray(ebCur.exclusions) ? `${ebCur.exclusions.length} exclusion(s) documented` : "",
+      ].filter(Boolean)
+    : [];
+  const ebConstraints: string[] = [];
+  if (ebCur && ebActor === "human" && ebCur.proposed_by_email) {
+    ebConstraints.push(`Second reviewer required (proposed by ${ebCur.proposed_by_email}).`);
+  }
+  if (!ebCur) ebConstraints.push("No draft yet — start in the Execution Boundary room.");
+
+  const stActor: "human" | "ai" | null = stCur
+    ? (stCur.proposed_by_actor === "ai" ? "ai" : "human")
+    : null;
+  const stEvidence: string[] = stCur
+    ? [
+        stCur.bet_statement ? `Bet: ${String(stCur.bet_statement).slice(0, 140)}` : "",
+        stCur.why_now ? `Why now: ${String(stCur.why_now).slice(0, 120)}` : "",
+        Array.isArray(stCur.proof_metrics) ? `${stCur.proof_metrics.length} proof metric(s)` : "",
+        Array.isArray(stCur.kill_criteria) ? `${stCur.kill_criteria.length} kill criteria` : "",
+      ].filter(Boolean)
+    : [];
+  const stConstraints: string[] = [];
+  if (stCur && stActor === "human" && stCur.proposed_by_email) {
+    stConstraints.push(`Second reviewer required (proposed by ${stCur.proposed_by_email}).`);
+  }
+  if (!stCur) stConstraints.push("No draft yet — draft the Strategic Thesis first.");
+
   const ceremonies: CeremonyStatus[] = [
     {
       key: "world_entry",
@@ -203,6 +260,9 @@ export async function computeProjectCeremonyStatus(
       detail: weCur?.destination_summary?.slice(0, 160) ?? null,
       roadmap_version_id: null,
       drafted_by_email: weCur?.drafted_by_email ?? null,
+      drafted_by_actor: weActor,
+      evidence_summary: weEvidence,
+      constraints: weConstraints,
     },
     {
       key: "execution_boundary",
@@ -220,6 +280,9 @@ export async function computeProjectCeremonyStatus(
         : null,
       roadmap_version_id: null,
       drafted_by_email: ebCur?.proposed_by_email ?? null,
+      drafted_by_actor: ebActor,
+      evidence_summary: ebEvidence,
+      constraints: ebConstraints,
     },
     {
       key: "strategic_thesis",
@@ -235,6 +298,9 @@ export async function computeProjectCeremonyStatus(
       detail: stCur?.bet_statement?.slice(0, 160) ?? null,
       roadmap_version_id: null,
       drafted_by_email: stCur?.proposed_by_email ?? null,
+      drafted_by_actor: stActor,
+      evidence_summary: stEvidence,
+      constraints: stConstraints,
     },
     {
       key: "milestone_qualification",
@@ -261,6 +327,15 @@ export async function computeProjectCeremonyStatus(
           : `${Object.keys(mq).length} in progress`,
       roadmap_version_id: null,
       drafted_by_email: null,
+      drafted_by_actor: null,
+      evidence_summary: [
+        `${qualifiedEntries.length} qualified`,
+        `${Object.keys(mq).length} total in progress`,
+      ],
+      constraints:
+        qualifiedEntries.length === 0
+          ? ["At least one milestone must be qualified in the sequencing room."]
+          : [],
     },
     {
       key: "roadmap_v01",
@@ -285,6 +360,15 @@ export async function computeProjectCeremonyStatus(
           : null,
       roadmap_version_id: firstApproved ? null : (latest?.id ?? null),
       drafted_by_email: null,
+      drafted_by_actor: null,
+      evidence_summary: latest
+        ? [`Latest version: ${latest.label ?? latest.id.slice(0, 8)} (${latest.status})`]
+        : ["No roadmap version yet."],
+      constraints: firstApproved
+        ? []
+        : latest
+          ? []
+          : ["Create a baseline roadmap version to approve."],
     },
   ];
 
