@@ -1661,6 +1661,7 @@ function MilestoneReadinessMatrix({
           </table>
         </div>
       )}
+      </div>
       {/* Suppress the eslint hint for humanizeGateState if unused elsewhere — kept for future chip labeling. */}
       <span className="sr-only">{humanizeGateState(null)}</span>
     </section>
