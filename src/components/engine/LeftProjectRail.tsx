@@ -38,6 +38,7 @@ const PROJECT_NAV_ITEMS: RailNavItem[] = [
   { label: "Roadmap", to: "/engine/projects/$projectId/roadmap", icon: MapPin },
   { label: "Work", to: "/engine/projects/$projectId/work", icon: Activity },
   { label: "QA & Delivery", to: "/engine/projects/$projectId/qa-delivery", icon: ClipboardCheck },
+  { label: "Approvals", to: "/engine/projects/$projectId/approvals", icon: Gavel },
   { label: "Client View", to: "/engine/projects/$projectId/client-view", icon: Eye },
 ];
 

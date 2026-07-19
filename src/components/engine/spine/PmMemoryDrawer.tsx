@@ -31,6 +31,7 @@ import {
   updatePmEntry,
   approvePmAssumption,
 } from "@/lib/engine-pm-memory.functions";
+import { getProjectCeremonyStatus } from "@/lib/engine-ceremony-status.functions";
 
 type Kind = "fact" | "assumption" | "question" | "decision";
 
@@ -158,8 +159,9 @@ export function PmMemoryDrawer({ projectId }: { projectId: string }) {
               />
             </div>
 
-            <Tabs defaultValue="questions" className="mt-3">
-              <TabsList className="grid grid-cols-4 w-full">
+            <Tabs defaultValue="ceremonies" className="mt-3">
+              <TabsList className="grid grid-cols-5 w-full">
+                <TabsTrigger value="ceremonies">Ceremonies</TabsTrigger>
                 <TabsTrigger value="questions">
                   Questions{openCount ? ` (${openCount})` : ""}
                 </TabsTrigger>
@@ -167,6 +169,11 @@ export function PmMemoryDrawer({ projectId }: { projectId: string }) {
                 <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
                 <TabsTrigger value="decisions">Decisions</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="ceremonies" className="space-y-3 mt-4">
+                <CeremonyChecklist projectId={projectId} />
+              </TabsContent>
+
 
               <TabsContent value="questions" className="space-y-3 mt-4">
                 <FilterRow>
@@ -291,6 +298,69 @@ export function PmMemoryDrawer({ projectId }: { projectId: string }) {
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+function CeremonyChecklist({ projectId }: { projectId: string }) {
+  const getStatus = useServerFn(getProjectCeremonyStatus);
+  const { data, isLoading } = useQuery({
+    queryKey: ["ceremony-status", projectId],
+    queryFn: () => getStatus({ data: { projectId } }),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Loader2 className="h-3 w-3 animate-spin" /> Loading ceremonies…
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="text-[11px] text-muted-foreground">
+        {data.completed_count}/{data.total_count} ceremonies approved
+      </div>
+      {data.ceremonies.map((c) => {
+        const stateTone =
+          c.state === "approved"
+            ? "text-emerald-700"
+            : c.state === "awaiting_review"
+              ? "text-amber-700"
+              : c.state === "rejected"
+                ? "text-red-700"
+                : "text-muted-foreground";
+        return (
+          <div key={c.key} className="rounded-md border border-border p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-medium text-ink">{c.label}</div>
+              <span className={`text-[10px] font-medium ${stateTone}`}>
+                {c.state.replace(/_/g, " ")}
+              </span>
+            </div>
+            {c.detail && (
+              <div className="mt-1 text-[11px] text-muted-foreground truncate">
+                {c.detail}
+              </div>
+            )}
+            <div className="mt-1.5 flex items-center justify-between">
+              <ul className="flex-1 text-[10px] text-muted-foreground space-y-0.5">
+                {c.evidence_required.slice(0, 3).map((e) => (
+                  <li key={e}>• {e}</li>
+                ))}
+              </ul>
+              <a
+                href={c.deep_link}
+                className="text-[11px] text-royal hover:underline shrink-0 ml-2"
+              >
+                Open →
+              </a>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

@@ -483,6 +483,18 @@ export const createProjectFromSource = createServerFn({ method: "POST" })
       pipelineStatus = "failed";
     }
 
+    // Auto-seed the capability registry so /admin/capability-registry
+    // and Execution Boundary aren't blocked by an empty table on a
+    // brand-new environment. No-op once seeded.
+    try {
+      const { seedCapabilityRegistryIfEmpty } = await import(
+        "@/lib/engine-capability-registry.functions"
+      );
+      await seedCapabilityRegistryIfEmpty(sb);
+    } catch (e) {
+      console.error("[intake-bridge] capability registry seed failed", e);
+    }
+
     // Auto-run the AI Product Manager (RT-1 synthesis, repair mode) so
     // every new project lands with PM Memory populated and readiness
     // driven as high as autonomous drafting allows before the operator
