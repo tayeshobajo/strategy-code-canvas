@@ -125,11 +125,7 @@ function WorkTab() {
   }
   if (view.mode === "roadmap_no_ready_milestone") {
     return (
-      <EmptyState
-        title="Roadmap approved. No milestone is ready yet."
-        body="Draft acceptance criteria on the earliest upcoming milestone to open execution."
-        cta={{ label: "Open Roadmap", to: "/engine/projects/$projectId/roadmap", projectId }}
-      />
+      <NoReadyMilestoneEmpty projectId={projectId} canAct={role.canEdit} />
     );
   }
 
