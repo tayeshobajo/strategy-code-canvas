@@ -27,6 +27,7 @@ import { LatestAmendmentsPanel } from "@/components/engine/LatestAmendmentsPanel
 import { DriftSummaryPanel } from "@/components/engine/DriftSummaryPanel";
 import { AiPmStatusChip } from "@/components/engine/spine/AiPmStatusChip";
 import { RunAiPmButton } from "@/components/engine/spine/RunAiPmButton";
+import { PmMemoryDrawer } from "@/components/engine/spine/PmMemoryDrawer";
 import { useAutoPmRun } from "@/hooks/use-auto-pm-run";
 import {
   Lock,
@@ -426,6 +427,7 @@ function ProjectSpine() {
         <div className="flex items-center gap-2 flex-wrap">
           <AiPmStatusChip projectId={projectId} />
           <RunAiPmButton projectId={projectId} runNow={runPmNow} variant="subtle" />
+          <PmMemoryDrawer projectId={projectId} />
         </div>
       </div>
 
