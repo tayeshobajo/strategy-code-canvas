@@ -218,13 +218,23 @@ function CeremonyRow({
     ceremony.state === "awaiting_review" &&
     (ceremony.key === "roadmap_v01" ? !!ceremony.roadmap_version_id : ceremony.version != null);
 
+  const isAiDraft = ceremony.drafted_by_actor === "ai";
   const selfDrafted =
+    !isAiDraft &&
     !!currentEmail &&
     !!ceremony.drafted_by_email &&
     currentEmail.toLowerCase() === ceremony.drafted_by_email.toLowerCase();
 
   const rejectSupported =
     ceremony.key === "execution_boundary" || ceremony.key === "strategic_thesis";
+
+  const drafterLine = ceremony.drafted_by_email
+    ? `Drafted by ${isAiDraft ? "AI PM" : ceremony.drafted_by_email}${
+        isAiDraft && ceremony.drafted_by_email ? ` (attributed to ${ceremony.drafted_by_email})` : ""
+      }`
+    : isAiDraft
+      ? "Drafted by AI PM"
+      : null;
 
   return (
     <li className="rounded-lg border border-border bg-card p-4 shadow-sm">
@@ -234,7 +244,7 @@ function CeremonyRow({
             {String(index).padStart(2, "0")}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold text-ink">
                 {ceremony.label}
               </span>
@@ -249,11 +259,19 @@ function CeremonyRow({
                   v{ceremony.version}
                 </span>
               )}
+              {isAiDraft && (
+                <span className="text-[10px] rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-blue-800">
+                  AI draft · exempt from second-reviewer
+                </span>
+              )}
             </div>
             {ceremony.detail && (
               <p className="mt-1 text-xs text-muted-foreground">
                 {ceremony.detail}
               </p>
+            )}
+            {drafterLine && (
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{drafterLine}</p>
             )}
             {ceremony.updated_at && (
               <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -296,7 +314,12 @@ function CeremonyRow({
           )}
           {canInlineDecide && selfDrafted && (
             <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-              Second reviewer required
+              Second reviewer required — you drafted this version
+            </span>
+          )}
+          {!canApprove && ceremony.state === "awaiting_review" && (
+            <span className="text-[10px] text-muted-foreground bg-muted border border-border rounded px-2 py-1">
+              Requires operator or admin
             </span>
           )}
           <Link
@@ -316,15 +339,45 @@ function CeremonyRow({
         </div>
       )}
 
-      {ceremony.evidence_required.length > 0 && (
-        <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-muted-foreground">
-          {ceremony.evidence_required.map((e) => (
-            <li key={e} className="flex items-center gap-1.5">
-              <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-              {e}
+      {ceremony.constraints.length > 0 && (
+        <ul className="mt-3 space-y-1 rounded-md border border-amber-200 bg-amber-50/60 px-2.5 py-2 text-[11px] text-amber-900">
+          {ceremony.constraints.map((c) => (
+            <li key={c} className="flex items-start gap-1.5">
+              <ShieldAlert className="h-3 w-3 mt-0.5 shrink-0" />
+              <span>{c}</span>
             </li>
           ))}
         </ul>
+      )}
+
+      {ceremony.evidence_summary.length > 0 && (
+        <div className="mt-3">
+          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-ink/50 mb-1">
+            Evidence in this draft
+          </div>
+          <ul className="space-y-1 text-[11px] text-ink/80">
+            {ceremony.evidence_summary.map((e) => (
+              <li key={e} className="flex items-start gap-1.5">
+                <CheckCircle2 className="h-3 w-3 mt-0.5 text-emerald-600 shrink-0" />
+                <span>{e}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {ceremony.evidence_required.length > 0 && (
+        <details className="mt-3 text-[11px] text-muted-foreground">
+          <summary className="cursor-pointer select-none">Required for approval</summary>
+          <ul className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {ceremony.evidence_required.map((e) => (
+              <li key={e} className="flex items-center gap-1.5">
+                <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                {e}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
     </li>
   );
