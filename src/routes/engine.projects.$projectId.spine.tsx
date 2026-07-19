@@ -518,6 +518,7 @@ function ProjectSpine() {
       <MilestoneReadinessMatrix
         projectId={projectId}
         milestones={spine.milestones}
+        ownerEmail={spine.project.client_owner_email}
       />
 
 
