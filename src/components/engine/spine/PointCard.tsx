@@ -252,7 +252,7 @@ export function PointCard({
 /**
  * Inline editor. Writes each changed field as a `proposeSpineFieldChange`
  * — never mutates approved truth directly. The approvals queue routes it
- * through the second-reviewer flow per PROJECT_SPINE_CONTRACT §5.
+ * through the standard approval flow per PROJECT_SPINE_CONTRACT §5.
  *
  * Confidence + Sources are annotative fields on the same section, so they
  * are persisted alongside summary/bullets as separate proposals when the
