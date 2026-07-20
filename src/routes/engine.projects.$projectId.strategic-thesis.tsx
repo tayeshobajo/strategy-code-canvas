@@ -92,8 +92,6 @@ function StrategicThesisPage() {
 
   const state = stateQuery.data;
   const current = state?.current ?? null;
-  const isProposer = !!current && me && current.proposed_by_email.toLowerCase() === me;
-  void isProposer;
   const canApprove = current?.status === "proposed";
 
   const proposeMut = useMutation({
