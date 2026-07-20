@@ -544,7 +544,7 @@ export const convertChatProposalToSuggestedTask = createServerFn({ method: "POST
 // / qa_checklist / milestone_brief), writes audit rows to engine_activity and
 // engine_project_chat_events, and flips proposal status to 'converted'.
 // Refuses client_clarification (must go through an operator-authored client
-// message) and refuses self-approval.
+// message). Self-approval is permitted.
 export const approveChatProposal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
