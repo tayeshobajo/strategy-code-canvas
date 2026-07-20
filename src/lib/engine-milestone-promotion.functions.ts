@@ -318,7 +318,7 @@ export const approveEnginePromotion = createServerFn({ method: "POST" })
       throw new Error("Engine is not linked to a milestone — not a promotion flow.");
     }
     // Self-approval allowed: promoter may activate an engine they created.
-    void creator;
+
 
 
     // activate_business_engine RPC records approved_by/at + flips status to active
