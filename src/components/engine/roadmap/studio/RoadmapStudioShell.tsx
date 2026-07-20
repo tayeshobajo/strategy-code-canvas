@@ -160,6 +160,9 @@ function StudioInner({ projectId, view }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selection, setSelection] = useState<StudioSelection>({ kind: "none" });
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [stripCollapsed, setStripCollapsed] = useState(false);
 
   // undo/redo — snapshot ring buffer of nodes+edges JSON
   const past = useRef<string[]>([]);
