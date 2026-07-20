@@ -117,28 +117,30 @@ function PortalLayout() {
     setMobileNavOpen(false);
   }, [pathname]);
 
+  // The route's beforeLoad already resolved the user; read the session
+  // synchronously from the auth client instead of round-tripping to
+  // /auth/v1/user on every portal page load. Only subscribe to state
+  // changes to keep the header email fresh across sign-out.
   useEffect(() => {
     if (isPublicPage) {
       setEmail("");
       return;
     }
-    let cancelled = false;
-    const sync = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!cancelled) setEmail(data.user?.email ?? "");
-    };
-    sync();
+    const session = supabase.auth.getSession
+      ? undefined
+      : undefined;
+    void session;
+    supabase.auth.getSession().then(({ data }) => {
+      setEmail(data.session?.user?.email ?? "");
+    });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         setEmail("");
-      } else if (session?.user?.email) {
-        setEmail(session.user.email);
       } else {
-        sync();
+        setEmail(session?.user?.email ?? "");
       }
     });
     return () => {
-      cancelled = true;
       sub.subscription.unsubscribe();
     };
   }, [isPublicPage]);
