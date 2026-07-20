@@ -232,8 +232,7 @@ function WorldEntryPage() {
           <h1 className="font-display text-3xl text-ink mt-1">World Entry</h1>
           <p className="text-sm text-ink/60 mt-1 max-w-2xl">
             Confirm the industry destination, competitor landscape, category vocabulary,
-            and evidence that anchors every downstream milestone. Requires a second-reviewer
-            approval before roadmap synthesis will trust it.
+            and evidence that anchors every downstream milestone before roadmap synthesis will trust it.
           </p>
         </div>
         <div className="flex flex-col items-end gap-2 text-xs">
@@ -674,9 +673,6 @@ function ApproveButton({
                 <X className="h-4 w-4 text-ink/50" />
               </button>
             </div>
-            <p className="text-xs text-ink/60 mb-2">
-              Second-reviewer rule: you cannot approve a version you drafted.
-            </p>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}

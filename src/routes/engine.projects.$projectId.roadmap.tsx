@@ -462,7 +462,7 @@ function RoadmapHeader({
       {canApprove && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
           <span className="max-w-4xl">
-            This roadmap is a <strong>draft</strong>. Approving it locks the baseline and unlocks the Work tab. Requires: Point A + Point B approved, no open critical change events, and a second reviewer (you can't approve a version you authored). Investment confirmation is required later, before publishing to the client portal.
+            This roadmap is a <strong>draft</strong>. Approving it locks the baseline and unlocks the Work tab. Requires: Point A + Point B approved and no open critical change events. Investment confirmation is required later, before publishing to the client portal.
           </span>
           <button
             type="button"

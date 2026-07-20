@@ -274,7 +274,7 @@ function CeremonyRow({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          {canInlineDecide && !selfDrafted && (
+          {canInlineDecide && (
             <>
               <button
                 type="button"
@@ -301,11 +301,6 @@ function CeremonyRow({
                 </button>
               )}
             </>
-          )}
-          {canInlineDecide && selfDrafted && (
-            <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 max-w-[240px]">
-              Second reviewer required — you drafted this version
-            </span>
           )}
           {!canApprove && ceremony.state === "awaiting_review" && (
             <span className="text-[10px] text-muted-foreground bg-muted border border-border rounded px-2 py-1">

@@ -365,7 +365,7 @@ export const runMilestoneJudges = createServerFn({ method: "POST" })
       projectId: data.projectId,
       kind: "milestone_qualification.entered",
       title: `Qualification opened — ${milestone.name}`,
-      body: `World: ${world.verdict} · Wow: ${wow.verdict} (${wow.wow_score}/5). Awaiting second-reviewer decision.`,
+      body: `World: ${world.verdict} · Wow: ${wow.verdict} (${wow.wow_score}/5). Awaiting decision.`,
       href: `/engine/projects/${data.projectId}/milestones/${data.milestoneId}/qualify`,
       actor,
       extra: {
