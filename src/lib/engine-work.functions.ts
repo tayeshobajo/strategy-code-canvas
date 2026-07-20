@@ -69,11 +69,15 @@ export const getProjectWork = createServerFn({ method: "GET" })
       getProjectSpine as unknown as {
         __executeServer: (opts: {
           data: { id: string };
-          context?: unknown;
         }) => Promise<{ result?: unknown; error?: unknown }>;
       }
-    ).__executeServer({ data: { id: data.id }, context });
+    ).__executeServer({ data: { id: data.id } });
     if (spineExec.error) throw spineExec.error;
+    if (!spineExec.result) {
+      throw new Error(
+        `getProjectSpine returned no result: ${JSON.stringify(spineExec)}`,
+      );
+    }
     const spine = spineExec.result as Awaited<ReturnType<typeof getProjectSpine>>;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
