@@ -51,6 +51,8 @@ function ProjectApprovalsRoom() {
   const query = useQuery({
     queryKey: ["ceremony-status", projectId],
     queryFn: () => getStatus({ data: { projectId } }),
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
   const queryClient = useQueryClient();
   const role = useEngineRole();
