@@ -293,7 +293,7 @@ function StudioInner({ projectId, view }: Props) {
         canRedo={future.current.length > 0}
       />
       <div className="flex min-h-0 flex-1">
-        <StudioLeftRail />
+        <StudioLeftRail collapsed={leftCollapsed} onToggle={() => setLeftCollapsed((v) => !v)} />
         <div className="relative min-w-0 flex-1">
           <ReactFlow
             nodes={nodes}
@@ -319,16 +319,40 @@ function StudioInner({ projectId, view }: Props) {
           projectId={projectId}
           selection={selection}
           onClose={() => setSelection({ kind: "none" })}
+          collapsed={rightCollapsed}
+          onToggle={() => setRightCollapsed((v) => !v)}
         />
       </div>
-      <BottomOverviewStrip
-        phases={view.phases}
-        milestones={view.milestones}
-        selectedId={selectedId}
-        onSelect={focusById}
-        pointALabel={pointA.title}
-        pointBLabel={pointB.title}
-      />
+      {stripCollapsed ? (
+        <button
+          type="button"
+          onClick={() => setStripCollapsed(false)}
+          className="h-6 shrink-0 border-t border-rule bg-white text-[10px] font-mono uppercase tracking-[0.2em] text-ink/55 hover:text-ink"
+          title="Show journey overview"
+        >
+          Show journey ▲
+        </button>
+      ) : (
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setStripCollapsed(true)}
+            className="absolute right-2 top-1 z-10 rounded p-1 text-[10px] text-ink/50 hover:text-ink"
+            title="Hide journey overview"
+            aria-label="Hide journey overview"
+          >
+            ▼
+          </button>
+          <BottomOverviewStrip
+            phases={view.phases}
+            milestones={view.milestones}
+            selectedId={selectedId}
+            onSelect={focusById}
+            pointALabel={pointA.title}
+            pointBLabel={pointB.title}
+          />
+        </div>
+      )}
     </div>
   );
 }
