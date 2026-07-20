@@ -51,6 +51,8 @@ function ProjectApprovalsRoom() {
   const query = useQuery({
     queryKey: ["ceremony-status", projectId],
     queryFn: () => getStatus({ data: { projectId } }),
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
   const queryClient = useQueryClient();
   const role = useEngineRole();
@@ -104,6 +106,7 @@ function ProjectApprovalsRoom() {
     },
     onError: (e: unknown) => {
       toast.error(e instanceof Error ? e.message : "Action failed");
+      invalidate();
     },
   });
 
