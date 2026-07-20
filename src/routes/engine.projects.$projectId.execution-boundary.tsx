@@ -279,11 +279,7 @@ function ExecutionBoundaryPage() {
                   Proposed by <span className="font-mono">{current.proposed_by_email}</span>
                   {current.proposed_by_actor === "ai" ? " (AI-drafted)" : ""}
                 </div>
-                {isProposer ? (
-                  <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-                    You proposed this version. A different admin or operator must approve.
-                  </div>
-                ) : null}
+                {null}
                 <div className="flex gap-2">
                   <button
                     type="button"
