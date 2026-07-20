@@ -63,7 +63,18 @@ export const getProjectWork = createServerFn({ method: "GET" })
   .handler(async ({ context, data }): Promise<ProjectWorkPayload> => {
     const { isAdmin } = await assertOperator(context);
 
-    const spine = await getProjectSpine({ data: { id: data.id } });
+    // Invoke sibling server fn's handler directly (SSR RPC lookup fails
+    // when calling a server fn from inside another server fn handler).
+    const spineExec = await (
+      getProjectSpine as unknown as {
+        __executeServer: (opts: {
+          data: { id: string };
+          context?: unknown;
+        }) => Promise<{ result?: unknown; error?: unknown }>;
+      }
+    ).__executeServer({ data: { id: data.id }, context });
+    if (spineExec.error) throw spineExec.error;
+    const spine = spineExec.result as Awaited<ReturnType<typeof getProjectSpine>>;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
