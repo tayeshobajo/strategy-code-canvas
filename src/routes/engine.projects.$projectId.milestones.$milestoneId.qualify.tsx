@@ -234,7 +234,7 @@ function QualifyPage() {
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded bg-emerald-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-              disabled={isAuthor || decideMut.isPending}
+              disabled={decideMut.isPending}
               onClick={() => decideMut.mutate("qualified")}
             >
               <ThumbsUp className="w-3.5 h-3.5" /> Mark qualified
