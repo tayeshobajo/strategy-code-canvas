@@ -39,7 +39,7 @@ export async function runSynthesis(input: OrchestratorRunInput): Promise<Orchest
   // afterward — a new proposal supersedes the AI-approved version.
   if (input.mode === "repair" || input.mode === "refresh") {
     try {
-      const { autoResolveDoctrineGates } = await import("./doctrine-auto.server");
+      const { autoResolveDoctrineGates } = await import("./runners/doctrine-auto.server");
       await autoResolveDoctrineGates({
         supabase: input.supabase,
         projectId: input.projectId,
