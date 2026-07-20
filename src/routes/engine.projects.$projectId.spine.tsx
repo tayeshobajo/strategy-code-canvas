@@ -270,7 +270,7 @@ function ProjectSpine() {
     if (exportSearch !== 1) return;
     const t = window.setTimeout(() => {
       exportHandlerRef.current?.();
-      navigate({ search: (prev) => ({ ...prev, export: undefined }), replace: true });
+      navigate({ search: (prev: { export?: 1 }) => ({ ...prev, export: undefined }), replace: true });
     }, 300);
     return () => window.clearTimeout(t);
   }, [exportSearch, navigate]);
