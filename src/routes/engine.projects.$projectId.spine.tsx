@@ -115,6 +115,9 @@ function badgeToneFor(
 
 
 export const Route = createFileRoute("/engine/projects/$projectId/spine")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    export: search.export === 1 || search.export === "1" ? 1 : undefined,
+  }),
   component: ProjectSpine,
 });
 
@@ -260,6 +263,17 @@ function ProjectSpine() {
     window.addEventListener("spine:export-roadmap", handler);
     return () => window.removeEventListener("spine:export-roadmap", handler);
   }, []);
+
+  const exportSearch = Route.useSearch({ select: (s) => s.export });
+  const navigate = Route.useNavigate();
+  useEffect(() => {
+    if (exportSearch !== 1) return;
+    const t = window.setTimeout(() => {
+      exportHandlerRef.current?.();
+      navigate({ search: (prev: { export?: 1 }) => ({ ...prev, export: undefined }), replace: true });
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [exportSearch, navigate]);
 
 
 
