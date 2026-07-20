@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Network,
   RefreshCw,
+  Maximize2,
 } from "lucide-react";
 import { getProjectRoadmap, type ProjectRoadmapPayload } from "@/lib/engine-roadmap.functions";
 import type {
@@ -684,6 +685,18 @@ function ViewSwitcher({
           </Link>
         );
       })}
+      <Link
+        to="/engine/projects/$projectId/roadmap/studio"
+        params={{ projectId }}
+        role="tab"
+        aria-selected={false}
+        data-qa-action="open-roadmap-studio-tab"
+        title="Open the full-viewport Roadmap Studio canvas"
+        className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs text-ink/70 hover:bg-muted"
+      >
+        <Maximize2 className="h-3.5 w-3.5" />
+        Studio
+      </Link>
     </div>
   );
 }
